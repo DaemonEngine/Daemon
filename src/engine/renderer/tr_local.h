@@ -3366,7 +3366,6 @@ inline bool checkGLErrors()
 	*/
 	qhandle_t RE_RegisterShader( const char *name, int flags );
 	qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image );
-	bool  RE_LoadDynamicShader( const char *shadername, const char *shadertext );
 
 	shader_t  *R_FindShader( const char *name, shaderType_t type, int flags );
 	shader_t  *R_GetShaderByHandle( qhandle_t hShader );
@@ -4100,8 +4099,6 @@ inline bool checkGLErrors()
 	void       RE_UnregisterFont( fontInfo_t *font );
 	void       RE_Glyph(fontInfo_t *font, const char *str, glyphInfo_t *glyph);
 	void       RE_GlyphChar(fontInfo_t *font, int ch, glyphInfo_t *glyph);
-
-	void       RE_Finish();
 
 	void       R_SetAltShaderTokens( const char * );
 

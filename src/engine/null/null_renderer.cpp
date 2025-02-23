@@ -120,11 +120,6 @@ bool R_inPVVS( const vec3_t, const vec3_t )
 {
 	return false;
 }
-bool RE_LoadDynamicShader( const char*, const char* )
-{
-	return true;
-}
-void RE_Finish() { }
 void RE_TakeVideoFrame( int, int, byte*, byte*, bool ) { }
 int RE_RegisterAnimation( const char* )
 {
@@ -251,11 +246,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
 
     re.inPVS = R_inPVS;
     re.inPVVS = R_inPVVS;
-
-    //bani
-    re.LoadDynamicShader = RE_LoadDynamicShader;
-    //bani
-    re.Finish = RE_Finish;
 
     re.TakeVideoFrame = RE_TakeVideoFrame;
 

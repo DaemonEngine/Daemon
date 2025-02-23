@@ -1648,13 +1648,13 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		ri = *rimp;
 
-		Log::Debug("GetRefAPI()" );
+		Log::Debug( "GetRefAPI()" );
 
 		re = {};
 
 		if ( apiVersion != REF_API_VERSION )
 		{
-			Log::Notice("Mismatched REF_API_VERSION: expected %i, got %i", REF_API_VERSION, apiVersion );
+			Log::Notice( "Mismatched REF_API_VERSION: expected %i, got %i", REF_API_VERSION, apiVersion );
 			return nullptr;
 		}
 
@@ -1716,11 +1716,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.inPVS = R_inPVS;
 		re.inPVVS = R_inPVVS;
 		// Q3A END
-
-		// ET BEGIN
-		re.LoadDynamicShader = RE_LoadDynamicShader;
-		re.Finish = RE_Finish;
-		// ET END
 
 		// XreaL BEGIN
 		re.TakeVideoFrame = RE_TakeVideoFrame;
