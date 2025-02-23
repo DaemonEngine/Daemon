@@ -918,24 +918,3 @@ void RE_TakeVideoFrame( int width, int height, byte *captureBuffer, byte *encode
 	cmd->encodeBuffer = encodeBuffer;
 	cmd->motionJpeg = motionJpeg;
 }
-
-//bani
-
-/*
-==================
-RE_Finish
-==================
-*/
-void RE_Finish()
-{
-	RenderFinishCommand *cmd;
-
-	Log::Notice("RE_Finish" );
-
-	cmd = R_GetRenderCommand<RenderFinishCommand>();
-
-	if ( !cmd )
-	{
-		return;
-	}
-}
