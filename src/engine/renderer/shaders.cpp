@@ -20,8 +20,6 @@
 #include "depthtile1_vp.glsl.h"
 #include "depthtile2_fp.glsl.h"
 #include "depthtile2_vp.glsl.h"
-#include "dispersion_C_fp.glsl.h"
-#include "dispersion_C_vp.glsl.h"
 #include "fogGlobal_fp.glsl.h"
 #include "fogGlobal_vp.glsl.h"
 #include "fogQuake3_fp.glsl.h"
@@ -47,8 +45,6 @@
 #include "portal_vp.glsl.h"
 #include "reflection_CB_fp.glsl.h"
 #include "reflection_CB_vp.glsl.h"
-#include "refraction_C_fp.glsl.h"
-#include "refraction_C_vp.glsl.h"
 #include "reliefMapping_fp.glsl.h"
 #include "screen_fp.glsl.h"
 #include "screen_vp.glsl.h"
@@ -86,8 +82,6 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "depthtile1_vp.glsl", std::string(reinterpret_cast<const char*>(depthtile1_vp_glsl), sizeof(depthtile1_vp_glsl)) },
 	{ "depthtile2_fp.glsl", std::string(reinterpret_cast<const char*>(depthtile2_fp_glsl), sizeof(depthtile2_fp_glsl)) },
 	{ "depthtile2_vp.glsl", std::string(reinterpret_cast<const char*>(depthtile2_vp_glsl), sizeof(depthtile2_vp_glsl)) },
-	{ "dispersion_C_fp.glsl", std::string(reinterpret_cast<const char*>(dispersion_C_fp_glsl), sizeof(dispersion_C_fp_glsl)) },
-	{ "dispersion_C_vp.glsl", std::string(reinterpret_cast<const char*>(dispersion_C_vp_glsl), sizeof(dispersion_C_vp_glsl)) },
 	{ "fogGlobal_fp.glsl", std::string(reinterpret_cast<const char*>(fogGlobal_fp_glsl), sizeof(fogGlobal_fp_glsl)) },
 	{ "fogGlobal_vp.glsl", std::string(reinterpret_cast<const char*>(fogGlobal_vp_glsl), sizeof(fogGlobal_vp_glsl)) },
 	{ "fogQuake3_fp.glsl", std::string(reinterpret_cast<const char*>(fogQuake3_fp_glsl), sizeof(fogQuake3_fp_glsl)) },
@@ -116,8 +110,6 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "processSurfaces_cp.glsl", std::string( reinterpret_cast< const char* >( processSurfaces_cp_glsl ), sizeof( processSurfaces_cp_glsl ) ) },
 	{ "reflection_CB_fp.glsl", std::string(reinterpret_cast<const char*>(reflection_CB_fp_glsl), sizeof(reflection_CB_fp_glsl)) },
 	{ "reflection_CB_vp.glsl", std::string(reinterpret_cast<const char*>(reflection_CB_vp_glsl), sizeof(reflection_CB_vp_glsl)) },
-	{ "refraction_C_fp.glsl", std::string(reinterpret_cast<const char*>(refraction_C_fp_glsl), sizeof(refraction_C_fp_glsl)) },
-	{ "refraction_C_vp.glsl", std::string(reinterpret_cast<const char*>(refraction_C_vp_glsl), sizeof(refraction_C_vp_glsl)) },
 	{ "reliefMapping_fp.glsl", std::string(reinterpret_cast<const char*>(reliefMapping_fp_glsl), sizeof(reliefMapping_fp_glsl)) },
 	{ "screen_fp.glsl", std::string(reinterpret_cast<const char*>(screen_fp_glsl), sizeof(screen_fp_glsl)) },
 	{ "screen_vp.glsl", std::string(reinterpret_cast<const char*>(screen_vp_glsl), sizeof(screen_vp_glsl)) },
