@@ -1067,8 +1067,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 	  ST_PHYSICALMAP,
 	  ST_SPECULARMAP,
 	  ST_REFLECTIONMAP, // cubeMap based reflection
-	  ST_REFRACTIONMAP,
-	  ST_DISPERSIONMAP,
 	  ST_SKYBOXMAP,
 	  ST_SCREENMAP, // 2d offscreen or portal rendering
 	  ST_PORTALMAP,
