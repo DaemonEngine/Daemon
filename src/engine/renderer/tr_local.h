@@ -329,7 +329,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 	  RSPEEDS_LIGHTS,
 	  RSPEEDS_SHADOWCUBE_CULLING,
 	  RSPEEDS_FOG,
-	  RSPEEDS_FLARES,
 	  RSPEEDS_SHADING_TIMES,
 	  RSPEEDS_CHC,
 	  RSPEEDS_NEAR_FAR,
@@ -1592,7 +1591,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 	  SF_MD5,
 	  SF_IQM,
 
-	  SF_FLARE,
 	  SF_ENTITY, // beams, rails, lightning, etc that can be determined by entity
 
 	  SF_VBO_MESH,
@@ -1744,14 +1742,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 		int16_t       numVerts;
 		int16_t       fogIndex;
 		polyVert_t    *verts;
-	};
-
-	struct srfFlare_t
-	{
-		surfaceType_t surfaceType;
-		vec3_t        origin;
-		vec3_t        normal;
-		vec3_t        color;
 	};
 
 	struct srfVert_t
@@ -2474,10 +2464,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		int   c_fogSurfaces;
 		int   c_fogBatches;
-
-		int   c_flareAdds;
-		int   c_flareTests;
-		int   c_flareRenders;
 
 		int   c_forwardAmbientTime;
 		int   c_forwardLightingTime;
@@ -3596,18 +3582,6 @@ inline bool checkGLErrors()
 	bool R_inPVVS( const vec3_t p1, const vec3_t p2 );
 
 	void     R_AddWorldInteractions( trRefLight_t *light );
-
-	/*
-	============================================================
-
-	FLARES, tr_flares.c
-
-	============================================================
-	*/
-
-	void R_ClearFlares();
-
-	void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t normal );
 
 	/*
 	============================================================
