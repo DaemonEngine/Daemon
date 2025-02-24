@@ -169,8 +169,6 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/depthtile1_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/depthtile2_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/depthtile2_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/dispersion_C_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/dispersion_C_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fogGlobal_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fogGlobal_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_fp.glsl
@@ -196,8 +194,6 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/portal_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/reflection_CB_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/reflection_CB_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/refraction_C_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/refraction_C_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/reliefMapping_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/screen_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/screen_vp.glsl
