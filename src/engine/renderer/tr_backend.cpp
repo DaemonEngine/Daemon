@@ -5755,18 +5755,6 @@ const RenderCommand *SwapBuffersCommand::ExecuteSelf( ) const
 
 /*
 =============
-RB_Finish
-=============
-*/
-const RenderCommand *RenderFinishCommand::ExecuteSelf( ) const
-{
-	glFinish();
-
-	return this + 1;
-}
-
-/*
-=============
 R_ShutdownBackend
 =============
 */

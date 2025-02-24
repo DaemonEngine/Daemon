@@ -3974,9 +3974,6 @@ inline bool checkGLErrors()
 		byte     *encodeBuffer;
 		bool motionJpeg;
 	};
-	struct RenderFinishCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const override;
-	};
 	struct RenderPostProcessCommand : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
