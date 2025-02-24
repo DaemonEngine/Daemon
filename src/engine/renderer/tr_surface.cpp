@@ -1358,31 +1358,6 @@ static void Tess_SurfaceBad( surfaceType_t* )
 	Log::Notice("Bad surface tesselated." );
 }
 
-static void Tess_SurfaceFlare( srfFlare_t *surf )
-{
-	vec3_t dir;
-	vec3_t origin;
-	float  d;
-
-	GLimp_LogComment( "--- Tess_SurfaceFlare ---\n" );
-
-	// FIXME: this doesn't actually use the buffers?
-	Tess_CheckVBOAndIBO( tess.vbo, tess.ibo );
-
-	VectorMA( surf->origin, 2.0F, surf->normal, origin );
-	VectorSubtract( origin, backEnd.viewParms.orientation.origin, dir );
-	VectorNormalize( dir );
-	d = -DotProduct( dir, surf->normal );
-	VectorMA( origin, r_ignore->value, dir, origin );
-
-	if ( d < 0 )
-	{
-		return;
-	}
-
-	RB_AddFlare( ( void * ) surf, tess.fogNum, origin, surf->color, surf->normal );
-}
-
 /*
 ==============
 Tess_SurfaceVBOMesh
@@ -1524,7 +1499,6 @@ void ( *rb_surfaceTable[ Util::ordinal(surfaceType_t::SF_NUM_SURFACE_TYPES) ] )(
 	( void ( * )( void * ) ) Tess_SurfaceMD5,  // SF_MD5,
 	( void ( * )( void * ) ) Tess_SurfaceIQM,  // SF_IQM,
 
-	( void ( * )( void * ) ) Tess_SurfaceFlare,  // SF_FLARE,
 	( void ( * )( void * ) ) Tess_SurfaceEntity,  // SF_ENTITY
 	( void ( * )( void * ) ) Tess_SurfaceVBOMesh,  // SF_VBO_MESH
 	( void ( * )( void * ) ) Tess_SurfaceVBOMD5Mesh,  // SF_VBO_MD5MESH

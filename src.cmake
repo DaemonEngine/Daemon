@@ -91,7 +91,6 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/tr_cmds.cpp
     ${ENGINE_DIR}/renderer/tr_curve.cpp
     ${ENGINE_DIR}/renderer/tr_fbo.cpp
-    ${ENGINE_DIR}/renderer/tr_flares.cpp
     ${ENGINE_DIR}/renderer/tr_font.cpp
     ${ENGINE_DIR}/renderer/GeometryCache.cpp
     ${ENGINE_DIR}/renderer/GeometryCache.h

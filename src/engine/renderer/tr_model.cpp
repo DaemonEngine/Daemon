@@ -273,8 +273,6 @@ bool RE_BeginRegistration( glconfig_t *glconfigOut, glconfig2_t *glconfig2Out )
 		tr.visClusters[i] = -1;
 	}
 
-	R_ClearFlares();
-
 	RE_ClearScene();
 
 	// HACK: give world entity white color for "colored" shader keyword

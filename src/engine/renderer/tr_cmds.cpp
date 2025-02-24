@@ -94,11 +94,6 @@ void R_PerformanceCounters()
 	{
 		Log::Notice("fog srf:%i batches:%i", backEnd.pc.c_fogSurfaces, backEnd.pc.c_fogBatches );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_FLARES ))
-	{
-		Log::Notice("flare adds:%i tests:%i renders:%i",
-		           backEnd.pc.c_flareAdds, backEnd.pc.c_flareTests, backEnd.pc.c_flareRenders );
-	}
 	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADING_TIMES ))
 	{
 		Log::Notice("forward shading times: ambient:%i lighting:%i", backEnd.pc.c_forwardAmbientTime,
