@@ -891,7 +891,7 @@ function(AddApplication)
     ADD_PRECOMPILED_HEADER(${A_Target}-objects)
 endfunction()
 
-daemon_write_buildinfo()
+daemon_write_buildinfo("Engine")
 
 if (NOT NACL)
     add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${BUILDINFOLIST} ${COMMONLIST} ${ENGINELIST})
