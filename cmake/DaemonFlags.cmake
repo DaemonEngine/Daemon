@@ -170,7 +170,7 @@ endif()
 
 # Compiler options
 option(USE_FLOAT_EXCEPTIONS "Use floating point exceptions with common.floatException.* cvars" OFF)
-option(USE_FAST_MATH "Use fast math" ON)
+option(USE_FAST_MATH "Use fast math" OFF)
 
 if (USE_FLOAT_EXCEPTIONS)
     add_definitions(-DDAEMON_USE_FLOAT_EXCEPTIONS)
