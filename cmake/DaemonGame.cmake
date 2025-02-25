@@ -104,13 +104,13 @@ else()
 	set(NACL_TARGETS "")
 endif()
 
+daemon_write_buildinfo("Game")
+
 function(GAMEMODULE)
     # ParseArguments setup
     set(oneValueArgs NAME)
     set(multiValueArgs DEFINITIONS FLAGS FILES LIBS)
     cmake_parse_arguments(GAMEMODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-	daemon_write_buildinfo()
 
     if (NOT NACL)
         if (BUILD_GAME_NATIVE_DLL)
