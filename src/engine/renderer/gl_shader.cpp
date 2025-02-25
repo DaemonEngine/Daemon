@@ -1321,8 +1321,10 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 	}
 
 	Log::Debug( "building %s shader permutation with macro: %s",
-		shader->GetMainShaderName(),
+		shader->GetName(),
 		compileMacros.empty() ? "none" : compileMacros );
+
+	const int start = Sys::Milliseconds();
 
 	// add them
 	std::string vertexShaderTextWithMacros = macrosString + shader->_vertexShaderText;
@@ -1356,6 +1358,8 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 						   &GLWorldHeader },
 						 GL_COMPUTE_SHADER );
 	}
+
+	Log::Debug( "Compilation: %i ms", Sys::Milliseconds() - start );
 }
 
 void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderProgram_t *program,
@@ -1375,8 +1379,11 @@ void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderPr
 		glAttachShader( program->program, program->CS );
 	}
 
+	const int start = Sys::Milliseconds();
 	BindAttribLocations( program->program );
 	LinkProgram( program->program );
+
+	Log::Debug( "Link: %i ms", Sys::Milliseconds() - start );
 }
 
 // This will generate all the extra code for material system shaders
