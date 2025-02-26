@@ -96,17 +96,17 @@ set(NACL ON)
 set(CMAKE_C_FLAGS "")
 set(CMAKE_CXX_FLAGS "")
 
-set(PNACL_TRANSLATE_OPTIONS
-    --allow-llvm-bitcode-input # FIXME: finalize as part of the build process
-    --pnacl-allow-exceptions
-    $<$<CONFIG:None>:-O3>
-    $<$<CONFIG:Release>:-O3>
-    $<$<CONFIG:Debug>:-O0>
-    $<$<CONFIG:RelWithDebInfo>:-O2>
-    $<$<CONFIG:MinSizeRel>:-O2>
-)
-
 function(pnacl_finalize dir module arch)
+    include(DaemonBuildTypeGeneratorExpression)
+
+    set(PNACL_TRANSLATE_OPTIONS
+        --allow-llvm-bitcode-input # FIXME: finalize as part of the build process
+        --pnacl-allow-exceptions
+        $<${RELEASE_GENEXP_COND}:-O3>
+        $<${DEBUG_GENEXP_COND}:-O0>
+        $<${RELWITHDEBINFO_GENEXP_COND}:-O2>
+        $<${MINSIZEREL_GENEXP_COND}:-O2>
+    )
     set(PEXE ${dir}/${module}.pexe)
     set(NEXE ${dir}/${module}-${arch}.nexe)
     set(STRIPPED_NEXE ${dir}/${module}-${arch}-stripped.nexe)

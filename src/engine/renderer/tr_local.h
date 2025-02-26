@@ -329,7 +329,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 	  RSPEEDS_LIGHTS,
 	  RSPEEDS_SHADOWCUBE_CULLING,
 	  RSPEEDS_FOG,
-	  RSPEEDS_FLARES,
 	  RSPEEDS_SHADING_TIMES,
 	  RSPEEDS_CHC,
 	  RSPEEDS_NEAR_FAR,
@@ -1592,7 +1591,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 	  SF_MD5,
 	  SF_IQM,
 
-	  SF_FLARE,
 	  SF_ENTITY, // beams, rails, lightning, etc that can be determined by entity
 
 	  SF_VBO_MESH,
@@ -1744,14 +1742,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 		int16_t       numVerts;
 		int16_t       fogIndex;
 		polyVert_t    *verts;
-	};
-
-	struct srfFlare_t
-	{
-		surfaceType_t surfaceType;
-		vec3_t        origin;
-		vec3_t        normal;
-		vec3_t        color;
 	};
 
 	struct srfVert_t
@@ -2475,10 +2465,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 		int   c_fogSurfaces;
 		int   c_fogBatches;
 
-		int   c_flareAdds;
-		int   c_flareTests;
-		int   c_flareRenders;
-
 		int   c_forwardAmbientTime;
 		int   c_forwardLightingTime;
 
@@ -2984,6 +2970,14 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern cvar_t *r_mode; // video mode
 	extern cvar_t *r_gamma;
 
+	extern Cvar::Cvar<bool> r_tonemap;
+	extern Cvar::Cvar<float> r_tonemapExposure;
+	extern Cvar::Range<Cvar::Cvar<float>> r_tonemapContrast;
+	extern Cvar::Range<Cvar::Cvar<float>> r_tonemapHighlightsCompressionSpeed;
+	extern Cvar::Range<Cvar::Cvar<float>> r_tonemapHDRMax;
+	extern Cvar::Range<Cvar::Cvar<float>> r_tonemapDarkAreaPointHDR;
+	extern Cvar::Range<Cvar::Cvar<float>> r_tonemapDarkAreaPointLDR;
+
 	extern cvar_t *r_nobind; // turns off binding to appropriate textures
 	extern cvar_t *r_singleShader; // make most world faces use default shader
 	extern cvar_t *r_picMip; // controls picmip values
@@ -3357,7 +3351,6 @@ inline bool checkGLErrors()
 	*/
 	qhandle_t RE_RegisterShader( const char *name, int flags );
 	qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image );
-	bool  RE_LoadDynamicShader( const char *shadername, const char *shadertext );
 
 	shader_t  *R_FindShader( const char *name, shaderType_t type, int flags );
 	shader_t  *R_GetShaderByHandle( qhandle_t hShader );
@@ -3588,18 +3581,6 @@ inline bool checkGLErrors()
 	bool R_inPVVS( const vec3_t p1, const vec3_t p2 );
 
 	void     R_AddWorldInteractions( trRefLight_t *light );
-
-	/*
-	============================================================
-
-	FLARES, tr_flares.c
-
-	============================================================
-	*/
-
-	void R_ClearFlares();
-
-	void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t normal );
 
 	/*
 	============================================================
@@ -3965,9 +3946,6 @@ inline bool checkGLErrors()
 		byte     *encodeBuffer;
 		bool motionJpeg;
 	};
-	struct RenderFinishCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const override;
-	};
 	struct RenderPostProcessCommand : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
@@ -4090,8 +4068,6 @@ inline bool checkGLErrors()
 	void       RE_UnregisterFont( fontInfo_t *font );
 	void       RE_Glyph(fontInfo_t *font, const char *str, glyphInfo_t *glyph);
 	void       RE_GlyphChar(fontInfo_t *font, int ch, glyphInfo_t *glyph);
-
-	void       RE_Finish();
 
 	void       R_SetAltShaderTokens( const char * );
 

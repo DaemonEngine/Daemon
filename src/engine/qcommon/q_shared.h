@@ -37,6 +37,12 @@ Maryland 20850 USA.
 
 #include "common/Defs.h"
 
+#if defined(BUILD_VM)
+#include "DaemonBuildInfo/Game.h"
+#else
+#include "DaemonBuildInfo/Engine.h"
+#endif
+
 // math.h/cmath uses _USE_MATH_DEFINES to decide if to define M_PI etc or not.
 // So define _USE_MATH_DEFINES early before including math.h/cmath
 // and before including any other header in case they bring in math.h/cmath indirectly.

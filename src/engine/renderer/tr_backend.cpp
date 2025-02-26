@@ -3062,19 +3062,12 @@ void RB_RenderBloom()
 		GL_State( GLS_DEPTHTEST_DISABLE );
 		GL_Cull( cullType_t::CT_TWO_SIDED );
 
-		GL_PushMatrix();
-
-		MatrixOrthogonalProjection( ortho, 0, tr.contrastRenderFBO->width, 0, tr.contrastRenderFBO->height, -99999, 99999 );
-		GL_LoadProjectionMatrix( ortho );
-
 		// render contrast downscaled to 1/4th of the screen
 		gl_contrastShader->BindProgram( 0 );
 
 		gl_contrastShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
 		);
-
-		GL_PopMatrix(); // special 1/4th of the screen contrastRenderFBO ortho
 
 		R_BindFBO( tr.contrastRenderFBO );
 		GL_ClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
@@ -3302,6 +3295,35 @@ void RB_FXAA()
 	GL_CheckErrors();
 }
 
+static void ComputeTonemapParams( const float contrast, const float highlightsCompressionSpeed,
+	const float HDRMax,
+	const float darkAreaPointHDR, const float darkAreaPointLDR,
+	float& shoulderClip, float& highlightsCompression ) {
+	// Lottes 2016, "Advanced Techniques and Optimization of HDR Color Pipelines"
+	/* a: contrast
+	d: highlightsCompressionSpeed
+	b: shoulderClip
+	c: highlightsCompression
+	hdrMax: HDRMax
+	midIn: darkAreaPointHDR
+	midOut: darkAreaPointLDR */
+
+	shoulderClip =
+		( -powf( darkAreaPointHDR, contrast ) + powf( HDRMax, contrast ) * darkAreaPointLDR )
+		/
+		( ( powf( HDRMax, contrast * highlightsCompressionSpeed )
+			- powf( darkAreaPointHDR, contrast * highlightsCompressionSpeed )
+		) * darkAreaPointLDR );
+	highlightsCompression =
+		( powf( HDRMax, contrast * highlightsCompressionSpeed ) * powf( darkAreaPointHDR, contrast )
+			- powf( HDRMax, contrast ) * powf( darkAreaPointHDR, contrast * highlightsCompressionSpeed ) * darkAreaPointLDR
+		)
+		/
+		( ( powf( HDRMax, contrast * highlightsCompressionSpeed )
+			- powf( darkAreaPointHDR, contrast * highlightsCompressionSpeed )
+		) * darkAreaPointLDR );
+}
+
 void RB_CameraPostFX()
 {
 	matrix_t ortho;
@@ -3331,6 +3353,16 @@ void RB_CameraPostFX()
 	gl_cameraEffectsShader->SetUniform_ColorModulate( backEnd.viewParms.gradingWeights );
 
 	gl_cameraEffectsShader->SetUniform_InverseGamma( 1.0 / r_gamma->value );
+
+	const bool tonemap = r_tonemap.Get() && r_highPrecisionRendering.Get() && glConfig2.textureFloatAvailable;
+	if ( tonemap ) {
+		vec4_t tonemapParms { r_tonemapContrast.Get(), r_tonemapHighlightsCompressionSpeed.Get() };
+		ComputeTonemapParams( tonemapParms[0], tonemapParms[1], r_tonemapHDRMax.Get(),
+			r_tonemapDarkAreaPointHDR.Get(), r_tonemapDarkAreaPointLDR.Get(), tonemapParms[2], tonemapParms[3] );
+		gl_cameraEffectsShader->SetUniform_TonemapParms( tonemapParms );
+		gl_cameraEffectsShader->SetUniform_TonemapExposure( r_tonemapExposure.Get() );
+	}
+	gl_cameraEffectsShader->SetUniform_Tonemap( tonemap );
 
 	// This shader is run last, so let it render to screen instead of
 	// tr.mainFBO
@@ -5717,18 +5749,6 @@ const RenderCommand *SwapBuffersCommand::ExecuteSelf( ) const
 	GLimp_EndFrame();
 
 	backEnd.projection2D = false;
-
-	return this + 1;
-}
-
-/*
-=============
-RB_Finish
-=============
-*/
-const RenderCommand *RenderFinishCommand::ExecuteSelf( ) const
-{
-	glFinish();
 
 	return this + 1;
 }

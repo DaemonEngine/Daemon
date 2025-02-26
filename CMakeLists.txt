@@ -333,12 +333,11 @@ function(ADD_PRECOMPILED_HEADER Target)
     separate_arguments(Flags)
 
     # Get the per-configuration compile flags
-    foreach(Config Debug Release RelWithDebInfo MinSizeRel)
-        string(TOUPPER ${Config} CONFIG)
-        set(ConfigFlags ${CMAKE_CXX_FLAGS_${CONFIG}})
+    foreach(Config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+        set(ConfigFlags ${CMAKE_CXX_FLAGS_${Config}})
         separate_arguments(ConfigFlags)
         foreach(Flag ${ConfigFlags})
-            set(Flags ${Flags} $<$<CONFIG:${Config}>:${Flag}>)
+            set(Flags ${Flags} $<${${Config}_GENEXP_COND}:${Flag}>)
         endforeach()
     endforeach()
 
@@ -892,7 +891,7 @@ function(AddApplication)
     ADD_PRECOMPILED_HEADER(${A_Target}-objects)
 endfunction()
 
-daemon_write_buildinfo()
+daemon_write_buildinfo("Engine")
 
 if (NOT NACL)
     add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${BUILDINFOLIST} ${COMMONLIST} ${ENGINELIST})

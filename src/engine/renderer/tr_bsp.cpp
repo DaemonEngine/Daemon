@@ -1475,43 +1475,6 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf,
 }
 
 /*
-===============
-ParseFlare
-===============
-*/
-static void ParseFlare( dsurface_t *ds, bspSurface_t *surf )
-{
-	srfFlare_t *flare;
-	int        i;
-
-	// set lightmap
-	surf->lightmapNum = -1;
-
-	// get fog volume
-	surf->fogIndex = LittleLong( ds->fogNum ) + 1;
-
-	// get shader
-	surf->shader = ShaderForShaderNum( ds->shaderNum );
-
-	if ( r_singleShader->integer && !surf->shader->isSky )
-	{
-		surf->shader = tr.defaultShader;
-	}
-
-	flare = (srfFlare_t*) ri.Hunk_Alloc( sizeof( *flare ), ha_pref::h_low );
-	flare->surfaceType = surfaceType_t::SF_FLARE;
-
-	surf->data = ( surfaceType_t * ) flare;
-
-	for ( i = 0; i < 3; i++ )
-	{
-		flare->origin[ i ] = LittleFloat( ds->lightmapOrigin[ i ] );
-		flare->color[ i ] = LittleFloat( ds->lightmapVecs[ 0 ][ i ] );
-		flare->normal[ i ] = LittleFloat( ds->lightmapVecs[ 2 ][ i ] );
-	}
-}
-
-/*
 =================
 R_MergedWidthPoints
 
@@ -3475,12 +3438,16 @@ static void R_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *indexLump )
 				break;
 
 			case mapSurfaceType_t::MST_FLARE:
-				ParseFlare( in, out );
+				Log::Warn( "Surface type not supported: MST_FLARE; firstIndex: %i, numIndexes: %i, shaderNum: %i",
+					in->firstIndex, in->numIndexes, in->shaderNum );
 				numFlares++;
 				break;
 
 			case mapSurfaceType_t::MST_FOLIAGE:
 				// Tr3B: TODO ParseFoliage
+				Log::Warn( "Surface type not supported: MST_FOLIAGE, parsing as MST_TRIANGLE_SOUP instead;"
+					" firstIndex: %i, numIndexes: %i, shaderNum: %i",
+					in->firstIndex, in->numIndexes, in->shaderNum );
 				ParseTriSurf( in, dv, out, indexes );
 				numFoliages++;
 				break;
@@ -3490,7 +3457,7 @@ static void R_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *indexLump )
 		}
 	}
 
-	Log::Debug("...loaded %d faces, %i meshes, %i trisurfs, %i flares %i foliages", numFaces, numMeshes, numTriSurfs,
+	Log::Debug( "...loaded %d faces, %i meshes, %i trisurfs, %i flares (skipped) %i foliages", numFaces, numMeshes, numTriSurfs,
 	           numFlares, numFoliages );
 
 	if ( r_stitchCurves->integer )

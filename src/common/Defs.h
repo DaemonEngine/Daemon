@@ -31,8 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_DEFS_H_
 #define COMMON_DEFS_H_
 
-#include "DaemonBuildInfo.h"
-
 #define PRODUCT_NAME        "Unvanquished"
 /** Case, No spaces */
 #define PRODUCT_NAME_UPPER  "UNVANQUISHED"

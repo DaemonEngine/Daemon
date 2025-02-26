@@ -235,10 +235,6 @@ struct refexport_t
 	bool( *inPVS )( const vec3_t p1, const vec3_t p2 );
 	bool( *inPVVS )( const vec3_t p1, const vec3_t p2 );
 
-	bool( *LoadDynamicShader )( const char *shadername, const char *shadertext );
-
-	void ( *Finish )();
-
 	// XreaL BEGIN
 	void ( *TakeVideoFrame )( int h, int w, byte *captureBuffer, byte *encodeBuffer, bool motionJpeg );
 

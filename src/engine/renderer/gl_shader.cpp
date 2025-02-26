@@ -506,6 +506,20 @@ static std::string GenCompatHeader() {
 		str += "#define unpackUnorm4x8( value ) ( ( vec4( value, value >> 8, value >> 16, value >> 24 ) & 0xFF ) / 255.0f )\n";
 	}
 
+	/* Driver bug: Adrenaline/OGLP drivers fail to recognise the ARB function versions when they return a 4.6 context
+	and the shaders get #version 460 core, so add #define's for them here */
+	if ( glConfig2.driverVendor == glDriverVendor_t::ATI && glConfig2.shaderAtomicCounterOpsAvailable ) {
+		str += "#define atomicCounterAddARB atomicCounterAdd\n";
+		str += "#define atomicCounterSubtractARB atomicCounterSubtract\n";
+		str += "#define atomicCounterMinARB atomicCounterMin\n";
+		str += "#define atomicCounterMaxARB atomicCounterMax\n";
+		str += "#define atomicCounterAndARB atomicCounterAnd\n";
+		str += "#define atomicCounterOrARB atomicCounterOr\n";
+		str += "#define atomicCounterXorARB atomicCounterXor\n";
+		str += "#define atomicCounterExchangeARB atomicCounterExchange\n";
+		str += "#define atomicCounterAndARB atomicCounterAnd\n";
+	}
+
 	return str;
 }
 
@@ -725,19 +739,11 @@ static std::string GenEngineConstants() {
 			AddDefine( str, "r_showParallelShadowSplits", 1 );
 	}
 
-	if ( r_highPrecisionRendering.Get() )
-	{
-		AddDefine( str, "r_highPrecisionRendering", 1 );
-	}
-
 	if ( glConfig2.realtimeLighting )
 	{
 		AddDefine( str, "r_realtimeLighting", 1 );
 		AddDefine( str, "r_realtimeLightingRenderer", r_realtimeLightingRenderer.Get() );
 	}
-
-	if ( r_precomputedLighting->integer )
-		AddDefine( str, "r_precomputedLighting", 1 );
 
 	if ( r_showNormalMaps->integer )
 	{
@@ -836,8 +842,6 @@ static std::string GenEngineConstants() {
 	{
 		AddDefine( str, "r_colorGrading", 1 );
 	}
-
-	AddDefine( str, "r_zNear", r_znear->value );
 
 	return str;
 }
@@ -2896,6 +2900,9 @@ GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	u_ColorModulate( this ),
 	u_TextureMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_Tonemap( this ),
+	u_TonemapParms( this ),
+	u_TonemapExposure( this ),
 	u_InverseGamma( this )
 {
 }

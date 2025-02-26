@@ -26,6 +26,7 @@
 
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
+include(DaemonBuildTypeGeneratorExpression)
 
 add_definitions(-DDAEMON_BUILD_${CMAKE_BUILD_TYPE})
 
@@ -48,6 +49,9 @@ if (USE_COMPILER_CUSTOMIZATION)
 else()
     message(STATUS "Disabling compiler custom attributes and operators")
 endif()
+
+option(USE_RECOMMENDED_CXX_STANDARD "Use recommended C++ standard" ON)
+mark_as_advanced(USE_RECOMMENDED_CXX_STANDARD)
 
 # Set flag without checking, optional argument specifies build type
 macro(set_c_flag FLAG)
@@ -247,9 +251,6 @@ else()
 			message(FATAL_ERROR "GNU99 is not supported by the compiler")
 		endif()
 	endif()
-
-	option(USE_RECOMMENDED_CXX_STANDARD "Use recommended C++ standard" ON)
-	mark_as_advanced(USE_RECOMMENDED_CXX_STANDARD)
 
 	if (USE_RECOMMENDED_CXX_STANDARD)
 		# PNaCl only defines isascii if __STRICT_ANSI__ is not defined,
@@ -592,4 +593,4 @@ endif()
 # is so that it doesn't break the hacky gcc/clang PCH code which reads all the definitions
 # and prefixes "-D" to them.
 set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS
-             $<$<NOT:$<CONFIG:Debug>>:THIS_IS_NOT_A_>DEBUG_BUILD)
+             $<$<NOT:${DEBUG_GENEXP_COND}>:THIS_IS_NOT_A_>DEBUG_BUILD)
