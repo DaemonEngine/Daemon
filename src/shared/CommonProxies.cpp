@@ -435,6 +435,14 @@ namespace VM {
         SendMsg<CrashDumpMsg>(std::vector<uint8_t>{data, data + size});
     }
 
+    // Add this number of seconds to the UTC date/time to get the local date/time.
+    // The current daylight savings time adjustment is included in this.
+    int GetLocalTimeOffset() {
+        int offset;
+        SendMsg<GetLocalTimeOffsetMsg>(offset);
+        return offset;
+    }
+
     void InitializeProxies(int milliseconds) {
         baseTime = Sys::SteadyClock::now() - std::chrono::milliseconds(milliseconds);
         Cmd::InitializeProxy();

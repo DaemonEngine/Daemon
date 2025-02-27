@@ -59,6 +59,21 @@ namespace VM {
                     Sys::NaclCrashDump(dump, vmName);
                 });
                 break;
+
+            case GET_LOCAL_TIME_OFFSET:
+                IPC::HandleMsg<GetLocalTimeOffsetMsg>(channel, std::move(reader), [this](int& offset) {
+                    time_t epochTime = time(nullptr);
+                    struct tm localDate;
+#ifdef _WIN32
+                    localtime_s(&localDate, &epochTime);
+                    time_t localEpochTime = _mkgmtime(&localDate);
+#else
+                    localtime_r(&epochTime, &localDate);
+                    time_t localEpochTime = timegm(&localDate);
+#endif
+                    offset = static_cast<int>(difftime(localEpochTime, epochTime));
+                });
+                break;
         }
     }
 
