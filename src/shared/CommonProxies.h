@@ -43,6 +43,7 @@ namespace Cmd {
 namespace VM {
 
     void CrashDump(const uint8_t* data, size_t size);
+    int GetLocalTimeOffset();
     void InitializeProxies(int milliseconds);
     void HandleCommonSyscall(int major, int minor, Util::Reader reader, IPC::Channel& channel);
 
