@@ -435,6 +435,12 @@ namespace VM {
         SendMsg<CrashDumpMsg>(std::vector<uint8_t>{data, data + size});
     }
 
+    int GetLocalTimeOffset() {
+        int offset;
+        SendMsg<GetLocalTimeOffsetMsg>(offset);
+        return offset;
+    }
+
     void InitializeProxies(int milliseconds) {
         baseTime = Sys::SteadyClock::now() - std::chrono::milliseconds(milliseconds);
         Cmd::InitializeProxy();
