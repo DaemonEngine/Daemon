@@ -154,6 +154,7 @@ namespace VM {
     enum EngineMiscMessages {
         CREATE_SHARED_MEMORY,
         CRASH_DUMP,
+        GET_LOCAL_TIME_OFFSET,
     };
 
     // CreateSharedMemoryMsg
@@ -164,6 +165,11 @@ namespace VM {
     // CrashDumpMsg
     using CrashDumpMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<MISC, CRASH_DUMP>, std::vector<uint8_t>>
+    >;
+    // GetLocalTimeOffsetMsg
+    using GetLocalTimeOffsetMsg = IPC::SyncMessage<
+        IPC::Message<IPC::Id<MISC, EngineMiscMessages::GET_LOCAL_TIME_OFFSET>>,
+        IPC::Reply<int>
     >;
 
     enum VMMiscMessages {
