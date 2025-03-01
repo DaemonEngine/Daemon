@@ -1919,8 +1919,8 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 
 							// set uniforms
 							gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-							gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-							gl_genericShader->SetUniform_Color( Color::Black );
+							SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
+							SetUniform_Color( gl_genericShader, Color::Black );
 
 							GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
 							GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -2773,9 +2773,9 @@ void RB_RunVisTests( )
 		gl_genericShader->BindProgram( 0 );
 
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-		gl_genericShader->SetUniform_Color( Color::White );
+		SetUniform_Color( gl_genericShader, Color::White );
 
-		gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
+		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
 		gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 		gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -3005,7 +3005,7 @@ void RB_RenderGlobalFog()
 		fogDistanceVector[ 3 ] *= fog->tcScale;
 
 		gl_fogGlobalShader->SetUniform_FogDistanceVector( fogDistanceVector );
-		gl_fogGlobalShader->SetUniform_Color( fog->color );
+		SetUniform_Color( gl_fogGlobalShader, fog->color );
 	}
 
 	gl_fogGlobalShader->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
@@ -3413,7 +3413,7 @@ static void RB_RenderDebugUtils()
 
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-		gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
+		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3465,7 +3465,7 @@ static void RB_RenderDebugUtils()
 
 			lightColor.SetAlpha( 0.2 );
 
-			gl_genericShader->SetUniform_Color( lightColor );
+			SetUniform_Color( gl_genericShader, lightColor );
 
 			MatrixToVectorsFLU( matrixIdentity, forward, left, up );
 			VectorMA( vec3_origin, 16, forward, forward );
@@ -3554,8 +3554,8 @@ static void RB_RenderDebugUtils()
 
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-		gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-		gl_genericShader->SetUniform_Color( Color::Black );
+		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
+		SetUniform_Color( gl_genericShader, Color::Black );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3669,8 +3669,8 @@ static void RB_RenderDebugUtils()
 
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-		gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-		gl_genericShader->SetUniform_Color( Color::Black );
+		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
+		SetUniform_Color( gl_genericShader, Color::Black );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3734,8 +3734,8 @@ static void RB_RenderDebugUtils()
 
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-		gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-		gl_genericShader->SetUniform_Color( Color::Black );
+		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
+		SetUniform_Color( gl_genericShader, Color::Black );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3948,7 +3948,7 @@ static void RB_RenderDebugUtils()
 
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-		gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
+		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3966,7 +3966,7 @@ static void RB_RenderDebugUtils()
 
 		for ( iaCount = 0, ia = &backEnd.viewParms.interactions[ 0 ]; iaCount < backEnd.viewParms.numInteractions; )
 		{
-			gl_genericShader->SetUniform_Color( Color::White );
+			SetUniform_Color( gl_genericShader, Color::White );
 
 			Tess_InstantQuad( *gl_genericShader,
 			                  ia->scissorX, ia->scissorY, ia->scissorWidth - 1.0f, ia->scissorHeight - 1.0f );
@@ -4081,8 +4081,8 @@ static void RB_RenderDebugUtils()
 
 			// set uniforms
 			gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-			gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-			gl_genericShader->SetUniform_Color( Color::Black );
+			SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
+			SetUniform_Color( gl_genericShader, Color::Black );
 
 			GL_State( GLS_DEFAULT );
 			GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -4163,8 +4163,8 @@ static void RB_RenderDebugUtils()
 
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-		gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-		gl_genericShader->SetUniform_Color( Color::Black );
+		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
+		SetUniform_Color( gl_genericShader, Color::Black );
 
 		GL_State( GLS_DEFAULT );
 		GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -4254,7 +4254,7 @@ static void RB_RenderDebugUtils()
 
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-		gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
+		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -4283,7 +4283,7 @@ static void RB_RenderDebugUtils()
 				GL_Cull( cullType_t::CT_TWO_SIDED );
 				GL_State( GLS_DEPTHTEST_DISABLE );
 
-				gl_genericShader->SetUniform_Color( Color::Black );
+				SetUniform_Color( gl_genericShader, Color::Black );
 
 				w = 300;
 				h = 300;
@@ -4344,8 +4344,8 @@ static void RB_RenderDebugUtils()
 					}
 
 					// set uniforms
-					gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-					gl_genericShader->SetUniform_Color( Color::Black );
+					SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
+					SetUniform_Color( gl_genericShader, Color::Black );
 
 					GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
 					GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -4397,7 +4397,7 @@ static void RB_RenderDebugUtils()
 
 					Tess_End();
 
-					gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
+					SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
 				}
 			} // i == 1
 			else
@@ -4432,15 +4432,15 @@ static void RB_RenderDebugUtils()
 					}
 
 					//if(node->shrinkedAABB)
-					//  gl_genericShader->SetUniform_Color(colorBlue);
+					//  SetUniform_Color( gl_genericShader,colorBlue);
 					//else
 					if ( node->visCounts[ tr.visIndex ] == tr.visCounts[ tr.visIndex ] )
 					{
-						gl_genericShader->SetUniform_Color( Color::Green );
+						SetUniform_Color( gl_genericShader, Color::Green );
 					}
 					else
 					{
-						gl_genericShader->SetUniform_Color( Color::Red );
+						SetUniform_Color( gl_genericShader, Color::Red );
 					}
 				}
 				else
@@ -4452,11 +4452,11 @@ static void RB_RenderDebugUtils()
 
 					if ( node->visCounts[ tr.visIndex ] == tr.visCounts[ tr.visIndex ] )
 					{
-						gl_genericShader->SetUniform_Color( Color::Yellow );
+						SetUniform_Color( gl_genericShader, Color::Yellow );
 					}
 					else
 					{
-						gl_genericShader->SetUniform_Color( Color::Blue );
+						SetUniform_Color( gl_genericShader, Color::Blue );
 					}
 				}
 
@@ -4552,8 +4552,8 @@ void DebugDrawBegin( debugDrawMode_t mode, float size ) {
 
 	// set uniforms
 	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-	gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-	gl_genericShader->SetUniform_Color( colorClear );
+	SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
+	SetUniform_Color( gl_genericShader, colorClear );
 
 	// bind u_ColorMap
 	gl_genericShader->SetUniform_ColorMapBindless(
@@ -5670,7 +5670,7 @@ void RB_ShowImages()
 
 	// set uniforms
 	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-	gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
+	SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 	gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 	GL_SelectTexture( 0 );
