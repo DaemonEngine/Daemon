@@ -147,7 +147,7 @@ macro(try_linker_flag PROP FLAG)
     check_C_compiler_flag(${FLAG} FLAG_${PROP})
     set(CMAKE_REQUIRED_FLAGS "")
     if (FLAG_${PROP})
-        set_exe_linker_flag(${FLAG} ${ARGN})
+        set_linker_flag(${FLAG} ${ARGN})
     endif()
 endmacro()
 
@@ -158,7 +158,7 @@ macro(try_exe_linker_flag PROP FLAG)
 	set(CMAKE_REQUIRED_FLAGS "")
 
 	if (FLAG_${PROP})
-		set_linker_flag(${FLAG} ${ARGN})
+		set_exe_linker_flag(${FLAG} ${ARGN})
 	endif()
 endmacro()
 
