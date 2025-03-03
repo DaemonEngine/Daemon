@@ -3794,18 +3794,6 @@ public:
 	}
 };
 
-class u_Tonemap :
-	GLUniform1Bool {
-	public:
-	u_Tonemap( GLShader* shader ) :
-		GLUniform1Bool( shader, "u_Tonemap", true ) {
-	}
-
-	void SetUniform_Tonemap( bool tonemap ) {
-		this->SetValue( tonemap );
-	}
-};
-
 class u_TonemapParms :
 	GLUniform4f {
 	public:
@@ -4462,7 +4450,6 @@ class GLShader_cameraEffects :
 	public u_ColorModulate,
 	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_Tonemap,
 	public u_TonemapParms,
 	public u_TonemapExposure,
 	public u_InverseGamma

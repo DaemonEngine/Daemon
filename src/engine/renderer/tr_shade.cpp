@@ -73,7 +73,7 @@ static void EnableAvailableFeatures()
 
 		if ( glConfig2.realtimeLightLayers > glConfig2.max3DTextureSize ) {
 			glConfig2.realtimeLightLayers = glConfig2.max3DTextureSize;
-			Log::Notice( "r_realtimeLightLayers exceeds maximum 3D texture size, using %i instead", glConfig2.max3DTextureSize );
+			Log::Notice( "r_realtimeLightLayers exceeds maximum 3D texture size, using %i instead.", glConfig2.max3DTextureSize );
 		}
 
 		Log::Notice( "Using %i dynamic light layers, %i dynamic lights available per tile", glConfig2.realtimeLightLayers,
@@ -94,12 +94,28 @@ static void EnableAvailableFeatures()
 	glConfig2.shadowingMode = shadowingMode_t( r_shadows.Get() );
 	glConfig2.shadowMapping = glConfig2.shadowingMode >= shadowingMode_t::SHADOWING_ESM16;
 
-	if ( glConfig2.shadowMapping )
+	glConfig2.toneMapping = r_toneMapping.Get();
+
+	if ( !r_highPrecisionRendering.Get() )
 	{
-		if ( !glConfig2.textureFloatAvailable )
+		Log::Warn( "Tone mapping disabled because high precision rendering is disabled." );
+		glConfig2.toneMapping = false;
+	}
+
+	if ( !glConfig2.textureFloatAvailable )
+	{
+		static const std::pair<bool*, std::string> textureFloatFeatures[] = {
+			{ &glConfig2.shadowMapping, "Shadow mapping" },
+			{ &glConfig2.toneMapping, "Tone mapping" },
+		};
+
+		for ( auto& f : textureFloatFeatures )
 		{
-			Log::Warn( "Shadow mapping disabled because ARB_texture_float is not available" );
-			glConfig2.shadowMapping = false;
+			if ( *f.first )
+			{
+				Log::Warn( "%s disabled because ARB_texture_float is not available.", f.second, "ARB_texture_float" );
+				*f.first = false;
+			}
 		}
 	}
 
@@ -136,13 +152,28 @@ static void EnableAvailableFeatures()
 		}
 	}
 
-
 	// Disable features that require deluxe mapping to be enabled.
 	glConfig2.normalMapping = glConfig2.deluxeMapping && glConfig2.normalMapping;
 	glConfig2.specularMapping = glConfig2.deluxeMapping && glConfig2.specularMapping;
 	glConfig2.physicalMapping = glConfig2.deluxeMapping && glConfig2.physicalMapping;
 
 	glConfig2.bloom = r_bloom.Get();
+
+	glConfig2.ssao = r_ssao.Get() != Util::ordinal( ssaoMode::DISABLED );
+
+	static const std::pair<bool*, std::string> ssaoRequiredExtensions[] = {
+		{ &glConfig2.textureGatherAvailable, "ARB_texture_gather" },
+		{ &glConfig2.gpuShader4Available, "EXT_gpu_shader4" },
+	};
+
+	for ( auto& e: ssaoRequiredExtensions )
+	{
+		if ( *e.first )
+		{
+			Log::Warn( "SSAO disabled because %s is not available.", e.second );
+			glConfig2.ssao = false;
+		}
+	}
 
 	/* Motion blur is enabled by cg_motionblur which is a client cvar so we have to build it in all cases,
 	unless unsupported by the hardware which is the only condition when the engine knows it is not used. */
@@ -369,16 +400,9 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_motionblurShader );
 	}
 
-	if ( r_ssao->integer )
+	if ( glConfig2.ssao )
 	{
-		if ( glConfig2.textureGatherAvailable )
-		{
-			gl_shaderManager.load( gl_ssaoShader );
-		}
-		else
-		{
-			Log::Warn("SSAO not used because GL_ARB_texture_gather is not available.");
-		}
+		gl_shaderManager.load( gl_ssaoShader );
 	}
 
 	if ( r_FXAA->integer != 0 )
