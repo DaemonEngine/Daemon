@@ -539,14 +539,12 @@ static std::string GenVertexHeader() {
 			"#define OUT(mode) varying\n";
 	}
 
-	if ( glConfig2.shaderDrawParametersAvailable ) {
+	if ( glConfig2.usingMaterialSystem ) {
 		str += "OUT(flat) int in_drawID;\n";
 		str += "OUT(flat) int in_baseInstance;\n";
 		str += "#define drawID gl_DrawIDARB\n";
 		str += "#define baseInstance gl_BaseInstanceARB\n\n";
-	}
 
-	if ( glConfig2.usingMaterialSystem ) {
 		AddDefine( str, "BIND_MATERIALS", Util::ordinal( BufferBind::MATERIALS ) );
 		AddDefine( str, "BIND_TEX_DATA", Util::ordinal( BufferBind::TEX_DATA ) );
 		AddDefine( str, "BIND_LIGHTMAP_DATA", Util::ordinal( BufferBind::LIGHTMAP_DATA ) );
@@ -579,14 +577,12 @@ static std::string GenFragmentHeader() {
 		str += "layout(bindless_sampler) uniform;\n";
 	}
 
-	if ( glConfig2.shaderDrawParametersAvailable ) {
+	if ( glConfig2.usingMaterialSystem ) {
 		str += "IN(flat) int in_drawID;\n";
 		str += "IN(flat) int in_baseInstance;\n";
 		str += "#define drawID in_drawID\n";
 		str += "#define baseInstance in_baseInstance\n\n";
-	}
 
-	if ( glConfig2.usingMaterialSystem ) {
 		AddDefine( str, "BIND_MATERIALS", Util::ordinal( BufferBind::MATERIALS ) );
 		AddDefine( str, "BIND_TEX_DATA", Util::ordinal( BufferBind::TEX_DATA ) );
 		AddDefine( str, "BIND_LIGHTMAP_DATA", Util::ordinal( BufferBind::LIGHTMAP_DATA ) );
