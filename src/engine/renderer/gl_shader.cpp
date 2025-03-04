@@ -539,14 +539,12 @@ static std::string GenVertexHeader() {
 			"#define OUT(mode) varying\n";
 	}
 
-	if ( glConfig2.shaderDrawParametersAvailable ) {
+	if ( glConfig2.usingMaterialSystem ) {
 		str += "OUT(flat) int in_drawID;\n";
 		str += "OUT(flat) int in_baseInstance;\n";
 		str += "#define drawID gl_DrawIDARB\n";
 		str += "#define baseInstance gl_BaseInstanceARB\n\n";
-	}
 
-	if ( glConfig2.usingMaterialSystem ) {
 		AddDefine( str, "BIND_MATERIALS", Util::ordinal( BufferBind::MATERIALS ) );
 		AddDefine( str, "BIND_TEX_DATA", Util::ordinal( BufferBind::TEX_DATA ) );
 		AddDefine( str, "BIND_LIGHTMAP_DATA", Util::ordinal( BufferBind::LIGHTMAP_DATA ) );
@@ -579,14 +577,12 @@ static std::string GenFragmentHeader() {
 		str += "layout(bindless_sampler) uniform;\n";
 	}
 
-	if ( glConfig2.shaderDrawParametersAvailable ) {
+	if ( glConfig2.usingMaterialSystem ) {
 		str += "IN(flat) int in_drawID;\n";
 		str += "IN(flat) int in_baseInstance;\n";
 		str += "#define drawID in_drawID\n";
 		str += "#define baseInstance in_baseInstance\n\n";
-	}
 
-	if ( glConfig2.usingMaterialSystem ) {
 		AddDefine( str, "BIND_MATERIALS", Util::ordinal( BufferBind::MATERIALS ) );
 		AddDefine( str, "BIND_TEX_DATA", Util::ordinal( BufferBind::TEX_DATA ) );
 		AddDefine( str, "BIND_LIGHTMAP_DATA", Util::ordinal( BufferBind::LIGHTMAP_DATA ) );
@@ -841,6 +837,11 @@ static std::string GenEngineConstants() {
 	if ( glConfig2.colorGrading )
 	{
 		AddDefine( str, "r_colorGrading", 1 );
+	}
+
+	if ( glConfig2.toneMapping )
+	{
+		AddDefine( str, "r_toneMapping", 1 );
 	}
 
 	return str;
@@ -2265,8 +2266,8 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulateColorGen( this ),
-	u_Color( this ),
+	u_ColorModulateColorGen_Float( this ),
+	u_Color_Float( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_DepthScale( this ),
@@ -2297,8 +2298,8 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulateColorGen( this ),
-	u_Color( this ),
+	u_ColorModulateColorGen_Uint( this ),
+	u_Color_Uint( this ),
 	u_DepthScale( this ),
 	u_ShowTris( this ),
 	u_MaterialColour( this ),
@@ -2332,8 +2333,8 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_LightTiles( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
-	u_ColorModulateColorGen( this ),
-	u_Color( this ),
+	u_ColorModulateColorGen_Float( this ),
+	u_Color_Float( this ),
 	u_AlphaThreshold( this ),
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
@@ -2400,8 +2401,8 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_LightTiles( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
-	u_ColorModulateColorGen( this ),
-	u_Color( this ),
+	u_ColorModulateColorGen_Uint( this ),
+	u_Color_Uint( this ),
 	u_AlphaThreshold( this ),
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
@@ -2459,8 +2460,8 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
-	u_ColorModulateColorGen( this ),
-	u_Color( this ),
+	u_ColorModulateColorGen_Float( this ),
+	u_Color_Float( this ),
 	u_ViewOrigin( this ),
 	u_LightOrigin( this ),
 	u_LightColor( this ),
@@ -2512,8 +2513,8 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
-	u_ColorModulateColorGen( this ),
-	u_Color( this ),
+	u_ColorModulateColorGen_Float( this ),
+	u_Color_Float( this ),
 	u_ViewOrigin( this ),
 	u_LightOrigin( this ),
 	u_LightColor( this ),
@@ -2576,8 +2577,8 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
-	u_ColorModulateColorGen( this ),
-	u_Color( this ),
+	u_ColorModulateColorGen_Float( this ),
+	u_Color_Float( this ),
 	u_ViewOrigin( this ),
 	u_LightDir( this ),
 	u_LightColor( this ),
@@ -2639,7 +2640,7 @@ GLShader_shadowFill::GLShader_shadowFill( GLShaderManager *manager ) :
 	u_LightRadius( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_Color( this ),
+	u_Color_Float( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
@@ -2747,7 +2748,7 @@ GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorGlobal( this ),
+	u_ColorGlobal_Float( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_FogDistanceVector( this ),
@@ -2769,7 +2770,7 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager
 	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorGlobal( this ),
+	u_ColorGlobal_Uint( this ),
 	u_FogDistanceVector( this ),
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),
@@ -2786,7 +2787,7 @@ GLShader_fogGlobal::GLShader_fogGlobal( GLShaderManager *manager ) :
 	u_DepthMap( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_UnprojectMatrix( this ),
-	u_Color( this ),
+	u_Color_Float( this ),
 	u_FogDistanceVector( this )
 {
 }
@@ -2900,7 +2901,6 @@ GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	u_ColorModulate( this ),
 	u_TextureMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_Tonemap( this ),
 	u_TonemapParms( this ),
 	u_TonemapExposure( this ),
 	u_InverseGamma( this )
