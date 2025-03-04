@@ -843,6 +843,11 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_colorGrading", 1 );
 	}
 
+	if ( glConfig2.toneMapping )
+	{
+		AddDefine( str, "r_toneMapping", 1 );
+	}
+
 	return str;
 }
 
@@ -2900,7 +2905,6 @@ GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	u_ColorModulate( this ),
 	u_TextureMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_Tonemap( this ),
 	u_TonemapParms( this ),
 	u_TonemapExposure( this ),
 	u_InverseGamma( this )
