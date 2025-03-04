@@ -170,23 +170,26 @@ endif()
 
 # Compiler options
 option(USE_FLOAT_EXCEPTIONS "Use floating point exceptions with common.floatException.* cvars" OFF)
-option(USE_FAST_MATH "Use fast math" ON)
+option(USE_FAST_MATH "Use fast math" OFF)
 
 if (USE_FLOAT_EXCEPTIONS)
-	add_definitions(-DDAEMON_USE_FLOAT_EXCEPTIONS)
+    add_definitions(-DDAEMON_USE_FLOAT_EXCEPTIONS)
 endif()
 
 if (MSVC)
     set_c_cxx_flag("/MP")
 
-	if (USE_FLOAT_EXCEPTIONS)
-		set_c_cxx_flag("/fp:strict")
-		# Don't switch on C4305 "truncation from 'double' to 'float'" every
-		# time an unsuffixed decimal constant is used
-		set_c_cxx_flag("/wd4305")
-	elseif (USE_FAST_MATH)
-		set_c_cxx_flag("/fp:fast")
-	endif()
+    if (USE_FAST_MATH)
+        set_c_cxx_flag("/fp:fast")
+    else()
+        # Don't switch on C4305 "truncation from 'double' to 'float'" every
+        # time an unsuffixed decimal constant is used
+        set_c_cxx_flag("/wd4305")
+    endif()
+
+    if (USE_FLOAT_EXCEPTIONS)
+        set_c_cxx_flag("/fp:strict")
+    endif()
 
     set_c_cxx_flag("/d2Zi+" RELWITHDEBINFO)
 
@@ -420,9 +423,13 @@ else()
 	# Saigo NaCl compiler doesn't support LTO, the flag is accepted but linking fails
 	# with “unable to pass LLVM bit-code files to linker” error.
 	if (USE_LTO AND NOT NACL)
-		try_c_cxx_flag(LTO "-flto")
+		try_c_cxx_flag(LTO_AUTO "-flto=auto")
 
-		if (FLAG_LTO)
+		if (NOT FLAG_LTO_AUTO)
+			try_c_cxx_flag(LTO "-flto")
+		endif()
+
+		if (FLAG_LTO_AUTO OR FLAG_LTO)
 			# Pass all compile flags to the linker.
 			set_linker_flag("${CMAKE_CXX_FLAGS}")
 

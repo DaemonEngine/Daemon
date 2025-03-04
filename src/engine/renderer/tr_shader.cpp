@@ -2136,9 +2136,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		/* not handled yet:
 		else if ( !Q_stricmp( token, "reflectionMap" ) )
 		else if ( !Q_stricmp( token, "reflectionMapBlended" ) )
-		else if ( !Q_stricmp( token, "refractionMap" ) )
-		else if ( !Q_stricmp( token, "refractionMap" ) )
-		else if ( !Q_stricmp( token, "dispersionMap" ) )
 		else if ( !Q_stricmp( token, "skyboxMap" ) )
 		else if ( !Q_stricmp( token, "screenMap" ) )
 		else if ( !Q_stricmp( token, "portalMap" ) )
@@ -2626,14 +2623,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				Log::Warn("deprecated XreaL stage parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_REFLECTIONMAP;
-			}
-			else if ( !Q_stricmp( token, "refractionMap" ) )
-			{
-				stage->type = stageType_t::ST_REFRACTIONMAP;
-			}
-			else if ( !Q_stricmp( token, "dispersionMap" ) )
-			{
-				stage->type = stageType_t::ST_DISPERSIONMAP;
 			}
 			else if ( !Q_stricmp( token, "skyboxMap" ) )
 			{
@@ -5197,12 +5186,6 @@ static void FinishStages()
 
 		switch ( stage->type )
 		{
-			case stageType_t::ST_REFRACTIONMAP:
-			case stageType_t::ST_DISPERSIONMAP:
-				// not implemented yet
-				stage->active = false;
-				break;
-
 			case stageType_t::ST_HEATHAZEMAP:
 				stage->active = r_heatHaze->integer;
 				break;
@@ -6567,8 +6550,6 @@ public:
 			{ stageType_t::ST_PHYSICALMAP, "PHYSICALMAP" },
 			{ stageType_t::ST_SPECULARMAP, "SPECULARMAP" },
 			{ stageType_t::ST_REFLECTIONMAP, "REFLECTIONMAP" },
-			{ stageType_t::ST_REFRACTIONMAP, "REFRACTIONMAP" },
-			{ stageType_t::ST_DISPERSIONMAP, "DISPERSIONMAP" },
 			{ stageType_t::ST_SKYBOXMAP, "SKYBOXMAP" },
 			{ stageType_t::ST_SCREENMAP, "SCREENMAP" },
 			{ stageType_t::ST_PORTALMAP, "PORTALMAP" },
