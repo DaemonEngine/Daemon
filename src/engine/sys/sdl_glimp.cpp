@@ -175,6 +175,10 @@ static Cvar::Cvar<bool> workaround_glExtension_missingArbFbo_useExtFbo(
 	"workaround.glExtension.missingArbFbo.useExtFbo",
 	"Use EXT_framebuffer_object and EXT_framebuffer_blit when ARB_framebuffer_object is not available",
 	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glExtension_glsl120_disableShaderDrawParameters(
+	"workaround.glExtension.glsl120.disableShaderDrawParameters",
+	"Disable ARB_shader_draw_parameters on GLSL 1.20",
+	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glHardware_intel_useFirstProvokinVertex(
 	"workaround.glHardware.intel.useFirstProvokinVertex",
 	"Use first provoking vertex on Intel hardware supporting ARB_provoking_vertex",
@@ -2523,7 +2527,19 @@ static void GLimp_InitExtensions()
 	}
 
 	// made required in OpenGL 4.6
-	glConfig2.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, r_arb_shader_draw_parameters.Get() );
+
+	bool ShaderDrawParametersEnabled = r_arb_shader_draw_parameters.Get();
+
+	if ( ShaderDrawParametersEnabled
+		&& GL_ARB_shader_draw_parameters
+		&& glConfig2.shadingLanguageVersion <= 120
+		&& workaround_glExtension_glsl120_disableShaderDrawParameters.Get() )
+	{
+		logger.Warn( "Found ARB_shader_draw_parameters with incompatible GLSL 1.20, disabling ARB_shader_draw_parameters." );
+		ShaderDrawParametersEnabled = false;
+	}
+
+	glConfig2.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, ShaderDrawParametersEnabled );
 
 	// made required in OpenGL 4.3
 	glConfig2.SSBOAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_storage_buffer_object, r_arb_shader_storage_buffer_object.Get() );
@@ -2668,6 +2684,7 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_glDriver_mesa_v241_disableBindlessTexture );
 	Cvar::Latch( workaround_glDriver_nvidia_v340_disableTextureGather );
 	Cvar::Latch( workaround_glExtension_missingArbFbo_useExtFbo );
+	Cvar::Latch( workaround_glExtension_glsl120_disableShaderDrawParameters );
 	Cvar::Latch( workaround_glHardware_intel_useFirstProvokinVertex );
 
 	/* Enable S3TC on Mesa even if libtxc-dxtn is not available
