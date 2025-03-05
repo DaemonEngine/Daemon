@@ -685,11 +685,8 @@ protected:
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "GLSL_SetUniform1i( %s, shader: %s, value: %d ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), value ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniform1i( %s, shader: %s, value: %d )",
+			this->GetName(), _shader->GetName().c_str(), value );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -738,10 +735,8 @@ class GLUniform1ui : protected GLUniform {
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer ) {
-			GLimp_LogComment( va( "GLSL_SetUniform1i( %s, shader: %s, value: %d ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), value ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniform1i( %s, shader: %s, value: %d )",
+			this->GetName(), _shader->GetName().c_str(), value );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -789,10 +784,8 @@ class GLUniform1Bool : protected GLUniform {
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer ) {
-			GLimp_LogComment( va( "GLSL_SetUniform1i( %s, shader: %s, value: %d ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), value ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniform1i( %s, shader: %s, value: %d )",
+			this->GetName(), _shader->GetName().c_str(), value );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -843,11 +836,8 @@ protected:
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "GLSL_SetUniform1f( %s, shader: %s, value: %f ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), value ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniform1f( %s, shader: %s, value: %f )",
+			this->GetName(), _shader->GetName().c_str(), value );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -900,11 +890,8 @@ protected:
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "GLSL_SetUniform1fv( %s, shader: %s, numFloats: %d ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), numFloats ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniform1fv( %s, shader: %s, numFloats: %d )",
+			this->GetName(), _shader->GetName().c_str(), numFloats );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -943,11 +930,8 @@ protected:
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "GLSL_SetUniform2f( %s, shader: %s, value: [ %f, %f ] ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ] ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniform2f( %s, shader: %s, value: [ %f, %f ] )",
+			this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ] );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1003,11 +987,8 @@ protected:
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "GLSL_SetUniform3f( %s, shader: %s, value: [ %f, %f, %f ] ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ], v[ 2 ] ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniform3f( %s, shader: %s, value: [ %f, %f, %f ] )",
+			this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ], v[ 2 ] );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1063,11 +1044,8 @@ protected:
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "GLSL_SetUniform4f( %s, shader: %s, value: [ %f, %f, %f, %f ] ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniform4f( %s, shader: %s, value: [ %f, %f, %f, %f ] )",
+			this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1120,11 +1098,8 @@ protected:
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "GLSL_SetUniform4fv( %s, shader: %s, numV: %d ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), numV ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniform4fv( %s, shader: %s, numV: %d )",
+			this->GetName(), _shader->GetName().c_str(), numV );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1163,13 +1138,11 @@ protected:
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "GLSL_SetUniformMatrix4f( %s, shader: %s, transpose: %d, [ %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f ] ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), transpose,
-				m[ 0 ], m[ 1 ], m[ 2 ], m[ 3 ], m[ 4 ], m[ 5 ], m[ 6 ], m[ 7 ], m[ 8 ], m[ 9 ], m[ 10 ], m[ 11 ], m[ 12 ],
-				m[ 13 ], m[ 14 ], m[ 15 ] ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniformMatrix4f( %s, shader: %s, transpose: %d, "
+			"[ %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f ] )",
+			this->GetName(), _shader->GetName().c_str(), transpose,
+			m[ 0 ], m[ 1 ], m[ 2 ], m[ 3 ], m[ 4 ], m[ 5 ], m[ 6 ], m[ 7 ], m[ 8 ],
+			m[ 9 ], m[ 10 ], m[ 11 ], m[ 12 ], m[ 13 ], m[ 14 ], m[ 15 ] );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1218,11 +1191,10 @@ class GLUniformMatrix32f : protected GLUniform {
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer ) {
-			GLimp_LogComment( va( "GLSL_SetUniformMatrix32f( %s, shader: %s, transpose: %d, [ %f, %f, %f, %f, %f, %f ] ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), transpose,
-				m[0], m[1], m[2], m[3], m[4], m[5] ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniformMatrix32f( %s, shader: %s, transpose: %d, "
+			"[ %f, %f, %f, %f, %f, %f ] )",
+			this->GetName(), _shader->GetName().c_str(), transpose,
+			m[0], m[1], m[2], m[3], m[4], m[5] );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1264,11 +1236,8 @@ protected:
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "GLSL_SetUniformMatrix4fv( %s, shader: %s, numMatrices: %d, transpose: %d ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), numMatrices, transpose ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniformMatrix4fv( %s, shader: %s, numMatrices: %d, transpose: %d )",
+			this->GetName(), _shader->GetName().c_str(), numMatrices, transpose );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1306,11 +1275,8 @@ protected:
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "GLSL_SetUniformMatrix34fv( %s, shader: %s, numMatrices: %d, transpose: %d ) ---\n",
-				this->GetName(), _shader->GetName().c_str(), numMatrices, transpose ) );
-		}
+		GLIMP_LOGCOMMENT( "GLSL_SetUniformMatrix34fv( %s, shader: %s, numMatrices: %d, transpose: %d )",
+			this->GetName(), _shader->GetName().c_str(), numMatrices, transpose );
 #endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -3786,13 +3752,9 @@ public:
 		const bool vertexOverbright = false,
 		const bool useMapLightFactor = false )
 	{
-		if ( r_logFile->integer ) {
-			GLimp_LogComment(
-				va( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Float( "
-					"program = %s, colorGen = %s, alphaGen = %s ) ---\n",
-					_shader->GetName().c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) )
-			);
-		}
+		GLIMP_LOGCOMMENT( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Float( "
+			"program = %s, colorGen = %s, alphaGen = %s ) ---",
+			_shader->GetName().c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
 
 		colorModulation_t colorModulation = ColorModulateColorGen(
 			colorGen, alphaGen, vertexOverbright, useMapLightFactor );
@@ -3821,13 +3783,9 @@ class u_ColorModulateColorGen_Uint :
 		const bool vertexOverbright = false,
 		const bool useMapLightFactor = false )
 	{
-		if ( r_logFile->integer ) {
-			GLimp_LogComment(
-				va( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Uint( "
-					"program = %s, colorGen = %s, alphaGen = %s ) ---\n",
-					_shader->GetName().c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) )
-			);
-		}
+		GLIMP_LOGCOMMENT( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Uint( "
+			"program = %s, colorGen = %s, alphaGen = %s ) ---",
+			_shader->GetName().c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
 
 		colorModulation_t colorModulation = ColorModulateColorGen(
 			colorGen, alphaGen, vertexOverbright, useMapLightFactor );

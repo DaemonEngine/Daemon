@@ -98,14 +98,8 @@ void Tess_CheckOverflow( int verts, int indexes )
 		return;
 	}
 
-	if ( r_logFile->integer )
-	{
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		GLimp_LogComment( va
-		                  ( "--- Tess_CheckOverflow(%i + %i vertices, %i + %i triangles ) ---\n", tess.numVertexes, verts,
-		                    ( tess.numIndexes / 3 ), indexes ) );
-	}
+	GLIMP_LOGCOMMENT( "--- Tess_CheckOverflow(%i + %i vertices, %i + %i triangles ) ---",
+		tess.numVertexes, verts,( tess.numIndexes / 3 ), indexes );
 
 	Tess_End();
 
@@ -231,7 +225,7 @@ void Tess_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, const Color::C
 	vec3_t normal;
 	int    ndx;
 
-	GLimp_LogComment( "--- Tess_AddQuadStampExt ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_AddQuadStampExt ---" );
 
 	Tess_CheckOverflow( 4, 6 );
 
@@ -323,7 +317,7 @@ void Tess_AddQuadStampExt2( vec4_t quadVerts[ 4 ], const Color::Color& color, fl
 	vec3_t normal, tangent, binormal;
 	int    ndx;
 
-	GLimp_LogComment( "--- Tess_AddQuadStampExt2 ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_AddQuadStampExt2 ---" );
 
 	Tess_CheckOverflow( 4, 6 );
 
@@ -535,7 +529,7 @@ void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const
 }
 
 void Tess_InstantScreenSpaceQuad() {
-	GLimp_LogComment( "--- Tess_InstantScreenSpaceQuad ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_InstantScreenSpaceQuad ---" );
 
 	tr.skipVBO = true;
 
@@ -552,7 +546,7 @@ void Tess_InstantScreenSpaceQuad() {
 
 void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, const float x, const float y, const float width, const float height )
 {
-	GLimp_LogComment( "--- Tess_InstantQuad ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_InstantQuad ---" );
 
 	Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
 
@@ -588,7 +582,7 @@ static void Tess_SurfaceSprite()
 	vec3_t delta, left, up;
 	float  radius;
 
-	GLimp_LogComment( "--- Tess_SurfaceSprite ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceSprite ---" );
 
 	radius = backEnd.currentEntity->e.radius;
 
@@ -651,7 +645,7 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 {
 	int i;
 
-	GLimp_LogComment( "--- Tess_SurfacePolychain ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfacePolychain ---" );
 
 	int numVertexes = p->numVerts;
 	int numIndexes = 3 * (p->numVerts - 2);
@@ -756,7 +750,7 @@ Tess_SurfaceFace
 */
 static void Tess_SurfaceFace( srfSurfaceFace_t *srf )
 {
-	GLimp_LogComment( "--- Tess_SurfaceFace ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceFace ---" );
 
 	if ( !r_vboFaces->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
 	{
@@ -771,7 +765,7 @@ Tess_SurfaceGrid
 */
 static void Tess_SurfaceGrid( srfGridMesh_t *srf )
 {
-	GLimp_LogComment( "--- Tess_SurfaceGrid ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceGrid ---" );
 
 	if ( !r_vboCurves->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
 	{
@@ -786,7 +780,7 @@ Tess_SurfaceTriangles
 */
 static void Tess_SurfaceTriangles( srfTriangles_t *srf )
 {
-	GLimp_LogComment( "--- Tess_SurfaceTriangles ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceTriangles ---" );
 
 	if ( !r_vboTriangles->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
 	{
@@ -815,7 +809,7 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 	float         backlerp;
 	float         oldXyzScale, newXyzScale;
 
-	GLimp_LogComment( "--- Tess_SurfaceMDV ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceMDV ---" );
 
 	if ( backEnd.currentEntity->e.oldframe == backEnd.currentEntity->e.frame )
 	{
@@ -979,7 +973,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 {
 	md5Model_t *model = srf->model;
 
-	GLimp_LogComment( "--- Tess_SurfaceMD5 ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceMD5 ---" );
 
 	int numIndexes = srf->numTriangles * 3;
 
@@ -1128,7 +1122,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	IQModel_t *model = surf->data;
 	int offset = tess.numVertexes - surf->first_vertex;
 
-	GLimp_LogComment( "--- Tess_SurfaceIQM ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceIQM ---" );
 
 	int numIndexes = surf->num_triangles * 3;
 
@@ -1349,7 +1343,7 @@ Entities that have a single procedurally generated surface
 */
 static void Tess_SurfaceEntity( surfaceType_t* )
 {
-	GLimp_LogComment( "--- Tess_SurfaceEntity ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceEntity ---" );
 
 	switch ( backEnd.currentEntity->e.reType )
 	{
@@ -1363,7 +1357,7 @@ static void Tess_SurfaceEntity( surfaceType_t* )
 
 static void Tess_SurfaceBad( surfaceType_t* )
 {
-	GLimp_LogComment( "--- Tess_SurfaceBad ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceBad ---" );
 
 	Log::Notice("Bad surface tesselated." );
 }
@@ -1375,7 +1369,7 @@ Tess_SurfaceVBOMesh
 */
 static void Tess_SurfaceVBOMesh( srfVBOMesh_t *srf )
 {
-	GLimp_LogComment( "--- Tess_SurfaceVBOMesh ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceVBOMesh ---" );
 
 	Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numIndexes, srf->firstIndex );
 }
@@ -1389,7 +1383,7 @@ void Tess_SurfaceVBOMDVMesh( srfVBOMDVMesh_t *surface )
 {
 	refEntity_t *refEnt;
 
-	GLimp_LogComment( "--- Tess_SurfaceVBOMDVMesh ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceVBOMDVMesh ---" );
 
 	if ( !surface->vbo || !surface->ibo )
 	{
@@ -1431,7 +1425,7 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 {
 	md5Model_t *model = srf->md5Model;
 
-	GLimp_LogComment( "--- Tess_SurfaceVBOMD5Mesh ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceVBOMD5Mesh ---" );
 
 	if ( !srf->vbo || !srf->ibo )
 	{
