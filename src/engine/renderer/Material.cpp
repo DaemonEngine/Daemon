@@ -908,10 +908,8 @@ void BindShaderLightMapping( Material* material ) {
 
 		const float interpolation = 1.0 - trilerp[0];
 
-		if ( r_logFile->integer ) {
-			GLimp_LogComment( va( "Probe 0 distance = %f, probe 1 distance = %f, interpolation = %f\n",
-				Distance( position, probes[0]->origin ), Distance( position, probes[1]->origin ), interpolation ) );
-		}
+		GLIMP_LOGCOMMENT( "Probe 0 distance = %f, probe 1 distance = %f, interpolation = %f",
+			Distance( position, probes[0]->origin ), Distance( position, probes[1]->origin ), interpolation );
 
 		// bind u_EnvironmentMap0
 		gl_lightMappingShaderMaterial->SetUniform_EnvironmentMap0Bindless(

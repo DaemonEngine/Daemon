@@ -3009,8 +3009,6 @@ enum class ssaoMode {
 
 	extern Cvar::Cvar<bool> r_highPrecisionRendering;
 
-	extern cvar_t *r_logFile; // number of frames to emit GL logs
-
 	extern Cvar::Range<Cvar::Cvar<int>> r_shadows;
 	extern cvar_t *r_softShadows;
 	extern cvar_t *r_softShadowsPP;
@@ -3053,6 +3051,7 @@ enum class ssaoMode {
 	extern cvar_t *r_skipBackEnd;
 
 	extern cvar_t *r_checkGLErrors;
+	extern Cvar::Cvar<bool> r_logFile;
 
 	extern cvar_t *r_debugSurface;
 
@@ -3372,7 +3371,19 @@ inline bool checkGLErrors()
 	void     GLimp_SyncRenderThread();
 	void     GLimp_WakeRenderer( void *data );
 
-	void     GLimp_LogComment( const char *comment );
+inline bool GLimp_isLogging() {
+	return r_logFile.Get() && GLEW_ARB_debug_output;
+}
+
+// Never use GLimp_LogComment_() directly, use the GLIMP_LOGCOMMENT() wrapper instead.
+void GLimp_LogComment_( std::string comment );
+
+#define GLIMP_LOGCOMMENT( ... ) { \
+	if ( GLimp_isLogging() ) \
+	{ \
+		GLimp_LogComment_( Str::Format( __VA_ARGS__ ) ); \
+	} \
+}
 
 	/*
 	====================================================================
