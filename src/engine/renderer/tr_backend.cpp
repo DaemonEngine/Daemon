@@ -120,32 +120,55 @@ GLuint64 BindAnimatedImage( int unit, const textureBundle_t *bundle )
 	return GL_BindToTMU( unit, bundle->image[ index ] );
 }
 
-void GL_BindProgram( ShaderProgramDescriptor* program )
-{
-	if ( !program )
-	{
+void GL_BindProgram( ShaderProgramDescriptor* program ) {
+	if ( !program ) {
 		GL_BindNullProgram();
 		return;
 	}
 
-	if ( glState.currentProgram != program )
-	{
+	if ( glState.currentProgram != program ) {
 		glUseProgram( program->id );
 		glState.currentProgram = program;
 	}
 }
 
-void GL_BindNullProgram()
-{
-	if ( r_logFile->integer )
-	{
+void GL_BindNullProgram() {
+	if ( r_logFile->integer ) {
 		GLimp_LogComment( "--- GL_BindNullProgram ---\n" );
 	}
 
-	if ( glState.currentProgram )
-	{
+	if ( glState.currentProgram ) {
 		glUseProgram( 0 );
 		glState.currentProgram = nullptr;
+	}
+}
+
+void GL_BindProgramPipeline( ShaderPipelineDescriptor* pipeline ) {
+	if ( !pipeline ) {
+		GL_BindNullProgramPipeline();
+		return;
+	}
+
+	if ( glState.currentProgram ) {
+		Log::Warn( "A GL program is still bound, program pipeline bind is ignored "
+			"(current program: %u, current pipeline: %u, new pipeline: %u",
+			glState.currentProgram->id, glState.currentPipeline->id, pipeline->id );
+	}
+
+	if ( glState.currentPipeline != pipeline ) {
+		glBindProgramPipeline( pipeline->id );
+		glState.currentPipeline = pipeline;
+	}
+}
+
+void GL_BindNullProgramPipeline() {
+	if ( r_logFile->integer ) {
+		GLimp_LogComment( "--- GL_BindNullProgramPipeline ---\n" );
+	}
+
+	if ( glState.currentPipeline ) {
+		glBindProgramPipeline( 0 );
+		glState.currentPipeline = nullptr;
 	}
 }
 

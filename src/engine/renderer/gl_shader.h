@@ -115,6 +115,7 @@ protected:
 	bool _hasFragmentShader;
 	bool _hasComputeShader;
 	std::vector<ShaderProgramDescriptor> shaderPrograms;
+	std::vector<ShaderPipelineDescriptor> shaderPipelines;
 
 	std::vector<int> vertexShaderDescriptors;
 	std::vector<int> fragmentShaderDescriptors;
@@ -351,13 +352,26 @@ struct ShaderProgramDescriptor {
 
 		macro |= descriptor->macro;
 
-		/* std::sort( shaderNames, shaderNames + shaderCount,
-			[]( const ShaderEntry& lhs, const ShaderEntry& rhs ) {
-				return lhs.name < rhs.name;
-			}
-		); */
-
 		shaderCount++;
+	};
+};
+
+struct ShaderPipelineDescriptor {
+	GLuint id;
+
+	GLuint VSProgram = 0;
+	GLuint FSProgram = 0;
+	GLuint CSProgram = 0;
+
+	uint32_t shaderCount = 0;
+	ShaderEntry shaderNames[MAX_SHADER_PROGRAM_SHADERS * 3] {};
+
+	void AttachProgram( ShaderProgramDescriptor* descriptor ) {
+		ASSERT_LE( shaderCount, MAX_SHADER_PROGRAM_SHADERS );
+
+		for ( ; shaderCount < descriptor->shaderCount; shaderCount++ ) {
+			shaderNames[shaderCount] = descriptor->shaderNames[shaderCount];
+		}
 	};
 };
 
@@ -418,6 +432,7 @@ private:
 
 	std::vector<ShaderDescriptor> shaderDescriptors;
 	std::vector<ShaderProgramDescriptor> shaderProgramDescriptors;
+	std::vector<ShaderPipelineDescriptor> shaderPipelineDescriptors;
 
 	int compileTime;
 	uint32_t compileCount;
@@ -430,13 +445,16 @@ private:
 	int cacheSaveTime;
 	uint32_t cacheSaveCount;
 
-
 	std::string BuildDeformShaderText( const std::string& steps );
 	std::string GetDeformShaderName( const int index );
 
 	void BuildShader( ShaderDescriptor* descriptor );
 	void BuildShaderProgram( ShaderProgramDescriptor* descriptor );
-	ShaderProgramDescriptor* FindShaderProgram( std::vector<ShaderEntry>& shaders, const std::string& mainShader );
+	ShaderProgramDescriptor* FindShaderProgram( std::vector<ShaderEntry>& shaders, GLShader* mainShader );
+	ShaderPipelineDescriptor* FindShaderPipelines(
+		std::vector<ShaderEntry>& vertexShaders, std::vector<ShaderEntry>& fragmentShaders,
+		std::vector<ShaderEntry>& computeShaders,
+		GLShader* mainShader );
 
 	void BindAttribLocations( GLuint program ) const;
 	void UpdateShaderProgramUniformLocations( GLShader* shader, ShaderProgramDescriptor* shaderProgram ) const;
@@ -445,9 +463,9 @@ private:
 		ShaderProgramDescriptor* out );
 	void SaveShaderBinary( ShaderProgramDescriptor* descriptor );
 
-	void PrintShaderSource( Str::StringRef programName, GLuint object, std::vector<InfoLogEntry>& infoLogLines ) const;
-	std::vector<InfoLogEntry> ParseInfoLog( const std::string& infoLog ) const;
 	std::string GetInfoLog( GLuint object ) const;
+	std::vector<InfoLogEntry> ParseInfoLog( const std::string& infoLog ) const;
+	void PrintShaderSource( Str::StringRef programName, GLuint object, std::vector<InfoLogEntry>& infoLogLines ) const;
 
 	std::string ProcessInserts( const std::string& shaderText ) const;
 	ShaderDescriptor* FindShader( const std::string& name, const std::string& mainText,
