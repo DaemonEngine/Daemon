@@ -357,11 +357,11 @@ struct ShaderProgramDescriptor {
 };
 
 struct ShaderPipelineDescriptor {
-	GLuint id;
+	GLuint id = 0;
 
-	GLuint VSProgram = 0;
-	GLuint FSProgram = 0;
-	GLuint CSProgram = 0;
+	ShaderProgramDescriptor VSProgram;
+	ShaderProgramDescriptor FSProgram;
+	ShaderProgramDescriptor CSProgram;
 
 	uint32_t shaderCount = 0;
 	ShaderEntry shaderNames[MAX_SHADER_PROGRAM_SHADERS * 3] {};

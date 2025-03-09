@@ -237,6 +237,14 @@ void GLShaderManager::FreeAll() {
 	deformShaderCount = 0;
 	_deformShaderLookup.clear();
 
+	for ( const ShaderPipelineDescriptor& pipeline : shaderPipelineDescriptors ) {
+		if ( pipeline.id ) {
+			glDeleteProgramPipelines( 1, &pipeline.id );
+		}
+	}
+
+	shaderPipelineDescriptors.clear();
+
 	for ( const ShaderProgramDescriptor& program : shaderProgramDescriptors ) {
 		if ( program.id ) {
 			glDeleteProgram( program.id );
@@ -1166,14 +1174,17 @@ ShaderPipelineDescriptor* GLShaderManager::FindShaderPipelines(
 		if ( vertexShaders.size() ) {
 			ShaderProgramDescriptor* program = FindShaderProgram( vertexShaders, mainShader );
 			descriptor.AttachProgram( program );
+			descriptor.VSProgram = *program;
 		}
 		if ( fragmentShaders.size() ) {
 			ShaderProgramDescriptor* program = FindShaderProgram( fragmentShaders, mainShader );
 			descriptor.AttachProgram( program );
+			descriptor.FSProgram = *program;
 		}
 		if ( computeShaders.size() ) {
 			ShaderProgramDescriptor* program = FindShaderProgram( computeShaders, mainShader );
 			descriptor.AttachProgram( program );
+			descriptor.CSProgram = *program;
 		}
 
 		shaderPipelineDescriptors.emplace_back( descriptor );
@@ -1196,7 +1207,12 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 	}
 
 	// Program already exists
-	if ( i < shader->shaderPrograms.size() &&
+	if ( glConfig2.separateShaderObjectsAvailable ) {
+		if ( i < shader->shaderPipelines.size() &&
+			shader->shaderPipelines[i].id ) {
+			return false;
+		}
+	} else if ( i < shader->shaderPrograms.size() &&
 		shader->shaderPrograms[i].id ) {
 		return false;
 	}
@@ -1207,30 +1223,46 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 
 	const int start = Sys::Milliseconds();
 
-	if ( i >= shader->shaderPrograms.size() ) {
+	if ( glConfig2.separateShaderObjectsAvailable ) {
+		if ( i >= shader->shaderPipelines.size() ) {
+			shader->shaderPipelines.resize( ( deformIndex + 1 ) << shader->_compileMacros.size() );
+		}
+	} else if ( i >= shader->shaderPrograms.size() ) {
 		shader->shaderPrograms.resize( ( deformIndex + 1 ) << shader->_compileMacros.size() );
 	}
 
-	ShaderProgramDescriptor* program;
-
-	std::vector<ShaderEntry> shaders;
+	std::vector<ShaderEntry> vertexShaders;
+	std::vector<ShaderEntry> fragmentShaders;
+	std::vector<ShaderEntry> computeShaders;
 	if ( shader->_hasVertexShader ) {
 		const uint32_t macros = shader->GetUniqueCompileMacros( macroIndex, GLCompileMacro::VERTEX );
-		shaders.emplace_back( ShaderEntry{ shader->_name, macros, GL_VERTEX_SHADER } );
-		shaders.emplace_back( ShaderEntry{ GetDeformShaderName( deformIndex ), 0, GL_VERTEX_SHADER } );
+		vertexShaders.emplace_back( ShaderEntry{ shader->_name, macros, GL_VERTEX_SHADER } );
+		vertexShaders.emplace_back( ShaderEntry{ GetDeformShaderName( deformIndex ), 0, GL_VERTEX_SHADER } );
 	}
 	if ( shader->_hasFragmentShader ) {
 		const uint32_t macros = shader->GetUniqueCompileMacros( macroIndex, GLCompileMacro::FRAGMENT );
-		shaders.emplace_back( ShaderEntry{ shader->_name, macros, GL_FRAGMENT_SHADER } );
+		fragmentShaders.emplace_back( ShaderEntry{ shader->_name, macros, GL_FRAGMENT_SHADER } );
 	}
 	if ( shader->_hasComputeShader ) {
-		shaders.emplace_back( ShaderEntry{ shader->_name, 0, GL_COMPUTE_SHADER } );
+		computeShaders.emplace_back( ShaderEntry{ shader->_name, 0, GL_COMPUTE_SHADER } );
 	}
 
-	program = FindShaderProgram( shaders, shader );
+	if ( glConfig2.separateShaderObjectsAvailable ) {
+		ShaderPipelineDescriptor* pipeline = FindShaderPipelines( vertexShaders, fragmentShaders, computeShaders, shader );
 
-	// Copy this for a fast look-up, but the values held in program aren't supposed to change after
-	shader->shaderPrograms[i] = *program;
+		// Copy this for a fast look-up, but the values held in program aren't supposed to change after
+		shader->shaderPipelines[i] = *pipeline;
+	} else {
+		std::vector<ShaderEntry> shaders;
+		shaders.reserve( vertexShaders.size() + fragmentShaders.size() + computeShaders.size() );
+		shaders.insert( shaders.end(), vertexShaders.begin(), vertexShaders.end() );
+		shaders.insert( shaders.end(), fragmentShaders.begin(), fragmentShaders.end() );
+		shaders.insert( shaders.end(), computeShaders.begin(), computeShaders.end() );
+		ShaderProgramDescriptor* program = FindShaderProgram( shaders, shader );
+
+		// Copy this for a fast look-up, but the values held in program aren't supposed to change after
+		shader->shaderPrograms[i] = *program;
+	}
 
 	GL_CheckErrors();
 
