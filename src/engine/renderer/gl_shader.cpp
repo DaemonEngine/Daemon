@@ -1039,6 +1039,10 @@ void GLShaderManager::BuildShaderProgram( ShaderProgramDescriptor* descriptor ) 
 		glProgramParameteri( program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE );
 	}
 
+	if ( glConfig2.separateShaderObjectsAvailable ) {
+		glProgramParameteri( program, GL_PROGRAM_SEPARABLE, GL_TRUE );
+	}
+
 	GLint linked;
 	glLinkProgram( program );
 
@@ -1968,33 +1972,8 @@ std::string GLShaderManager::GetInfoLog( GLuint object ) const
 	return out;
 }
 
-void GLShaderManager::LinkProgram( GLuint program ) const
-{
-	GLint linked;
-
-#ifdef GL_ARB_get_program_binary
-	// Apparently, this is necessary to get the binary program via glGetProgramBinary
-	if( glConfig2.getProgramBinaryAvailable )
-	{
-		glProgramParameteri( program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE );
-	}
-#endif
-	glLinkProgram( program );
-
-	glGetProgramiv( program, GL_LINK_STATUS, &linked );
-
-	if ( !linked )
-	{
-		Log::Warn( "Link log:" );
-		Log::Warn( GetInfoLog( program ) );
-		ThrowShaderError( "Shaders failed to link!" );
-	}
-}
-
-void GLShaderManager::BindAttribLocations( GLuint program ) const
-{
-	for ( uint32_t i = 0; i < ATTR_INDEX_MAX; i++ )
-	{
+void GLShaderManager::BindAttribLocations( GLuint program ) const {
+	for ( uint32_t i = 0; i < ATTR_INDEX_MAX; i++ ) {
 		glBindAttribLocation( program, i, attributeNames[ i ] );
 	}
 }

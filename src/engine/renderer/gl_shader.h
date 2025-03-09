@@ -430,30 +430,32 @@ private:
 	int cacheSaveTime;
 	uint32_t cacheSaveCount;
 
+
+	std::string BuildDeformShaderText( const std::string& steps );
+	std::string GetDeformShaderName( const int index );
+
 	void BuildShader( ShaderDescriptor* descriptor );
 	void BuildShaderProgram( ShaderProgramDescriptor* descriptor );
-
-	std::string GetDeformShaderName( const int index );
 	ShaderProgramDescriptor* FindShaderProgram( std::vector<ShaderEntry>& shaders, const std::string& mainShader );
+
+	void BindAttribLocations( GLuint program ) const;
+	void UpdateShaderProgramUniformLocations( GLShader* shader, ShaderProgramDescriptor* shaderProgram ) const;
 
 	bool LoadShaderBinary( const std::vector<ShaderEntry>& shaders, const std::string& mainShader,
 		ShaderProgramDescriptor* out );
 	void SaveShaderBinary( ShaderProgramDescriptor* descriptor );
 
-	std::string ShaderPostProcess( GLShader *shader, const std::string& shaderText, const uint32_t offset );
-	std::string BuildDeformShaderText( const std::string& steps );
-	std::string ProcessInserts( const std::string& shaderText ) const;
-	void LinkProgram( GLuint program ) const;
-	void BindAttribLocations( GLuint program ) const;
 	void PrintShaderSource( Str::StringRef programName, GLuint object, std::vector<InfoLogEntry>& infoLogLines ) const;
 	std::vector<InfoLogEntry> ParseInfoLog( const std::string& infoLog ) const;
 	std::string GetInfoLog( GLuint object ) const;
-	std::string BuildShaderText( const std::string& mainShaderText, const std::vector<GLHeader*>& headers, const std::string& macros );
+
+	std::string ProcessInserts( const std::string& shaderText ) const;
 	ShaderDescriptor* FindShader( const std::string& name, const std::string& mainText,
 		const GLenum type, const std::vector<GLHeader*>& headers,
 		const uint32_t macro = 0, const std::string& compileMacros = "", const bool main = false );
+	std::string BuildShaderText( const std::string& mainShaderText, const std::vector<GLHeader*>& headers, const std::string& macros );
 	void InitShader( GLShader* shader );
-	void UpdateShaderProgramUniformLocations( GLShader* shader, ShaderProgramDescriptor* shaderProgram ) const;
+	std::string ShaderPostProcess( GLShader *shader, const std::string& shaderText, const uint32_t offset );
 };
 
 class GLUniform
