@@ -902,6 +902,7 @@ void Render_generic3D( shaderStage_t *pStage )
 
 	if ( r_profilerRenderSubGroups.Get() && !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) && !tr.skipSubgroupProfiler ) {
 		const uint mode = GetShaderProfilerRenderSubGroupsMode( pStage->stateBits );
+		gl_genericShader->SetUniform_ProfilerRenderSubGroups( mode );
 		if( mode == 0 ) {
 			return;
 		}
@@ -909,7 +910,6 @@ void Render_generic3D( shaderStage_t *pStage )
 		GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
 
 		gl_genericShader->SetUniform_ProfilerZero();
-		gl_genericShader->SetUniform_ProfilerRenderSubGroups( mode );
 	}
 
 	gl_genericShader->SetRequiredVertexPointers();
@@ -1204,6 +1204,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	if ( r_profilerRenderSubGroups.Get() && !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) ) {
 		const uint mode = GetShaderProfilerRenderSubGroupsMode( stateBits );
+		gl_lightMappingShader->SetUniform_ProfilerRenderSubGroups( mode );
 		if ( mode == 0 ) {
 			return;
 		}
@@ -1211,7 +1212,6 @@ void Render_lightMapping( shaderStage_t *pStage )
 		GL_State( stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
 
 		gl_lightMappingShader->SetUniform_ProfilerZero();
-		gl_lightMappingShader->SetUniform_ProfilerRenderSubGroups( mode );
 	}
 
 	gl_lightMappingShader->SetRequiredVertexPointers();
