@@ -511,7 +511,7 @@ static bool DetectBuiltInShortcut( Keyboard::Key key )
 		if ( key == Key::FromCharacter('f') )
 		{
 			Key_ClearStates();
-			Cmd::BufferCommandText("toggle r_fullscreen; vid_restart");
+			r_fullscreen.Set( !r_fullscreen.Get() );
 			return true;
 		}
 		else if ( key == Key::FromCharacter('q') )

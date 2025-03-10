@@ -147,7 +147,7 @@ macro(try_linker_flag PROP FLAG)
     check_C_compiler_flag(${FLAG} FLAG_${PROP})
     set(CMAKE_REQUIRED_FLAGS "")
     if (FLAG_${PROP})
-        set_exe_linker_flag(${FLAG} ${ARGN})
+        set_linker_flag(${FLAG} ${ARGN})
     endif()
 endmacro()
 
@@ -158,7 +158,7 @@ macro(try_exe_linker_flag PROP FLAG)
 	set(CMAKE_REQUIRED_FLAGS "")
 
 	if (FLAG_${PROP})
-		set_linker_flag(${FLAG} ${ARGN})
+		set_exe_linker_flag(${FLAG} ${ARGN})
 	endif()
 endmacro()
 
@@ -395,11 +395,13 @@ else()
 		try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
 
 		if (NOT NACL OR (NACL AND GAME_PIE))
-			try_c_cxx_flag(FPIE "-fPIC")
+			try_c_cxx_flag(FPIC "-fPIC")
 
+			# The -pie flag requires -fPIC:
+			# > ld: error: relocation R_X86_64_64 cannot be used against local symbol; recompile with -fPIC
 			# This flag isn't used on macOS:
 			# > clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
-			if (NOT APPLE)
+			if (FLAG_FPIC AND NOT APPLE)
 				try_exe_linker_flag(LINKER_PIE "-pie")
 			endif()
 		endif()
