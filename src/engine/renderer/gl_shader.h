@@ -52,6 +52,8 @@ struct GLBinaryHeader {
 	uint32_t checkSum; // checksum of shader source this was built from
 	uint32_t driverVersionHash; // detect if the graphics driver was different
 
+	uint32_t separateProgram;
+
 	GLuint type;
 	uint32_t macro; // Bitmask of macros the shader uses ( may or may not be enabled )
 
@@ -93,6 +95,13 @@ public:
 
 class GLShader {
 	friend class GLShaderManager;
+	public:
+	struct UniformData {
+		GLuint program = 0;
+		GLint* uniformLocations;
+		GLuint* uniformBlockIndexes;
+		byte* uniformFirewall;
+	};
 private:
 	GLShader( const GLShader & ) = delete;
 	GLShader &operator = ( const GLShader & ) = delete;
@@ -106,7 +115,8 @@ private:
 protected:
 	int _activeMacros;
 	unsigned int _checkSum;
-	ShaderProgramDescriptor* currentProgram;
+	GLuint currentPipeline;
+	uint32_t currentIndex;
 	const uint32_t _vertexAttribsRequired;
 	uint32_t _vertexAttribs; // can be set by uniforms
 	GLShaderManager *_shaderManager;
@@ -114,8 +124,9 @@ protected:
 	bool _hasVertexShader;
 	bool _hasFragmentShader;
 	bool _hasComputeShader;
-	std::vector<ShaderProgramDescriptor> shaderPrograms;
-	std::vector<ShaderPipelineDescriptor> shaderPipelines;
+	// std::vector<ShaderProgramDescriptor> shaderPrograms;
+	std::vector<GLuint> shaderPipelines;
+	std::vector<UniformData> uniformsData;
 
 	std::vector<int> vertexShaderDescriptors;
 	std::vector<int> fragmentShaderDescriptors;
@@ -198,10 +209,14 @@ public:
 		return _compileMacros.size();
 	}
 
+	UniformData* GetUniformData( int offset = 0 ) {
+		return &uniformsData[currentIndex * 3 + offset];
+	}
+
 	GLint GetUniformLocation( const GLchar *uniformName ) const;
 
-	ShaderProgramDescriptor* GetProgram() const {
-		return currentProgram;
+	GLuint GetProgram() const {
+		return currentPipeline;
 	}
 
 	const std::string &GetName() const {
@@ -450,11 +465,12 @@ private:
 
 	void BuildShader( ShaderDescriptor* descriptor );
 	void BuildShaderProgram( ShaderProgramDescriptor* descriptor );
-	ShaderProgramDescriptor* FindShaderProgram( std::vector<ShaderEntry>& shaders, GLShader* mainShader );
+	ShaderProgramDescriptor* FindShaderProgram( std::vector<ShaderEntry>& shaders, GLShader* mainShader,
+		GLShader::UniformData* uniformData );
 	ShaderPipelineDescriptor* FindShaderPipelines(
 		std::vector<ShaderEntry>& vertexShaders, std::vector<ShaderEntry>& fragmentShaders,
 		std::vector<ShaderEntry>& computeShaders,
-		GLShader* mainShader );
+		GLShader* mainShader, uint32_t permutation );
 
 	void BindAttribLocations( GLuint program ) const;
 	void UpdateShaderProgramUniformLocations( GLShader* shader, ShaderProgramDescriptor* shaderProgram ) const;
@@ -571,13 +587,15 @@ class GLUniformSampler : protected GLUniform {
 	}
 
 	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
+		GLuint p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			ASSERT_EQ( p, glState.currentPipeline );
 		}
 
-		return p->uniformLocations[_locationIndex];
+		GLShader::UniformData* FSData = _shader->GetUniformData( 1 );
+		GLShader::UniformData* CSData = _shader->GetUniformData( 2 );
+		return FSData->program ? FSData->uniformLocations[_locationIndex] : CSData->uniformLocations[_locationIndex];
 	}
 
 	inline size_t GetFirewallIndex() const {
@@ -597,7 +615,10 @@ class GLUniformSampler : protected GLUniform {
 		currentValueBindless = value;
 
 		if ( glConfig2.usingBindlessTextures && ( !_shader->UseMaterialSystem() || _global ) ) {
-			glUniformHandleui64ARB( GetLocation(), currentValueBindless );
+			GLShader::UniformData* FSData = _shader->GetUniformData( 1 );
+			GLShader::UniformData* CSData = _shader->GetUniformData( 2 );
+			GLuint program = FSData->program ? FSData->program : CSData->program;
+			glProgramUniformHandleui64ARB( program, GetLocation(), currentValueBindless );
 		}
 	}
 
@@ -625,13 +646,15 @@ class GLUniformSampler1D : protected GLUniformSampler {
 	}
 
 	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
+		GLuint p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			ASSERT_EQ( p, glState.currentPipeline );
 		}
 
-		return p->uniformLocations[_locationIndex];
+		GLShader::UniformData* FSData = _shader->GetUniformData( 1 );
+		GLShader::UniformData* CSData = _shader->GetUniformData( 2 );
+		return FSData->program ? FSData->uniformLocations[_locationIndex] : CSData->uniformLocations[_locationIndex];
 	}
 
 	public:
@@ -647,13 +670,15 @@ class GLUniformSampler2D : protected GLUniformSampler {
 	}
 
 	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
+		GLuint p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			ASSERT_EQ( p, glState.currentPipeline );
 		}
 
-		return p->uniformLocations[_locationIndex];
+		GLShader::UniformData* FSData = _shader->GetUniformData( 1 );
+		GLShader::UniformData* CSData = _shader->GetUniformData( 2 );
+		return FSData->program ? FSData->uniformLocations[_locationIndex] : CSData->uniformLocations[_locationIndex];
 	}
 
 	public:
@@ -669,13 +694,15 @@ class GLUniformSampler3D : protected GLUniformSampler {
 	}
 
 	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
+		GLuint p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			ASSERT_EQ( p, glState.currentPipeline );
 		}
 
-		return p->uniformLocations[_locationIndex];
+		GLShader::UniformData* FSData = _shader->GetUniformData( 1 );
+		GLShader::UniformData* CSData = _shader->GetUniformData( 2 );
+		return FSData->program ? FSData->uniformLocations[_locationIndex] : CSData->uniformLocations[_locationIndex];
 	}
 
 	public:
@@ -691,13 +718,15 @@ class GLUniformUSampler3D : protected GLUniformSampler {
 	}
 
 	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
+		GLuint p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			ASSERT_EQ( p, glState.currentPipeline );
 		}
 
-		return p->uniformLocations[_locationIndex];
+		GLShader::UniformData* FSData = _shader->GetUniformData( 1 );
+		GLShader::UniformData* CSData = _shader->GetUniformData( 2 );
+		return FSData->program ? FSData->uniformLocations[_locationIndex] : CSData->uniformLocations[_locationIndex];
 	}
 
 	public:
@@ -713,13 +742,15 @@ class GLUniformSamplerCube : protected GLUniformSampler {
 	}
 
 	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
+		GLuint p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			ASSERT_EQ( p, glState.currentPipeline );
 		}
 
-		return p->uniformLocations[_locationIndex];
+		GLShader::UniformData* FSData = _shader->GetUniformData( 1 );
+		GLShader::UniformData* CSData = _shader->GetUniformData( 2 );
+		return FSData->program ? FSData->uniformLocations[_locationIndex] : CSData->uniformLocations[_locationIndex];
 	}
 
 	public:
@@ -732,16 +763,14 @@ class GLUniform1i : protected GLUniform
 {
 protected:
 	GLUniform1i( GLShader *shader, const char *name, const bool global = false ) :
-	GLUniform( shader, name, "int", 1, 1, global )
-	{
+	GLUniform( shader, name, "int", 1, 1, global ) {
 	}
 
-	inline void SetValue( int value )
-	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
+	inline void SetValue( int value ) {
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -757,17 +786,37 @@ protected:
 			return;
 		}
 
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
+
 #if defined( USE_UNIFORM_FIREWALL )
-		int *firewall = ( int * ) &p->uniformFirewall[ _firewallIndex ];
+				int* firewall = ( int* ) &p->uniformFirewall[_firewallIndex];
 
-		if ( *firewall == value )
-		{
-			return;
-		}
+				if ( *firewall == value ) {
+					continue;
+				}
 
-		*firewall = value;
+				*firewall = value;
 #endif
-		glUniform1i( p->uniformLocations[ _locationIndex ], value );
+				glProgramUniform1i( p->program, p->uniformLocations[_locationIndex], value );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+#if defined( USE_UNIFORM_FIREWALL )
+			int* firewall = ( int* ) &p->uniformFirewall[_firewallIndex];
+
+			if ( *firewall == value ) {
+				return;
+			}
+
+			*firewall = value;
+#endif
+			glUniform1i( p->uniformLocations[_locationIndex], value );
+		}
 	}
 public:
 	size_t GetSize() override
@@ -791,10 +840,10 @@ class GLUniform1ui : protected GLUniform {
 	}
 
 	inline void SetValue( uint value ) {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -809,16 +858,38 @@ class GLUniform1ui : protected GLUniform {
 			return;
 		}
 
+
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
+
 #if defined( USE_UNIFORM_FIREWALL )
-		uint* firewall = ( uint* ) &p->uniformFirewall[_firewallIndex];
+				uint* firewall = ( uint* ) &p->uniformFirewall[_firewallIndex];
 
-		if ( *firewall == value ) {
-			return;
-		}
+				if ( *firewall == value ) {
+					continue;
+				}
 
-		*firewall = value;
+				*firewall = value;
 #endif
-		glUniform1ui( p->uniformLocations[_locationIndex], value );
+				glProgramUniform1ui( p->program, p->uniformLocations[_locationIndex], value );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+#if defined( USE_UNIFORM_FIREWALL )
+			uint* firewall = ( uint* ) &p->uniformFirewall[_firewallIndex];
+
+			if ( *firewall == value ) {
+				return;
+			}
+
+			*firewall = value;
+#endif
+			glUniform1ui( p->uniformLocations[_locationIndex], value );
+		}
 	}
 	public:
 	size_t GetSize() override {
@@ -842,10 +913,10 @@ class GLUniform1Bool : protected GLUniform {
 	}
 
 	inline void SetValue( int value ) {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -860,16 +931,38 @@ class GLUniform1Bool : protected GLUniform {
 			return;
 		}
 
+
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
+
 #if defined( USE_UNIFORM_FIREWALL )
-		int* firewall = ( int* ) &p->uniformFirewall[_firewallIndex];
+				int* firewall = ( int* ) &p->uniformFirewall[_firewallIndex];
 
-		if ( *firewall == value ) {
-			return;
-		}
+				if ( *firewall == value ) {
+					continue;
+				}
 
-		*firewall = value;
+				*firewall = value;
 #endif
-		glUniform1i( p->uniformLocations[_locationIndex], value );
+				glProgramUniform1i( p->program, p->uniformLocations[_locationIndex], value );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+#if defined( USE_UNIFORM_FIREWALL )
+			int* firewall = ( int* ) &p->uniformFirewall[_firewallIndex];
+
+			if ( *firewall == value ) {
+				return;
+			}
+
+			*firewall = value;
+#endif
+			glUniform1i( p->uniformLocations[_locationIndex], value );
+		}
 	}
 
 	public:
@@ -890,16 +983,14 @@ class GLUniform1f : protected GLUniform
 {
 protected:
 	GLUniform1f( GLShader *shader, const char *name, const bool global = false ) :
-	GLUniform( shader, name, "float", 1, 1, global )
-	{
+	GLUniform( shader, name, "float", 1, 1, global ) {
 	}
 
-	inline void SetValue( float value )
-	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
+	inline void SetValue( float value ) {
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -915,17 +1006,37 @@ protected:
 			return;
 		}
 
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
+
 #if defined( USE_UNIFORM_FIREWALL )
-		float *firewall = ( float * ) &p->uniformFirewall[ _firewallIndex ];
+				float* firewall = ( float* ) &p->uniformFirewall[_firewallIndex];
 
-		if ( *firewall == value )
-		{
-			return;
-		}
+				if ( *firewall == value ) {
+					continue;
+				}
 
-		*firewall = value;
+				*firewall = value;
 #endif
-		glUniform1f( p->uniformLocations[ _locationIndex ], value );
+				glProgramUniform1f( p->program, p->uniformLocations[_locationIndex], value );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+#if defined( USE_UNIFORM_FIREWALL )
+			float* firewall = ( float* ) &p->uniformFirewall[_firewallIndex];
+
+			if ( *firewall == value ) {
+				return;
+			}
+
+			*firewall = value;
+#endif
+			glUniform1f( p->uniformLocations[_locationIndex], value );
+		}
 	}
 public:
 	size_t GetSize() override
@@ -946,17 +1057,15 @@ class GLUniform1fv : protected GLUniform
 {
 protected:
 	GLUniform1fv( GLShader *shader, const char *name, const int size ) :
-	GLUniform( shader, name, "float", 1, 1, false, size )
-	{
+	GLUniform( shader, name, "float", 1, 1, false, size ) {
 		currentValue.reserve( size );
 	}
 
-	inline void SetValue( int numFloats, float *f )
-	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
+	inline void SetValue( int numFloats, float *f ) {
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -972,7 +1081,19 @@ protected:
 			return;
 		}
 
-		glUniform1fv( p->uniformLocations[ _locationIndex ], numFloats, f );
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
+
+				glProgramUniform1fv( p->program, p->uniformLocations[_locationIndex], numFloats, f );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+			glUniform1fv( p->uniformLocations[_locationIndex], numFloats, f );
+		}
 	}
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
@@ -988,18 +1109,16 @@ class GLUniform2f : protected GLUniform
 {
 protected:
 	GLUniform2f( GLShader *shader, const char *name ) :
-	GLUniform( shader, name, "vec2", 2, 2, false )
-	{
+	GLUniform( shader, name, "vec2", 2, 2, false ) {
 		currentValue[0] = 0.0;
 		currentValue[1] = 0.0;
 	}
 
-	inline void SetValue( const vec2_t v )
-	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
+	inline void SetValue( const vec2_t v ) {
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -1015,18 +1134,39 @@ protected:
 			return;
 		}
 
+
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
 #if defined( USE_UNIFORM_FIREWALL )
-		vec2_t *firewall = ( vec2_t * ) &p->uniformFirewall[ _firewallIndex ];
+				vec2_t* firewall = ( vec2_t* ) &p->uniformFirewall[_firewallIndex];
 
-		if ( ( *firewall )[ 0 ] == v[ 0 ] && ( *firewall )[ 1 ] == v[ 1 ] )
-		{
-			return;
-		}
+				if ( ( *firewall )[0] == v[0] && ( *firewall )[1] == v[1] ) {
+					continue;
+				}
 
-		( *firewall )[ 0 ] = v[ 0 ];
-		( *firewall )[ 1 ] = v[ 1 ];
+				( *firewall )[0] = v[0];
+				( *firewall )[1] = v[1];
 #endif
-		glUniform2f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ] );
+				glProgramUniform2f( p->program, p->uniformLocations[_locationIndex], v[0], v[1] );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+#if defined( USE_UNIFORM_FIREWALL )
+			vec2_t* firewall = ( vec2_t* ) &p->uniformFirewall[_firewallIndex];
+
+			if ( ( *firewall )[0] == v[0] && ( *firewall )[1] == v[1] ) {
+				return;
+			}
+
+			( *firewall )[0] = v[0];
+			( *firewall )[1] = v[1];
+#endif
+			glUniform2f( p->uniformLocations[_locationIndex], v[0], v[1] );
+		}
 	}
 
 	size_t GetSize() override
@@ -1047,19 +1187,17 @@ class GLUniform3f : protected GLUniform
 {
 protected:
 	GLUniform3f( GLShader *shader, const char *name, const bool global = false ) :
-	GLUniform( shader, name, "vec3", 3, 4, global )
-	{
+	GLUniform( shader, name, "vec3", 3, 4, global ) {
 		currentValue[0] = 0.0;
 		currentValue[1] = 0.0;
 		currentValue[2] = 0.0;
 	}
 
-	inline void SetValue( const vec3_t v )
-	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
+	inline void SetValue( const vec3_t v ) {
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -1075,17 +1213,37 @@ protected:
 			return;
 		}
 
+
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
 #if defined( USE_UNIFORM_FIREWALL )
-		vec3_t *firewall = ( vec3_t * ) &p->uniformFirewall[ _firewallIndex ];
+				vec3_t* firewall = ( vec3_t* ) &p->uniformFirewall[_firewallIndex];
 
-		if ( VectorCompare( *firewall, v ) )
-		{
-			return;
-		}
+				if ( VectorCompare( *firewall, v ) ) {
+					continue;
+				}
 
-		VectorCopy( v, *firewall );
+				VectorCopy( v, *firewall );
 #endif
-		glUniform3f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ], v[ 2 ] );
+				glProgramUniform3f( p->program, p->uniformLocations[_locationIndex], v[0], v[1], v[2] );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+#if defined( USE_UNIFORM_FIREWALL )
+			vec3_t* firewall = ( vec3_t* ) &p->uniformFirewall[_firewallIndex];
+
+			if ( VectorCompare( *firewall, v ) ) {
+				return;
+			}
+
+			VectorCopy( v, *firewall );
+#endif
+			glUniform3f( p->uniformLocations[_locationIndex], v[0], v[1], v[2] );
+		}
 	}
 public:
 	size_t GetSize() override
@@ -1106,20 +1264,18 @@ class GLUniform4f : protected GLUniform
 {
 protected:
 	GLUniform4f( GLShader *shader, const char *name, const bool global = false ) :
-	GLUniform( shader, name, "vec4", 4, 4, global )
-	{
+	GLUniform( shader, name, "vec4", 4, 4, global ) {
 		currentValue[0] = 0.0;
 		currentValue[1] = 0.0;
 		currentValue[2] = 0.0;
 		currentValue[3] = 0.0;
 	}
 
-	inline void SetValue( const vec4_t v )
-	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
+	inline void SetValue( const vec4_t v ) {
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -1135,17 +1291,38 @@ protected:
 			return;
 		}
 
+
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
+
 #if defined( USE_UNIFORM_FIREWALL )
-		vec4_t *firewall = ( vec4_t * ) &p->uniformFirewall[ _firewallIndex ];
+				vec4_t* firewall = ( vec4_t* ) &p->uniformFirewall[_firewallIndex];
 
-		if ( !memcmp( *firewall, v, sizeof( *firewall ) ) )
-		{
-			return;
-		}
+				if ( !memcmp( *firewall, v, sizeof( *firewall ) ) ) {
+					continue;
+				}
 
-		Vector4Copy( v, *firewall );
+				Vector4Copy( v, *firewall );
 #endif
-		glUniform4f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
+				glProgramUniform4f( p->program, p->uniformLocations[_locationIndex], v[0], v[1], v[2], v[3] );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+#if defined( USE_UNIFORM_FIREWALL )
+			vec4_t* firewall = ( vec4_t* ) &p->uniformFirewall[_firewallIndex];
+
+			if ( !memcmp( *firewall, v, sizeof( *firewall ) ) ) {
+				return;
+			}
+
+			Vector4Copy( v, *firewall );
+#endif
+			glUniform4f( p->uniformLocations[_locationIndex], v[0], v[1], v[2], v[3] );
+		}
 	}
 public:
 	size_t GetSize() override
@@ -1166,17 +1343,15 @@ class GLUniform4fv : protected GLUniform
 {
 protected:
 	GLUniform4fv( GLShader *shader, const char *name, const int size ) :
-	GLUniform( shader, name, "vec4", 4, 4, false, size )
-	{
+	GLUniform( shader, name, "vec4", 4, 4, false, size ) {
 		currentValue.reserve( size );
 	}
 
-	inline void SetValue( int numV, vec4_t *v )
-	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
+	inline void SetValue( int numV, vec4_t *v ) {
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -1192,7 +1367,18 @@ protected:
 			return;
 		}
 
-		glUniform4fv( p->uniformLocations[ _locationIndex ], numV, &v[ 0 ][ 0 ] );
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
+				glProgramUniform4fv( p->program, p->uniformLocations[_locationIndex], numV, &v[0][0] );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+			glUniform4fv( p->uniformLocations[_locationIndex], numV, &v[0][0] );
+		}
 	}
 
 	public:
@@ -1209,17 +1395,15 @@ class GLUniformMatrix4f : protected GLUniform
 {
 protected:
 	GLUniformMatrix4f( GLShader *shader, const char *name, const bool global = false ) :
-	GLUniform( shader, name, "mat4", 16, 4, global )
-	{
+	GLUniform( shader, name, "mat4", 16, 4, global ) {
 		MatrixIdentity( currentValue );
 	}
 
-	inline void SetValue( GLboolean transpose, const matrix_t m )
-	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
+	inline void SetValue( GLboolean transpose, const matrix_t m ) {
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -1237,17 +1421,37 @@ protected:
 			return;
 		}
 
+
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
 #if defined( USE_UNIFORM_FIREWALL )
-		matrix_t *firewall = ( matrix_t * ) &p->uniformFirewall[ _firewallIndex ];
+				matrix_t* firewall = ( matrix_t* ) &p->uniformFirewall[_firewallIndex];
 
-		if ( MatrixCompare( m, *firewall ) )
-		{
-			return;
-		}
+				if ( MatrixCompare( m, *firewall ) ) {
+					continue;
+				}
 
-		MatrixCopy( m, *firewall );
+				MatrixCopy( m, *firewall );
 #endif
-		glUniformMatrix4fv( p->uniformLocations[ _locationIndex ], 1, transpose, m );
+				glProgramUniformMatrix4fv( p->program, p->uniformLocations[_locationIndex], 1, transpose, m );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+#if defined( USE_UNIFORM_FIREWALL )
+			matrix_t* firewall = ( matrix_t* ) &p->uniformFirewall[_firewallIndex];
+
+			if ( MatrixCompare( m, *firewall ) ) {
+				return;
+			}
+
+			MatrixCopy( m, *firewall );
+#endif
+			glUniformMatrix4fv( p->uniformLocations[_locationIndex], 1, transpose, m );
+		}
 	}
 public:
 	size_t GetSize() override
@@ -1271,10 +1475,10 @@ class GLUniformMatrix32f : protected GLUniform {
 	}
 
 	inline void SetValue( GLboolean transpose, const vec_t* m ) {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -1290,7 +1494,18 @@ class GLUniformMatrix32f : protected GLUniform {
 			return;
 		}
 
-		glUniformMatrix3x2fv( p->uniformLocations[_locationIndex], 1, transpose, m );
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
+				glProgramUniformMatrix3x2fv( p->program, p->uniformLocations[_locationIndex], 1, transpose, m );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+			glUniformMatrix3x2fv( p->uniformLocations[_locationIndex], 1, transpose, m );
+		}
 	}
 	public:
 	size_t GetSize() override {
@@ -1310,17 +1525,15 @@ class GLUniformMatrix4fv : protected GLUniform
 {
 protected:
 	GLUniformMatrix4fv( GLShader *shader, const char *name, const int size ) :
-	GLUniform( shader, name, "mat4", 16, 4, false, size )
-	{
+	GLUniform( shader, name, "mat4", 16, 4, false, size ) {
 		currentValue.reserve( size * 16 );
 	}
 
-	inline void SetValue( int numMatrices, GLboolean transpose, const matrix_t *m )
-	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
+	inline void SetValue( int numMatrices, GLboolean transpose, const matrix_t *m ) {
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -1336,7 +1549,18 @@ protected:
 			return;
 		}
 
-		glUniformMatrix4fv( p->uniformLocations[ _locationIndex ], numMatrices, transpose, &m[ 0 ][ 0 ] );
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
+				glProgramUniformMatrix4fv( p->program, p->uniformLocations[_locationIndex], numMatrices, transpose, &m[0][0] );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+			glUniformMatrix4fv( p->uniformLocations[_locationIndex], numMatrices, transpose, &m[0][0] );
+		}
 	}
 
 	public:
@@ -1353,16 +1577,14 @@ class GLUniformMatrix34fv : protected GLUniform
 {
 protected:
 	GLUniformMatrix34fv( GLShader *shader, const char *name, const int size ) :
-	GLUniform( shader, name, "mat3x4", 12, 4, false, size )
-	{
+	GLUniform( shader, name, "mat3x4", 12, 4, false, size ) {
 	}
 
-	inline void SetValue( int numMatrices, GLboolean transpose, const float *m )
-	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
+	inline void SetValue( int numMatrices, GLboolean transpose, const float *m ) {
+		GLuint program = _shader->GetProgram();
 
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+		if ( !glConfig2.separateShaderObjectsAvailable && ( _global || !_shader->UseMaterialSystem() ) ) {
+			ASSERT_EQ( program, glState.currentPipeline );
 		}
 
 #if defined( LOG_GLSL_UNIFORMS )
@@ -1378,7 +1600,18 @@ protected:
 			return;
 		}
 
-		glUniformMatrix3x4fv( p->uniformLocations[ _locationIndex ], numMatrices, transpose, m );
+		if ( glConfig2.separateShaderObjectsAvailable ) {
+			for ( int i = 0; i < 3; i++ ) {
+				GLShader::UniformData* p = _shader->GetUniformData( i );
+				if ( !p->program ) {
+					continue;
+				}
+				glProgramUniformMatrix3x4fv( p->program, p->uniformLocations[_locationIndex], numMatrices, transpose, m );
+			}
+		} else {
+			GLShader::UniformData* p = _shader->GetUniformData();
+			glUniformMatrix3x4fv( p->uniformLocations[_locationIndex], numMatrices, transpose, m );
+		}
 	}
 
 	public:
@@ -1423,10 +1656,10 @@ public:
 	}
 
 	void SetBuffer( GLuint buffer ) {
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-		GLuint blockIndex = p->uniformBlockIndexes[ _locationIndex ];
+		GLuint p = _shader->GetProgram();
+		GLuint blockIndex = _shader->GetUniformData( 1 )->uniformBlockIndexes[_locationIndex];
 
-		ASSERT_EQ(p, glState.currentProgram);
+		// ASSERT_EQ( p, glState.currentPipeline );
 
 		if( blockIndex != GL_INVALID_INDEX ) {
 			glBindBufferBase( GL_UNIFORM_BUFFER, blockIndex, buffer );

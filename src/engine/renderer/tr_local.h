@@ -2429,8 +2429,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		float           vertexAttribsInterpolation; // 0 = no interpolation, 1 = final position
 		uint32_t        vertexAttribsNewFrame; // offset for VBO vertex animations
 		uint32_t        vertexAttribsOldFrame; // offset for VBO vertex animations
-		ShaderProgramDescriptor* currentProgram;
-		ShaderPipelineDescriptor* currentPipeline;
+		GLuint currentPipeline;
 		FBO_t           *currentFBO;
 		VBO_t           *currentVBO;
 		IBO_t           *currentIBO;
@@ -3233,10 +3232,8 @@ inline bool checkGLErrors()
 	GLuint64 BindAnimatedImage( int unit, const textureBundle_t *bundle );
 	GLuint64 GL_BindToTMU( int unit, image_t *image );
 	void GL_TextureFilter( image_t *image, filterType_t filterType );
-	void GL_BindProgram( ShaderProgramDescriptor* program );
-	void GL_BindNullProgram();
-	void GL_BindProgramPipeline( ShaderPipelineDescriptor* program );
-	void GL_BindNullProgramPipeline();
+	void GL_BindProgram( GLuint pipeline, bool override = false );
+	void GL_BindNullProgram( bool override = false);
 	void GL_SetDefaultState();
 	void GL_SelectTexture( int unit );
 	void GL_TextureMode( const char *string );

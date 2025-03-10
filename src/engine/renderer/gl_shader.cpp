@@ -1070,7 +1070,8 @@ void GLShaderManager::BuildShaderProgram( ShaderProgramDescriptor* descriptor ) 
 	Log::Debug( "Program creation + linking: %i", time );
 }
 
-ShaderProgramDescriptor* GLShaderManager::FindShaderProgram( std::vector<ShaderEntry>& shaders, GLShader* mainShader ) {
+ShaderProgramDescriptor* GLShaderManager::FindShaderProgram( std::vector<ShaderEntry>& shaders, GLShader* mainShader,
+	GLShader::UniformData* uniformData ) {
 	std::vector<ShaderProgramDescriptor>::iterator it = std::find_if( shaderProgramDescriptors.begin(), shaderProgramDescriptors.end(),
 		[&]( const ShaderProgramDescriptor& program ) {
 			for ( const ShaderEntry& shader : shaders ) {
@@ -1124,9 +1125,12 @@ ShaderProgramDescriptor* GLShaderManager::FindShaderProgram( std::vector<ShaderE
 		}
 
 		UpdateShaderProgramUniformLocations( mainShader, &desc );
-		GL_BindProgram( &desc );
+		uniformData->uniformLocations = desc.uniformLocations;
+		uniformData->uniformBlockIndexes = desc.uniformBlockIndexes;
+		uniformData->uniformFirewall = desc.uniformFirewall;
+		GL_BindProgram( desc.id, true );
 		mainShader->SetShaderProgramUniforms( &desc );
-		GL_BindNullProgram();
+		GL_BindNullProgram( true );
 
 		shaderProgramDescriptors.emplace_back( desc );
 
@@ -1139,7 +1143,7 @@ ShaderProgramDescriptor* GLShaderManager::FindShaderProgram( std::vector<ShaderE
 ShaderPipelineDescriptor* GLShaderManager::FindShaderPipelines(
 	std::vector<ShaderEntry>& vertexShaders, std::vector<ShaderEntry>& fragmentShaders,
 	std::vector<ShaderEntry>& computeShaders,
-	GLShader* mainShader ) {
+	GLShader* mainShader, uint32_t permutation ) {
 	std::vector<ShaderPipelineDescriptor>::iterator it = std::find_if( shaderPipelineDescriptors.begin(), shaderPipelineDescriptors.end(),
 		[&]( const ShaderPipelineDescriptor& pipeline ) {
 			for ( const ShaderEntry& shader : vertexShaders ) {
@@ -1171,26 +1175,75 @@ ShaderPipelineDescriptor* GLShaderManager::FindShaderPipelines(
 		ShaderPipelineDescriptor descriptor;
 		glGenProgramPipelines( 1, &descriptor.id );
 
+		GL_CheckErrors();
 		if ( vertexShaders.size() ) {
-			ShaderProgramDescriptor* program = FindShaderProgram( vertexShaders, mainShader );
+			ShaderProgramDescriptor* program =
+				FindShaderProgram( vertexShaders, mainShader, &mainShader->uniformsData[permutation * 3] );
+			mainShader->uniformsData[permutation * 3].program = program->id;
+			mainShader->uniformsData[permutation * 3].uniformLocations = program->uniformLocations;
+			mainShader->uniformsData[permutation * 3].uniformBlockIndexes = program->uniformBlockIndexes;
+			mainShader->uniformsData[permutation * 3].uniformFirewall = program->uniformFirewall;
 			descriptor.AttachProgram( program );
 			descriptor.VSProgram = *program;
+
+			GL_CheckErrors();
+
+			glUseProgramStages( descriptor.id, GL_VERTEX_SHADER_BIT, program->id );
+			GL_CheckErrors();
 		}
 		if ( fragmentShaders.size() ) {
-			ShaderProgramDescriptor* program = FindShaderProgram( fragmentShaders, mainShader );
+			ShaderProgramDescriptor* program =
+				FindShaderProgram( fragmentShaders, mainShader, &mainShader->uniformsData[permutation * 3 + 1] );
+			mainShader->uniformsData[permutation * 3 + 1].program = program->id;
+			mainShader->uniformsData[permutation * 3 + 1].uniformLocations = program->uniformLocations;
+			mainShader->uniformsData[permutation * 3 + 1].uniformBlockIndexes = program->uniformBlockIndexes;
+			mainShader->uniformsData[permutation * 3 + 1].uniformFirewall = program->uniformFirewall;
 			descriptor.AttachProgram( program );
 			descriptor.FSProgram = *program;
+
+			GL_CheckErrors();
+
+			glUseProgramStages( descriptor.id, GL_FRAGMENT_SHADER_BIT, program->id );
+			GL_CheckErrors();
 		}
 		if ( computeShaders.size() ) {
-			ShaderProgramDescriptor* program = FindShaderProgram( computeShaders, mainShader );
+			ShaderProgramDescriptor* program =
+				FindShaderProgram( computeShaders, mainShader, &mainShader->uniformsData[permutation * 3 + 2] );
+			mainShader->uniformsData[permutation * 3 + 2].program = program->id;
+			mainShader->uniformsData[permutation * 3 + 2].uniformLocations = program->uniformLocations;
+			mainShader->uniformsData[permutation * 3 + 2].uniformBlockIndexes = program->uniformBlockIndexes;
+			mainShader->uniformsData[permutation * 3 + 2].uniformFirewall = program->uniformFirewall;
 			descriptor.AttachProgram( program );
 			descriptor.CSProgram = *program;
+
+			GL_CheckErrors();
+
+			glUseProgramStages( descriptor.id, GL_COMPUTE_SHADER_BIT, program->id );
+			GL_CheckErrors();
 		}
 
 		shaderPipelineDescriptors.emplace_back( descriptor );
 		return &shaderPipelineDescriptors.back();
 	}
 
+	if ( it->VSProgram.id ) {
+		mainShader->uniformsData[permutation * 3].program = it->VSProgram.id;
+		mainShader->uniformsData[permutation * 3].uniformLocations = it->VSProgram.uniformLocations;
+		mainShader->uniformsData[permutation * 3].uniformBlockIndexes = it->VSProgram.uniformBlockIndexes;
+		mainShader->uniformsData[permutation * 3].uniformFirewall = it->VSProgram.uniformFirewall;
+	}
+	if ( it->FSProgram.id ) {
+		mainShader->uniformsData[permutation * 3 + 1].program = it->FSProgram.id;
+		mainShader->uniformsData[permutation * 3 + 1].uniformLocations = it->FSProgram.uniformLocations;
+		mainShader->uniformsData[permutation * 3 + 1].uniformBlockIndexes = it->FSProgram.uniformBlockIndexes;
+		mainShader->uniformsData[permutation * 3 + 1].uniformFirewall = it->FSProgram.uniformFirewall;
+	}
+	if ( it->CSProgram.id ) {
+		mainShader->uniformsData[permutation * 3 + 2].program = it->CSProgram.id;
+		mainShader->uniformsData[permutation * 3 + 2].uniformLocations = it->CSProgram.uniformLocations;
+		mainShader->uniformsData[permutation * 3 + 2].uniformBlockIndexes = it->CSProgram.uniformBlockIndexes;
+		mainShader->uniformsData[permutation * 3 + 2].uniformFirewall = it->CSProgram.uniformFirewall;
+	}
 	return &*it;
 }
 
@@ -1207,13 +1260,8 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 	}
 
 	// Program already exists
-	if ( glConfig2.separateShaderObjectsAvailable ) {
-		if ( i < shader->shaderPipelines.size() &&
-			shader->shaderPipelines[i].id ) {
-			return false;
-		}
-	} else if ( i < shader->shaderPrograms.size() &&
-		shader->shaderPrograms[i].id ) {
+	if ( i < shader->shaderPipelines.size() &&
+		shader->shaderPipelines[i] ) {
 		return false;
 	}
 
@@ -1223,12 +1271,9 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 
 	const int start = Sys::Milliseconds();
 
-	if ( glConfig2.separateShaderObjectsAvailable ) {
-		if ( i >= shader->shaderPipelines.size() ) {
-			shader->shaderPipelines.resize( ( deformIndex + 1 ) << shader->_compileMacros.size() );
-		}
-	} else if ( i >= shader->shaderPrograms.size() ) {
-		shader->shaderPrograms.resize( ( deformIndex + 1 ) << shader->_compileMacros.size() );
+	if ( i >= shader->shaderPipelines.size() ) {
+		shader->shaderPipelines.resize( ( deformIndex + 1 ) << shader->_compileMacros.size() );
+		shader->uniformsData.resize( ( ( deformIndex + 1 ) << shader->_compileMacros.size() ) * 3 );
 	}
 
 	std::vector<ShaderEntry> vertexShaders;
@@ -1247,21 +1292,22 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 		computeShaders.emplace_back( ShaderEntry{ shader->_name, 0, GL_COMPUTE_SHADER } );
 	}
 
+	GL_CheckErrors();
 	if ( glConfig2.separateShaderObjectsAvailable ) {
-		ShaderPipelineDescriptor* pipeline = FindShaderPipelines( vertexShaders, fragmentShaders, computeShaders, shader );
+		ShaderPipelineDescriptor* pipeline = FindShaderPipelines( vertexShaders, fragmentShaders, computeShaders, shader,
+			i );
 
-		// Copy this for a fast look-up, but the values held in program aren't supposed to change after
-		shader->shaderPipelines[i] = *pipeline;
+		shader->shaderPipelines[i] = pipeline->id;
 	} else {
 		std::vector<ShaderEntry> shaders;
 		shaders.reserve( vertexShaders.size() + fragmentShaders.size() + computeShaders.size() );
 		shaders.insert( shaders.end(), vertexShaders.begin(), vertexShaders.end() );
 		shaders.insert( shaders.end(), fragmentShaders.begin(), fragmentShaders.end() );
 		shaders.insert( shaders.end(), computeShaders.begin(), computeShaders.end() );
-		ShaderProgramDescriptor* program = FindShaderProgram( shaders, shader );
 
-		// Copy this for a fast look-up, but the values held in program aren't supposed to change after
-		shader->shaderPrograms[i] = *program;
+		ShaderProgramDescriptor* program = FindShaderProgram( shaders, shader, &shader->uniformsData[i * 3] );
+
+		shader->shaderPipelines[i] = program->id;
 	}
 
 	GL_CheckErrors();
@@ -1547,6 +1593,10 @@ bool GLShaderManager::LoadShaderBinary( const std::vector<ShaderEntry>& shaders,
 		return false;
 	}
 
+	if ( glConfig2.separateShaderObjectsAvailable && !shaderHeader.separateProgram ) {
+		return false;
+	}
+
 	if ( shaderHeader.binaryLength != shaderData.size() - sizeof( shaderHeader ) ) {
 		Log::Warn( "Shader cache %s has wrong size", shaderFilename );
 		return false;
@@ -1617,6 +1667,8 @@ void GLShaderManager::SaveShaderBinary( ShaderProgramDescriptor* descriptor ) {
 	shaderHeader.binaryLength = binaryLength;
 	shaderHeader.checkSum = descriptor->checkSum;
 	shaderHeader.driverVersionHash = _driverVersionHash;
+
+	shaderHeader.separateProgram = glConfig2.separateShaderObjectsAvailable;
 
 	// Write the header to the buffer
 	memcpy( binary, &shaderHeader, sizeof( shaderHeader ) );
@@ -2219,8 +2271,8 @@ void GLShader::RegisterUniform( GLUniform* uniform ) {
 }
 
 GLint GLShader::GetUniformLocation( const GLchar *uniformName ) const {
-	ShaderProgramDescriptor* p = GetProgram();
-	return glGetUniformLocation( p->id, uniformName );
+	GLuint p = GetProgram();
+	return glGetUniformLocation( p, uniformName );
 }
 
 // Compute std430 size/alignment and sort uniforms from highest to lowest alignment
@@ -2353,12 +2405,12 @@ GLuint GLShader::GetProgram( int deformIndex ) {
 
 	// program may not be loaded yet because the shader manager hasn't yet gotten to it
 	// so try to load it now
-	if ( index >= shaderPrograms.size() || !shaderPrograms[index].id ) {
+	if ( index >= shaderPipelines.size() || !shaderPipelines[index] ) {
 		_shaderManager->BuildPermutation( this, macroIndex, deformIndex );
 	}
 
 	// program is still not loaded
-	if ( index >= shaderPrograms.size() || !shaderPrograms[index].id ) {
+	if ( index >= shaderPipelines.size() || !shaderPipelines[index] ) {
 		std::string activeMacros;
 		size_t numMacros = _compileMacros.size();
 
@@ -2376,7 +2428,7 @@ GLuint GLShader::GetProgram( int deformIndex ) {
 		ThrowShaderError( Str::Format( "Invalid shader configuration: shader = '%s', macros = '%s'", _name, activeMacros ) );
 	}
 
-	return shaderPrograms[index].id;
+	return shaderPipelines[index];
 }
 
 void GLShader::BindProgram( int deformIndex ) {
@@ -2385,13 +2437,13 @@ void GLShader::BindProgram( int deformIndex ) {
 
 	// program may not be loaded yet because the shader manager hasn't yet gotten to it
 	// so try to load it now
-	if ( index >= shaderPrograms.size() || !shaderPrograms[index].id )
+	if ( index >= shaderPipelines.size() || !shaderPipelines[index] )
 	{
 		_shaderManager->BuildPermutation( this, macroIndex, deformIndex );
 	}
 
 	// program is still not loaded
-	if ( index >= shaderPrograms.size() || !shaderPrograms[index].id )
+	if ( index >= shaderPipelines.size() || !shaderPipelines[index] )
 	{
 		std::string activeMacros;
 
@@ -2407,7 +2459,8 @@ void GLShader::BindProgram( int deformIndex ) {
 		ThrowShaderError(Str::Format("Invalid shader configuration: shader = '%s', macros = '%s'", _name, activeMacros ));
 	}
 
-	currentProgram = &shaderPrograms[index];
+	currentPipeline = shaderPipelines[index];
+	currentIndex = index;
 
 	if ( r_logFile->integer ) {
 		std::string macros;
@@ -2418,17 +2471,17 @@ void GLShader::BindProgram( int deformIndex ) {
 		GLimp_LogComment( msg.c_str() );
 	}
 
-	GL_BindProgram( &shaderPrograms[index] );
+	GL_BindProgram( currentPipeline );
 }
 
 void GLShader::DispatchCompute( const GLuint globalWorkgroupX, const GLuint globalWorkgroupY, const GLuint globalWorkgroupZ ) {
-	ASSERT_EQ( currentProgram, glState.currentProgram );
+	ASSERT_EQ( currentPipeline, glState.currentPipeline );
 	ASSERT( _hasComputeShader );
 	glDispatchCompute( globalWorkgroupX, globalWorkgroupY, globalWorkgroupZ );
 }
 
 void GLShader::DispatchComputeIndirect( const GLintptr indirectBuffer ) {
-	ASSERT_EQ( currentProgram, glState.currentProgram );
+	ASSERT_EQ( currentPipeline, glState.currentPipeline );
 	ASSERT( _hasComputeShader );
 	glDispatchComputeIndirect( indirectBuffer );
 }
@@ -2455,6 +2508,14 @@ void GLShader::WriteUniformsToBuffer( uint32_t* buffer ) {
 		if ( !uniform->IsGlobal() && !uniform->IsTexture() ) {
 			bufPtr = uniform->WriteToBuffer( bufPtr );
 		}
+	}
+}
+
+void TextureUniform( GLuint program, GLint location, GLint value ) {
+	if ( glConfig2.separateShaderObjectsAvailable ) {
+		glProgramUniform1i( program, location, value );
+	} else {
+		glUniform1i( location, value );
 	}
 }
 
@@ -2486,8 +2547,8 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 
 void GLShader_generic::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
 }
 
 GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
@@ -2514,8 +2575,8 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 }
 
 void GLShader_genericMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
 }
 
 GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
@@ -2569,18 +2630,18 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 
 void GLShader_lightMapping::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DiffuseMap" ), BIND_DIFFUSEMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), BIND_NORMALMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), BIND_HEIGHTMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_MaterialMap" ), BIND_MATERIALMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightMap" ), BIND_LIGHTMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid1" ), BIND_LIGHTMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DeluxeMap" ), BIND_DELUXEMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid2" ), BIND_DELUXEMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_GlowMap" ), BIND_GLOWMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightTiles" ), BIND_LIGHTTILES );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DiffuseMap" ), BIND_DIFFUSEMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), BIND_NORMALMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), BIND_HEIGHTMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_MaterialMap" ), BIND_MATERIALMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_LightMap" ), BIND_LIGHTMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_LightGrid1" ), BIND_LIGHTMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DeluxeMap" ), BIND_DELUXEMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_LightGrid2" ), BIND_DELUXEMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_GlowMap" ), BIND_GLOWMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_LightTiles" ), BIND_LIGHTTILES );
 	if( !glConfig2.uniformBufferObjectAvailable ) {
 		glUniform1i( glGetUniformLocation( shaderProgram->id, "u_Lights" ), BIND_LIGHTS );
 	}
@@ -2633,16 +2694,16 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 }
 
 void GLShader_lightMappingMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DiffuseMap" ), BIND_DIFFUSEMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), BIND_NORMALMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), BIND_HEIGHTMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_MaterialMap" ), BIND_MATERIALMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightMap" ), BIND_LIGHTMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DeluxeMap" ), BIND_DELUXEMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_GlowMap" ), BIND_GLOWMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightTiles" ), BIND_LIGHTTILES );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DiffuseMap" ), BIND_DIFFUSEMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), BIND_NORMALMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), BIND_HEIGHTMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_MaterialMap" ), BIND_MATERIALMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_LightMap" ), BIND_LIGHTMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DeluxeMap" ), BIND_DELUXEMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_GlowMap" ), BIND_GLOWMAP );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_LightTiles" ), BIND_LIGHTTILES );
 	if ( !glConfig2.uniformBufferObjectAvailable ) {
 		glUniform1i( glGetUniformLocation( shaderProgram->id, "u_Lights" ), BIND_LIGHTS );
 	}
@@ -2882,9 +2943,9 @@ GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 
 void GLShader_reflection::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_reflectionMaterial::GLShader_reflectionMaterial( GLShaderManager* manager ) :
@@ -2906,9 +2967,9 @@ GLShader_reflectionMaterial::GLShader_reflectionMaterial( GLShaderManager* manag
 }
 
 void GLShader_reflectionMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
@@ -2925,8 +2986,8 @@ GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 
 void GLShader_skybox::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMapCube" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CloudMap" ), 1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_ColorMapCube" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_CloudMap" ), 1 );
 }
 
 GLShader_skyboxMaterial::GLShader_skyboxMaterial( GLShaderManager* manager ) :
@@ -2941,8 +3002,8 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial( GLShaderManager* manager ) :
 {}
 
 void GLShader_skyboxMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CloudMap" ), 1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_CloudMap" ), 1 );
 }
 
 GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
@@ -2964,7 +3025,7 @@ GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 
 void GLShader_fogQuake3::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_FogMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_FogMap" ), 0 );
 }
 
 GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager ) :
@@ -2980,7 +3041,7 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager
 }
 
 void GLShader_fogQuake3Material::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_FogMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_FogMap" ), 0 );
 }
 
 GLShader_fogGlobal::GLShader_fogGlobal( GLShaderManager *manager ) :
@@ -2996,8 +3057,8 @@ GLShader_fogGlobal::GLShader_fogGlobal( GLShaderManager *manager ) :
 
 void GLShader_fogGlobal::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
 }
 
 GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
@@ -3021,9 +3082,9 @@ GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 
 void GLShader_heatHaze::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_heatHazeMaterial::GLShader_heatHazeMaterial( GLShaderManager* manager ) :
@@ -3043,9 +3104,9 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial( GLShaderManager* manager )
 }
 
 void GLShader_heatHazeMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_screen::GLShader_screen( GLShaderManager *manager ) :
@@ -3057,7 +3118,7 @@ GLShader_screen::GLShader_screen( GLShaderManager *manager ) :
 
 void GLShader_screen::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
 }
 
 GLShader_screenMaterial::GLShader_screenMaterial( GLShaderManager* manager ) :
@@ -3067,7 +3128,7 @@ GLShader_screenMaterial::GLShader_screenMaterial( GLShaderManager* manager ) :
 }
 
 void GLShader_screenMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
 }
 
 GLShader_portal::GLShader_portal( GLShaderManager *manager ) :
@@ -3081,7 +3142,7 @@ GLShader_portal::GLShader_portal( GLShaderManager *manager ) :
 
 void GLShader_portal::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
 }
 
 GLShader_contrast::GLShader_contrast( GLShaderManager *manager ) :
@@ -3093,7 +3154,7 @@ GLShader_contrast::GLShader_contrast( GLShaderManager *manager ) :
 
 void GLShader_contrast::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
 }
 
 GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
@@ -3112,8 +3173,8 @@ GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 
 void GLShader_cameraEffects::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap3D" ), 3 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_ColorMap3D" ), 3 );
 }
 
 GLShader_blur::GLShader_blur( GLShaderManager *manager ) :
@@ -3128,7 +3189,7 @@ GLShader_blur::GLShader_blur( GLShaderManager *manager ) :
 
 void GLShader_blur::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
 }
 
 GLShader_debugShadowMap::GLShader_debugShadowMap( GLShaderManager *manager ) :
@@ -3140,7 +3201,7 @@ GLShader_debugShadowMap::GLShader_debugShadowMap( GLShaderManager *manager ) :
 
 void GLShader_debugShadowMap::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
 }
 
 GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
@@ -3177,13 +3238,13 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 }
 
 void GLShader_liquid::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_PortalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 2 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 3 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid1" ), 6 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid2" ), 7 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_PortalMap" ), 1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 2 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 3 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_LightGrid1" ), 6 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_LightGrid2" ), 7 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_liquidMaterial::GLShader_liquidMaterial( GLShaderManager* manager ) :
@@ -3221,13 +3282,13 @@ GLShader_liquidMaterial::GLShader_liquidMaterial( GLShaderManager* manager ) :
 
 void GLShader_liquidMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_PortalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 2 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 3 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid1" ), 6 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid2" ), 7 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_PortalMap" ), 1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 2 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 3 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_LightGrid1" ), 6 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_LightGrid2" ), 7 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_motionblur::GLShader_motionblur( GLShaderManager *manager ) :
@@ -3241,8 +3302,8 @@ GLShader_motionblur::GLShader_motionblur( GLShaderManager *manager ) :
 
 void GLShader_motionblur::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
 }
 
 GLShader_ssao::GLShader_ssao( GLShaderManager *manager ) :
@@ -3256,7 +3317,7 @@ GLShader_ssao::GLShader_ssao( GLShaderManager *manager ) :
 
 void GLShader_ssao::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
 }
 
 GLShader_depthtile1::GLShader_depthtile1( GLShaderManager *manager ) :
@@ -3269,7 +3330,7 @@ GLShader_depthtile1::GLShader_depthtile1( GLShaderManager *manager ) :
 
 void GLShader_depthtile1::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
 }
 
 GLShader_depthtile2::GLShader_depthtile2( GLShaderManager *manager ) :
@@ -3281,7 +3342,7 @@ GLShader_depthtile2::GLShader_depthtile2( GLShaderManager *manager ) :
 
 void GLShader_depthtile2::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
 }
 
 GLShader_lighttile::GLShader_lighttile( GLShaderManager *manager ) :
@@ -3297,7 +3358,7 @@ GLShader_lighttile::GLShader_lighttile( GLShaderManager *manager ) :
 
 void GLShader_lighttile::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
 
 	if( !glConfig2.uniformBufferObjectAvailable ) {
 		glUniform1i( glGetUniformLocation( shaderProgram->id, "u_Lights" ), 1 );
@@ -3313,7 +3374,7 @@ GLShader_fxaa::GLShader_fxaa( GLShaderManager *manager ) :
 
 void GLShader_fxaa::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
 }
 
 GLShader_cull::GLShader_cull( GLShaderManager* manager ) :
@@ -3343,7 +3404,7 @@ GLShader_depthReduction::GLShader_depthReduction( GLShaderManager* manager ) :
 }
 
 void GLShader_depthReduction::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "depthTextureInitial" ), 0 );
+	TextureUniform( shaderProgram->id, glGetUniformLocation( shaderProgram->id, "depthTextureInitial" ), 0 );
 }
 
 GLShader_clearSurfaces::GLShader_clearSurfaces( GLShaderManager* manager ) :
