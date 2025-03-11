@@ -5869,9 +5869,9 @@ static shader_t *FinishShader()
 	numStages = MAX_SHADER_STAGES;
 	GroupActiveStages();
 
-	if ( shader.forceLightMap ) {
+	if ( shader.forceLightMap && numStages == 1 ) {
 		for( size_t stage = 0; stage < numStages; stage++ ) {
-			shaderStage_t* pStage = &stages[numStages];
+			shaderStage_t* pStage = &stages[stage];
 
 			if ( pStage->type == stageType_t::ST_COLORMAP ) {
 				pStage->type = stageType_t::ST_DIFFUSEMAP;
