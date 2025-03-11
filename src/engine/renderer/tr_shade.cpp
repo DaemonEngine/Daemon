@@ -2320,7 +2320,14 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 	switch ( pStage->rgbGen )
 	{
 		case colorGen_t::CGEN_IDENTITY_LIGHTING:
-			tess.svars.color = Color::Color(tr.identityLight, tr.identityLight, tr.identityLight);
+			if ( backEnd.projection2D )
+			{
+				tess.svars.color = Color::White;
+			}
+			else
+			{
+				tess.svars.color = Color::Color(tr.identityLight, tr.identityLight, tr.identityLight);
+			}
 			break;
 
 		case colorGen_t::CGEN_IDENTITY:
