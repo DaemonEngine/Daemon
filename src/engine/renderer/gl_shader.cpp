@@ -3053,13 +3053,11 @@ void GLShader_contrast::SetShaderProgramUniforms( ShaderProgramDescriptor *shade
 
 GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	GLShader( "cameraEffects", ATTR_POSITION | ATTR_TEXCOORD, manager,
-		false, "cameraEffects", "cameraEffects" ),
+		false, "screenSpace", "cameraEffects" ),
 	u_ColorMap3D( this ),
 	u_CurrentMap( this ),
 	u_GlobalLightFactor( this ),
 	u_ColorModulate( this ),
-	u_TextureMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
 	u_Tonemap( this ),
 	u_TonemapParms( this ),
 	u_TonemapExposure( this ),

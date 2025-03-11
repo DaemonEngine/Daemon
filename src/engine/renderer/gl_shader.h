@@ -4566,8 +4566,6 @@ class GLShader_cameraEffects :
 	public u_CurrentMap,
 	public u_GlobalLightFactor,
 	public u_ColorModulate,
-	public u_TextureMatrix,
-	public u_ModelViewProjectionMatrix,
 	public u_Tonemap,
 	public u_TonemapParms,
 	public u_TonemapExposure,
