@@ -316,7 +316,7 @@ struct ShaderProgramDescriptor {
 	uint32_t shaderCount = 0;
 
 	GLint* uniformLocations;
-	GLuint* uniformBlockIndexes;
+	GLuint* uniformBlockIndexes = nullptr;
 	byte* uniformFirewall;
 
 	uint32_t checkSum;
