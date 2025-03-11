@@ -3113,7 +3113,7 @@ void R_InitImages()
 	CGEN_IDENTITY_LIGHTING to multiply by tr.identityLight, which would cancel out the
 	rescaling so that the material looked the same regardless of tr.overbrightBits.
 
-	In Daemon tr.identityLight is usually 1, so any distincion between
+	In Daemon tr.identityLight is usually 1, so any distinction between
 	CGEN_IDENTITY/CGEN_IDENTITY_LIGHTING is ignored. But if you set the cvar r_overbrightQ3,
 	which emulates Quake 3's technique of brightening the whole color buffer, it will be used.
 
