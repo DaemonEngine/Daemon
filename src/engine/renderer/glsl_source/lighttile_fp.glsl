@@ -35,7 +35,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* lighttile_fp.glsl */
 
 IN(smooth) vec2 vPosition;
-IN(smooth) vec2 vTexCoord;
 
 struct Light {
 	vec3 center;
