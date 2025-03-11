@@ -98,22 +98,26 @@ private:
 	GLShader &operator = ( const GLShader & ) = delete;
 
 	std::string _name;
-	std::string _mainShaderName;
+	const uint32_t _vertexAttribsRequired;
+	GLShaderManager* _shaderManager;
+
 	const bool _useMaterialSystem;
+
+	std::string vertexShaderName;
+	std::string fragmentShaderName;
+	std::string computeShaderName;
+	const bool hasVertexShader;
+	const bool hasFragmentShader;
+	const bool hasComputeShader;
+
 	GLuint std430Size = 0;
 	uint padding = 0;
 	uint textureCount = 0;
 protected:
-	int _activeMacros;
-	unsigned int _checkSum;
+	int _activeMacros = 0;
 	ShaderProgramDescriptor* currentProgram;
-	const uint32_t _vertexAttribsRequired;
-	uint32_t _vertexAttribs; // can be set by uniforms
-	GLShaderManager *_shaderManager;
+	uint32_t _vertexAttribs = 0; // can be set by uniforms
 
-	bool _hasVertexShader;
-	bool _hasFragmentShader;
-	bool _hasComputeShader;
 	std::vector<ShaderProgramDescriptor> shaderPrograms;
 
 	std::vector<int> vertexShaderDescriptors;
@@ -125,52 +129,32 @@ protected:
 	std::vector<GLUniformBlock*> _uniformBlocks;
 	std::vector<GLCompileMacro*> _compileMacros;
 
-	GLShader( const std::string &name, uint32_t vertexAttribsRequired, GLShaderManager *manager,
-			  const bool hasVertexShader = true, const bool hasFragmentShader = true, const bool hasComputeShader = false ) :
+	GLShader( const std::string& name, uint32_t vertexAttribsRequired, GLShaderManager* manager,
+		const bool useMaterialSystem,
+		const std::string newVertexShaderName, const std::string newFragmentShaderName ) :
 		_name( name ),
-		_mainShaderName( name ),
-		_useMaterialSystem( false ),
-		_activeMacros( 0 ),
-		_checkSum( 0 ),
 		_vertexAttribsRequired( vertexAttribsRequired ),
-		_vertexAttribs( 0 ),
 		_shaderManager( manager ),
-		_hasVertexShader( hasVertexShader ),
-		_hasFragmentShader( hasFragmentShader ),
-		_hasComputeShader( hasComputeShader ),
-		_uniformStorageSize( 0 ) {
-	}
-
-	GLShader( const std::string &name, const std::string &mainShaderName, uint32_t vertexAttribsRequired, GLShaderManager *manager,
-			  const bool hasVertexShader = true, const bool hasFragmentShader = true, const bool hasComputeShader = false ) :
-		_name( name ),
-		_mainShaderName( mainShaderName ),
-		_useMaterialSystem( false ),
-		_activeMacros( 0 ),
-		_checkSum( 0 ),
-		_vertexAttribsRequired( vertexAttribsRequired ),
-		_vertexAttribs( 0 ),
-		_shaderManager( manager ),
-		_hasVertexShader( hasVertexShader ),
-		_hasFragmentShader( hasFragmentShader ),
-		_hasComputeShader( hasComputeShader ),
-		_uniformStorageSize( 0 ) {
-	}
-
-	GLShader( const std::string& name, const std::string& mainShaderName, const bool useMaterialSystem, uint32_t vertexAttribsRequired,
-			  GLShaderManager* manager,
-			  const bool hasVertexShader = true, const bool hasFragmentShader = true, const bool hasComputeShader = false ) :
-		_name( name ),
-		_mainShaderName( mainShaderName ),
 		_useMaterialSystem( useMaterialSystem ),
-		_activeMacros( 0 ),
-		_checkSum( 0 ),
+		vertexShaderName( newVertexShaderName),
+		fragmentShaderName( newFragmentShaderName ),
+		hasVertexShader( true ),
+		hasFragmentShader( true ),
+		hasComputeShader( false ),
+		_uniformStorageSize( 0 ) {
+	}
+
+	GLShader( const std::string& name, uint32_t vertexAttribsRequired, GLShaderManager* manager,
+		const bool useMaterialSystem,
+		const std::string newComputeShaderName ) :
+		_name( name ),
 		_vertexAttribsRequired( vertexAttribsRequired ),
-		_vertexAttribs( 0 ),
 		_shaderManager( manager ),
-		_hasVertexShader( hasVertexShader ),
-		_hasFragmentShader( hasFragmentShader ),
-		_hasComputeShader( hasComputeShader ),
+		_useMaterialSystem( useMaterialSystem ),
+		computeShaderName( newComputeShaderName ),
+		hasVertexShader( false ),
+		hasFragmentShader( false ),
+		hasComputeShader( true ),
 		_uniformStorageSize( 0 ) {
 	}
 
@@ -205,10 +189,6 @@ public:
 
 	const std::string &GetName() const {
 		return _name;
-	}
-
-	const std::string &GetMainShaderName() const {
-		return _mainShaderName;
 	}
 
 protected:
@@ -4491,7 +4471,6 @@ class GLShader_fogGlobal :
 	public GLShader,
 	public u_ColorMap,
 	public u_DepthMap,
-	public u_ModelViewProjectionMatrix,
 	public u_UnprojectMatrix,
 	public u_Color,
 	public u_FogDistanceVector
@@ -4575,9 +4554,7 @@ public:
 
 class GLShader_contrast :
 	public GLShader,
-	public u_ColorMap,
-	public u_ModelViewProjectionMatrix
-{
+	public u_ColorMap {
 public:
 	GLShader_contrast( GLShaderManager *manager );
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
@@ -4604,7 +4581,6 @@ public:
 class GLShader_blur :
 	public GLShader,
 	public u_ColorMap,
-	public u_ModelViewProjectionMatrix,
 	public u_DeformMagnitude,
 	public u_TexScale,
 	public u_Horizontal
@@ -4700,7 +4676,6 @@ class GLShader_motionblur :
 	public GLShader,
 	public u_ColorMap,
 	public u_DepthMap,
-	public u_ModelViewProjectionMatrix,
 	public u_blurVec
 {
 public:
@@ -4711,7 +4686,6 @@ public:
 class GLShader_ssao :
 	public GLShader,
 	public u_DepthMap,
-	public u_ModelViewProjectionMatrix,
 	public u_UnprojectionParams,
 	public u_zFar
 {
@@ -4733,9 +4707,7 @@ public:
 
 class GLShader_depthtile2 :
 	public GLShader,
-	public u_DepthMap,
-	public u_ModelViewProjectionMatrix
-{
+	public u_DepthMap {
 public:
 	GLShader_depthtile2( GLShaderManager *manager );
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
@@ -4757,9 +4729,7 @@ public:
 
 class GLShader_fxaa :
 	public GLShader,
-	public u_ColorMap,
-	public u_ModelViewProjectionMatrix
-{
+	public u_ColorMap {
 public:
 	GLShader_fxaa( GLShaderManager *manager );
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
