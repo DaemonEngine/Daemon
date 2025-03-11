@@ -152,32 +152,27 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/material_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/skybox_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/ssao_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/ssao_vp.glsl
+    ${ENGINE_DIR}/renderer/glsl_source/screenSpace_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/vertexAnimation_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/vertexSimple_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/vertexSkinning_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/blur_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/blur_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/cameraEffects_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/cameraEffects_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/computeLight_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/contrast_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/contrast_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/debugShadowMap_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/debugShadowMap_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/deformVertexes_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/depthtile1_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/depthtile1_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/depthtile2_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/depthtile2_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fogGlobal_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fogGlobal_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/forwardLighting_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/forwardLighting_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fxaa_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fxaa_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fxaa3_11_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/generic_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/generic_vp.glsl
@@ -190,7 +185,6 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/liquid_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/liquid_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/motionblur_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/motionblur_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/portal_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/portal_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/reflection_CB_fp.glsl
