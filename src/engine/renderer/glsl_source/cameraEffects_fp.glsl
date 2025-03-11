@@ -32,10 +32,6 @@ uniform vec4      u_ColorModulate;
 uniform float     u_GlobalLightFactor; // 1 / tr.identityLight
 uniform float     u_InverseGamma;
 
-IN(smooth) vec2		var_TexCoords;
-
-DECLARE_OUTPUT(vec4)
-
 // Tone mapping is not available when high-precision float framebuffer isn't enabled or supported.
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
 /* x: contrast
@@ -45,6 +41,8 @@ w: highlightsCompression */
 uniform bool u_Tonemap;
 uniform vec4 u_TonemapParms;
 uniform float u_TonemapExposure;
+
+DECLARE_OUTPUT(vec4)
 
 vec3 TonemapLottes( vec3 color ) {
   // Lottes 2016, "Advanced Techniques and Optimization of HDR Color Pipelines"
