@@ -167,7 +167,7 @@ static void Tess_SurfaceVertsAndTris( const srfVert_t *verts, const srfTriangle_
 
 static bool Tess_SurfaceVBO( VBO_t *vbo, IBO_t *ibo, int numIndexes, int firstIndex )
 {
-	if ( !vbo || !ibo )
+	if ( ( !vbo && !tr.skipVBO ) || !ibo )
 	{
 		return false;
 	}
@@ -534,20 +534,16 @@ void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const
 	Tess_AddQuadStamp2WithNormals( quadVerts, color );
 }
 
-
-/*
-==============
-Tess_InstantQuad
-==============
-*/
 void Tess_InstantScreenSpaceQuad() {
-	GLimp_LogComment( "--- Tess_InstantQuad ---\n" );
+	GLimp_LogComment( "--- Tess_InstantScreenSpaceQuad ---\n" );
+
+	tr.skipVBO = true;
 
 	Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
-	rb_surfaceTable[Util::ordinal( *( tr.genericQuad->surface ) )]( tr.genericQuad->surface );
-	GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR );
-
+	rb_surfaceTable[Util::ordinal( *( tr.genericTriangle->surface ) )]( tr.genericTriangle->surface );
 	Tess_DrawElements();
+
+	tr.skipVBO = false;
 
 	GL_CheckErrors();
 

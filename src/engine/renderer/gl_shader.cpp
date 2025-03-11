@@ -43,42 +43,45 @@ ShaderKind shaderKind = ShaderKind::Unknown;
 
 // *INDENT-OFF*
 
-GLShader_generic                         *gl_genericShader = nullptr;
-GLShader_genericMaterial                 *gl_genericShaderMaterial = nullptr;
 GLShader_cull                            *gl_cullShader = nullptr;
 GLShader_depthReduction                  *gl_depthReductionShader = nullptr;
 GLShader_clearSurfaces                   *gl_clearSurfacesShader = nullptr;
 GLShader_processSurfaces                 *gl_processSurfacesShader = nullptr;
+
+GLShader_blur                            *gl_blurShader = nullptr;
+GLShader_cameraEffects                   *gl_cameraEffectsShader = nullptr;
+GLShader_contrast                        *gl_contrastShader = nullptr;
+GLShader_fogGlobal                       *gl_fogGlobalShader = nullptr;
+GLShader_fxaa                            *gl_fxaaShader = nullptr;
+GLShader_motionblur                      *gl_motionblurShader = nullptr;
+GLShader_ssao                            *gl_ssaoShader = nullptr;
+
+GLShader_depthtile1                      *gl_depthtile1Shader = nullptr;
+GLShader_depthtile2                      *gl_depthtile2Shader = nullptr;
+GLShader_lighttile                       *gl_lighttileShader = nullptr;
+
+GLShader_generic                         *gl_genericShader = nullptr;
+GLShader_genericMaterial                 *gl_genericShaderMaterial = nullptr;
 GLShader_lightMapping                    *gl_lightMappingShader = nullptr;
 GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial = nullptr;
 GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ = nullptr;
 GLShader_forwardLighting_projXYZ         *gl_forwardLightingShader_projXYZ = nullptr;
 GLShader_forwardLighting_directionalSun  *gl_forwardLightingShader_directionalSun = nullptr;
-GLShader_shadowFill                      *gl_shadowFillShader = nullptr;
-GLShader_reflection                      *gl_reflectionShader = nullptr;
-GLShader_reflectionMaterial              *gl_reflectionShaderMaterial = nullptr;
-GLShader_skybox                          *gl_skyboxShader = nullptr;
-GLShader_skyboxMaterial                  *gl_skyboxShaderMaterial = nullptr;
 GLShader_fogQuake3                       *gl_fogQuake3Shader = nullptr;
 GLShader_fogQuake3Material               *gl_fogQuake3ShaderMaterial = nullptr;
-GLShader_fogGlobal                       *gl_fogGlobalShader = nullptr;
 GLShader_heatHaze                        *gl_heatHazeShader = nullptr;
 GLShader_heatHazeMaterial                *gl_heatHazeShaderMaterial = nullptr;
-GLShader_screen                          *gl_screenShader = nullptr;
-GLShader_screenMaterial                  *gl_screenShaderMaterial = nullptr;
-GLShader_portal                          *gl_portalShader = nullptr;
-GLShader_contrast                        *gl_contrastShader = nullptr;
-GLShader_cameraEffects                   *gl_cameraEffectsShader = nullptr;
-GLShader_blur                           *gl_blurShader = nullptr;
-GLShader_debugShadowMap                  *gl_debugShadowMapShader = nullptr;
 GLShader_liquid                          *gl_liquidShader = nullptr;
 GLShader_liquidMaterial                  *gl_liquidShaderMaterial = nullptr;
-GLShader_motionblur                      *gl_motionblurShader = nullptr;
-GLShader_ssao                            *gl_ssaoShader = nullptr;
-GLShader_depthtile1                      *gl_depthtile1Shader = nullptr;
-GLShader_depthtile2                      *gl_depthtile2Shader = nullptr;
-GLShader_lighttile                       *gl_lighttileShader = nullptr;
-GLShader_fxaa                            *gl_fxaaShader = nullptr;
+GLShader_portal                          *gl_portalShader = nullptr;
+GLShader_reflection                      *gl_reflectionShader = nullptr;
+GLShader_reflectionMaterial              *gl_reflectionShaderMaterial = nullptr;
+GLShader_screen                          *gl_screenShader = nullptr;
+GLShader_screenMaterial                  *gl_screenShaderMaterial = nullptr;
+GLShader_shadowFill                      *gl_shadowFillShader = nullptr;
+GLShader_skybox                          *gl_skyboxShader = nullptr;
+GLShader_skyboxMaterial                  *gl_skyboxShaderMaterial = nullptr;
+GLShader_debugShadowMap                  *gl_debugShadowMapShader = nullptr;
 GLShaderManager                           gl_shaderManager;
 
 namespace // Implementation details

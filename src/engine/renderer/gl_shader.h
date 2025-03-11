@@ -4785,42 +4785,45 @@ std::string GetShaderPath();
 
 extern ShaderKind shaderKind;
 
-extern GLShader_generic                         *gl_genericShader;
-extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
 extern GLShader_cull                            *gl_cullShader;
 extern GLShader_depthReduction                  *gl_depthReductionShader;
 extern GLShader_clearSurfaces                   *gl_clearSurfacesShader;
 extern GLShader_processSurfaces                 *gl_processSurfacesShader;
+
+extern GLShader_blur                            *gl_blurShader;
+extern GLShader_cameraEffects                   *gl_cameraEffectsShader;
+extern GLShader_contrast                        *gl_contrastShader;
+extern GLShader_fogGlobal                       *gl_fogGlobalShader;
+extern GLShader_fxaa                            *gl_fxaaShader;
+extern GLShader_motionblur                      *gl_motionblurShader;
+extern GLShader_ssao                            *gl_ssaoShader;
+
+extern GLShader_depthtile1                      *gl_depthtile1Shader;
+extern GLShader_depthtile2                      *gl_depthtile2Shader;
+extern GLShader_lighttile                       *gl_lighttileShader;
+
+extern GLShader_generic                         *gl_genericShader;
+extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
 extern GLShader_lightMapping                    *gl_lightMappingShader;
 extern GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial;
 extern GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ;
 extern GLShader_forwardLighting_projXYZ         *gl_forwardLightingShader_projXYZ;
 extern GLShader_forwardLighting_directionalSun  *gl_forwardLightingShader_directionalSun;
-extern GLShader_shadowFill                      *gl_shadowFillShader;
-extern GLShader_reflection                      *gl_reflectionShader;
-extern GLShader_reflectionMaterial              *gl_reflectionShaderMaterial;
-extern GLShader_skybox                          *gl_skyboxShader;
-extern GLShader_skyboxMaterial                  *gl_skyboxShaderMaterial;
 extern GLShader_fogQuake3                       *gl_fogQuake3Shader;
 extern GLShader_fogQuake3Material               *gl_fogQuake3ShaderMaterial;
-extern GLShader_fogGlobal                       *gl_fogGlobalShader;
 extern GLShader_heatHaze                        *gl_heatHazeShader;
 extern GLShader_heatHazeMaterial                *gl_heatHazeShaderMaterial;
-extern GLShader_screen                          *gl_screenShader;
-extern GLShader_screenMaterial                  *gl_screenShaderMaterial;
-extern GLShader_portal                          *gl_portalShader;
-extern GLShader_contrast                        *gl_contrastShader;
-extern GLShader_cameraEffects                   *gl_cameraEffectsShader;
-extern GLShader_blur                            *gl_blurShader;
-extern GLShader_debugShadowMap                  *gl_debugShadowMapShader;
 extern GLShader_liquid                          *gl_liquidShader;
 extern GLShader_liquidMaterial                  *gl_liquidShaderMaterial;
-extern GLShader_motionblur                      *gl_motionblurShader;
-extern GLShader_ssao                            *gl_ssaoShader;
-extern GLShader_depthtile1                      *gl_depthtile1Shader;
-extern GLShader_depthtile2                      *gl_depthtile2Shader;
-extern GLShader_lighttile                       *gl_lighttileShader;
-extern GLShader_fxaa                            *gl_fxaaShader;
+extern GLShader_portal                          *gl_portalShader;
+extern GLShader_reflection                      *gl_reflectionShader;
+extern GLShader_reflectionMaterial              *gl_reflectionShaderMaterial;
+extern GLShader_screen                          *gl_screenShader;
+extern GLShader_screenMaterial                  *gl_screenShaderMaterial;
+extern GLShader_shadowFill                      *gl_shadowFillShader;
+extern GLShader_skybox                          *gl_skyboxShader;
+extern GLShader_skyboxMaterial                  *gl_skyboxShaderMaterial;
+extern GLShader_debugShadowMap                  *gl_debugShadowMapShader;
 extern GLShaderManager                           gl_shaderManager;
 
 #endif // GL_SHADER_H
