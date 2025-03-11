@@ -74,7 +74,10 @@ static void R_ColorShiftLightingBytes( byte bytes[ 4 ] )
 	backward compatible with this bug for diagnostic purpose and fair comparison with
 	other buggy engines. */
 
-	ASSERT_LT( tr.overbrightBits, tr.mapOverBrightBits );
+	if ( tr.mapOverBrightBits == 0 )
+	{
+		return;
+	}
 
 	/* Shift the color data based on overbright range.
 
@@ -91,7 +94,7 @@ static void R_ColorShiftLightingBytes( byte bytes[ 4 ] )
 	what hardware overbright bit feature was not doing, but
 	this implementation is entirely software. */
 
-	int shift = tr.mapOverBrightBits - tr.overbrightBits;
+	int shift = tr.mapOverBrightBits;
 
 	// shift the data based on overbright range
 	int r = bytes[ 0 ] << shift;
@@ -117,7 +120,10 @@ static void R_ColorShiftLightingBytes( byte bytes[ 4 ] )
 
 static void R_ColorShiftLightingBytesCompressed( byte bytes[ 8 ] )
 {
-	ASSERT_LT( tr.overbrightBits, tr.mapOverBrightBits );
+	if ( tr.mapOverBrightBits == 0 )
+	{
+		return;
+	}
 
 	// color shift the endpoint colors in the dxt block
 	unsigned short rgb565 = bytes[1] << 8 | bytes[0];
@@ -158,7 +164,7 @@ R_ProcessLightmap
 */
 void R_ProcessLightmap( byte *bytes, int width, int height, int bits )
 {
-	if ( tr.overbrightBits >= tr.mapOverBrightBits )
+	if ( tr.mapOverBrightBits == 0 )
 	{
 		return;
 	}
@@ -662,7 +668,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					lightMapBuffer[( index * 4 ) + 2 ] = buf_p[( ( x + ( y * internalLightMapSize ) ) * 3 ) + 2 ];
 					lightMapBuffer[( index * 4 ) + 3 ] = 255;
 
-					if ( tr.overbrightBits < tr.mapOverBrightBits )
+					if ( tr.legacyOverBrightClamping )
 					{
 						R_ColorShiftLightingBytes( &lightMapBuffer[( index * 4 ) + 0 ] );
 					}
@@ -1023,7 +1029,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
 
-		if ( tr.overbrightBits < tr.mapOverBrightBits )
+		if ( tr.legacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
 		}
@@ -1233,7 +1239,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 
 		points[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		if ( tr.overbrightBits < tr.mapOverBrightBits )
+		if ( tr.legacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( points[ i ].lightColor.ToArray() );
 		}
@@ -1360,7 +1366,7 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf,
 
 			cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		if ( tr.overbrightBits < tr.mapOverBrightBits )
+		if ( tr.legacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
 		}
@@ -3883,7 +3889,14 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		out->fogParms = shader->fogParms;
 
 		out->color = Color::Adapt( shader->fogParms.color );
-		out->color *= tr.identityLight;
+
+		/* Historically it was done:
+
+			out->color *= tr.identityLight;
+
+		But tr.identityLight is always 1.0f in Dæmon engine
+		as the as the overbright bit implementation is fully
+		software. */
 
 		out->color.SetAlpha( 1 );
 
@@ -4099,7 +4112,7 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
 
-		if ( tr.overbrightBits < tr.mapOverBrightBits )
+		if ( tr.legacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( tmpAmbient );
 			R_ColorShiftLightingBytes( tmpDirected );
@@ -4357,6 +4370,24 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 			if ( !Q_stricmp( keyname, "mapOverBrightBits" ) )
 			{
 				tr.mapOverBrightBits = Math::Clamp( atof( value ), 0.0, 3.0 );
+				continue;
+			}
+
+			if ( !Q_stricmp( keyname, "overbrightClamping" ) )
+			{
+				if ( !Q_stricmp( value, "0" ) )
+				{
+					tr.legacyOverBrightClamping = false;
+				}
+				else if ( !Q_stricmp( value, "1" ) )
+				{
+					tr.legacyOverBrightClamping = true;
+				}
+				else
+				{
+					Log::Warn( "invalid value for worldspawn key overbrightClamping" );
+				}
+
 				continue;
 			}
 		}
@@ -5039,15 +5070,11 @@ void RE_LoadWorldMap( const char *name )
 	// try will not look at the partially loaded version
 	tr.world = nullptr;
 
-	// It's probably a mistake if any of these lighting parameters are actually
-	// used before a map is loaded.
-	tr.worldLightMapping = false; // set by R_LoadLightmaps
-	tr.worldDeluxeMapping = false; // set by R_LoadEntities
-	tr.worldHDR_RGBE = false; // set by R_LoadEntities
-	tr.mapOverBrightBits = r_overbrightDefaultExponent.Get(); // maybe set by R_LoadEntities
-	tr.overbrightBits = std::min( tr.mapOverBrightBits, r_overbrightBits.Get() ); // set by RE_LoadWorldMap
-	tr.mapLightFactor = 1.0f; // set by RE_LoadWorldMap
-	tr.identityLight = 1.0f; // set by RE_LoadWorldMap
+	// tr.worldDeluxeMapping will be set by R_LoadLightmaps()
+	tr.worldLightMapping = false;
+	// tr.worldDeluxeMapping will be set by R_LoadEntities()
+	tr.worldDeluxeMapping = false;
+	tr.worldHDR_RGBE = false;
 
 	s_worldData = {};
 	Q_strncpyz( s_worldData.name, name, sizeof( s_worldData.name ) );
@@ -5095,9 +5122,6 @@ void RE_LoadWorldMap( const char *name )
 	}
 	R_LoadEntities( &header->lumps[ LUMP_ENTITIES ], externalEntities );
 
-	// Now we can set this after checking a possible worldspawn value for mapOverbrightBits
-	tr.overbrightBits = std::min( tr.mapOverBrightBits, r_overbrightBits.Get() );
-
 	R_LoadShaders( &header->lumps[ LUMP_SHADERS ] );
 
 	R_LoadLightmaps( &header->lumps[ LUMP_LIGHTMAPS ], name );
@@ -5135,6 +5159,7 @@ void RE_LoadWorldMap( const char *name )
 	tr.worldLight = tr.lightMode;
 	tr.modelLight = lightMode_t::FULLBRIGHT;
 	tr.modelDeluxe = deluxeMode_t::NONE;
+	tr.mapLightFactor = 1.0f;
 
 	// Use fullbright lighting for everything if the world is fullbright.
 	if ( tr.worldLight != lightMode_t::FULLBRIGHT )
@@ -5206,19 +5231,11 @@ void RE_LoadWorldMap( const char *name )
 		}
 	}
 
-	/* Set GLSL overbright parameters if the lighting mode is not fullbright. */
-	if ( tr.lightMode != lightMode_t::FULLBRIGHT )
+	/* Set GLSL overbright parameters if the legacy clamped overbright isn't used
+	and the lighting mode is not fullbright. */
+	if ( !tr.legacyOverBrightClamping && tr.lightMode != lightMode_t::FULLBRIGHT )
 	{
-		if ( r_overbrightQ3.Get() )
-		{
-			// light factor is applied to entire color buffer; identityLight can be used to cancel it
-			tr.identityLight = 1.0f / float( 1 << tr.overbrightBits );
-		}
-		else
-		{
-			// light factor is applied wherever a precomputed light is sampled
-			tr.mapLightFactor = float( 1 << tr.overbrightBits );
-		}
+		tr.mapLightFactor = pow( 2, tr.mapOverBrightBits );
 	}
 
 	tr.worldLoaded = true;

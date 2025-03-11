@@ -4836,7 +4836,7 @@ static void CollapseStages()
 
 		bool rgbGen_identity =
 			stages[ i ].rgbGen == colorGen_t::CGEN_IDENTITY
-			|| ( stages[ i ].rgbGen == colorGen_t::CGEN_IDENTITY_LIGHTING && !r_overbrightQ3.Get() );
+			|| stages[ i ].rgbGen == colorGen_t::CGEN_IDENTITY_LIGHTING;
 
 		bool alphaGen_identity =
 			stages[ i ].alphaGen == alphaGen_t::AGEN_IDENTITY;
