@@ -540,6 +540,20 @@ void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const
 Tess_InstantQuad
 ==============
 */
+void Tess_InstantScreenSpaceQuad() {
+	GLimp_LogComment( "--- Tess_InstantQuad ---\n" );
+
+	Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
+	rb_surfaceTable[Util::ordinal( *( tr.genericQuad->surface ) )]( tr.genericQuad->surface );
+	GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR );
+
+	Tess_DrawElements();
+
+	GL_CheckErrors();
+
+	Tess_Clear();
+}
+
 void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, const float x, const float y, const float width, const float height )
 {
 	GLimp_LogComment( "--- Tess_InstantQuad ---\n" );

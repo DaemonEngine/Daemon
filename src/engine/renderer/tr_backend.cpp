@@ -2067,7 +2067,7 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 		GL_BindToTMU( 0, images[index] )
 	);
 
-	Tess_InstantQuad( *gl_blurShader, 0, 0, fbos[ index ]->width, fbos[ index ]->height );
+	Tess_InstantScreenSpaceQuad();
 
 	R_AttachFBOTexture2D( images[ index ]->type, images[ index ]->texnum, 0 );
 
@@ -2082,7 +2082,7 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 		GL_BindToTMU( 0, images[index + MAX_SHADOWMAPS] )
 	);
 
-	Tess_InstantQuad( *gl_blurShader, 0, 0, fbos[index]->width, fbos[index]->height );
+	Tess_InstantScreenSpaceQuad();
 
 	GL_PopMatrix();
 }
@@ -2890,9 +2890,7 @@ void RB_RenderPostDepthLightTile()
 		GL_BindToTMU( 0, tr.depthtile1RenderImage )
 	);
 
-	Tess_InstantQuad( *gl_depthtile2Shader,
-	                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-	                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+	Tess_InstantScreenSpaceQuad();
 
 	GL_PopMatrix();
 
@@ -3020,18 +3018,7 @@ void RB_RenderGlobalFog()
 		GL_BindToTMU( 1, tr.currentDepthImage )
 	);
 
-	// set 2D virtual screen size
-	GL_PushMatrix();
-	MatrixOrthogonalProjection( ortho, backEnd.viewParms.viewportX,
-	                            backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
-	                            backEnd.viewParms.viewportY, backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight,
-	                            -99999, 99999 );
-	GL_LoadProjectionMatrix( ortho );
-
-	// draw viewport
-	Tess_InstantQuad( *gl_fogGlobalShader,
-	                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-	                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+	Tess_InstantScreenSpaceQuad();
 
 	// go back to 3D
 	GL_PopMatrix();
@@ -3048,15 +3035,6 @@ void RB_RenderBloom()
 		return;
 	}
 
-	// set 2D virtual screen size
-	GL_PushMatrix();
-	matrix_t ortho;
-	MatrixOrthogonalProjection( ortho, backEnd.viewParms.viewportX,
-	                            backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
-	                            backEnd.viewParms.viewportY, backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight,
-	                            -99999, 99999 );
-	GL_LoadProjectionMatrix( ortho );
-
 	{
 		GL_State( GLS_DEPTHTEST_DISABLE );
 		GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -3072,19 +3050,11 @@ void RB_RenderBloom()
 		GL_ClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 		glClear( GL_COLOR_BUFFER_BIT );
 
-		// draw viewport
-		Tess_InstantQuad( *gl_contrastShader,
-		                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-		                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+		Tess_InstantScreenSpaceQuad();
 
 		// render bloom in multiple passes
 		GL_ClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 		GL_State( GLS_DEPTHTEST_DISABLE );
-
-		GL_PushMatrix();
-
-		MatrixOrthogonalProjection( ortho, 0, tr.bloomRenderFBO[0]->width, 0, tr.bloomRenderFBO[0]->height, -99999, 99999 );
-		GL_LoadProjectionMatrix( ortho );
 
 		vec2_t texScale;
 		texScale[0] = 1.0f / tr.bloomRenderFBO[0]->width;
@@ -3106,9 +3076,8 @@ void RB_RenderBloom()
 			for ( int j = 0; j < r_bloomPasses.Get(); j++ ) {
 				R_BindFBO( tr.bloomRenderFBO[flip] );
 				glClear( GL_COLOR_BUFFER_BIT );
-				Tess_InstantQuad( *gl_blurShader,
-					backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-					backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+
+				Tess_InstantScreenSpaceQuad();
 
 				gl_blurShader->SetUniform_ColorMapBindless(
 					GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip] )
@@ -3120,8 +3089,6 @@ void RB_RenderBloom()
 			gl_blurShader->SetUniform_Horizontal( false );
 		}
 
-		GL_PopMatrix();
-
 		R_BindFBO( tr.mainFBO[backEnd.currentMainFBO] );
 
 		gl_screenShader->BindProgram( 0 );
@@ -3129,9 +3096,8 @@ void RB_RenderBloom()
 		glVertexAttrib4fv( ATTR_INDEX_COLOR, Color::White.ToArray() );
 
 		gl_screenShader->SetUniform_CurrentMapBindless( GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip ^ 1] ) );
-		Tess_InstantQuad( *gl_screenShader,
-		                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-		                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+
+		Tess_InstantScreenSpaceQuad();
 	}
 
 	// go back to 3D
@@ -3169,18 +3135,7 @@ void RB_RenderMotionBlur()
 		GL_BindToTMU( 1, tr.currentDepthImage )
 	);
 
-	matrix_t ortho;
-	GL_PushMatrix();
-	MatrixOrthogonalProjection( ortho, backEnd.viewParms.viewportX,
-		backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
-		backEnd.viewParms.viewportY,
-		backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
-	GL_LoadProjectionMatrix( ortho );
-
-	// draw quad
-	Tess_InstantQuad( *gl_motionblurShader,
-	                   backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-	                   backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+	Tess_InstantScreenSpaceQuad();
 
 	GL_PopMatrix();
 
@@ -3231,18 +3186,7 @@ void RB_RenderSSAO()
 		GL_BindToTMU( 0, tr.currentDepthImage )
 	);
 
-	matrix_t ortho;
-	GL_PushMatrix();
-	MatrixOrthogonalProjection( ortho, backEnd.viewParms.viewportX,
-		backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
-		backEnd.viewParms.viewportY,
-		backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
-	GL_LoadProjectionMatrix( ortho );
-
-	// draw quad
-	Tess_InstantQuad( *gl_ssaoShader,
-	                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-	                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+	Tess_InstantScreenSpaceQuad();
 
 	GL_PopMatrix();
 
@@ -3278,17 +3222,7 @@ void RB_FXAA()
 	backEnd.currentMainFBO = 1 - backEnd.currentMainFBO;
 	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
 
-	matrix_t ortho;
-	GL_PushMatrix();
-	MatrixOrthogonalProjection( ortho, backEnd.viewParms.viewportX,
-		backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
-		backEnd.viewParms.viewportY,
-		backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
-	GL_LoadProjectionMatrix( ortho );
-
-	Tess_InstantQuad( *gl_fxaaShader,
-	                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-	                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+	Tess_InstantScreenSpaceQuad();
 
 	GL_PopMatrix();
 
