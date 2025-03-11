@@ -47,49 +47,7 @@ R_ColorShiftLightingBytes
 */
 static void R_ColorShiftLightingBytes( byte bytes[ 4 ] )
 {
-	/* This implementation is strongly buggy as for every shift bit, the max light
-	is clamped by one bit and then divided by two, the stronger the light factor is,
-	the more the light is clamped.
-
-	The Q3Radiant Shader Manual said:
-	> Colors will be (1.0,1.0,1.0) if running without overbright bits
-	> (NT, linux, windowed modes), or (0.5, 0.5, 0.5) if running with
-	> overbright.
-	> -- https://icculus.org/gtkradiant/documentation/Q3AShader_Manual/ch05/pg5_1.htm
-
-	In this sentence, “running with overbright” is about using hardware
-	overbright, and “running without overbright” is about using this function.
-
-	This means Quake III Arena was only supporting hardware overbright
-	on pre-NT Windows 9x systems when fullscreen, and running this buggy
-	code on every other platforms and when windowed.
-
-	Debugging regressions from Tremulous and other Quake 3 or Wolf:ET derivated games
-	in legacy features unrelated to lighting overbright may require to temporarily
-	re-enable such buggy clamping to keep a fair comparison and avoid reimplementing
-	some clamping in an attempt to get a 1:1 comparison while not running a code not
-	backward compatible with legacy bugs.
-
-	This function is then kept to provide the ability to load map with a renderer
-	backward compatible with this bug for diagnostic purpose and fair comparison with
-	other buggy engines. */
-
 	ASSERT_LT( tr.overbrightBits, tr.mapOverBrightBits );
-
-	/* Shift the color data based on overbright range.
-
-	Historically the shift was:
-
-	  shift = tr.mapOverBrightBits - tr.overbrightBits;
-
-	But in Dæmon engine tr.overbrightBits is always zero
-	as this value is zero when there hardware overbright
-	bit is disabled, and the engine doesn't implement
-	hardware overbright bit at all.
-
-	The original code was there to only shift in software
-	what hardware overbright bit feature was not doing, but
-	this implementation is entirely software. */
 
 	int shift = tr.mapOverBrightBits - tr.overbrightBits;
 
