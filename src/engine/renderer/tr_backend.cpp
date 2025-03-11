@@ -3258,25 +3258,13 @@ static void ComputeTonemapParams( const float contrast, const float highlightsCo
 		) * darkAreaPointLDR );
 }
 
-void RB_CameraPostFX()
-{
-	matrix_t ortho;
-
+void RB_CameraPostFX() {
 	GLimp_LogComment( "--- RB_CameraPostFX ---\n" );
 
 	if ( ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) ||
-	     backEnd.viewParms.portalLevel > 0 )
-	{
+	     backEnd.viewParms.portalLevel > 0 ) {
 		return;
 	}
-
-	// set 2D virtual screen size
-	GL_PushMatrix();
-	MatrixOrthogonalProjection( ortho, backEnd.viewParms.viewportX,
-	                            backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
-	                            backEnd.viewParms.viewportY, backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight,
-	                            -99999, 99999 );
-	GL_LoadProjectionMatrix( ortho );
 
 	GL_State( GLS_DEPTHTEST_DISABLE );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -3306,18 +3294,11 @@ void RB_CameraPostFX()
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) 
 	);
 
-	if ( glConfig2.colorGrading )
-	{
+	if ( glConfig2.colorGrading ) {
 		gl_cameraEffectsShader->SetUniform_ColorMap3DBindless( GL_BindToTMU( 3, tr.colorGradeImage ) );
 	}
 
-	// draw viewport
-	Tess_InstantQuad( *gl_cameraEffectsShader,
-	                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-	                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-
-	// go back to 3D
-	GL_PopMatrix();
+	Tess_InstantScreenSpaceQuad();
 
 	GL_CheckErrors();
 }
