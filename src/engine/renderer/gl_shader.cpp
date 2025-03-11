@@ -1196,8 +1196,6 @@ void GLShaderManager::BuildAll() {
 	while ( !_shaderBuildQueue.empty() ) {
 		GLShader* shader = _shaderBuildQueue.front();
 
-		std::string shaderName = shader->GetMainShaderName();
-
 		size_t numPermutations = static_cast<size_t>( 1 ) << shader->GetNumOfCompiledMacros();
 
 		for( size_t i = 0; i < numPermutations; i++ ) {
