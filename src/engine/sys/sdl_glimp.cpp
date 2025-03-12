@@ -1970,6 +1970,8 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 	return false;
 }
 
+#define SILENTLY_CHECK_EXTENSION( ext ) ( GLEW_##ext )
+
 #define LOAD_EXTENSION(flags, ext) LoadExt(flags, GLEW_##ext, #ext)
 
 #define LOAD_EXTENSION_WITH_TEST(flags, ext, test) LoadExt(flags, GLEW_##ext, #ext, test)
