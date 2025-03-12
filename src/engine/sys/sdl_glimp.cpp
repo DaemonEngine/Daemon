@@ -179,6 +179,10 @@ static Cvar::Cvar<bool> workaround_glExtension_glsl120_disableShaderDrawParamete
 	"workaround.glExtension.glsl120.disableShaderDrawParameters",
 	"Disable ARB_shader_draw_parameters on GLSL 1.20",
 	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glExtension_glsl120_disableGpuShader4(
+	"workaround.glExtension.glsl120.disableGpuShader4",
+	"Disable EXT_gpu_shader4 on GLSL 1.20",
+	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glHardware_intel_useFirstProvokinVertex(
 	"workaround.glHardware.intel.useFirstProvokinVertex",
 	"Use first provoking vertex on Intel hardware supporting ARB_provoking_vertex",
@@ -2173,8 +2177,21 @@ static void GLimp_InitExtensions()
 		}
 	}
 
+	bool gpuShader4Enabled = r_ext_gpu_shader4.Get();
+
+	if ( gpuShader4Enabled
+		&& SILENTLY_CHECK_EXTENSION( EXT_gpu_shader4 )
+		&& glConfig2.shadingLanguageVersion <= 120
+		&& workaround_glExtension_glsl120_disableGpuShader4.Get() )
+	{
+		// EXT_gpu_shader4 behaves slightly differently when running on GLSL 1.20.
+		// See: https://gitlab.freedesktop.org/mesa/mesa/-/issues/12803#note_2819461
+		logger.Warn( "Found EXT_gpu_shader4 with incompatible GLSL 1.20, disabling EXT_gpu_shader4." );
+		gpuShader4Enabled = false;
+	}
+
 	// made required in OpenGL 3.0
-	glConfig2.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, r_ext_gpu_shader4.Get() );
+	glConfig2.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, gpuShader4Enabled );
 
 	// made required in OpenGL 4.0
 	glConfig2.gpuShader5Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_gpu_shader5, r_arb_gpu_shader5.Get() );
@@ -2687,6 +2704,7 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_glDriver_nvidia_v340_disableTextureGather );
 	Cvar::Latch( workaround_glExtension_missingArbFbo_useExtFbo );
 	Cvar::Latch( workaround_glExtension_glsl120_disableShaderDrawParameters );
+	Cvar::Latch( workaround_glExtension_glsl120_disableGpuShader4 );
 	Cvar::Latch( workaround_glHardware_intel_useFirstProvokinVertex );
 
 	/* Enable S3TC on Mesa even if libtxc-dxtn is not available
