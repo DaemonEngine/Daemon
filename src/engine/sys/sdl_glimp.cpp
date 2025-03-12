@@ -2545,20 +2545,19 @@ static void GLimp_InitExtensions()
 		glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, bindlessTextureEnabled );
 	}
 
-	// made required in OpenGL 4.6
+	bool shaderDrawParametersEnabled = r_arb_shader_draw_parameters.Get();
 
-	bool ShaderDrawParametersEnabled = r_arb_shader_draw_parameters.Get();
-
-	if ( ShaderDrawParametersEnabled
-		&& GL_ARB_shader_draw_parameters
+	if ( shaderDrawParametersEnabled
+		&& SILENTLY_CHECK_EXTENSION( ARB_shader_draw_parameters )
 		&& glConfig2.shadingLanguageVersion <= 120
 		&& workaround_glExtension_glsl120_disableShaderDrawParameters.Get() )
 	{
 		logger.Warn( "Found ARB_shader_draw_parameters with incompatible GLSL 1.20, disabling ARB_shader_draw_parameters." );
-		ShaderDrawParametersEnabled = false;
+		shaderDrawParametersEnabled = false;
 	}
 
-	glConfig2.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, ShaderDrawParametersEnabled );
+	// made required in OpenGL 4.6
+	glConfig2.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, shaderDrawParametersEnabled );
 
 	// made required in OpenGL 4.3
 	glConfig2.SSBOAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_storage_buffer_object, r_arb_shader_storage_buffer_object.Get() );
