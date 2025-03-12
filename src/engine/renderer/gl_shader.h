@@ -90,7 +90,6 @@ private:
 
 	std::string _name;
 	const uint32_t _vertexAttribsRequired;
-	GLShaderManager* _shaderManager;
 
 	const bool _useMaterialSystem;
 
@@ -102,8 +101,8 @@ private:
 	const bool hasComputeShader;
 
 	GLuint std430Size = 0;
-	uint padding = 0;
-	uint textureCount = 0;
+	uint32_t padding = 0;
+	uint32_t textureCount = 0;
 protected:
 	int _activeMacros = 0;
 	ShaderProgramDescriptor* currentProgram;
@@ -120,33 +119,29 @@ protected:
 	std::vector<GLUniformBlock*> _uniformBlocks;
 	std::vector<GLCompileMacro*> _compileMacros;
 
-	GLShader( const std::string& name, uint32_t vertexAttribsRequired, GLShaderManager* manager,
+	GLShader( const std::string& name, uint32_t vertexAttribsRequired,
 		const bool useMaterialSystem,
 		const std::string newVertexShaderName, const std::string newFragmentShaderName ) :
 		_name( name ),
 		_vertexAttribsRequired( vertexAttribsRequired ),
-		_shaderManager( manager ),
 		_useMaterialSystem( useMaterialSystem ),
 		vertexShaderName( newVertexShaderName),
 		fragmentShaderName( newFragmentShaderName ),
 		hasVertexShader( true ),
 		hasFragmentShader( true ),
-		hasComputeShader( false ),
-		_uniformStorageSize( 0 ) {
+		hasComputeShader( false ) {
 	}
 
-	GLShader( const std::string& name, uint32_t vertexAttribsRequired, GLShaderManager* manager,
+	GLShader( const std::string& name,
 		const bool useMaterialSystem,
 		const std::string newComputeShaderName ) :
 		_name( name ),
-		_vertexAttribsRequired( vertexAttribsRequired ),
-		_shaderManager( manager ),
+		_vertexAttribsRequired( 0 ),
 		_useMaterialSystem( useMaterialSystem ),
 		computeShaderName( newComputeShaderName ),
 		hasVertexShader( false ),
 		hasFragmentShader( false ),
-		hasComputeShader( true ),
-		_uniformStorageSize( 0 ) {
+		hasComputeShader( true ) {
 	}
 
 public:
@@ -224,15 +219,15 @@ public:
 		return std430Size;
 	}
 
-	uint GetPadding() const {
+	uint32_t GetPadding() const {
 		return padding;
 	}
 
-	uint GetPaddedSize() const {
+	uint32_t GetPaddedSize() const {
 		return std430Size + padding;
 	}
 
-	uint GetTextureCount() const {
+	uint32_t GetTextureCount() const {
 		return textureCount;
 	}
 
@@ -322,12 +317,6 @@ struct ShaderProgramDescriptor {
 
 		macro |= descriptor->macro;
 
-		/* std::sort( shaderNames, shaderNames + shaderCount,
-			[]( const ShaderEntry& lhs, const ShaderEntry& rhs ) {
-				return lhs.name < rhs.name;
-			}
-		); */
-
 		shaderCount++;
 	};
 };
@@ -368,7 +357,7 @@ public:
 			initCount = 0;
 		}
 
-		shader = new T( this );
+		shader = new T();
 		InitShader( shader );
 		_shaders.emplace_back( shader );
 		_shaderBuildQueue.push( shader );
@@ -4056,7 +4045,7 @@ class GLShader_generic :
 	public GLCompileMacro_USE_DEPTH_FADE
 {
 public:
-	GLShader_generic( GLShaderManager *manager );
+	GLShader_generic();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4082,7 +4071,7 @@ class GLShader_genericMaterial :
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
 	public GLCompileMacro_USE_DEPTH_FADE {
 	public:
-	GLShader_genericMaterial( GLShaderManager* manager );
+	GLShader_genericMaterial();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
@@ -4133,7 +4122,7 @@ class GLShader_lightMapping :
 	public GLCompileMacro_USE_PHYSICAL_MAPPING
 {
 public:
-	GLShader_lightMapping( GLShaderManager *manager );
+	GLShader_lightMapping();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4181,7 +4170,7 @@ class GLShader_lightMappingMaterial :
 	public GLCompileMacro_USE_REFLECTIVE_SPECULAR,
 	public GLCompileMacro_USE_PHYSICAL_MAPPING {
 	public:
-	GLShader_lightMappingMaterial( GLShaderManager* manager );
+	GLShader_lightMappingMaterial();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
@@ -4224,7 +4213,7 @@ class GLShader_forwardLighting_omniXYZ :
 	public GLCompileMacro_USE_SHADOWING //,
 {
 public:
-	GLShader_forwardLighting_omniXYZ( GLShaderManager *manager );
+	GLShader_forwardLighting_omniXYZ();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4268,7 +4257,7 @@ class GLShader_forwardLighting_projXYZ :
 	public GLCompileMacro_USE_SHADOWING //,
 {
 public:
-	GLShader_forwardLighting_projXYZ( GLShaderManager *manager );
+	GLShader_forwardLighting_projXYZ();
 	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
@@ -4320,7 +4309,7 @@ class GLShader_forwardLighting_directionalSun :
 	public GLCompileMacro_USE_SHADOWING //,
 {
 public:
-	GLShader_forwardLighting_directionalSun( GLShaderManager *manager );
+	GLShader_forwardLighting_directionalSun();
 	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
@@ -4343,7 +4332,7 @@ class GLShader_shadowFill :
 	public GLCompileMacro_LIGHT_DIRECTIONAL
 {
 public:
-	GLShader_shadowFill( GLShaderManager *manager );
+	GLShader_shadowFill();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4369,7 +4358,7 @@ class GLShader_reflection :
 	public GLCompileMacro_USE_RELIEF_MAPPING
 {
 public:
-	GLShader_reflection( GLShaderManager *manager );
+	GLShader_reflection();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4390,7 +4379,7 @@ class GLShader_reflectionMaterial :
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_RELIEF_MAPPING {
 	public:
-	GLShader_reflectionMaterial( GLShaderManager* manager );
+	GLShader_reflectionMaterial();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
@@ -4405,7 +4394,7 @@ class GLShader_skybox :
 	public u_ModelViewProjectionMatrix
 {
 public:
-	GLShader_skybox( GLShaderManager *manager );
+	GLShader_skybox();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4419,7 +4408,7 @@ class GLShader_skyboxMaterial :
 	public u_AlphaThreshold,
 	public u_ModelViewProjectionMatrix {
 	public:
-	GLShader_skyboxMaterial( GLShaderManager* manager );
+	GLShader_skyboxMaterial();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
@@ -4439,7 +4428,7 @@ class GLShader_fogQuake3 :
 	public GLCompileMacro_USE_VERTEX_ANIMATION
 {
 public:
-	GLShader_fogQuake3( GLShaderManager *manager );
+	GLShader_fogQuake3();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4454,7 +4443,7 @@ class GLShader_fogQuake3Material :
 	public u_FogEyeT,
 	public GLDeformStage {
 	public:
-	GLShader_fogQuake3Material( GLShaderManager* manager );
+	GLShader_fogQuake3Material();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
@@ -4467,7 +4456,7 @@ class GLShader_fogGlobal :
 	public u_FogDistanceVector
 {
 public:
-	GLShader_fogGlobal( GLShaderManager *manager );
+	GLShader_fogGlobal();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4489,7 +4478,7 @@ class GLShader_heatHaze :
 	public GLCompileMacro_USE_VERTEX_ANIMATION
 {
 public:
-	GLShader_heatHaze( GLShaderManager *manager );
+	GLShader_heatHaze();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4508,7 +4497,7 @@ class GLShader_heatHazeMaterial :
 	public GLDeformStage
 {
 public:
-	GLShader_heatHazeMaterial( GLShaderManager* manager );
+	GLShader_heatHazeMaterial();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
@@ -4518,7 +4507,7 @@ class GLShader_screen :
 	public u_ModelViewProjectionMatrix
 {
 public:
-	GLShader_screen( GLShaderManager *manager );
+	GLShader_screen();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4527,7 +4516,7 @@ class GLShader_screenMaterial :
 	public u_CurrentMap,
 	public u_ModelViewProjectionMatrix {
 	public:
-	GLShader_screenMaterial( GLShaderManager* manager );
+	GLShader_screenMaterial();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
@@ -4539,7 +4528,7 @@ class GLShader_portal :
 	public u_InversePortalRange
 {
 public:
-	GLShader_portal( GLShaderManager *manager );
+	GLShader_portal();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4547,7 +4536,7 @@ class GLShader_contrast :
 	public GLShader,
 	public u_ColorMap {
 public:
-	GLShader_contrast( GLShaderManager *manager );
+	GLShader_contrast();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4563,7 +4552,7 @@ class GLShader_cameraEffects :
 	public u_InverseGamma
 {
 public:
-	GLShader_cameraEffects( GLShaderManager *manager );
+	GLShader_cameraEffects();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4575,7 +4564,7 @@ class GLShader_blur :
 	public u_Horizontal
 {
 public:
-	GLShader_blur( GLShaderManager *manager );
+	GLShader_blur();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4585,7 +4574,7 @@ class GLShader_debugShadowMap :
 	public u_ModelViewProjectionMatrix
 {
 public:
-	GLShader_debugShadowMap( GLShaderManager *manager );
+	GLShader_debugShadowMap();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4621,7 +4610,7 @@ class GLShader_liquid :
 	public GLCompileMacro_USE_RELIEF_MAPPING
 {
 public:
-	GLShader_liquid( GLShaderManager *manager );
+	GLShader_liquid();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4657,7 +4646,7 @@ class GLShader_liquidMaterial :
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_RELIEF_MAPPING {
 	public:
-	GLShader_liquidMaterial( GLShaderManager* manager );
+	GLShader_liquidMaterial();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
@@ -4668,7 +4657,7 @@ class GLShader_motionblur :
 	public u_blurVec
 {
 public:
-	GLShader_motionblur( GLShaderManager *manager );
+	GLShader_motionblur();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4679,7 +4668,7 @@ class GLShader_ssao :
 	public u_zFar
 {
 public:
-	GLShader_ssao( GLShaderManager *manager );
+	GLShader_ssao();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4690,7 +4679,7 @@ class GLShader_depthtile1 :
 	public u_zFar
 {
 public:
-	GLShader_depthtile1( GLShaderManager *manager );
+	GLShader_depthtile1();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4698,7 +4687,7 @@ class GLShader_depthtile2 :
 	public GLShader,
 	public u_DepthMap {
 public:
-	GLShader_depthtile2( GLShaderManager *manager );
+	GLShader_depthtile2();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4712,7 +4701,7 @@ class GLShader_lighttile :
 	public u_zFar
 {
 public:
-	GLShader_lighttile( GLShaderManager *manager );
+	GLShader_lighttile();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4720,7 +4709,7 @@ class GLShader_fxaa :
 	public GLShader,
 	public u_ColorMap {
 public:
-	GLShader_fxaa( GLShaderManager *manager );
+	GLShader_fxaa();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -4742,7 +4731,7 @@ class GLShader_cull :
 	public u_P00,
 	public u_P11 {
 	public:
-	GLShader_cull( GLShaderManager* manager );
+	GLShader_cull();
 };
 
 class GLShader_depthReduction :
@@ -4751,7 +4740,7 @@ class GLShader_depthReduction :
 	public u_ViewHeight,
 	public u_InitialDepthLevel {
 	public:
-	GLShader_depthReduction( GLShaderManager* manager );
+	GLShader_depthReduction();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
@@ -4759,7 +4748,7 @@ class GLShader_clearSurfaces :
 	public GLShader,
 	public u_Frame {
 	public:
-	GLShader_clearSurfaces( GLShaderManager* manager );
+	GLShader_clearSurfaces();
 };
 
 class GLShader_processSurfaces :
@@ -4768,7 +4757,7 @@ class GLShader_processSurfaces :
 	public u_ViewID,
 	public u_SurfaceCommandsOffset {
 	public:
-	GLShader_processSurfaces( GLShaderManager* manager );
+	GLShader_processSurfaces();
 };
 
 
