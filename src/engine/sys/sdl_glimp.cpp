@@ -2600,7 +2600,7 @@ static void GLimp_InitExtensions()
 		&& glConfig2.geometryCacheAvailable;
 
 	// This requires GLEW 2.2+, so skip if it's a lower version
-#ifdef GL_KHR_shader_subgroup
+#if defined(GLEW_KHR_shader_subgroup)
 	// not required by any OpenGL version
 	glConfig2.shaderSubgroupAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, KHR_shader_subgroup, r_khr_shader_subgroup.Get() );
 
