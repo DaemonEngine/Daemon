@@ -67,28 +67,19 @@ class GLShaderManager;
 
 // represents a piece of GLSL code that can be copied verbatim into
 // GLShaders, like a .h file in C++
-class GLHeader {
-private:
-	std::string _name;
-	std::string _text;
-	uint32_t _lineCount;
-	GLShaderManager *_shaderManager;
+struct GLHeader {
+	std::string name;
+	std::string text;
 
-public:
-	GLHeader() : _name(), _text(), _lineCount(), _shaderManager( nullptr )
-	{}
-
-	GLHeader( const std::string &name, const std::string &text, GLShaderManager *manager ) :
-		_name( name ),
-		_text( text ),
-		_lineCount( std::count( text.begin(), text.end(), '\n' ) ),
-		_shaderManager( manager ) {
+	GLHeader() :
+		name(),
+		text() {
 	}
 
-	const std::string &getName() const { return _name; }
-	const std::string &getText() const { return _text; }
-	uint32_t getLineCount() const { return _lineCount; }
-	const GLShaderManager *getManager() const { return _shaderManager; }
+	GLHeader( const std::string& newName, const std::string& newText ) :
+		name( newName ),
+		text( newText ) {
+	}
 };
 
 class GLShader {

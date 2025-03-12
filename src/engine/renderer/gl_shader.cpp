@@ -885,18 +885,18 @@ void GLShaderManager::InitDriverInfo()
 }
 
 void GLShaderManager::GenerateBuiltinHeaders() {
-	GLVersionDeclaration = GLHeader("GLVersionDeclaration", GenFragmentVertexVersionDeclaration(), this);
-	GLComputeVersionDeclaration = GLHeader( "GLComputeVersionDeclaration", GenComputeVersionDeclaration(), this );
-	GLCompatHeader = GLHeader("GLCompatHeader", GenCompatHeader(), this);
-	GLVertexHeader = GLHeader("GLVertexHeader", GenVertexHeader(), this);
-	GLFragmentHeader = GLHeader("GLFragmentHeader", GenFragmentHeader(), this);
-	GLComputeHeader = GLHeader( "GLComputeHeader", GenComputeHeader(), this );
-	GLWorldHeader = GLHeader( "GLWorldHeader", GenWorldHeader(), this );
-	GLEngineConstants = GLHeader("GLEngineConstants", GenEngineConstants(), this);
+	GLVersionDeclaration = GLHeader( "GLVersionDeclaration", GenFragmentVertexVersionDeclaration() );
+	GLComputeVersionDeclaration = GLHeader( "GLComputeVersionDeclaration", GenComputeVersionDeclaration() );
+	GLCompatHeader = GLHeader( "GLCompatHeader", GenCompatHeader() );
+	GLVertexHeader = GLHeader( "GLVertexHeader", GenVertexHeader() );
+	GLFragmentHeader = GLHeader( "GLFragmentHeader", GenFragmentHeader() );
+	GLComputeHeader = GLHeader( "GLComputeHeader", GenComputeHeader() );
+	GLWorldHeader = GLHeader( "GLWorldHeader", GenWorldHeader() );
+	GLEngineConstants = GLHeader( "GLEngineConstants", GenEngineConstants() );
 }
 
 void GLShaderManager::GenerateWorldHeaders() {
-	GLWorldHeader = GLHeader( "GLWorldHeader", GenWorldHeader(), this );
+	GLWorldHeader = GLHeader( "GLWorldHeader", GenWorldHeader() );
 }
 
 std::string GLShaderManager::GetDeformShaderName( const int index ) {
@@ -1277,13 +1277,13 @@ std::string GLShaderManager::BuildShaderText( const std::string& mainShaderText,
 
 	uint32_t count = 0;
 	for ( GLHeader* header : headers ) {
-		count += header->getText().size();
+		count += header->text.size();
 	}
 
 	combinedText.reserve( count );
 
 	for ( GLHeader* header : headers ) {
-		combinedText += header->getText();
+		combinedText += header->text;
 	}
 
 	const char* compileMacrosP = macros.c_str();
@@ -1336,15 +1336,15 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 	ShaderType shaderTypes[] = {
 		{ shader->hasVertexShader, GLCompileMacro::VERTEX, GL_VERTEX_SHADER, "_vp",
 			shader->vertexShaderName,
-			uint32_t( GLVersionDeclaration.getText().size() ),
+			uint32_t( GLVersionDeclaration.text.size() ),
 			{ &GLVersionDeclaration, &GLCompatHeader, &GLEngineConstants, &GLVertexHeader } },
 		{ shader->hasFragmentShader, GLCompileMacro::FRAGMENT, GL_FRAGMENT_SHADER, "_fp",
 			shader->fragmentShaderName,
-			uint32_t( GLVersionDeclaration.getText().size() ),
+			uint32_t( GLVersionDeclaration.text.size() ),
 			{ &GLVersionDeclaration, &GLCompatHeader, &GLEngineConstants, &GLFragmentHeader } },
 		{ shader->hasComputeShader, GLCompileMacro::COMPUTE, GL_COMPUTE_SHADER, "_cp",
 			shader->computeShaderName,
-			uint32_t( GLComputeVersionDeclaration.getText().size() ),
+			uint32_t( GLComputeVersionDeclaration.text.size() ),
 			{ &GLComputeVersionDeclaration, &GLCompatHeader, &GLEngineConstants, &GLComputeHeader, &GLWorldHeader } }
 	};
 
