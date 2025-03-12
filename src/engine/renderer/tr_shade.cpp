@@ -846,12 +846,10 @@ void Render_generic3D( shaderStage_t *pStage )
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
-	// Here, it's safe to multiply the overbright factor for vertex lighting into the color gen`
-	// since the `generic` fragment shader only takes a single input color. `lightMapping` on the
-	// hand needs to know the real diffuse color, hence the separate u_LightFactor.
 	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && tess.bspSurface;
 	const bool styleLightMap = pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP;
-	gl_genericShader->SetUniform_ColorModulateColorGen( rgbGen, alphaGen, mayUseVertexOverbright, styleLightMap );
+	gl_genericShader->SetUniform_ColorModulateColorGen(
+		rgbGen, alphaGen, mayUseVertexOverbright, /*useMapLightFactor=*/ styleLightMap);
 
 	// u_Color
 	gl_genericShader->SetUniform_Color( tess.svars.color );
@@ -902,6 +900,7 @@ void Render_generic3D( shaderStage_t *pStage )
 
 	if ( r_profilerRenderSubGroups.Get() && !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) && !tr.skipSubgroupProfiler ) {
 		const uint mode = GetShaderProfilerRenderSubGroupsMode( pStage->stateBits );
+		gl_genericShader->SetUniform_ProfilerRenderSubGroups( mode );
 		if( mode == 0 ) {
 			return;
 		}
@@ -909,7 +908,6 @@ void Render_generic3D( shaderStage_t *pStage )
 		GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
 
 		gl_genericShader->SetUniform_ProfilerZero();
-		gl_genericShader->SetUniform_ProfilerRenderSubGroups( mode );
 	}
 
 	gl_genericShader->SetRequiredVertexPointers();
@@ -1204,6 +1202,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	if ( r_profilerRenderSubGroups.Get() && !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) ) {
 		const uint mode = GetShaderProfilerRenderSubGroupsMode( stateBits );
+		gl_lightMappingShader->SetUniform_ProfilerRenderSubGroups( mode );
 		if ( mode == 0 ) {
 			return;
 		}
@@ -1211,7 +1210,6 @@ void Render_lightMapping( shaderStage_t *pStage )
 		GL_State( stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
 
 		gl_lightMappingShader->SetUniform_ProfilerZero();
-		gl_lightMappingShader->SetUniform_ProfilerRenderSubGroups( mode );
 	}
 
 	gl_lightMappingShader->SetRequiredVertexPointers();
@@ -2321,21 +2319,15 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 	// rgbGen
 	switch ( pStage->rgbGen )
 	{
+		case colorGen_t::CGEN_IDENTITY_LIGHTING:
+			tess.svars.color = Color::Color(tr.identityLight, tr.identityLight, tr.identityLight);
+			break;
+
 		case colorGen_t::CGEN_IDENTITY:
 		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
 		default:
-		case colorGen_t::CGEN_IDENTITY_LIGHTING:
-			/* Historically CGEN_IDENTITY_LIGHTING was done this way:
-
-			  tess.svars.color = Color::White * tr.identityLight;
-
-			But tr.identityLight is always 1.0f in Dæmon engine
-			as the as the overbright bit implementation is fully
-			software. */
-			{
 				tess.svars.color = Color::White;
 				break;
-			}
 
 		case colorGen_t::CGEN_VERTEX:
 			{
