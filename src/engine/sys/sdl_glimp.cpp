@@ -161,7 +161,7 @@ static Cvar::Cvar<bool> workaround_glDriver_mesa_intel_gma3_forceFragmentShader(
 	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glDriver_mesa_intel_gma3_stubOcclusionQuery(
 	"workaround.glDriver.mesa.intel.gma3.stubOcclusionQuery",
-	"stub out occlusion query on Intel GMA Gen 3 hardware",
+	"Stub out occlusion query on Intel GMA Gen 3 hardware",
 	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glDriver_mesa_v241_disableBindlessTexture(
 	"workaround.glDriver.mesa.v241.disableBindlessTexture",
