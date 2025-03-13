@@ -80,7 +80,10 @@ platform variants we cannot support anyway. */
 #elif defined(Q_PROCESSOR_X86_64)
 	#pragma message("DAEMON_ARCH_amd64")
 
-#elif defined(Q_PROCESSOR_X86_32) && Q_PROCESSOR_X86 >= 6
+#elif defined(Q_PROCESSOR_X86_32)
+	// Assume at least i686. Detecting older revisions would be unlikely to work here
+	// because the revisions are likely configured by flags, but this file is "compiled"
+	// without most command-line flags.
 	#pragma message("DAEMON_ARCH_i686")
 
 /* Devices like:
