@@ -62,7 +62,9 @@ void main()
 	color *= u_GlobalLightFactor;
 
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
-	color.rgb = TonemapLottes( color.rgb * u_TonemapExposure );
+	if( u_Tonemap ) {
+		color.rgb = TonemapLottes( color.rgb * u_TonemapExposure );
+	}
 #endif
 
 	color.rgb = clamp( color.rgb, vec3( 0.0f ), vec3( 1.0f ) );
