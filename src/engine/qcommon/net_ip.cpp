@@ -1507,8 +1507,6 @@ static void NET_GetLocalAddress()
 		}
 
 		freeifaddrs( ifap );
-
-		Sys_ShowIP();
 	}
 }
 
@@ -1564,8 +1562,6 @@ static void NET_GetLocalAddress()
 				NET_AddLocalAddress( "", search->ai_addr, ( struct sockaddr * ) &mask6 );
 			}
 		}
-
-		Sys_ShowIP();
 	}
 
 	if ( res )
