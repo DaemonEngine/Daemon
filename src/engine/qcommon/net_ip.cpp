@@ -170,6 +170,8 @@ struct nip_localaddr_t
 	struct sockaddr_storage netmask;
 };
 
+// Used to get local IP list. Saved here just to ensure /showip shows the same one that we used
+static char hostname[ 256 ];
 // Used for Sys_IsLANAddress
 static nip_localaddr_t localIP[ MAX_IPS ];
 static int             numIP;
@@ -895,6 +897,8 @@ public:
 
 	void Run( const Cmd::Args & ) const override
 	{
+		Print( "Hostname: %s", hostname );
+
 		int  i;
 		char addrbuf[ NET_ADDR_STR_MAX_LEN ];
 
@@ -1516,19 +1520,17 @@ static void NET_GetLocalAddress()
 #else
 static void NET_GetLocalAddress()
 {
-	char            hostname[ 256 ];
 	struct addrinfo hint;
 
 	struct addrinfo *res = nullptr;
 
 	numIP = 0;
 
-	if ( gethostname( hostname, 256 ) == SOCKET_ERROR )
+	if ( gethostname( hostname, sizeof( hostname ) ) == SOCKET_ERROR )
 	{
+		*hostname = '\0';
 		return;
 	}
-
-	Log::Notice( "Hostname: %s", hostname );
 
 	memset( &hint, 0, sizeof( hint ) );
 
