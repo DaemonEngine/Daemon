@@ -170,6 +170,7 @@ struct nip_localaddr_t
 	struct sockaddr_storage netmask;
 };
 
+// Used for Sys_IsLANAddress
 static nip_localaddr_t localIP[ MAX_IPS ];
 static int             numIP;
 
@@ -887,30 +888,32 @@ bool Sys_IsLANAddress( const netadr_t& adr )
 	return false;
 }
 
-/*
-==================
-Sys_ShowIP
-==================
-*/
-void Sys_ShowIP()
+class ShowIPCommand : public Cmd::StaticCmd
 {
-	int  i;
-	char addrbuf[ NET_ADDR_STR_MAX_LEN ];
+public:
+	ShowIPCommand() : StaticCmd("showip", Cmd::SERVER, "show addresses of network interfaces") {}
 
-	for ( i = 0; i < numIP; i++ )
+	void Run( const Cmd::Args & ) const override
 	{
-		Sys_SockaddrToString( addrbuf, sizeof( addrbuf ), ( struct sockaddr * ) &localIP[ i ].addr );
+		int  i;
+		char addrbuf[ NET_ADDR_STR_MAX_LEN ];
 
-		if ( localIP[ i ].type == netadrtype_t::NA_IP )
+		for ( i = 0; i < numIP; i++ )
 		{
-			Log::Notice( "IP: %s", addrbuf );
-		}
-		else if ( localIP[ i ].type == netadrtype_t::NA_IP6 )
-		{
-			Log::Notice( "IP6: %s", addrbuf );
+			Sys_SockaddrToString( addrbuf, sizeof( addrbuf ), ( struct sockaddr * ) &localIP[ i ].addr );
+
+			if ( localIP[ i ].type == netadrtype_t::NA_IP )
+			{
+				Print( "IP: %s", addrbuf );
+			}
+			else if ( localIP[ i ].type == netadrtype_t::NA_IP6 )
+			{
+				Print( "IP6: %s", addrbuf );
+			}
 		}
 	}
-}
+};
+static ShowIPCommand showipRegistration;
 
 //=============================================================================
 
