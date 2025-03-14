@@ -151,7 +151,6 @@ CGameVM            cgvm;
 refexport_t        re;
 
 void        CL_CheckForResend();
-void        CL_ShowIP_f();
 
 #if defined(USE_MUMBLE)
 static void CL_UpdateMumble()
@@ -2400,7 +2399,6 @@ void CL_Init()
 
 	Cmd_AddCommand( "ping", CL_Ping_f );
 	Cmd_AddCommand( "serverstatus", CL_ServerStatus_f );
-	Cmd_AddCommand( "showip", CL_ShowIP_f );
 
 	Cmd_AddCommand( "updatescreen", SCR_UpdateScreen );
 	// done.
@@ -2476,7 +2474,6 @@ void CL_Shutdown()
 	Cmd_RemoveCommand( "globalservers" );
 	Cmd_RemoveCommand( "ping" );
 	Cmd_RemoveCommand( "serverstatus" );
-	Cmd_RemoveCommand( "showip" );
 
 	CL_ClearKeyBinding();
 	CL_ClearInput();
@@ -2494,16 +2491,6 @@ void CL_Shutdown()
 
 	Log::Debug( "-----------------------" );
 
-}
-
-/*
-==================
-CL_ShowIP_f
-==================
-*/
-void CL_ShowIP_f()
-{
-	Sys_ShowIP();
 }
 
 /*
