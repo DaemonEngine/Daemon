@@ -2849,6 +2849,8 @@ enum class ssaoMode {
 
 		std::vector<image_t *> images;
 
+		unsigned numGeneratedTextures;
+
 		int             numFBOs;
 		FBO_t           *fbos[ MAX_FBOS ];
 

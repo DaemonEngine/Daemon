@@ -3184,26 +3184,18 @@ void RE_GetTextureSize( int textureID, int *width, int *height )
 	}
 }
 
-// This code is used to upload images produced by the game (like GUI elements produced by libRocket in Unvanquished)
-int numTextures = 0;
-
+// This code is used to upload images produced by the game (like glyphs produced by RMLUI in Unvanquished)
 qhandle_t RE_GenerateTexture( const byte *pic, int width, int height )
 {
-	size_t size = width * height;
-
-	if ( !size ) {
-		Log::Warn("RE_GenerateTexture: image size %dx%d is 0", width, height );
-		return 0;
-	}
-
 	R_SyncRenderThread();
 
-	const char *name = va( "rocket%d", numTextures++ );
+	std::string name = Str::Format( "$generatedTexture%d", tr.numGeneratedTextures++ );
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	return RE_RegisterShaderFromImage( name, R_CreateImage( name, &pic, width, height, 1, imageParams ) );
+	return RE_RegisterShaderFromImage(
+		name.c_str(), R_CreateImage( name.c_str(), &pic, width, height, 1, imageParams ) );
 }
