@@ -25,24 +25,34 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D u_CurrentMap;
 
 #if defined(r_colorGrading)
-uniform sampler3D u_ColorMap3D;
+	uniform sampler3D u_ColorMap3D;
 #endif
 
-uniform vec4      u_ColorModulate;
-uniform float     u_GlobalLightFactor; // 1 / tr.identityLight
-uniform float     u_InverseGamma;
+#if defined(HAVE_ARB_explicit_uniform_location) && defined(HAVE_ARB_shader_atomic_counters)
+	layout(std140, binding = BIND_LUMINANCE) uniform ub_LuminanceUBO {
+		uint luminanceU;
+	};
+#endif
 
-IN(smooth) vec2		var_TexCoords;
+uniform vec4 u_ColorModulate;
+uniform float u_GlobalLightFactor; // 1 / tr.identityLight
+uniform float u_InverseGamma;
+
+IN(smooth) vec2 var_TexCoords;
 
 DECLARE_OUTPUT(vec4)
 
 // Tone mapping is not available when high-precision float framebuffer isn't enabled or supported.
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
+uniform uint u_ViewWidth;
+uniform uint u_ViewHeight;
+
+uniform bool u_Tonemap;
+uniform bool u_TonemapAdaptiveExposure;
 /* x: contrast
 y: highlightsCompressionSpeed
 z: shoulderClip
 w: highlightsCompression */
-uniform bool u_Tonemap;
 uniform vec4 u_TonemapParms;
 uniform float u_TonemapExposure;
 
@@ -53,8 +63,11 @@ vec3 TonemapLottes( vec3 color ) {
 }
 #endif
 
-void main()
-{
+float GetAverageLuminance( const in uint luminance ) {
+    return float( luminanceU ) / ( 256.0f * u_ViewWidth * u_ViewHeight );
+}
+
+void main() {
 	// calculate the screen texcoord in the 0.0 to 1.0 range
 	vec2 st = gl_FragCoord.st / r_FBufSize;
 
@@ -62,7 +75,16 @@ void main()
 	color *= u_GlobalLightFactor;
 
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
-	color.rgb = TonemapLottes( color.rgb * u_TonemapExposure );
+	if( u_Tonemap ) {
+		#if defined(HAVE_ARB_explicit_uniform_location) && defined(HAVE_ARB_shader_atomic_counters)
+			if( u_TonemapAdaptiveExposure ) {
+					const float l = GetAverageLuminance( luminanceU ) - 8;
+					color.rgb *= clamp( 0.18f / exp2( l * 0.8f + 0.1f ), 0.0f, 2.0f );
+			}
+		#endif
+
+		color.rgb = TonemapLottes( color.rgb * u_TonemapExposure );
+	}
 #endif
 
 	color.rgb = clamp( color.rgb, vec3( 0.0f ), vec3( 1.0f ) );
@@ -80,4 +102,5 @@ void main()
 	color.xyz = pow(color.xyz, vec3(u_InverseGamma));
 
 	outputColor = color;
+	// outputColor = vec4( luminance, color.yzw );
 }

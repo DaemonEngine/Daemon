@@ -3934,6 +3934,18 @@ class u_Tonemap :
 	}
 };
 
+class u_TonemapAdaptiveExposure :
+	GLUniform1Bool {
+	public:
+	u_TonemapAdaptiveExposure( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_TonemapAdaptiveExposure", true ) {
+	}
+
+	void SetUniform_TonemapAdaptiveExposure( bool tonemapAdaptiveExposure ) {
+		this->SetValue( tonemapAdaptiveExposure );
+	}
+};
+
 class u_TonemapParms :
 	GLUniform4f {
 	public:
@@ -3943,6 +3955,18 @@ class u_TonemapParms :
 
 	void SetUniform_TonemapParms( vec4_t tonemapParms ) {
 		this->SetValue( tonemapParms );
+	}
+};
+
+class u_TonemapParms2 :
+	GLUniform4f {
+	public:
+	u_TonemapParms2( GLShader* shader ) :
+		GLUniform4f( shader, "u_TonemapParms2", true ) {
+	}
+
+	void SetUniform_TonemapParms2( vec4_t tonemapParms2 ) {
+		this->SetValue( tonemapParms2 );
 	}
 };
 
@@ -4354,6 +4378,16 @@ public:
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
+class GLShader_luminanceReduction :
+	public GLShader,
+	public u_ViewWidth,
+	public u_ViewHeight,
+	public u_TonemapParms2 {
+	public:
+	GLShader_luminanceReduction( GLShaderManager* manager );
+	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
+};
+
 class GLShader_shadowFill :
 	public GLShader,
 	public u_ColorMap,
@@ -4591,7 +4625,10 @@ class GLShader_cameraEffects :
 	public u_ColorModulate,
 	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
+	public u_ViewWidth,
+	public u_ViewHeight,
 	public u_Tonemap,
+	public u_TonemapAdaptiveExposure,
 	public u_TonemapParms,
 	public u_TonemapExposure,
 	public u_InverseGamma
@@ -4765,6 +4802,12 @@ public:
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
+class GLShader_clearFrameData :
+	public GLShader {
+	public:
+	GLShader_clearFrameData( GLShaderManager* manager );
+};
+
 class GLShader_cull :
 	public GLShader,
 	public u_Frame,
@@ -4819,6 +4862,7 @@ extern ShaderKind shaderKind;
 
 extern GLShader_generic                         *gl_genericShader;
 extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
+extern GLShader_clearFrameData                  *gl_clearFrameDataShader;
 extern GLShader_cull                            *gl_cullShader;
 extern GLShader_depthReduction                  *gl_depthReductionShader;
 extern GLShader_clearSurfaces                   *gl_clearSurfacesShader;
@@ -4828,6 +4872,7 @@ extern GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial;
 extern GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ;
 extern GLShader_forwardLighting_projXYZ         *gl_forwardLightingShader_projXYZ;
 extern GLShader_forwardLighting_directionalSun  *gl_forwardLightingShader_directionalSun;
+extern GLShader_luminanceReduction              *gl_luminanceReductionShader;
 extern GLShader_shadowFill                      *gl_shadowFillShader;
 extern GLShader_reflection                      *gl_reflectionShader;
 extern GLShader_reflectionMaterial              *gl_reflectionShaderMaterial;
@@ -4854,5 +4899,6 @@ extern GLShader_depthtile2                      *gl_depthtile2Shader;
 extern GLShader_lighttile                       *gl_lighttileShader;
 extern GLShader_fxaa                            *gl_fxaaShader;
 extern GLShaderManager                           gl_shaderManager;
+extern GLBuffer luminanceBuffer;
 
 #endif // GL_SHADER_H

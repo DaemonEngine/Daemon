@@ -11,6 +11,7 @@
 #include "cameraEffects_fp.glsl.h"
 #include "cameraEffects_vp.glsl.h"
 #include "computeLight_fp.glsl.h"
+#include "luminanceReduction_cp.glsl.h"
 #include "contrast_fp.glsl.h"
 #include "contrast_vp.glsl.h"
 #include "debugShadowMap_fp.glsl.h"
@@ -58,12 +59,14 @@
 #include "common_cp.glsl.h"
 #include "shaderProfiler_vp.glsl.h"
 #include "shaderProfiler_fp.glsl.h"
+#include "clearFrameData_cp.glsl.h"
 #include "clearSurfaces_cp.glsl.h"
 #include "cull_cp.glsl.h"
 #include "depthReduction_cp.glsl.h"
 #include "processSurfaces_cp.glsl.h"
 
 std::unordered_map<std::string, std::string> shadermap({
+	{ "luminanceReduction_cp.glsl", std::string( reinterpret_cast<const char*>( luminanceReduction_cp_glsl ), sizeof( luminanceReduction_cp_glsl ) ) },
 	{ "blur_fp.glsl", std::string(reinterpret_cast<const char*>(blur_fp_glsl), sizeof(blur_fp_glsl)) },
 	{ "blur_vp.glsl", std::string(reinterpret_cast<const char*>(blur_vp_glsl), sizeof(blur_vp_glsl)) },
 	{ "cameraEffects_fp.glsl", std::string(reinterpret_cast<const char*>(cameraEffects_fp_glsl), sizeof(cameraEffects_fp_glsl)) },
@@ -74,6 +77,7 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "common.glsl", std::string( reinterpret_cast< const char* >( common_glsl ), sizeof( common_glsl ) ) },
 	{ "common_cp.glsl", std::string( reinterpret_cast< const char* >( common_cp_glsl ), sizeof( common_cp_glsl ) ) },
 	{ "clearSurfaces_cp.glsl", std::string( reinterpret_cast< const char* >( clearSurfaces_cp_glsl ), sizeof( clearSurfaces_cp_glsl ) ) },
+	{ "clearFrameData_cp.glsl", std::string( reinterpret_cast< const char* >( clearFrameData_cp_glsl ), sizeof( clearFrameData_cp_glsl ) ) },
 	{ "cull_cp.glsl", std::string( reinterpret_cast< const char* >( cull_cp_glsl ), sizeof( cull_cp_glsl ) ) },
 	{ "depthReduction_cp.glsl", std::string( reinterpret_cast< const char* >( depthReduction_cp_glsl ), sizeof( depthReduction_cp_glsl ) ) },
 	{ "debugShadowMap_fp.glsl", std::string(reinterpret_cast<const char*>(debugShadowMap_fp_glsl), sizeof(debugShadowMap_fp_glsl)) },
