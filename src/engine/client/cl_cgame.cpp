@@ -1358,6 +1358,12 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 
 		case CG_R_GENERATETEXTURE:
 			IPC::HandleMsg<Render::GenerateTextureMsg>(channel, std::move(reader), [this] (std::vector<byte> data, int x, int y, qhandle_t& handle) {
+				// Limit max size to avoid int overflow issues
+				if (x <= 0 || y <= 0 || x > 16384 || y > 16384 || size_t(x * y * 4) != data.size()) {
+					Log::Warn("GenerateTextureMsg: bad dimensions or size: %dx%d / %d bytes", x, y, data.size());
+					handle = 0;
+					return;
+				}
 				handle = re.GenerateTexture(data.data(), x, y);
 			});
 			break;
