@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2013-2016 Daemon Developers
+Copyright (c) 2025 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -32,13 +32,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-/* depthtile2_vp.glsl */
+/* screenSpace_vp.glsl */
 
-IN vec3 attr_Position;
+const vec2 vertices[3] = vec2[3] ( vec2( -1.0f, -1.0f ), vec2( 3.0f, -1.0f ), vec2( -1.0f, 3.0f ) );
 
-uniform mat4 u_ModelViewProjectionMatrix;
-
-void	main()
-{
-	gl_Position = u_ModelViewProjectionMatrix * vec4( attr_Position, 1.0f );
+void main() {
+	gl_Position = vec4( vertices[gl_VertexID], 0.0f, 1.0f );
 }

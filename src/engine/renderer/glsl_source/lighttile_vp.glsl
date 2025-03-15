@@ -35,15 +35,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* lighttile_vp.glsl */
 
 IN vec2 attr_Position;
-IN vec2 attr_TexCoord0;
 
 OUT(smooth) vec2 vPosition;
-OUT(smooth) vec2 vTexCoord;
 
 void main() {
-  gl_Position = vec4(attr_Position, 0.0, 1.0);
+  gl_Position = vec4( attr_Position, 0.0, 1.0 );
   gl_PointSize = 1.0;
 
   vPosition = attr_Position;
-  vTexCoord = attr_TexCoord0;
 }
