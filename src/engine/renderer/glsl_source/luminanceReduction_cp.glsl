@@ -63,7 +63,7 @@ float ColorToLuminance( const in vec3 color ) {
 }
 
 uint FloatLuminanceToUint( const in float luminance ) {
-    return uint( luminance * 256 );
+    return uint( luminance * u_TonemapParms2[1] );
 }
 
 void main() {
