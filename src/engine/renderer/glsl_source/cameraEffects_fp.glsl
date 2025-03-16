@@ -44,6 +44,7 @@ y: highlightsCompressionSpeed
 z: shoulderClip
 w: highlightsCompression */
 uniform vec4 u_TonemapParms;
+uniform vec4 u_TonemapParms2;
 uniform float u_TonemapExposure;
 
 vec3 TonemapLottes( vec3 color ) {
@@ -59,7 +60,7 @@ vec3 TonemapLottes( vec3 color ) {
 #endif
 
 float GetAverageLuminance( const in uint luminance ) {
-    return float( luminanceU ) / ( 256.0f * u_ViewWidth * u_ViewHeight );
+    return float( luminanceU ) / ( u_TonemapParms2[1] * u_ViewWidth * u_ViewHeight );
 }
 #endif
 
