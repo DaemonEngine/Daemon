@@ -3114,14 +3114,14 @@ class GLShader_luminanceReduction :
 	public u_ViewHeight,
 	public u_TonemapParms2 {
 	public:
-	GLShader_luminanceReduction( GLShaderManager* manager );
+	GLShader_luminanceReduction();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_clearFrameData :
 	public GLShader {
 	public:
-	GLShader_clearFrameData( GLShaderManager* manager );
+	GLShader_clearFrameData();
 };
 
 class GLShader_reflection :
@@ -3302,6 +3302,7 @@ class GLShader_cameraEffects :
 	public u_Tonemap,
 	public u_TonemapAdaptiveExposure,
 	public u_TonemapParms,
+	public u_TonemapParms2,
 	public u_Exposure,
 	public u_InverseGamma
 {

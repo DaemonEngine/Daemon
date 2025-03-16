@@ -2626,7 +2626,7 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial() :
 	GLCompileMacro_USE_PHYSICAL_MAPPING( this ) {
 }
 
-GLShader_luminanceReduction::GLShader_luminanceReduction( GLShaderManager* manager ) :
+GLShader_luminanceReduction::GLShader_luminanceReduction() :
 	GLShader( "luminanceReduction",
 		false, "luminanceReduction" ),
 	u_ViewWidth( this ),
@@ -2638,7 +2638,7 @@ void GLShader_luminanceReduction::SetShaderProgramUniforms( ShaderProgramDescrip
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "initialRenderImage" ), 0 );
 }
 
-GLShader_clearFrameData::GLShader_clearFrameData( GLShaderManager* manager ) :
+GLShader_clearFrameData::GLShader_clearFrameData() :
 	GLShader( "clearFrameData",
 		false, "clearFrameData" ) {
 }
@@ -2843,6 +2843,7 @@ GLShader_cameraEffects::GLShader_cameraEffects() :
 	u_Tonemap( this ),
 	u_TonemapAdaptiveExposure( this ),
 	u_TonemapParms( this ),
+	u_TonemapParms2( this ),
 	u_Exposure( this ),
 	u_InverseGamma( this ) {
 }

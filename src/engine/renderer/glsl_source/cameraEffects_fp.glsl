@@ -68,6 +68,7 @@ y: highlightsCompressionSpeed
 z: shoulderClip
 w: highlightsCompression */
 uniform vec4 u_TonemapParms;
+uniform vec4 u_TonemapParms2;
 
 vec3 TonemapLottes( vec3 color ) {
   // Lottes 2016, "Advanced Techniques and Optimization of HDR Color Pipelines"
@@ -82,7 +83,7 @@ vec3 TonemapLottes( vec3 color ) {
 #endif
 
 float GetAverageLuminance( const in uint luminance ) {
-    return float( luminanceU ) / ( 256.0f * u_ViewWidth * u_ViewHeight );
+    return float( luminanceU ) / ( u_TonemapParms2[1] * u_ViewWidth * u_ViewHeight );
 }
 #endif
 

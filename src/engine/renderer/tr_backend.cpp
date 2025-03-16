@@ -1643,8 +1643,8 @@ static void AdaptiveLightingReduction() {
 
 	gl_luminanceReductionShader->BindProgram();
 
-	const int width = tr.currentRenderImage[backEnd.currentMainFBO]->width;
-	const int height = tr.currentRenderImage[backEnd.currentMainFBO]->height;
+	const int width = windowConfig.vidWidth;
+	const int height = windowConfig.vidHeight;
 
 	uint32_t globalWorkgroupX = ( width + 7 ) / 8;
 	uint32_t globalWorkgroupY = ( height + 7 ) / 8;
@@ -1654,6 +1654,7 @@ static void AdaptiveLightingReduction() {
 	gl_luminanceReductionShader->SetUniform_ViewWidth( width );
 	gl_luminanceReductionShader->SetUniform_ViewHeight( height );
 	vec4_t parms { log2f( r_toneMappingHDRMax.Get() ) };
+	parms[1] = UINT32_MAX / ( width * height * ( uint32_t( parms[0] ) + 8 ) );
 	gl_luminanceReductionShader->SetUniform_TonemapParms2( parms );
 
 	glMemoryBarrier( GL_ATOMIC_COUNTER_BARRIER_BIT );
@@ -1723,6 +1724,10 @@ void RB_CameraPostFX() {
 		ComputeTonemapParams( tonemapParms[0], tonemapParms[1], r_toneMappingHDRMax.Get(),
 			r_toneMappingDarkAreaPointHDR.Get(), r_toneMappingDarkAreaPointLDR.Get(), tonemapParms[2], tonemapParms[3] );
 		gl_cameraEffectsShader->SetUniform_TonemapParms( tonemapParms );
+
+		vec4_t parms{ log2f( r_toneMappingHDRMax.Get() ) };
+		parms[1] = UINT32_MAX / ( windowConfig.vidWidth * windowConfig.vidHeight * ( uint32_t( parms[0] ) + 8 ) );
+		gl_cameraEffectsShader->SetUniform_TonemapParms2( parms );
 
 		gl_cameraEffectsShader->SetUniform_TonemapAdaptiveExposure(
 			glConfig.adaptiveExposureAvailable && r_toneMappingAdaptiveExposure.Get() );
