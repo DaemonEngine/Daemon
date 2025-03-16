@@ -3078,7 +3078,17 @@ void RB_RenderBloom()
 
 		gl_screenShader->SetUniform_CurrentMapBindless( GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip ^ 1] ) );
 
-		Tess_InstantScreenSpaceQuad();
+		GL_PushMatrix();
+
+		matrix_t ortho;
+		MatrixOrthogonalProjection( ortho, 0, tr.bloomRenderFBO[0]->width, 0, tr.bloomRenderFBO[0]->height, -99999, 99999 );
+		GL_LoadProjectionMatrix( ortho );
+
+		Tess_InstantQuad( *gl_screenShader,
+			backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+			backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+
+		GL_PopMatrix();
 	}
 
 	GL_CheckErrors();
