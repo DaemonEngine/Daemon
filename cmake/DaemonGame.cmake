@@ -109,15 +109,14 @@ daemon_write_buildinfo("Game")
 function(buildGameModule module_slug)
 	set(module_target "${GAMEMODULE_NAME}-${module_slug}")
 
-	set(module_target_args "${module_target}" ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${BUILDINFOLIST} ${COMMONLIST})
+	set(module_target_args ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${BUILDINFOLIST} ${COMMONLIST})
 
 	if (module_slug STREQUAL "native-dll")
-		add_library(${module_target_args})
-		set_target_properties(${module_target} PROPERTIES
-			PREFIX ""
-			COMPILE_DEFINITIONS "BUILD_VM_IN_PROCESS")
+		add_library("${module_target}" MODULE ${module_target_args})
+		set_target_properties(${module_target} PROPERTIES PREFIX "")
+		set(GAMEMODULE_DEFINITIONS "${GAMEMODULE_DEFINITIONS};BUILD_VM_IN_PROCESS")
 	else()
-		add_executable(${module_target_args})
+		add_executable("${module_target}" ${module_target_args})
 	endif()
 
 	set_target_properties(${module_target} PROPERTIES
