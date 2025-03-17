@@ -739,9 +739,11 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 				"Nothing is read and executed after -connect option and the following URI.\n"
 				"If another instance is already running, commands will be forwarded to it.\n"
 			);
+			FS::FlushAll();
 			OSExit(0);
 		} else if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-version") || !strcmp(argv[i], "-v")) {
 			printf(PRODUCT_NAME " " PRODUCT_VERSION "\n");
+			FS::FlushAll();
 			OSExit(0);
 		} else if (!strcmp(argv[i], "-set")) {
 			if (i >= argc - 2) {

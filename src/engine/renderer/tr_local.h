@@ -321,6 +321,12 @@ enum class shaderProfilerRenderSubGroupsMode {
 	FS_ALL
 };
 
+enum class ssaoMode {
+	SHOW = -1,
+	DISABLED,
+	ENABLED,
+};
+
 	enum class renderSpeeds_t
 	{
 	  RSPEEDS_GENERAL = 1,
@@ -2845,6 +2851,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		std::vector<image_t *> images;
 
+		unsigned numGeneratedTextures;
+
 		int             numFBOs;
 		FBO_t           *fbos[ MAX_FBOS ];
 
@@ -2965,13 +2973,13 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern cvar_t *r_mode; // video mode
 	extern cvar_t *r_gamma;
 
-	extern Cvar::Cvar<bool> r_tonemap;
-	extern Cvar::Cvar<float> r_tonemapExposure;
-	extern Cvar::Range<Cvar::Cvar<float>> r_tonemapContrast;
-	extern Cvar::Range<Cvar::Cvar<float>> r_tonemapHighlightsCompressionSpeed;
-	extern Cvar::Range<Cvar::Cvar<float>> r_tonemapHDRMax;
-	extern Cvar::Range<Cvar::Cvar<float>> r_tonemapDarkAreaPointHDR;
-	extern Cvar::Range<Cvar::Cvar<float>> r_tonemapDarkAreaPointLDR;
+	extern Cvar::Cvar<bool> r_toneMapping;
+	extern Cvar::Cvar<float> r_toneMappingExposure;
+	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingContrast;
+	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingHighlightsCompressionSpeed;
+	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingHDRMax;
+	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingDarkAreaPointHDR;
+	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingDarkAreaPointLDR;
 
 	extern cvar_t *r_nobind; // turns off binding to appropriate textures
 	extern cvar_t *r_singleShader; // make most world faces use default shader
@@ -3110,7 +3118,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Cvar<float> r_bloomBlur;
 	extern Cvar::Cvar<int> r_bloomPasses;
 	extern cvar_t *r_FXAA;
-	extern cvar_t *r_ssao;
+	extern Cvar::Range<Cvar::Cvar<int>> r_ssao;
 
 	extern cvar_t *r_evsmPostProcess;
 

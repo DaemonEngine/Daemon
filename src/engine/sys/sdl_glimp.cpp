@@ -161,7 +161,7 @@ static Cvar::Cvar<bool> workaround_glDriver_mesa_intel_gma3_forceFragmentShader(
 	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glDriver_mesa_intel_gma3_stubOcclusionQuery(
 	"workaround.glDriver.mesa.intel.gma3.stubOcclusionQuery",
-	"stub out occlusion query on Intel GMA Gen 3 hardware",
+	"Stub out occlusion query on Intel GMA Gen 3 hardware",
 	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glDriver_mesa_v241_disableBindlessTexture(
 	"workaround.glDriver.mesa.v241.disableBindlessTexture",
@@ -178,6 +178,10 @@ static Cvar::Cvar<bool> workaround_glExtension_missingArbFbo_useExtFbo(
 static Cvar::Cvar<bool> workaround_glExtension_glsl120_disableShaderDrawParameters(
 	"workaround.glExtension.glsl120.disableShaderDrawParameters",
 	"Disable ARB_shader_draw_parameters on GLSL 1.20",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glExtension_glsl120_disableGpuShader4(
+	"workaround.glExtension.glsl120.disableGpuShader4",
+	"Disable EXT_gpu_shader4 on GLSL 1.20",
 	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glHardware_intel_useFirstProvokinVertex(
 	"workaround.glHardware.intel.useFirstProvokinVertex",
@@ -1970,6 +1974,8 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 	return false;
 }
 
+#define SILENTLY_CHECK_EXTENSION( ext ) ( GLEW_##ext )
+
 #define LOAD_EXTENSION(flags, ext) LoadExt(flags, GLEW_##ext, #ext)
 
 #define LOAD_EXTENSION_WITH_TEST(flags, ext, test) LoadExt(flags, GLEW_##ext, #ext, test)
@@ -2171,8 +2177,21 @@ static void GLimp_InitExtensions()
 		}
 	}
 
+	bool gpuShader4Enabled = r_ext_gpu_shader4.Get();
+
+	if ( gpuShader4Enabled
+		&& SILENTLY_CHECK_EXTENSION( EXT_gpu_shader4 )
+		&& glConfig2.shadingLanguageVersion <= 120
+		&& workaround_glExtension_glsl120_disableGpuShader4.Get() )
+	{
+		// EXT_gpu_shader4 behaves slightly differently when running on GLSL 1.20.
+		// See: https://gitlab.freedesktop.org/mesa/mesa/-/issues/12803#note_2819461
+		logger.Warn( "Found EXT_gpu_shader4 with incompatible GLSL 1.20, disabling EXT_gpu_shader4." );
+		gpuShader4Enabled = false;
+	}
+
 	// made required in OpenGL 3.0
-	glConfig2.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, r_ext_gpu_shader4.Get() );
+	glConfig2.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, gpuShader4Enabled );
 
 	// made required in OpenGL 4.0
 	glConfig2.gpuShader5Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_gpu_shader5, r_arb_gpu_shader5.Get() );
@@ -2526,20 +2545,19 @@ static void GLimp_InitExtensions()
 		glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, bindlessTextureEnabled );
 	}
 
-	// made required in OpenGL 4.6
+	bool shaderDrawParametersEnabled = r_arb_shader_draw_parameters.Get();
 
-	bool ShaderDrawParametersEnabled = r_arb_shader_draw_parameters.Get();
-
-	if ( ShaderDrawParametersEnabled
-		&& GL_ARB_shader_draw_parameters
+	if ( shaderDrawParametersEnabled
+		&& SILENTLY_CHECK_EXTENSION( ARB_shader_draw_parameters )
 		&& glConfig2.shadingLanguageVersion <= 120
 		&& workaround_glExtension_glsl120_disableShaderDrawParameters.Get() )
 	{
 		logger.Warn( "Found ARB_shader_draw_parameters with incompatible GLSL 1.20, disabling ARB_shader_draw_parameters." );
-		ShaderDrawParametersEnabled = false;
+		shaderDrawParametersEnabled = false;
 	}
 
-	glConfig2.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, ShaderDrawParametersEnabled );
+	// made required in OpenGL 4.6
+	glConfig2.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, shaderDrawParametersEnabled );
 
 	// made required in OpenGL 4.3
 	glConfig2.SSBOAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_storage_buffer_object, r_arb_shader_storage_buffer_object.Get() );
@@ -2582,7 +2600,7 @@ static void GLimp_InitExtensions()
 		&& glConfig2.geometryCacheAvailable;
 
 	// This requires GLEW 2.2+, so skip if it's a lower version
-#ifdef GL_KHR_shader_subgroup
+#if defined(GLEW_KHR_shader_subgroup)
 	// not required by any OpenGL version
 	glConfig2.shaderSubgroupAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, KHR_shader_subgroup, r_khr_shader_subgroup.Get() );
 
@@ -2685,6 +2703,7 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_glDriver_nvidia_v340_disableTextureGather );
 	Cvar::Latch( workaround_glExtension_missingArbFbo_useExtFbo );
 	Cvar::Latch( workaround_glExtension_glsl120_disableShaderDrawParameters );
+	Cvar::Latch( workaround_glExtension_glsl120_disableGpuShader4 );
 	Cvar::Latch( workaround_glHardware_intel_useFirstProvokinVertex );
 
 	/* Enable S3TC on Mesa even if libtxc-dxtn is not available

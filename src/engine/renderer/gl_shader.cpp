@@ -419,6 +419,7 @@ struct addedExtension_t {
 static const std::vector<addedExtension_t> fragmentVertexAddedExtensions = {
 	{ glConfig2.gpuShader4Available, 130, "EXT_gpu_shader4" },
 	{ glConfig2.gpuShader5Available, 400, "ARB_gpu_shader5" },
+	{ glConfig2.textureFloatAvailable, 130, "ARB_texture_float" },
 	{ glConfig2.textureGatherAvailable, 400, "ARB_texture_gather" },
 	{ glConfig2.textureIntegerAvailable, 0, "EXT_texture_integer" },
 	{ glConfig2.textureRGAvailable, 0, "ARB_texture_rg" },
@@ -864,6 +865,10 @@ static std::string GenEngineConstants() {
 	if ( glConfig2.colorGrading )
 	{
 		AddDefine( str, "r_colorGrading", 1 );
+	}
+
+	if ( r_highPrecisionRendering.Get() ) {
+		AddDefine( str, "r_highPrecisionRendering", 1 );
 	}
 
 	return str;
