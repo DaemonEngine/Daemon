@@ -42,14 +42,14 @@ uniform bool u_Tonemap;
 uniform vec4 u_TonemapParms;
 uniform float u_TonemapExposure;
 
-DECLARE_OUTPUT(vec4)
-
 vec3 TonemapLottes( vec3 color ) {
   // Lottes 2016, "Advanced Techniques and Optimization of HDR Color Pipelines"
   return pow( color, vec3( u_TonemapParms[0] ) )
          / ( pow( color, vec3( u_TonemapParms[0] * u_TonemapParms[1] ) ) * u_TonemapParms[2] + u_TonemapParms[3] );
 }
 #endif
+
+DECLARE_OUTPUT(vec4)
 
 void main()
 {
