@@ -3747,7 +3747,7 @@ struct colorModulation_t {
 	float colorGen = 0.0f;
 	float alphaGen = 0.0f;
 	float lightFactor = 1.0f;
-	bool isLightStyle = false;
+	bool useVertexLightFactor = false;
 	bool alphaAddOne = true;
 };
 
@@ -3762,13 +3762,13 @@ static colorModulation_t ColorModulateColorGen(
 	switch ( colorGen )
 	{
 		case colorGen_t::CGEN_VERTEX:
-			colorModulation.alphaAddOne = false;;
+			colorModulation.alphaAddOne = false;
 
 			if ( vertexOverbright )
 			{
 				// vertexOverbright is only needed for non-lightmapped cases. When there is a
 				// lightmap, this is done by multiplying with the overbright-scaled white image
-				colorModulation.isLightStyle = true;
+				colorModulation.useVertexLightFactor = true;
 				colorModulation.lightFactor = tr.mapLightFactor;
 			}
 			else
@@ -3778,7 +3778,7 @@ static colorModulation_t ColorModulateColorGen(
 			break;
 
 		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorModulation.alphaAddOne = false;;
+			colorModulation.alphaAddOne = false;
 			colorModulation.colorGen = -1.0f;
 			break;
 
@@ -3840,7 +3840,7 @@ public:
 		vec4_t colorModulate_Float;
 		colorModulate_Float[ 0 ] = colorModulation.colorGen;
 		colorModulate_Float[ 1 ] = colorModulation.lightFactor;
-		colorModulate_Float[ 1 ] *= colorModulation.isLightStyle ? -1.0f : 1.0f;
+		colorModulate_Float[ 1 ] *= colorModulation.useVertexLightFactor ? -1.0f : 1.0f;
 		colorModulate_Float[ 2 ] = colorModulation.alphaAddOne;
 		colorModulate_Float[ 3 ] = colorModulation.alphaGen;
 
@@ -3899,7 +3899,7 @@ class u_ColorModulateColorGen_Uint :
 			<< Util::ordinal( ColorModulate_Bit::ALPHA_MINUS_ONE );
 		colorModulate_Uint |= colorModulation.alphaAddOne
 			<< Util::ordinal( ColorModulate_Bit::ALPHA_ADD_ONE );
-		colorModulate_Uint |= colorModulation.isLightStyle
+		colorModulate_Uint |= colorModulation.useVertexLightFactor
 			<< Util::ordinal( ColorModulate_Bit::IS_LIGHT_STYLE );
 		colorModulate_Uint |= uint32_t( colorModulation.lightFactor )
 			<< Util::ordinal( ColorModulate_Bit::LIGHTFACTOR_BIT0 );
