@@ -3055,7 +3055,7 @@ void GLShader_contrast::SetShaderProgramUniforms( ShaderProgramDescriptor *shade
 }
 
 GLShader_cameraEffects::GLShader_cameraEffects() :
-	GLShader( "cameraEffects", ATTR_POSITION | ATTR_TEXCOORD,
+	GLShader( "cameraEffects", ATTR_POSITION,
 		false, "screenSpace", "cameraEffects" ),
 	u_ColorMap3D( this ),
 	u_CurrentMap( this ),
