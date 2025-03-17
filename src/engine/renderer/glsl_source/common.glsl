@@ -99,21 +99,22 @@ vec4 ColorModulateToColor( const in colorModulatePack colorMod )
 	return vec4( rgb, rgb, rgb, alpha );
 }
 
-struct modBits_t {
+struct ModBits_t
+{
 	bool alphaAddOne;
-	bool isLightStyle;
+	bool useVertexLightFactor;
 };
 
-modBits_t ColorModulateToBits( const in colorModulatePack colorMod )
+ModBits_t ColorModulateToBits( const in colorModulatePack colorMod )
 {
-	modBits_t modBits;
+	ModBits_t modBits;
 
 #if defined(HAVE_EXT_gpu_shader4)
 	modBits.alphaAddOne = bool( ( colorMod >> 4u ) & 1u );
-	modBits.isLightStyle = bool( ( colorMod >> 27u ) & 1u );
+	modBits.useVertexLightFactor = bool( ( colorMod >> 27u ) & 1u );
 #else
 	modBits.alphaAddOne = colorMod.b != 0;
-	modBits.isLightStyle = colorMod.g < 0;
+	modBits.useVertexLightFactor = colorMod.g < 0;
 #endif
 
 	return modBits;
@@ -155,13 +156,13 @@ void ColorModulateColor_lightFactor(
 	inout vec4 color )
 {
 	vec4 colorModulation = ColorModulateToColor( colorMod );
-	modBits_t modBits = ColorModulateToBits( colorMod );
+	ModBits_t modBits = ColorModulateToBits( colorMod );
 	float lightFactor = ColorModulateToLightFactor( colorMod );
 
 	// This is used to skip vertex colours if the colorMod doesn't need them.
 	color.a = modBits.alphaAddOne ? 1.0 : color.a;
 
-	colorModulation.rgb += vec3( modBits.isLightStyle ? lightFactor : 0 );
+	colorModulation.rgb += vec3( modBits.useVertexLightFactor ? lightFactor : 0 );
 
 	vec4 unpackedColor = UnpackColor( packedColor );
 
