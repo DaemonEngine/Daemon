@@ -199,7 +199,7 @@ void computeDynamicLight( uint idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diff
 		diffuse, material, color );
 }
 
-const int lightsPerLayer = 16;
+const uint lightsPerLayer = 16u;
 
 #define idxs_t uvec4
 
@@ -213,7 +213,7 @@ idxs_t fetchIdxs( in vec3 coords, in usampler3D u_LightTiles ) {
 
 // 8 bits per light ID
 uint nextIdx( in uint count, in idxs_t idxs ) {
-	return ( idxs[count / 4] >> ( 8 * ( count % 4 ) ) ) & 0xFFu;
+	return ( idxs[count / 4u] >> ( 8u * ( count % 4u ) ) ) & 0xFFu;
 }
 
 void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
@@ -225,20 +225,20 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 
 	vec2 tile = floor( gl_FragCoord.xy * ( 1.0 / float( TILE_SIZE ) ) ) + 0.5;
 
-	for( uint layer = 0; layer < NUM_LIGHT_LAYERS; layer++ ) {
-		uint lightCount = 0;
+	for( uint layer = 0u; layer < uint( NUM_LIGHT_LAYERS ); layer++ ) {
+		uint lightCount = 0u;
 		idxs_t idxs = fetchIdxs( tileScale * vec3( tile, float( layer ) + 0.5 ), u_LightTiles );
 
-		for( uint i = 0; i < lightsPerLayer; i++ ) {
+		for( uint i = 0u; i < lightsPerLayer; i++ ) {
 			uint idx = nextIdx( lightCount, idxs );
 
-			if( idx == 0 ) {
+			if( idx == 0u ) {
 				break;
 			}
 
 			/* Light IDs are stored relative to the layer
 			Subtract 1 because 0 means there's no light */
-			idx = ( idx - 1 ) * NUM_LIGHT_LAYERS + layer;
+			idx = ( idx - 1u ) * uint( NUM_LIGHT_LAYERS ) + layer;
 
 			computeDynamicLight( idx, P, normal, viewDir, diffuse, material, color );
 			lightCount++;
