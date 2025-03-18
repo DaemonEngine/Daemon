@@ -1605,34 +1605,29 @@ enum class ssaoMode {
 	// 4. fogNum
 	// 5. index
 
-	static const uint64_t SORT_INDEX_BITS = 16;
-	static const uint64_t SORT_FOGNUM_BITS = 13;
-	static const uint64_t SORT_ENTITYNUM_BITS = 10;
+	static const uint64_t SORT_INDEX_BITS = 20;
+	static const uint64_t SORT_ENTITYNUM_BITS = 13;
 	static const uint64_t SORT_LIGHTMAP_BITS = 9;
 	static const uint64_t SORT_SHADER_BITS = 16;
+	static const uint64_t SORT_UNUSED_BITS = 6;
 
 	static_assert( SORT_SHADER_BITS +
 		SORT_LIGHTMAP_BITS +
 		SORT_ENTITYNUM_BITS +
-		SORT_FOGNUM_BITS +
-		SORT_INDEX_BITS == 64, "invalid number of drawSurface sort bits" );
+		SORT_INDEX_BITS +
+		SORT_UNUSED_BITS == 64, "invalid number of drawSurface sort bits" );
 
-	static const uint64_t SORT_FOGNUM_SHIFT = SORT_INDEX_BITS;
-	static const uint64_t SORT_ENTITYNUM_SHIFT = SORT_FOGNUM_BITS + SORT_FOGNUM_SHIFT;
+	static const uint64_t SORT_ENTITYNUM_SHIFT = SORT_INDEX_BITS;
 	static const uint64_t SORT_LIGHTMAP_SHIFT = SORT_ENTITYNUM_BITS + SORT_ENTITYNUM_SHIFT;
 	static const uint64_t SORT_SHADER_SHIFT = SORT_LIGHTMAP_BITS + SORT_LIGHTMAP_SHIFT;
 
 #define MASKBITS( b ) ( 1 << (b) ) - 1
 	static const uint32_t SORT_INDEX_MASK = MASKBITS( SORT_INDEX_BITS );
-	static const uint32_t SORT_FOGNUM_MASK = MASKBITS( SORT_FOGNUM_BITS );
 	static const uint32_t SORT_ENTITYNUM_MASK = MASKBITS( SORT_ENTITYNUM_BITS );
 	static const uint32_t SORT_LIGHTMAP_MASK = MASKBITS( SORT_LIGHTMAP_BITS );
 	static const uint32_t SORT_SHADER_MASK = MASKBITS( SORT_SHADER_BITS );
 
 	static_assert( SORT_INDEX_MASK >= MAX_DRAWSURFS - 1, "not enough index bits" );
-
-	// need space for 0 fog (no fog), in addition to MAX_MAP_FOGS
-	static_assert( SORT_FOGNUM_MASK >= MAX_MAP_FOGS, "not enough fognum bits" );
 
 	// need space for tr.worldEntity, in addition to MAX_REF_ENTITIES
 	static_assert( SORT_ENTITYNUM_MASK >= MAX_REF_ENTITIES, "not enough entity bits" );
@@ -1652,7 +1647,6 @@ enum class ssaoMode {
 		int fog;
 		int portalNum = -1;
 
-
 		uint32_t materialPackIDs[MAX_SHADER_STAGES];
 		uint32_t materialIDs[MAX_SHADER_STAGES];
 
@@ -1671,9 +1665,6 @@ enum class ssaoMode {
 		inline int entityNum() const {
 			return int( ( sort >> SORT_ENTITYNUM_SHIFT ) & SORT_ENTITYNUM_MASK ) - 1;
 		}
-		inline int fogNum() const {
-			return int( ( sort >> SORT_FOGNUM_SHIFT ) & SORT_FOGNUM_MASK );
-		}
 		inline int lightmapNum() const {
 			return int( ( sort >> SORT_LIGHTMAP_SHIFT ) & SORT_LIGHTMAP_MASK ) - 1;
 		}
@@ -1681,11 +1672,10 @@ enum class ssaoMode {
 			return int( sort >> SORT_SHADER_SHIFT );
 		}
 
-		inline void setSort( int shaderNum, int lightmapNum, int entityNum, int fogNum, int index ) {
+		inline void setSort( int shaderNum, int lightmapNum, int entityNum, int index ) {
 			entityNum = entityNum + 1; //world entity is -1
 			lightmapNum = lightmapNum + 1; //no lightmap is -1
 			sort = uint64_t( index & SORT_INDEX_MASK ) |
-				( uint64_t( fogNum & SORT_FOGNUM_MASK ) << SORT_FOGNUM_SHIFT ) |
 				( uint64_t( entityNum & SORT_ENTITYNUM_MASK ) << SORT_ENTITYNUM_SHIFT ) |
 				( uint64_t( lightmapNum & SORT_LIGHTMAP_MASK ) << SORT_LIGHTMAP_SHIFT ) |
 				( uint64_t( shaderNum & SORT_SHADER_MASK ) << SORT_SHADER_SHIFT );
