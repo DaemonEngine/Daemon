@@ -42,6 +42,8 @@ extern SDL_Window *window;
 #endif
 #endif
 
+static Cvar::Cvar<bool> client_errorPopup("client.errorPopup", "Enable the error popup window", Cvar::NONE, true);
+
 namespace Application {
 
 class ClientApplication : public Application {
@@ -126,7 +128,7 @@ class ClientApplication : public Application {
 
         void Shutdown(bool error, Str::StringRef message) override {
             #if defined(_WIN32) || defined(BUILD_GRAPHICAL_CLIENT)
-                if (error) {
+                if (error && client_errorPopup.Get()) {
                     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, PRODUCT_NAME, message.c_str(), window);
                 }
             #endif

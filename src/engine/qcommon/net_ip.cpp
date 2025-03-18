@@ -170,6 +170,9 @@ struct nip_localaddr_t
 	struct sockaddr_storage netmask;
 };
 
+// Used to get local IP list. Saved here just to ensure /showip shows the same one that we used
+static char hostname[ 256 ];
+// Used for Sys_IsLANAddress
 static nip_localaddr_t localIP[ MAX_IPS ];
 static int             numIP;
 
@@ -887,30 +890,34 @@ bool Sys_IsLANAddress( const netadr_t& adr )
 	return false;
 }
 
-/*
-==================
-Sys_ShowIP
-==================
-*/
-void Sys_ShowIP()
+class ShowIPCommand : public Cmd::StaticCmd
 {
-	int  i;
-	char addrbuf[ NET_ADDR_STR_MAX_LEN ];
+public:
+	ShowIPCommand() : StaticCmd("showip", Cmd::SERVER, "show addresses of network interfaces") {}
 
-	for ( i = 0; i < numIP; i++ )
+	void Run( const Cmd::Args & ) const override
 	{
-		Sys_SockaddrToString( addrbuf, sizeof( addrbuf ), ( struct sockaddr * ) &localIP[ i ].addr );
+		Print( "Hostname: %s", hostname );
 
-		if ( localIP[ i ].type == netadrtype_t::NA_IP )
+		int  i;
+		char addrbuf[ NET_ADDR_STR_MAX_LEN ];
+
+		for ( i = 0; i < numIP; i++ )
 		{
-			Log::Notice( "IP: %s", addrbuf );
-		}
-		else if ( localIP[ i ].type == netadrtype_t::NA_IP6 )
-		{
-			Log::Notice( "IP6: %s", addrbuf );
+			Sys_SockaddrToString( addrbuf, sizeof( addrbuf ), ( struct sockaddr * ) &localIP[ i ].addr );
+
+			if ( localIP[ i ].type == netadrtype_t::NA_IP )
+			{
+				Print( "IP: %s", addrbuf );
+			}
+			else if ( localIP[ i ].type == netadrtype_t::NA_IP6 )
+			{
+				Print( "IP6: %s", addrbuf );
+			}
 		}
 	}
-}
+};
+static ShowIPCommand showipRegistration;
 
 //=============================================================================
 
@@ -1507,27 +1514,23 @@ static void NET_GetLocalAddress()
 		}
 
 		freeifaddrs( ifap );
-
-		Sys_ShowIP();
 	}
 }
 
 #else
 static void NET_GetLocalAddress()
 {
-	char            hostname[ 256 ];
 	struct addrinfo hint;
 
 	struct addrinfo *res = nullptr;
 
 	numIP = 0;
 
-	if ( gethostname( hostname, 256 ) == SOCKET_ERROR )
+	if ( gethostname( hostname, sizeof( hostname ) ) == SOCKET_ERROR )
 	{
+		*hostname = '\0';
 		return;
 	}
-
-	Log::Notice( "Hostname: %s", hostname );
 
 	memset( &hint, 0, sizeof( hint ) );
 
@@ -1564,8 +1567,6 @@ static void NET_GetLocalAddress()
 				NET_AddLocalAddress( "", search->ai_addr, ( struct sockaddr * ) &mask6 );
 			}
 		}
-
-		Sys_ShowIP();
 	}
 
 	if ( res )

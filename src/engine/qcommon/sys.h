@@ -43,6 +43,5 @@ bool Sys_GetPacket(netadr_t *net_from, msg_t *net_message);
 bool Sys_StringToAdr(const char *s, netadr_t *a, netadrtype_t family);
 
 bool Sys_IsLANAddress(const netadr_t& adr);
-void Sys_ShowIP();
 
 #endif // ENGINE_QCOMMON_SYS_H_

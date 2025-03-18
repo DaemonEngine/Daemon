@@ -485,9 +485,12 @@ R_BindVBO
 */
 void R_BindVBO( VBO_t *vbo )
 {
-	if ( !vbo )
-	{
-		Sys::Drop( "R_BindNullVBO: NULL vbo" );
+	if ( !vbo ) {
+		if ( tr.skipVBO ) {
+			R_BindNullVBO();
+		} else {
+			Sys::Drop( "R_BindNullVBO: NULL vbo" );
+		}
 	}
 
 	if ( r_logFile->integer )
@@ -578,64 +581,86 @@ static void R_InitGenericVBOs() {
 	// Min and max coordinates of the quad
 	static const vec3_t min = { 0.0f, 0.0f, 0.0f };
 	static const vec3_t max = { 1.0f, 1.0f, 0.0f };
-	/*
-		Quad is a static mesh with 4 vertices and 2 triangles
+	{
+		/*
+			Quad is a static mesh with 4 vertices and 2 triangles
 
-		 z
-		 ^
-		 |     1------2
-		 |   y |      |
-		 |  /  |      |
-		 | /   |      |
-		 |/    0------3
-		 0---------->x
-		   Verts:
-		   0: 0.0 0.0 0.0
-		   1: 0.0 1.0 0.0
-		   2: 1.0 1.0 0.0
-		   3: 1.0 0.0 0.0
-		   Surfs:
-		   0: 0 2 1 / 0 3 2
-	*/
+			 z
+			 ^
+			 |     1------2
+			 |   y |      |
+			 |  /  |      |
+			 | /   |      |
+			 |/    0------3
+			 0---------->x
+			   Verts:
+			   0: 0.0 0.0 0.0
+			   1: 0.0 1.0 0.0
+			   2: 1.0 1.0 0.0
+			   3: 1.0 0.0 0.0
+			   Surfs:
+			   0: 0 2 1 / 0 3 2
+		*/
 
-	drawSurf_t* genericQuad;
-	genericQuad = ( drawSurf_t* ) ri.Hunk_Alloc( sizeof( *genericQuad ), ha_pref::h_low );
-	genericQuad->entity = &tr.worldEntity;
-	srfVBOMesh_t* surface;
-	surface = ( srfVBOMesh_t* ) ri.Hunk_Alloc( sizeof( *surface ), ha_pref::h_low );
-	surface->surfaceType = surfaceType_t::SF_VBO_MESH;
-	surface->numVerts = 4;
-	surface->numIndexes = 6;
-	surface->firstIndex = 0;
+		drawSurf_t* genericQuad;
+		genericQuad = ( drawSurf_t* ) ri.Hunk_Alloc( sizeof( *genericQuad ), ha_pref::h_low );
+		genericQuad->entity = &tr.worldEntity;
+		srfVBOMesh_t* surface;
+		surface = ( srfVBOMesh_t* ) ri.Hunk_Alloc( sizeof( *surface ), ha_pref::h_low );
+		surface->surfaceType = surfaceType_t::SF_VBO_MESH;
+		surface->numVerts = 4;
+		surface->numIndexes = 6;
+		surface->firstIndex = 0;
 
-	vec3_t verts[ 4 ] = {
-		{ min[0], min[1], min[2] },
-		{ min[0], max[1], min[2] },
-		{ max[0], max[1], min[2] },
-		{ max[0], min[1], min[2] },
-	};
+		vec3_t verts[4] = {
+			{ min[0], min[1], min[2] },
+			{ min[0], max[1], min[2] },
+			{ max[0], max[1], min[2] },
+			{ max[0], min[1], min[2] },
+		};
 
-	vec2_t texCoords[ 4 ];
-	for ( int i = 0; i < 4; i++ ) {
-		texCoords[ i ][ 0 ] = i < 2 ? 0.0f : 1.0f;
-		texCoords[ i ][ 1 ] = i > 0 && i < 3 ? 1.0f : 0.0f;
+		vec2_t texCoords[4];
+		for ( int i = 0; i < 4; i++ ) {
+			texCoords[i][0] = i < 2 ? 0.0f : 1.0f;
+			texCoords[i][1] = i > 0 && i < 3 ? 1.0f : 0.0f;
+		}
+
+		Color::Color32Bit color = Color::White;
+
+		vertexAttributeSpec_t attrs[] = {
+			{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, verts, 3, sizeof( vec3_t ), 0 },
+			{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, color.ToArray(), 4, 0, ATTR_OPTION_NORMALIZE },
+			{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, texCoords, 2, sizeof( vec2_t ), 0 },
+		};
+		surface->vbo = R_CreateStaticVBO( "genericQuad_VBO", std::begin( attrs ), std::end( attrs ), surface->numVerts );
+
+		glIndex_t indexes[6] = { 0, 2, 1,  0, 3, 2 }; // Front
+
+		surface->ibo = R_CreateStaticIBO( "genericQuad_IBO", indexes, surface->numIndexes );
+		genericQuad->surface = ( surfaceType_t* ) surface;
+
+		tr.genericQuad = genericQuad;
 	}
 
-	Color::Color32Bit color = Color::White;
+	{
+		drawSurf_t* genericTriangle;
+		genericTriangle = ( drawSurf_t* ) ri.Hunk_Alloc( sizeof( *genericTriangle ), ha_pref::h_low );
+		genericTriangle->entity = &tr.worldEntity;
+		srfVBOMesh_t* surface = ( srfVBOMesh_t* ) ri.Hunk_Alloc( sizeof( *surface ), ha_pref::h_low );
+		surface->surfaceType = surfaceType_t::SF_VBO_MESH;
+		surface->numVerts = 0;
+		surface->numIndexes = 3;
+		surface->firstIndex = 0;
 
-	vertexAttributeSpec_t attrs[] = {
-		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, verts, 3, sizeof( vec3_t ), 0 },
-		{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, color.ToArray(), 4, 0, ATTR_OPTION_NORMALIZE },
-		{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, texCoords, 2, sizeof( vec2_t ), 0 },
-	};
-	surface->vbo = R_CreateStaticVBO( "generic_VBO", std::begin( attrs ), std::end( attrs ), surface->numVerts );
+		surface->vbo = nullptr;
 
-	glIndex_t indexes[6] = { 0, 2, 1,  0, 3, 2 }; // Front
+		glIndex_t indexes[6] = { 0, 2, 1 }; // Front
 
-	surface->ibo = R_CreateStaticIBO( "generic_IBO", indexes, surface->numIndexes );
-	genericQuad->surface = ( surfaceType_t* ) surface;
+		surface->ibo = R_CreateStaticIBO( "genericTriangle_IBO", indexes, surface->numIndexes );
+		genericTriangle->surface = ( surfaceType_t* ) surface;
 
-	tr.genericQuad = genericQuad;
+		tr.genericTriangle = genericTriangle;
+	}
 }
 
 static void R_InitTileVBO()
