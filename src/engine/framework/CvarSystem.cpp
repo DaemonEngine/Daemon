@@ -688,41 +688,48 @@ namespace Cvar {
                 CvarMap& cvars = GetCvarMap();
 
                 bool raw = false;
-                std::string match = "";
+                std::string pattern = "";
 
                 //Read parameters
                 if (args.Argc() > 1) {
-                    match = args.Argv(1);
-                    if (Cmd::IsSwitch(match, "-raw")) {
+                    pattern = args.Argv(1);
+                    if (Cmd::IsSwitch(pattern, "-raw")) {
                         raw = true;
-                        match = (args.Argc() > 2) ? args.Argv(2) : "";
+                        pattern = (args.Argc() > 2) ? args.Argv(2) : "";
                     }
                 }
 
-                std::vector<cvarRecord_t*> matches;
+                struct CvarMatch_t {
+                    std::string name;
+                    cvarRecord_t* record;
+                };
 
-                std::vector<std::string> matchesNames;
+                std::vector<CvarMatch_t> matches;
+
                 size_t maxNameLength = 0;
-
-                std::vector<std::string> matchesValues;
 
                 //Find all the matching cvars
                 for (auto& entry : cvars) {
-                    if (Com_Filter(match.c_str(), entry.first.c_str(), false)) {
-                        matchesNames.push_back(entry.first);
+                    if (Com_Filter(pattern.c_str(), entry.first.c_str(), false)) {
+                        CvarMatch_t match;
 
-                        matches.push_back(entry.second);
-                        matchesValues.push_back(entry.second->value);
+                        match.name = entry.first;
+                        match.record = entry.second;
+                        matches.push_back(match);
 
                         //TODO: the raw parameter is not handled, need a function to escape carets
-                        maxNameLength = std::max(maxNameLength, entry.first.length());
+                        maxNameLength = std::max(maxNameLength, match.name.length());
                     }
                 }
 
+                // TODO: case insensitive compare function?
+                std::sort(matches.begin(), matches.end(),
+                    [](CvarMatch_t &a, CvarMatch_t &b) { return a.name < b.name; });
+
                 //Print the matches, keeping the flags and descriptions aligned
                 for (size_t i = 0; i < matches.size(); i++) {
-                    const std::string& name = matchesNames[i];
-                    cvarRecord_t* var = matches[i];
+                    const std::string& name = matches[i].name;
+                    cvarRecord_t* var = matches[i].record;
 
                     std::string cvarFlags = "";
                     cvarFlags += (var->flags & SERVERINFO) ? "S" : "_";
