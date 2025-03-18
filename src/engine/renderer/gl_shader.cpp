@@ -529,8 +529,19 @@ static std::string GenCompatHeader() {
 		str += "float smoothstep(float edge0, float edge1, float x) { float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }\n";
 	}
 
-	if ( !glConfig2.gpuShader5Available ) {
-		str += "#define unpackUnorm4x8( value ) ( ( vec4( value, value >> 8, value >> 16, value >> 24 ) & 0xFF ) / 255.0f )\n";
+	if ( !glConfig2.gpuShader5Available && glConfig2.gpuShader4Available )
+	{
+		str +=
+R"(vec4 unpackUnorm4x8( uint value )
+{
+	uint x = value & 0xFFu;
+	uint y = ( value >> 8u ) & 0xFFu;
+	uint z = ( value >> 16u ) & 0xFFu;
+	uint w = ( value >> 24u ) & 0xFFu;
+
+	return vec4( x, y, z, w ) / 255.0f;
+}
+)";
 	}
 
 	/* Driver bug: Adrenaline/OGLP drivers fail to recognise the ARB function versions when they return a 4.6 context
