@@ -2878,8 +2878,7 @@ void RB_RenderGlobalFog()
 	{
 		fog_t* fog = &tr.world->fogs[ tr.world->globalFog ];
 
-		GLIMP_LOGCOMMENT( "--- RB_RenderGlobalFog( fogNum = %i, originalBrushNumber = %i ) ---",
-			tr.world->globalFog, fog->originalBrushNumber );
+		GLIMP_LOGCOMMENT( "--- RB_RenderGlobalFog( fogNum = %i ) ---", tr.world->globalFog );
 
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 
