@@ -5446,7 +5446,7 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
 	Tess_Begin( Tess_StageIteratorColor, shader,
-		nullptr, false, surface->lightmapNum(), surface->fogNum(), surface->bspSurface );
+		nullptr, false, surface->lightmapNum(), surface->fog, surface->bspSurface );
 	rb_surfaceTable[Util::ordinal( *( surface->surface ) )]( surface->surface );
 	Tess_End();
 
