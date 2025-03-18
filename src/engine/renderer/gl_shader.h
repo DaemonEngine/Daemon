@@ -26,7 +26,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include <stdexcept>
 
-#define LOG_GLSL_UNIFORMS 1
 #define USE_UNIFORM_FIREWALL 1
 
 // *INDENT-OFF*
@@ -684,11 +683,6 @@ protected:
 			ASSERT_EQ( p, glState.currentProgram );
 		}
 
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniform1i( %s, shader: %s, value: %d )",
-			this->GetName(), _shader->GetName().c_str(), value );
-#endif
-
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			currentValue = value;
 			return;
@@ -734,11 +728,6 @@ class GLUniform1ui : protected GLUniform {
 			ASSERT_EQ( p, glState.currentProgram );
 		}
 
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniform1i( %s, shader: %s, value: %d )",
-			this->GetName(), _shader->GetName().c_str(), value );
-#endif
-
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			currentValue = value;
 			return;
@@ -782,11 +771,6 @@ class GLUniform1Bool : protected GLUniform {
 		if ( _global || !_shader->UseMaterialSystem() ) {
 			ASSERT_EQ( p, glState.currentProgram );
 		}
-
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniform1i( %s, shader: %s, value: %d )",
-			this->GetName(), _shader->GetName().c_str(), value );
-#endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			currentValue = value;
@@ -834,11 +818,6 @@ protected:
 		if ( _global || !_shader->UseMaterialSystem() ) {
 			ASSERT_EQ( p, glState.currentProgram );
 		}
-
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniform1f( %s, shader: %s, value: %f )",
-			this->GetName(), _shader->GetName().c_str(), value );
-#endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			currentValue = value;
@@ -889,11 +868,6 @@ protected:
 			ASSERT_EQ( p, glState.currentProgram );
 		}
 
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniform1fv( %s, shader: %s, numFloats: %d )",
-			this->GetName(), _shader->GetName().c_str(), numFloats );
-#endif
-
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			memcpy( currentValue.data(), f, numFloats * sizeof( float ) );
 			return;
@@ -928,11 +902,6 @@ protected:
 		if ( _global || !_shader->UseMaterialSystem() ) {
 			ASSERT_EQ( p, glState.currentProgram );
 		}
-
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniform2f( %s, shader: %s, value: [ %f, %f ] )",
-			this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ] );
-#endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			Vector2Copy( v, currentValue );
@@ -986,11 +955,6 @@ protected:
 			ASSERT_EQ( p, glState.currentProgram );
 		}
 
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniform3f( %s, shader: %s, value: [ %f, %f, %f ] )",
-			this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ], v[ 2 ] );
-#endif
-
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			VectorCopy( v, currentValue );
 			return;
@@ -1043,11 +1007,6 @@ protected:
 			ASSERT_EQ( p, glState.currentProgram );
 		}
 
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniform4f( %s, shader: %s, value: [ %f, %f, %f, %f ] )",
-			this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
-#endif
-
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			Vector4Copy( v, currentValue );
 			return;
@@ -1097,11 +1056,6 @@ protected:
 			ASSERT_EQ( p, glState.currentProgram );
 		}
 
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniform4fv( %s, shader: %s, numV: %d )",
-			this->GetName(), _shader->GetName().c_str(), numV );
-#endif
-
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			memcpy( currentValue.data(), v, numV * sizeof( vec4_t ) );
 			return;
@@ -1136,14 +1090,6 @@ protected:
 		if ( _global || !_shader->UseMaterialSystem() ) {
 			ASSERT_EQ( p, glState.currentProgram );
 		}
-
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniformMatrix4f( %s, shader: %s, transpose: %d, "
-			"[ %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f ] )",
-			this->GetName(), _shader->GetName().c_str(), transpose,
-			m[ 0 ], m[ 1 ], m[ 2 ], m[ 3 ], m[ 4 ], m[ 5 ], m[ 6 ], m[ 7 ], m[ 8 ],
-			m[ 9 ], m[ 10 ], m[ 11 ], m[ 12 ], m[ 13 ], m[ 14 ], m[ 15 ] );
-#endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			MatrixCopy( m, currentValue );
@@ -1190,13 +1136,6 @@ class GLUniformMatrix32f : protected GLUniform {
 			ASSERT_EQ( p, glState.currentProgram );
 		}
 
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniformMatrix32f( %s, shader: %s, transpose: %d, "
-			"[ %f, %f, %f, %f, %f, %f ] )",
-			this->GetName(), _shader->GetName().c_str(), transpose,
-			m[0], m[1], m[2], m[3], m[4], m[5] );
-#endif
-
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			memcpy( currentValue, m, 6 * sizeof( float ) );
 			return;
@@ -1235,11 +1174,6 @@ protected:
 			ASSERT_EQ( p, glState.currentProgram );
 		}
 
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniformMatrix4fv( %s, shader: %s, numMatrices: %d, transpose: %d )",
-			this->GetName(), _shader->GetName().c_str(), numMatrices, transpose );
-#endif
-
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			memcpy( currentValue.data(), m, numMatrices * sizeof( matrix_t ) );
 			return;
@@ -1273,11 +1207,6 @@ protected:
 		if ( _global || !_shader->UseMaterialSystem() ) {
 			ASSERT_EQ( p, glState.currentProgram );
 		}
-
-#if defined( LOG_GLSL_UNIFORMS )
-		GLIMP_LOGCOMMENT( "GLSL_SetUniformMatrix34fv( %s, shader: %s, numMatrices: %d, transpose: %d )",
-			this->GetName(), _shader->GetName().c_str(), numMatrices, transpose );
-#endif
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
 			memcpy( currentValue.data(), m, numMatrices * sizeof( matrix_t ) );
