@@ -2314,8 +2314,6 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 	float blue;
 	float alpha;
 
-	GLIMP_LOGCOMMENT( "--- Tess_ComputeColor ---" );
-
 	// rgbGen
 	switch ( pStage->rgbGen )
 	{
@@ -2547,8 +2545,6 @@ Tess_ComputeTexMatrices
 */
 void Tess_ComputeTexMatrices( shaderStage_t *pStage )
 {
-	GLIMP_LOGCOMMENT( "--- Tess_ComputeTexMatrices ---" );
-
 	matrix_t *matrix = tess.svars.texMatrices;
 	matrix_t *lastMatrix = matrix + MAX_TEXTURE_BUNDLES;
 

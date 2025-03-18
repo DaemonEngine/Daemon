@@ -152,8 +152,6 @@ void GL_SelectTexture( int unit )
 	if ( unit >= 0 && unit < glConfig2.maxTextureUnits )
 	{
 		glActiveTexture( GL_TEXTURE0 + unit );
-
-		GLIMP_LOGCOMMENT( "glActiveTexture( GL_TEXTURE%i )", unit );
 	}
 	else
 	{
@@ -5543,8 +5541,6 @@ const RenderCommand *SwapBuffersCommand::ExecuteSelf( ) const
 	{
 		RB_ShowImages();
 	}
-
-	GLIMP_LOGCOMMENT( "***************** RB_SwapBuffers *****************" );
 
 	GLimp_EndFrame();
 
