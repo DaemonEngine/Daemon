@@ -1729,90 +1729,103 @@ void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint obje
 	std::string delim( "\n" );
 	std::string src( dump );
 
-	ri.Hunk_FreeTempMemory( dump );
+	try
+	{
+		int lineNumber = 0;
+		size_t pos = 0;
 
-	int lineNumber = 0;
-	size_t pos = 0;
-
-	int infoLogID = -1;
-	if ( infoLog.size() > 0 ) {
-		infoLogID = 0;
-	}
-
-	while ( ( pos = src.find( delim ) ) != std::string::npos ) {
-		std::string line = src.substr( 0, pos );
-		if ( Str::IsPrefix( "#line ", line ) )
-		{
-			size_t lineNumEnd = line.find( ' ', 6 );
-			Str::ParseInt( lineNumber, line.substr( 6, lineNumEnd - 6 ) );
+		int infoLogID = -1;
+		if ( infoLog.size() > 0 ) {
+			infoLogID = 0;
 		}
 
-		std::string number = std::to_string( lineNumber );
+		while ( ( pos = src.find( delim ) ) != std::string::npos ) {
+			std::string line = src.substr( 0, pos );
+			if ( Str::IsPrefix( "#line ", line ) )
+			{
+				size_t lineNumEnd = line.find( ' ', 6 );
+				Str::ParseInt( lineNumber, line.substr( 6, lineNumEnd - 6 ) );
+			}
 
-		static const int numberWidth = 4;
-		int p = numberWidth - number.length();
-		p = p < 0 ? 0 : p;
-		number.insert( number.begin(), p, ' ' );
+			std::string number = std::to_string( lineNumber );
 
-		buffer.append( number );
-		buffer.append( ": " );
-		buffer.append( line );
-		buffer.append( delim );
+			static const int numberWidth = 4;
+			int p = numberWidth - number.length();
+			p = p < 0 ? 0 : p;
+			number.insert( number.begin(), p, ' ' );
 
-		while ( infoLogID != -1 && infoLog[infoLogID].line == lineNumber ) {
-			if ( ( int( line.length() ) > infoLog[infoLogID].character ) && ( infoLog[infoLogID].character != -1 ) ) {
-				buffer.append( numberWidth + 2, '-' );
-				const size_t position = line.find_first_not_of( "\t" );
+			buffer.append( number );
+			buffer.append( ": " );
+			buffer.append( line );
+			buffer.append( delim );
 
-				if ( position != std::string::npos ) {
-					buffer.append( position, '\t' );
-					buffer.append( infoLog[infoLogID].character - position, '-' );
-				} else {
-					buffer.append( infoLog[infoLogID].character, '-' );
-				}
-				buffer.append( "^" );
-				buffer.append( line.length() - infoLog[infoLogID].character - 1, '-' );
+			while ( infoLogID != -1 && infoLog[infoLogID].line == lineNumber ) {
+				if ( ( int( line.length() ) > infoLog[infoLogID].character ) && ( infoLog[infoLogID].character != -1 ) ) {
+					buffer.append( numberWidth + 2, '-' );
+					const size_t position = line.find_first_not_of( "\t" );
 
-			} else if ( ( line.length() > 0 ) && ( infoLog[infoLogID].token.length() > 0 ) ) {
-				size_t position = line.find_first_not_of( "\t" );
-				size_t prevPosition = 0;
-
-				buffer.append( numberWidth + 2, '-' );
-				if ( position != std::string::npos ) {
-					buffer.append( position, '\t' );
-				} else {
-					position = 0;
-				}
-
-				while ( ( position = line.find( infoLog[infoLogID].token, position ) ) && ( position != std::string::npos ) ) {
-					buffer.append( position - prevPosition - 1, '-' );
+					if ( position != std::string::npos ) {
+						buffer.append( position, '\t' );
+						buffer.append( infoLog[infoLogID].character - position, '-' );
+					} else {
+						buffer.append( infoLog[infoLogID].character, '-' );
+					}
 					buffer.append( "^" );
-					prevPosition = position;
-					position++;
+					buffer.append( line.length() - infoLog[infoLogID].character - 1, '-' );
+
+				} else if ( ( line.length() > 0 ) && ( infoLog[infoLogID].token.length() > 0 ) ) {
+					size_t position = line.find_first_not_of( "\t" );
+					size_t prevPosition = 0;
+
+					buffer.append( numberWidth + 2, '-' );
+					if ( position != std::string::npos ) {
+						buffer.append( position, '\t' );
+					} else {
+						position = 0;
+					}
+
+					while ( ( position = line.find( infoLog[infoLogID].token, position ) ) && ( position != std::string::npos ) ) {
+						buffer.append( position - prevPosition - 1, '-' );
+						buffer.append( "^" );
+						prevPosition = position;
+						position++;
+					}
+					buffer.append( line.length() - position - 1, '-' );
+				} else {
+					buffer.append( numberWidth + 2 + line.length(), '^' );
 				}
-				buffer.append( line.length() - position - 1, '-' );
-			} else {
-				buffer.append( numberWidth + 2 + line.length(), '^' );
+
+				buffer.append( delim );
+				buffer.append( infoLog[infoLogID].error );
+				buffer.append( delim );
+				buffer.append( delim );
+
+				infoLogID++;
+
+				if ( infoLogID >= int( infoLog.size() ) ) {
+					infoLogID = -1;
+				}
 			}
 
-			buffer.append( delim );
-			buffer.append( infoLog[infoLogID].error );
-			buffer.append( delim );
-			buffer.append( delim );
+			src.erase( 0, pos + delim.length() );
 
-			infoLogID++;
-
-			if ( infoLogID >= int( infoLog.size() ) ) {
-				infoLogID = -1;
-			}
+			lineNumber++;
 		}
 
-		src.erase( 0, pos + delim.length() );
-
-		lineNumber++;
+		Log::Warn( "Source for shader program %s:\n%s", programName, buffer );
+	}
+	catch (std::exception& err)
+	{
+		Log::Warn( "Exception occurred when processing the source for shader program %s (%s): %s", programName, typeid(err).name(), err.what() );
+		Log::Warn( "Raw source for shader program %s:\n%s", programName, dump );
+	}
+	catch (...)
+	{
+		Log::Warn( "Unknown exception occurred when processing the source for shader program %s.", programName );
+		Log::Warn( "Raw source for shader program %s:\n%s", programName, dump );
 	}
 
-	Log::Warn("Source for shader program %s:\n%s", programName, buffer.c_str());
+	ri.Hunk_FreeTempMemory( dump );
 }
 
 std::vector<GLShaderManager::InfoLogEntry> GLShaderManager::ParseInfoLog( const std::string& infoLog ) const {
