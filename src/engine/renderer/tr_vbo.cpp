@@ -493,11 +493,7 @@ void R_BindVBO( VBO_t *vbo )
 		}
 	}
 
-	if ( r_logFile->integer )
-	{
-		// don't just call LogComment, or we will get a call to va() every frame!
-		GLimp_LogComment( va( "--- R_BindVBO( %s ) ---\n", vbo->name ) );
-	}
+	GLIMP_LOGCOMMENT( "--- R_BindVBO( %s ) ---", vbo->name );
 
 	if ( glState.currentVBO != vbo )
 	{
@@ -521,7 +517,7 @@ R_BindNullVBO
 */
 void R_BindNullVBO()
 {
-	GLimp_LogComment( "--- R_BindNullVBO ---\n" );
+	GLIMP_LOGCOMMENT( "--- R_BindNullVBO ---" );
 
 	if ( glState.currentVBO )
 	{
@@ -544,11 +540,7 @@ void R_BindIBO( IBO_t *ibo )
 		Sys::Drop( "R_BindIBO: NULL ibo" );
 	}
 
-	if ( r_logFile->integer )
-	{
-		// don't just call LogComment, or we will get a call to va() every frame!
-		GLimp_LogComment( va( "--- R_BindIBO( %s ) ---\n", ibo->name ) );
-	}
+	GLIMP_LOGCOMMENT( "--- R_BindIBO( %s ) ---", ibo->name );
 
 	if ( glState.currentIBO != ibo )
 	{
@@ -567,7 +559,7 @@ R_BindNullIBO
 */
 void R_BindNullIBO()
 {
-	GLimp_LogComment( "--- R_BindNullIBO ---\n" );
+	GLIMP_LOGCOMMENT( "--- R_BindNullIBO ---" );
 
 	if ( glState.currentIBO )
 	{
@@ -932,7 +924,7 @@ Tr3B: update the default VBO to replace the client side vertex arrays
 */
 void Tess_UpdateVBOs()
 {
-	GLimp_LogComment( "--- Tess_UpdateVBOs( ) ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_UpdateVBOs( ) ---" );
 
 	GL_CheckErrors();
 
@@ -943,10 +935,8 @@ void Tess_UpdateVBOs()
 
 		GL_CheckErrors();
 
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "glBufferSubData( vbo = '%s', numVertexes = %i )\n", tess.vbo->name, tess.numVertexes ) );
-		}
+		GLIMP_LOGCOMMENT( "glBufferSubData( vbo = '%s', numVertexes = %i )",
+			tess.vbo->name, tess.numVertexes );
 
 		if( !glConfig2.mapBufferRangeAvailable ) {
 			R_BindVBO( tess.vbo );

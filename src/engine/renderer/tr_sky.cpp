@@ -37,15 +37,8 @@ Other things could be stuck in here, like birds in the sky, etc
 */
 void Tess_StageIteratorSky()
 {
-	// log this call
-	if ( r_logFile->integer )
-	{
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		GLimp_LogComment( va
-		                  ( "--- Tess_StageIteratorSky( %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
-		                    tess.numVertexes, tess.numIndexes / 3 ) );
-	}
+	GLIMP_LOGCOMMENT( "--- Tess_StageIteratorSky( %s, %i vertices, %i triangles ) ---",
+		tess.surfaceShader->name, tess.numVertexes, tess.numIndexes / 3 );
 
 	tr.drawingSky = false;
 

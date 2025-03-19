@@ -123,7 +123,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Cvar::NONE, 1, 0, 2);
 
 	cvar_t      *r_checkGLErrors;
-	cvar_t      *r_logFile;
+	Cvar::Cvar<bool> r_logFile( "r_logFile", "Emit GL logs", Cvar::NONE, false );
 
 	cvar_t      *r_colorbits;
 
@@ -865,7 +865,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	*/
 	void GL_SetDefaultState()
 	{
-		GLimp_LogComment( "--- GL_SetDefaultState ---\n" );
+		GLIMP_LOGCOMMENT( "--- GL_SetDefaultState ---" );
 
 		glCullFace( GL_FRONT );
 		GL_Cull( CT_TWO_SIDED );
@@ -1290,7 +1290,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_nocull = Cvar_Get( "r_nocull", "0", CVAR_CHEAT );
 		r_novis = Cvar_Get( "r_novis", "0", CVAR_CHEAT );
 		r_speeds = Cvar_Get( "r_speeds", "0", 0 );
-		r_logFile = Cvar_Get( "r_logFile", "0", CVAR_CHEAT );
 		r_debugSurface = Cvar_Get( "r_debugSurface", "0", CVAR_CHEAT );
 		r_nobind = Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
 		r_offsetFactor = Cvar_Get( "r_offsetFactor", "-1", CVAR_CHEAT );

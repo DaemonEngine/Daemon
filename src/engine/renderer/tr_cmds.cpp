@@ -799,7 +799,7 @@ void RE_BeginFrame()
 		return;
 	}
 
-	GLimp_LogComment( "--- RE_BeginFrame ---\n" );
+	GLIMP_LOGCOMMENT( "--- RE_BeginFrame ---" );
 
 	tr.frameCount++;
 	tr.frameSceneNum = 0;

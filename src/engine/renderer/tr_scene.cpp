@@ -507,7 +507,7 @@ void RE_RenderScene( const refdef_t *fd )
 		return;
 	}
 
-	GLimp_LogComment( "====== RE_RenderScene =====\n" );
+	GLIMP_LOGCOMMENT( "====== RE_RenderScene =====" );
 
 	if ( r_norefresh->integer )
 	{

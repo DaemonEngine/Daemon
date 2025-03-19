@@ -2351,13 +2351,14 @@ void GLShader::BindProgram( int deformIndex ) {
 
 	currentProgram = &shaderPrograms[index];
 
-	if ( r_logFile->integer ) {
+	if ( GLimp_isLogging() )
+	{
 		std::string macros;
 
 		GetCompileMacrosString( index, macros, GLCompileMacro::VERTEX | GLCompileMacro::FRAGMENT );
 
-		auto msg = Str::Format( "--- GL_BindProgram( name = '%s', macros = '%s' ) ---\n", this->GetName(), macros );
-		GLimp_LogComment( msg.c_str() );
+		GLIMP_LOGCOMMENT( "--- GL_BindProgram( name = '%s', macros = '%s' ) ---",
+			this->GetName(), macros );
 	}
 
 	GL_BindProgram( &shaderPrograms[index] );

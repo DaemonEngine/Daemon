@@ -3002,21 +3002,19 @@ void GLimp_HandleCvars()
 	// TODO: Update r_allowResize using SDL_SetWindowResizable when we have SDL 2.0.5
 }
 
-void GLimp_LogComment( const char *comment )
+// Never use GLimp_LogComment_() directly, use the GLIMP_LOGCOMMENT() wrapper instead.
+void GLimp_LogComment_( std::string comment )
 {
 	static char buf[ 4096 ];
 
-	if ( r_logFile->integer && GLEW_ARB_debug_output )
-	{
-		// copy string and ensure it has a trailing '\0'
-		Q_strncpyz( buf, comment, sizeof( buf ) );
+	Q_snprintf( buf, sizeof( buf ), "%s\n", comment.c_str() );
 
-		glDebugMessageInsertARB( GL_DEBUG_SOURCE_APPLICATION_ARB,
-					 GL_DEBUG_TYPE_OTHER_ARB,
-					 0,
-					 GL_DEBUG_SEVERITY_MEDIUM_ARB,
-					 strlen( buf ), buf );
-	}
+	glDebugMessageInsertARB(
+		GL_DEBUG_SOURCE_APPLICATION_ARB,
+		GL_DEBUG_TYPE_OTHER_ARB,
+		0,
+		GL_DEBUG_SEVERITY_MEDIUM_ARB,
+		strlen( buf ), buf );
 }
 
 class SetWindowOriginCmd : public Cmd::StaticCmd
