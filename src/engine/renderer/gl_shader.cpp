@@ -641,6 +641,7 @@ static std::string GenFragmentHeader() {
 
 	if ( glConfig.adaptiveExposureAvailable ) {
 		AddDefine( str, "BIND_LUMINANCE", Util::ordinal( BufferBind::LUMINANCE ) );
+		AddDefine( str, "ADAPTIVE_EXPOSURE_AVAILABLE", 1 );
 	}
 
 	return str;
