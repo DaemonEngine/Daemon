@@ -87,16 +87,6 @@ template<typename Obj> static bool hasExplicitelyDisabledLightMap( Obj* obj )
 	return GetSurfaceShader( obj )->surfaceFlags & SURF_NOLIGHTMAP;
 }
 
-inline size_t GetFogNum( shaderCommands_t* tess )
-{
-	return tess->fogNum;
-}
-
-inline size_t GetFogNum( drawSurf_t* drawSurf )
-{
-	return drawSurf->fogNum();
-}
-
 inline shaderStage_t* GetSurfaceLastStage( shaderCommands_t* tess )
 {
 	return tess->surfaceLastStage;

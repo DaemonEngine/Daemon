@@ -2036,7 +2036,7 @@ void MaterialSystem::AddAutospriteSurfaces() {
 	for ( const drawSurf_t &drawSurf : autospriteSurfaces )
 	{
 		R_AddDrawSurf( drawSurf.surface, drawSurf.shader,
-		               drawSurf.lightmapNum(), drawSurf.fogNum(), drawSurf.bspSurface );
+		               drawSurf.lightmapNum(), drawSurf.fog, drawSurf.bspSurface );
 	}
 }
 

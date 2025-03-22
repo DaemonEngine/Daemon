@@ -2789,15 +2789,6 @@ static int LeafSurfaceCompare( const void *a, const void *b )
 		return 1;
 	}
 
-	if ( aa->fogIndex < bb->fogIndex )
-	{
-		return -1;
-	}
-	else if ( aa->fogIndex > bb->fogIndex )
-	{
-		return 1;
-	}
-
 	// sort by leaf
 	if ( aa->interactionBits < bb->interactionBits )
 	{
