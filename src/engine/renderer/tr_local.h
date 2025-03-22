@@ -1602,8 +1602,7 @@ enum class ssaoMode {
 	// 1. shaderNum
 	// 2. lightmapNum
 	// 3. entityNum
-	// 4. fogNum
-	// 5. index
+	// 4. index
 
 	static const uint64_t SORT_INDEX_BITS = 20;
 	static const uint64_t SORT_ENTITYNUM_BITS = 13;
