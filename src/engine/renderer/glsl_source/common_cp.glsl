@@ -57,6 +57,11 @@ array must be in the form of uvec4 array[] */
 /* Macro combinations for subgroup ops */
 
 #if defined(HAVE_KHR_shader_subgroup_basic) && defined(HAVE_KHR_shader_subgroup_arithmetic)\
+	&& defined(HAVE_ARB_shader_atomic_counter_ops)
+	#define SUBGROUP_ATOMIC
+#endif
+
+#if defined(HAVE_KHR_shader_subgroup_basic) && defined(HAVE_KHR_shader_subgroup_arithmetic)\
 	&& defined(HAVE_KHR_shader_subgroup_ballot) && defined(HAVE_ARB_shader_atomic_counter_ops)
 	#define SUBGROUP_STREAM_COMPACTION
 #endif
