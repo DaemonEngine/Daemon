@@ -42,7 +42,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_MATERIAL_SURFACE_TRIS 64
 #define MAX_MATERIAL_SURFACE_DISTANCE 256
 
-bspSurface_t** OptimiseMapGeometryCore( world_t* world, int &numSurfaces );
+struct TriEdge {
+	enum State : uint32_t {
+		MERGEABLE_TRUE = BIT( 27 ),
+		MERGEABLE_FALSE = BIT( 28 ),
+		MERGEABLE_NOT_PROCESSED = BIT( 29 ),
+		NONE = BIT( 30 )
+	};
+
+	uint32_t index1;
+	uint32_t index2;
+};
+
+struct TriEdgeHasher {
+	size_t operator()( const TriEdge& triEdge ) {
+		return std::hash<uint32_t>{} ( triEdge.index1 ) ^ ( std::hash<uint32_t>{} ( triEdge.index2 ) << 16 );
+	}
+};
+
+struct TriIndex {
+	int tri1 = -1;
+	int tri2 = -1;
+};
+
+void OptimiseMapGeometryCore( world_t* world, bspSurface_t** rendererSurfaces, int numSurfaces );
+void MergeLeafSurfacesCore( world_t* world, bspSurface_t** rendererSurfaces, int numSurfaces );
 std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, int numSurfaces );
 
 #endif // GEOMETRY_OPTIMISER_H
