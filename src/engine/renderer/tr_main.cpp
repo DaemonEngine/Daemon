@@ -1863,7 +1863,9 @@ int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, in
 	drawSurf->surface = surface;
 	drawSurf->shader = shader;
 	drawSurf->bspSurface = bspSurface;
-	drawSurf->fog = fogNum;
+	/* Allow the renderer backend to merge main surfaces that have fog, ignoring the fogNum,
+	as it only matters for the emitted fog surfaces */
+	drawSurf->fog = ( shader == tr.fogEqualShader || shader == tr.fogLEShader ) ? fogNum : 0;
 	drawSurf->portalNum = portalNum;
 
 	int entityNum;
