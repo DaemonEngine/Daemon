@@ -73,7 +73,19 @@ static int LeafSurfaceCompare( const void* a, const void* b ) {
 	return 0;
 }
 
-bspSurface_t** OptimiseMapGeometryCore( world_t* world, int &numSurfaces ) {
+static void CoreResetSurfaceViewCounts( bspSurface_t** rendererSurfaces, int numSurfaces ) {
+	for ( int i = 0; i < numSurfaces; i++ ) {
+		bspSurface_t* surface = rendererSurfaces[i];
+
+		surface->viewCount = -1;
+		surface->lightCount = -1;
+		surface->interactionBits = 0;
+	}
+}
+
+void OptimiseMapGeometryCore( world_t* world, bspSurface_t** rendererSurfaces, int numSurfaces ) {
+	CoreResetSurfaceViewCounts( rendererSurfaces, numSurfaces );
+
 	// mark matching surfaces
 	for ( int i = 0; i < world->numnodes - world->numDecisionNodes; i++ ) {
 		bspNode_t *leaf = world->nodes + world->numDecisionNodes + i;
@@ -85,16 +97,11 @@ bspSurface_t** OptimiseMapGeometryCore( world_t* world, int &numSurfaces ) {
 				continue;
 			}
 
-			if ( *surf1->data != surfaceType_t::SF_GRID && *surf1->data != surfaceType_t::SF_TRIANGLES
-				&& *surf1->data != surfaceType_t::SF_FACE ) {
+			if ( !surf1->renderable ) {
 				continue;
 			}
 
 			shader_t* shader1 = surf1->shader;
-
-			if ( shader1->isPortal || shader1->autoSpriteMode != 0 ) {
-				continue;
-			}
 
 			int fogIndex1 = surf1->fogIndex;
 			int lightMapNum1 = surf1->lightmapNum;
@@ -110,8 +117,7 @@ bspSurface_t** OptimiseMapGeometryCore( world_t* world, int &numSurfaces ) {
 					continue;
 				}
 
-				if ( *surf2->data != surfaceType_t::SF_GRID && *surf2->data != surfaceType_t::SF_TRIANGLES
-					&& *surf2->data != surfaceType_t::SF_FACE ) {
+				if ( !surf2->renderable ) {
 					continue;
 				}
 
@@ -138,31 +144,122 @@ bspSurface_t** OptimiseMapGeometryCore( world_t* world, int &numSurfaces ) {
 		}
 	}
 
-	bspSurface_t** coreSurfaces = ( bspSurface_t** ) ri.Hunk_AllocateTempMemory( sizeof( bspSurface_t* ) * numSurfaces );
+	qsort( rendererSurfaces, numSurfaces, sizeof( bspSurface_t* ), LeafSurfaceCompare );
+}
 
-	numSurfaces = 0;
-	for ( int k = 0; k < world->numSurfaces; k++ ) {
-		bspSurface_t* surface = &world->surfaces[k];
+static void SphereFromBounds( vec3_t mins, vec3_t maxs, vec3_t origin, float* radius ) {
+	vec3_t temp;
 
-		if ( surface->shader->isPortal ) {
-			// HACK: don't use VBO because when adding a portal we have to read back the verts CPU-side
-			continue;
-		}
+	VectorAdd( mins, maxs, origin );
+	VectorScale( origin, 0.5, origin );
+	VectorSubtract( maxs, origin, temp );
+	*radius = VectorLength( temp );
+}
 
-		if ( surface->shader->autoSpriteMode != 0 ) {
-			// don't use VBO because verts are rewritten each time based on view origin
-			continue;
-		}
+void MergeLeafSurfacesCore( world_t* world, bspSurface_t** rendererSurfaces, int numSurfaces ) {
+	if ( !r_mergeLeafSurfaces->integer ) {
+		return;
+	}
 
-		if ( *surface->data == surfaceType_t::SF_FACE || *surface->data == surfaceType_t::SF_GRID
-			|| *surface->data == surfaceType_t::SF_TRIANGLES ) {
-			coreSurfaces[numSurfaces++] = surface;
+	// count merged/unmerged surfaces
+	int numUnmergedSurfaces = 0;
+	int numMergedSurfaces = 0;
+	int oldViewCount = -2;
+
+	for ( int i = 0; i < numSurfaces; i++ ) {
+		bspSurface_t* surface = rendererSurfaces[i];
+
+		if ( surface->viewCount == -1 ) {
+			numUnmergedSurfaces++;
+		} else if ( surface->viewCount != oldViewCount ) {
+			oldViewCount = surface->viewCount;
+			numMergedSurfaces++;
 		}
 	}
 
-	qsort( coreSurfaces, numSurfaces, sizeof( bspSurface_t* ), LeafSurfaceCompare );
+	// Allocate merged surfaces
+	world->mergedSurfaces = ( bspSurface_t* ) ri.Hunk_Alloc( sizeof( bspSurface_t ) * numMergedSurfaces, ha_pref::h_low );
 
-	return coreSurfaces;
+	// actually merge surfaces
+	bspSurface_t* mergedSurf = world->mergedSurfaces;
+	oldViewCount = -2;
+	for ( int i = 0; i < numSurfaces; i++ ) {
+		vec3_t bounds[2];
+		int surfVerts = 0;
+		int surfIndexes = 0;
+		srfVBOMesh_t* vboSurf;
+		bspSurface_t* surf1 = rendererSurfaces[i];
+
+		// skip unmergable surfaces
+		if ( surf1->viewCount == -1 ) {
+			continue;
+		}
+
+		// skip surfaces that have already been merged
+		if ( surf1->viewCount == oldViewCount ) {
+			continue;
+		}
+
+		oldViewCount = surf1->viewCount;
+
+		srfGeneric_t* srf1 = ( srfGeneric_t* ) surf1->data;
+		int firstIndex = srf1->firstIndex;
+
+		// count verts and indexes and add bounds for the merged surface
+		ClearBounds( bounds[0], bounds[1] );
+		for ( int j = i; j < numSurfaces; j++ ) {
+			bspSurface_t* surf2 = rendererSurfaces[j];
+
+			// stop merging when we hit a surface that can't be merged
+			if ( surf2->viewCount != surf1->viewCount ) {
+				break;
+			}
+
+			srfGeneric_t* srf2 = ( srfGeneric_t* ) surf2->data;
+			surfIndexes += srf2->numTriangles * 3;
+			surfVerts += srf2->numVerts;
+			BoundsAdd( bounds[0], bounds[1], srf2->bounds[0], srf2->bounds[1] );
+		}
+
+		if ( !surfIndexes || !surfVerts ) {
+			continue;
+		}
+
+		vboSurf = ( srfVBOMesh_t* ) ri.Hunk_Alloc( sizeof( *vboSurf ), ha_pref::h_low );
+		*vboSurf = {};
+		vboSurf->surfaceType = surfaceType_t::SF_VBO_MESH;
+
+		vboSurf->numTriangles = surfIndexes / 3;
+		vboSurf->numVerts = surfVerts;
+		vboSurf->firstIndex = firstIndex;
+
+		vboSurf->lightmapNum = surf1->lightmapNum;
+		vboSurf->vbo = world->vbo;
+		vboSurf->ibo = world->ibo;
+
+		VectorCopy( bounds[0], vboSurf->bounds[0] );
+		VectorCopy( bounds[1], vboSurf->bounds[1] );
+		SphereFromBounds( vboSurf->bounds[0], vboSurf->bounds[1], vboSurf->origin, &vboSurf->radius );
+
+		mergedSurf->data = ( surfaceType_t* ) vboSurf;
+		mergedSurf->fogIndex = surf1->fogIndex;
+		mergedSurf->shader = surf1->shader;
+		mergedSurf->lightmapNum = surf1->lightmapNum;
+		mergedSurf->viewCount = -1;
+
+		// redirect view surfaces to this surf
+		for ( int k = 0; k < world->numMarkSurfaces; k++ ) {
+			bspSurface_t** view = world->viewSurfaces + k;
+
+			if ( ( *view )->viewCount == surf1->viewCount ) {
+				*view = mergedSurf;
+			}
+		}
+
+		mergedSurf++;
+	}
+
+	Log::Debug( "Processed %d surfaces into %d merged, %d unmerged", numSurfaces, numMergedSurfaces, numUnmergedSurfaces );
 }
 
 /*
@@ -224,59 +321,30 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, int nu
 	std::vector<MaterialSurface> processedMaterialSurfaces;
 	processedMaterialSurfaces.reserve( numSurfaces );
 
+	// std::unordered_map<TriEdge, TriIndex> triEdges;
+
 	int surfaceIndex = 0;
 	for ( int k = 0; k < world->numSurfaces; k++ ) {
 		bspSurface_t* surface = &world->surfaces[k];
 
-		if ( surface->shader->isPortal ) {
-			continue;
-		}
+		MaterialSurface srf {};
 
-		if ( surface->shader->autoSpriteMode ) {
-			continue;
-		}
+		srf.shader = surface->shader;
+		srf.bspSurface = true;
+		srf.fog = surface->fogIndex;
 
-		if ( *surface->data == surfaceType_t::SF_FACE || *surface->data == surfaceType_t::SF_GRID
-			|| *surface->data == surfaceType_t::SF_TRIANGLES ) {
-			MaterialSurface srf {};
+		srf.firstIndex = ( ( srfGeneric_t* ) surface->data )->firstIndex;
+		srf.count = ( ( srfGeneric_t* ) surface->data )->numTriangles;
+		srf.verts = ( ( srfGeneric_t* ) surface->data )->verts;
+		srf.tris = ( ( srfGeneric_t* ) surface->data )->triangles;
 
-			srf.shader = surface->shader;
-			srf.bspSurface = true;
-			srf.fog = surface->fogIndex;
-
-			switch ( *surface->data ) {
-				case surfaceType_t::SF_FACE:
-					srf.firstIndex = ( ( srfSurfaceFace_t* ) surface->data )->firstIndex;
-					srf.count = ( ( srfSurfaceFace_t* ) surface->data )->numTriangles;
-					srf.verts = ( ( srfSurfaceFace_t* ) surface->data )->verts;
-					srf.tris = ( ( srfSurfaceFace_t* ) surface->data )->triangles;
-					break;
-				case surfaceType_t::SF_GRID:
-					srf.firstIndex = ( ( srfGridMesh_t* ) surface->data )->firstIndex;
-					srf.count = ( ( srfGridMesh_t* ) surface->data )->numTriangles;
-					srf.verts = ( ( srfGridMesh_t* ) surface->data )->verts;
-					srf.tris = ( ( srfGridMesh_t* ) surface->data )->triangles;
-					break;
-				case surfaceType_t::SF_TRIANGLES:
-					srf.firstIndex = ( ( srfTriangles_t* ) surface->data )->firstIndex;
-					srf.count = ( ( srfTriangles_t* ) surface->data )->numTriangles;
-					srf.verts = ( ( srfTriangles_t* ) surface->data )->verts;
-					srf.tris = ( ( srfTriangles_t* ) surface->data )->triangles;
-					break;
-				default:
-					break;
-			}
-
-			materialSurfaces.emplace_back( srf );
-			surfaceIndex++;
-		}
+		materialSurfaces.emplace_back( srf );
+		surfaceIndex++;
 	}
 
 	while ( materialSurfaces.size() ) {
 		ProcessMaterialSurface( materialSurfaces.front(), materialSurfaces, processedMaterialSurfaces, verts, indices );
 	}
-
-	// qsort( materialSurfaces, numSurfaces, sizeof( bspSurface_t* ), LeafSurfaceCompare );
 
 	return materialSurfaces;
 }

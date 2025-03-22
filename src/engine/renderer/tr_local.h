@@ -1840,6 +1840,8 @@ enum class ssaoMode {
 		int16_t         fogIndex;
 		int portalNum;
 
+		bool renderable = false;
+
 		surfaceType_t   *data; // any of srf*_t
 	};
 
