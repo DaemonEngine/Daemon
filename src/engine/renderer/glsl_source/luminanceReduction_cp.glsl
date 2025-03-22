@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-/* adaptiveLightingReduction_cp.glsl */
+/* luminanceReduction_cp.glsl */
 
 #insert common_cp
 
