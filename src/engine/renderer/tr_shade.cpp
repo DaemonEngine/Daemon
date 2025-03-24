@@ -658,7 +658,7 @@ static void DrawTris()
 {
 	int deform = 0;
 
-	GLimp_LogComment( "--- DrawTris ---\n" );
+	GLIMP_LOGCOMMENT( "--- DrawTris ---" );
 
 	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
@@ -786,12 +786,10 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 		Sys::Error( "tess.stageIteratorFunc == NULL" );
 	}
 
-	if ( r_logFile->integer )
-	{
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		GLimp_LogComment( va( "--- Tess_Begin( surfaceShader = %s, lightShader = %s, skipTangents = %i, lightmapNum = %i, fogNum = %i) ---\n", tess.surfaceShader->name, tess.lightShader ? tess.lightShader->name : nullptr, tess.skipTangents, tess.lightmapNum, tess.fogNum ) );
-	}
+	GLIMP_LOGCOMMENT( "--- Tess_Begin( surfaceShader = %s, lightShader = %s, "
+		"skipTangents = %i, lightmapNum = %i, fogNum = %i) ---",
+		tess.surfaceShader->name, tess.lightShader ? tess.lightShader->name : nullptr,
+		tess.skipTangents, tess.lightmapNum, tess.fogNum );
 }
 
 void SetNormalScale( const shaderStage_t *pStage, vec3_t normalScale )
@@ -823,7 +821,7 @@ void Render_NOP( shaderStage_t * )
 
 void Render_generic3D( shaderStage_t *pStage )
 {
-	GLimp_LogComment( "--- Render_generic3D ---\n" );
+	GLIMP_LOGCOMMENT( "--- Render_generic3D ---" );
 
 	GL_State( pStage->stateBits );
 
@@ -946,7 +944,7 @@ void Render_generic( shaderStage_t *pStage )
 
 void Render_lightMapping( shaderStage_t *pStage )
 {
-	GLimp_LogComment( "--- Render_lightMapping ---\n" );
+	GLIMP_LOGCOMMENT( "--- Render_lightMapping ---" );
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
@@ -1150,11 +1148,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 		const float interpolation = 1.0 - trilerp[0];
 
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "Probe 0 distance = %f, probe 1 distance = %f, interpolation = %f\n",
-					Distance( position, probes[0]->origin ), Distance( position, probes[1]->origin ), interpolation ) );
-		}
+		GLIMP_LOGCOMMENT( "Probe 0 distance = %f, probe 1 distance = %f, interpolation = %f",
+			Distance( position, probes[0]->origin ), Distance( position, probes[1]->origin ), interpolation );
 
 		// bind u_EnvironmentMap0
 		gl_lightMappingShader->SetUniform_EnvironmentMap0Bindless(
@@ -1230,7 +1225,7 @@ static void Render_shadowFill( shaderStage_t *pStage )
 {
 	uint32_t      stateBits;
 
-	GLimp_LogComment( "--- Render_shadowFill ---\n" );
+	GLIMP_LOGCOMMENT( "--- Render_shadowFill ---" );
 
 	// remove blend modes
 	stateBits = pStage->stateBits;
@@ -1307,7 +1302,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	vec3_t     lightOrigin;
 	float      shadowTexelSize;
 
-	GLimp_LogComment( "--- Render_forwardLighting_DBS_omni ---\n" );
+	GLIMP_LOGCOMMENT( "--- Render_forwardLighting_DBS_omni ---" );
 
 	bool shadowCompare = ( glConfig2.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
 
@@ -1482,7 +1477,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	vec3_t     lightOrigin;
 	float      shadowTexelSize;
 
-	GLimp_LogComment( "--- Render_forwardLighting_DBS_proj ---\n" );
+	GLIMP_LOGCOMMENT( "--- Render_forwardLighting_DBS_proj ---" );
 
 	bool shadowCompare = ( glConfig2.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
 
@@ -1658,7 +1653,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	vec3_t     lightDirection;
 	float      shadowTexelSize;
 
-	GLimp_LogComment( "--- Render_forwardLighting_DBS_directional ---\n" );
+	GLIMP_LOGCOMMENT( "--- Render_forwardLighting_DBS_directional ---" );
 
 	bool shadowCompare = ( glConfig2.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
 
@@ -1860,7 +1855,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 
 void Render_reflection_CB( shaderStage_t *pStage )
 {
-	GLimp_LogComment( "--- Render_reflection_CB ---\n" );
+	GLIMP_LOGCOMMENT( "--- Render_reflection_CB ---" );
 
 	GL_State( pStage->stateBits );
 
@@ -1951,7 +1946,7 @@ void Render_reflection_CB( shaderStage_t *pStage )
 
 void Render_skybox( shaderStage_t *pStage )
 {
-	GLimp_LogComment( "--- Render_skybox ---\n" );
+	GLIMP_LOGCOMMENT( "--- Render_skybox ---" );
 
 	GL_State( pStage->stateBits );
 
@@ -1976,7 +1971,7 @@ void Render_skybox( shaderStage_t *pStage )
 
 void Render_screen( shaderStage_t *pStage )
 {
-	GLimp_LogComment( "--- Render_screen ---\n" );
+	GLIMP_LOGCOMMENT( "--- Render_screen ---" );
 
 	GL_State( pStage->stateBits );
 
@@ -2001,7 +1996,7 @@ void Render_screen( shaderStage_t *pStage )
 blended to it to fade it with distance. */
 void Render_portal( shaderStage_t *pStage )
 {
-	GLimp_LogComment( "--- Render_portal ---\n" );
+	GLIMP_LOGCOMMENT( "--- Render_portal ---" );
 
 	GL_State( pStage->stateBits );
 
@@ -2031,7 +2026,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 	uint32_t      stateBits;
 	float         deformMagnitude;
 
-	GLimp_LogComment( "--- Render_heatHaze ---\n" );
+	GLIMP_LOGCOMMENT( "--- Render_heatHaze ---" );
 
 	// remove alpha test
 	stateBits = pStage->stateBits;
@@ -2119,7 +2114,7 @@ void Render_liquid( shaderStage_t *pStage )
 	float         fogDensity;
 	vec3_t        fogColor;
 
-	GLimp_LogComment( "--- Render_liquid ---\n" );
+	GLIMP_LOGCOMMENT( "--- Render_liquid ---" );
 
 	// Tr3B: don't allow blend effects
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
@@ -2222,10 +2217,8 @@ void Render_fog( shaderStage_t* pStage )
 
 	const fog_t* fog = tr.world->fogs + tess.fogNum;
 
-	if ( r_logFile->integer )
-	{
-		GLimp_LogComment( va( "--- Render_fog( fogNum = %i, originalBrushNumber = %i ) ---\n", tess.fogNum, fog->originalBrushNumber ) );
-	}
+	GLIMP_LOGCOMMENT( "--- Render_fog( fogNum = %i, originalBrushNumber = %i ) ---",
+		tess.fogNum, fog->originalBrushNumber );
 
 	// all fogging distance is based on world Z units
 	vec4_t fogDistanceVector;
@@ -2320,8 +2313,6 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 	float green;
 	float blue;
 	float alpha;
-
-	GLimp_LogComment( "--- Tess_ComputeColor ---\n" );
 
 	// rgbGen
 	switch ( pStage->rgbGen )
@@ -2554,8 +2545,6 @@ Tess_ComputeTexMatrices
 */
 void Tess_ComputeTexMatrices( shaderStage_t *pStage )
 {
-	GLimp_LogComment( "--- Tess_ComputeTexMatrices ---\n" );
-
 	matrix_t *matrix = tess.svars.texMatrices;
 	matrix_t *lastMatrix = matrix + MAX_TEXTURE_BUNDLES;
 
@@ -2576,13 +2565,8 @@ void Tess_StageIteratorDummy()
 
 void Tess_StageIteratorDebug()
 {
-	// log this call
-	if ( r_logFile->integer )
-	{
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		GLimp_LogComment( va( "--- Tess_StageIteratorDebug( %i vertices, %i triangles ) ---\n", tess.numVertexes, tess.numIndexes / 3 ) );
-	}
+	GLIMP_LOGCOMMENT( "--- Tess_StageIteratorDebug( %i vertices, %i triangles ) ---",
+		tess.numVertexes, tess.numIndexes / 3 );
 
 	GL_CheckErrors();
 
@@ -2603,15 +2587,8 @@ void Tess_StageIteratorDebug()
 
 void Tess_StageIteratorColor()
 {
-	// log this call
-	if ( r_logFile->integer )
-	{
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		GLimp_LogComment( va
-		                  ( "--- Tess_StageIteratorColor( %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
-		                    tess.numVertexes, tess.numIndexes / 3 ) );
-	}
+	GLIMP_LOGCOMMENT( "--- Tess_StageIteratorColor( %s, %i vertices, %i triangles ) ---",
+		tess.surfaceShader->name, tess.numVertexes, tess.numIndexes / 3 );
 
 	GL_CheckErrors();
 
@@ -2677,14 +2654,8 @@ void Tess_StageIteratorColor()
 }
 
 void Tess_StageIteratorPortal() {
-	// log this call
-	if ( r_logFile->integer ) {
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		GLimp_LogComment( va
-		( "--- Tess_StageIteratorPortal( %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
-			tess.numVertexes, tess.numIndexes / 3 ) );
-	}
+	GLIMP_LOGCOMMENT( "--- Tess_StageIteratorPortal( %s, %i vertices, %i triangles ) ---",
+		tess.surfaceShader->name, tess.numVertexes, tess.numIndexes / 3 );
 
 	GL_CheckErrors();
 
@@ -2716,15 +2687,8 @@ void Tess_StageIteratorPortal() {
 
 void Tess_StageIteratorShadowFill()
 {
-	// log this call
-	if ( r_logFile->integer )
-	{
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		GLimp_LogComment( va
-		                  ( "--- Tess_StageIteratorShadowFill( %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
-		                    tess.numVertexes, tess.numIndexes / 3 ) );
-	}
+	GLIMP_LOGCOMMENT( "--- Tess_StageIteratorShadowFill( %s, %i vertices, %i triangles ) ---",
+		tess.surfaceShader->name, tess.numVertexes, tess.numIndexes / 3 );
 
 	GL_CheckErrors();
 
@@ -2775,15 +2739,8 @@ void Tess_StageIteratorLighting()
 {
 	trRefLight_t  *light;
 
-	// log this call
-	if ( r_logFile->integer )
-	{
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		GLimp_LogComment( va
-		                  ( "--- Tess_StageIteratorLighting( %s, %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
-		                    tess.lightShader->name, tess.numVertexes, tess.numIndexes / 3 ) );
-	}
+	GLIMP_LOGCOMMENT( "--- Tess_StageIteratorLighting( %s, %s, %i vertices, %i triangles ) ---",
+		tess.surfaceShader->name, tess.lightShader->name, tess.numVertexes, tess.numIndexes / 3 );
 
 	GL_CheckErrors();
 
@@ -2958,7 +2915,7 @@ void Tess_End()
 
 	Tess_Clear();
 
-	GLimp_LogComment( "--- Tess_End ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_End ---" );
 
 	GL_CheckErrors();
 }

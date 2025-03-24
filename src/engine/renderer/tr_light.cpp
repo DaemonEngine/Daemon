@@ -1465,7 +1465,7 @@ void R_ComputeFinalAttenuation( shaderStage_t *pStage, trRefLight_t *light )
 {
 	matrix_t matrix;
 
-	GLimp_LogComment( "--- R_ComputeFinalAttenuation ---\n" );
+	GLIMP_LOGCOMMENT( "--- R_ComputeFinalAttenuation ---" );
 
 	RB_CalcTexMatrix( &pStage->bundle[ TB_COLORMAP ], matrix );
 

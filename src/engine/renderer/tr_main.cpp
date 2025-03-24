@@ -1863,7 +1863,9 @@ int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, in
 	drawSurf->surface = surface;
 	drawSurf->shader = shader;
 	drawSurf->bspSurface = bspSurface;
-	drawSurf->fog = fogNum;
+	/* Allow the renderer backend to merge main surfaces that have fog, ignoring the fogNum,
+	as it only matters for the emitted fog surfaces */
+	drawSurf->fog = ( shader == tr.fogEqualShader || shader == tr.fogLEShader ) ? fogNum : 0;
 	drawSurf->portalNum = portalNum;
 
 	int entityNum;
@@ -1882,7 +1884,7 @@ int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, in
 		index = MAX_DRAWSURFS - index; // reverse the sorting (front:back -> back:front)
 	}
 
-	drawSurf->setSort( shader->sortedIndex, lightmapNum, entityNum, fogNum, index );
+	drawSurf->setSort( shader->sortedIndex, lightmapNum, entityNum, index );
 
 	tr.refdef.numDrawSurfs++;
 
