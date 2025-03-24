@@ -775,19 +775,23 @@ if (USE_BREAKPAD)
     endif()
 endif()
 
-option(PREFER_EXTERNAL_LIBS "Tries to use system libs where possible." ON)
+option(PREFER_EXTERNAL_LIBS "Tries to use system libs where possible." OFF)
 
 macro(prefer_package LIB_NAME LIB_CMAKE)
-    if (PREFER_EXTERNAL_LIBS AND NOT NACL)
-        find_package(${LIB_NAME})
+    if (NOT ${LIB_NAME}_FOUND)
+        if (PREFER_EXTERNAL_LIBS AND NOT NACL)
+            find_package(${LIB_NAME})
+
+            if (NOT ${LIB_NAME}_FOUND)
+                message(WARNING "PREFER_EXTERNAL_LIBS is enabled but external ${LIB_NAME} is not found, falling back to vendored ${LIB_NAME}.")
+            endif()
+        endif()
 
         if (NOT ${LIB_NAME}_FOUND)
-            message(WARNING "PREFER_EXTERNAL_LIBS is enabled but external ${LIB_NAME} is not found, falling back to vendored ${LIB_NAME}.")
-        endif()
-    endif()
+            include(${LIB_CMAKE})
 
-    if (NOT ${LIB_NAME}_FOUND)
-        include(${LIB_CMAKE})
+            set(${LIB_NAME}_FOUND ON)
+        endif()
     endif()
 endmacro()
 
@@ -817,7 +821,6 @@ if (BUILD_CLIENT)
     set(LIBS_CLIENT ${LIBS_CLIENT} ${PNG_LIBRARIES})
 
     prefer_package(Freetype ${DAEMON_DIR}/freetype.cmake)
-
     include_directories(${FREETYPE_INCLUDE_DIRS})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${FREETYPE_LIBRARIES})
 
