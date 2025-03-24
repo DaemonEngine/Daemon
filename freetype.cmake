@@ -2,10 +2,14 @@ set(FREETYPE_DIR ${DAEMON_DIR}/libs/freetype)
 set(FREETYPE_INCLUDE_DIRS ${FREETYPE_DIR}/include)
 set(FREETYPE_LIBRARIES freetype)
 
-if (PREFER_EXTERNAL_LIBS AND NOT NACL)
-	set(FREETYPE_INTERNAL_ZLIB OFF)
-else()
+if (NACL)
+	# Using Freetype's own zlib prevents the need for a zlib submodule when building the nexe cgame.
 	set(FREETYPE_INTERNAL_ZLIB ON)
+else()
+	# Even if we can build an engine with Freetype using its internal zlib, we better rely on the
+	# external zlib even if PREFER_EXTERNAL_LIBS is OFF, because then it will avoid zlib duplication
+	# and share the same zlib between Freetype and the libpng.
+	set(FREETYPE_INTERNAL_ZLIB OFF)
 endif()
 
 if (NOT FREETYPE_INTERNAL_ZLIB)
