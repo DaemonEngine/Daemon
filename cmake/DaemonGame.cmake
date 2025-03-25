@@ -137,9 +137,9 @@ function(buildGameModule module_slug)
 endfunction()
 
 function(gameSubProject)
-	ExternalProject_Add(${VMS_PROJECT}
+	ExternalProject_Add(${NACL_VMS_PROJECT}
 		SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
-		BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${VMS_PROJECT}
+		BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${NACL_VMS_PROJECT}
 		CMAKE_GENERATOR ${VM_GENERATOR}
 		CMAKE_ARGS
 			-DFORK=2
@@ -154,10 +154,10 @@ function(gameSubProject)
 	)
 
 	# Force the rescan and rebuild of the subproject.
-	ExternalProject_Add_Step(${VMS_PROJECT} forcebuild
+	ExternalProject_Add_Step(${NACL_VMS_PROJECT} forcebuild
 		COMMAND ${CMAKE_COMMAND} -E remove
-			${CMAKE_CURRENT_BINARY_DIR}/${VMS_PROJECT}-prefix/src/${VMS_PROJECT}-stamp/${VMS_PROJECT}-configure
-		COMMENT "Forcing build step for '${VMS_PROJECT}'"
+			${CMAKE_CURRENT_BINARY_DIR}/${NACL_VMS_PROJECT}-prefix/src/${NACL_VMS_PROJECT}-stamp/${NACL_VMS_PROJECT}-configure
+		COMMENT "Forcing build step for '${NACL_VMS_PROJECT}'"
 		DEPENDEES build
 		ALWAYS 1
 	)
@@ -201,7 +201,7 @@ function(GAMEMODULE)
 		if (BUILD_GAME_NACL)
 			if (USE_NACL_SAIGO)
 				add_custom_target(nacl-vms ALL)
-				unset(VMS_PROJECTS)
+				unset(NACL_VMS_PROJECTS)
 
 				foreach(NACL_TARGET ${NACL_TARGETS})
 					if (NACL_TARGET STREQUAL "i686")
@@ -214,9 +214,9 @@ function(GAMEMODULE)
 						message(FATAL_ERROR "Unknown NaCl architecture ${NACL_TARGET}")
 					endif()
 
-					set(VMS_PROJECT nacl-vms-${NACL_TARGET})
-					list(APPEND VMS_PROJECTS ${VMS_PROJECT})
-					add_dependencies(nacl-vms ${VMS_PROJECT})
+					set(NACL_VMS_PROJECT nacl-vms-${NACL_TARGET})
+					list(APPEND NACL_VMS_PROJECTS ${NACL_VMS_PROJECT})
+					add_dependencies(nacl-vms ${NACL_VMS_PROJECT})
 
 					gameSubProject(
 						-DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/toolchain-saigo.cmake
@@ -229,8 +229,8 @@ function(GAMEMODULE)
 					)
 				endforeach()
 			else()
-				set(VMS_PROJECT nacl-vms)
-				set(VMS_PROJECTS ${VMS_PROJECT})
+				set(NACL_VMS_PROJECT nacl-vms)
+				set(NACL_VMS_PROJECTS ${NACL_VMS_PROJECT})
 
 				# Workaround a bug where CMake ExternalProject lists-as-args are cut on first “;”
 				string(REPLACE ";" "," NACL_TARGETS_STRING "${NACL_TARGETS}")
@@ -245,7 +245,7 @@ function(GAMEMODULE)
 			endif()
 		endif()
 
-		set(VMS_PROJECTS ${VMS_PROJECTS} PARENT_SCOPE)
+		set(NACL_VMS_PROJECTS ${NACL_VMS_PROJECTS} PARENT_SCOPE)
 	elseif (FORK EQUAL 2)
 		if (BUILD_GAME_NACL)
 			if (USE_NACL_SAIGO)
