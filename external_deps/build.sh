@@ -148,7 +148,10 @@ download_extract() {
 	local our_mirror="https://dl.unvanquished.net/deps/original/${1}"
 	local tarball_file="${DOWNLOAD_DIR}/${1}"; shift
 
-	if "${prefer_ours}"
+	if "${require_theirs}"
+	then
+		download "${tarball_file}" "${@}"
+	elif "${prefer_ours}"
 	then
 		download "${tarball_file}" "${our_mirror}" "${@}"
 	else
@@ -1190,6 +1193,7 @@ errorHelp() {
 
 download_only='false'
 prefer_ours='false'
+require_theirs='false'
 while [ -n "${1:-}" ]
 do
 	case "${1-}" in
@@ -1199,6 +1203,10 @@ do
 	;;
 	'--prefer-ours')
 		prefer_ours='true'
+		shift
+	;;
+	'--require-theirs')
+		require_theirs='true'
 		shift
 	;;
 	'--'*)
