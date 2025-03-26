@@ -38,6 +38,7 @@ option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for 
 # can be loaded by daemon with vm.[sc]game.type 2
 option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
 
+include(ExternalProject)
 include(DaemonBuildInfo)
 include(DaemonPlatform)
 
@@ -173,7 +174,7 @@ function(GAMEMODULE)
 
 	if (NOT FORK)
 		if (BUILD_GAME_NACL)
-			set(FORK 1 PARENT_SCOPE)
+			set(NACL_VMS ON)
 		endif()
 
 		if (BUILD_GAME_NATIVE_DLL)
@@ -185,7 +186,11 @@ function(GAMEMODULE)
 		endif()
 	endif()
 
-	if (FORK EQUAL 1)
+	if (NACL_VMS)
+		if (TARGET nacl-vms)
+			return()
+		endif()
+
 		if (CMAKE_GENERATOR MATCHES "Visual Studio")
 			set(VM_GENERATOR "NMake Makefiles")
 		else()
