@@ -59,6 +59,8 @@ A server packet will look something like:
 
 static Cvar::Cvar<bool> sv_novis("sv_novis", "skip PVS check when transmitting entities", 0, false);
 
+static Log::Logger bandwidthLog("server.bandwidth");
+
 /*
 =============
 SV_EmitPacketEntities
@@ -993,7 +995,6 @@ SV_SendClientMessages
 
 void SV_SendClientMessages()
 {
-	int      i;
 	client_t *c;
 	int      numclients = 0; // NERVE - SMF - net debugging
 
@@ -1004,7 +1005,7 @@ void SV_SendClientMessages()
 	SV_UpdateConfigStrings();
 
 	// send a message to each connected client
-	for ( i = 0; i < sv_maxClients.Get(); i++ )
+	for ( int i = 0; i < sv_maxClients.Get(); i++ )
 	{
 		c = &svs.clients[ i ];
 
@@ -1043,11 +1044,15 @@ void SV_SendClientMessages()
 	}
 
 	// NERVE - SMF - net debugging
-	if ( sv_showAverageBPS->integer && numclients > 0 )
-	{
+	bandwidthLog.DoDebugCode( [numclients] {
+		if ( numclients <= 0 )
+		{
+			return;
+		}
+
 		float ave = 0, uave = 0;
 
-		for ( i = 0; i < MAX_BPS_WINDOW - 1; i++ )
+		for ( int i = 0; i < MAX_BPS_WINDOW - 1; i++ )
 		{
 			sv.bpsWindow[ i ] = sv.bpsWindow[ i + 1 ];
 			ave += sv.bpsWindow[ i ];
@@ -1087,11 +1092,11 @@ void SV_SendClientMessages()
 			sv.ucompAve += comp_ratio;
 			sv.ucompNum++;
 
-			Log::Debug( "bpspc(%2.0f) bps(%2.0f) pk(%i) ubps(%2.0f) upk(%i) cr(%2.2f) acr(%2.2f)",
+			bandwidthLog.Debug( "bpspc(%2.0f) bps(%2.0f) pk(%i) ubps(%2.0f) upk(%i) cr(%2.2f) acr(%2.2f)",
 			             ave / ( float ) numclients, ave, sv.bpsMaxBytes, uave, sv.ubpsMaxBytes, comp_ratio,
 			             sv.ucompAve / sv.ucompNum );
 		}
-	}
+	});
 
 	// -NERVE - SMF
 }
