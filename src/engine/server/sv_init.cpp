@@ -419,7 +419,6 @@ SV_SpawnServer
 
 Change the server to a new map, taking all connected
 clients along with it.
-This is NOT called for map_restart, UNLESS the number of client slots changed
 ================
 */
 void SV_SpawnServer(std::string pakname, std::string mapname)
