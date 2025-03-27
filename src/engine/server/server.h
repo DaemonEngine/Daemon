@@ -290,7 +290,7 @@ extern serverStatic_t svs; // persistent server info across maps
 extern server_t       sv; // cleared each map
 extern GameVM         gvm; // game virtual machine
 
-extern cvar_t         *sv_fps;
+extern Cvar::Range<Cvar::Cvar<int>> sv_fps;
 extern Cvar::Cvar<int> sv_timeout;
 extern Cvar::Cvar<int> sv_zombietime;
 extern Cvar::Cvar<std::string> sv_privatePassword;
@@ -314,7 +314,7 @@ extern Cvar::Cvar<bool> sv_lanForceRate;
 extern Cvar::Cvar<int> sv_dl_maxRate;
 
 //fretn
-extern cvar_t *sv_fullmsg;
+extern Cvar::Cvar<std::string> sv_fullmsg;
 
 extern Cvar::Range<Cvar::Cvar<int>> sv_networkScope;
 

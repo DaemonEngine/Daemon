@@ -175,7 +175,7 @@ void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 			}
 			else
 			{
-				Net::OutOfBandPrint( netsrc_t::NS_SERVER, from, "print\n%s", sv_fullmsg->string );
+				Net::OutOfBandPrint( netsrc_t::NS_SERVER, from, "print\n%s", sv_fullmsg.Get() );
 				Log::Debug( "Rejected a connection." );
 				return;
 			}
@@ -1055,9 +1055,9 @@ void SV_UserinfoChanged( client_t *cl )
 		{
 			i = 1;
 		}
-		else if ( i > sv_fps->integer )
+		else if ( i > sv_fps.Get() )
 		{
-			i = sv_fps->integer;
+			i = sv_fps.Get();
 		}
 
 		cl->snapshotMsec = 1000 / i;

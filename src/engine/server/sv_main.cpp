@@ -56,7 +56,7 @@ GameVM         gvm; // game virtual machine
 // timescale 5, the number of gamelogic frames per wall second will be 200.
 // For the dedicated server this also controls the engine frame rate. The engine framerate
 // is based on real time, disregarding timescale.
-cvar_t         *sv_fps;
+Cvar::Range<Cvar::Cvar<int>> sv_fps("sv_fps", "sgame and dedicated server frame rate", Cvar::NONE, 40, 1, 1000);
 
 Cvar::Cvar<int> sv_timeout("sv_timeout", "seconds without connectivity after which to drop a client", Cvar::NONE, 240);
 Cvar::Cvar<int> sv_zombietime("sv_zombietime", "seconds without messages after which to recycle client slot", Cvar::NONE, 2);
@@ -81,7 +81,7 @@ Cvar::Cvar<bool> sv_lanForceRate("sv_lanForceRate", "make LAN clients use max ne
 Cvar::Cvar<int> sv_dl_maxRate("sv_dl_maxRate", "max bytes/sec for UDP pak download", Cvar::NONE, 42000);
 
 // fretn
-cvar_t *sv_fullmsg;
+Cvar::Cvar<std::string> sv_fullmsg("sv_fullmsg", "message for clients attempting to join full server", Cvar::NONE, "Server is full.");
 
 Cvar::Range<Cvar::Cvar<int>> sv_networkScope(
 	"sv_networkScope",
@@ -1285,23 +1285,16 @@ Return time in milliseconds until processing of the next server frame.
 */
 int SV_FrameMsec()
 {
-	if( sv_fps )
-	{
-		const int frameMsec = static_cast<int>(1000.0f / sv_fps->value);
-		int scaledResidual = static_cast<int>( sv.timeResidual / com_timescale->value );
+	const int frameMsec = 1000 / sv_fps.Get();
+	int scaledResidual = static_cast<int>( sv.timeResidual / com_timescale->value );
 
-		if ( frameMsec < scaledResidual )
-		{
-			return 0;
-		}
-		else
-		{
-			return frameMsec - scaledResidual;
-		}
+	if ( frameMsec < scaledResidual )
+	{
+		return 0;
 	}
 	else
 	{
-		return 1;
+		return frameMsec - scaledResidual;
 	}
 }
 
@@ -1340,12 +1333,7 @@ void SV_Frame( int msec )
 	frameStartTime = Sys::Milliseconds();
 
 	// if it isn't time for the next frame, do nothing
-	if ( sv_fps->integer < 1 )
-	{
-		Cvar_Set( "sv_fps", "10" );
-	}
-
-	frameMsec = 1000 / sv_fps->integer;
+	frameMsec = 1000 / sv_fps.Get();
 
 	sv.timeResidual += msec;
 

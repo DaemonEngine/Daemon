@@ -614,13 +614,8 @@ void SV_Init()
 	sv_serverid = Cvar_Get( "sv_serverid", "0", CVAR_SYSTEMINFO | CVAR_ROM );
 
 	// server vars
-	sv_fps = Cvar_Get( "sv_fps", "40", CVAR_TEMP );
 
 	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );
-
-	// fretn - note: redirecting of clients to other servers relies on this,
-	// ET://someserver.com
-	sv_fullmsg = Cvar_Get( "sv_fullmsg", "Server is full.", 0 );
 
 	svs.serverLoad = -1;
 }
