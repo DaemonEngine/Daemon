@@ -1027,29 +1027,20 @@ void SV_UserinfoChanged( client_t *cl )
 		&& sv_networkScope.Get() <= 1
 		&& sv_lanForceRate->integer == 1 )
 	{
-		cl->rate = 99999; // lans should not rate limit
+		cl->rate = NETWORK_LAN_RATE; // lans should not rate limit (though sv_maxRate still applies?)
 	}
 	else
 	{
 		val = Info_ValueForKey( cl->userinfo, "rate" );
 
-		if ( strlen( val ) )
+		int rate;
+		if ( Str::ParseInt( rate, val ) )
 		{
-			i = atoi( val );
-			cl->rate = i;
-
-			if ( cl->rate < 1000 )
-			{
-				cl->rate = 1000;
-			}
-			else if ( cl->rate > 90000 )
-			{
-				cl->rate = 90000;
-			}
+			cl->rate = Math::Clamp( rate, NETWORK_MIN_RATE, NETWORK_MAX_RATE );
 		}
 		else
 		{
-			cl->rate = 5000;
+			cl->rate = NETWORK_DEFAULT_RATE;
 		}
 	}
 
