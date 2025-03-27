@@ -310,8 +310,6 @@ extern Cvar::Cvar<int> sv_maxRate;
 
 extern Cvar::Cvar<bool> sv_lanForceRate;
 
-extern cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
-
 // TTimo - autodl
 extern Cvar::Cvar<int> sv_dl_maxRate;
 

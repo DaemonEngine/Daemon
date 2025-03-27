@@ -80,8 +80,6 @@ Cvar::Cvar<bool> sv_lanForceRate("sv_lanForceRate", "make LAN clients use max ne
 
 Cvar::Cvar<int> sv_dl_maxRate("sv_dl_maxRate", "max bytes/sec for UDP pak download", Cvar::NONE, 42000);
 
-cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
-
 // fretn
 cvar_t *sv_fullmsg;
 

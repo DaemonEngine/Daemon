@@ -618,8 +618,6 @@ void SV_Init()
 
 	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );
 
-	sv_showAverageBPS = Cvar_Get( "sv_showAverageBPS", "0", 0 );  // NERVE - SMF - net debugging
-
 	// fretn - note: redirecting of clients to other servers relies on this,
 	// ET://someserver.com
 	sv_fullmsg = Cvar_Get( "sv_fullmsg", "Server is full.", 0 );
