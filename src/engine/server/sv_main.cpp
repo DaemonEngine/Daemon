@@ -76,7 +76,6 @@ cvar_t         *sv_mapname;
 cvar_t         *sv_serverid;
 cvar_t         *sv_maxRate;
 
-cvar_t         *sv_floodProtect;
 cvar_t         *sv_lanForceRate; // TTimo - dedicated 1 (LAN) server forces local client rates to 99999 (bug #491)
 
 cvar_t         *sv_dl_maxRate;

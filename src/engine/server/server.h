@@ -179,7 +179,6 @@ struct client_t
 	// note: this is one-shot, multiple downloads would cause a www download to be attempted again
 
 	int              deltaMessage; // frame last client usercmd message
-	int              nextReliableTime; // svs.time when another reliable command will be allowed
 	int              lastPacketTime; // svs.time when packet was last received
 	int              lastConnectTime; // svs.time when connection started
 	int              nextSnapshotTime; // send another snapshot when svs.time >= nextSnapshotTime
@@ -309,7 +308,6 @@ extern cvar_t         *sv_mapChecksum;
 extern cvar_t         *sv_serverid;
 extern cvar_t         *sv_maxRate;
 
-extern cvar_t *sv_floodProtect;
 extern cvar_t *sv_lanForceRate;
 
 extern cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
@@ -372,7 +370,7 @@ void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd );
 void SV_FreeClient( client_t *client );
 void SV_DropClient( client_t *drop, const char *reason );
 
-void SV_ExecuteClientCommand( client_t *cl, const char *s, bool clientOK, bool premaprestart );
+void SV_ExecuteClientCommand( client_t *cl, const char *s, bool premaprestart );
 void SV_ClientThink( client_t *cl, usercmd_t *cmd );
 
 void SV_WriteDownloadToClient( client_t *cl, msg_t *msg );
