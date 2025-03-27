@@ -291,17 +291,17 @@ extern server_t       sv; // cleared each map
 extern GameVM         gvm; // game virtual machine
 
 extern cvar_t         *sv_fps;
-extern cvar_t         *sv_timeout;
-extern cvar_t         *sv_zombietime;
-extern cvar_t         *sv_privatePassword;
-extern cvar_t         *sv_allowDownload;
+extern Cvar::Cvar<int> sv_timeout;
+extern Cvar::Cvar<int> sv_zombietime;
+extern Cvar::Cvar<std::string> sv_privatePassword;
+extern Cvar::Cvar<bool> sv_allowDownload;
 extern Cvar::Range<Cvar::Cvar<int>> sv_maxClients;
 
 extern Cvar::Range<Cvar::Cvar<int>> sv_privateClients;
-extern cvar_t         *sv_hostname;
-extern cvar_t         *sv_statsURL;
-extern cvar_t         *sv_reconnectlimit;
-extern cvar_t         *sv_padPackets;
+extern Cvar::Cvar<std::string> sv_hostname;
+extern Cvar::Cvar<std::string> sv_statsURL;
+extern Cvar::Cvar<int> sv_reconnectlimit;
+extern Cvar::Cvar<int> sv_padPackets;
 extern cvar_t         *sv_killserver;
 extern cvar_t         *sv_mapname;
 extern cvar_t         *sv_mapChecksum;

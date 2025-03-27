@@ -237,9 +237,9 @@ static void SV_WriteSnapshotToClient( client_t *client, msg_t *msg )
 	SV_EmitPacketEntities( oldframe, frame, msg );
 
 	// padding for rate debugging
-	if ( sv_padPackets->integer )
+	if ( sv_padPackets.Get() )
 	{
-		for ( i = 0; i < sv_padPackets->integer; i++ )
+		for ( i = 0; i < sv_padPackets.Get(); i++ )
 		{
 			MSG_WriteByte( msg, svc_nop );
 		}

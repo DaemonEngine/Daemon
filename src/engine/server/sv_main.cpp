@@ -58,19 +58,19 @@ GameVM         gvm; // game virtual machine
 // is based on real time, disregarding timescale.
 cvar_t         *sv_fps;
 
-cvar_t         *sv_timeout; // seconds without any message
-cvar_t         *sv_zombietime; // seconds to sink messages after disconnect
-cvar_t         *sv_privatePassword; // password for the privateClient slots
-cvar_t         *sv_allowDownload;
+Cvar::Cvar<int> sv_timeout("sv_timeout", "seconds without connectivity after which to drop a client", Cvar::NONE, 240);
+Cvar::Cvar<int> sv_zombietime("sv_zombietime", "seconds without messages after which to recycle client slot", Cvar::NONE, 2);
+Cvar::Cvar<std::string> sv_privatePassword("sv_privatePassword", "password guarding private server slots", Cvar::NONE, "");
+Cvar::Cvar<bool> sv_allowDownload("sv_allowDownload", "let clients download missing paks", Cvar::NONE, true);
 Cvar::Range<Cvar::Cvar<int>> sv_maxClients("sv_maxclients",
 	"max number of players on the server", Cvar::SERVERINFO, 20, 1, MAX_CLIENTS);
 
 Cvar::Range<Cvar::Cvar<int>> sv_privateClients("sv_privateClients",
     "number of password-protected client slots", Cvar::SERVERINFO, 0, 0, MAX_CLIENTS);
-cvar_t         *sv_hostname;
-cvar_t         *sv_statsURL;
-cvar_t         *sv_reconnectlimit; // minimum seconds between connect messages
-cvar_t         *sv_padPackets; // add nop bytes to messages
+Cvar::Cvar<std::string> sv_hostname("sv_hostname", "server name for server list", Cvar::SERVERINFO, UNNAMED_SERVER);
+Cvar::Cvar<std::string> sv_statsURL("sv_statsURL", "URL for server's gameplay statistics", Cvar::SERVERINFO, "");
+Cvar::Cvar<int> sv_reconnectlimit("sv_reconnectlimit", "minimum time (seconds) before client can reconnect", Cvar::NONE, 3);
+Cvar::Cvar<int> sv_padPackets("sv_padPackets", "(debugging) add n NOP bytes to each snapshot packet", Cvar::NONE, 0);
 cvar_t         *sv_killserver; // menu system can set to 1 to shut server down
 cvar_t         *sv_mapname;
 cvar_t         *sv_serverid;
@@ -583,7 +583,7 @@ static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 	}
 
 	info_map["protocol"] = std::to_string( PROTOCOL_VERSION );
-	info_map["hostname"] = sv_hostname->string;
+	info_map["hostname"] = sv_hostname.Get();
 	info_map["serverload"] = std::to_string( svs.serverLoad );
 	info_map["mapname"] = sv_mapname->string;
 	info_map["clients"] = std::to_string( publicSlotHumans + privateSlotHumans );
@@ -592,9 +592,9 @@ static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 	info_map["sv_maxclients"] = std::to_string(
 	    std::max( 0, sv_maxClients.Get() - sv_privateClients.Get() ) + privateSlotHumans );
 
-	if ( sv_statsURL->string[0] )
+	if ( !sv_statsURL.Get().empty() )
 	{
-		info_map["stats"] = sv_statsURL->string;
+		info_map["stats"] = sv_statsURL.Get().c_str();
 	}
 
 	info_map["gamename"] = GAMENAME_STRING;  // Arnout: to be able to filter out Quake servers
@@ -1237,8 +1237,8 @@ void SV_CheckTimeouts()
 	int      droppoint;
 	int      zombiepoint;
 
-	droppoint = svs.time - 1000 * sv_timeout->integer;
-	zombiepoint = svs.time - 1000 * sv_zombietime->integer;
+	droppoint = svs.time - 1000 * sv_timeout.Get();
+	zombiepoint = svs.time - 1000 * sv_zombietime.Get();
 
 	for ( i = 0, cl = svs.clients; i < sv_maxClients.Get(); i++, cl++ )
 	{
