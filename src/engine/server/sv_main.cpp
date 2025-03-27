@@ -74,11 +74,11 @@ Cvar::Cvar<int> sv_padPackets("sv_padPackets", "(debugging) add n NOP bytes to e
 cvar_t         *sv_killserver; // menu system can set to 1 to shut server down
 cvar_t         *sv_mapname;
 cvar_t         *sv_serverid;
-cvar_t         *sv_maxRate;
+Cvar::Cvar<int> sv_maxRate("sv_maxRate", "max bytes/sec to send to a client (0 = unlimited)", Cvar::SERVERINFO, 0);
 
-cvar_t         *sv_lanForceRate; // TTimo - dedicated 1 (LAN) server forces local client rates to 99999 (bug #491)
+Cvar::Cvar<bool> sv_lanForceRate("sv_lanForceRate", "make LAN clients use max network rate", Cvar::NONE, true);
 
-cvar_t         *sv_dl_maxRate;
+Cvar::Cvar<int> sv_dl_maxRate("sv_dl_maxRate", "max bytes/sec for UDP pak download", Cvar::NONE, 42000);
 
 cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
 

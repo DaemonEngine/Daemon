@@ -306,14 +306,14 @@ extern cvar_t         *sv_killserver;
 extern cvar_t         *sv_mapname;
 extern cvar_t         *sv_mapChecksum;
 extern cvar_t         *sv_serverid;
-extern cvar_t         *sv_maxRate;
+extern Cvar::Cvar<int> sv_maxRate;
 
-extern cvar_t *sv_lanForceRate;
+extern Cvar::Cvar<bool> sv_lanForceRate;
 
 extern cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
 
 // TTimo - autodl
-extern cvar_t *sv_dl_maxRate;
+extern Cvar::Cvar<int> sv_dl_maxRate;
 
 //fretn
 extern cvar_t *sv_fullmsg;

@@ -780,9 +780,10 @@ static int SV_RateMsec( client_t *client, int messageSize )
 	}
 
 	// low watermark for sv_maxRate, never 0 < sv_maxRate < 1000 (0 is no limitation)
-	if ( sv_maxRate->integer && sv_maxRate->integer < NETWORK_MIN_RATE )
+	if ( sv_maxRate.Get() > 0 && sv_maxRate.Get() < NETWORK_MIN_RATE )
 	{
-		Cvar_Set( "sv_MaxRate", XSTRING(NETWORK_MIN_RATE) );
+		Log::Warn( "sv_maxRate too low, increasing to %d", NETWORK_MIN_RATE );
+		sv_maxRate.Set( NETWORK_MIN_RATE );
 	}
 
 	rate = client->rate;
@@ -790,19 +791,16 @@ static int SV_RateMsec( client_t *client, int messageSize )
 	// work on the appropriate max rate (client or download)
 	if ( !*client->downloadName )
 	{
-		maxRate = sv_maxRate->integer;
+		maxRate = sv_maxRate.Get();
 	}
 	else
 	{
-		maxRate = sv_dl_maxRate->integer;
+		maxRate = sv_dl_maxRate.Get();
 	}
 
-	if ( maxRate )
+	if ( maxRate > 0 )
 	{
-		if ( maxRate < rate )
-		{
-			rate = maxRate;
-		}
+		rate = std::min( rate, maxRate );
 	}
 
 	rateMsec = ( messageSize + HEADER_RATE_BYTES ) * 1000 / rate;
@@ -835,7 +833,7 @@ void SV_SendMessageToClient( msg_t *msg, client_t *client )
 	// TTimo - show_bug.cgi?id=491
 	// added sv_lanForceRate check
 	if ( client->netchan.remoteAddress.type == netadrtype_t::NA_LOOPBACK ||
-	     ( sv_lanForceRate->integer && Sys_IsLANAddress( client->netchan.remoteAddress ) ) )
+	     ( sv_lanForceRate.Get() && Sys_IsLANAddress( client->netchan.remoteAddress ) ) )
 	{
 		client->nextSnapshotTime = svs.time - 1;
 		return;

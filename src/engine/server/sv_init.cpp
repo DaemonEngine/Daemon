@@ -607,7 +607,6 @@ void SV_Init()
 	// serverinfo vars
 	sv_mapname = Cvar_Get( "mapname", "nomap", CVAR_SERVERINFO | CVAR_ROM );
 	Cvar::Latch( sv_maxClients );
-	sv_maxRate = Cvar_Get( "sv_maxRate", "0",  CVAR_SERVERINFO );
 	Cvar::SetValue( "layout", "" ); // TODO: declare in sgame
 	Cvar::AddFlags( "layout", Cvar::SERVERINFO );
 
@@ -619,12 +618,7 @@ void SV_Init()
 
 	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );
 
-	sv_lanForceRate = Cvar_Get( "sv_lanForceRate", "1", 0 );
-
 	sv_showAverageBPS = Cvar_Get( "sv_showAverageBPS", "0", 0 );  // NERVE - SMF - net debugging
-
-	// the download netcode tops at 18/20 kb/s, no need to make you think you can go above
-	sv_dl_maxRate = Cvar_Get( "sv_dl_maxRate", "42000", 0 );
 
 	// fretn - note: redirecting of clients to other servers relies on this,
 	// ET://someserver.com

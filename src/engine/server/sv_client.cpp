@@ -907,13 +907,13 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 	// show_bug.cgi?id=509
 	// for autodownload, we use a separate max rate value
 	// we do this every time because the client might change its rate during the download
-	if ( sv_dl_maxRate->integer < rate )
+	if ( sv_dl_maxRate.Get() < rate )
 	{
-		rate = sv_dl_maxRate->integer;
+		rate = sv_dl_maxRate.Get();
 
 		if ( bTellRate )
 		{
-			Log::Notice( "'%s' downloading at sv_dl_maxrate (%d)", cl->name, sv_dl_maxRate->integer );
+			Log::Notice( "'%s' downloading at sv_dl_maxrate (%d)", cl->name, sv_dl_maxRate.Get() );
 		}
 	}
 	else if ( bTellRate )
@@ -1025,7 +1025,7 @@ void SV_UserinfoChanged( client_t *cl )
 	// Internet server, assume that they don't need a rate choke
 	if ( Sys_IsLANAddress( cl->netchan.remoteAddress )
 		&& sv_networkScope.Get() <= 1
-		&& sv_lanForceRate->integer == 1 )
+		&& sv_lanForceRate.Get() )
 	{
 		cl->rate = NETWORK_LAN_RATE; // lans should not rate limit (though sv_maxRate still applies?)
 	}
