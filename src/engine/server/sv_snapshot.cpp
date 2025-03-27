@@ -780,9 +780,9 @@ static int SV_RateMsec( client_t *client, int messageSize )
 	}
 
 	// low watermark for sv_maxRate, never 0 < sv_maxRate < 1000 (0 is no limitation)
-	if ( sv_maxRate->integer && sv_maxRate->integer < 1000 )
+	if ( sv_maxRate->integer && sv_maxRate->integer < NETWORK_MIN_RATE )
 	{
-		Cvar_Set( "sv_MaxRate", "1000" );
+		Cvar_Set( "sv_MaxRate", XSTRING(NETWORK_MIN_RATE) );
 	}
 
 	rate = client->rate;
