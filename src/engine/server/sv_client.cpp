@@ -96,7 +96,7 @@ void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 	);
 
 	if ( reconnecting != clients_end &&
-		svs.time - reconnecting->lastConnectTime < sv_reconnectlimit->integer * 1000 )
+		svs.time - reconnecting->lastConnectTime < sv_reconnectlimit.Get() * 1000 )
 	{
 		Log::Debug( "%s: reconnect rejected: too soon", NET_AdrToString( from ) );
 		return;
@@ -142,7 +142,7 @@ void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 		// check for privateClient password
 
 		auto allowed_clients_begin = clients_begin;
-		if ( userinfo["password"] != sv_privatePassword->string )
+		if ( userinfo["password"] != sv_privatePassword.Get() )
 		{
 			// skip past the reserved slots
 			allowed_clients_begin += std::min(sv_privateClients.Get(), sv_maxClients.Get());
@@ -713,7 +713,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 			Log::Notice( "clientDownload: %d : beginning \"%s\"", ( int )( cl - svs.clients ), cl->downloadName );
 		}
 
-		if ( !sv_allowDownload->integer )
+		if ( !sv_allowDownload.Get() )
 		{
 			Log::Notice( "clientDownload: %d : \"%s\" download disabled", ( int )( cl - svs.clients ), cl->downloadName );
 

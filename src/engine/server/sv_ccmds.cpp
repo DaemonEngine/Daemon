@@ -292,7 +292,7 @@ public:
 			"players:  %d / %d\n"
 			"num score connection address                port   name\n"
 			"--- ----- ---------- ---------------------- ------ ----",
-			sv_hostname->string,
+			sv_hostname.Get(),
 			Q3_VERSION " on " Q3_ENGINE,
 			PROTOCOL_VERSION,
 			cpu,
