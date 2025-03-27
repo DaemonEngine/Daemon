@@ -609,7 +609,6 @@ void SV_Init()
 	sv_hostname = Cvar_Get( "sv_hostname", UNNAMED_SERVER, CVAR_SERVERINFO  );
 	Cvar::Latch( sv_maxClients );
 	sv_maxRate = Cvar_Get( "sv_maxRate", "0",  CVAR_SERVERINFO );
-	sv_floodProtect = Cvar_Get( "sv_floodProtect", "0",  CVAR_SERVERINFO );
 	Cvar::SetValue( "layout", "" ); // TODO: declare in sgame
 	Cvar::AddFlags( "layout", Cvar::SERVERINFO );
 

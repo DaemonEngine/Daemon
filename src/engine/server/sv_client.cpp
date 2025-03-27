@@ -1132,10 +1132,9 @@ Also called by bot code
 */
 
 Log::Logger clientCommands("server.clientCommands");
-void SV_ExecuteClientCommand( client_t *cl, const char *s, bool clientOK, bool premaprestart )
+void SV_ExecuteClientCommand( client_t *cl, const char *s, bool premaprestart )
 {
 	ucmd_t   *u;
-	bool bProcessed = false;
 
 	Log::Debug( "EXCL: %s", s );
 	Cmd::Args args(s);
@@ -1152,22 +1151,14 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, bool clientOK, bool p
 			}
 
 			u->func(cl, args);
-			bProcessed = true;
 			break;
 		}
 	}
 
-	if ( clientOK )
+	// pass unknown strings to the game
+	if ( !u->name && sv.state == serverState_t::SS_GAME )
 	{
-		// pass unknown strings to the game
-		if ( !u->name && sv.state == serverState_t::SS_GAME )
-		{
-			gvm.GameClientCommand( cl - svs.clients, s );
-		}
-	}
-	else if ( !bProcessed )
-	{
-		Log::Debug( "client text ignored for %s^*: %s", cl->name, args.Argv(0).c_str());
+		gvm.GameClientCommand( cl - svs.clients, s );
 	}
 }
 
@@ -1178,9 +1169,6 @@ SV_ClientCommand
 */
 static bool SV_ClientCommand( client_t *cl, msg_t *msg, bool premaprestart )
 {
-	bool   clientOk = true;
-	bool   floodprotect = true;
-
 	auto seq = MSG_ReadLong( msg );
 	auto s = MSG_ReadString( msg );
 
@@ -1200,36 +1188,7 @@ static bool SV_ClientCommand( client_t *cl, msg_t *msg, bool premaprestart )
 		return false;
 	}
 
-	// Gordon: AHA! Need to steal this for some other stuff BOOKMARK
-	// NERVE - SMF - some server game-only commands we cannot have flood protect
-	if ( !Q_strncmp( "team", s, 4 ) || !Q_strncmp( "setspawnpt", s, 10 ) || !Q_strncmp( "score", s, 5 ) || !Q_stricmp( "forcetapout", s ) )
-	{
-//      Log::Debug( "Skipping flood protection for: %s", s );
-		floodprotect = false;
-	}
-
-	// malicious users may try using too many string commands
-	// to lag other players.  If we decide that we want to stall
-	// the command, we will stop processing the rest of the packet,
-	// including the usercmd.  This causes flooders to lag themselves
-	// but not other people
-	// We don't do this when the client hasn't been active yet, since it is
-	// by protocol to spam a lot of commands when downloading
-	if ( !com_cl_running->integer && cl->state >= clientState_t::CS_ACTIVE && // (SA) this was commented out in Wolf.  Did we do that?
-	     sv_floodProtect->integer && svs.time < cl->nextReliableTime && floodprotect )
-	{
-		// ignore any other text messages from this client but let them keep playing
-		// TTimo - moved the ignored verbose to the actual processing in SV_ExecuteClientCommand, only printing if the core doesn't intercept
-		clientOk = false;
-	}
-
-	// don't allow another command for 800 msec
-	if ( floodprotect && svs.time >= cl->nextReliableTime )
-	{
-		cl->nextReliableTime = svs.time + 800;
-	}
-
-	SV_ExecuteClientCommand( cl, s, clientOk, premaprestart );
+	SV_ExecuteClientCommand( cl, s, premaprestart );
 
 	cl->lastClientCommand = seq;
 	Com_sprintf( cl->lastClientCommandString, sizeof( cl->lastClientCommandString ), "%s", s );
