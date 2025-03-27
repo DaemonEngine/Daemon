@@ -6,11 +6,6 @@ set -u -e -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 WORK_DIR="${PWD}"
 
-# Do not reuse self-built curl from external_deps custom PATH
-# to download source archives or we would get errors like:
-#   curl: (1) Protocol "https" not supported or disabled in libcurl
-CURL="$(command -v curl)"
-
 # This should match the DEPS_VERSION in CMakeLists.txt.
 # This is mostly to ensure the path the files end up at if you build deps yourself
 # are the same as the ones when extracting from the downloaded packages.
@@ -1294,6 +1289,11 @@ done
 if [ "${#}" -lt "2" ]; then
 	errorHelp
 fi
+
+# Do not reuse self-built curl from external_deps custom PATH
+# to download source archives or we would get errors like:
+#   curl: (1) Protocol "https" not supported or disabled in libcurl
+CURL="$(command -v curl)" || log ERROR "Command 'curl' not found"
 
 # Enable parallel build
 export MAKEFLAGS="-j`nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
