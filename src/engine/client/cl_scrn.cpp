@@ -255,7 +255,7 @@ void SCR_DrawScreenField()
 
 				// also draw the connection information, so it doesn't
 				// flash away too briefly on local or LAN games
-				//if (!com_sv_running->value || Cvar_VariableIntegerValue("sv_cheats")) // Ridah, don't draw useless text if not in dev mode
+				//if (!com_sv_running.Get() || Cvar_VariableIntegerValue("sv_cheats")) // Ridah, don't draw useless text if not in dev mode
 				break;
 
 			case connstate_t::CA_ACTIVE:

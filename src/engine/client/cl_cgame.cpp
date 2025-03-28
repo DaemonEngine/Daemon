@@ -694,7 +694,7 @@ void CL_AdjustTimeDelta()
 	// if the current time is WAY off, just correct to the current value
 
 	/*
-	        if(com_sv_running->integer)
+	        if(com_sv_running.Get())
 	        {
 	                resetTime = 100;
 	        }
