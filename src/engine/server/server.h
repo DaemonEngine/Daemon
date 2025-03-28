@@ -303,9 +303,9 @@ extern Cvar::Cvar<std::string> sv_statsURL;
 extern Cvar::Cvar<int> sv_reconnectlimit;
 extern Cvar::Cvar<int> sv_padPackets;
 extern cvar_t         *sv_killserver;
-extern cvar_t         *sv_mapname;
+extern Cvar::Cvar<std::string> sv_mapname;
 extern cvar_t         *sv_mapChecksum;
-extern cvar_t         *sv_serverid;
+extern Cvar::Cvar<int> sv_serverid;
 extern Cvar::Cvar<int> sv_maxRate;
 
 extern Cvar::Cvar<bool> sv_lanForceRate;

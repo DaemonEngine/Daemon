@@ -172,7 +172,7 @@ static void SV_MapRestart_f()
 	// generate a new serverid
 	// TTimo - don't update restartedserverId there, otherwise we won't deal correctly with multiple map_restart
 	sv.serverId = com_frameTime;
-	Cvar_Set( "sv_serverid", va( "%i", sv.serverId ) );
+	Cvar::SetValueForce( "sv_serverid", va( "%i", sv.serverId ) );
 
 	// reset all the VM data in place without changing memory allocation
 	// note that we do NOT set sv.state = SS_LOADING, so configstrings that
@@ -297,7 +297,7 @@ public:
 			PROTOCOL_VERSION,
 			cpu,
 			time_string,
-			sv_mapname->string,
+			sv_mapname.Get(),
 			players,
 			sv_maxClients.Get()
 		);

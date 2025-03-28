@@ -72,8 +72,8 @@ Cvar::Cvar<std::string> sv_statsURL("sv_statsURL", "URL for server's gameplay st
 Cvar::Cvar<int> sv_reconnectlimit("sv_reconnectlimit", "minimum time (seconds) before client can reconnect", Cvar::NONE, 3);
 Cvar::Cvar<int> sv_padPackets("sv_padPackets", "(debugging) add n NOP bytes to each snapshot packet", Cvar::NONE, 0);
 cvar_t         *sv_killserver; // menu system can set to 1 to shut server down
-cvar_t         *sv_mapname;
-cvar_t         *sv_serverid;
+Cvar::Cvar<std::string> sv_mapname("mapname", "current map on this server", Cvar::SERVERINFO | Cvar::ROM, "nomap");
+Cvar::Cvar<int> sv_serverid("sv_serverid", "match ID", Cvar::SYSTEMINFO | Cvar::ROM, 0);
 Cvar::Cvar<int> sv_maxRate("sv_maxRate", "max bytes/sec to send to a client (0 = unlimited)", Cvar::SERVERINFO, 0);
 
 Cvar::Cvar<bool> sv_lanForceRate("sv_lanForceRate", "make LAN clients use max network rate", Cvar::NONE, true);
@@ -583,7 +583,7 @@ static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 	info_map["protocol"] = std::to_string( PROTOCOL_VERSION );
 	info_map["hostname"] = sv_hostname.Get();
 	info_map["serverload"] = std::to_string( svs.serverLoad );
-	info_map["mapname"] = sv_mapname->string;
+	info_map["mapname"] = sv_mapname.Get();
 	info_map["clients"] = std::to_string( publicSlotHumans + privateSlotHumans );
 	info_map["bots"] = std::to_string( bots );
 	// Satisfies (number of open public slots) = (displayed max clients) - (number of clients).
@@ -1357,7 +1357,7 @@ void SV_Frame( int msec )
 		// there won't be a map_restart if you have shut down the server
 		// since it doesn't restart a non-running server
 		// instead, re-run the current map
-		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(sv_mapname->string)));
+		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(sv_mapname.Get())));
 
 		Sys::Drop( "Restarting server due to time wrapping" );
 	}
@@ -1366,7 +1366,7 @@ void SV_Frame( int msec )
 	if ( svs.nextSnapshotEntities >= 0x7FFFFFFE - svs.numSnapshotEntities )
 	{
 		// TTimo see above
-		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(sv_mapname->string)));
+		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(sv_mapname.Get())));
 		Sys::Drop( "Restarting server due to numSnapshotEntities wrapping" );
 	}
 
