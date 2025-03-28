@@ -117,14 +117,16 @@ if(NOT DAEMON_EXTERNAL_APP)
         option(USE_MUMBLE "Build Daemon with mumblelink sumpport" ON)
     endif()
 
-    cmake_dependent_option(USE_SMP "Compile with support for running the renderer in a separate thread" 1 BUILD_CLIENT 0)
+    option(USE_SMP "Compile with support for running the renderer in a separate thread" ON)
     option(USE_BREAKPAD "Generate Daemon crash dumps (which require Breakpad tools to read)" OFF)
 endif()
 
 option(BUILD_TESTS "Build unit test applications" OFF)
 
 option(USE_LTO "Use link-time optimization for release builds" OFF)
-cmake_dependent_option(USE_SLIM_LTO "Generate slim LTO objects, improves build times" 1 "USE_LTO AND \"${CMAKE_CXX_COMPILER_ID}\" STREQUAL GNU" 0)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL GNU)
+    option(USE_SLIM_LTO "Generate slim LTO objects, improves build times" OFF)
+endif()
 option(USE_HARDENING "Use stack protection and other hardening flags" OFF)
 option(USE_WERROR "Tell the compiler to make the build fail when warnings are present" OFF)
 option(USE_PEDANTIC "Tell the compiler to be pedantic" OFF)
