@@ -487,13 +487,13 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	CM_LoadMap(mapname);
 
 	// set serverinfo visible name
-	Cvar_Set( "mapname", mapname.c_str() );
+	Cvar::SetValueForce( "mapname", mapname );
 	Cvar::SetValueForce( cvar_pakname.Name(), pakname );
 
 	// serverid should be different each time
 	sv.serverId = com_frameTime;
 	sv.restartedServerId = sv.serverId;
-	Cvar_Set( "sv_serverid", va( "%i", sv.serverId ) );
+	Cvar::SetValueForce( "sv_serverid", va( "%i", sv.serverId ) );
 
 	// media configstring setting should be done during
 	// the loading stage, so connected clients don't have
@@ -605,13 +605,9 @@ void SV_Init()
 	SV_AddOperatorCommands();
 
 	// serverinfo vars
-	sv_mapname = Cvar_Get( "mapname", "nomap", CVAR_SERVERINFO | CVAR_ROM );
 	Cvar::Latch( sv_maxClients );
 	Cvar::SetValue( "layout", "" ); // TODO: declare in sgame
 	Cvar::AddFlags( "layout", Cvar::SERVERINFO );
-
-	// systeminfo
-	sv_serverid = Cvar_Get( "sv_serverid", "0", CVAR_SYSTEMINFO | CVAR_ROM );
 
 	// server vars
 
