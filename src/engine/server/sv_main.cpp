@@ -513,7 +513,7 @@ if a user is interested in a server to do a full status
 */
 static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 {
-	if ( SV_Private(ServerPrivate::NoStatus) || !com_sv_running || !com_sv_running->integer )
+	if ( SV_Private(ServerPrivate::NoStatus) || !com_sv_running.Get() )
 	{
 		return;
 	}
@@ -1325,7 +1325,7 @@ void SV_Frame( int msec )
 		return;
 	}
 
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		return;
 	}

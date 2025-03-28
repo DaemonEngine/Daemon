@@ -159,7 +159,7 @@ static void SV_MapRestart_f()
 	}
 
 	// make sure server is running
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		Log::Notice( "Server is not running." );
 		return;
@@ -251,7 +251,7 @@ public:
 	void Run(const Cmd::Args&) const override
 	{
 		// make sure server is running
-		if ( !com_sv_running->integer )
+		if ( !com_sv_running.Get() )
 		{
 			Log::Notice( "Server is not running." );
 			return;
@@ -358,7 +358,7 @@ Examine the serverinfo string
 static void SV_Serverinfo_f()
 {
 	// make sure server is running
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		Log::Notice( "Server is not running." );
 		return;
@@ -378,7 +378,7 @@ Examine the systeminfo string
 static void SV_Systeminfo_f()
 {
 	// make sure server is running
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		Log::Notice( "Server is not running." );
 		return;
@@ -419,7 +419,7 @@ SV_AddOperatorCommands
 */
 void SV_AddOperatorCommands()
 {
-	if ( com_sv_running->integer )
+	if ( com_sv_running.Get() )
 	{
 		// These commands should only be available while the server is running.
 		Cmd_AddCommand( "fieldinfo",   SV_FieldInfo_f );

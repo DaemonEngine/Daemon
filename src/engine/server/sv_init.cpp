@@ -320,7 +320,7 @@ void SV_Startup()
 
 	svs.initialized = true;
 
-	Cvar_Set( "sv_running", "1" );
+	Cvar::SetValueForce( "sv_running", "1" );
 #ifndef BUILD_SERVER
 	// For clients, reconfigure to open server ports.
 	NET_EnableNetworking( true );
@@ -665,7 +665,7 @@ void SV_FinalCommand( char *cmd, bool disconnect )
 // Used instead of SV_Shutdown when Daemon is exiting
 void SV_QuickShutdown( const char *finalmsg )
 {
-	if ( !com_sv_running || !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		return;
 	}
@@ -690,7 +690,7 @@ Called to shut down the sgame VM, or to clean up after the VM shut down on its o
 */
 void SV_Shutdown( const char *finalmsg )
 {
-	if ( !com_sv_running || !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		return;
 	}
@@ -725,7 +725,7 @@ void SV_Shutdown( const char *finalmsg )
 	svs.serverLoad = -1;
 	ChallengeManager::Clear();
 
-	Cvar_Set( "sv_running", "0" );
+	Cvar::SetValueForce( "sv_running", "0" );
 #ifndef BUILD_SERVER
 	// For clients, reconfigure to close server ports.
 	NET_EnableNetworking( false );

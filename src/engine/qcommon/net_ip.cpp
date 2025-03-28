@@ -1886,6 +1886,6 @@ void NET_Restart_f()
 #ifdef BUILD_SERVER
 	NET_EnableNetworking( true );
 #else
-	NET_EnableNetworking( !!com_sv_running->integer );
+	NET_EnableNetworking( com_sv_running.Get() );
 #endif
 }
