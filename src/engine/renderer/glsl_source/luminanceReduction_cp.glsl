@@ -74,7 +74,7 @@ void main() {
     
     const float luminance = ColorToLuminance( texelFetch( renderImage, position, 0 ).rgb );
 
-	#if defined(HAVE_subgroup_atomic)
+	#if defined(SUBGROUP_ATOMIC)
 		const float luminanceSum = subgroupInclusiveAdd( luminance );
 		
 		if( subgroupElect() ) {
