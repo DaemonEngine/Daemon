@@ -343,7 +343,7 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 		recvBuffer.reset( static_cast<char*>( malloc( NACL_ABI_IMC_BYTES_MAX ) ) );
 	}
 
-	std::fill(std::begin(h), std::end(h),NACL_ABI_IMC_BYTES_MAX);
+	std::fill( std::begin( h ), std::end( h ), ( NaClHandle ) NACL_ABI_IMC_BYTES_MAX );
 
 #ifdef __native_client__
 	hdr.iov = iov;
