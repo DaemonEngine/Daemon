@@ -2847,26 +2847,13 @@ static void R_CreateWorldVBO()
 			continue;
 		}
 
-		if ( *surface->data == surfaceType_t::SF_FACE )
+		if ( *surface->data == surfaceType_t::SF_FACE || *surface->data == surfaceType_t::SF_GRID
+			|| *surface->data == surfaceType_t::SF_TRIANGLES )
 		{
-			srfSurfaceFace_t *face = ( srfSurfaceFace_t * ) surface->data;
+			srfSurfaceFace_t* srf = ( srfSurfaceFace_t * ) surface->data;
 
-			numVerts += face->numVerts;
-			numTriangles += face->numTriangles;
-		}
-		else if ( *surface->data == surfaceType_t::SF_GRID )
-		{
-			srfGridMesh_t *grid = ( srfGridMesh_t * ) surface->data;
-
-			numVerts += grid->numVerts;
-			numTriangles += grid->numTriangles;
-		}
-		else if ( *surface->data == surfaceType_t::SF_TRIANGLES )
-		{
-			srfGeneric_t* tri = ( srfGeneric_t* ) surface->data;
-
-			numVerts += tri->numVerts;
-			numTriangles += tri->numTriangles;
+			numVerts += srf->numVerts;
+			numTriangles += srf->numTriangles;
 		}
 		else
 		{
@@ -3018,27 +3005,8 @@ static void R_CreateWorldVBO()
 		int numSurfVerts;
 		const srfTriangle_t *surfTriangle, *surfTriangleEnd;
 
-		if ( *surface->data == surfaceType_t::SF_FACE )
-		{
-			srfSurfaceFace_t *srf = ( srfSurfaceFace_t * ) surface->data;
-
-			srf->firstIndex = vboNumIndexes;
-			surfVerts = srf->verts;
-			numSurfVerts = srf->numVerts;
-			surfTriangle = srf->triangles;
-			surfTriangleEnd = surfTriangle + srf->numTriangles;
-		}
-		else if ( *surface->data == surfaceType_t::SF_GRID )
-		{
-			srfGridMesh_t *srf = ( srfGridMesh_t * ) surface->data;
-
-			srf->firstIndex = vboNumIndexes;
-			surfVerts = srf->verts;
-			numSurfVerts = srf->numVerts;
-			surfTriangle = srf->triangles;
-			surfTriangleEnd = surfTriangle + srf->numTriangles;
-		}
-		else if ( *surface->data == surfaceType_t::SF_TRIANGLES )
+		if ( *surface->data == surfaceType_t::SF_FACE || *surface->data == surfaceType_t::SF_GRID
+			|| *surface->data == surfaceType_t::SF_TRIANGLES )
 		{
 			srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
 
@@ -3174,20 +3142,11 @@ static void R_CreateWorldVBO()
 
 			oldViewCount = surf1->viewCount;
 
-			if ( *surf1->data == surfaceType_t::SF_FACE )
+			if ( *surf1->data == surfaceType_t::SF_FACE || *surf1->data == surfaceType_t::SF_TRIANGLES
+				|| *surf1->data == surfaceType_t::SF_GRID )
 			{
-				srfSurfaceFace_t *face = ( srfSurfaceFace_t * ) surf1->data;
+				srfGeneric_t* face = ( srfGeneric_t* ) surf1->data;
 				firstIndex = face->firstIndex;
-			}
-			else if ( *surf1->data == surfaceType_t::SF_TRIANGLES )
-			{
-				srfGeneric_t* tris = ( srfGeneric_t* ) surf1->data;
-				firstIndex = tris->firstIndex;
-			}
-			else if ( *surf1->data == surfaceType_t::SF_GRID )
-			{
-				srfGridMesh_t *grid = ( srfGridMesh_t * ) surf1->data;
-				firstIndex = grid->firstIndex;
 			}
 
 			// count verts and indexes and add bounds for the merged surface
@@ -3202,26 +3161,13 @@ static void R_CreateWorldVBO()
 					break;
 				}
 
-				if ( *surf2->data == surfaceType_t::SF_FACE )
+				if ( *surf2->data == surfaceType_t::SF_FACE || *surf2->data == surfaceType_t::SF_TRIANGLES
+					|| *surf2->data == surfaceType_t::SF_GRID )
 				{
-					srfSurfaceFace_t *face = ( srfSurfaceFace_t * ) surf2->data;
-					surfIndexes += face->numTriangles * 3;
-					surfVerts += face->numVerts;
-					BoundsAdd( bounds[ 0 ], bounds[ 1 ], face->bounds[ 0 ], face->bounds[ 1 ] );
-				}
-				else if ( *surf2->data == surfaceType_t::SF_TRIANGLES )
-				{
-					srfGeneric_t* tris = ( srfGeneric_t* ) surf2->data;
-					surfIndexes += tris->numTriangles * 3;
-					surfVerts += tris->numVerts;
-					BoundsAdd( bounds[ 0 ], bounds[ 1 ], tris->bounds[ 0 ], tris->bounds[ 1 ] );
-				}
-				else if ( *surf2->data == surfaceType_t::SF_GRID )
-				{
-					srfGridMesh_t *grid = ( srfGridMesh_t * ) surf2->data;
-					surfIndexes += grid->numTriangles * 3;
-					surfVerts += grid->numVerts;
-					BoundsAdd( bounds[ 0 ], bounds[ 1 ], grid->bounds[ 0 ], grid->bounds[ 1 ] );
+					srfGeneric_t* srf = ( srfGeneric_t* ) surf2->data;
+					surfIndexes += srf->numTriangles * 3;
+					surfVerts += srf->numVerts;
+					BoundsAdd( bounds[ 0 ], bounds[ 1 ], srf->bounds[ 0 ], srf->bounds[ 1 ] );
 				}
 			}
 
@@ -3279,19 +3225,8 @@ static void R_CreateWorldVBO()
 	{
 		surface = surfaces[ k ];
 
-		if ( *surface->data == surfaceType_t::SF_FACE )
-		{
-			srfSurfaceFace_t *srf = ( srfSurfaceFace_t * ) surface->data;
-			srf->vbo = s_worldData.vbo;
-			srf->ibo = s_worldData.ibo;
-		}
-		else if ( *surface->data == surfaceType_t::SF_GRID )
-		{
-			srfGridMesh_t *srf = ( srfGridMesh_t * ) surface->data;
-			srf->vbo = s_worldData.vbo;
-			srf->ibo = s_worldData.ibo;
-		}
-		else if ( *surface->data == surfaceType_t::SF_TRIANGLES )
+		if ( *surface->data == surfaceType_t::SF_FACE || *surface->data == surfaceType_t::SF_GRID
+			|| *surface->data == surfaceType_t::SF_TRIANGLES )
 		{
 			srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
 			srf->vbo = s_worldData.vbo;
