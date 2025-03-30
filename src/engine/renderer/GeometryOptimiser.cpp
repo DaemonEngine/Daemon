@@ -274,6 +274,46 @@ void MergeLeafSurfacesCore( world_t* world, bspSurface_t** rendererSurfaces, int
 	Log::Debug( "Processed %d surfaces into %d merged, %d unmerged", numSurfaces, numMergedSurfaces, numUnmergedSurfaces );
 }
 
+void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, srfVert_t* vertices, int numVerticesIn,
+	glIndex_t* indices, int numIndicesIn, int& numVerticesOut, int& numIndicesOut ) {
+	int start = Sys::Milliseconds();
+
+	std::unordered_map<srfVert_t, uint32_t, MapVertHasher, MapVertEqual> verts;
+	uint32_t idx = 0;
+	uint32_t vertIdx = 0;
+	for ( int i = 0; i < numSurfaces; i++ ) {
+		bspSurface_t* surface = rendererSurfaces[i];
+		
+		srfGeneric_t* face = ( srfGeneric_t* ) surface->data;
+		face->firstIndex = idx;
+		for ( srfTriangle_t* triangle = face->triangles; triangle < face->triangles + face->numTriangles; triangle++ ) {
+			for ( int j = 0; j < 3; j++ ) {
+				srfVert_t& vert = face->verts[triangle->indexes[j]];
+				uint32_t index = verts[vert];
+
+				ASSERT_LT( idx, numIndicesIn );
+				if ( !index ) {
+					verts[vert] = vertIdx + 1;
+					vertices[vertIdx] = vert;
+					indices[idx] = vertIdx;
+
+					ASSERT_LT( vertIdx, numVerticesIn );
+
+					vertIdx++;
+				} else {
+					indices[idx] = index - 1;
+				}
+				idx++;
+			}
+		}
+	}
+
+	numVerticesOut = vertIdx;
+	numIndicesOut = idx;
+
+	Log::Notice( "Merged %i vertices into %i in %i ms", numVerticesIn, numVerticesOut, Sys::Milliseconds() - start );
+}
+
 static void ProcessMaterialSurface( MaterialSurface& surface, std::vector<MaterialSurface>& materialSurfaces,
 	std::vector<MaterialSurface>& processedMaterialSurfaces,
 	srfVert_t* verts, glIndex_t* indices ) {
