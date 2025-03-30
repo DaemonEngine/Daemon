@@ -1701,8 +1701,6 @@ enum class ssaoMode {
 		interaction_t *next;
 	};
 
-#define MAX_FACE_POINTS 64
-
 #define MAX_PATCH_SIZE  64 // max dimensions of a patch mesh in map file
 #define MAX_GRID_SIZE   65 // max dimensions of a grid mesh in memory
 
