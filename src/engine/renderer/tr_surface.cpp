@@ -778,7 +778,7 @@ static void Tess_SurfaceGrid( srfGridMesh_t *srf )
 Tess_SurfaceTriangles
 =============
 */
-static void Tess_SurfaceTriangles( srfTriangles_t *srf )
+static void Tess_SurfaceTriangles( srfGeneric_t* srf )
 {
 	GLIMP_LOGCOMMENT( "--- Tess_SurfaceTriangles ---" );
 

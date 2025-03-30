@@ -1238,9 +1238,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 ParseTriSurf
 ===============
 */
-static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, int *indexes )
-{
-	srfTriangles_t       *cv;
+static void ParseTriSurf( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf, int* indexes ) {
 	srfTriangle_t        *tri;
 	int                  i, j;
 	int                  numVerts, numTriangles;
@@ -1281,14 +1279,14 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf,
 	numVerts = LittleLong( ds->numVerts );
 	numTriangles = LittleLong( ds->numIndexes ) / 3;
 
-	cv = (srfTriangles_t*) ri.Hunk_Alloc( sizeof( *cv ), ha_pref::h_low );
+	srfGeneric_t* cv = ( srfGeneric_t* ) ri.Hunk_Alloc( sizeof( *cv ), ha_pref::h_low );
 	cv->surfaceType = surfaceType_t::SF_TRIANGLES;
 
 	cv->numTriangles = numTriangles;
 	cv->triangles = (srfTriangle_t*) ri.Hunk_Alloc( numTriangles * sizeof( cv->triangles[ 0 ] ), ha_pref::h_low );
 
 	cv->numVerts = numVerts;
-	cv->verts = (srfVert_t*) ri.Hunk_Alloc( numVerts * sizeof( cv->verts[ 0 ] ), ha_pref::h_low );
+	cv->verts = ( srfVert_t* ) ri.Hunk_Alloc( numVerts * sizeof( cv->verts[ 0 ] ), ha_pref::h_low );
 
 	surf->data = ( surfaceType_t * ) cv;
 
@@ -2865,7 +2863,7 @@ static void R_CreateWorldVBO()
 		}
 		else if ( *surface->data == surfaceType_t::SF_TRIANGLES )
 		{
-			srfTriangles_t *tri = ( srfTriangles_t * ) surface->data;
+			srfGeneric_t* tri = ( srfGeneric_t* ) surface->data;
 
 			numVerts += tri->numVerts;
 			numTriangles += tri->numTriangles;
@@ -3042,7 +3040,7 @@ static void R_CreateWorldVBO()
 		}
 		else if ( *surface->data == surfaceType_t::SF_TRIANGLES )
 		{
-			srfTriangles_t *srf = ( srfTriangles_t * ) surface->data;
+			srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
 
 			srf->firstIndex = vboNumIndexes;
 			surfVerts = srf->verts;
@@ -3183,7 +3181,7 @@ static void R_CreateWorldVBO()
 			}
 			else if ( *surf1->data == surfaceType_t::SF_TRIANGLES )
 			{
-				srfTriangles_t *tris = ( srfTriangles_t * ) surf1->data;
+				srfGeneric_t* tris = ( srfGeneric_t* ) surf1->data;
 				firstIndex = tris->firstIndex;
 			}
 			else if ( *surf1->data == surfaceType_t::SF_GRID )
@@ -3213,7 +3211,7 @@ static void R_CreateWorldVBO()
 				}
 				else if ( *surf2->data == surfaceType_t::SF_TRIANGLES )
 				{
-					srfTriangles_t *tris = ( srfTriangles_t * ) surf2->data;
+					srfGeneric_t* tris = ( srfGeneric_t* ) surf2->data;
 					surfIndexes += tris->numTriangles * 3;
 					surfVerts += tris->numVerts;
 					BoundsAdd( bounds[ 0 ], bounds[ 1 ], tris->bounds[ 0 ], tris->bounds[ 1 ] );
@@ -3295,7 +3293,7 @@ static void R_CreateWorldVBO()
 		}
 		else if ( *surface->data == surfaceType_t::SF_TRIANGLES )
 		{
-			srfTriangles_t *srf = ( srfTriangles_t * ) surface->data;
+			srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
 			srf->vbo = s_worldData.vbo;
 			srf->ibo = s_worldData.ibo;
 		}
