@@ -2528,7 +2528,7 @@ R_CreateWorldVBO
 static void R_CreateWorldVBO() {
 	int startTime = ri.Milliseconds();
 
-	int numVerts = 0;
+	int numVertsInitial = 0;
 	int numTriangles = 0;
 	int numSurfaces = 0;
 	int numPortals = 0;
@@ -2545,15 +2545,12 @@ static void R_CreateWorldVBO() {
 		}
 
 		if ( *surface->data == surfaceType_t::SF_FACE || *surface->data == surfaceType_t::SF_GRID
-			|| *surface->data == surfaceType_t::SF_TRIANGLES )
-		{
+			|| *surface->data == surfaceType_t::SF_TRIANGLES ) {
 			srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
 
-			numVerts += srf->numVerts;
+			numVertsInitial += srf->numVerts;
 			numTriangles += srf->numTriangles;
-		}
-		else
-		{
+		} else {
 			continue;
 		}
 
@@ -2561,7 +2558,7 @@ static void R_CreateWorldVBO() {
 		numSurfaces++;
 	}
 
-	if ( !numVerts || !numTriangles || !numSurfaces ) {
+	if ( !numVertsInitial || !numTriangles || !numSurfaces ) {
 		return;
 	}
 
@@ -2577,35 +2574,19 @@ static void R_CreateWorldVBO() {
 
 	OptimiseMapGeometryCore( &s_worldData, rendererSurfaces, numSurfaces );
 
-	Log::Debug( "...calculating world VBO ( %i verts %i tris )", numVerts, numTriangles );
+	Log::Debug( "...calculating world VBO ( %i verts %i tris )", numVertsInitial, numTriangles );
 
 	// Use srfVert_t for the temporary array used to feed R_CreateStaticVBO, despite containing
 	// extraneous data, so that verts can be conveniently be bulk copied from the surface.
-	srfVert_t* vboVerts = ( srfVert_t* ) ri.Hunk_AllocateTempMemory( numVerts * sizeof( srfVert_t ) );
+	srfVert_t* vboVerts = ( srfVert_t* ) ri.Hunk_AllocateTempMemory( numVertsInitial * sizeof( srfVert_t ) );
 	glIndex_t* vboIdxs = ( glIndex_t* ) ri.Hunk_AllocateTempMemory( 3 * numTriangles * sizeof( glIndex_t ) );
+
+	int numVerts;
+	int numIndices;
+	MergeDuplicateVertices( rendererSurfaces, numSurfaces, vboVerts, numVertsInitial, vboIdxs, 3 * numTriangles, numVerts, numIndices );
 
 	if ( glConfig2.usingMaterialSystem ) {
 		OptimiseMapGeometryMaterial( &s_worldData, numSurfaces );
-	}
-
-	// set up triangle and vertex arrays
-	int vboNumVerts = 0;
-	int vboNumIndexes = 0;
-
-	for ( int i = 0; i < numSurfaces; i++ ) {
-		bspSurface_t* surface = rendererSurfaces[i];
-		srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
-
-		srf->firstIndex = vboNumIndexes;
-
-		for ( srfTriangle_t* surfTriangle = srf->triangles; surfTriangle < srf->triangles + srf->numTriangles; surfTriangle++ ) {
-			vboIdxs[vboNumIndexes++] = vboNumVerts + surfTriangle->indexes[0];
-			vboIdxs[vboNumIndexes++] = vboNumVerts + surfTriangle->indexes[1];
-			vboIdxs[vboNumIndexes++] = vboNumVerts + surfTriangle->indexes[2];
-		}
-
-		std::copy_n( srf->verts, srf->numVerts, vboVerts + vboNumVerts );
-		vboNumVerts += srf->numVerts;
 	}
 
 	s_worldData.numPortals = numPortals;
@@ -2646,9 +2627,6 @@ static void R_CreateWorldVBO() {
 		}
 	}
 
-	ASSERT_EQ( vboNumVerts, numVerts );
-	ASSERT_EQ( vboNumIndexes, numTriangles * 3 );
-
 	vertexAttributeSpec_t attrs[]{
 		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, &vboVerts[0].xyz, 3, sizeof( *vboVerts ), 0 },
 		{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, &vboVerts[0].lightColor, 4, sizeof( *vboVerts ), ATTR_OPTION_NORMALIZE },
@@ -2657,11 +2635,11 @@ static void R_CreateWorldVBO() {
 	};
 
 	if ( glConfig2.usingGeometryCache ) {
-		geometryCache.AddMapGeometry( vboNumVerts, vboNumIndexes, std::begin( attrs ), std::end( attrs ), vboIdxs );
+		geometryCache.AddMapGeometry( numVerts, numIndices, std::begin( attrs ), std::end( attrs ), vboIdxs );
 	}
 
 	s_worldData.vbo = R_CreateStaticVBO(
-		"staticWorld_VBO", std::begin( attrs ), std::end( attrs ), vboNumVerts );
+		"staticWorld_VBO", std::begin( attrs ), std::end( attrs ), numVerts );
 	s_worldData.ibo = R_CreateStaticIBO2( "staticWorld_IBO", numTriangles, vboIdxs );
 
 	ri.Hunk_FreeTempMemory( vboIdxs );

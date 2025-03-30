@@ -295,8 +295,50 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
+void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, srfVert_t* vertices, int numVerticesIn,
+	glIndex_t* indices, int numIndicesIn, int& numVerticesOut, int& numIndicesOut ) {
+	int start = Sys::Milliseconds();
 
-static void ProcessMaterialSurface( MaterialSurface& surface, std::vector<MaterialSurface>& materialSurfaces,
+	std::unordered_map<srfVert_t, uint32_t, MapVertHasher, MapVertEqual> verts;
+	uint32_t idx = 0;
+	uint32_t vertIdx = 0;
+
+	// To shut CI up since this *is* used for an assert
+	Q_UNUSED( numIndicesIn );
+	for ( int i = 0; i < numSurfaces; i++ ) {
+		bspSurface_t* surface = rendererSurfaces[i];
+		
+		srfGeneric_t* face = ( srfGeneric_t* ) surface->data;
+		face->firstIndex = idx;
+		for ( srfTriangle_t* triangle = face->triangles; triangle < face->triangles + face->numTriangles; triangle++ ) {
+			for ( int j = 0; j < 3; j++ ) {
+				srfVert_t& vert = face->verts[triangle->indexes[j]];
+				uint32_t index = verts[vert];
+
+				ASSERT_LT( idx, numIndicesIn );
+				if ( !index ) {
+					verts[vert] = vertIdx + 1;
+					vertices[vertIdx] = vert;
+					indices[idx] = vertIdx;
+
+					ASSERT_LT( vertIdx, numVerticesIn );
+
+					vertIdx++;
+				} else {
+					indices[idx] = index - 1;
+				}
+				idx++;
+			}
+		}
+	}
+
+	numVerticesOut = vertIdx;
+	numIndicesOut = idx;
+
+	Log::Notice( "Merged %i vertices into %i in %i ms", numVerticesIn, numVerticesOut, Sys::Milliseconds() - start );
+}
+
+/* static void ProcessMaterialSurface( MaterialSurface& surface, std::vector<MaterialSurface>& materialSurfaces,
 	std::vector<MaterialSurface>& processedMaterialSurfaces,
 	srfVert_t* verts, glIndex_t* indices ) {
 	if ( surface.count == MAX_MATERIAL_SURFACE_TRIS ) {
@@ -312,7 +354,7 @@ static void ProcessMaterialSurface( MaterialSurface& surface, std::vector<Materi
 
 		processedMaterialSurfaces.push_back( srf );
 	}
-}
+} */
 
 std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, int numSurfaces ) {
 	std::vector<MaterialSurface> materialSurfaces;
@@ -340,10 +382,6 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, int nu
 
 		materialSurfaces.emplace_back( srf );
 		surfaceIndex++;
-	}
-
-	while ( materialSurfaces.size() ) {
-		ProcessMaterialSurface( materialSurfaces.front(), materialSurfaces, processedMaterialSurfaces, verts, indices );
 	}
 
 	return materialSurfaces;
