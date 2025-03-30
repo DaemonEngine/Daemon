@@ -303,7 +303,6 @@ int R_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projectio
 	float            *v;
 	srfSurfaceFace_t *face;
 	srfGridMesh_t    *cv;
-	srfTriangles_t   *trisurf;
 	srfVert_t        *dv;
 	srfTriangle_t    *tri;
 	vec3_t           normal;
@@ -481,7 +480,7 @@ int R_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projectio
 		}
 		else if ( *surfaces[ i ] == surfaceType_t::SF_TRIANGLES && !r_noMarksOnTrisurfs->integer )
 		{
-			trisurf = ( srfTriangles_t * ) surfaces[ i ];
+			srfGeneric_t* trisurf = ( srfGeneric_t* ) surfaces[ i ];
 
 			for ( k = 0, tri = trisurf->triangles; k < trisurf->numTriangles; k++, tri++ )
 			{

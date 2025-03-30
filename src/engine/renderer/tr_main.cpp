@@ -1203,11 +1203,9 @@ void R_MirrorPoint( vec3_t in, orientation_t *surface, orientation_t *camera, ve
 R_PlaneForSurface
 =============
 */
-void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane )
-{
-	srfTriangles_t *tri;
-	srfPoly_t      *poly;
-	srfVert_t      *v1, *v2, *v3;
+void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane ) {
+	srfPoly_t *poly;
+	srfVert_t *v1, *v2, *v3;
 
 	if ( !surfType )
 	{
@@ -1220,26 +1218,29 @@ void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane )
 	switch ( *surfType )
 	{
 		case surfaceType_t::SF_FACE:
-			*plane = ( ( srfSurfaceFace_t * ) surfType )->plane;
+		{
+			*plane = ( ( srfSurfaceFace_t* ) surfType )->plane;
 			return;
-
+		}
 		case surfaceType_t::SF_TRIANGLES:
-			tri = ( srfTriangles_t * ) surfType;
-			v1 = tri->verts + tri->triangles[ 0 ].indexes[ 0 ];
-			v2 = tri->verts + tri->triangles[ 0 ].indexes[ 1 ];
-			v3 = tri->verts + tri->triangles[ 0 ].indexes[ 2 ];
+		{
+			srfGeneric_t* tri = ( srfGeneric_t* ) surfType;
+			v1 = tri->verts + tri->triangles[0].indexes[0];
+			v2 = tri->verts + tri->triangles[0].indexes[1];
+			v3 = tri->verts + tri->triangles[0].indexes[2];
 			PlaneFromPoints( plane4, v1->xyz, v2->xyz, v3->xyz );
 			VectorCopy( plane4.normal, plane->normal );
 			plane->dist = plane4.dist;
 			return;
-
+		}
 		case surfaceType_t::SF_POLY:
-			poly = ( srfPoly_t * ) surfType;
-			PlaneFromPoints( plane4, poly->verts[ 0 ].xyz, poly->verts[ 1 ].xyz, poly->verts[ 2 ].xyz );
+		{
+			poly = ( srfPoly_t* ) surfType;
+			PlaneFromPoints( plane4, poly->verts[0].xyz, poly->verts[1].xyz, poly->verts[2].xyz );
 			VectorCopy( plane4.normal, plane->normal );
 			plane->dist = plane4.dist;
 			return;
-
+		}
 		default:
 			memset( plane, 0, sizeof( *plane ) );
 			plane->normal[ 0 ] = 1;

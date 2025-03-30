@@ -1775,10 +1775,6 @@ enum class ssaoMode {
 		cplane_t plane;
 	};
 
-// misc_models in maps are turned into direct geometry by q3map
-	struct srfTriangles_t : srfGeneric_t {
-	};
-
 	struct srfVBOMesh_t : srfGeneric_t {
 		struct shader_t *shader; // FIXME move this to somewhere else
 
