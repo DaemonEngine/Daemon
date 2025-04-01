@@ -1080,6 +1080,15 @@ static void ParseTriSurf( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf,
 
 	srfGeneric_t* surface = ( srfGeneric_t* ) surf->data;
 	surface->surfaceType = surfaceType_t::SF_TRIANGLES;
+
+	plane_t plane;
+	srfVert_t* v1 = surface->verts + surface->triangles[0].indexes[0];
+	srfVert_t* v2 = surface->verts + surface->triangles[0].indexes[1];
+	srfVert_t* v3 = surface->verts + surface->triangles[0].indexes[2];
+
+	PlaneFromPoints( plane, v1->xyz, v2->xyz, v3->xyz );
+	VectorCopy( plane.normal, surface->plane.normal );
+	surface->plane.dist = plane.dist;
 }
 
 static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
