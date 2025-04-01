@@ -183,7 +183,8 @@ NORETURN static void TerminateHandler()
 
 	if (Sys::OnMainThread()) {
 		try {
-			throw; // A terminate handler is only called if there is an active exception
+			// A terminate handler is only called if there is an active exception
+			std::rethrow_exception(std::current_exception());
 		} catch (std::exception& err) {
 			DispatchError("Unhandled exception (%s): %s", typeid(err).name(), err.what());
 		} catch (...) {
