@@ -62,12 +62,12 @@ static bool R_CullSurface( surfaceType_t *surface, shader_t *shader, int planeBi
 	}
 
 	// get generic surface
-	gen = ( srfGeneric_t * ) surface;
+	gen = ( srfGeneric_t* ) surface;
 
 	// plane cull
 	if ( *surface == surfaceType_t::SF_FACE && r_facePlaneCull->integer )
 	{
-		srfSurfaceFace_t *srf = ( srfSurfaceFace_t * )gen;
+		srfGeneric_t* srf = ( srfGeneric_t* ) gen;
 		d = DotProduct( tr.orientation.viewOrigin, srf->plane.normal ) - srf->plane.dist;
 
 		// don't cull exactly on the plane, because there are levels of rounding
@@ -167,7 +167,7 @@ static bool R_CullLightSurface( surfaceType_t *surface, shader_t *shader, trRefL
 	// plane cull
 	if ( *surface == surfaceType_t::SF_FACE && r_facePlaneCull->integer )
 	{
-		srfSurfaceFace_t *srf = ( srfSurfaceFace_t * )gen;
+		srfGeneric_t* srf = ( srfGeneric_t* ) gen;
 		if ( light->l.rlType == refLightType_t::RL_DIRECTIONAL )
 		{
 			d = DotProduct( tr.sunDirection, srf->plane.normal );
