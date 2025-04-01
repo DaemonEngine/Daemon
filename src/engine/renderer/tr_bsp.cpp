@@ -931,8 +931,9 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 		for ( int j = 0; j < 3; j++ ) {
 			tri->indexes[ j ] = LittleLong( indexes[ i * 3 + j ] );
 
-			if ( tri->indexes[ j ] < 0 || tri->indexes[ j ] >= cv->numVerts ) {
-				Sys::Drop( "Bad index in face surface" );
+			if ( tri->indexes[j] < 0 || tri->indexes[j] >= cv->numVerts ) {
+				Sys::Drop( "Index out of range in surface: %i not in [0, %i] (index in BSP: %i, surface: indexes: %i-%i, shader: %s)",
+					tri->indexes[j], cv->numVerts, i * 3 + j, ds->firstIndex, ds->firstIndex + ds->numIndexes, surf->shader->name );
 			}
 		}
 	}
@@ -1113,7 +1114,8 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 
 	if ( width < 0 || width > MAX_PATCH_SIZE || height < 0 || height > MAX_PATCH_SIZE )
 	{
-		Sys::Drop( "ParseMesh: bad size" );
+		Sys::Drop( "ParseMesh: bad size: width: %i (range: [0, %i]), height: %i (range: [0, %i]), surface: firstVertex: %i,"
+		" shader: %s", width, MAX_PATCH_SIZE, height, MAX_PATCH_SIZE, ds->firstVert, surf->shader->name );
 	}
 
 	verts += LittleLong( ds->firstVert );
