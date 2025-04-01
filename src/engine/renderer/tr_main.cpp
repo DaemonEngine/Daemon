@@ -1219,7 +1219,7 @@ void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane ) {
 		case surfaceType_t::SF_FACE:
 		case surfaceType_t::SF_TRIANGLES:
 		{
-			*plane = ( ( srfSurfaceFace_t* ) surfType )->plane;
+			*plane = ( ( srfGeneric_t* ) surfType )->plane;
 			return;
 		}
 		case surfaceType_t::SF_POLY:
