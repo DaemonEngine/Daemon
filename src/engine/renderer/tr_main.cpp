@@ -1205,7 +1205,6 @@ R_PlaneForSurface
 */
 void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane ) {
 	srfPoly_t *poly;
-	srfVert_t *v1, *v2, *v3;
 
 	if ( !surfType )
 	{
@@ -1218,19 +1217,9 @@ void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane ) {
 	switch ( *surfType )
 	{
 		case surfaceType_t::SF_FACE:
-		{
-			*plane = ( ( srfSurfaceFace_t* ) surfType )->plane;
-			return;
-		}
 		case surfaceType_t::SF_TRIANGLES:
 		{
-			srfGeneric_t* tri = ( srfGeneric_t* ) surfType;
-			v1 = tri->verts + tri->triangles[0].indexes[0];
-			v2 = tri->verts + tri->triangles[0].indexes[1];
-			v3 = tri->verts + tri->triangles[0].indexes[2];
-			PlaneFromPoints( plane4, v1->xyz, v2->xyz, v3->xyz );
-			VectorCopy( plane4.normal, plane->normal );
-			plane->dist = plane4.dist;
+			*plane = ( ( srfSurfaceFace_t* ) surfType )->plane;
 			return;
 		}
 		case surfaceType_t::SF_POLY:
