@@ -800,18 +800,6 @@ static void FinishGenericSurface( dsurface_t *ds, srfGeneric_t *gen, vec3_t pt )
 {
 	// set bounding sphere
 	SphereFromBounds( gen->bounds[ 0 ], gen->bounds[ 1 ], gen->origin, &gen->radius );
-
-	if ( gen->surfaceType == surfaceType_t::SF_FACE )
-	{
-		srfSurfaceFace_t *srf = ( srfSurfaceFace_t * )gen;
-		// take the plane normal from the lightmap vector and classify it
-		srf->plane.normal[ 0 ] = LittleFloat( ds->lightmapVecs[ 2 ][ 0 ] );
-		srf->plane.normal[ 1 ] = LittleFloat( ds->lightmapVecs[ 2 ][ 1 ] );
-		srf->plane.normal[ 2 ] = LittleFloat( ds->lightmapVecs[ 2 ][ 2 ] );
-		srf->plane.dist = DotProduct( pt, srf->plane.normal );
-		SetPlaneSignbits( &srf->plane );
-		srf->plane.type = PlaneTypeForNormal( srf->plane.normal );
-	}
 }
 
 // Generate the skybox mesh and add it to world
