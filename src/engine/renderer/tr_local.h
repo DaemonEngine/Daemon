@@ -1742,6 +1742,8 @@ enum class ssaoMode {
 		vec3_t origin;
 		float radius;
 
+		cplane_t plane;
+
 		int numVerts;
 		srfVert_t* verts;
 
@@ -1772,7 +1774,6 @@ enum class ssaoMode {
 	};
 
 	struct srfSurfaceFace_t : srfGeneric_t {
-		cplane_t plane;
 	};
 
 	struct srfVBOMesh_t : srfGeneric_t {
