@@ -875,6 +875,7 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 	}
 
 	srfGeneric_t* cv = ( srfGeneric_t* ) ri.Hunk_Alloc( sizeof( *cv ), ha_pref::h_low );
+	cv->surfaceType = surfaceType_t::SF_BAD; // Will be set later by ParseFace() or ParseTriSurf()
 
 	cv->numTriangles = LittleLong( ds->numIndexes ) / 3;
 	cv->triangles = ( srfTriangle_t* ) ri.Hunk_Alloc( cv->numTriangles * sizeof( cv->triangles[ 0 ] ), ha_pref::h_low );
@@ -1023,6 +1024,10 @@ static void ParseFace( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf, in
 	ParseTriangleSurface( ds, verts, surf, indexes );
 
 	srfGeneric_t* surface = ( srfGeneric_t* ) surf->data;
+	if ( surface->surfaceType == surfaceType_t::SF_SKIP ) {
+		return;
+	}
+
 	surface->surfaceType = surfaceType_t::SF_FACE;
 
 	// take the plane information from the lightmap vector
@@ -1039,6 +1044,10 @@ static void ParseTriSurf( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf,
 	ParseTriangleSurface( ds, verts, surf, indexes );
 
 	srfGeneric_t* surface = ( srfGeneric_t* ) surf->data;
+	if ( surface->surfaceType == surfaceType_t::SF_SKIP ) {
+		return;
+	}
+
 	surface->surfaceType = surfaceType_t::SF_TRIANGLES;
 
 	plane_t plane;
