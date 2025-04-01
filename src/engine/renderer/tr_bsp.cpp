@@ -746,62 +746,6 @@ static void R_LoadVisibility( lump_t *l )
 
 //===============================================================================
 
-/*
-===============
-ShaderForShaderNum
-===============
-*/
-static shader_t *ShaderForShaderNum( int shaderNum )
-{
-	shader_t  *shader;
-	dshader_t *dsh;
-
-	shaderNum = LittleLong( shaderNum ) + 0;  // silence the warning
-
-	if ( shaderNum < 0 || shaderNum >= s_worldData.numShaders )
-	{
-		Sys::Drop( "ShaderForShaderNum: bad num %i", shaderNum );
-	}
-
-	dsh = &s_worldData.shaders[ shaderNum ];
-
-	shader = R_FindShader( dsh->shader, shaderType_t::SHADER_3D_STATIC, RSF_DEFAULT );
-
-	// if the shader had errors, just use default shader
-	if ( shader->defaultShader )
-	{
-		return tr.defaultShader;
-	}
-
-	return shader;
-}
-
-/*
-SphereFromBounds() - ydnar
-creates a bounding sphere from a bounding box
-*/
-
-static void SphereFromBounds( vec3_t mins, vec3_t maxs, vec3_t origin, float *radius )
-{
-	vec3_t temp;
-
-	VectorAdd( mins, maxs, origin );
-	VectorScale( origin, 0.5, origin );
-	VectorSubtract( maxs, origin, temp );
-	*radius = VectorLength( temp );
-}
-
-/*
-FinishGenericSurface() - ydnar
-handles final surface classification
-*/
-
-static void FinishGenericSurface( dsurface_t *ds, srfGeneric_t *gen, vec3_t pt )
-{
-	// set bounding sphere
-	SphereFromBounds( gen->bounds[ 0 ], gen->bounds[ 1 ], gen->origin, &gen->radius );
-}
-
 // Generate the skybox mesh and add it to world
 static void FinishSkybox() {
 	// Min and max coordinates of the skybox cube corners
@@ -873,6 +817,34 @@ static void FinishSkybox() {
 	skybox->surface = ( surfaceType_t* ) surface;
 
 	tr.skybox = skybox;
+}
+
+static shader_t* ShaderForShaderNum( int shaderNum ) {
+	shaderNum = LittleLong( shaderNum ) + 0;  // silence the warning
+
+	if ( shaderNum < 0 || shaderNum >= s_worldData.numShaders ) {
+		Sys::Drop( "ShaderForShaderNum: bad num %i", shaderNum );
+	}
+
+	dshader_t* dsh = &s_worldData.shaders[shaderNum];
+
+	shader_t* shader = R_FindShader( dsh->shader, shaderType_t::SHADER_3D_STATIC, RSF_DEFAULT );
+
+	// If the shader had errors, just use default shader
+	if ( shader->defaultShader ) {
+		return tr.defaultShader;
+	}
+
+	return shader;
+}
+
+static void SphereFromBounds( vec3_t mins, vec3_t maxs, vec3_t origin, float* radius ) {
+	vec3_t temp;
+
+	VectorAdd( mins, maxs, origin );
+	VectorScale( origin, 0.5, origin );
+	VectorSubtract( maxs, origin, temp );
+	*radius = VectorLength( temp );
 }
 
 static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf, int* indexes ) {
@@ -1044,7 +1016,7 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 			dv2->qtangent );
 	}
 
-	FinishGenericSurface( ds, ( srfGeneric_t* ) cv, cv->verts[0].xyz );
+	SphereFromBounds( cv->bounds[0], cv->bounds[1], cv->origin, &cv->radius );
 }
 
 static void ParseFace( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf, int* indexes ) {
@@ -1204,8 +1176,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	VectorSubtract( bounds[ 0 ], grid->lodOrigin, tmpVec );
 	grid->lodRadius = VectorLength( tmpVec );
 
-	// finish surface
-	FinishGenericSurface( ds, ( srfGeneric_t * ) grid, grid->verts[ 0 ].xyz );
+	SphereFromBounds( grid->bounds[0], grid->bounds[1], grid->origin, &grid->radius );
 }
 
 /*
