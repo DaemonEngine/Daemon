@@ -887,77 +887,55 @@ static void FinishSkybox() {
 	tr.skybox = skybox;
 }
 
-/*
-===============
-ParseFace
-===============
-*/
-static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, int *indexes )
-{
-	int              i, j;
-	srfSurfaceFace_t *cv;
-	srfTriangle_t    *tri;
-	int              numVerts, numTriangles;
-	int              realLightmapNum;
-	struct vertexComponent_t {
-		vec2_t stBounds[ 2 ];
-		int    minVertex;
-	} *components;
-	bool         updated;
+static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf, int* indexes ) {
+	int realLightmapNum = LittleLong( ds->lightmapNum );
 
-	// get lightmap
-	realLightmapNum = LittleLong( ds->lightmapNum );
-
-	if ( tr.worldLightMapping || tr.worldDeluxeMapping )
-	{
+	if ( tr.worldLightMapping || tr.worldDeluxeMapping ) {
 		surf->lightmapNum = realLightmapNum;
-	}
-	else
-	{
+	} else {
 		surf->lightmapNum = -1;
 	}
 
-	if ( tr.worldDeluxeMapping && surf->lightmapNum >= 2 )
-	{
+	if ( tr.worldDeluxeMapping && surf->lightmapNum >= 2 ) {
 		surf->lightmapNum /= 2;
 	}
 
-	// get fog volume
 	surf->fogIndex = LittleLong( ds->fogNum ) + 1;
-
-	// get shader value
 	surf->shader = ShaderForShaderNum( ds->shaderNum );
 
-	if ( r_singleShader->integer && !surf->shader->isSky )
-	{
+	if ( r_singleShader->integer && !surf->shader->isSky ) {
 		surf->shader = tr.defaultShader;
 	}
 
-	numVerts = LittleLong( ds->numVerts );
+	// We may have a nodraw surface, because they might still need to be around for movement clipping
+	if ( s_worldData.shaders[LittleLong( ds->shaderNum )].surfaceFlags & SURF_NODRAW ) {
+		surfaceType_t skipData = surfaceType_t::SF_SKIP;
+		surf->data = &skipData;
+		return;
+	}
 
-	numTriangles = LittleLong( ds->numIndexes ) / 3;
+	srfGeneric_t* cv = ( srfGeneric_t* ) ri.Hunk_Alloc( sizeof( *cv ), ha_pref::h_low );
 
-	cv = (srfSurfaceFace_t*) ri.Hunk_Alloc( sizeof( *cv ), ha_pref::h_low );
-	cv->surfaceType = surfaceType_t::SF_FACE;
+	cv->numTriangles = LittleLong( ds->numIndexes ) / 3;
+	cv->triangles = ( srfTriangle_t* ) ri.Hunk_Alloc( cv->numTriangles * sizeof( cv->triangles[ 0 ] ), ha_pref::h_low );
 
-	cv->numTriangles = numTriangles;
-	cv->triangles = (srfTriangle_t*) ri.Hunk_Alloc( numTriangles * sizeof( cv->triangles[ 0 ] ), ha_pref::h_low );
+	cv->numVerts = LittleLong( ds->numVerts );
+	cv->verts = ( srfVert_t* ) ri.Hunk_Alloc( cv->numVerts * sizeof( cv->verts[ 0 ] ), ha_pref::h_low );
 
-	cv->numVerts = numVerts;
-	cv->verts = (srfVert_t*) ri.Hunk_Alloc( numVerts * sizeof( cv->verts[ 0 ] ), ha_pref::h_low );
+	surf->data = ( surfaceType_t* ) cv;
 
-	surf->data = ( surfaceType_t * ) cv;
-
-	// copy vertexes
+	// Copy vertexes
 	ClearBounds( cv->bounds[ 0 ], cv->bounds[ 1 ] );
 	verts += LittleLong( ds->firstVert );
 
-	components = (struct vertexComponent_t *)ri.Hunk_AllocateTempMemory( numVerts * sizeof( struct vertexComponent_t ) );
+	struct vertexComponent_t {
+		vec2_t stBounds[ 2 ];
+		int minVertex;
+	};
+	vertexComponent_t* components = ( vertexComponent_t* ) ri.Hunk_AllocateTempMemory( cv->numVerts * sizeof( vertexComponent_t ) );
 
-	for ( i = 0; i < numVerts; i++ )
-	{
-		for ( j = 0; j < 3; j++ )
-		{
+	for ( int i = 0; i < cv->numVerts; i++ ) {
+		for ( int j = 0; j < 3; j++ ) {
 			cv->verts[ i ].xyz[ j ] = LittleFloat( verts[ i ].xyz[ j ] );
 			cv->verts[ i ].normal[ j ] = LittleFloat( verts[ i ].normal[ j ] );
 		}
@@ -966,8 +944,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 
 		components[ i ].minVertex = i;
 
-		for ( j = 0; j < 2; j++ )
-		{
+		for ( int j = 0; j < 2; j++ ) {
 			cv->verts[ i ].st[ j ] = LittleFloat( verts[ i ].st[ j ] );
 			cv->verts[ i ].lightmap[ j ] = LittleFloat( verts[ i ].lightmap[ j ] );
 
@@ -980,59 +957,57 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-
-		if ( tr.overbrightBits < tr.mapOverBrightBits )
-		{
+		if ( tr.overbrightBits < tr.mapOverBrightBits ) {
 			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
 		}
 	}
 
-	// copy triangles
+	// Copy triangles
 	indexes += LittleLong( ds->firstIndex );
 
-	for ( i = 0, tri = cv->triangles; i < numTriangles; i++, tri++ )
-	{
-		for ( j = 0; j < 3; j++ )
-		{
+	for ( int i = 0; i < cv->numTriangles; i++ ) {
+		srfTriangle_t* tri = &cv->triangles[ i ];
+		for ( int j = 0; j < 3; j++ ) {
 			tri->indexes[ j ] = LittleLong( indexes[ i * 3 + j ] );
 
-			if ( tri->indexes[ j ] < 0 || tri->indexes[ j ] >= numVerts )
-			{
+			if ( tri->indexes[ j ] < 0 || tri->indexes[ j ] >= cv->numVerts ) {
 				Sys::Drop( "Bad index in face surface" );
 			}
 		}
 	}
 
-	// compute strongly connected components and TC bounds per component
+	// Compute strongly connected components and TC bounds per component
+	bool updated;
 	do {
 		updated = false;
 
-		for( i = 0, tri = cv->triangles; i < numTriangles; i++, tri++ ) {
+		for ( int i = 0; i < cv->numTriangles; i++ ) {
+			srfTriangle_t* tri = &cv->triangles[ i ];
 			int minVertex = std::min( std::min( components[ tri->indexes[ 0 ] ].minVertex,
-						  components[ tri->indexes[ 1 ] ].minVertex ),
-					     components[ tri->indexes[ 2 ] ].minVertex );
-			for( j = 0; j < 3; j++ ) {
+				components[ tri->indexes[ 1 ] ].minVertex ),
+				components[ tri->indexes[ 2 ] ].minVertex );
+			for ( int j = 0; j < 3; j++ ) {
 				int vertex = tri->indexes[ j ];
-				if( components[ vertex ].minVertex != minVertex ) {
+				if ( components[ vertex ].minVertex != minVertex ) {
 					updated = true;
 					components[ vertex ].minVertex = minVertex;
 					components[ minVertex ].stBounds[ 0 ][ 0 ] = std::min( components[ minVertex ].stBounds[ 0 ][ 0 ],
-											  components[ vertex ].stBounds[ 0 ][ 0 ] );
+						components[ vertex ].stBounds[ 0 ][ 0 ] );
 					components[ minVertex ].stBounds[ 0 ][ 1 ] = std::min( components[ minVertex ].stBounds[ 0 ][ 1 ],
-											  components[ vertex ].stBounds[ 0 ][ 1 ] );
+						components[ vertex ].stBounds[ 0 ][ 1 ] );
 					components[ minVertex ].stBounds[ 1 ][ 0 ] = std::max( components[ minVertex ].stBounds[ 1 ][ 0 ],
-											  components[ vertex ].stBounds[ 1 ][ 0 ] );
+						components[ vertex ].stBounds[ 1 ][ 0 ] );
 					components[ minVertex ].stBounds[ 1 ][ 1 ] = std::max( components[ minVertex ].stBounds[ 1 ][ 1 ],
-											  components[ vertex ].stBounds[ 1 ][ 1 ] );
+						components[ vertex ].stBounds[ 1 ][ 1 ] );
 				}
 			}
 		}
-	} while( updated );
+	} while ( updated );
 
-	// center texture coords
-	for( i = 0; i < numVerts; i++ ) {
-		if( components[ i ].minVertex == i ) {
-			for( j = 0; j < 2; j++ ) {
+	// Center texture coords
+	for ( int i = 0; i < cv->numVerts; i++ ) {
+		if ( components[ i ].minVertex == i ) {
+			for ( int j = 0; j < 2; j++ ) {
 				/* Some words about the “minus 0.5” trick:
 				 *
 				 * The vertexpack engine tries to optimize texture coords, because fp16 numbers have 1/2048 resolution only between -1.0 and 1.0,
@@ -1049,61 +1024,64 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 				 * And rounding x - 0.5 actually generates fewer instructions. So it looks like the original version is pretty great.
 				 * -- @slipher https://github.com/DaemonEngine/Daemon/pull/208#discussion_r299864660
 				 */
-				components[ i ].stBounds[ 0 ][ j ] = rintf( 0.5f * (components[ i ].stBounds[ 1 ][ j ] + components[ i ].stBounds[ 0 ][ j ]) - 0.5f );
+				components[ i ].stBounds[ 0 ][ j ] =
+					rintf( 0.5f * ( components[ i ].stBounds[ 1 ][ j ] + components[ i ].stBounds[ 0 ][ j ] ) - 0.5f );
 			}
 		}
 
-		for ( j = 0; j < 2; j++ )
-		{
+		for ( int j = 0; j < 2; j++ ) {
 			cv->verts[ i ].st[ j ] -= components[ components[ i ].minVertex ].stBounds[ 0 ][ j ];
 		}
 	}
 
 	ri.Hunk_FreeTempMemory( components );
 
-	// take the plane information from the lightmap vector
-	for ( i = 0; i < 3; i++ )
-	{
-		cv->plane.normal[ i ] = LittleFloat( ds->lightmapVecs[ 2 ][ i ] );
+	surf->data = ( surfaceType_t* ) cv;
+
+	for ( int i = 0; i < cv->numTriangles; i++ ) {
+		srfTriangle_t* tri = &cv->triangles[ i ];
+		srfVert_t* dv0 = &cv->verts[ tri->indexes[ 0 ] ];
+		srfVert_t* dv1 = &cv->verts[ tri->indexes[ 1 ] ];
+		srfVert_t* dv2 = &cv->verts[ tri->indexes[ 2 ] ];
+
+		vec3_t tangent, binormal;
+		R_CalcTangents( tangent, binormal,
+			dv0->xyz, dv1->xyz, dv2->xyz,
+			dv0->st, dv1->st, dv2->st );
+		R_TBNtoQtangents( tangent, binormal, dv0->normal,
+			dv0->qtangent );
+		R_TBNtoQtangents( tangent, binormal, dv1->normal,
+			dv1->qtangent );
+		R_TBNtoQtangents( tangent, binormal, dv2->normal,
+			dv2->qtangent );
 	}
 
-	cv->plane.dist = DotProduct( cv->verts[ 0 ].xyz, cv->plane.normal );
-	SetPlaneSignbits( &cv->plane );
-	cv->plane.type = PlaneTypeForNormal( cv->plane.normal );
-
-	surf->data = ( surfaceType_t * ) cv;
-
-	{
-		srfVert_t *dv0, *dv1, *dv2;
-		vec3_t    tangent, binormal;
-
-		for ( i = 0, tri = cv->triangles; i < numTriangles; i++, tri++ )
-		{
-			dv0 = &cv->verts[ tri->indexes[ 0 ] ];
-			dv1 = &cv->verts[ tri->indexes[ 1 ] ];
-			dv2 = &cv->verts[ tri->indexes[ 2 ] ];
-
-			R_CalcTangents( tangent, binormal,
-					dv0->xyz, dv1->xyz, dv2->xyz,
-					dv0->st, dv1->st, dv2->st );
-			R_TBNtoQtangents( tangent, binormal, dv0->normal,
-					  dv0->qtangent );
-			R_TBNtoQtangents( tangent, binormal, dv1->normal,
-					  dv1->qtangent );
-			R_TBNtoQtangents( tangent, binormal, dv2->normal,
-					  dv2->qtangent );
-		}
-	}
-
-	// finish surface
-	FinishGenericSurface( ds, ( srfGeneric_t * ) cv, cv->verts[ 0 ].xyz );
+	FinishGenericSurface( ds, ( srfGeneric_t* ) cv, cv->verts[0].xyz );
 }
 
-/*
-===============
-ParseMesh
-===============
-*/
+static void ParseFace( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf, int* indexes ) {
+	ParseTriangleSurface( ds, verts, surf, indexes );
+
+	srfGeneric_t* surface = ( srfGeneric_t* ) surf->data;
+	surface->surfaceType = surfaceType_t::SF_FACE;
+
+	// take the plane information from the lightmap vector
+	for ( int i = 0; i < 3; i++ ) {
+		surface->plane.normal[ i ] = LittleFloat( ds->lightmapVecs[ 2 ][ i ] );
+	}
+
+	surface->plane.dist = DotProduct( surface->verts[ 0 ].xyz, surface->plane.normal );
+	SetPlaneSignbits( &surface->plane );
+	surface->plane.type = PlaneTypeForNormal( surface->plane.normal );
+}
+
+static void ParseTriSurf( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf, int* indexes ) {
+	ParseTriangleSurface( ds, verts, surf, indexes );
+
+	srfGeneric_t* surface = ( srfGeneric_t* ) surf->data;
+	surface->surfaceType = surfaceType_t::SF_TRIANGLES;
+}
+
 static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 {
 	srfGridMesh_t        *grid;
@@ -1231,197 +1209,6 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 
 	// finish surface
 	FinishGenericSurface( ds, ( srfGeneric_t * ) grid, grid->verts[ 0 ].xyz );
-}
-
-/*
-===============
-ParseTriSurf
-===============
-*/
-static void ParseTriSurf( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf, int* indexes ) {
-	srfTriangle_t        *tri;
-	int                  i, j;
-	int                  numVerts, numTriangles;
-	static surfaceType_t skipData = surfaceType_t::SF_SKIP;
-	struct vertexComponent_t {
-		vec2_t stBounds[ 2 ];
-		int    minVertex;
-	} *components;
-	bool         updated;
-
-	// get lightmap
-	surf->lightmapNum = -1; // FIXME LittleLong(ds->lightmapNum);
-
-	if ( tr.worldDeluxeMapping && surf->lightmapNum >= 2 )
-	{
-		surf->lightmapNum /= 2;
-	}
-
-	// get fog volume
-	surf->fogIndex = LittleLong( ds->fogNum ) + 1;
-
-	// get shader
-	surf->shader = ShaderForShaderNum( ds->shaderNum );
-
-	if ( r_singleShader->integer && !surf->shader->isSky )
-	{
-		surf->shader = tr.defaultShader;
-	}
-
-	// we may have a nodraw surface, because they might still need to
-	// be around for movement clipping
-	if ( s_worldData.shaders[ LittleLong( ds->shaderNum ) ].surfaceFlags & SURF_NODRAW )
-	{
-		surf->data = &skipData;
-		return;
-	}
-
-	numVerts = LittleLong( ds->numVerts );
-	numTriangles = LittleLong( ds->numIndexes ) / 3;
-
-	srfGeneric_t* cv = ( srfGeneric_t* ) ri.Hunk_Alloc( sizeof( *cv ), ha_pref::h_low );
-	cv->surfaceType = surfaceType_t::SF_TRIANGLES;
-
-	cv->numTriangles = numTriangles;
-	cv->triangles = (srfTriangle_t*) ri.Hunk_Alloc( numTriangles * sizeof( cv->triangles[ 0 ] ), ha_pref::h_low );
-
-	cv->numVerts = numVerts;
-	cv->verts = ( srfVert_t* ) ri.Hunk_Alloc( numVerts * sizeof( cv->verts[ 0 ] ), ha_pref::h_low );
-
-	surf->data = ( surfaceType_t * ) cv;
-
-	// copy vertexes
-	verts += LittleLong( ds->firstVert );
-
-	components = (struct vertexComponent_t *)ri.Hunk_AllocateTempMemory( numVerts * sizeof( struct vertexComponent_t ) );
-
-	for ( i = 0; i < numVerts; i++ )
-	{
-		components[ i ].minVertex = i;
-
-		for ( j = 0; j < 3; j++ )
-		{
-			cv->verts[ i ].xyz[ j ] = LittleFloat( verts[ i ].xyz[ j ] );
-			cv->verts[ i ].normal[ j ] = LittleFloat( verts[ i ].normal[ j ] );
-		}
-
-		for ( j = 0; j < 2; j++ )
-		{
-			cv->verts[ i ].st[ j ] = LittleFloat( verts[ i ].st[ j ] );
-			cv->verts[ i ].lightmap[ j ] = LittleFloat( verts[ i ].lightmap[ j ] );
-
-			components[ i ].stBounds[ 0 ][ j ] = cv->verts[ i ].st[ j ];
-			components[ i ].stBounds[ 1 ][ j ] = cv->verts[ i ].st[ j ];
-		}
-
-			cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
-
-		if ( tr.overbrightBits < tr.mapOverBrightBits )
-		{
-			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
-		}
-	}
-
-	// copy triangles
-	indexes += LittleLong( ds->firstIndex );
-
-	for ( i = 0, tri = cv->triangles; i < numTriangles; i++, tri++ )
-	{
-		for ( j = 0; j < 3; j++ )
-		{
-			tri->indexes[ j ] = LittleLong( indexes[ i * 3 + j ] );
-
-			if ( tri->indexes[ j ] < 0 || tri->indexes[ j ] >= numVerts )
-			{
-				Sys::Drop( "Bad index in face surface" );
-			}
-		}
-	}
-
-	// compute strongly connected components and TC bounds per component
-	do {
-		updated = false;
-
-		for( i = 0, tri = cv->triangles; i < numTriangles; i++, tri++ ) {
-			int minVertex = std::min( std::min( components[ tri->indexes[ 0 ] ].minVertex,
-						  components[ tri->indexes[ 1 ] ].minVertex ),
-					     components[ tri->indexes[ 2 ] ].minVertex );
-			for( j = 0; j < 3; j++ ) {
-				int vertex = tri->indexes[ j ];
-				if( components[ vertex ].minVertex != minVertex ) {
-					updated = true;
-					components[ vertex ].minVertex = minVertex;
-					components[ minVertex ].stBounds[ 0 ][ 0 ] = std::min( components[ minVertex ].stBounds[ 0 ][ 0 ],
-											  components[ vertex ].stBounds[ 0 ][ 0 ] );
-					components[ minVertex ].stBounds[ 0 ][ 1 ] = std::min( components[ minVertex ].stBounds[ 0 ][ 1 ],
-											  components[ vertex ].stBounds[ 0 ][ 1 ] );
-					components[ minVertex ].stBounds[ 1 ][ 0 ] = std::max( components[ minVertex ].stBounds[ 1 ][ 0 ],
-											  components[ vertex ].stBounds[ 1 ][ 0 ] );
-					components[ minVertex ].stBounds[ 1 ][ 1 ] = std::max( components[ minVertex ].stBounds[ 1 ][ 1 ],
-											  components[ vertex ].stBounds[ 1 ][ 1 ] );
-				}
-			}
-		}
-	} while( updated );
-
-	// center texture coords
-	for( i = 0; i < numVerts; i++ ) {
-		if( components[ i ].minVertex == i ) {
-			for( j = 0; j < 2; j++ ) {
-				/* Reuse the “minus 0.5” trick:
-				 *
-				 * This is the loader for triangle meshes, there are probably no rotating textures on triangle meshes,
-				 * but it's better to keep it consistent.
-				 * -- @gimhael https://github.com/DaemonEngine/Daemon/pull/208#discussion_r299809045
-				 */
-				components[ i ].stBounds[ 0 ][ j ] = rintf( 0.5f * (components[ i ].stBounds[ 1 ][ j ] + components[ i ].stBounds[ 0 ][ j ]) - 0.5f );
-			}
-		}
-
-		for ( j = 0; j < 2; j++ )
-		{
-			cv->verts[ i ].st[ j ] -= components[ components[ i ].minVertex ].stBounds[ 0 ][ j ];
-		}
-	}
-
-	ri.Hunk_FreeTempMemory( components );
-
-	// calc bounding box
-	// HACK: don't loop only through the vertices because they can contain bad data with .lwo models ...
-	ClearBounds( cv->bounds[ 0 ], cv->bounds[ 1 ] );
-
-	for ( i = 0, tri = cv->triangles; i < numTriangles; i++, tri++ )
-	{
-		AddPointToBounds( cv->verts[ tri->indexes[ 0 ] ].xyz, cv->bounds[ 0 ], cv->bounds[ 1 ] );
-		AddPointToBounds( cv->verts[ tri->indexes[ 1 ] ].xyz, cv->bounds[ 0 ], cv->bounds[ 1 ] );
-		AddPointToBounds( cv->verts[ tri->indexes[ 2 ] ].xyz, cv->bounds[ 0 ], cv->bounds[ 1 ] );
-	}
-
-	// Tr3B - calc tangent spaces
-	{
-		srfVert_t *dv0, *dv1, *dv2;
-		vec3_t    tangent, binormal;
-
-		for ( i = 0, tri = cv->triangles; i < numTriangles; i++, tri++ )
-		{
-			dv0 = &cv->verts[ tri->indexes[ 0 ] ];
-			dv1 = &cv->verts[ tri->indexes[ 1 ] ];
-			dv2 = &cv->verts[ tri->indexes[ 2 ] ];
-
-			R_CalcTangents( tangent, binormal,
-					dv0->xyz, dv1->xyz, dv2->xyz,
-					dv0->st, dv1->st, dv2->st );
-			R_TBNtoQtangents( tangent, binormal, dv0->normal,
-					  dv0->qtangent );
-			R_TBNtoQtangents( tangent, binormal, dv1->normal,
-					  dv1->qtangent );
-			R_TBNtoQtangents( tangent, binormal, dv2->normal,
-					  dv2->qtangent );
-		}
-	}
-
-	// finish surface
-	FinishGenericSurface( ds, ( srfGeneric_t * ) cv, cv->verts[ 0 ].xyz );
 }
 
 /*
