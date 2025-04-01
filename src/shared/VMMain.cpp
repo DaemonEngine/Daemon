@@ -73,7 +73,7 @@ static void CommonInit(Sys::OSHandle rootSocket)
 	}
 }
 
-static void LogFatalError(Str::StringRef message)
+static void SendErrorMsg(Str::StringRef message)
 {
 	// Only try sending an ErrorMsg once
 	static std::atomic_flag errorEntered;
@@ -89,6 +89,13 @@ static void LogFatalError(Str::StringRef message)
 	}
 }
 
+#ifdef __native_client__
+// HACK: when we get a fatal exception in the terminate handler and call abort() to trigger
+// a crash dump (as there doesn't seem to be an API for requesting a minidump directly),
+// the error message is passed through this variable.
+static char realErrorMessage[256];
+#endif
+
 void Sys::Error(Str::StringRef message)
 {
 	if (!OnMainThread()) {
@@ -101,7 +108,13 @@ void Sys::Error(Str::StringRef message)
 		std::abort();
 	}
 
-	LogFatalError(message);
+#ifdef __native_client__
+	if (realErrorMessage[0]) {
+		message = realErrorMessage;
+	}
+#endif
+
+	SendErrorMsg(message);
 
 #ifdef BUILD_VM_IN_PROCESS
 	// Then engine will close the root socket when it wants us to exit, which
@@ -143,13 +156,22 @@ extern "C" DLLEXPORT ALIGN_STACK_FOR_MINGW void vmMain(Sys::OSHandle rootSocket)
 // traditional Unix core dump (for native exe), a debugger, etc.
 NORETURN static void TerminateHandler()
 {
+#ifdef __native_client__
+	// Using a lambda triggers -Wformat-security...
+#	define DispatchError(...) snprintf(realErrorMessage, sizeof(realErrorMessage), __VA_ARGS__)
+#else
+	auto DispatchError = [](const char* msg, const auto&... fmtArgs) {
+		Sys::Error(msg, fmtArgs...);
+	};
+#endif
+
 	if (Sys::OnMainThread()) {
 		try {
 			throw; // A terminate handler is only called if there is an active exception
 		} catch (std::exception& err) {
-			LogFatalError(Str::Format("Unhandled exception (%s): %s", typeid(err).name(), err.what()));
+			DispatchError("Unhandled exception (%s): %s", typeid(err).name(), err.what());
 		} catch (...) {
-			LogFatalError("Unhandled exception of unknown type");
+			DispatchError("Unhandled exception of unknown type");
 		}
 	}
 	std::abort();
