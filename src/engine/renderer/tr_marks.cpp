@@ -199,13 +199,13 @@ void R_BoxSurfaces_r( bspNode_t *node, vec3_t mins, vec3_t maxs, surfaceType_t *
 		else if ( * ( surf->data ) == surfaceType_t::SF_FACE )
 		{
 			// the face plane should go through the box
-			s = BoxOnPlaneSide( mins, maxs, & ( ( srfSurfaceFace_t * ) surf->data )->plane );
+			s = BoxOnPlaneSide( mins, maxs, & ( ( srfGeneric_t* ) surf->data )->plane );
 
 			if ( s == 1 || s == 2 )
 			{
 				surf->viewCount = tr.viewCountNoReset;
 			}
-			else if ( DotProduct( ( ( srfSurfaceFace_t * ) surf->data )->plane.normal, dir ) > -0.5 )
+			else if ( DotProduct( ( ( srfGeneric_t* ) surf->data )->plane.normal, dir ) > -0.5 )
 			{
 				// don't add faces that make sharp angles with the projection direction
 				surf->viewCount = tr.viewCountNoReset;
@@ -301,7 +301,6 @@ int R_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projectio
 	vec3_t           clipPoints[ 2 ][ MAX_VERTS_ON_POLY ];
 	int              numClipPoints;
 	float            *v;
-	srfSurfaceFace_t *face;
 	srfGridMesh_t    *cv;
 	srfVert_t        *dv;
 	srfTriangle_t    *tri;
@@ -450,7 +449,7 @@ int R_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projectio
 		}
 		else if ( *surfaces[ i ] == surfaceType_t::SF_FACE )
 		{
-			face = ( srfSurfaceFace_t * ) surfaces[ i ];
+			srfGeneric_t* face = ( srfGeneric_t* ) surfaces[i];
 
 			// check the normal of this face
 			if ( DotProduct( face->plane.normal, projectionDir ) > -0.5 )

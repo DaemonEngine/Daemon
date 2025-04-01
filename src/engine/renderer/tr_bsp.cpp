@@ -2605,7 +2605,7 @@ static void R_CreateWorldVBO()
 		if ( *surface->data == surfaceType_t::SF_FACE || *surface->data == surfaceType_t::SF_GRID
 			|| *surface->data == surfaceType_t::SF_TRIANGLES )
 		{
-			srfSurfaceFace_t* srf = ( srfSurfaceFace_t * ) surface->data;
+			srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
 
 			numVerts += srf->numVerts;
 			numTriangles += srf->numTriangles;
