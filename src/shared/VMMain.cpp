@@ -106,13 +106,16 @@ static char realErrorMessage[256];
 void Sys::Error(Str::StringRef message)
 {
 	if (!OnMainThread()) {
-		// On a non-main thread we can't rely on IPC, so we may not be able to communicate the
-		// error message. So try to trigger a crash dump instead (exiting with abort() triggers
-		// one but exiting with _exit() doesn't). This will give something to work with when
-		// debugging. (For the main thread case a message is usually enough to diagnose the problem
-		// so we don't generate a crash dump; those consume disk space after all.)
+		// On a non-main thread we can't use IPC, so we can't communicate the error message. Just exit.
 		// Also note that throwing ExitException would only work as intended on the main thread.
+#ifdef __native_client__
+		// Don't abort, to avoid "nacl_loader.exe has stopped working" popup on Windows
+		_exit(222);
+#else
+		// Trigger a core dump if enabled. Would give us something to work with since the
+		// error message can't be shown.
 		std::abort();
+#endif
 	}
 
 #ifdef __native_client__
