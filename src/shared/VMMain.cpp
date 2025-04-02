@@ -37,6 +37,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 IPC::Channel VM::rootChannel;
 
+#ifdef BUILD_VM_NATIVE_EXE
+// When using native exe, turn this off if you want to use core dumps (*nix) or attach a debugger
+// upon crashing (Windows). Disabling it is like -nocrashhandler for Daemon.
+Cvar::Cvar<bool> VM::useNativeExeCrashHandler(
+	VM_STRING_PREFIX "nativeExeCrashHandler", "catch and log crashes/fatal exceptions in native exe VM", Cvar::NONE, true);
+#endif
+
 #ifdef BUILD_VM_IN_PROCESS
 // Special exception type used to cleanly exit a thread for in-process VMs
 // Using an anonymous namespace so the compiler knows that the exception is
@@ -73,7 +80,7 @@ static void CommonInit(Sys::OSHandle rootSocket)
 	}
 }
 
-static void LogFatalError(Str::StringRef message)
+static void SendErrorMsg(Str::StringRef message)
 {
 	// Only try sending an ErrorMsg once
 	static std::atomic_flag errorEntered;
@@ -89,19 +96,35 @@ static void LogFatalError(Str::StringRef message)
 	}
 }
 
+#ifdef __native_client__
+// HACK: when we get a fatal exception in the terminate handler and call abort() to trigger
+// a crash dump (as there doesn't seem to be an API for requesting a minidump directly),
+// the error message is passed through this variable.
+static char realErrorMessage[256];
+#endif
+
 void Sys::Error(Str::StringRef message)
 {
 	if (!OnMainThread()) {
-		// On a non-main thread we can't rely on IPC, so we may not be able to communicate the
-		// error message. So try to trigger a crash dump instead (exiting with abort() triggers
-		// one but exiting with _exit() doesn't). This will give something to work with when
-		// debugging. (For the main thread case a message is usually enough to diagnose the problem
-		// so we don't generate a crash dump; those consume disk space after all.)
+		// On a non-main thread we can't use IPC, so we can't communicate the error message. Just exit.
 		// Also note that throwing ExitException would only work as intended on the main thread.
+#ifdef __native_client__
+		// Don't abort, to avoid "nacl_loader.exe has stopped working" popup on Windows
+		_exit(222);
+#else
+		// Trigger a core dump if enabled. Would give us something to work with since the
+		// error message can't be shown.
 		std::abort();
+#endif
 	}
 
-	LogFatalError(message);
+#ifdef __native_client__
+	if (realErrorMessage[0]) {
+		message = realErrorMessage;
+	}
+#endif
+
+	SendErrorMsg(message);
 
 #ifdef BUILD_VM_IN_PROCESS
 	// Then engine will close the root socket when it wants us to exit, which
@@ -143,13 +166,28 @@ extern "C" DLLEXPORT ALIGN_STACK_FOR_MINGW void vmMain(Sys::OSHandle rootSocket)
 // traditional Unix core dump (for native exe), a debugger, etc.
 NORETURN static void TerminateHandler()
 {
+#ifdef __native_client__
+	// Using a lambda triggers -Wformat-security...
+#	define DispatchError(...) snprintf(realErrorMessage, sizeof(realErrorMessage), __VA_ARGS__)
+#elif defined(BUILD_VM_NATIVE_EXE)
+	auto DispatchError = [](const char* msg, const auto&... fmtArgs) {
+		if (VM::useNativeExeCrashHandler.Get()) {
+			Sys::Error(msg, fmtArgs...);
+		} else {
+			Log::Warn(XSTRING(VM_NAME) " VM terminating:");
+			Log::Warn(msg, fmtArgs...);
+			// fall through to abort() for core dump etc.
+		}
+	};
+#endif
+
 	if (Sys::OnMainThread()) {
 		try {
 			throw; // A terminate handler is only called if there is an active exception
 		} catch (std::exception& err) {
-			LogFatalError(Str::Format("Unhandled exception (%s): %s", typeid(err).name(), err.what()));
+			DispatchError("Unhandled exception (%s): %s", typeid(err).name(), err.what());
 		} catch (...) {
-			LogFatalError("Unhandled exception of unknown type");
+			DispatchError("Unhandled exception of unknown type");
 		}
 	}
 	std::abort();
@@ -177,7 +215,9 @@ int main(int argc, char** argv)
 	std::set_terminate(TerminateHandler);
 	// Set up crash handling for this process. This will allow crashes to be
 	// sent back to the engine and reported to the user.
+#ifdef __native_client__
 	Sys::SetupCrashHandler();
+#endif
 
 	try {
 		CommonInit(rootSocket);
