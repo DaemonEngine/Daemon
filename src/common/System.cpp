@@ -342,6 +342,8 @@ void SetupCrashHandler()
 #elif defined(__native_client__)
 static void CrashHandler(const void* data, size_t n)
 {
+    // Note: this only works on the main thread. Otherwise we hit
+    // Sys::Error("SendMsg from non-main VM thread");
     VM::CrashDump(static_cast<const uint8_t*>(data), n);
     Sys::Error("Crashed with NaCl exception");
 }
