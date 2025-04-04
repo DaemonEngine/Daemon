@@ -80,7 +80,7 @@ namespace Util {
 		{
 			if (size > std::numeric_limits<uint32_t>::max())
 				Sys::Drop("IPC: Size out of range in message");
-			Write<uint32_t>(size);
+			Write<uint32_t>(static_cast<uint32_t>( size ));
 		}
 		template<typename T, typename Arg> void Write(Arg&& value)
 		{
@@ -247,7 +247,7 @@ namespace Util {
 	struct SerializeTraits<bool> {
 		static void Write(Writer& stream, bool value)
 		{
-			stream.Write<uint8_t>(+value);
+			stream.Write<uint8_t>(static_cast<uint8_t>(value));
 		}
 		static bool Read(Reader& stream)
 		{
