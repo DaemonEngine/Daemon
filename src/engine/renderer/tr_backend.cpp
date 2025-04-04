@@ -1016,19 +1016,13 @@ static int MergeInteractionBounds( const matrix_t lightViewProjectionMatrix, int
 			}
 		}
 
-		if ( *surface == surfaceType_t::SF_FACE || *surface == surfaceType_t::SF_GRID || *surface == surfaceType_t::SF_TRIANGLES )
+		if ( *surface == surfaceType_t::SF_FACE || *surface == surfaceType_t::SF_GRID || *surface == surfaceType_t::SF_TRIANGLES
+			|| *surface == surfaceType_t::SF_VBO_MESH )
 		{
 			srfGeneric_t *gen = ( srfGeneric_t * ) surface;
 
 			VectorCopy( gen->bounds[ 0 ], worldBounds[ 0 ] );
 			VectorCopy( gen->bounds[ 1 ], worldBounds[ 1 ] );
-		}
-		else if ( *surface == surfaceType_t::SF_VBO_MESH )
-		{
-			srfVBOMesh_t *srf = ( srfVBOMesh_t * ) surface;
-
-			VectorCopy( srf->bounds[ 0 ], worldBounds[ 0 ] );
-			VectorCopy( srf->bounds[ 1 ], worldBounds[ 1 ] );
 		}
 		else if ( *surface == surfaceType_t::SF_MDV )
 		{
