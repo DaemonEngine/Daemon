@@ -411,7 +411,8 @@ build_glew() {
 		install_name_tool -id "@rpath/libGLEW.${GLEW_VERSION}.dylib" "${PREFIX}/lib/libGLEW.${GLEW_VERSION}.dylib"
 		;;
 	linux-*-*)
-		make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
+		local strip="${HOST/-unknown-/-}-strip"
+		make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" STRIP="${strip}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
 		make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" LIBDIR="${PREFIX}/lib"
 		;;
 	*)
