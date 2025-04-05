@@ -2593,21 +2593,20 @@ might still appear at that side.
 int R_TryStitchingPatch( int grid1num )
 {
 	int           j, numstitches;
-	srfGridMesh_t *grid1, *grid2;
 
 	numstitches = 0;
-	grid1 = ( srfGridMesh_t * ) s_worldData.surfaces[ grid1num ].data;
 
 	for ( j = 0; j < s_worldData.numSurfaces; j++ )
 	{
-		//
-		grid2 = ( srfGridMesh_t * ) s_worldData.surfaces[ j ].data;
+		srfGridMesh_t *grid2 = ( srfGridMesh_t * ) s_worldData.surfaces[ j ].data;
 
 		// if this surface is not a grid
 		if ( grid2->surfaceType != surfaceType_t::SF_GRID )
 		{
 			continue;
 		}
+
+		srfGridMesh_t *grid1 = ( srfGridMesh_t * ) s_worldData.surfaces[ grid1num ].data;
 
 		// grids in the same LOD group should have the exact same lod radius
 		if ( grid1->lodRadius != grid2->lodRadius )
