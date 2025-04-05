@@ -108,7 +108,7 @@ static void SendConfigStringToClient( int cs, client_t *cl )
 
 		*out++ = c;
 
-		if ( !*in )
+		if ( !c )
 		{
 			break;
 		}
