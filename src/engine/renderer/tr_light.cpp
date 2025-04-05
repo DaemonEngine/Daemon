@@ -135,17 +135,17 @@ float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 
 	for( x = from[ 0 ], xFactor = factors[ 0 ]; x <= to[ 0 ];
 	     x++, xFactor++ ) {
-		if( x < 0 || x > w->lightGridBounds[ 0 ] )
+		if( x < 0 || x >= w->lightGridBounds[ 0 ] )
 			continue;
 
 		for( y = from[ 1 ], yFactor = factors[ 1 ]; y <= to[ 1 ];
 		     y++, yFactor++ ) {
-			if( y < 0 || y > w->lightGridBounds[ 1 ] )
+			if( y < 0 || y >= w->lightGridBounds[ 1 ] )
 				continue;
 
 			for( z = from[ 2 ], zFactor = factors[ 2 ]; z <= to[ 2 ];
 			     z++, zFactor++ ) {
-				if( z < 0 || z > w->lightGridBounds[ 2 ] )
+				if( z < 0 || z >= w->lightGridBounds[ 2 ] )
 					continue;
 
 				gp1 = w->lightGridData1 + x * gridStep[ 0 ] + y * gridStep[ 1 ] + z * gridStep[ 2 ];
