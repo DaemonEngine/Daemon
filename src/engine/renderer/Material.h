@@ -63,7 +63,6 @@ struct DrawCommand {
 	IndirectCompactCommand cmd;
 	uint32_t materialsSSBOOffset = 0;
 	uint32_t textureCount = 0;
-	Texture* textures[MAX_DRAWCOMMAND_TEXTURES];
 
 	DrawCommand() {
 	}
@@ -72,18 +71,22 @@ struct DrawCommand {
 		cmd = other.cmd;
 		materialsSSBOOffset = other.materialsSSBOOffset;
 		textureCount = other.textureCount;
-		memcpy( textures, other.textures, textureCount * sizeof( Texture* ) );
 	}
 };
 
 struct MaterialSurface {
 	shader_t* shader;
+	surfaceType_t* surface;
 	bool bspSurface;
+	int16_t lightMapNum;
 	int fog;
 	int portalNum = -1;
 
 	GLuint firstIndex;
 	GLuint count;
+
+	vec3_t origin;
+	float radius;
 
 	srfVert_t* verts;
 	srfTriangle_t* tris;
@@ -91,10 +94,12 @@ struct MaterialSurface {
 	uint32_t materialPackIDs[MAX_SHADER_STAGES];
 	uint32_t materialIDs[MAX_SHADER_STAGES];
 
-	uint32_t drawCommandIDs[MAX_SHADER_STAGES];
 	uint32_t texDataIDs[MAX_SHADER_STAGES];
 	bool texDataDynamic[MAX_SHADER_STAGES];
 	uint32_t shaderVariant[MAX_SHADER_STAGES];
+
+	uint8_t stages = 0;
+	shaderStage_t* shaderStages[MAX_SHADER_STAGES];
 };
 
 struct Material {
@@ -116,7 +121,7 @@ struct Material {
 
 	// Used only for glsl_restart
 	shaderStage_t* refStage;
-	drawSurf_t refDrawSurf;
+	MaterialSurface refDrawSurf;
 
 	int deformIndex;
 	bool tcGenEnvironment;
@@ -139,10 +144,10 @@ struct Material {
 
 	bool usePolygonOffset = false;
 
-	fog_t* fog = nullptr;
+	int fog = 0;
 
-	std::vector<drawSurf_t*> drawSurfs;
-	std::vector<DrawCommand> drawCommands;
+	uint32_t drawCommandCount = 0;
+	uint32_t drawCommandCount2 = 0;
 	bool texturesResident = false;
 	std::vector<Texture*> textures;
 
@@ -233,7 +238,7 @@ struct PortalSurface {
 
 struct PortalView {
 	uint32_t count;
-	drawSurf_t* drawSurf;
+	drawSurf_t drawSurf;
 	uint32_t views[MAX_VIEWS];
 };
 
@@ -318,18 +323,15 @@ enum class BufferBind {
 
 class MaterialSystem {
 	public:
-	bool generatedWorldCommandBuffer = false;
-	bool generatingWorldCommandBuffer = false;
-	vec3_t worldViewBounds[2] = {};
+	vec3_t worldViewBounds[2];
 
 	uint8_t maxStages = 0;
 	uint32_t descriptorSize;
 
 	std::vector<DrawCommand> drawCommands;
 
-	std::vector<drawSurf_t*> portalSurfacesTmp;
-	std::vector<drawSurf_t> portalSurfaces;
-	std::vector<drawSurf_t> autospriteSurfaces;
+	std::vector<MaterialSurface> portalSurfaces;
+	std::vector<bspSurface_t*> autospriteSurfaces;
 	std::vector<PortalSurface> portalBounds;
 	uint32_t totalPortals;
 	std::vector<shader_t*> skyShaders;
@@ -358,10 +360,6 @@ class MaterialSystem {
 
 	bool frameStart = false;
 
-	void AddTexture( Texture* texture );
-	void AddDrawCommand( const uint32_t materialID, const uint32_t materialPackID, const uint32_t materialsSSBOOffset,
-						 const GLuint count, const GLuint firstIndex );
-
 	void AddPortalSurfaces();
 	void AddAutospriteSurfaces();
 	void RenderMaterials( const shaderSort_t fromSort, const shaderSort_t toSort, const uint32_t viewID );
@@ -379,20 +377,20 @@ class MaterialSystem {
 	void InitGLBuffers();
 	void FreeGLBuffers();
 
-	void AddStageTextures( drawSurf_t* drawSurf, const uint32_t stage, Material* material );
-	void AddStage( drawSurf_t* drawSurf, shaderStage_t* pStage, uint32_t stage,
+	void AddStageTextures( MaterialSurface* surface, shader_t* shader, shaderStage_t* pStage, const uint32_t stage, Material* material );
+	void AddStage( MaterialSurface* surface, shaderStage_t* pStage, uint32_t stage,
 		const bool mayUseVertexOverbright, const bool vertexLit, const bool fullbright );
-	void ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage,
-		uint32_t& previousMaterialID );
-	void GenerateWorldMaterials();
+	void ProcessStage( MaterialSurface* surface, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage,
+		uint32_t& previousMaterialID, bool skipStageSync = false );
+	void GenerateMaterial( MaterialSurface* surface );
 	void GenerateWorldMaterialsBuffer();
-	void GenerateWorldCommandBuffer();
+	void GenerateWorldCommandBuffer( std::vector<MaterialSurface>& surfaces );
 	void GeneratePortalBoundingSpheres();
+
+	void SetWorldBounds( vec3_t bounds[2] );
 
 	void GenerateMaterialsBuffer( std::vector<shaderStage_t*>& stages, const uint32_t size, uint32_t* materialsData );
 	void GenerateTexturesBuffer( std::vector<TextureData>& textures, TexBundle* textureBundles );
-
-	void AddAllWorldSurfaces();
 
 	void GLSLRestart();
 
@@ -410,13 +408,13 @@ class MaterialSystem {
 	image_t* depthImage;
 	int depthImageLevels;
 
-	DrawCommand cmd;
-	uint32_t lastCommandID;
 	uint32_t totalDrawSurfs;
 	uint32_t totalBatchCount = 0;
 
 	uint32_t surfaceCommandsCount = 0;
 	uint32_t surfaceDescriptorsCount = 0;
+
+	uint32_t packIDs[3] = { 0, 0, 0 };
 
 	std::vector<shaderStage_t*> materialStages;
 	std::vector<shaderStage_t*> dynamicStages;
@@ -468,8 +466,6 @@ void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool
 void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool );
 void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool );
 
-// void UpdateSurf( uint32)
-
 void BindShaderNONE( Material* );
 void BindShaderNOP( Material* );
 void BindShaderGeneric3D( Material* material );
@@ -481,15 +477,15 @@ void BindShaderHeatHaze( Material* material );
 void BindShaderLiquid( Material* material );
 void BindShaderFog( Material* material );
 
-void ProcessMaterialNONE( Material*, shaderStage_t*, drawSurf_t* );
-void ProcessMaterialNOP( Material*, shaderStage_t*, drawSurf_t* );
-void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
-void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf );
-void ProcessMaterialReflection( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
-void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
-void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
-void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf );
-void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
-void ProcessMaterialFog( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf );
+void ProcessMaterialNONE( Material*, shaderStage_t*, MaterialSurface* );
+void ProcessMaterialNOP( Material*, shaderStage_t*, MaterialSurface* );
+void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ );
+void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, MaterialSurface* surface );
+void ProcessMaterialReflection( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ );
+void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ );
+void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ );
+void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, MaterialSurface* surface );
+void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ );
+void ProcessMaterialFog( Material* material, shaderStage_t* pStage, MaterialSurface* surface );
 
 #endif // MATERIAL_H
