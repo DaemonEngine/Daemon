@@ -25,7 +25,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ################################################################################
-# Determine compiler
+# Compiler detection.
 ################################################################################
 
 # FIXME: Force -W#pragma-messages and -Wno-error
@@ -39,7 +39,7 @@ function(detect_daemon_compiler lang)
 
 	try_compile(BUILD_RESULT
 		"${CMAKE_BINARY_DIR}"
-		"${DAEMON_DIR}/cmake/DaemonCompiler/DaemonCompiler${${lang}_EXT}"
+		"${CMAKE_CURRENT_LIST_DIR}/Compiler/Compiler${${lang}_EXT}"
 		CMAKE_FLAGS CMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
 		OUTPUT_VARIABLE BUILD_LOG
 	)
@@ -47,7 +47,7 @@ function(detect_daemon_compiler lang)
 	get_filename_component(compiler_basename "${CMAKE_${lang}_COMPILER}" NAME)
 
 	if (NOT BUILD_RESULT)
-		message(WARNING "Failed to build DaemonCompiler${${lang}_EXT}, relying on CMake builtin detection.")
+		message(WARNING "Failed to build Compiler${${lang}_EXT}, relying on CMake builtin detection.")
 		set(compiler_name "Unknown")
 	else()
 		set(BUILD_LOG "\n${BUILD_LOG}\n")

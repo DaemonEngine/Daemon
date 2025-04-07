@@ -32,17 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 platforms including ppc64, but we know how to do it for them. */
 
 #include <stdint.h>
-#include "../../src/common/Endian.h"
-
-/* qprocessordetection.h will print an error if it fails to detect
-endianness and while it is not already set, so the else clause is
-outsourced to that qprocessordetection.h file instead. */
-
-#if defined(Q3_BIG_ENDIAN)
-	#define Q_BYTE_ORDER Q_BIG_ENDIAN
-#elif defined(Q3_LITTLE_ENDIAN)
-	#define Q_BYTE_ORDER Q_LITTLE_ENDIAN
-#endif
 
 /* This source file includes qprocessordetection.h from Qt:
 
