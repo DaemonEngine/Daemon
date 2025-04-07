@@ -1,7 +1,5 @@
-#! /usr/bin/env bash
-
 # Daemon BSD Source Code
-# Copyright (c) 2024, Daemon Developers
+# Copyright (c) 2025, Daemon Developers
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,24 +24,17 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Test script not used by the CMake build system. Usage example:
-# ./DaemonCompiler.sh gcc
+################################################################################
+# Collection of reusable CMake helpers written for the Dæmon engine and related
+# projects.
+################################################################################
 
-set -ueo pipefail
+# Source generation.
+include(${CMAKE_CURRENT_LIST_DIR}/SourceGenerator.cmake)
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-file_path="${script_dir}/DaemonCompiler.c"
+# Target detection.
+include(${CMAKE_CURRENT_LIST_DIR}/System.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/Architecture.cmake)
 
-# PNaCl doesn't work with “-o /dev/null” as it uses the output path as a
-# pattern for temporary files and then the parent folder should be writable.
-# Zig caches the build if both the source and the output don't change. Since
-# the /dev/null file never changes, Zig skips the compilation once done once.
-# So we need to use a randomly named path in a writable directory.
-temp_file="$(mktemp)"
-
-"${@}" "${file_path}" -o "${temp_file}" 2>&1 \
-	| grep '<REPORT<' \
-	| sed -e 's/.*<REPORT<//;s/>REPORT>.*//' \
-|| "${@}" "${file_path}" -o "${temp_file}"
-
-rm "${temp_file}"
+# Compiler detection.
+include(${CMAKE_CURRENT_LIST_DIR}/Compiler.cmake)

@@ -25,14 +25,14 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ################################################################################
-# Determine architecture
+# Architecture detection.
 ################################################################################
 
 # When adding a new architecture, look at all the places ARCH is used
 
 try_compile(BUILD_RESULT
 	"${CMAKE_BINARY_DIR}"
-	"${DAEMON_DIR}/cmake/DaemonArchitecture/DaemonArchitecture.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/Architecture/Architecture.cpp"
 	CMAKE_FLAGS CMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
 	OUTPUT_VARIABLE BUILD_LOG
 )
@@ -46,7 +46,7 @@ try_compile(BUILD_RESULT
 # Setting USE_WERROR to ON doesn't print this warning.
 if (NOT BUILD_RESULT)
 	message(WARNING
-		"Failed to build DaemonArchitecture.cpp\n"
+		"Failed to build Architecture.cpp\n"
 		"Setting -Werror in CXXFLAGS can produce false positive errors\n"
 		"${BUILD_LOG}"
 	)
@@ -57,12 +57,12 @@ string(REPLACE "DAEMON_ARCH_" "" ARCH "${ARCH_DEFINE}")
 
 if (NOT ARCH)
 	message(FATAL_ERROR
-		"Missing DAEMON_ARCH, there is a mistake in DaemonArchitecture.cpp\n"
+		"Missing DAEMON_ARCH, there is a mistake in Architecture.cpp\n"
 		"${BUILD_LOG}"
 	)
 endif()
 
-message(STATUS "Detected architecture: ${ARCH}")
+message(STATUS "Detected target architecture: ${ARCH}")
 
 add_definitions(-D${ARCH_DEFINE})
 

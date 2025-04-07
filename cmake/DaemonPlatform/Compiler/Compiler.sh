@@ -1,5 +1,7 @@
+#! /usr/bin/env bash
+
 # Daemon BSD Source Code
-# Copyright (c) 2013-2016, Daemon Developers
+# Copyright (c) 2024, Daemon Developers
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,21 +26,24 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-################################################################################
-# Determine platform
-################################################################################
+# Test script not used by the CMake build system. Usage example:
+# ./Compiler.sh gcc
 
-# When adding a new platform, look at all the places WIN32, APPLE and LINUX are used
-if( CMAKE_SYSTEM_NAME MATCHES "Linux" )
-  set( LINUX ON )
-elseif( CMAKE_SYSTEM_NAME MATCHES "FreeBSD" )
-  set( FREEBSD ON )
-elseif( WIN32 )
-elseif( APPLE )
-elseif( NACL )
-else()
-  message( FATAL_ERROR "Platform not supported" )
-endif()
+set -ueo pipefail
 
-include(DaemonArchitecture)
-include(DaemonCompiler)
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+file_path="${script_dir}/Compiler.c"
+
+# PNaCl doesn't work with “-o /dev/null” as it uses the output path as a
+# pattern for temporary files and then the parent folder should be writable.
+# Zig caches the build if both the source and the output don't change. Since
+# the /dev/null file never changes, Zig skips the compilation once done once.
+# So we need to use a randomly named path in a writable directory.
+temp_file="$(mktemp)"
+
+"${@}" "${file_path}" -o "${temp_file}" 2>&1 \
+	| grep '<REPORT<' \
+	| sed -e 's/.*<REPORT<//;s/>REPORT>.*//' \
+|| "${@}" "${file_path}" -o "${temp_file}"
+
+rm "${temp_file}"
