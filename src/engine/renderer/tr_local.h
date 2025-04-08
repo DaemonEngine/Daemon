@@ -1735,6 +1735,7 @@ enum class ssaoMode {
 
 // ydnar: plain map drawsurfaces must match this header
 	struct srfGeneric_t {
+		// v Valid in: SF_FACE, SF_GRID, SF_TRIANGLES, SF_VBO_MESH
 		surfaceType_t surfaceType;
 
 		// Culling information
@@ -1742,20 +1743,23 @@ enum class ssaoMode {
 		vec3_t origin;
 		float radius;
 
-		cplane_t plane;
-
-		int numVerts;
-		srfVert_t* verts;
-
-		int numTriangles;
-		srfTriangle_t* triangles;
-
 		// Static render data
 		VBO_t* vbo;
 		IBO_t* ibo;
 
 		// BSP VBO offset
 		int firstIndex;
+		// ^ Valid in: SF_FACE, SF_GRID, SF_TRIANGLES, SF_VBO_MESH
+
+		cplane_t plane; // Valid in: SF_FACE, SF_TRIANGLES
+
+		int numVerts; // Valid in: SF_FACE, SF_GRID, SF_TRIANGLES, SF_VBO_MESH
+		srfVert_t* verts; // Valid in: SF_FACE, SF_GRID, SF_TRIANGLES
+
+		// v Valid in: SF_FACE, SF_GRID, SF_TRIANGLES
+		int numTriangles;
+		srfTriangle_t* triangles;
+		// ^ Valid in: SF_FACE, SF_GRID, SF_TRIANGLES
 	};
 
 	struct srfGridMesh_t : srfGeneric_t {
