@@ -2911,8 +2911,8 @@ static void R_CreateWorldVBO()
 			if ( *surf1->data == surfaceType_t::SF_FACE || *surf1->data == surfaceType_t::SF_TRIANGLES
 				|| *surf1->data == surfaceType_t::SF_GRID )
 			{
-				srfGeneric_t* face = ( srfGeneric_t* ) surf1->data;
-				firstIndex = face->firstIndex;
+				srfGeneric_t* srf = ( srfGeneric_t* ) surf1->data;
+				firstIndex = srf->firstIndex;
 			}
 
 			// count verts and indexes and add bounds for the merged surface
