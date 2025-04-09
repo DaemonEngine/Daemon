@@ -38,6 +38,10 @@ namespace VM {
 	// Root channel used to communicate with the engine
 	extern IPC::Channel rootChannel;
 
+#ifdef BUILD_VM_NATIVE_EXE
+	extern Cvar::Cvar<bool> useNativeExeCrashHandler;
+#endif
+
 	// Functions each specific gamelogic should implement
 	void VMInit();
 	void VMHandleSyscall(uint32_t id, Util::Reader reader);
