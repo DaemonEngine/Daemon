@@ -397,10 +397,16 @@ build_glew() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
+	# env hack: CFLAGS.EXTRA is populated with some flags, which are sometimess necessary for
+	# compilation, in the makefile with +=. If CFLAGS.EXTRA is set on the command line, those
+	# += will be ignored. But if it is set via the environment, the two sources are actually
+	# concatenated how we would like. Bash doesn't allow variables with a dot so use env.
+	# The hack doesn't work on Mac's ancient Make (the env var has no effect), so we have to
+	# manually re-add the required flags there.
 	case "${PLATFORM}" in
 	windows-*-*)
-		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
-		make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
+		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}"
+		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}"
 		mv "${PREFIX}/lib/glew32.dll" "${PREFIX}/bin/"
 		rm "${PREFIX}/lib/libglew32.a"
 		cp lib/libglew32.dll.a "${PREFIX}/lib/"
@@ -412,8 +418,8 @@ build_glew() {
 		;;
 	linux-*-*)
 		local strip="${HOST/-unknown-/-}-strip"
-		make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" STRIP="${strip}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
-		make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" LIBDIR="${PREFIX}/lib"
+		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" STRIP="${strip}"
+		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" LIBDIR="${PREFIX}/lib"
 		;;
 	*)
 		log ERROR 'Unsupported platform for GLEW'
