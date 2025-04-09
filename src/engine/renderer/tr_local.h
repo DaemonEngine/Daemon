@@ -1701,8 +1701,6 @@ enum class ssaoMode {
 		interaction_t *next;
 	};
 
-#define MAX_FACE_POINTS 64
-
 #define MAX_PATCH_SIZE  64 // max dimensions of a patch mesh in map file
 #define MAX_GRID_SIZE   65 // max dimensions of a grid mesh in memory
 
@@ -1736,97 +1734,53 @@ enum class ssaoMode {
 	};
 
 // ydnar: plain map drawsurfaces must match this header
-	struct srfGeneric_t
-	{
+	struct srfGeneric_t {
 		surfaceType_t surfaceType;
 
-		// culling information
-		vec3_t   bounds[ 2 ];
-		vec3_t   origin;
-		float    radius;
+		// Culling information
+		vec3_t bounds[2];
+		vec3_t origin;
+		float radius;
+
+		cplane_t plane;
+
+		int numVerts;
+		srfVert_t* verts;
+
+		int numTriangles;
+		srfTriangle_t* triangles;
+
+		// Static render data
+		VBO_t* vbo;
+		IBO_t* ibo;
+
+		// BSP VBO offset
+		int firstIndex;
 	};
 
-	struct srfGridMesh_t : srfGeneric_t
-	{
+	struct srfGridMesh_t : srfGeneric_t {
 		// lod information, which may be different
 		// than the culling information to allow for
 		// groups of curves that LOD as a unit
 		vec3_t lodOrigin;
-		float  lodRadius;
-		int    lodFixed;
-		int    lodStitched;
+		float lodRadius;
+		int lodFixed;
+		int lodStitched;
 
 		// triangle definitions
-		int           width, height;
-		float         *widthLodError;
-		float         *heightLodError;
-
-		int           numTriangles;
-		srfTriangle_t *triangles;
-
-		int           numVerts;
-		srfVert_t     *verts;
-
-		// BSP VBO offset
-		int firstIndex;
-
-		// static render data
-		VBO_t *vbo; // points to bsp model VBO
-		IBO_t *ibo;
+		int width, height;
+		float* widthLodError;
+		float* heightLodError;
 	};
 
-	struct srfSurfaceFace_t : srfGeneric_t
-	{
-		cplane_t     plane;
-
-		// triangle definitions
-		int           numTriangles;
-		srfTriangle_t *triangles;
-
-		int           numVerts;
-		srfVert_t     *verts;
-
-		// BSP VBO offset
-		int firstIndex;
-
-		// static render data
-		VBO_t *vbo; // points to bsp model VBO
-		IBO_t *ibo;
-	};
-
-// misc_models in maps are turned into direct geometry by q3map
-	struct srfTriangles_t : srfGeneric_t
-	{
-		// triangle definitions
-		int           numTriangles;
-		srfTriangle_t *triangles;
-
-		int           numVerts;
-		srfVert_t     *verts;
-
-		// BSP VBO offset
-		int firstIndex;
-
-		// static render data
-		VBO_t *vbo; // points to bsp model VBO
-		IBO_t *ibo;
-	};
-
-	struct srfVBOMesh_t : srfGeneric_t
-	{
+	struct srfVBOMesh_t : srfGeneric_t {
 		struct shader_t *shader; // FIXME move this to somewhere else
 
-		int             lightmapNum; // FIXME get rid of this by merging all lightmaps at level load
-		int             fogIndex;
+		int lightmapNum; // FIXME get rid of this by merging all lightmaps at level load
+		int fogIndex;
 
 		// backEnd stats
-		int firstIndex;
 		int numIndexes;
-		int numVerts;
-
-		// static render data
-		VBO_t *vbo;
-		IBO_t *ibo;
 	};
 
 	struct srfVBOMD5Mesh_t
@@ -1887,6 +1841,8 @@ enum class ssaoMode {
 		int16_t         lightmapNum; // -1 = no lightmap
 		int16_t         fogIndex;
 		int portalNum;
+
+		bool renderable = false;
 
 		surfaceType_t   *data; // any of srf*_t
 	};

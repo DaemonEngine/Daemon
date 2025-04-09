@@ -76,6 +76,27 @@ struct DrawCommand {
 	}
 };
 
+struct MaterialSurface {
+	shader_t* shader;
+	bool bspSurface;
+	int fog;
+	int portalNum = -1;
+
+	GLuint firstIndex;
+	GLuint count;
+
+	srfVert_t* verts;
+	srfTriangle_t* tris;
+
+	uint32_t materialPackIDs[MAX_SHADER_STAGES];
+	uint32_t materialIDs[MAX_SHADER_STAGES];
+
+	uint32_t drawCommandIDs[MAX_SHADER_STAGES];
+	uint32_t texDataIDs[MAX_SHADER_STAGES];
+	bool texDataDynamic[MAX_SHADER_STAGES];
+	uint32_t shaderVariant[MAX_SHADER_STAGES];
+};
+
 struct Material {
 	uint32_t materialsSSBOOffset = 0;
 
