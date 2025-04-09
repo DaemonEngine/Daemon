@@ -1141,7 +1141,7 @@ setup_linux-arm64-default() {
 	common_setup linux aarch64-unknown-linux-gnu
 }
 
-base_windows_amd64_msvc_packages='pkgconfig zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk genlib'
+base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk genlib'
 all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
 
 base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
