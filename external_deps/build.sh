@@ -16,6 +16,34 @@ CURL="$(command -v curl)"
 # are the same as the ones when extracting from the downloaded packages.
 DEPS_VERSION=10
 
+# Package download pages
+PKGCONFIG_BASEURL='https://pkg-config.freedesktop.org/releases'
+NASM_BASEURL='https://www.nasm.us/pub/nasm/releasebuilds'
+ZLIB_BASEURL='https://zlib.net/fossils'
+GMP_BASEURL='https://gmplib.org/download/gmp'
+NETTLE_BASEURL='https://mirror.cyberbits.eu/gnu/nettle'
+CURL_BASEURL='https://curl.se/download'
+SDL2_BASEURL='https://www.libsdl.org/release'
+GLEW_BASEURL='https://github.com/nigels-com/glew/releases'
+# Index: https://download.sourceforge.net/libpng/files/libpng16
+PNG_BASEURL='https://sourceforge.net/projects/libpng/files/libpng16'
+# Index: https://downloads.sourceforge.net/project/libjpeg-turbo
+JPEG_BASEURL='https://sourceforge.net/projects/libjpeg-turbo/files'
+# Index: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/index.html
+WEBP_BASEURL='https://storage.googleapis.com/downloads.webmproject.org/releases/webp'
+OPENAL_BASEURL='https://openal-soft.org/openal-releases'
+OGG_BASEURL='https://downloads.xiph.org/releases/ogg'
+VORBIS_BASEURL='https://downloads.xiph.org/releases/vorbis'
+OPUS_BASEURL='https://downloads.xiph.org/releases/opus'
+OPUSFILE_BASEURL='https://downloads.xiph.org/releases/opus'
+# No index.
+NACLSDK_BASEURL='https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk'
+# No index.
+NACLRUNTIME_BASEURL='https://api.github.com/repos/DaemonEngine/native_client/zipball'
+NCURSES_BASEURL='https://ftpmirror.gnu.org/gnu/ncurses'
+WASISDK_BASEURL='https://github.com/WebAssembly/wasi-sdk/releases'
+WASMTIME_BASEURL='https://github.com/bytecodealliance/wasmtime/releases'
+
 # Package versions
 PKGCONFIG_VERSION=0.29.2
 NASM_VERSION=2.16.01
@@ -28,14 +56,13 @@ GLEW_VERSION=2.2.0
 PNG_VERSION=1.6.39
 JPEG_VERSION=2.1.5.1
 WEBP_VERSION=1.3.2
-FREETYPE_VERSION=2.13.0
 OPENAL_VERSION=1.23.1
 OGG_VERSION=1.3.5
 VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.4
 OPUSFILE_VERSION=0.12
-LUA_VERSION=5.4.4
 NACLSDK_VERSION=44.0.2403.155
+NACLRUNTIME_REVISION=2aea5fcfce504862a825920fcaea1a8426afbd6f
 NCURSES_VERSION=6.2
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
@@ -124,7 +151,10 @@ download_extract() {
 	local our_mirror="https://dl.unvanquished.net/deps/original/${1}"
 	local tarball_file="${DOWNLOAD_DIR}/${1}"; shift
 
-	if "${prefer_ours}"
+	if "${require_theirs}"
+	then
+		download "${tarball_file}" "${@}"
+	elif "${prefer_ours}"
 	then
 		download "${tarball_file}" "${our_mirror}" "${@}"
 	else
@@ -142,7 +172,7 @@ build_pkgconfig() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract pkgconfig "${archive_name}" \
-		"http://pkgconfig.freedesktop.org/releases/${archive_name}"
+		"${PKGCONFIG_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -161,7 +191,7 @@ build_nasm() {
 		local archive_name="${dir_name}-macosx.zip"
 
 		download_extract nasm "${archive_name}" \
-			"https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/${archive_name}"
+			"${NASM_BASEURL}/${NASM_VERSION}/macosx/${archive_name}"
 
 		"${download_only}" && return
 
@@ -181,7 +211,7 @@ build_zlib() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract zlib "${archive_name}" \
-		"https://zlib.net/fossils/${archive_name}" \
+		"${ZLIB_BASEURL}/${archive_name}" \
 		"https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/${archive_name}"
 
 	"${download_only}" && return
@@ -207,7 +237,7 @@ build_gmp() {
 	local archive_name="${dir_name}.tar.bz2"
 
 	download_extract gmp "${archive_name}" \
-		"https://gmplib.org/download/gmp/${archive_name}" \
+		"${GMP_BASEURL}/${archive_name}" \
 		"https://ftpmirror.gnu.org/gnu/gmp/${archive_name}" \
 		"https://ftp.gnu.org/gnu/gmp/${archive_name}"
 
@@ -252,7 +282,7 @@ build_nettle() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract nettle "${archive_name}" \
-		"https://ftpmirror.gnu.org/gnu/nettle/${archive_name}" \
+		"${NETTLE_BASEURL}/${archive_name}" \
 		"https://ftp.gnu.org/gnu/nettle/${archive_name}"
 
 	"${download_only}" && return
@@ -270,7 +300,7 @@ build_curl() {
 	local archive_name="${dir_name}.tar.xz"
 
 	download_extract curl "${archive_name}" \
-		"https://curl.se/download/${archive_name}" \
+		"${CURL_BASEURL}/${archive_name}" \
 		"https://github.com/curl/curl/releases/download/curl-${CURL_VERSION//./_}/${archive_name}"
 
 	"${download_only}" && return
@@ -302,7 +332,7 @@ build_sdl2() {
 	esac
 
 	download_extract sdl2 "${archive_name}" \
-		"https://www.libsdl.org/release/${archive_name}" \
+		"${SDL2_BASEURL}/${archive_name}" \
 		"https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/${archive_name}"
 
 	"${download_only}" && return
@@ -360,7 +390,7 @@ build_glew() {
 	local archive_name="${dir_name}.tgz"
 
 	download_extract glew "${archive_name}" \
-		"https://github.com/nigels-com/glew/releases/download/glew-${GLEW_VERSION}/${archive_name}" \
+		"${GLEW_BASEURL}/download/glew-${GLEW_VERSION}/${archive_name}" \
 		"https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/${archive_name}"
 
 	"${download_only}" && return
@@ -395,7 +425,7 @@ build_png() {
 	local archive_name="${dir_name}.tar.xz"
 
 	download_extract png "${archive_name}" \
-		"https://download.sourceforge.net/libpng/${archive_name}"
+		"${PNG_BASEURL}/${PNG_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -412,7 +442,7 @@ build_jpeg() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract jpeg "${archive_name}" \
-		"https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/${archive_name}"
+		"${JPEG_BASEURL}/${JPEG_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -483,7 +513,7 @@ build_webp() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract webp "${archive_name}" \
-		"https://storage.googleapis.com/downloads.webmproject.org/releases/webp/${archive_name}"
+		"${WEBP_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -492,25 +522,6 @@ build_webp() {
 	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --disable-libwebpdemux "${CONFIGURE_SHARED[@]}"
 	make
 	make install
-}
-
-# Build FreeType
-build_freetype() {
-	local dir_name="freetype-${FREETYPE_VERSION}"
-	local archive_name="${dir_name}.tar.xz"
-
-	download_extract freetype "${archive_name}" \
-		"https://download.savannah.gnu.org/releases/freetype/${archive_name}"
-
-	"${download_only}" && return
-
-	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --without-bzip2 --without-png --with-harfbuzz=no --with-brotli=no
-	make
-	make install
-	cp -a "${PREFIX}/include/freetype2" "${PREFIX}/include/freetype"
-	mv "${PREFIX}/include/freetype" "${PREFIX}/include/freetype2/freetype"
 }
 
 # Build OpenAL
@@ -533,7 +544,7 @@ build_openal() {
 	esac
 
 	download_extract openal "${archive_name}" \
-		"https://openal-soft.org/openal-releases/${archive_name}" \
+		"${OPENAL_BASEURL}/${archive_name}" \
 		"https://github.com/kcat/openal-soft/releases/download/${OPENAL_VERSION}/${archive_name}" \
 
 	"${download_only}" && return
@@ -575,7 +586,7 @@ build_ogg() {
 	local archive_name="libogg-${OGG_VERSION}.tar.xz"
 
 	download_extract ogg "${archive_name}" \
-		"https://downloads.xiph.org/releases/ogg/${archive_name}"
+		"${OGG_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -595,7 +606,7 @@ build_vorbis() {
 	local archive_name="${dir_name}.tar.xz"
 
 	download_extract vorbis "${archive_name}" \
-		"https://downloads.xiph.org/releases/vorbis/${archive_name}"
+		"${VORBIS_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -612,7 +623,7 @@ build_opus() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract opus "${archive_name}" \
-		"https://downloads.xiph.org/releases/opus/${archive_name}"
+		"${OPUS_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -637,7 +648,7 @@ build_opusfile() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract opusfile "${archive_name}" \
-		"https://downloads.xiph.org/releases/opus/${archive_name}"
+		"${OPUSFILE_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -648,53 +659,13 @@ build_opusfile() {
 	make install
 }
 
-# Build Lua
-build_lua() {
-	local dir_name="lua-${LUA_VERSION}"
-	local archive_name="${dir_name}.tar.gz"
-
-	download_extract lua "${archive_name}" \
-		"https://www.lua.org/ftp/${archive_name}"
-
-	"${download_only}" && return
-
-	cd "${dir_name}"
-	case "${PLATFORM}" in
-	windows-*-*)
-		local LUA_PLATFORM=mingw
-		;;
-	macos-*-*)
-		local LUA_PLATFORM=macosx
-		;;
-	linux-*-*)
-		local LUA_PLATFORM=linux
-		;;
-	*)
-		log error 'Unsupported platform for Lua'
-		;;
-	esac
-	make "${LUA_PLATFORM}" CC="${CC}" AR="${AR} rcu" RANLIB="${RANLIB}" MYCFLAGS="${CFLAGS}" MYLDFLAGS="${LDFLAGS}"
-	case "${PLATFORM}" in
-	windows-*-mingw)
-		make install TO_BIN="lua.exe luac.exe" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
-		;;
-	windows-*-msvc)
-		make install TO_BIN="lua.exe luac.exe lua54.dll" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
-		touch "${PREFIX}/lib/lua54.dll.a"
-		;;
-	*)
-		make install INSTALL_TOP="${PREFIX}"
-		;;
-	esac
-}
-
 # Build ncurses
 build_ncurses() {
 	local dir_name="ncurses-${NCURSES_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract ncurses "${archive_name}" \
-		"https://ftpmirror.gnu.org/gnu/ncurses/${archive_name}" \
+		"${NCURSES_BASEURL}/${archive_name}" \
 		"https://ftp.gnu.org/pub/gnu/ncurses/${archive_name}"
 
 	"${download_only}" && return
@@ -733,7 +704,7 @@ build_wasisdk() {
 	local WASISDK_VERSION_MAJOR="$(echo "${WASISDK_VERSION}" | cut -f1 -d'.')"
 
 	download_extract wasisdk "${archive_name}" \
-		"https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/${archive_name}"
+		"${WASISDK_BASEURL}/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -772,7 +743,7 @@ build_wasmtime() {
 	local archive_name="${folder_name}.${ARCHIVE_EXT}"
 
 	download_extract wasmtime "${archive_name}" \
-		"https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/${archive_name}"
+		"${WASMTIME_BASEURL}/download/v${WASMTIME_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -818,12 +789,18 @@ build_naclsdk() {
 	local archive_name="naclsdk_${NACLSDK_PLATFORM}-${NACLSDK_VERSION}.${TAR_EXT}.bz2"
 
 	download_extract naclsdk "${archive_name}" \
-		"https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2"
+		"${NACLSDK_BASEURL}/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2"
 
 	"${download_only}" && return
 
-	cp pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/nacl_loader${EXE}"
 	cp pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
+	case "${PLATFORM}" in
+	linux-amd64-*)
+		;; # Get sel_ldr from naclruntime package
+	*)
+		cp pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/nacl_loader${EXE}"
+		;;
+	esac
 	case "${PLATFORM}" in
 	windows-i686-*|*-amd64-*)
 		cp pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE}" "${PREFIX}/nacl-gdb${EXE}"
@@ -848,7 +825,11 @@ build_naclsdk() {
 		cp pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/nacl_loader-amd64.exe"
 		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-amd64.nexe"
 		;;
-	linux-amd64-*|linux-i686-*)
+	linux-amd64-*)
+		# Fix permissions on a few files which deny access to non-owner
+		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
+		;;
+	linux-i686-*)
 		cp pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
@@ -875,18 +856,29 @@ build_naclsdk() {
 	esac
 }
 
-build_naclports() {
-	local archive_name="naclports-${NACLSDK_VERSION}.tar.bz2"
+# Only builds nacl_loader and nacl_helper_bootstrap for now, not IRT.
+build_naclruntime() {
+	case "${PLATFORM}" in
+	linux-amd64-*)
+		local NACL_ARCH=x86-64
+		;;
+	*)
+		log error 'Unsupported platform for naclruntime'
+		;;
+	esac
 
-	download_extract naclports "${archive_name}" \
-		"https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclports.tar.bz2"
+	local dir_name="DaemonEngine-native_client-${NACLRUNTIME_REVISION:0:7}"
+	local archive_name="native_client-${NACLRUNTIME_REVISION}.zip"
+
+	download_extract naclruntime "${archive_name}" \
+		"{$NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
 
 	"${download_only}" && return
 
-	mkdir -p "${PREFIX}/pnacl_deps/"{include,lib}
-	cp pepper_*"/ports/include/"{lauxlib.h,lua.h,lua.hpp,luaconf.h,lualib.h} "${PREFIX}/pnacl_deps/include"
-	cp -a pepper_*"/ports/include/freetype2" "${PREFIX}/pnacl_deps/include"
-	cp pepper_*"/ports/lib/newlib_pnacl/Release/"{liblua.a,libfreetype.a,libpng16.a} "${PREFIX}/pnacl_deps/lib"
+	cd "${dir_name}"
+	scons --mode=opt-linux "platform=${NACL_ARCH}" werror=0 sysinfo=0 sel_ldr
+	cp "scons-out/opt-linux-${NACL_ARCH}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
+	cp "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader"
 }
 
 # The import libraries generated by MinGW seem to have issues, so we use LLVM's version instead.
@@ -1058,7 +1050,7 @@ common_setup_arch() {
 # point did not implement certain printf specifiers, in particular %lld (long long).
 # Lua does use this one, which results in compiler warnings. But this is OK because
 # the Windows build of Lua is only used in developer gamelogic builds, and Microsoft
-# supports %lld since Visual Studio 2013.
+# supports %lld since Visual Studio 2013. Also we don't build Lua anymore.
 common_setup_msvc() {
 	CONFIGURE_SHARED=(--enable-shared --disable-static)
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
@@ -1148,29 +1140,29 @@ setup_linux-arm64-default() {
 	common_setup linux aarch64-unknown-linux-gnu
 }
 
-base_windows_amd64_msvc_packages='pkgconfig zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports genlib'
+base_windows_amd64_msvc_packages='pkgconfig zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk genlib'
 all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
 
 base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 
-base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports'
+base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
 all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 
-base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports'
+base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
-base_linux_amd64_default_packages='naclsdk naclports'
-all_linux_amd64_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports'
+base_linux_amd64_default_packages='naclsdk naclruntime'
+all_linux_amd64_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk naclruntime'
 
 base_linux_i686_default_packages="${base_linux_amd64_default_packages}"
 all_linux_i686_default_packages="${all_linux_amd64_default_packages}"
 
 base_linux_arm64_default_packages='naclsdk'
-all_linux_arm64_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk'
+all_linux_arm64_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
 
 base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
 all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
@@ -1198,7 +1190,7 @@ errorHelp() {
 	\tbuild-macos — platforms buildable on macos: ${macos_build_platforms}
 
 	Packages:
-	\tpkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime
+	\tpkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
 
 	Virtual packages:
 	\tbase — build packages for pre-built binaries to be downloaded when building the game
@@ -1239,6 +1231,7 @@ errorHelp() {
 
 download_only='false'
 prefer_ours='false'
+require_theirs='false'
 while [ -n "${1:-}" ]
 do
 	case "${1-}" in
@@ -1248,6 +1241,10 @@ do
 	;;
 	'--prefer-ours')
 		prefer_ours='true'
+		shift
+	;;
+	'--require-theirs')
+		require_theirs='true'
 		shift
 	;;
 	'--'*)
@@ -1265,6 +1262,7 @@ fi
 
 # Enable parallel build
 export MAKEFLAGS="-j`nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
+export SCONSFLAGS="${MAKEFLAGS}"
 
 # Setup platform
 platform="${1}"; shift

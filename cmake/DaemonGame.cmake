@@ -38,6 +38,7 @@ option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for 
 # can be loaded by daemon with vm.[sc]game.type 2
 option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
 
+include(ExternalProject)
 include(DaemonBuildInfo)
 include(DaemonPlatform)
 
@@ -171,28 +172,23 @@ function(GAMEMODULE)
 	set(multiValueArgs DEFINITIONS FLAGS FILES LIBS)
 	cmake_parse_arguments(GAMEMODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-	if (NOT FORK)
-		if (BUILD_GAME_NACL)
-			set(FORK 1 PARENT_SCOPE)
-		endif()
-
-		if (BUILD_GAME_NATIVE_DLL)
-			buildGameModule("native-dll")
-		endif()
-
-		if (BUILD_GAME_NATIVE_EXE)
-			buildGameModule("native-exe")
-		endif()
+	if (BUILD_GAME_NATIVE_DLL)
+		buildGameModule("native-dll")
 	endif()
 
-	if (FORK EQUAL 1)
+	if (BUILD_GAME_NATIVE_EXE)
+		buildGameModule("native-exe")
+	endif()
+
+	if (NOT FORK) # create the nacl-vms target only the first time that GAMEMODULE is called
+		set(FORK 1 PARENT_SCOPE)
+
 		if (CMAKE_GENERATOR MATCHES "Visual Studio")
 			set(VM_GENERATOR "NMake Makefiles")
 		else()
 			set(VM_GENERATOR ${CMAKE_GENERATOR})
 		endif()
 
-		include(ExternalProject)
 		set(INHERITED_OPTION_ARGS)
 
 		foreach(inherited_option ${NACL_VM_INHERITED_OPTIONS})
@@ -248,7 +244,7 @@ function(GAMEMODULE)
 		endif()
 
 		set(NACL_VMS_PROJECTS ${NACL_VMS_PROJECTS} PARENT_SCOPE)
-	elseif (FORK EQUAL 2)
+	elseif (FORK EQUAL 2) # we are in the CMake sub-invocation for NaCl
 		if (BUILD_GAME_NACL)
 			if (USE_NACL_SAIGO)
 				set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

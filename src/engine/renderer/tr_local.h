@@ -487,15 +487,6 @@ enum class ssaoMode {
 		matrix_t modelViewMatrix; // only used by models, camera viewMatrix * transformMatrix
 	};
 
-// useful helper struct
-	struct vertexHash_t
-	{
-		vec3_t              xyz;
-		void                *data;
-
-		vertexHash_t *next;
-	};
-
 	enum
 	{
 		BIND_DIFFUSEMAP,
