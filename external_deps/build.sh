@@ -85,8 +85,8 @@ LDFLAGS=''
 
 log() {
 	level="${1}"; shift
-	printf '%s: %s\n' "${level^^}" "${@}" >&2
-	[ "${level}" != 'error' ]
+	printf '%s: %s\n' "${level}" "${@}" >&2
+	[ "${level}" != 'ERROR' ]
 }
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
@@ -120,7 +120,7 @@ extract() {
 		rmdir "${2}-dmg"
 		;;
 	*)
-		log error "Unknown archive type for ${1}"
+		log ERROR "Unknown archive type for ${1}"
 		;;
 	esac
 	cd "${2}"
@@ -132,13 +132,13 @@ download() {
 	while [ ! -f "${tarball_file}" ]; do
 		if [ -z "${1:-}" ]
 		then
-			log error "No more mirror to download ${tarball_file} from"
+			log ERROR "No more mirror to download ${tarball_file} from"
 		fi
 		local download_url="${1}"; shift
 		log status "Downloading ${download_url}"
 		if ! "${CURL}" -R -L --fail -o "${tarball_file}" "${download_url}"
 		then
-			log warning "Failed to download ${download_url}"
+			log WARNING "Failed to download ${download_url}"
 			rm -f "${tarball_file}"
 		fi
 	done
@@ -198,7 +198,7 @@ build_nasm() {
 		cp "${dir_name}/nasm" "${PREFIX}/bin"
 		;;
 	*)
-		log error 'Unsupported platform for NASM'
+		log ERROR 'Unsupported platform for NASM'
 		;;
 	esac
 }
@@ -357,7 +357,7 @@ build_sdl2() {
 			local sdl2_lib_dir='lib/x64'
 			;;
 		*)
-			log error 'Unsupported platform for SDL2'
+			log ERROR 'Unsupported platform for SDL2'
 			;;
 		esac
 
@@ -421,7 +421,7 @@ build_glew() {
 		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" LIBDIR="${PREFIX}/lib"
 		;;
 	*)
-		log error 'Unsupported platform for GLEW'
+		log ERROR 'Unsupported platform for GLEW'
 		;;
 	esac
 }
@@ -467,7 +467,7 @@ build_jpeg() {
 		# Other platforms can build but we need need to explicitly
 		# set CMAKE_SYSTEM_NAME for CMAKE_CROSSCOMPILING to be set
 		# and CMAKE_SYSTEM_PROCESSOR to not be ignored by cmake.
-		log error 'Unsupported platform for JPEG'
+		log ERROR 'Unsupported platform for JPEG'
 		;;
 	esac
 
@@ -489,7 +489,7 @@ build_jpeg() {
 		local SYSTEM_PROCESSOR='arm'
 		;;
 	*)
-		log error 'Unsupported platform for JPEG'
+		log ERROR 'Unsupported platform for JPEG'
 		;;
 	esac
 
@@ -546,7 +546,7 @@ build_openal() {
 			-DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF)
 		;;
 	*)
-		log error 'Unsupported platform for OpenAL'
+		log ERROR 'Unsupported platform for OpenAL'
 		;;
 	esac
 
@@ -702,7 +702,7 @@ build_wasisdk() {
 	*-amd64-*)
 		;;
 	*)
-		log error "wasi doesn't have release for ${PLATFORM}"
+		log ERROR "wasi doesn't have release for ${PLATFORM}"
 		;;
 	esac
 
@@ -742,7 +742,7 @@ build_wasmtime() {
 		local WASMTIME_ARCH=aarch64
 		;;
 	*)
-		log error "wasmtime doesn't have release for ${PLATFORM}"
+		log ERROR "wasmtime doesn't have release for ${PLATFORM}"
 		;;
 	esac
 
@@ -870,7 +870,7 @@ build_naclruntime() {
 		local NACL_ARCH=x86-64
 		;;
 	*)
-		log error 'Unsupported platform for naclruntime'
+		log ERROR 'Unsupported platform for naclruntime'
 		;;
 	esac
 
@@ -910,7 +910,7 @@ build_genlib() {
 				local MACHINE='i386:x86-64'
 				;;
 			*)
-				log error 'Unsupported platform for genlib'
+				log ERROR 'Unsupported platform for genlib'
 				;;
 			esac
 
@@ -924,7 +924,7 @@ build_genlib() {
 		done
 		;;
 	*)
-		log error 'Unsupported platform for genlib'
+		log ERROR 'Unsupported platform for genlib'
 		;;
 	esac
 }
@@ -1045,7 +1045,7 @@ common_setup_arch() {
 		CXXFLAGS+=' -march=armv7-a -mfpu=neon'
 		;;
 	*)
-		log error 'Unsupported platform'
+		log ERROR 'Unsupported platform'
 		;;
 	esac
 }
