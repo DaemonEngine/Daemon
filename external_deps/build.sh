@@ -217,6 +217,7 @@ cmake_build() {
 }
 
 # Build pkg-config
+# Still needed, at least on macos, for opusfile
 build_pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
@@ -228,7 +229,7 @@ build_pkgconfig() {
 
 	cd "${dir_name}"
 
-	configure_build --with-internal-glib
+	CFLAGS="${CFLAGS} -Wno-error=int-conversion" configure_build --with-internal-glib
 }
 
 # Build NASM
