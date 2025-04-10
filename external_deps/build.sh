@@ -167,6 +167,7 @@ download_extract() {
 }
 
 # Build pkg-config
+# Still needed, at least on macos, for opusfile
 build_pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
@@ -178,7 +179,7 @@ build_pkgconfig() {
 
 	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --with-internal-glib
+	CFLAGS="${CFLAGS} -O2 -Wno-error=int-conversion" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --with-internal-glib
 	make
 	make install
 }
