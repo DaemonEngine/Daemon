@@ -1779,9 +1779,6 @@ enum class ssaoMode {
 
 	struct srfVBOMesh_t : srfGeneric_t {
 		int lightmapNum; // FIXME get rid of this by merging all lightmaps at level load
-
-		// backEnd stats
-		int numIndexes;
 	};
 
 	struct srfVBOMD5Mesh_t

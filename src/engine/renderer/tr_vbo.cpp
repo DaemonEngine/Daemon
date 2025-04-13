@@ -601,7 +601,7 @@ static void R_InitGenericVBOs() {
 		surface = ( srfVBOMesh_t* ) ri.Hunk_Alloc( sizeof( *surface ), ha_pref::h_low );
 		surface->surfaceType = surfaceType_t::SF_VBO_MESH;
 		surface->numVerts = 4;
-		surface->numIndexes = 6;
+		surface->numTriangles = 2;
 		surface->firstIndex = 0;
 
 		vec3_t verts[4] = {
@@ -628,7 +628,7 @@ static void R_InitGenericVBOs() {
 
 		glIndex_t indexes[6] = { 0, 2, 1,  0, 3, 2 }; // Front
 
-		surface->ibo = R_CreateStaticIBO( "genericQuad_IBO", indexes, surface->numIndexes );
+		surface->ibo = R_CreateStaticIBO( "genericQuad_IBO", indexes, surface->numTriangles * 3 );
 		genericQuad->surface = ( surfaceType_t* ) surface;
 
 		tr.genericQuad = genericQuad;
@@ -641,14 +641,14 @@ static void R_InitGenericVBOs() {
 		srfVBOMesh_t* surface = ( srfVBOMesh_t* ) ri.Hunk_Alloc( sizeof( *surface ), ha_pref::h_low );
 		surface->surfaceType = surfaceType_t::SF_VBO_MESH;
 		surface->numVerts = 0;
-		surface->numIndexes = 3;
+		surface->numTriangles = 1;
 		surface->firstIndex = 0;
 
 		surface->vbo = nullptr;
 
 		glIndex_t indexes[6] = { 0, 2, 1 }; // Front
 
-		surface->ibo = R_CreateStaticIBO( "genericTriangle_IBO", indexes, surface->numIndexes );
+		surface->ibo = R_CreateStaticIBO( "genericTriangle_IBO", indexes, surface->numTriangles * 3 );
 		genericTriangle->surface = ( surfaceType_t* ) surface;
 
 		tr.genericTriangle = genericTriangle;
