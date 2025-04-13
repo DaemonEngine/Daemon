@@ -1644,7 +1644,8 @@ void MaterialSystem::GeneratePortalBoundingSpheres() {
 
 	// FIXME: This only requires distance, origin and radius can be moved to surfaceDescriptors SSBO,
 	// drawSurfID is not needed as it's the same as the index in portalSurfacesSSBO
-	PortalSurface* portalSurfs = new PortalSurface[totalPortals * sizeof( PortalSurface ) * MAX_VIEWFRAMES];
+	PortalSurface* portalSurfs =
+		( PortalSurface* ) ri.Hunk_AllocateTempMemory( totalPortals * MAX_VIEWFRAMES * sizeof( PortalSurface ) );
 
 	uint32_t index = 0;
 	for ( MaterialSurface& surface : portalSurfaces ) {
@@ -1665,6 +1666,8 @@ void MaterialSystem::GeneratePortalBoundingSpheres() {
 
 	portalSurfacesSSBO.BufferStorage( totalPortals * PORTAL_SURFACE_SIZE * MAX_VIEWS, 2, portalSurfs );
 	portalSurfacesSSBO.MapAll();
+
+	ri.Hunk_FreeTempMemory( portalSurfs );
 }
 
 void MaterialSystem::InitGLBuffers() {
@@ -1748,7 +1751,7 @@ bool MaterialSystem::AddPortalSurface( uint32_t viewID, PortalSurface* portalSur
 	frames[nextFrame].viewFrames[viewID].viewCount = 0;
 	portalStack[viewID].count = 0;
 
-	PortalSurface* tmpSurfs = new PortalSurface[totalPortals];
+	PortalSurface* tmpSurfs = ( PortalSurface* ) ri.Hunk_AllocateTempMemory( totalPortals * sizeof( PortalSurface ) );;
 	memcpy( tmpSurfs, portalSurfs + viewID * totalPortals, totalPortals * sizeof( PortalSurface ) );
 	std::sort( tmpSurfs, tmpSurfs + totalPortals,
 		[]( const PortalSurface& lhs, const PortalSurface& rhs ) {
@@ -1796,6 +1799,7 @@ bool MaterialSystem::AddPortalSurface( uint32_t viewID, PortalSurface* portalSur
 		viewCount++;
 
 		if ( count == MAX_VIEWS || viewCount == MAX_VIEWS ) {
+			ri.Hunk_FreeTempMemory( tmpSurfs );
 			return false;
 		}
 
@@ -1803,6 +1807,7 @@ bool MaterialSystem::AddPortalSurface( uint32_t viewID, PortalSurface* portalSur
 			uint32_t subView = frames[currentFrame].viewFrames[viewID].portalViews[j];
 			if ( subView != 0 && portalSurface->drawSurfID == frames[currentFrame].viewFrames[subView].portalSurfaceID ) {
 				if ( !AddPortalSurface( subView, portalSurfs ) ) {
+					ri.Hunk_FreeTempMemory( tmpSurfs );
 					return false;
 				}
 
@@ -1814,6 +1819,7 @@ bool MaterialSystem::AddPortalSurface( uint32_t viewID, PortalSurface* portalSur
 
 	memcpy( frames[nextFrame].viewFrames[viewID].portalViews, portalViews, MAX_VIEWS * sizeof( uint32_t ) );
 
+	ri.Hunk_FreeTempMemory( tmpSurfs );
 	return true;
 }
 
