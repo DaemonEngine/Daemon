@@ -788,7 +788,7 @@ static void FinishSkybox() {
 	surface = ( srfVBOMesh_t* ) ri.Hunk_Alloc( sizeof( *surface ), ha_pref::h_low );
 	surface->surfaceType = surfaceType_t::SF_VBO_MESH;
 	surface->numVerts = 8;
-	surface->numIndexes = 36;
+	surface->numTriangles = 12;
 	surface->firstIndex = 0;
 
 	vec3_t verts[ 8 ] {
@@ -813,7 +813,7 @@ static void FinishSkybox() {
 							  2, 7, 6,  2, 3, 7,   // Right
 							  3, 4, 7,  3, 0, 4 }; // Back
 
-	surface->ibo = R_CreateStaticIBO( "skybox_IBO", indexes, surface->numIndexes );
+	surface->ibo = R_CreateStaticIBO( "skybox_IBO", indexes, surface->numTriangles * 3 );
 	skybox->surface = ( surfaceType_t* ) surface;
 
 	tr.skybox = skybox;
@@ -2946,7 +2946,7 @@ static void R_CreateWorldVBO()
 			*vboSurf = {};
 			vboSurf->surfaceType = surfaceType_t::SF_VBO_MESH;
 
-			vboSurf->numIndexes = surfIndexes;
+			vboSurf->numTriangles = surfIndexes / 3;
 			vboSurf->numVerts = surfVerts;
 			vboSurf->firstIndex = firstIndex;
 
