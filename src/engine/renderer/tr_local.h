@@ -1778,10 +1778,7 @@ enum class ssaoMode {
 	};
 
 	struct srfVBOMesh_t : srfGeneric_t {
-		struct shader_t *shader; // FIXME move this to somewhere else
-
 		int lightmapNum; // FIXME get rid of this by merging all lightmaps at level load
-		int fogIndex;
 
 		// backEnd stats
 		int numIndexes;
