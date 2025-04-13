@@ -876,7 +876,7 @@ build_naclruntime() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	python3 /usr/bin/scons --mode=opt-linux "platform=${NACL_ARCH}" werror=0 sysinfo=0 sel_ldr
+	env -i /usr/bin/env bash -l -c "python3 /usr/bin/scons --mode=opt-linux 'platform=${NACL_ARCH}' werror=0 sysinfo=0 sel_ldr"
 	cp "scons-out/opt-linux-${NACL_ARCH}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
 	cp "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader"
 }
