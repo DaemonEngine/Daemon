@@ -2950,8 +2950,6 @@ static void R_CreateWorldVBO()
 			vboSurf->numVerts = surfVerts;
 			vboSurf->firstIndex = firstIndex;
 
-			vboSurf->shader = surf1->shader;
-			vboSurf->fogIndex = surf1->fogIndex;
 			vboSurf->lightmapNum = surf1->lightmapNum;
 			vboSurf->vbo = s_worldData.vbo;
 			vboSurf->ibo = s_worldData.ibo;
