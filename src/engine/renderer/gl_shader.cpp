@@ -943,6 +943,8 @@ int GLShaderManager::GetDeformShaderIndex( deformStage_t *deforms, int numDeform
 
 		deformShaderCount++;
 		_deformShaderLookup[steps] = deformShaderCount;
+	} else {
+		index--;
 	}
 
 	return index;
