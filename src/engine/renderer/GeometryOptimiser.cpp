@@ -315,13 +315,13 @@ void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, s
 				srfVert_t& vert = face->verts[triangle->indexes[j]];
 				uint32_t index = verts[vert];
 
-				ASSERT_LT( idx, ( uint32_t ) numIndicesIn );
+				ASSERT_LT( idx, numIndicesIn );
 				if ( !index ) {
 					verts[vert] = vertIdx + 1;
 					vertices[vertIdx] = vert;
 					indices[idx] = vertIdx;
 
-					ASSERT_LT( vertIdx, ( uint32_t ) numVerticesIn );
+					ASSERT_LT( vertIdx, numVerticesIn );
 
 					vertIdx++;
 				} else {
@@ -356,7 +356,7 @@ void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, s
 	}
 } */
 
-std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** rendererSurfaces, int numSurfaces ) {
+std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, int numSurfaces ) {
 	std::vector<MaterialSurface> materialSurfaces;
 	materialSurfaces.reserve( numSurfaces );
 
@@ -365,43 +365,24 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** renderer
 
 	// std::unordered_map<TriEdge, TriIndex> triEdges;
 
-	vec3_t worldBounds[2] = {};
-	for ( int i = 0; i < numSurfaces; i++ ) {
-		bspSurface_t* surface = rendererSurfaces[i];
-
-		if ( surface->BSPModel ) {
-			// Not implemented yet
-			continue;
-		}
+	int surfaceIndex = 0;
+	for ( int k = 0; k < world->numSurfaces; k++ ) {
+		bspSurface_t* surface = &world->surfaces[k];
 
 		MaterialSurface srf {};
 
 		srf.shader = surface->shader;
 		srf.bspSurface = true;
-		srf.lightMapNum = surface->lightmapNum;
 		srf.fog = surface->fogIndex;
-		srf.portalNum = surface->portalNum;
 
 		srf.firstIndex = ( ( srfGeneric_t* ) surface->data )->firstIndex;
-		srf.count = ( ( srfGeneric_t* ) surface->data )->numTriangles * 3;
+		srf.count = ( ( srfGeneric_t* ) surface->data )->numTriangles;
 		srf.verts = ( ( srfGeneric_t* ) surface->data )->verts;
 		srf.tris = ( ( srfGeneric_t* ) surface->data )->triangles;
 
-		VectorCopy( ( ( srfGeneric_t* ) surface->data )->origin, srf.origin );
-		srf.radius = ( ( srfGeneric_t* ) surface->data )->radius;
-
-		BoundsAdd( worldBounds[0], worldBounds[1],
-			( ( srfGeneric_t* ) surface->data )->bounds[0], ( ( srfGeneric_t* ) surface->data )->bounds[1] );
-
-		materialSystem.GenerateMaterial( &srf );
-
 		materialSurfaces.emplace_back( srf );
+		surfaceIndex++;
 	}
-
-	materialSystem.GenerateWorldMaterialsBuffer();
-	materialSystem.GeneratePortalBoundingSpheres();
-	materialSystem.SetWorldBounds( worldBounds );
-	materialSystem.GenerateWorldCommandBuffer( materialSurfaces );
 
 	return materialSurfaces;
 }

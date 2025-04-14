@@ -37,9 +37,9 @@ inline size_t GetLightMapNum( const shaderCommands_t* tess )
 	return tess->lightmapNum;
 }
 
-inline size_t GetLightMapNum( const MaterialSurface* surface )
+inline size_t GetLightMapNum( const drawSurf_t* drawSurf )
 {
-	return surface->lightMapNum;
+	return drawSurf->lightmapNum();
 }
 
 template<typename Obj> bool HasLightMap( Obj* obj )
@@ -77,9 +77,9 @@ inline shader_t* GetSurfaceShader( shaderCommands_t* tess )
 	return tess->surfaceShader;
 }
 
-inline shader_t* GetSurfaceShader( shader_t* shader )
+inline shader_t* GetSurfaceShader( drawSurf_t* drawSurf )
 {
-	return shader;
+	return drawSurf->shader;
 }
 
 template<typename Obj> static bool hasExplicitelyDisabledLightMap( Obj* obj )
@@ -92,9 +92,9 @@ inline shaderStage_t* GetSurfaceLastStage( shaderCommands_t* tess )
 	return tess->surfaceLastStage;
 }
 
-inline shaderStage_t* GetSurfaceLastStage( shader_t* shader )
+inline shaderStage_t* GetSurfaceLastStage( drawSurf_t* drawSurf )
 {
-	return shader->lastStage;
+	return drawSurf->shader->lastStage;
 }
 
 inline shaderStage_t* GetSurfaceStages( shaderCommands_t* tess )
@@ -102,9 +102,9 @@ inline shaderStage_t* GetSurfaceStages( shaderCommands_t* tess )
 	return tess->surfaceStages;
 }
 
-inline shaderStage_t* GetSurfaceStages( shader_t* shader )
+inline shaderStage_t* GetSurfaceStages( drawSurf_t* drawSurf )
 {
-	return shader->stages;
+	return drawSurf->shader->stages;
 }
 
 template<typename Obj> bool isExplicitelyVertexLitSurface( Obj* obj )
@@ -114,14 +114,14 @@ template<typename Obj> bool isExplicitelyVertexLitSurface( Obj* obj )
 	return lastStage != stages && stages[0].rgbGen == colorGen_t::CGEN_VERTEX;
 }
 
-template<typename Obj> void SetLightDeluxeMode( Obj* obj, shader_t* shader,
+template<typename Obj> void SetLightDeluxeMode( Obj* obj,
 	stageType_t stageType,
 	lightMode_t& lightMode, deluxeMode_t& deluxeMode )
 {
 	lightMode = lightMode_t::FULLBRIGHT;
 	deluxeMode = deluxeMode_t::NONE;
 
-	if ( hasExplicitelyDisabledLightMap( shader ) && !isExplicitelyVertexLitSurface( shader ) )
+	if ( hasExplicitelyDisabledLightMap( obj ) && !isExplicitelyVertexLitSurface( obj ) )
 	{
 		// Use fullbright on “surfaceparm nolightmap” materials.
 	}

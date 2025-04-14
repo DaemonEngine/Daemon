@@ -529,6 +529,8 @@ Tess_DrawElements
 */
 void Tess_DrawElements()
 {
+	int i;
+
 	if ( ( tess.numIndexes == 0 || tess.numVertexes == 0 ) && tess.multiDrawPrimitives == 0 )
 	{
 		return;
@@ -539,12 +541,24 @@ void Tess_DrawElements()
 	{
 		if ( tess.multiDrawPrimitives )
 		{
-			glMultiDrawElements( GL_TRIANGLES, tess.multiDrawCounts, GL_INDEX_TYPE, ( const GLvoid** ) tess.multiDrawIndexes, tess.multiDrawPrimitives );
+			if ( !materialSystem.generatingWorldCommandBuffer ) {
+				glMultiDrawElements( GL_TRIANGLES, tess.multiDrawCounts, GL_INDEX_TYPE, ( const GLvoid** ) tess.multiDrawIndexes, tess.multiDrawPrimitives );
+			}
 
 			backEnd.pc.c_multiDrawElements++;
 			backEnd.pc.c_multiDrawPrimitives += tess.multiDrawPrimitives;
 
 			backEnd.pc.c_vboVertexes += tess.numVertexes;
+
+			for ( i = 0; i < tess.multiDrawPrimitives; i++ )
+			{
+				backEnd.pc.c_multiVboIndexes += tess.multiDrawCounts[ i ];
+				backEnd.pc.c_indexes += tess.multiDrawCounts[ i ];
+				if ( materialSystem.generatingWorldCommandBuffer ) {
+					materialSystem.AddDrawCommand( tess.materialID, tess.materialPackID, tess.currentSSBOOffset,
+						( GLuint ) tess.multiDrawCounts[i], tess.multiDrawOffsets[i] );
+				}
+			}
 		}
 		else
 		{
@@ -554,7 +568,11 @@ void Tess_DrawElements()
 				base = tess.indexBase * sizeof( glIndex_t );
 			}
 
-			glDrawRangeElements( GL_TRIANGLES, 0, tess.numVertexes, tess.numIndexes, GL_INDEX_TYPE, BUFFER_OFFSET( base ) );
+			if ( materialSystem.generatingWorldCommandBuffer ) {
+				materialSystem.AddDrawCommand( tess.materialID, tess.materialPackID, tess.currentSSBOOffset, tess.numIndexes, tess.indexBase );
+			} else {
+				glDrawRangeElements( GL_TRIANGLES, 0, tess.numVertexes, tess.numIndexes, GL_INDEX_TYPE, BUFFER_OFFSET( base ) );
+			}
 
 			backEnd.pc.c_drawElements++;
 
@@ -567,7 +585,11 @@ void Tess_DrawElements()
 	}
 	else
 	{
-		glDrawElements( GL_TRIANGLES, tess.numIndexes, GL_INDEX_TYPE, tess.indexes );
+		if ( materialSystem.generatingWorldCommandBuffer ) {
+			materialSystem.AddDrawCommand( tess.materialID, tess.materialPackID, tess.currentSSBOOffset, tess.numIndexes, tess.indexBase );
+		} else {
+			glDrawElements( GL_TRIANGLES, tess.numIndexes, GL_INDEX_TYPE, tess.indexes );
+		}
 
 		backEnd.pc.c_drawElements++;
 
@@ -926,7 +948,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( &tess, pStage->type, lightMode, deluxeMode );
 
 	// u_Map, u_DeluxeMap
 	image_t *lightmap = SetLightMap( &tess, lightMode );
@@ -2099,7 +2121,7 @@ void Render_liquid( shaderStage_t *pStage )
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( &tess, pStage->type, lightMode, deluxeMode );
 
 	// choose right shader program
 	gl_liquidShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
@@ -2597,7 +2619,7 @@ void Tess_StageIteratorColor()
 	int stage = 0;
 	for ( shaderStage_t *pStage = tess.surfaceStages; pStage < tess.surfaceLastStage; pStage++ )
 	{
-		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
+		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) && !( materialSystem.generatingWorldCommandBuffer && pStage->useMaterialSystem ) )
 		{
 			continue;
 		}
@@ -2612,6 +2634,12 @@ void Tess_StageIteratorColor()
 
 		Tess_ComputeColor( pStage );
 		Tess_ComputeTexMatrices( pStage );
+
+		if ( materialSystem.generatingWorldCommandBuffer && pStage->useMaterialSystem ) {
+			tess.currentSSBOOffset = pStage->materialOffset;
+			tess.materialID = tess.currentDrawSurf->materialIDs[stage];
+			tess.materialPackID = tess.currentDrawSurf->materialPackIDs[stage];
+		}
 
 		pStage->colorRenderer( pStage );
 
