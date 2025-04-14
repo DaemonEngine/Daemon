@@ -170,6 +170,11 @@ GLuint64 GL_BindToTMU( int unit, image_t *image )
 	}
 
 	if ( glConfig2.usingBindlessTextures ) {
+		if ( materialSystem.generatingWorldCommandBuffer ) {
+			materialSystem.AddTexture( image->texture );
+			return image->texture->bindlessTextureHandle;
+		}
+
 		return tr.textureManager.BindTexture( 0, image->texture );
 	}
 
@@ -853,6 +858,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 	for ( i = backEnd.viewParms.firstDrawSurf[ Util::ordinal(fromSort) ]; i < lastSurf; i++ )
 	{
 		drawSurf = &backEnd.viewParms.drawSurfs[ i ];
+		tess.currentDrawSurf = drawSurf;
 
 		// FIXME: investigate why this happens.
 		if( drawSurf->surface == nullptr )

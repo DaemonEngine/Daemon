@@ -2538,20 +2538,10 @@ static void R_CreateWorldVBO() {
 		// HACK: portals: don't use VBO because when adding a portal we have to read back the verts CPU-side
 		// Autosprite: don't use VBO because verts are rewritten each time based on view origin
 		if ( surface->shader->isPortal || surface->shader->autoSpriteMode != 0 ) {
-			if( glConfig2.usingMaterialSystem && surface->shader->autoSpriteMode ) {
-				materialSystem.autospriteSurfaces.push_back( surface );
-			}
-
 			if ( surface->shader->isPortal ) {
 				numPortals++;
 			}
 			continue;
-		}
-
-		if ( glConfig2.usingMaterialSystem && surface->shader->isSky
-			&& std::find( materialSystem.skyShaders.begin(), materialSystem.skyShaders.end(), surface->shader )
-			== materialSystem.skyShaders.end() ) {
-			materialSystem.skyShaders.emplace_back( surface->shader );
 		}
 
 		if ( *surface->data == surfaceType_t::SF_FACE || *surface->data == surfaceType_t::SF_GRID
@@ -2565,16 +2555,38 @@ static void R_CreateWorldVBO() {
 		}
 
 		surface->renderable = true;
-
-		if ( i >= ( int ) s_worldData.models[0].numSurfaces ) {
-			surface->BSPModel = true;
-		}
-
 		numSurfaces++;
 	}
 
 	if ( !numVertsInitial || !numTriangles || !numSurfaces ) {
 		return;
+	}
+
+	bspSurface_t** rendererSurfaces = ( bspSurface_t** ) ri.Hunk_AllocateTempMemory( sizeof( bspSurface_t* ) * numSurfaces );
+	numSurfaces = 0;
+	for ( int i = 0; i < s_worldData.numSurfaces; i++ ) {
+		bspSurface_t* surface = &s_worldData.surfaces[i];
+
+		if ( surface->renderable ) {
+			rendererSurfaces[numSurfaces++] = surface;
+		}
+	}
+
+	OptimiseMapGeometryCore( &s_worldData, rendererSurfaces, numSurfaces );
+
+	Log::Debug( "...calculating world VBO ( %i verts %i tris )", numVertsInitial, numTriangles );
+
+	// Use srfVert_t for the temporary array used to feed R_CreateStaticVBO, despite containing
+	// extraneous data, so that verts can be conveniently be bulk copied from the surface.
+	srfVert_t* vboVerts = ( srfVert_t* ) ri.Hunk_AllocateTempMemory( numVertsInitial * sizeof( srfVert_t ) );
+	glIndex_t* vboIdxs = ( glIndex_t* ) ri.Hunk_AllocateTempMemory( 3 * numTriangles * sizeof( glIndex_t ) );
+
+	int numVerts;
+	int numIndices;
+	MergeDuplicateVertices( rendererSurfaces, numSurfaces, vboVerts, numVertsInitial, vboIdxs, 3 * numTriangles, numVerts, numIndices );
+
+	if ( glConfig2.usingMaterialSystem ) {
+		OptimiseMapGeometryMaterial( &s_worldData, numSurfaces );
 	}
 
 	s_worldData.numPortals = numPortals;
@@ -2610,57 +2622,9 @@ static void R_CreateWorldVBO() {
 					break;
 			}
 			portal++;
-
-			if( glConfig2.usingMaterialSystem ) {
-				MaterialSurface srf{};
-
-				srf.shader = surface->shader;
-				srf.surface = surface->data;
-				srf.bspSurface = true;
-				srf.lightMapNum = surface->lightmapNum;
-				srf.fog = surface->fogIndex;
-				srf.portalNum = surface->portalNum;
-
-				srf.firstIndex = ( ( srfGeneric_t* ) surface->data )->firstIndex;
-				srf.count = ( ( srfGeneric_t* ) surface->data )->numTriangles * 3;
-				srf.verts = ( ( srfGeneric_t* ) surface->data )->verts;
-				srf.tris = ( ( srfGeneric_t* ) surface->data )->triangles;
-
-				VectorCopy( ( ( srfGeneric_t* ) surface->data )->origin, srf.origin );
-				srf.radius = ( ( srfGeneric_t* ) surface->data )->radius;
-
-				materialSystem.portalSurfaces.emplace_back( srf );
-			}
 		} else {
 			surface->portalNum = -1;
 		}
-	}
-
-	bspSurface_t** rendererSurfaces = ( bspSurface_t** ) ri.Hunk_AllocateTempMemory( sizeof( bspSurface_t* ) * numSurfaces );
-	numSurfaces = 0;
-	for ( int i = 0; i < s_worldData.numSurfaces; i++ ) {
-		bspSurface_t* surface = &s_worldData.surfaces[i];
-
-		if ( surface->renderable ) {
-			rendererSurfaces[numSurfaces++] = surface;
-		}
-	}
-
-	OptimiseMapGeometryCore( &s_worldData, rendererSurfaces, numSurfaces );
-
-	Log::Debug( "...calculating world VBO ( %i verts %i tris )", numVertsInitial, numTriangles );
-
-	// Use srfVert_t for the temporary array used to feed R_CreateStaticVBO, despite containing
-	// extraneous data, so that verts can be conveniently be bulk copied from the surface.
-	srfVert_t* vboVerts = ( srfVert_t* ) ri.Hunk_AllocateTempMemory( numVertsInitial * sizeof( srfVert_t ) );
-	glIndex_t* vboIdxs = ( glIndex_t* ) ri.Hunk_AllocateTempMemory( 3 * numTriangles * sizeof( glIndex_t ) );
-
-	int numVerts;
-	int numIndices;
-	MergeDuplicateVertices( rendererSurfaces, numSurfaces, vboVerts, numVertsInitial, vboIdxs, 3 * numTriangles, numVerts, numIndices );
-
-	if ( glConfig2.usingMaterialSystem ) {
-		OptimiseMapGeometryMaterial( rendererSurfaces, numSurfaces );
 	}
 
 	vertexAttributeSpec_t attrs[]{
@@ -4338,82 +4302,6 @@ static Cmd::LambdaCmd buildCubeMapsCmd(
 	"buildcubemaps", Cmd::RENDERER, "generate cube probes for reflection mapping",
 	[]( const Cmd::Args & ) { R_BuildCubeMaps(); });
 
-static void SetWorldLight() {
-	tr.worldLight = tr.lightMode;
-	tr.modelLight = lightMode_t::FULLBRIGHT;
-	tr.modelDeluxe = deluxeMode_t::NONE;
-
-	// Use fullbright lighting for everything if the world is fullbright.
-	if ( tr.worldLight != lightMode_t::FULLBRIGHT ) {
-		if ( tr.worldLight == lightMode_t::MAP ) {
-			// World surfaces use light mapping.
-
-			if ( !tr.worldLightMapping ) {
-				/* Use vertex light as a fallback on world surfaces missing a light map,
-				q3map2 has an option to produce less lightmap files by skipping them when
-				they are very similar to the vertex color. The vertex color is expected
-				to match the color of the nearby lightmaps. We better not want to use
-				the grid light as a fallback as it would be close but not close enough. */
-
-				tr.worldLight = lightMode_t::VERTEX;
-			}
-		} else if ( tr.worldLight == lightMode_t::GRID ) {
-			if ( !tr.lightGrid1Image ) {
-				// Use vertex light on world surface if light color grid is missing.
-				tr.worldLight = lightMode_t::VERTEX;
-			}
-		}
-
-		if ( tr.worldDeluxeMapping ) {
-			if ( tr.worldLight == lightMode_t::MAP ) {
-				tr.worldDeluxe = deluxeMode_t::MAP;
-			}
-
-			/* The combination of grid light and deluxe map is
-			technically doable, but rendering the world with a
-			light grid while a light map is available is not
-			the experience we want to provide, so we don't
-			allow this combination to not compile the related
-			shaders. */
-		}
-
-		/* We can technically use emulated deluxe map from light direction dir
-		on surfaces with light map but no deluxe map, but this is ugly.
-		Also, enabling it would require to make some macro not conflicting and
-		then would increase the amount of GLSL shader variants to be compiled,
-		this to render legacy maps in a way legacy renderers never rendered them.
-		It could still be cool as an optional feature, if we use a better
-		algorithm for emulating the deluxe map from light direction grid.
-		See https://github.com/DaemonEngine/Daemon/issues/32 */
-
-		if ( tr.lightGrid1Image ) {
-			// Game model surfaces use grid lighting, they don't have vertex light colors.
-			tr.modelLight = lightMode_t::GRID;
-		}
-
-		if ( glConfig2.deluxeMapping ) {
-			// Enable deluxe mapping emulation if light direction grid is there.
-			if ( tr.lightGrid2Image ) {
-				// Game model surfaces use grid lighting, they don't have vertex light colors.
-				tr.modelDeluxe = deluxeMode_t::GRID;
-
-				// Only game models use emulated deluxe map from light direction grid.
-			}
-		}
-	}
-
-	/* Set GLSL overbright parameters if the lighting mode is not fullbright. */
-	if ( tr.lightMode != lightMode_t::FULLBRIGHT ) {
-		if ( r_overbrightQ3.Get() ) {
-			// light factor is applied to entire color buffer; identityLight can be used to cancel it
-			tr.identityLight = 1.0f / float( 1 << tr.overbrightBits );
-		} else {
-			// light factor is applied wherever a precomputed light is sampled
-			tr.mapLightFactor = float( 1 << tr.overbrightBits );
-		}
-	}
-}
-
 /*
 =================
 RE_LoadWorldMap
@@ -4539,9 +4427,6 @@ void RE_LoadWorldMap( const char *name )
 	R_LoadLightGrid( &header->lumps[ LUMP_LIGHTGRID ] );
 
 	// create a static vbo for the world
-	// Do SetWorldLight() before R_CreateWorldVBO(), because the latter will use the world light values to generate materials
-	SetWorldLight();
-
 	R_CreateWorldVBO();
 	R_CreateClusters();
 
@@ -4550,8 +4435,98 @@ void RE_LoadWorldMap( const char *name )
 	}
 
 	s_worldData.dataSize = ( byte * ) ri.Hunk_Alloc( 0, ha_pref::h_low ) - startMarker;
+
 	// only set tr.world now that we know the entire level has loaded properly
 	tr.world = &s_worldData;
+
+	tr.worldLight = tr.lightMode;
+	tr.modelLight = lightMode_t::FULLBRIGHT;
+	tr.modelDeluxe = deluxeMode_t::NONE;
+
+	// Use fullbright lighting for everything if the world is fullbright.
+	if ( tr.worldLight != lightMode_t::FULLBRIGHT )
+	{
+		if ( tr.worldLight == lightMode_t::MAP )
+		{
+			// World surfaces use light mapping.
+
+			if ( !tr.worldLightMapping )
+			{
+				/* Use vertex light as a fallback on world surfaces missing a light map,
+				q3map2 has an option to produce less lightmap files by skipping them when
+				they are very similar to the vertex color. The vertex color is expected
+				to match the color of the nearby lightmaps. We better not want to use
+				the grid light as a fallback as it would be close but not close enough. */
+
+				tr.worldLight = lightMode_t::VERTEX;
+			}
+		}
+		else if ( tr.worldLight == lightMode_t::GRID )
+		{
+			if ( !tr.lightGrid1Image )
+			{
+				// Use vertex light on world surface if light color grid is missing.
+				tr.worldLight = lightMode_t::VERTEX;
+			}
+		}
+
+		if ( tr.worldDeluxeMapping )
+		{
+			if ( tr.worldLight == lightMode_t::MAP )
+			{
+				tr.worldDeluxe = deluxeMode_t::MAP;
+			}
+
+			/* The combination of grid light and deluxe map is
+			technically doable, but rendering the world with a
+			light grid while a light map is available is not
+			the experience we want to provide, so we don't
+			allow this combination to not compile the related
+			shaders. */
+		}
+
+		/* We can technically use emulated deluxe map from light direction dir
+		on surfaces with light map but no deluxe map, but this is ugly.
+		Also, enabling it would require to make some macro not conflicting and
+		then would increase the amount of GLSL shader variants to be compiled,
+		this to render legacy maps in a way legacy renderers never rendered them.
+		It could still be cool as an optional feature, if we use a better
+		algorithm for emulating the deluxe map from light direction grid.
+		See https://github.com/DaemonEngine/Daemon/issues/32 */
+
+		if ( tr.lightGrid1Image )
+		{
+			// Game model surfaces use grid lighting, they don't have vertex light colors.
+			tr.modelLight = lightMode_t::GRID;
+		}
+
+		if ( glConfig2.deluxeMapping )
+		{
+			// Enable deluxe mapping emulation if light direction grid is there.
+			if ( tr.lightGrid2Image )
+			{
+				// Game model surfaces use grid lighting, they don't have vertex light colors.
+				tr.modelDeluxe = deluxeMode_t::GRID;
+
+				// Only game models use emulated deluxe map from light direction grid.
+			}
+		}
+	}
+
+	/* Set GLSL overbright parameters if the lighting mode is not fullbright. */
+	if ( tr.lightMode != lightMode_t::FULLBRIGHT )
+	{
+		if ( r_overbrightQ3.Get() )
+		{
+			// light factor is applied to entire color buffer; identityLight can be used to cancel it
+			tr.identityLight = 1.0f / float( 1 << tr.overbrightBits );
+		}
+		else
+		{
+			// light factor is applied wherever a precomputed light is sampled
+			tr.mapLightFactor = float( 1 << tr.overbrightBits );
+		}
+	}
 
 	tr.worldLoaded = true;
 	tr.loadingMap = "";

@@ -1840,7 +1840,7 @@ int R_SpriteFogNum( trRefEntity_t *ent )
 R_AddDrawSurf
 =================
 */
-void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface, int portalNum )
+int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface, int portalNum )
 {
 	// instead of checking for overflow, we just mask the index
 	// so it wraps around
@@ -1878,13 +1878,42 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 
 	tr.refdef.numDrawSurfs++;
 
+	// Portal and sky surfaces are not handled by the material system at all
+	if ( materialSystem.generatingWorldCommandBuffer && ( shader->isPortal || shader->isSky || shader->autoSpriteMode ) ) {
+		if ( shader->isSky && std::find( materialSystem.skyShaders.begin(), materialSystem.skyShaders.end(), shader )
+						   == materialSystem.skyShaders.end() ) {
+			materialSystem.skyShaders.emplace_back( shader );
+		}
+
+		if ( shader->isPortal )
+		{
+			// R_AddWorldSurfaces guarantees not to add surfaces more than once
+			ASSERT_EQ(
+				std::find( materialSystem.portalSurfacesTmp.begin(), materialSystem.portalSurfacesTmp.end(), drawSurf ),
+				materialSystem.portalSurfacesTmp.end() );
+			materialSystem.portalSurfacesTmp.emplace_back( drawSurf );
+		}
+
+		if ( shader->autoSpriteMode ) {
+			materialSystem.autospriteSurfaces.push_back( *drawSurf );
+		}
+
+		return baseIndex;
+	}
+
 	if ( shader->depthShader != nullptr ) {
-		R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
+		const int depthSurfIndex = R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
+		drawSurf->depthSurface = &tr.refdef.drawSurfs[depthSurfIndex];
+		drawSurf->depthSurface->materialSystemSkip = true;
 	}
 
 	if( !shader->noFog && fogNum >= 1 ) {
-		R_AddDrawSurf( surface, shader->fogShader, 0, fogNum, bspSurface );
+		const int fogSurfIndex = R_AddDrawSurf( surface, shader->fogShader, 0, fogNum, bspSurface );
+		drawSurf->fogSurface = &tr.refdef.drawSurfs[fogSurfIndex];
+		drawSurf->fogSurface->materialSystemSkip = true;
 	}
+
+	return baseIndex;
 }
 
 static uint32_t currentView = 0;
@@ -1976,7 +2005,7 @@ static void R_SortDrawSurfs()
 				break;
 			}
 
-			R_MirrorViewBySurface( &portalStack[portalStack[currentView].views[i]].drawSurf );
+			R_MirrorViewBySurface( portalStack[portalStack[currentView].views[i]].drawSurf );
 		}
 		currentView--;
 	} else {

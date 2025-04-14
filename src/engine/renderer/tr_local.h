@@ -1093,12 +1093,12 @@ enum class ssaoMode {
 
 	struct shaderStage_t;
 	struct Material;
-	struct MaterialSurface;
+	struct drawSurf_t;
 
 	using stageRenderer_t = void(*)(shaderStage_t *);
 	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
 	using stageShaderBinder_t = void(*)(Material*);
-	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, MaterialSurface*);
+	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, drawSurf_t*);
 
 	enum ShaderStageVariant {
 		VERTEX_OVERBRIGHT = 1,
@@ -1637,6 +1637,18 @@ enum class ssaoMode {
 		int fog;
 		int portalNum = -1;
 
+		uint32_t materialPackIDs[MAX_SHADER_STAGES];
+		uint32_t materialIDs[MAX_SHADER_STAGES];
+
+		uint32_t drawCommandIDs[MAX_SHADER_STAGES];
+		uint32_t texDataIDs[MAX_SHADER_STAGES];
+		bool texDataDynamic[MAX_SHADER_STAGES];
+		uint32_t shaderVariant[MAX_SHADER_STAGES];
+
+		drawSurf_t* depthSurface;
+		drawSurf_t* fogSurface;
+		bool materialSystemSkip = false;
+
 		inline int index() const {
 			return int( ( sort & SORT_INDEX_MASK ) );
 		}
@@ -1829,7 +1841,6 @@ enum class ssaoMode {
 		int portalNum;
 
 		bool renderable = false;
-		bool BSPModel = false;
 
 		surfaceType_t   *data; // any of srf*_t
 	};
@@ -3078,7 +3089,7 @@ inline bool checkGLErrors()
 
 	void           R_AddPolygonSurfaces();
 
-	void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false, int portalNum = -1 );
+	int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false, int portalNum = -1 );
 
 	void           R_LocalNormalToWorld( const vec3_t local, vec3_t world );
 	void           R_LocalPointToWorld( const vec3_t local, vec3_t world );
@@ -3368,6 +3379,12 @@ void GLimp_LogComment_( std::string comment );
 		// For some static VBO/IBO-based drawing, these can be used to request a single data range.
 		uint32_t    numIndexes;
 		uint32_t    numVertexes;
+
+		// Material system stuff for setting up correct SSBO offsets
+		uint materialPackID = 0;
+		uint materialID = 0;
+		uint currentSSBOOffset = 0;
+		drawSurf_t* currentDrawSurf;
 
 		// Must be set by the stage iterator function if needed. These are *not*
 		// automatically cleared by the likes of Tess_End.

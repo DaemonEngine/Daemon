@@ -405,7 +405,7 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits )
 	do
 	{
 		// if the node wasn't marked as potentially visible, exit
-		if ( node->visCounts[ tr.visIndex ] != tr.visCounts[ tr.visIndex ] )
+		if ( node->visCounts[ tr.visIndex ] != tr.visCounts[ tr.visIndex ] && !materialSystem.generatingWorldCommandBuffer )
 		{
 			return;
 		}
