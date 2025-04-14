@@ -1734,6 +1734,8 @@ void MaterialSystem::Free() {
 		}
 	}
 
+	totalDrawSurfs = 0;
+
 	currentFrame = 0;
 	nextFrame = 1;
 	maxStages = 0;
