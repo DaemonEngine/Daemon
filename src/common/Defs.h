@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** No case, No spaces */
 #define PRODUCT_NAME_LOWER  "unvanquished"
 
-#define PRODUCT_VERSION     "0.55.2"
+#define PRODUCT_VERSION     "0.55.3"
 
 /** Default base package */
 #define DEFAULT_BASE_PAK    PRODUCT_NAME_LOWER
