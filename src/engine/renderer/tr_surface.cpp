@@ -748,7 +748,7 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 Tess_SurfaceFace
 ==============
 */
-static void Tess_SurfaceFace( srfSurfaceFace_t *srf )
+static void Tess_SurfaceFace( srfGeneric_t* srf )
 {
 	GLIMP_LOGCOMMENT( "--- Tess_SurfaceFace ---" );
 
@@ -778,7 +778,7 @@ static void Tess_SurfaceGrid( srfGridMesh_t *srf )
 Tess_SurfaceTriangles
 =============
 */
-static void Tess_SurfaceTriangles( srfTriangles_t *srf )
+static void Tess_SurfaceTriangles( srfGeneric_t* srf )
 {
 	GLIMP_LOGCOMMENT( "--- Tess_SurfaceTriangles ---" );
 
@@ -1371,7 +1371,7 @@ static void Tess_SurfaceVBOMesh( srfVBOMesh_t *srf )
 {
 	GLIMP_LOGCOMMENT( "--- Tess_SurfaceVBOMesh ---" );
 
-	Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numIndexes, srf->firstIndex );
+	Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex );
 }
 
 /*

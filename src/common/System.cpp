@@ -312,22 +312,38 @@ static const char *WindowsExceptionString(DWORD code)
 		return "Unknown exception";
 	}
 }
+
+#ifdef _MSC_VER
+// The standard library implements calling std::terminate with an exception filter
+static LPTOP_LEVEL_EXCEPTION_FILTER originalExceptionFilter;
+#endif
+
  ALIGN_STACK_FOR_MINGW static LONG WINAPI CrashHandler(PEXCEPTION_POINTERS ExceptionInfo)
 {
 	// Reset handler so that any future errors cause a crash
 	SetUnhandledExceptionFilter(nullptr);
 
-	// TODO: backtrace
+#ifdef _MSC_VER
+	constexpr DWORD CPP_EXCEPTION = 0xe06d7363;
+	if (ExceptionInfo->ExceptionRecord->ExceptionCode == CPP_EXCEPTION && originalExceptionFilter) {
+		return originalExceptionFilter(ExceptionInfo);
+	}
+#endif
 
 	Sys::Error("Crashed with exception 0x%lx: %s", ExceptionInfo->ExceptionRecord->ExceptionCode, WindowsExceptionString(ExceptionInfo->ExceptionRecord->ExceptionCode));
 }
 void SetupCrashHandler()
 {
+#ifdef _MSC_VER
+	originalExceptionFilter =
+#endif
 	SetUnhandledExceptionFilter(CrashHandler);
 }
 #elif defined(__native_client__)
 static void CrashHandler(const void* data, size_t n)
 {
+    // Note: this only works on the main thread. Otherwise we hit
+    // Sys::Error("SendMsg from non-main VM thread");
     VM::CrashDump(static_cast<const uint8_t*>(data), n);
     Sys::Error("Crashed with NaCl exception");
 }

@@ -445,8 +445,17 @@ namespace VM {
 
     void InitializeProxies(int milliseconds) {
         baseTime = Sys::SteadyClock::now() - std::chrono::milliseconds(milliseconds);
-        Cmd::InitializeProxy();
         Cvar::InitializeProxy();
+
+#ifdef BUILD_VM_NATIVE_EXE
+        // Set up the crash handler now that we have cvars to know if we want to use it.
+        // The handler wouldn't have worked before StaticInitMsg anyway since it needs IPC to log anything.
+        if (useNativeExeCrashHandler.Get()) {
+            Sys::SetupCrashHandler();
+        }
+#endif
+
+        Cmd::InitializeProxy();
     }
 
     static void HandleMiscSyscall(int minor, Util::Reader& reader, IPC::Channel& channel) {

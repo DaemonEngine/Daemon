@@ -2085,56 +2085,10 @@ union OpaquePlayerState {
 //----(SA)  removed
 	};
 
-// entityState_t is the information conveyed from the server
-// in an update message about entities that the client will
-// need to render in some way
-// Different eTypes may use the information in different ways
-// The messages are delta compressed, so it doesn't really matter if
-// the structure size is fairly large
-//
-// NOTE: all fields in here must be 32 bits (or those within sub-structures)
-//
-// You can use Com_EntityTypeName to get a String representation of this enum
-	enum class entityType_t
-	{
-		ET_GENERAL,
-		ET_PLAYER,
-		ET_ITEM,
-
-		ET_BUILDABLE,       // buildable type
-
-		ET_LOCATION,
-
-		ET_MISSILE,
-		ET_MOVER,
-		ET_UNUSED,
-		ET_PORTAL,
-		ET_SPEAKER,
-		ET_PUSHER,
-		ET_TELEPORTER,
-		ET_INVISIBLE,
-		ET_FIRE,
-
-		ET_CORPSE,
-		ET_PARTICLE_SYSTEM,
-		ET_ANIMMAPOBJ,
-		ET_MODELDOOR,
-		ET_LIGHTFLARE,
-		ET_LEV2_ZAP_CHAIN,
-
-		ET_BEACON,
-
-		ET_EVENTS       // any of the EV_* events can be added freestanding
-		// by setting eType to ET_EVENTS + eventNum
-		// this avoids having to set eFlags and eventNum
-	};
-
-	const char *Com_EntityTypeName(entityType_t entityType);
-
 	struct entityState_t
 	{
 		int          number; // entity index
-		entityType_t eType; // entityType_t
+		int eType; // entityType_t
 		int          eFlags;
 
 		trajectory_t pos; // for calculating position

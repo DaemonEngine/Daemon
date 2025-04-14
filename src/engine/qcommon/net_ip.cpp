@@ -64,6 +64,10 @@ using sa_family_t = unsigned short;
 
 #       define socketError   WSAGetLastError()
 
+#       if !defined(WSA_FLAG_NO_HANDLE_INHERIT)
+                #define WSA_FLAG_NO_HANDLE_INHERIT 0x80
+#       endif
+
 namespace net {
 	namespace errc {
 		constexpr auto resource_unavailable_try_again = WSAEWOULDBLOCK;
