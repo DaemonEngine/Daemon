@@ -39,7 +39,7 @@ function(detect_daemon_compiler lang)
 
 	try_compile(BUILD_RESULT
 		"${CMAKE_BINARY_DIR}"
-		"${DAEMON_DIR}/cmake/DaemonCompiler/DaemonCompiler${${lang}_EXT}"
+		"${CMAKE_CURRENT_LIST_DIR}/Compiler/Compiler${${lang}_EXT}"
 		CMAKE_FLAGS CMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
 		OUTPUT_VARIABLE BUILD_LOG
 	)
