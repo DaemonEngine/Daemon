@@ -98,7 +98,8 @@ struct MapVertEqual {
 			&& VectorCompareEpsilon( lhs.normal, rhs.normal, 0.0001f )
 			&& CompareEpsilon( lhs.qtangent[0], rhs.qtangent[0] ) && CompareEpsilon( lhs.qtangent[1], rhs.qtangent[1] )
 			&& CompareEpsilon( lhs.qtangent[2], rhs.qtangent[2] ) && CompareEpsilon( lhs.qtangent[3], rhs.qtangent[3] )
-			&& lhs.lightColor.ArrayBytes() == rhs.lightColor.ArrayBytes();
+			&& lhs.lightColor.Red() == rhs.lightColor.Red() && lhs.lightColor.Green() == rhs.lightColor.Green()
+			&& lhs.lightColor.Blue() == rhs.lightColor.Blue() && lhs.lightColor.Alpha() == rhs.lightColor.Alpha();
 	}
 };
 
