@@ -2548,10 +2548,12 @@ static void R_CreateWorldVBO() {
 			continue;
 		}
 
-		if ( glConfig2.usingMaterialSystem && surface->shader->isSky
-			&& std::find( materialSystem.skyShaders.begin(), materialSystem.skyShaders.end(), surface->shader )
-			== materialSystem.skyShaders.end() ) {
-			materialSystem.skyShaders.emplace_back( surface->shader );
+		if ( glConfig2.usingMaterialSystem && surface->shader->isSky ) {
+			if ( std::find( materialSystem.skyShaders.begin(), materialSystem.skyShaders.end(), surface->shader )
+				== materialSystem.skyShaders.end() ) {
+				materialSystem.skyShaders.emplace_back( surface->shader );
+			}
+			continue;
 		}
 
 		if ( *surface->data == surfaceType_t::SF_FACE || *surface->data == surfaceType_t::SF_GRID
