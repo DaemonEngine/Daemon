@@ -638,6 +638,10 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 	}
 
 	for ( MaterialSurface& surface : surfaces ) {
+		if ( surface.skyBrush ) {
+			continue;
+		}
+
 		SurfaceDescriptor surfaceDescriptor;
 		VectorCopy( surface.origin, surfaceDescriptor.boundingSphere.origin );
 		surfaceDescriptor.boundingSphere.radius = surface.radius;
@@ -1328,6 +1332,10 @@ void MaterialSystem::GenerateMaterial( MaterialSurface* surface ) {
 
 	uint32_t stage = 0;
 	uint32_t previousMaterialID = 0;
+
+	if ( surface->skyBrush ) {
+		return;
+	}
 	
 	if ( surface->shader->depthShader ) {
 		uint32_t unused;

@@ -377,7 +377,10 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** renderer
 		MaterialSurface srf {};
 
 		srf.shader = surface->shader;
+
 		srf.bspSurface = true;
+		srf.skyBrush = surface->skyBrush;
+
 		srf.lightMapNum = surface->lightmapNum;
 		srf.fog = surface->fogIndex;
 		srf.portalNum = surface->portalNum;
