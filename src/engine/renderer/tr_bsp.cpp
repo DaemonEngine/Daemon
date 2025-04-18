@@ -2538,7 +2538,7 @@ static void R_CreateWorldVBO() {
 		// HACK: portals: don't use VBO because when adding a portal we have to read back the verts CPU-side
 		// Autosprite: don't use VBO because verts are rewritten each time based on view origin
 		if ( surface->shader->isPortal || surface->shader->autoSpriteMode != 0 ) {
-			if( glConfig2.usingMaterialSystem && surface->shader->autoSpriteMode ) {
+			if( glConfig2.usingMaterialSystem ) {
 				materialSystem.autospriteSurfaces.push_back( surface );
 			}
 
@@ -2548,10 +2548,15 @@ static void R_CreateWorldVBO() {
 			continue;
 		}
 
-		if ( glConfig2.usingMaterialSystem && surface->shader->isSky
-			&& std::find( materialSystem.skyShaders.begin(), materialSystem.skyShaders.end(), surface->shader )
-			== materialSystem.skyShaders.end() ) {
-			materialSystem.skyShaders.emplace_back( surface->shader );
+		if ( glConfig2.usingMaterialSystem && surface->shader->isSky ) {
+			if ( std::find( materialSystem.skyShaders.begin(), materialSystem.skyShaders.end(), surface->shader )
+				== materialSystem.skyShaders.end() ) {
+				materialSystem.skyShaders.emplace_back( surface->shader );
+			}
+
+			/* Sky brushes are currently not used by the material system,
+			but they still have to go into the VBO for the core renderer */
+			surface->skyBrush = true;
 		}
 
 		if ( *surface->data == surfaceType_t::SF_FACE || *surface->data == surfaceType_t::SF_GRID

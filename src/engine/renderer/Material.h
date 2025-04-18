@@ -77,7 +77,10 @@ struct DrawCommand {
 struct MaterialSurface {
 	shader_t* shader;
 	surfaceType_t* surface;
+
 	bool bspSurface;
+	bool skyBrush;
+
 	int16_t lightMapNum;
 	int fog;
 	int portalNum = -1;

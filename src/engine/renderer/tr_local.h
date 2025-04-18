@@ -1830,6 +1830,7 @@ enum class ssaoMode {
 
 		bool renderable = false;
 		bool BSPModel = false;
+		bool skyBrush = false;
 
 		surfaceType_t   *data; // any of srf*_t
 	};
