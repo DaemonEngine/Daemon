@@ -68,18 +68,18 @@ struct TriIndex {
 
 struct MapVertHasher {
 	size_t operator()( const srfVert_t& vert ) const {
-		size_t hash = ~( *( ( size_t* ) &vert.xyz[0] ) << 15 );
-		hash ^= ( *( ( size_t* ) &vert.xyz[0] ) >> 10 );
-		hash += ( *( ( size_t* ) &vert.xyz[1] ) << 3 );
-		hash ^= ( *( ( size_t* ) &vert.xyz[1] ) >> 6 );
-		hash += ~( *( ( size_t* ) &vert.xyz[2] ) << 11 );
-		hash ^= ( *( ( size_t* ) &vert.xyz[2] ) >> 16 );
+		uint32_t hash = ~( Util::bit_cast<uint32_t, float>( vert.xyz[0] ) << 15 );
+		hash ^= ( Util::bit_cast<uint32_t, float>( vert.xyz[0] ) >> 10 );
+		hash += ( Util::bit_cast<uint32_t, float>( vert.xyz[1] ) << 3 );
+		hash ^= ( Util::bit_cast<uint32_t, float>( vert.xyz[1] ) >> 6 );
+		hash += ( Util::bit_cast<uint32_t, float>( vert.xyz[2] ) << 11 );
+		hash ^= ( Util::bit_cast<uint32_t, float>( vert.xyz[2] ) >> 16 );
 
-		hash ^= ( *( ( size_t* ) &vert.st[0] ) << 7 );
-		hash += ( *( ( size_t* ) &vert.st[0] ) >> 12 );
+		hash += ( Util::bit_cast<uint32_t, float>( vert.st[0] ) << 7 );
+		hash ^= ( Util::bit_cast<uint32_t, float>( vert.st[0] ) >> 12 );
 
-		hash ^= ( *( ( size_t* ) &vert.st[1] ) << 13 );
-		hash += ( *( ( size_t* ) &vert.st[1] ) >> 8 );
+		hash += ( Util::bit_cast<uint32_t, float>( vert.st[1] ) << 13 );
+		hash ^= ( Util::bit_cast<uint32_t, float>( vert.st[1] ) >> 8 );
 
 		return hash;
 	}
