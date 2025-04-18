@@ -75,12 +75,6 @@ struct MapVertHasher {
 		hash += ( Util::bit_cast<uint32_t, float>( vert.xyz[2] ) << 11 );
 		hash ^= ( Util::bit_cast<uint32_t, float>( vert.xyz[2] ) >> 16 );
 
-		hash += ( Util::bit_cast<uint32_t, float>( vert.st[0] ) << 7 );
-		hash ^= ( Util::bit_cast<uint32_t, float>( vert.st[0] ) >> 12 );
-
-		hash += ( Util::bit_cast<uint32_t, float>( vert.st[1] ) << 13 );
-		hash ^= ( Util::bit_cast<uint32_t, float>( vert.st[1] ) >> 8 );
-
 		return hash;
 	}
 };
