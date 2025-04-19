@@ -308,11 +308,11 @@ void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, s
 	for ( int i = 0; i < numSurfaces; i++ ) {
 		bspSurface_t* surface = rendererSurfaces[i];
 		
-		srfGeneric_t* face = ( srfGeneric_t* ) surface->data;
-		face->firstIndex = idx;
-		for ( srfTriangle_t* triangle = face->triangles; triangle < face->triangles + face->numTriangles; triangle++ ) {
+		srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
+		srf->firstIndex = idx;
+		for ( srfTriangle_t* triangle = srf->triangles; triangle < srf->triangles + srf->numTriangles; triangle++ ) {
 			for ( int j = 0; j < 3; j++ ) {
-				srfVert_t& vert = face->verts[triangle->indexes[j]];
+				srfVert_t& vert = srf->verts[triangle->indexes[j]];
 				uint32_t index = verts[vert];
 
 				/* There were some crashes due to bad lightmap values in .bsp vertices,
