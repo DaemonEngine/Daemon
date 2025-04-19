@@ -848,6 +848,55 @@ static void SphereFromBounds( vec3_t mins, vec3_t maxs, vec3_t origin, float* ra
 	*radius = VectorLength( temp );
 }
 
+static std::string VertexToString( srfVert_t* vertex ) {
+	return Str::Format( "xyz: %f %f %f normal: %f %f %f uv: %f %f lightmap: %f %f", vertex->xyz[0], vertex->xyz[1], vertex->xyz[2],
+		vertex->normal[0], vertex->normal[1], vertex->normal[2], vertex->st[0], vertex->st[1],
+		vertex->lightmap[0], vertex->lightmap[1] );
+}
+
+void ValidateVertex( srfVert_t* vertex, int vertexID, shader_t* shader ) {
+	for ( int i = 0; i < 3; i++ ) {
+		/* NetRadiant only allows vertices in range [-65535, 65536],
+		but some vertices still end up outside of that range, e.g: station15 sun */
+		if ( !Math::IsFinite( vertex->xyz[i] ) || vertex->xyz[i] < -1e9 || vertex->xyz[i] > 1e9 ) {
+			Log::Warn( "BSP: Bad position in vertex %i: %s, %s; setting to 0.0f", vertexID,
+				VertexToString( vertex ), shader->name);
+			vertex->xyz[i] = 0.0f;
+		}
+
+		if ( !Math::IsFinite( vertex->normal[i] ) ) {
+			Log::Warn( "BSP: Bad vertex normal %i: %s, %s; setting to 0.0f", vertexID,
+				VertexToString( vertex ), shader->name );
+			vertex->normal[i] = 0.0f;
+
+			VectorNormalize( vertex->normal );
+		}
+	}
+
+	for ( int i = 0; i < 2; i++ ) {
+		if ( !Math::IsFinite( vertex->st[i] ) ) {
+			Log::Warn( "BSP: Bad uv in vertex %i: %s, %s; setting to 0.0f", vertexID,
+				VertexToString( vertex ), shader->name );
+			vertex->st[i] = 0.0f;
+		}
+
+		// q3map2 sometimes produces garbage lightmap uv's on patch meshes and on surfaces that don't seem to use lightmaps
+		if ( !Math::IsFinite( vertex->lightmap[i] ) || vertex->lightmap[i] < -1.0f || vertex->lightmap[i] > 1.0f ) {
+			/* Bad lightmap uv's on surfaces that don't use lightmapping seems to be very common in q3map2,
+			so don't spam the log with them. We still need to fix such values though */
+			for ( const shaderStage_t* pStage = shader->stages; pStage < shader->lastStage; pStage++ ) {
+				if ( pStage->colorRenderer == &Render_lightMapping ) {
+					Log::Warn( "BSP: Bad lightmap in vertex %i: %s, %s; setting to 0.0f", vertexID,
+						VertexToString( vertex ), shader->name );
+					break;
+				}
+			}
+
+			vertex->lightmap[i] = 0.0f;
+		}
+	}
+}
+
 static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf, int* indexes ) {
 	int realLightmapNum = LittleLong( ds->lightmapNum );
 
@@ -902,20 +951,24 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 			cv->verts[ i ].normal[ j ] = LittleFloat( verts[ i ].normal[ j ] );
 		}
 
-		AddPointToBounds( cv->verts[ i ].xyz, cv->bounds[ 0 ], cv->bounds[ 1 ] );
-
 		components[ i ].minVertex = i;
 
 		for ( int j = 0; j < 2; j++ ) {
 			cv->verts[ i ].st[ j ] = LittleFloat( verts[ i ].st[ j ] );
 			cv->verts[ i ].lightmap[ j ] = LittleFloat( verts[ i ].lightmap[ j ] );
-
-			components[ i ].stBounds[ 0 ][ j ] = cv->verts[ i ].st[ j ];
-			components[ i ].stBounds[ 1 ][ j ] = cv->verts[ i ].st[ j ];
 		}
 
 		cv->verts[ i ].lightmap[ 0 ] = LittleFloat( verts[ i ].lightmap[ 0 ] );
 		cv->verts[ i ].lightmap[ 1 ] = LittleFloat( verts[ i ].lightmap[ 1 ] );
+
+		ValidateVertex( &cv->verts[i], ds->firstVert + i, surf->shader );
+
+		AddPointToBounds( cv->verts[ i ].xyz, cv->bounds[ 0 ], cv->bounds[ 1 ] );
+
+		for( int j = 0; j < 2; j++ ) {
+			components[ i ].stBounds[ 0 ][ j ] = cv->verts[ i ].st[ j ];
+			components[ i ].stBounds[ 1 ][ j ] = cv->verts[ i ].st[ j ];
+		}
 
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
@@ -1065,7 +1118,6 @@ static void ParseTriSurf( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf,
 static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 {
 	srfGridMesh_t        *grid;
-	int                  i, j;
 	int                  width, height, numPoints;
 	static srfVert_t     points[ MAX_PATCH_SIZE * MAX_PATCH_SIZE ];
 	vec3_t               bounds[ 2 ];
@@ -1128,25 +1180,29 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	stBounds[ 1 ][ 0 ] = -99999.0f;
 	stBounds[ 1 ][ 1 ] = -99999.0f;
 
-	for ( i = 0; i < numPoints; i++ )
+	for ( int i = 0; i < numPoints; i++ )
 	{
-		for ( j = 0; j < 3; j++ )
+		for ( int j = 0; j < 3; j++ )
 		{
 			points[ i ].xyz[ j ] = LittleFloat( verts[ i ].xyz[ j ] );
 			points[ i ].normal[ j ] = LittleFloat( verts[ i ].normal[ j ] );
 		}
 
-		for ( j = 0; j < 2; j++ )
+		for ( int j = 0; j < 2; j++ )
 		{
 			points[ i ].st[ j ] = LittleFloat( verts[ i ].st[ j ] );
 			points[ i ].lightmap[ j ] = LittleFloat( verts[ i ].lightmap[ j ] );
-
-			stBounds[ 0 ][ j ] = std::min( stBounds[ 0 ][ j ], points[ i ].st[ j ] );
-			stBounds[ 1 ][ j ] = std::max( stBounds[ 1 ][ j ], points[ i ].st[ j ] );
 		}
 
 		points[ i ].lightmap[ 0 ] = LittleFloat( verts[ i ].lightmap[ 0 ] );
 		points[ i ].lightmap[ 1 ] = LittleFloat( verts[ i ].lightmap[ 1 ] );
+
+		ValidateVertex( &points[i], ds->firstVert + i, surf->shader );
+
+		for( int j = 0; j < 2; j++ ) {
+			stBounds[ 0 ][ j ] = std::min( stBounds[ 0 ][ j ], points[ i ].st[ j ] );
+			stBounds[ 1 ][ j ] = std::max( stBounds[ 1 ][ j ], points[ i ].st[ j ] );
+		}
 
 		points[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
@@ -1157,14 +1213,14 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	}
 
 	// center texture coords
-	for( j = 0; j < 2; j++ ) {
+	for( int j = 0; j < 2; j++ ) {
 		tcOffset[ j ] = 0.5f * (stBounds[ 1 ][ j ] + stBounds[ 0 ][ j ]);
 		tcOffset[ j ] = rintf( tcOffset[ j ] );
 	}
 
-	for ( i = 0; i < numPoints; i++ )
+	for ( int i = 0; i < numPoints; i++ )
 	{
-		for ( j = 0; j < 2; j++ )
+		for ( int j = 0; j < 2; j++ )
 		{
 			points[ i ].st[ j ] -= tcOffset[ j ];
 		}
@@ -1177,7 +1233,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	// copy the level of detail origin, which is the center
 	// of the group of all curves that must subdivide the same
 	// to avoid cracking
-	for ( i = 0; i < 3; i++ )
+	for ( int i = 0; i < 3; i++ )
 	{
 		bounds[ 0 ][ i ] = LittleFloat( ds->lightmapVecs[ 0 ][ i ] );
 		bounds[ 1 ][ i ] = LittleFloat( ds->lightmapVecs[ 1 ][ i ] );

@@ -1811,6 +1811,8 @@ enum class ssaoMode {
 
 	extern void ( *rb_surfaceTable[Util::ordinal(surfaceType_t::SF_NUM_SURFACE_TYPES)] )(void * );
 
+	void ValidateVertex( srfVert_t* vertex, int vertexID, shader_t* shader );
+
 	/*
 	==============================================================================
 	BRUSH MODELS - in memory representation
