@@ -315,6 +315,11 @@ void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, s
 				srfVert_t& vert = face->verts[triangle->indexes[j]];
 				uint32_t index = verts[vert];
 
+				/* There were some crashes due to bad lightmap values in .bsp vertices,
+				do the check again here just in case some calculation earlier, like patch mesh triangulation,
+				fucks things up again */
+				ValidateVertex( &vert, -1, surface->shader );
+
 				ASSERT_LT( idx, ( uint32_t ) numIndicesIn );
 				if ( !index ) {
 					verts[vert] = vertIdx + 1;
