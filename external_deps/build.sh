@@ -341,7 +341,7 @@ build_sdl2() {
 	case "${PLATFORM}" in
 	windows-*-mingw)
 		cd "${dir_name}"
-		make install-package arch="${HOST}" prefix="${PREFIX}"
+		cp -rv "${HOST}"/* "${PREFIX}/"
 		;;
 	windows-*-msvc)
 		cd "${dir_name}"
