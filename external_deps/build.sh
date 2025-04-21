@@ -265,18 +265,17 @@ build_zlib() {
 
 	"${download_only}" && return
 
-	local zlib_cmake_args=(-DCMAKE_C_FLAGS="${CFLAGS} -DZLIB_CONST")
-
-	case "${PLATFORM}" in
-		windows-*-*)
-			zlib_cmake_args+=(-DBUILD_SHARED_LIBS=ON)
-		;;
-	esac
-
 	cd "${dir_name}"
 
-	cmake_build "${zlib_cmake_args[@]}" \
-		-DZLIB_BUILD_EXAMPLES=OFF
+	case "${PLATFORM}" in
+	windows-*-*)
+		LOC="${CFLAGS}" make -f win32/Makefile.gcc PREFIX="${HOST}-"
+		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
+		;;
+	*)
+		cmake_build -DCMAKE_C_FLAGS="${CFLAGS} -DZLIB_CONST" -DZLIB_BUILD_EXAMPLES=OFF
+		;;
+	esac
 }
 
 # Build GMP
