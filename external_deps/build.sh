@@ -608,7 +608,7 @@ build_jpeg() {
 		;;
 	esac
 
-	local jpeg_cmake_args=()
+	local jpeg_cmake_args=''
 
 	case "${PLATFORM}" in
 	windows-*-*)
@@ -617,12 +617,14 @@ build_jpeg() {
 		# Workaround for: undefined reference to `log10'
 		# The CMakeLists.txt file only does -lm if UNIX,
 		# but UNIX may not be true on Linux.
-		jpeg_cmake_args=(-DUNIX=True)
+		jpeg_cmake_args='-DUNIX=True'
 		;;
 	esac
 		
 	cd "${dir_name}"
 
+	# -DHAVE_THREAD_LOCAL=0 overrides the compiler test to avoid the silly thread_local variable,
+	# which causes a libwinpthread dependency on Windows.
 	cmake_build \
 		-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 		-DENABLE_SHARED="${LIBS_SHARED}" \
@@ -630,7 +632,8 @@ build_jpeg() {
 		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" \
 		-DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
 		-DWITH_JPEG8=1 \
-		"${jpeg_cmake_args[@]}"
+		-DWITH_TURBOJPEG=0 \
+		${jpeg_cmake_args}
 }
 
 # Build WebP
