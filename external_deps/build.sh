@@ -608,12 +608,16 @@ build_jpeg() {
 		
 	cd "${dir_name}"
 
+	# -DHAVE_THREAD_LOCAL=0 overrides the compiler test to avoid the silly thread_local variable,
+	# which causes a libwinpthread dependency on Windows.
 	cmake_build \
+		-DHAVE_THREAD_LOCAL=0 \
 		-DENABLE_SHARED="${LIBS_SHARED}" \
 		-DENABLE_STATIC="${LIBS_STATIC}" \
 		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" \
 		-DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
 		-DWITH_JPEG8=1 \
+		-DWITH_TURBOJPEG=0 \
 		"${jpeg_cmake_args[@]}"
 }
 
