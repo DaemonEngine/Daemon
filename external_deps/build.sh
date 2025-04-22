@@ -487,7 +487,8 @@ build_sdl2() {
 	*)
 		cd "${dir_name}"
 
-		cmake_build
+		# TODO: disable a lot more stuff?
+		cmake_build -DSDL_AUDIO=OFF -DSDL_LIBSAMPLERATE=OFF
 
 		# Workaround for an SDL2 CMake bug, we need to provide
 		# a bin/ directory even when nothing is used from it.
@@ -711,7 +712,8 @@ build_openal() {
 
 		cmake_build \
 			-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-			-DALSOFT_EXAMPLES=OFF
+			-DALSOFT_EXAMPLES=OFF \
+			-DALSOFT_BACKEND_SNDIO=OFF \
 			-DLIBTYPE=STATIC
 		;;
 	esac
