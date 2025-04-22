@@ -551,10 +551,7 @@ build_png() {
 
 	cd "${dir_name}"
 
-	cmake_build \
-		-DPNG_EXECUTABLES=OFF \
-		-DPNG_SHARED="${LIBS_SHARED}" \
-		-DPNG_STATIC="${LIBS_STATIC}"
+	configure_build
 }
 
 # Build JPEG
