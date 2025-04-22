@@ -972,6 +972,9 @@ build_install() {
 		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${HOST}-strip" --strip-unneeded -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.a' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.exp' -execdir rm -f -- {} \;
+
+		# Fix import lib paths to use MSVC-style instead of MinGW ones (see 'genlib' target)
+		find "${PKG_PREFIX}/lib/cmake" -name '*.cmake' -execdir sed -i -E 's@[.]dll[.]a\b@.lib@g' {} \;
 		;;
 	esac
 
