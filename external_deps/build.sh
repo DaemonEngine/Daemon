@@ -171,9 +171,7 @@ download_extract() {
 }
 
 configure_build() {
-	local configure_args=(--disable-shared --enable-static)
-
-	configure_args=()
+	local configure_args=()
 
 	if [ "${LIBS_SHARED}" = 'ON' ]
 	then
@@ -194,7 +192,7 @@ configure_build() {
 		--prefix="${PREFIX}" \
 		--libdir="${PREFIX}/lib" \
 		"${configure_args[@]}" \
-		"${@}"
+		"${@:-}"
 
 	make
 	make install
@@ -305,12 +303,12 @@ build_gmp() {
 		;;
 	esac
 
-	local gmp_configure_args=()
+	local gmp_configure_args=''
 
 	case "${PLATFORM}" in
 	macos-*-*)
 		# The assembler objects are incompatible with PIE
-		gmp_configure_args+=(--disable-assembly)
+		gmp_configure_args='--disable-assembly'
 		;;
 	*)
 		;;
@@ -318,7 +316,7 @@ build_gmp() {
 
 	cd "${dir_name}"
 
-	configure_build "${gmp_configure_args[@]}"
+	configure_build ${gmp_configure_args}
 
 	case "${PLATFORM}" in
 	windows-*-msvc)
@@ -775,19 +773,19 @@ build_opus() {
 
 	"${download_only}" && return
 
-	local opus_cmake_args=()
+	local opus_cmake_args=''
 
 	case "${PLATFORM}" in
 	windows-*-*)
 		# With MinGW, we would get this error:
 		# undefined reference to `__stack_chk_guard'
-		opus_cmake_args+=(-DOPUS_FORTIFY_SOURCE=OFF -DOPUS_STACK_PROTECTOR=OFF)
+		opus_cmake_args='-DOPUS_FORTIFY_SOURCE=OFF -DOPUS_STACK_PROTECTOR=OFF'
 		;;
 	esac
 
 	cd "${dir_name}"
 
-	cmake_build "${opus_cmake_args[@]}" \
+	cmake_build ${opus_cmake_args} \
 		-DOPUS_BUILD_PROGRAMS=OFF \
 		-DOPUS_BUILD_TESTING=OFF \
 		-DOPUS_X86_MAY_HAVE_SSE=ON \
