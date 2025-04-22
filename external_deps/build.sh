@@ -201,7 +201,11 @@ configure_build() {
 }
 
 cmake_build() {
-	local cmake_args=()
+	local cmake_args=
+	if [[ "${LIBS_SHARED}" = ON ]]; then
+		# Emulate CC="${HOST}-gcc -static-libgcc"
+		cmake_args='-DCMAKE_C_COMPILER_ARG1=-static-libgcc -DCMAKE_CXX_COMPILER_ARG1=-static-libgcc -static'
+	fi
 
 	cmake -S . -B build \
 		-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}" \
@@ -209,7 +213,7 @@ cmake_build() {
 		-DCMAKE_PREFIX_PATH="${PREFIX}" \
 		-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
 		-DBUILD_SHARED_LIBS="${LIBS_SHARED}" \
-		"${cmake_args[@]}" \
+		"${cmake_args}" \
 		"${@}"
 
 	cmake --build build
