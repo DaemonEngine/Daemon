@@ -848,6 +848,55 @@ static void SphereFromBounds( vec3_t mins, vec3_t maxs, vec3_t origin, float* ra
 	*radius = VectorLength( temp );
 }
 
+static std::string VertexToString( srfVert_t* vertex ) {
+	return Str::Format( "xyz: %f %f %f normal: %f %f %f uv: %f %f lightmap: %f %f", vertex->xyz[0], vertex->xyz[1], vertex->xyz[2],
+		vertex->normal[0], vertex->normal[1], vertex->normal[2], vertex->st[0], vertex->st[1],
+		vertex->lightmap[0], vertex->lightmap[1] );
+}
+
+void ValidateVertex( srfVert_t* vertex, int vertexID, shader_t* shader ) {
+	for ( int i = 0; i < 3; i++ ) {
+		/* NetRadiant only allows vertices in range [-65535, 65536],
+		but some vertices still end up outside of that range, e.g: station15 sun */
+		if ( !Math::IsFinite( vertex->xyz[i] ) || vertex->xyz[i] < -1e9 || vertex->xyz[i] > 1e9 ) {
+			Log::Warn( "BSP: Bad position in vertex %i: %s, %s; setting to 0.0f", vertexID,
+				VertexToString( vertex ), shader->name);
+			vertex->xyz[i] = 0.0f;
+		}
+
+		if ( !Math::IsFinite( vertex->normal[i] ) ) {
+			Log::Warn( "BSP: Bad vertex normal %i: %s, %s; setting to 0.0f", vertexID,
+				VertexToString( vertex ), shader->name );
+			vertex->normal[i] = 0.0f;
+
+			VectorNormalize( vertex->normal );
+		}
+	}
+
+	for ( int i = 0; i < 2; i++ ) {
+		if ( !Math::IsFinite( vertex->st[i] ) ) {
+			Log::Warn( "BSP: Bad uv in vertex %i: %s, %s; setting to 0.0f", vertexID,
+				VertexToString( vertex ), shader->name );
+			vertex->st[i] = 0.0f;
+		}
+
+		// q3map2 sometimes produces garbage lightmap uv's on patch meshes and on surfaces that don't seem to use lightmaps
+		if ( !Math::IsFinite( vertex->lightmap[i] ) || vertex->lightmap[i] < -1.0f || vertex->lightmap[i] > 1.0f ) {
+			/* Bad lightmap uv's on surfaces that don't use lightmapping seems to be very common in q3map2,
+			so don't spam the log with them. We still need to fix such values though */
+			for ( const shaderStage_t* pStage = shader->stages; pStage < shader->lastStage; pStage++ ) {
+				if ( pStage->colorRenderer == &Render_lightMapping ) {
+					Log::Warn( "BSP: Bad lightmap in vertex %i: %s, %s; setting to 0.0f", vertexID,
+						VertexToString( vertex ), shader->name );
+					break;
+				}
+			}
+
+			vertex->lightmap[i] = 0.0f;
+		}
+	}
+}
+
 static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf, int* indexes ) {
 	int realLightmapNum = LittleLong( ds->lightmapNum );
 
@@ -902,20 +951,24 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 			cv->verts[ i ].normal[ j ] = LittleFloat( verts[ i ].normal[ j ] );
 		}
 
-		AddPointToBounds( cv->verts[ i ].xyz, cv->bounds[ 0 ], cv->bounds[ 1 ] );
-
 		components[ i ].minVertex = i;
 
 		for ( int j = 0; j < 2; j++ ) {
 			cv->verts[ i ].st[ j ] = LittleFloat( verts[ i ].st[ j ] );
 			cv->verts[ i ].lightmap[ j ] = LittleFloat( verts[ i ].lightmap[ j ] );
-
-			components[ i ].stBounds[ 0 ][ j ] = cv->verts[ i ].st[ j ];
-			components[ i ].stBounds[ 1 ][ j ] = cv->verts[ i ].st[ j ];
 		}
 
 		cv->verts[ i ].lightmap[ 0 ] = LittleFloat( verts[ i ].lightmap[ 0 ] );
 		cv->verts[ i ].lightmap[ 1 ] = LittleFloat( verts[ i ].lightmap[ 1 ] );
+
+		ValidateVertex( &cv->verts[i], ds->firstVert + i, surf->shader );
+
+		AddPointToBounds( cv->verts[ i ].xyz, cv->bounds[ 0 ], cv->bounds[ 1 ] );
+
+		for( int j = 0; j < 2; j++ ) {
+			components[ i ].stBounds[ 0 ][ j ] = cv->verts[ i ].st[ j ];
+			components[ i ].stBounds[ 1 ][ j ] = cv->verts[ i ].st[ j ];
+		}
 
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
@@ -1065,7 +1118,6 @@ static void ParseTriSurf( dsurface_t* ds, drawVert_t* verts, bspSurface_t* surf,
 static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 {
 	srfGridMesh_t        *grid;
-	int                  i, j;
 	int                  width, height, numPoints;
 	static srfVert_t     points[ MAX_PATCH_SIZE * MAX_PATCH_SIZE ];
 	vec3_t               bounds[ 2 ];
@@ -1128,25 +1180,29 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	stBounds[ 1 ][ 0 ] = -99999.0f;
 	stBounds[ 1 ][ 1 ] = -99999.0f;
 
-	for ( i = 0; i < numPoints; i++ )
+	for ( int i = 0; i < numPoints; i++ )
 	{
-		for ( j = 0; j < 3; j++ )
+		for ( int j = 0; j < 3; j++ )
 		{
 			points[ i ].xyz[ j ] = LittleFloat( verts[ i ].xyz[ j ] );
 			points[ i ].normal[ j ] = LittleFloat( verts[ i ].normal[ j ] );
 		}
 
-		for ( j = 0; j < 2; j++ )
+		for ( int j = 0; j < 2; j++ )
 		{
 			points[ i ].st[ j ] = LittleFloat( verts[ i ].st[ j ] );
 			points[ i ].lightmap[ j ] = LittleFloat( verts[ i ].lightmap[ j ] );
-
-			stBounds[ 0 ][ j ] = std::min( stBounds[ 0 ][ j ], points[ i ].st[ j ] );
-			stBounds[ 1 ][ j ] = std::max( stBounds[ 1 ][ j ], points[ i ].st[ j ] );
 		}
 
 		points[ i ].lightmap[ 0 ] = LittleFloat( verts[ i ].lightmap[ 0 ] );
 		points[ i ].lightmap[ 1 ] = LittleFloat( verts[ i ].lightmap[ 1 ] );
+
+		ValidateVertex( &points[i], ds->firstVert + i, surf->shader );
+
+		for( int j = 0; j < 2; j++ ) {
+			stBounds[ 0 ][ j ] = std::min( stBounds[ 0 ][ j ], points[ i ].st[ j ] );
+			stBounds[ 1 ][ j ] = std::max( stBounds[ 1 ][ j ], points[ i ].st[ j ] );
+		}
 
 		points[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
@@ -1157,14 +1213,14 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	}
 
 	// center texture coords
-	for( j = 0; j < 2; j++ ) {
+	for( int j = 0; j < 2; j++ ) {
 		tcOffset[ j ] = 0.5f * (stBounds[ 1 ][ j ] + stBounds[ 0 ][ j ]);
 		tcOffset[ j ] = rintf( tcOffset[ j ] );
 	}
 
-	for ( i = 0; i < numPoints; i++ )
+	for ( int i = 0; i < numPoints; i++ )
 	{
-		for ( j = 0; j < 2; j++ )
+		for ( int j = 0; j < 2; j++ )
 		{
 			points[ i ].st[ j ] -= tcOffset[ j ];
 		}
@@ -1177,7 +1233,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	// copy the level of detail origin, which is the center
 	// of the group of all curves that must subdivide the same
 	// to avoid cracking
-	for ( i = 0; i < 3; i++ )
+	for ( int i = 0; i < 3; i++ )
 	{
 		bounds[ 0 ][ i ] = LittleFloat( ds->lightmapVecs[ 0 ][ i ] );
 		bounds[ 1 ][ i ] = LittleFloat( ds->lightmapVecs[ 1 ][ i ] );
@@ -2538,10 +2594,25 @@ static void R_CreateWorldVBO() {
 		// HACK: portals: don't use VBO because when adding a portal we have to read back the verts CPU-side
 		// Autosprite: don't use VBO because verts are rewritten each time based on view origin
 		if ( surface->shader->isPortal || surface->shader->autoSpriteMode != 0 ) {
+			if( glConfig2.usingMaterialSystem ) {
+				materialSystem.autospriteSurfaces.push_back( surface );
+			}
+
 			if ( surface->shader->isPortal ) {
 				numPortals++;
 			}
 			continue;
+		}
+
+		if ( glConfig2.usingMaterialSystem && surface->shader->isSky ) {
+			if ( std::find( materialSystem.skyShaders.begin(), materialSystem.skyShaders.end(), surface->shader )
+				== materialSystem.skyShaders.end() ) {
+				materialSystem.skyShaders.emplace_back( surface->shader );
+			}
+
+			/* Sky brushes are currently not used by the material system,
+			but they still have to go into the VBO for the core renderer */
+			surface->skyBrush = true;
 		}
 
 		if ( *surface->data == surfaceType_t::SF_FACE || *surface->data == surfaceType_t::SF_GRID
@@ -2555,38 +2626,16 @@ static void R_CreateWorldVBO() {
 		}
 
 		surface->renderable = true;
+
+		if ( i >= ( int ) s_worldData.models[0].numSurfaces ) {
+			surface->BSPModel = true;
+		}
+
 		numSurfaces++;
 	}
 
 	if ( !numVertsInitial || !numTriangles || !numSurfaces ) {
 		return;
-	}
-
-	bspSurface_t** rendererSurfaces = ( bspSurface_t** ) ri.Hunk_AllocateTempMemory( sizeof( bspSurface_t* ) * numSurfaces );
-	numSurfaces = 0;
-	for ( int i = 0; i < s_worldData.numSurfaces; i++ ) {
-		bspSurface_t* surface = &s_worldData.surfaces[i];
-
-		if ( surface->renderable ) {
-			rendererSurfaces[numSurfaces++] = surface;
-		}
-	}
-
-	OptimiseMapGeometryCore( &s_worldData, rendererSurfaces, numSurfaces );
-
-	Log::Debug( "...calculating world VBO ( %i verts %i tris )", numVertsInitial, numTriangles );
-
-	// Use srfVert_t for the temporary array used to feed R_CreateStaticVBO, despite containing
-	// extraneous data, so that verts can be conveniently be bulk copied from the surface.
-	srfVert_t* vboVerts = ( srfVert_t* ) ri.Hunk_AllocateTempMemory( numVertsInitial * sizeof( srfVert_t ) );
-	glIndex_t* vboIdxs = ( glIndex_t* ) ri.Hunk_AllocateTempMemory( 3 * numTriangles * sizeof( glIndex_t ) );
-
-	int numVerts;
-	int numIndices;
-	MergeDuplicateVertices( rendererSurfaces, numSurfaces, vboVerts, numVertsInitial, vboIdxs, 3 * numTriangles, numVerts, numIndices );
-
-	if ( glConfig2.usingMaterialSystem ) {
-		OptimiseMapGeometryMaterial( &s_worldData, numSurfaces );
 	}
 
 	s_worldData.numPortals = numPortals;
@@ -2622,9 +2671,57 @@ static void R_CreateWorldVBO() {
 					break;
 			}
 			portal++;
+
+			if( glConfig2.usingMaterialSystem ) {
+				MaterialSurface srf{};
+
+				srf.shader = surface->shader;
+				srf.surface = surface->data;
+				srf.bspSurface = true;
+				srf.lightMapNum = surface->lightmapNum;
+				srf.fog = surface->fogIndex;
+				srf.portalNum = surface->portalNum;
+
+				srf.firstIndex = ( ( srfGeneric_t* ) surface->data )->firstIndex;
+				srf.count = ( ( srfGeneric_t* ) surface->data )->numTriangles * 3;
+				srf.verts = ( ( srfGeneric_t* ) surface->data )->verts;
+				srf.tris = ( ( srfGeneric_t* ) surface->data )->triangles;
+
+				VectorCopy( ( ( srfGeneric_t* ) surface->data )->origin, srf.origin );
+				srf.radius = ( ( srfGeneric_t* ) surface->data )->radius;
+
+				materialSystem.portalSurfaces.emplace_back( srf );
+			}
 		} else {
 			surface->portalNum = -1;
 		}
+	}
+
+	bspSurface_t** rendererSurfaces = ( bspSurface_t** ) ri.Hunk_AllocateTempMemory( sizeof( bspSurface_t* ) * numSurfaces );
+	numSurfaces = 0;
+	for ( int i = 0; i < s_worldData.numSurfaces; i++ ) {
+		bspSurface_t* surface = &s_worldData.surfaces[i];
+
+		if ( surface->renderable ) {
+			rendererSurfaces[numSurfaces++] = surface;
+		}
+	}
+
+	OptimiseMapGeometryCore( &s_worldData, rendererSurfaces, numSurfaces );
+
+	Log::Debug( "...calculating world VBO ( %i verts %i tris )", numVertsInitial, numTriangles );
+
+	// Use srfVert_t for the temporary array used to feed R_CreateStaticVBO, despite containing
+	// extraneous data, so that verts can be conveniently be bulk copied from the surface.
+	srfVert_t* vboVerts = ( srfVert_t* ) ri.Hunk_AllocateTempMemory( numVertsInitial * sizeof( srfVert_t ) );
+	glIndex_t* vboIdxs = ( glIndex_t* ) ri.Hunk_AllocateTempMemory( 3 * numTriangles * sizeof( glIndex_t ) );
+
+	int numVerts;
+	int numIndices;
+	MergeDuplicateVertices( rendererSurfaces, numSurfaces, vboVerts, numVertsInitial, vboIdxs, 3 * numTriangles, numVerts, numIndices );
+
+	if ( glConfig2.usingMaterialSystem ) {
+		OptimiseMapGeometryMaterial( rendererSurfaces, numSurfaces );
 	}
 
 	vertexAttributeSpec_t attrs[]{
@@ -4302,6 +4399,82 @@ static Cmd::LambdaCmd buildCubeMapsCmd(
 	"buildcubemaps", Cmd::RENDERER, "generate cube probes for reflection mapping",
 	[]( const Cmd::Args & ) { R_BuildCubeMaps(); });
 
+static void SetWorldLight() {
+	tr.worldLight = tr.lightMode;
+	tr.modelLight = lightMode_t::FULLBRIGHT;
+	tr.modelDeluxe = deluxeMode_t::NONE;
+
+	// Use fullbright lighting for everything if the world is fullbright.
+	if ( tr.worldLight != lightMode_t::FULLBRIGHT ) {
+		if ( tr.worldLight == lightMode_t::MAP ) {
+			// World surfaces use light mapping.
+
+			if ( !tr.worldLightMapping ) {
+				/* Use vertex light as a fallback on world surfaces missing a light map,
+				q3map2 has an option to produce less lightmap files by skipping them when
+				they are very similar to the vertex color. The vertex color is expected
+				to match the color of the nearby lightmaps. We better not want to use
+				the grid light as a fallback as it would be close but not close enough. */
+
+				tr.worldLight = lightMode_t::VERTEX;
+			}
+		} else if ( tr.worldLight == lightMode_t::GRID ) {
+			if ( !tr.lightGrid1Image ) {
+				// Use vertex light on world surface if light color grid is missing.
+				tr.worldLight = lightMode_t::VERTEX;
+			}
+		}
+
+		if ( tr.worldDeluxeMapping ) {
+			if ( tr.worldLight == lightMode_t::MAP ) {
+				tr.worldDeluxe = deluxeMode_t::MAP;
+			}
+
+			/* The combination of grid light and deluxe map is
+			technically doable, but rendering the world with a
+			light grid while a light map is available is not
+			the experience we want to provide, so we don't
+			allow this combination to not compile the related
+			shaders. */
+		}
+
+		/* We can technically use emulated deluxe map from light direction dir
+		on surfaces with light map but no deluxe map, but this is ugly.
+		Also, enabling it would require to make some macro not conflicting and
+		then would increase the amount of GLSL shader variants to be compiled,
+		this to render legacy maps in a way legacy renderers never rendered them.
+		It could still be cool as an optional feature, if we use a better
+		algorithm for emulating the deluxe map from light direction grid.
+		See https://github.com/DaemonEngine/Daemon/issues/32 */
+
+		if ( tr.lightGrid1Image ) {
+			// Game model surfaces use grid lighting, they don't have vertex light colors.
+			tr.modelLight = lightMode_t::GRID;
+		}
+
+		if ( glConfig2.deluxeMapping ) {
+			// Enable deluxe mapping emulation if light direction grid is there.
+			if ( tr.lightGrid2Image ) {
+				// Game model surfaces use grid lighting, they don't have vertex light colors.
+				tr.modelDeluxe = deluxeMode_t::GRID;
+
+				// Only game models use emulated deluxe map from light direction grid.
+			}
+		}
+	}
+
+	/* Set GLSL overbright parameters if the lighting mode is not fullbright. */
+	if ( tr.lightMode != lightMode_t::FULLBRIGHT ) {
+		if ( r_overbrightQ3.Get() ) {
+			// light factor is applied to entire color buffer; identityLight can be used to cancel it
+			tr.identityLight = 1.0f / float( 1 << tr.overbrightBits );
+		} else {
+			// light factor is applied wherever a precomputed light is sampled
+			tr.mapLightFactor = float( 1 << tr.overbrightBits );
+		}
+	}
+}
+
 /*
 =================
 RE_LoadWorldMap
@@ -4427,6 +4600,9 @@ void RE_LoadWorldMap( const char *name )
 	R_LoadLightGrid( &header->lumps[ LUMP_LIGHTGRID ] );
 
 	// create a static vbo for the world
+	// Do SetWorldLight() before R_CreateWorldVBO(), because the latter will use the world light values to generate materials
+	SetWorldLight();
+
 	R_CreateWorldVBO();
 	R_CreateClusters();
 
@@ -4435,98 +4611,8 @@ void RE_LoadWorldMap( const char *name )
 	}
 
 	s_worldData.dataSize = ( byte * ) ri.Hunk_Alloc( 0, ha_pref::h_low ) - startMarker;
-
 	// only set tr.world now that we know the entire level has loaded properly
 	tr.world = &s_worldData;
-
-	tr.worldLight = tr.lightMode;
-	tr.modelLight = lightMode_t::FULLBRIGHT;
-	tr.modelDeluxe = deluxeMode_t::NONE;
-
-	// Use fullbright lighting for everything if the world is fullbright.
-	if ( tr.worldLight != lightMode_t::FULLBRIGHT )
-	{
-		if ( tr.worldLight == lightMode_t::MAP )
-		{
-			// World surfaces use light mapping.
-
-			if ( !tr.worldLightMapping )
-			{
-				/* Use vertex light as a fallback on world surfaces missing a light map,
-				q3map2 has an option to produce less lightmap files by skipping them when
-				they are very similar to the vertex color. The vertex color is expected
-				to match the color of the nearby lightmaps. We better not want to use
-				the grid light as a fallback as it would be close but not close enough. */
-
-				tr.worldLight = lightMode_t::VERTEX;
-			}
-		}
-		else if ( tr.worldLight == lightMode_t::GRID )
-		{
-			if ( !tr.lightGrid1Image )
-			{
-				// Use vertex light on world surface if light color grid is missing.
-				tr.worldLight = lightMode_t::VERTEX;
-			}
-		}
-
-		if ( tr.worldDeluxeMapping )
-		{
-			if ( tr.worldLight == lightMode_t::MAP )
-			{
-				tr.worldDeluxe = deluxeMode_t::MAP;
-			}
-
-			/* The combination of grid light and deluxe map is
-			technically doable, but rendering the world with a
-			light grid while a light map is available is not
-			the experience we want to provide, so we don't
-			allow this combination to not compile the related
-			shaders. */
-		}
-
-		/* We can technically use emulated deluxe map from light direction dir
-		on surfaces with light map but no deluxe map, but this is ugly.
-		Also, enabling it would require to make some macro not conflicting and
-		then would increase the amount of GLSL shader variants to be compiled,
-		this to render legacy maps in a way legacy renderers never rendered them.
-		It could still be cool as an optional feature, if we use a better
-		algorithm for emulating the deluxe map from light direction grid.
-		See https://github.com/DaemonEngine/Daemon/issues/32 */
-
-		if ( tr.lightGrid1Image )
-		{
-			// Game model surfaces use grid lighting, they don't have vertex light colors.
-			tr.modelLight = lightMode_t::GRID;
-		}
-
-		if ( glConfig2.deluxeMapping )
-		{
-			// Enable deluxe mapping emulation if light direction grid is there.
-			if ( tr.lightGrid2Image )
-			{
-				// Game model surfaces use grid lighting, they don't have vertex light colors.
-				tr.modelDeluxe = deluxeMode_t::GRID;
-
-				// Only game models use emulated deluxe map from light direction grid.
-			}
-		}
-	}
-
-	/* Set GLSL overbright parameters if the lighting mode is not fullbright. */
-	if ( tr.lightMode != lightMode_t::FULLBRIGHT )
-	{
-		if ( r_overbrightQ3.Get() )
-		{
-			// light factor is applied to entire color buffer; identityLight can be used to cancel it
-			tr.identityLight = 1.0f / float( 1 << tr.overbrightBits );
-		}
-		else
-		{
-			// light factor is applied wherever a precomputed light is sampled
-			tr.mapLightFactor = float( 1 << tr.overbrightBits );
-		}
-	}
 
 	tr.worldLoaded = true;
 	tr.loadingMap = "";

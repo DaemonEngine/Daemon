@@ -68,18 +68,12 @@ struct TriIndex {
 
 struct MapVertHasher {
 	size_t operator()( const srfVert_t& vert ) const {
-		size_t hash = ~( *( ( size_t* ) &vert.xyz[0] ) << 15 );
-		hash ^= ( *( ( size_t* ) &vert.xyz[0] ) >> 10 );
-		hash += ( *( ( size_t* ) &vert.xyz[1] ) << 3 );
-		hash ^= ( *( ( size_t* ) &vert.xyz[1] ) >> 6 );
-		hash += ~( *( ( size_t* ) &vert.xyz[2] ) << 11 );
-		hash ^= ( *( ( size_t* ) &vert.xyz[2] ) >> 16 );
-
-		hash ^= ( *( ( size_t* ) &vert.st[0] ) << 7 );
-		hash += ( *( ( size_t* ) &vert.st[0] ) >> 12 );
-
-		hash ^= ( *( ( size_t* ) &vert.st[1] ) << 13 );
-		hash += ( *( ( size_t* ) &vert.st[1] ) >> 8 );
+		uint32_t hash = ~( Util::bit_cast<uint32_t, float>( vert.xyz[0] ) << 15 );
+		hash ^= ( Util::bit_cast<uint32_t, float>( vert.xyz[0] ) >> 10 );
+		hash += ( Util::bit_cast<uint32_t, float>( vert.xyz[1] ) << 3 );
+		hash ^= ( Util::bit_cast<uint32_t, float>( vert.xyz[1] ) >> 6 );
+		hash += ( Util::bit_cast<uint32_t, float>( vert.xyz[2] ) << 11 );
+		hash ^= ( Util::bit_cast<uint32_t, float>( vert.xyz[2] ) >> 16 );
 
 		return hash;
 	}
@@ -98,7 +92,8 @@ struct MapVertEqual {
 			&& VectorCompareEpsilon( lhs.normal, rhs.normal, 0.0001f )
 			&& CompareEpsilon( lhs.qtangent[0], rhs.qtangent[0] ) && CompareEpsilon( lhs.qtangent[1], rhs.qtangent[1] )
 			&& CompareEpsilon( lhs.qtangent[2], rhs.qtangent[2] ) && CompareEpsilon( lhs.qtangent[3], rhs.qtangent[3] )
-			&& lhs.lightColor.ArrayBytes() == rhs.lightColor.ArrayBytes();
+			&& lhs.lightColor.Red() == rhs.lightColor.Red() && lhs.lightColor.Green() == rhs.lightColor.Green()
+			&& lhs.lightColor.Blue() == rhs.lightColor.Blue() && lhs.lightColor.Alpha() == rhs.lightColor.Alpha();
 	}
 };
 
@@ -106,6 +101,6 @@ void OptimiseMapGeometryCore( world_t* world, bspSurface_t** rendererSurfaces, i
 void MergeLeafSurfacesCore( world_t* world, bspSurface_t** rendererSurfaces, int numSurfaces );
 void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, srfVert_t* vertices, int numVerticesIn,
 	glIndex_t* indices, int numIndicesIn, int& numVerticesOut, int& numIndicesOut );
-std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, int numSurfaces );
+std::vector<MaterialSurface> OptimiseMapGeometryMaterial( bspSurface_t** rendererSurfaces, int numSurfaces );
 
 #endif // GEOMETRY_OPTIMISER_H

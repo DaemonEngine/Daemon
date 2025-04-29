@@ -308,20 +308,25 @@ void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, s
 	for ( int i = 0; i < numSurfaces; i++ ) {
 		bspSurface_t* surface = rendererSurfaces[i];
 		
-		srfGeneric_t* face = ( srfGeneric_t* ) surface->data;
-		face->firstIndex = idx;
-		for ( srfTriangle_t* triangle = face->triangles; triangle < face->triangles + face->numTriangles; triangle++ ) {
+		srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
+		srf->firstIndex = idx;
+		for ( srfTriangle_t* triangle = srf->triangles; triangle < srf->triangles + srf->numTriangles; triangle++ ) {
 			for ( int j = 0; j < 3; j++ ) {
-				srfVert_t& vert = face->verts[triangle->indexes[j]];
+				srfVert_t& vert = srf->verts[triangle->indexes[j]];
 				uint32_t index = verts[vert];
 
-				ASSERT_LT( idx, numIndicesIn );
+				/* There were some crashes due to bad lightmap values in .bsp vertices,
+				do the check again here just in case some calculation earlier, like patch mesh triangulation,
+				fucks things up again */
+				ValidateVertex( &vert, -1, surface->shader );
+
+				ASSERT_LT( idx, ( uint32_t ) numIndicesIn );
 				if ( !index ) {
 					verts[vert] = vertIdx + 1;
 					vertices[vertIdx] = vert;
 					indices[idx] = vertIdx;
 
-					ASSERT_LT( vertIdx, numVerticesIn );
+					ASSERT_LT( vertIdx, ( uint32_t ) numVerticesIn );
 
 					vertIdx++;
 				} else {
@@ -356,7 +361,7 @@ void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, s
 	}
 } */
 
-std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, int numSurfaces ) {
+std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** rendererSurfaces, int numSurfaces ) {
 	std::vector<MaterialSurface> materialSurfaces;
 	materialSurfaces.reserve( numSurfaces );
 
@@ -365,24 +370,46 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, int nu
 
 	// std::unordered_map<TriEdge, TriIndex> triEdges;
 
-	int surfaceIndex = 0;
-	for ( int k = 0; k < world->numSurfaces; k++ ) {
-		bspSurface_t* surface = &world->surfaces[k];
+	vec3_t worldBounds[2] = {};
+	for ( int i = 0; i < numSurfaces; i++ ) {
+		bspSurface_t* surface = rendererSurfaces[i];
+
+		if ( surface->BSPModel ) {
+			// Not implemented yet
+			continue;
+		}
 
 		MaterialSurface srf {};
 
 		srf.shader = surface->shader;
+
 		srf.bspSurface = true;
+		srf.skyBrush = surface->skyBrush;
+
+		srf.lightMapNum = surface->lightmapNum;
 		srf.fog = surface->fogIndex;
+		srf.portalNum = surface->portalNum;
 
 		srf.firstIndex = ( ( srfGeneric_t* ) surface->data )->firstIndex;
-		srf.count = ( ( srfGeneric_t* ) surface->data )->numTriangles;
+		srf.count = ( ( srfGeneric_t* ) surface->data )->numTriangles * 3;
 		srf.verts = ( ( srfGeneric_t* ) surface->data )->verts;
 		srf.tris = ( ( srfGeneric_t* ) surface->data )->triangles;
 
+		VectorCopy( ( ( srfGeneric_t* ) surface->data )->origin, srf.origin );
+		srf.radius = ( ( srfGeneric_t* ) surface->data )->radius;
+
+		BoundsAdd( worldBounds[0], worldBounds[1],
+			( ( srfGeneric_t* ) surface->data )->bounds[0], ( ( srfGeneric_t* ) surface->data )->bounds[1] );
+
+		materialSystem.GenerateMaterial( &srf );
+
 		materialSurfaces.emplace_back( srf );
-		surfaceIndex++;
 	}
+
+	materialSystem.GenerateWorldMaterialsBuffer();
+	materialSystem.GeneratePortalBoundingSpheres();
+	materialSystem.SetWorldBounds( worldBounds );
+	materialSystem.GenerateWorldCommandBuffer( materialSurfaces );
 
 	return materialSurfaces;
 }
