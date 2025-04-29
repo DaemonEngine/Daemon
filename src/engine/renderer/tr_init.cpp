@@ -45,6 +45,19 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	static void GfxInfo_f();
 
+#if defined(DAEMON_RENDERER_OPENGL)
+	constexpr rendererApi_t rendererApi = rendererApi_t::OPENGL;
+#elif defined(DAEMON_RENDERER_VULKAN)
+	constexpr rendererApi_t rendererApi = rendererApi_t::VULKAN;
+#else
+	#error Undefined renderer API.
+#endif
+
+Cvar::Range<Cvar::Cvar<int>> r_rendererApi( "r_rendererApi", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM,
+	Util::ordinal( rendererApi ),
+	Util::ordinal( rendererApi_t::OPENGL ),
+	Util::ordinal( rendererApi_t::VULKAN ) );
+
 	cvar_t      *r_glMajorVersion;
 	cvar_t      *r_glMinorVersion;
 	cvar_t      *r_glProfile;
