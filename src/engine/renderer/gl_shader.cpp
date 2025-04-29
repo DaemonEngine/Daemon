@@ -2341,14 +2341,14 @@ void GLShader::MarkProgramForBuilding( int deformIndex ) {
 	shaderProgramsToBuild[index] = true;
 }
 
-GLuint GLShader::GetProgram( int deformIndex ) {
+GLuint GLShader::GetProgram( int deformIndex, const bool buildOneShader ) {
 	int macroIndex = SelectProgram();
 	size_t index = macroIndex + ( size_t( deformIndex ) << _compileMacros.size() );
 
 	// program may not be loaded yet because the shader manager hasn't yet gotten to it
 	// so try to load it now
 	if ( index >= shaderPrograms.size() || !shaderPrograms[index].id ) {
-		gl_shaderManager.BuildPermutation( this, macroIndex, deformIndex, true );
+		gl_shaderManager.BuildPermutation( this, macroIndex, deformIndex, buildOneShader );
 	}
 
 	// program is still not loaded

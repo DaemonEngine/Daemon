@@ -451,6 +451,7 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** renderer
 	// std::unordered_map<TriEdge, TriIndex> triEdges;
 
 	vec3_t worldBounds[2] = {};
+	materialSystem.buildOneShader = false;
 	for ( int i = 0; i < numSurfaces; i++ ) {
 		bspSurface_t* surface = rendererSurfaces[i];
 
@@ -485,6 +486,8 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** renderer
 
 		materialSurfaces.emplace_back( srf );
 	}
+
+	materialSystem.buildOneShader = true;
 
 	materialSystem.GenerateWorldMaterialsBuffer();
 	materialSystem.GeneratePortalBoundingSpheres();

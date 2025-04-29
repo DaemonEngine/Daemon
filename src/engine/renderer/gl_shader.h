@@ -186,7 +186,7 @@ protected:
 	int SelectProgram();
 public:
 	void MarkProgramForBuilding( int deformIndex );
-	GLuint GetProgram( int deformIndex );
+	GLuint GetProgram( int deformIndex, const bool buildOneShader );
 	void BindProgram( int deformIndex );
 	void DispatchCompute( const GLuint globalWorkgroupX, const GLuint globalWorkgroupY, const GLuint globalWorkgroupZ );
 	void DispatchComputeIndirect( const GLintptr indirectBuffer );

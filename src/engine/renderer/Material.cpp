@@ -1011,7 +1011,7 @@ void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, Materi
 	material->hasDepthFade = hasDepthFade;
 	gl_genericShaderMaterial->SetDepthFade( hasDepthFade );
 
-	material->program = gl_genericShaderMaterial->GetProgram( pStage->deformIndex );
+	material->program = gl_genericShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
 }
 
 void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, MaterialSurface* surface ) {
@@ -1053,7 +1053,7 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, Mat
 
 	gl_lightMappingShaderMaterial->SetPhysicalShading( pStage->enablePhysicalMapping );
 
-	material->program = gl_lightMappingShaderMaterial->GetProgram( pStage->deformIndex );
+	material->program = gl_lightMappingShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
 }
 
 void ProcessMaterialReflection( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ ) {
@@ -1067,7 +1067,7 @@ void ProcessMaterialReflection( Material* material, shaderStage_t* pStage, Mater
 
 	gl_reflectionShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
 
-	material->program = gl_reflectionShaderMaterial->GetProgram( pStage->deformIndex );
+	material->program = gl_reflectionShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
 }
 
 void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ ) {
@@ -1075,7 +1075,7 @@ void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage, MaterialS
 
 	material->deformIndex = pStage->deformIndex;
 
-	material->program = gl_skyboxShaderMaterial->GetProgram( pStage->deformIndex );
+	material->program = gl_skyboxShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
 }
 
 void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ ) {
@@ -1083,7 +1083,7 @@ void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, MaterialS
 
 	material->deformIndex = pStage->deformIndex;
 
-	material->program = gl_screenShaderMaterial->GetProgram( pStage->deformIndex );
+	material->program = gl_screenShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
 }
 
 void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, MaterialSurface* ) {
@@ -1091,7 +1091,7 @@ void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, Materia
 
 	material->deformIndex = pStage->deformIndex;
 
-	material->program = gl_heatHazeShaderMaterial->GetProgram( pStage->deformIndex );
+	material->program = gl_heatHazeShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
 }
 
 void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, MaterialSurface* surface ) {
@@ -1115,14 +1115,14 @@ void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, MaterialS
 
 	gl_liquidShaderMaterial->SetGridLighting( lightMode == lightMode_t::GRID );
 
-	material->program = gl_liquidShaderMaterial->GetProgram( pStage->deformIndex );
+	material->program = gl_liquidShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
 }
 
 void ProcessMaterialFog( Material* material, shaderStage_t* pStage, MaterialSurface* surface ) {
 	material->shader = gl_fogQuake3ShaderMaterial;
 	material->fog = surface->fog;
 
-	material->program = gl_fogQuake3ShaderMaterial->GetProgram( pStage->deformIndex );
+	material->program = gl_fogQuake3ShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
 }
 
 void MaterialSystem::AddStage( MaterialSurface* surface, shaderStage_t* pStage, uint32_t stage,
@@ -1741,6 +1741,8 @@ void MaterialSystem::Free() {
 			portalView.count = 0;
 		}
 	}
+
+	buildOneShader = true;
 
 	totalDrawSurfs = 0;
 

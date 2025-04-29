@@ -339,6 +339,8 @@ class MaterialSystem {
 	uint32_t totalPortals;
 	std::vector<shader_t*> skyShaders;
 
+	bool buildOneShader = true;
+
 	std::vector<Material*> renderedMaterials;
 
 	/* MaterialPack is an abstraction to match a range of materials with the 3 different calls to RB_RenderDrawSurfaces()
