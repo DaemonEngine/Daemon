@@ -366,7 +366,7 @@ public:
 
 	int GetDeformShaderIndex( deformStage_t *deforms, int numDeforms );
 
-	bool BuildPermutation( GLShader* shader, int macroIndex, int deformIndex );
+	bool BuildPermutation( GLShader* shader, int macroIndex, int deformIndex, const bool buildOneShader );
 	void BuildAll( const bool buildOnlyMarked );
 	void FreeAll();
 private:

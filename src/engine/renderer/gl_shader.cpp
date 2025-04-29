@@ -1140,7 +1140,7 @@ ShaderProgramDescriptor* GLShaderManager::FindShaderProgram( std::vector<ShaderE
 	return &*it;
 }
 
-bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int deformIndex ) {
+bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int deformIndex, const bool buildOneShader ) {
 	size_t i = macroIndex + ( deformIndex << shader->_compileMacros.size() );
 
 	std::string compileMacros;
@@ -1161,6 +1161,18 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 	Log::Debug( "Building %s shader permutation with macro: %s",
 		shader->GetName(),
 		compileMacros.empty() ? "none" : compileMacros );
+
+	if ( buildOneShader ) {
+		compileTime = 0;
+		compileCount = 0;
+		linkTime = 0;
+		linkCount = 0;
+
+		cacheLoadTime = 0;
+		cacheLoadCount = 0;
+		cacheSaveTime = 0;
+		cacheSaveCount = 0;
+	}
 
 	const int start = Sys::Milliseconds();
 
@@ -1198,6 +1210,14 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 
 	Log::Debug( "Built in: %i ms", Sys::Milliseconds() - start );
 
+	if ( buildOneShader ) {
+		Log::Notice( "Built a glsl shader program in %i ms (compile: %u in %i ms, link: %u in %i ms;"
+			" cache: loaded %u in %i ms, saved %u in %i ms)",
+			Sys::Milliseconds() - start,
+			compileCount, compileTime, linkCount, linkTime,
+			cacheLoadCount, cacheLoadTime, cacheSaveCount, cacheSaveTime );
+	}
+
 	return true;
 }
 
@@ -1208,6 +1228,11 @@ void GLShaderManager::BuildAll( const bool buildOnlyMarked ) {
 	compileCount = 0;
 	linkTime = 0;
 	linkCount = 0;
+
+	cacheLoadTime = 0;
+	cacheLoadCount = 0;
+	cacheSaveTime = 0;
+	cacheSaveCount = 0;
 
 	if ( buildOnlyMarked ) {
 		Log::Notice( "Building only marked GLSL shaders" );
@@ -1222,14 +1247,14 @@ void GLShaderManager::BuildAll( const bool buildOnlyMarked ) {
 					const int macroIndex = i & ( ( 1u << shader->GetNumOfCompiledMacros() ) - 1 );
 					const int deformIndex = i >> shader->GetNumOfCompiledMacros();
 
-					count += +BuildPermutation( shader, macroIndex, deformIndex );
+					count += +BuildPermutation( shader, macroIndex, deformIndex, false );
 				}
 			}
 		} else {
 			size_t numPermutations = static_cast<size_t>( 1 ) << shader->GetNumOfCompiledMacros();
 
 			for ( size_t i = 0; i < numPermutations; i++ ) {
-				count += +BuildPermutation( shader, i, 0 );
+				count += +BuildPermutation( shader, i, 0, false );
 			}
 		}
 
@@ -2335,7 +2360,7 @@ GLuint GLShader::GetProgram( int deformIndex ) {
 	// program may not be loaded yet because the shader manager hasn't yet gotten to it
 	// so try to load it now
 	if ( index >= shaderPrograms.size() || !shaderPrograms[index].id ) {
-		gl_shaderManager.BuildPermutation( this, macroIndex, deformIndex );
+		gl_shaderManager.BuildPermutation( this, macroIndex, deformIndex, true );
 	}
 
 	// program is still not loaded
@@ -2368,7 +2393,7 @@ void GLShader::BindProgram( int deformIndex ) {
 	// so try to load it now
 	if ( index >= shaderPrograms.size() || !shaderPrograms[index].id )
 	{
-		gl_shaderManager.BuildPermutation( this, macroIndex, deformIndex );
+		gl_shaderManager.BuildPermutation( this, macroIndex, deformIndex, true );
 	}
 
 	// program is still not loaded
