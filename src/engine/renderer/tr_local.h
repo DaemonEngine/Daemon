@@ -1091,11 +1091,13 @@ enum class ssaoMode {
 	  COLLAPSE_REFLECTIONMAP,
 	};
 
+	struct shader_t;
 	struct shaderStage_t;
 	struct Material;
 	struct MaterialSurface;
 
 	using stageRenderer_t = void(*)(shaderStage_t *);
+	using stageShaderBuildMarker_t = void(*)(const shaderStage_t*);
 	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
 	using stageShaderBinder_t = void(*)(Material*);
 	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, MaterialSurface*);
@@ -1119,6 +1121,7 @@ enum class ssaoMode {
 
 		// Core renderer (code path for when only OpenGL Core is available, or compatible OpenGL 2).
 		stageRenderer_t colorRenderer;
+		stageShaderBuildMarker_t shaderBuildMarker;
 
 		// Material renderer (code path for advanced OpenGL techniques like bindless textures).
 		surfaceDataUpdater_t surfaceDataUpdater;
@@ -3487,6 +3490,15 @@ void GLimp_LogComment_( std::string comment );
 	void Tess_UpdateVBOs();
 
 	void RB_ShowImages();
+
+	void ProcessShaderNONE( const shaderStage_t* );
+	void ProcessShaderNOP( const shaderStage_t* );
+	void ProcessShaderGeneric3D( const shaderStage_t* pStage );
+	void ProcessShaderLightMapping( const shaderStage_t* pStage );
+	void ProcessShaderReflection( const shaderStage_t* pStage );
+	void ProcessShaderHeatHaze( const shaderStage_t* );
+	void ProcessShaderLiquid( const shaderStage_t* pStage );
+	void ProcessShaderFog( const shaderStage_t* );
 
 	void Render_NONE( shaderStage_t *pStage );
 	void Render_NOP( shaderStage_t *pStage );

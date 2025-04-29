@@ -108,6 +108,7 @@ protected:
 	uint32_t _vertexAttribs = 0; // can be set by uniforms
 
 	std::vector<ShaderProgramDescriptor> shaderPrograms;
+	std::vector<bool> shaderProgramsToBuild;
 
 	std::vector<int> vertexShaderDescriptors;
 	std::vector<int> fragmentShaderDescriptors;
@@ -184,6 +185,7 @@ protected:
 	virtual void SetShaderProgramUniforms( ShaderProgramDescriptor* /*shaderProgram*/ ) { };
 	int SelectProgram();
 public:
+	void MarkProgramForBuilding( int deformIndex );
 	GLuint GetProgram( int deformIndex );
 	void BindProgram( int deformIndex );
 	void DispatchCompute( const GLuint globalWorkgroupX, const GLuint globalWorkgroupY, const GLuint globalWorkgroupZ );
@@ -365,7 +367,7 @@ public:
 	int GetDeformShaderIndex( deformStage_t *deforms, int numDeforms );
 
 	bool BuildPermutation( GLShader* shader, int macroIndex, int deformIndex );
-	void BuildAll();
+	void BuildAll( const bool buildOnlyMarked );
 	void FreeAll();
 private:
 	struct InfoLogEntry {

@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "DetectGLVendors.h"
 #include "Material.h"
 #include "GeometryCache.h"
+#include "GeometryOptimiser.h"
 
 #ifdef _WIN32
 	extern "C" {
@@ -1629,6 +1630,35 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		R_SyncRenderThread();
 		if ( r_lazyShaders.Get() == 1 )
 		{
+			for ( int i = 0; i < tr.numModels; i++ ) {
+				const model_t* model = tr.models[i];
+				switch ( model->type ) {
+					case modtype_t::MOD_IQM:
+						MarkShaderBuildIQM( model->iqm );
+						break;
+					case modtype_t::MOD_MESH:
+						MarkShaderBuildMDV( model->mdv[0] );
+						break;
+					case modtype_t::MOD_MD5:
+						MarkShaderBuildMD5( model->md5 );
+						break;
+					case modtype_t::MOD_BSP:
+					case modtype_t::MOD_BAD:
+					default:
+						break;
+				}
+
+				/* This sucks because not all of those shaders might be used for skeletal models,
+				but MD5 doesn't have any way to check if a skin is used for a model,
+				so we don't know which ones will use skeletal animation in advance */
+				for ( int j = 0; j < tr.numSkins; j++ ) {
+					skin_t* skin = tr.skins[j];
+					for ( int k = 0; k < skin->numSurfaces; k++ ) {
+						MarkShaderBuild( skin->surfaces[k]->shader, -1, false, true, false );
+					}
+				}
+			}
+
 			GLSL_FinishGPUShaders();
 		}
 

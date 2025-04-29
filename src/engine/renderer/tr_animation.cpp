@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_animation.c
 #include "tr_local.h"
+#include "GeometryOptimiser.h"
 
 /*
 ===========================================================================
@@ -1552,4 +1553,18 @@ int RE_AnimFrameRate( qhandle_t hAnim )
 	}
 
 	return 0;
+}
+
+void MarkShaderBuildMD5( const md5Model_t* model ) {
+	for ( int i = 0; i < model->numSurfaces; i++ ) {
+		md5Surface_t* surface = &model->surfaces[i];
+
+		shader_t* defaultModelShader = R_GetShaderByHandle( surface->shaderIndex );
+		MarkShaderBuild( defaultModelShader, -1, false, true, false );
+
+		for ( int j = 0; j < MAX_ALTSHADERS; j++ ) {
+			shader_t* shader = R_GetShaderByHandle( defaultModelShader->altShader[j].index );
+			MarkShaderBuild( shader, -1, false, true, false );
+		}
+	}
 }
