@@ -117,6 +117,10 @@ if(NOT DAEMON_EXTERNAL_APP)
         option(USE_MUMBLE "Build Daemon with mumblelink sumpport" ON)
     endif()
 
+    if (BUILD_CLIENT)
+        option(USE_VULKAN "Use Vulkan rendering API instead of OpenGL." OFF)
+    endif()
+
     option(USE_SMP "Compile with support for running the renderer in a separate thread" ON)
     option(USE_BREAKPAD "Generate Daemon crash dumps (which require Breakpad tools to read)" OFF)
 endif()
@@ -562,6 +566,13 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     endif()
 endif()
 
+if (USE_VULKAN)
+    add_definitions("-DDAEMON_RENDERER_VULKAN=1")
+else()
+    add_definitions("-DDAEMON_RENDERER_OPENGL=1")
+endif()
+
+# TODO: Split OpenGL and Vulkan library configuration.
 # Look for OpenGL here before we potentially switch to looking for static libs.
 if (BUILD_CLIENT)
     if (LINUX OR FREEBSD)
@@ -937,9 +948,16 @@ if (BUILD_CLIENT)
     if (USE_SMP)
         list(APPEND Definitions USE_SMP)
     endif()
+
+    if (USE_VULKAN)
+        set(CLIENT_EXECUTABLE_NAME daemon-vulkan)
+    else()
+        set(CLIENT_EXECUTABLE_NAME daemon)
+    endif()
+
     AddApplication(
         Target client
-        ExecutableName daemon
+        ExecutableName ${CLIENT_EXECUTABLE_NAME}
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions ${Definitions}
         Flags ${WARNINGS}

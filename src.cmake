@@ -77,6 +77,7 @@ set(COMMONTESTLIST
     ${ENGINE_DIR}/qcommon/q_math_test.cpp
 )
 
+# TODO: Split OpenGL and Vulkan list.
 set(RENDERERLIST
     ${ENGINE_DIR}/renderer/BufferBind.h
     ${ENGINE_DIR}/renderer/DetectGLVendors.cpp
