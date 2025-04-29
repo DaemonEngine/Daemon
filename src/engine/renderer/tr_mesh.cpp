@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_mesh.c -- triangle model functions
 #include "tr_local.h"
+#include "GeometryOptimiser.h"
 
 /*
 =============
@@ -465,6 +466,23 @@ void R_AddMDVInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 			{
 				R_AddLightInteraction( light, ( surfaceType_t * ) mdvSurface, shader, cubeSideBits, iaType );
 				tr.pc.c_dlightSurfaces++;
+			}
+		}
+	}
+}
+
+void MarkShaderBuildMDV( const mdvModel_t* model ) {
+	for ( int i = 0; i < model->numVBOSurfaces; i++ ) {
+		srfVBOMDVMesh_t* surface = model->vboSurfaces[i];
+		MarkShaderBuild( surface->mdvSurface->shader, -1, false, false, true );
+
+		for ( int j = 0; j < tr.numSkins; j++ ) {
+			skin_t* skin = tr.skins[j];
+			for ( int k = 0; k < skin->numSurfaces; k++ ) {
+				// the names have both been lowercased
+				if ( !strcmp( skin->surfaces[k]->name, surface->mdvSurface->name ) ) {
+					MarkShaderBuild( skin->surfaces[k]->shader, -1, false, false, true );
+				}
 			}
 		}
 	}

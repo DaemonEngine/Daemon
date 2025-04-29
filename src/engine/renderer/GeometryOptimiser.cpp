@@ -73,6 +73,78 @@ static int LeafSurfaceCompare( const void* a, const void* b ) {
 	return 0;
 }
 
+void MarkShaderBuildNONE( const shaderStage_t* ) {
+	ASSERT_UNREACHABLE();
+}
+
+void MarkShaderBuildNOP( const shaderStage_t* ) {
+}
+
+void MarkShaderBuildGeneric3D( const shaderStage_t* pStage ) {
+	ProcessShaderGeneric3D( pStage );
+	gl_genericShader->MarkProgramForBuilding( pStage->deformIndex );
+}
+
+void MarkShaderBuildLightMapping( const shaderStage_t* pStage ) {
+	ProcessShaderLightMapping( pStage );
+	gl_lightMappingShader->MarkProgramForBuilding( pStage->deformIndex );
+}
+
+void MarkShaderBuildReflection( const shaderStage_t* pStage ) {
+	ProcessShaderReflection( pStage );
+	gl_reflectionShader->MarkProgramForBuilding( pStage->deformIndex );
+}
+
+void MarkShaderBuildSkybox( const shaderStage_t* pStage ) {
+	gl_skyboxShader->MarkProgramForBuilding( pStage->deformIndex );
+}
+
+void MarkShaderBuildScreen( const shaderStage_t* pStage ) {
+	gl_screenShader->MarkProgramForBuilding( pStage->deformIndex );
+}
+
+void MarkShaderBuildPortal( const shaderStage_t* pStage ) {
+	gl_portalShader->MarkProgramForBuilding( pStage->deformIndex );
+}
+
+void MarkShaderBuildHeatHaze( const shaderStage_t* pStage ) {
+	ProcessShaderHeatHaze( pStage );
+	gl_heatHazeShader->MarkProgramForBuilding( pStage->deformIndex );
+}
+
+void MarkShaderBuildLiquid( const shaderStage_t* pStage ) {
+	ProcessShaderLiquid( pStage );
+	gl_liquidShader->MarkProgramForBuilding( pStage->deformIndex );
+}
+
+void MarkShaderBuildFog( const shaderStage_t* pStage ) {
+	ProcessShaderFog( pStage );
+	gl_fogQuake3Shader->MarkProgramForBuilding( 0 );
+}
+
+void MarkShaderBuild( const shader_t* shader, const int lightMapNum, const bool bspSurface,
+	const bool vertexSkinning, const bool vertexAnimation ) {
+	tess.bspSurface = bspSurface;
+	tess.lightmapNum = lightMapNum;
+
+	tess.vboVertexSkinning = vertexSkinning;
+	tess.vboVertexAnimation = vertexAnimation;
+	/* Fuck knows why there are 2 different ways of setting the vertex animation global (through tess and through glState),
+	but that's what we have */
+	glState.vertexAttribsInterpolation = vertexAnimation ? 1.0f : 0.0f;
+
+	for ( const shaderStage_t* pStage = shader->stages; pStage < shader->lastStage; pStage++ ) {
+		pStage->shaderBuildMarker( pStage );
+	}
+
+	tess.bspSurface = false;
+	tess.lightmapNum = -1;
+
+	tess.vboVertexSkinning = false;
+	tess.vboVertexAnimation = false;
+	glState.vertexAttribsInterpolation = 0.0f;
+}
+
 static void CoreResetSurfaceViewCounts( bspSurface_t** rendererSurfaces, int numSurfaces ) {
 	for ( int i = 0; i < numSurfaces; i++ ) {
 		bspSurface_t* surface = rendererSurfaces[i];
@@ -145,6 +217,14 @@ void OptimiseMapGeometryCore( world_t* world, bspSurface_t** rendererSurfaces, i
 	}
 
 	qsort( rendererSurfaces, numSurfaces, sizeof( bspSurface_t* ), LeafSurfaceCompare );
+
+	if ( r_lazyShaders.Get() == 1 ) {
+		for ( int i = 0; i < numSurfaces; i++ ) {
+			bspSurface_t* surface = rendererSurfaces[i];
+
+			MarkShaderBuild( surface->shader, surface->lightmapNum, true, false, false );
+		}
+	}
 }
 
 static void SphereFromBounds( vec3_t mins, vec3_t maxs, vec3_t origin, float* radius ) {
