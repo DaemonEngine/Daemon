@@ -846,8 +846,6 @@ void ProcessShaderLightMapping( const shaderStage_t* pStage ) {
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
 
-	DAEMON_ASSERT( !( enableDeluxeMapping && enableGridDeluxeMapping ) );
-
 	// Not implemented yet in PBR code.
 	bool enableReflectiveSpecular =
 		pStage->enableSpecularMapping && glConfig2.reflectionMapping
@@ -1058,11 +1056,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 		stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_ATEST_BITS );
 	}
 
-	bool enableDeluxeMapping = ( deluxeMode == deluxeMode_t::MAP );
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
-
-	DAEMON_ASSERT( !( enableDeluxeMapping && enableGridDeluxeMapping ) );
 
 	// Not implemented yet in PBR code.
 	bool enableReflectiveSpecular =

@@ -1027,8 +1027,6 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, Mat
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
 
-	DAEMON_ASSERT( !( enableDeluxeMapping && enableGridDeluxeMapping ) );
-
 	material->enableDeluxeMapping = enableDeluxeMapping;
 	material->enableGridLighting = enableGridLighting;
 	material->enableGridDeluxeMapping = enableGridDeluxeMapping;
