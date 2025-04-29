@@ -2593,7 +2593,6 @@ enum class ssaoMode {
 	};
 
 	class GLShader;
-	class GLShader_vertexLighting_DBS_entity;
 
 	struct scissorState_t
 	{
