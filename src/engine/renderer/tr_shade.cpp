@@ -207,6 +207,8 @@ void GLSL_InitWorldShaders() {
 	// Material system shaders that are always loaded if material system is available
 	if ( glConfig2.usingMaterialSystem ) {
 		gl_shaderManager.LoadShader( gl_cullShader );
+
+		gl_cullShader->MarkProgramForBuilding( 0 );
 	}
 }
 
@@ -240,6 +242,10 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.LoadShader( gl_clearSurfacesShader );
 		gl_shaderManager.LoadShader( gl_processSurfacesShader );
 		gl_shaderManager.LoadShader( gl_depthReductionShader );
+
+		gl_clearSurfacesShader->MarkProgramForBuilding( 0 );
+		gl_processSurfacesShader->MarkProgramForBuilding( 0 );
+		gl_depthReductionShader->MarkProgramForBuilding( 0 );
 	}
 
 	if ( tr.world ) // this only happens with /glsl_restart
@@ -267,6 +273,10 @@ static void GLSL_InitGPUShadersOrError()
 			gl_shaderManager.LoadShader( gl_depthtile1Shader );
 			gl_shaderManager.LoadShader( gl_depthtile2Shader );
 			gl_shaderManager.LoadShader( gl_lighttileShader );
+
+			gl_depthtile1Shader->MarkProgramForBuilding( 0 );
+			gl_depthtile2Shader->MarkProgramForBuilding( 0 );
+			gl_lighttileShader->MarkProgramForBuilding( 0 );
 			DAEMON_FALLTHROUGH;
 		default:
 			/* Dynamic shadowing code also needs this shader.
@@ -302,9 +312,13 @@ static void GLSL_InitGPUShadersOrError()
 		// skybox drawing for abitrary polygons
 		gl_shaderManager.LoadShader( gl_skyboxShader );
 
+		gl_skyboxShader->MarkProgramForBuilding( 0 );
+
 		if ( glConfig2.usingMaterialSystem )
 		{
 			gl_shaderManager.LoadShader( gl_skyboxShaderMaterial );
+
+			gl_skyboxShaderMaterial->MarkProgramForBuilding( 0 );
 		}
 	}
 
@@ -320,6 +334,8 @@ static void GLSL_InitGPUShadersOrError()
 
 		// global fog post process effect
 		gl_shaderManager.LoadShader( gl_fogGlobalShader );
+
+		gl_fogGlobalShader->MarkProgramForBuilding( 0 );
 	}
 
 	if ( r_heatHaze->integer )
@@ -338,26 +354,38 @@ static void GLSL_InitGPUShadersOrError()
 		// screen post process effect
 		gl_shaderManager.LoadShader( gl_screenShader );
 
+		gl_screenShader->MarkProgramForBuilding( 0 );
+
 		if ( glConfig2.usingMaterialSystem )
 		{
 			gl_shaderManager.LoadShader( gl_screenShaderMaterial );
+
+			gl_screenShaderMaterial->MarkProgramForBuilding( 0 );
 		}
 
 		// LDR bright pass filter
 		gl_shaderManager.LoadShader( gl_contrastShader );
+
+		gl_contrastShader->MarkProgramForBuilding( 0 );
 	}
 
 	
 	// portal process effect
 	gl_shaderManager.LoadShader( gl_portalShader );
 
+	gl_portalShader->MarkProgramForBuilding( 0 );
+
 	// camera post process effect
 	gl_shaderManager.LoadShader( gl_cameraEffectsShader );
+
+	gl_cameraEffectsShader->MarkProgramForBuilding( 0 );
 
 	if ( glConfig2.bloom || glConfig2.shadowMapping )
 	{
 		// gaussian blur
 		gl_shaderManager.LoadShader( gl_blurShader );
+
+		gl_blurShader->MarkProgramForBuilding( 0 );
 	}
 
 	if ( glConfig2.shadowMapping )
@@ -382,16 +410,22 @@ static void GLSL_InitGPUShadersOrError()
 	if ( glConfig2.motionBlur )
 	{
 		gl_shaderManager.LoadShader( gl_motionblurShader );
+
+		gl_motionblurShader->MarkProgramForBuilding( 0 );
 	}
 
 	if ( glConfig2.ssao )
 	{
 		gl_shaderManager.LoadShader( gl_ssaoShader );
+
+		gl_ssaoShader->MarkProgramForBuilding( 0 );
 	}
 
 	if ( r_FXAA->integer != 0 )
 	{
 		gl_shaderManager.LoadShader( gl_fxaaShader );
+
+		gl_fxaaShader->MarkProgramForBuilding( 0 );
 	}
 
 	if ( r_lazyShaders.Get() == 0 )
