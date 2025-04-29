@@ -892,7 +892,6 @@ void GLShaderManager::InitDriverInfo()
 {
 	std::string driverInfo = std::string(glConfig.renderer_string) + glConfig.version_string;
 	_driverVersionHash = Com_BlockChecksum(driverInfo.c_str(), static_cast<int>(driverInfo.size()));
-	_shaderBinaryCacheInvalidated = false;
 }
 
 void GLShaderManager::GenerateBuiltinHeaders() {
@@ -1418,10 +1417,6 @@ bool GLShaderManager::LoadShaderBinary( const std::vector<ShaderEntry>& shaders,
 		return false;
 	}
 
-	if ( _shaderBinaryCacheInvalidated ) {
-		return false;
-	}
-
 	const int start = Sys::Milliseconds();
 
 	std::error_code err;
@@ -1461,14 +1456,7 @@ bool GLShaderManager::LoadShaderBinary( const std::vector<ShaderEntry>& shaders,
 
 	/* Check if the header struct is the correct format
 	and the binary was produced by the same GL driver */
-	if ( shaderHeader.version != GL_SHADER_VERSION /* || shaderHeader.driverVersionHash != _driverVersionHash */ ) {
-		/* These two fields should be the same for all shaders. So if there is a mismatch,
-		don't bother opening any of the remaining files.
-		I've disabled the cache invalidation on driver version change, because we now also cache shader programs that use
-		non-empty deformVertexes. This would mean that after updating the driver, any time you load a new map with
-		deformVertexes, it would cause the rebuild of *all* shaders */
-		Log::Notice( "Invalidating shader binary cache" );
-		_shaderBinaryCacheInvalidated = true;
+	if ( shaderHeader.version != GL_SHADER_VERSION || shaderHeader.driverVersionHash != _driverVersionHash ) {
 		return false;
 	}
 

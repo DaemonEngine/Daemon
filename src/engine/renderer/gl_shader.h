@@ -328,7 +328,6 @@ class GLShaderManager {
 	std::unordered_map<std::string, int> _deformShaderLookup;
 
 	unsigned int _driverVersionHash; // For cache invalidation if hardware changes
-	bool _shaderBinaryCacheInvalidated;
 
 public:
 	GLHeader GLVersionDeclaration;
