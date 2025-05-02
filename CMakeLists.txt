@@ -479,8 +479,28 @@ if (DEPS_DIR)
         endif()
     endif()
 
+    # Find libraries when cross-compiling on Linux systems.
+    # We purposedly do not use LINUX for two reasons:
+    # - We're not testing for the target but for the system running the compiler,
+    # - It should exclude Android.
+    if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+        # This code setting MACHINE_TRIPLE may be moved to DaemonCompiler.
+        execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -dumpmachine
+            OUTPUT_VARIABLE MACHINE_TRIPLE
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+
+        if (MACHINE_TRIPLE)
+            set(MACHINE_ROOT_PATH "/usr/${MACHINE_TRIPLE}")
+
+            if (NOT IS_DIRECTORY "${MACHINE_ROOT_PATH}")
+                unset(MACHINE_ROOT_PATH)
+            endif()
+        endif()
+    endif()
+
     # Add to paths
-    set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH})
+    set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH} ${MACHINE_ROOT_PATH})
     set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH})
     set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR} ${CMAKE_FRAMEWORK_PATH})
     set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH})
