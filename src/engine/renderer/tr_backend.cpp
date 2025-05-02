@@ -677,7 +677,7 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 
 		if ( ( attribBits & bit ) != 0 &&
 		     ( !( glState.vertexAttribPointersSet & bit ) ||
-		       glState.vertexAttribsInterpolation >= 0 ||
+		       tess.vboVertexAnimation ||
 		       glState.currentVBO == tess.vbo ) )
 		{
 			const vboAttributeLayout_t *layout = &glState.currentVBO->attribs[ i ];

@@ -129,9 +129,6 @@ void MarkShaderBuild( const shader_t* shader, const int lightMapNum, const bool 
 
 	tess.vboVertexSkinning = vertexSkinning;
 	tess.vboVertexAnimation = vertexAnimation;
-	/* Fuck knows why there are 2 different ways of setting the vertex animation global (through tess and through glState),
-	but that's what we have */
-	glState.vertexAttribsInterpolation = vertexAnimation ? 1.0f : 0.0f;
 
 	for ( const shaderStage_t* pStage = shader->stages; pStage < shader->lastStage; pStage++ ) {
 		pStage->shaderBuildMarker( pStage );
@@ -142,7 +139,6 @@ void MarkShaderBuild( const shader_t* shader, const int lightMapNum, const bool 
 
 	tess.vboVertexSkinning = false;
 	tess.vboVertexAnimation = false;
-	glState.vertexAttribsInterpolation = 0.0f;
 }
 
 static void CoreResetSurfaceViewCounts( bspSurface_t** rendererSurfaces, int numSurfaces ) {
