@@ -876,12 +876,12 @@ void ProcessShaderReflection( const shaderStage_t* pStage ) {
 	gl_reflectionShader->SetReliefMapping( pStage->enableReliefMapping );
 
 	gl_reflectionShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_reflectionShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+	gl_reflectionShader->SetVertexAnimation( tess.vboVertexAnimation );
 }
 
 void ProcessShaderHeatHaze( const shaderStage_t* ) {
 	gl_heatHazeShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_heatHazeShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+	gl_heatHazeShader->SetVertexAnimation( tess.vboVertexAnimation );
 }
 
 void ProcessShaderLiquid( const shaderStage_t* pStage ) {
@@ -900,7 +900,7 @@ void ProcessShaderLiquid( const shaderStage_t* pStage ) {
 
 void ProcessShaderFog( const shaderStage_t* ) {
 	gl_heatHazeShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_heatHazeShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+	gl_heatHazeShader->SetVertexAnimation( tess.vboVertexAnimation );
 }
 
 void Render_NONE( shaderStage_t * )
@@ -1300,7 +1300,7 @@ static void Render_shadowFill( shaderStage_t *pStage )
 	GL_State( stateBits );
 
 	gl_shadowFillShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_shadowFillShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+	gl_shadowFillShader->SetVertexAnimation( tess.vboVertexAnimation );
 
 	gl_shadowFillShader->SetMacro_LIGHT_DIRECTIONAL( backEnd.currentLight->l.rlType == refLightType_t::RL_DIRECTIONAL );
 
@@ -1374,7 +1374,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_omniXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_forwardLightingShader_omniXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+	gl_forwardLightingShader_omniXYZ->SetVertexAnimation( tess.vboVertexAnimation );
 
 	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
@@ -1549,7 +1549,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_projXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_forwardLightingShader_projXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+	gl_forwardLightingShader_projXYZ->SetVertexAnimation( tess.vboVertexAnimation );
 
 	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
@@ -1725,7 +1725,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_directionalSun->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_forwardLightingShader_directionalSun->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+	gl_forwardLightingShader_directionalSun->SetVertexAnimation( tess.vboVertexAnimation );
 
 	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
