@@ -899,8 +899,8 @@ void ProcessShaderLiquid( const shaderStage_t* pStage ) {
 }
 
 void ProcessShaderFog( const shaderStage_t* ) {
-	gl_heatHazeShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_heatHazeShader->SetVertexAnimation( tess.vboVertexAnimation );
+	gl_fogQuake3Shader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_fogQuake3Shader->SetVertexAnimation( tess.vboVertexAnimation );
 }
 
 void Render_NONE( shaderStage_t * )
