@@ -94,6 +94,8 @@ struct MaterialSurface {
 	srfVert_t* verts;
 	srfTriangle_t* tris;
 
+	bool merged = false;
+
 	uint32_t materialPackIDs[MAX_SHADER_STAGES];
 	uint32_t materialIDs[MAX_SHADER_STAGES];
 
@@ -381,6 +383,10 @@ class MaterialSystem {
 
 	void InitGLBuffers();
 	void FreeGLBuffers();
+
+	uint32_t GetTexDataSize() const {
+		return texData.size();
+	}
 
 	void AddStageTextures( MaterialSurface* surface, shader_t* shader, shaderStage_t* pStage, const uint32_t stage, Material* material );
 	void AddStage( MaterialSurface* surface, shaderStage_t* pStage, uint32_t stage,

@@ -42,29 +42,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static const uint32_t MAX_MATERIAL_SURFACE_TRIS = 64;
 static const uint32_t MAX_MATERIAL_SURFACE_INDEXES = 3 * MAX_MATERIAL_SURFACE_TRIS;
 static const uint32_t MAX_MATERIAL_SURFACE_DISTANCE = 256;
-
-struct TriEdge {
-	enum State : uint32_t {
-		MERGEABLE_TRUE = BIT( 27 ),
-		MERGEABLE_FALSE = BIT( 28 ),
-		MERGEABLE_NOT_PROCESSED = BIT( 29 ),
-		NONE = BIT( 30 )
-	};
-
-	uint32_t index1;
-	uint32_t index2;
-};
-
-struct TriEdgeHasher {
-	size_t operator()( const TriEdge& triEdge ) {
-		return std::hash<uint32_t>{} ( triEdge.index1 ) ^ ( std::hash<uint32_t>{} ( triEdge.index2 ) << 16 );
-	}
-};
-
-struct TriIndex {
-	int tri1 = -1;
-	int tri2 = -1;
-};
+static const float MAX_MATERIAL_SURFACE_RADIUS_INCREASE = 2.0f;
+static const float MAX_MATERIAL_SURFACE_RADIUS_INCREASE_ADD = 256.0f; // 8 meters
 
 struct MapVertHasher {
 	size_t operator()( const srfVert_t& vert ) const {
