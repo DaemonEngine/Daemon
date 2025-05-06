@@ -150,7 +150,6 @@ struct Material {
 	int fog = 0;
 
 	uint32_t drawCommandCount = 0;
-	uint32_t drawCommandCount2 = 0;
 	bool texturesResident = false;
 	std::vector<Texture*> textures;
 
@@ -381,6 +380,10 @@ class MaterialSystem {
 
 	void InitGLBuffers();
 	void FreeGLBuffers();
+
+	uint32_t GetTexDataSize() const {
+		return texData.size();
+	}
 
 	void AddStageTextures( MaterialSurface* surface, shader_t* shader, shaderStage_t* pStage, const uint32_t stage, Material* material );
 	void AddStage( MaterialSurface* surface, shaderStage_t* pStage, uint32_t stage,

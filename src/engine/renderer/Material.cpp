@@ -498,6 +498,17 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 
 	totalBatchCount = 0;
 
+	for ( MaterialSurface& surface : surfaces ) {
+		if ( surface.skyBrush ) {
+			continue;
+		}
+
+		for ( uint8_t stage = 0; stage < surface.stages; stage++ ) {
+			Material* material = &materialPacks[surface.materialPackIDs[stage]].materials[surface.materialIDs[stage]];
+			material->drawCommandCount++;
+		}
+	}
+
 	uint32_t batchOffset = 0;
 	uint32_t globalID = 0;
 	for ( MaterialPack& pack : materialPacks ) {
@@ -513,6 +524,8 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 
 			batchOffset += batchCount;
 			material.globalID = globalID;
+
+			material.drawCommandCount = 0;
 
 			totalBatchCount += batchCount;
 			globalID++;
@@ -652,7 +665,7 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 
 		for ( uint8_t stage = 0; stage < surface.stages; stage++ ) {
 			Material* material = &materialPacks[surface.materialPackIDs[stage]].materials[surface.materialIDs[stage]];
-			uint32_t cmdID = material->surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH + material->drawCommandCount2;
+			uint32_t cmdID = material->surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH + material->drawCommandCount;
 			// Add 1 because cmd 0 == no-command
 			surfaceDescriptor.surfaceCommandIDs[stage] = cmdID + 1;
 
@@ -672,7 +685,7 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 			surfaceCommand.drawCommand.baseInstance |= ( HasLightMap( &surface ) ? GetLightMapNum( &surface ) : 255 ) << LIGHTMAP_BITS;
 			surfaceCommands[cmdID] = surfaceCommand;
 
-			material->drawCommandCount2++;
+			material->drawCommandCount++;
 		}
 
 		memcpy( surfaceDescriptors, &surfaceDescriptor, descriptorSize * sizeof( uint32_t ) );
@@ -1318,8 +1331,6 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 	surface->shaderStages[stage] = pStage;
 
 	packIDs[materialPack] = id;
-
-	materials[previousMaterialID].drawCommandCount++;
 
 	stage++;
 }
