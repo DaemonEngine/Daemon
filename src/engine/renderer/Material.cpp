@@ -521,6 +521,8 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 
 	Log::Debug( "Total batch count: %u", totalBatchCount );
 
+	totalDrawSurfs = surfaces.size();
+
 	surfaceDescriptorsCount = totalDrawSurfs;
 	descriptorSize = BOUNDING_SPHERE_SIZE + maxStages;
 	surfaceDescriptorsSSBO.BufferData( surfaceDescriptorsCount * descriptorSize, nullptr, GL_STATIC_DRAW );
@@ -685,7 +687,7 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 	for ( MaterialPack& pack : materialPacks ) {
 		totalCount += pack.materials.size();
 	}
-	Log::Notice( "Generated %u BSP materials from %u BSP surfaces", totalCount, surfaces.size() );
+	Log::Notice( "Generated %u BSP materials from %u BSP surfaces", totalCount, totalDrawSurfs );
 	Log::Notice( "Materials UBO: total: %.2f kb, dynamic: %.2f kb, texData: %.2f kb",
 		totalStageSize * 4 / 1024.0f, dynamicStagesSize * 4 / 1024.0f,
 		( texData.size() + dynamicTexData.size() ) * TEX_BUNDLE_SIZE * 4 / 1024.0f );
@@ -1326,8 +1328,6 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 A material represents a distinct global OpenGL state (e. g. blend function, depth test, depth write etc.)
 Materials can have a dependency on other materials to make sure that consecutive stages are rendered in the proper order */
 void MaterialSystem::GenerateMaterial( MaterialSurface* surface ) {
-	totalDrawSurfs++;
-
 	uint32_t stage = 0;
 	uint32_t previousMaterialID = 0;
 
