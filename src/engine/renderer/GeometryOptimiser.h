@@ -99,6 +99,7 @@ void OptimiseMapGeometryCore( world_t* world, bspSurface_t** rendererSurfaces, i
 void MergeLeafSurfacesCore( world_t* world, bspSurface_t** rendererSurfaces, int numSurfaces );
 void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, srfVert_t* vertices, int numVerticesIn,
 	glIndex_t* indices, int numIndicesIn, int& numVerticesOut, int& numIndicesOut );
-std::vector<MaterialSurface> OptimiseMapGeometryMaterial( bspSurface_t** rendererSurfaces, int numSurfaces );
+std::vector<MaterialSurface> OptimiseMapGeometryMaterial( bspSurface_t** rendererSurfaces, int numSurfaces,
+	const srfVert_t* vertices, const int numVerticesIn, const glIndex_t* indices, const int numIndicesIn );
 
 #endif // GEOMETRY_OPTIMISER_H

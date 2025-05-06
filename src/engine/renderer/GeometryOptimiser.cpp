@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "GeometryOptimiser.h"
 
 #include "ShadeCommon.h"
+#include "GeometryCache.h"
 
 static int LeafSurfaceCompare( const void* a, const void* b ) {
 	bspSurface_t* aa, * bb;
@@ -422,7 +423,8 @@ void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, s
 	Log::Notice( "Merged %i vertices into %i in %i ms", numVerticesIn, numVerticesOut, Sys::Milliseconds() - start );
 }
 
-std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** rendererSurfaces, int numSurfaces ) {
+std::vector<MaterialSurface> OptimiseMapGeometryMaterial( bspSurface_t** rendererSurfaces, int numSurfaces,
+	const srfVert_t* vertices, const int numVerticesIn, const glIndex_t* indices, const int numIndicesIn ) {
 	std::vector<MaterialSurface> materialSurfaces;
 	materialSurfaces.reserve( numSurfaces );
 
@@ -470,6 +472,9 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** renderer
 
 	std::vector<MaterialSurface> processedMaterialSurfaces;
 	processedMaterialSurfaces.reserve( numSurfaces );
+
+	glIndex_t* idxs = ( glIndex_t* ) ri.Hunk_AllocateTempMemory( numIndicesIn * sizeof( glIndex_t ) );
+	uint32_t numIndices = 0;
 	for ( uint32_t i = 0; i < materialSurfaces.size(); i++ ) {
 		MaterialSurface* surface = &materialSurfaces[i];
 
@@ -477,7 +482,12 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** renderer
 			continue;
 		}
 
-		uint32_t lastIndex = surface->firstIndex + surface->count;
+		memcpy( idxs + numIndices, indices + surface->firstIndex, surface->count * sizeof( glIndex_t ) );
+		
+		surface->firstIndex = numIndices;
+
+		numIndices += surface->count;
+
 		for ( uint32_t j = i + 1; j < materialSurfaces.size(); j++ ) {
 			MaterialSurface* surface2 = &materialSurfaces[j];
 
@@ -559,15 +569,15 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** renderer
 				continue;
 			}
 
-			if ( surface2->firstIndex == lastIndex ) {
-				surface->count += surface2->count;
-				lastIndex += surface2->count;
+			memcpy( idxs + numIndices, indices + surface2->firstIndex, surface2->count * sizeof( glIndex_t ) );
+			numIndices += surface2->count;
 
-				VectorCopy( origin, surface->origin );
-				surface->radius = radius;
+			surface->count += surface2->count;
 
-				surface2->merged = true;
-			}
+			VectorCopy( origin, surface->origin );
+			surface->radius = radius;
+
+			surface2->merged = true;
 
 			if ( surface->count >= MAX_MATERIAL_SURFACE_INDEXES ) {
 				break;
@@ -584,6 +594,17 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** renderer
 	materialSystem.GeneratePortalBoundingSpheres();
 	materialSystem.SetWorldBounds( worldBounds );
 	materialSystem.GenerateWorldCommandBuffer( processedMaterialSurfaces );
+
+	vertexAttributeSpec_t attrs[] {
+		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, &vertices[0].xyz, 3, sizeof( *vertices ), 0 },
+		{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, &vertices[0].lightColor, 4, sizeof( *vertices ), ATTR_OPTION_NORMALIZE },
+		{ ATTR_INDEX_QTANGENT, GL_SHORT, GL_SHORT, &vertices[0].qtangent, 4, sizeof( *vertices ), ATTR_OPTION_NORMALIZE },
+		{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, &vertices[0].st, 4, sizeof( *vertices ), 0 },
+	};
+
+	geometryCache.AddMapGeometry( numVerticesIn, numIndices, std::begin( attrs ), std::end( attrs ), idxs );
+
+	ri.Hunk_FreeTempMemory( idxs );
 
 	return materialSurfaces;
 }
