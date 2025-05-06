@@ -2699,12 +2699,21 @@ static void R_CreateWorldVBO() {
 
 	bspSurface_t** rendererSurfaces = ( bspSurface_t** ) ri.Hunk_AllocateTempMemory( sizeof( bspSurface_t* ) * numSurfaces );
 	numSurfaces = 0;
+	vec3_t worldBounds[2] = {};
+	ClearBounds( worldBounds[0], worldBounds[1] );
 	for ( int i = 0; i < s_worldData.numSurfaces; i++ ) {
 		bspSurface_t* surface = &s_worldData.surfaces[i];
 
 		if ( surface->renderable ) {
 			rendererSurfaces[numSurfaces++] = surface;
+
+			BoundsAdd( worldBounds[0], worldBounds[1],
+				( ( srfGeneric_t* ) surface->data )->bounds[0], ( ( srfGeneric_t* ) surface->data )->bounds[1] );
 		}
+	}
+
+	if ( glConfig2.usingMaterialSystem ) {
+		materialSystem.SetWorldBounds( worldBounds );
 	}
 
 	OptimiseMapGeometryCore( &s_worldData, rendererSurfaces, numSurfaces );
@@ -2721,7 +2730,7 @@ static void R_CreateWorldVBO() {
 	MergeDuplicateVertices( rendererSurfaces, numSurfaces, vboVerts, numVertsInitial, vboIdxs, 3 * numTriangles, numVerts, numIndices );
 
 	if ( glConfig2.usingMaterialSystem ) {
-		OptimiseMapGeometryMaterial( rendererSurfaces, numSurfaces );
+		OptimiseMapGeometryMaterial( &s_worldData, rendererSurfaces, numSurfaces, vboVerts, numVerts, vboIdxs, numIndices );
 	}
 
 	vertexAttributeSpec_t attrs[]{
@@ -2730,10 +2739,6 @@ static void R_CreateWorldVBO() {
 		{ ATTR_INDEX_QTANGENT, GL_SHORT, GL_SHORT, &vboVerts[0].qtangent, 4, sizeof( *vboVerts ), ATTR_OPTION_NORMALIZE },
 		{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, &vboVerts[0].st, 4, sizeof( *vboVerts ), 0 },
 	};
-
-	if ( glConfig2.usingGeometryCache ) {
-		geometryCache.AddMapGeometry( numVerts, numIndices, std::begin( attrs ), std::end( attrs ), vboIdxs );
-	}
 
 	s_worldData.vbo = R_CreateStaticVBO(
 		"staticWorld_VBO", std::begin( attrs ), std::end( attrs ), numVerts );

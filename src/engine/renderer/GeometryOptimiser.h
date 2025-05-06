@@ -41,30 +41,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static const uint32_t MAX_MATERIAL_SURFACE_TRIS = 64;
 static const uint32_t MAX_MATERIAL_SURFACE_INDEXES = 3 * MAX_MATERIAL_SURFACE_TRIS;
-static const uint32_t MAX_MATERIAL_SURFACE_DISTANCE = 256;
-
-struct TriEdge {
-	enum State : uint32_t {
-		MERGEABLE_TRUE = BIT( 27 ),
-		MERGEABLE_FALSE = BIT( 28 ),
-		MERGEABLE_NOT_PROCESSED = BIT( 29 ),
-		NONE = BIT( 30 )
-	};
-
-	uint32_t index1;
-	uint32_t index2;
-};
-
-struct TriEdgeHasher {
-	size_t operator()( const TriEdge& triEdge ) {
-		return std::hash<uint32_t>{} ( triEdge.index1 ) ^ ( std::hash<uint32_t>{} ( triEdge.index2 ) << 16 );
-	}
-};
-
-struct TriIndex {
-	int tri1 = -1;
-	int tri2 = -1;
-};
 
 struct MapVertHasher {
 	size_t operator()( const srfVert_t& vert ) const {
@@ -97,6 +73,10 @@ struct MapVertEqual {
 	}
 };
 
+struct SurfaceIndexes {
+	glIndex_t idxs[MAX_MATERIAL_SURFACE_INDEXES];
+};
+
 void MarkShaderBuildNONE( const shaderStage_t* );
 void MarkShaderBuildNOP( const shaderStage_t* );
 void MarkShaderBuildGeneric3D( const shaderStage_t* pStage );
@@ -120,6 +100,7 @@ void OptimiseMapGeometryCore( world_t* world, bspSurface_t** rendererSurfaces, i
 void MergeLeafSurfacesCore( world_t* world, bspSurface_t** rendererSurfaces, int numSurfaces );
 void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, srfVert_t* vertices, int numVerticesIn,
 	glIndex_t* indices, int numIndicesIn, int& numVerticesOut, int& numIndicesOut );
-std::vector<MaterialSurface> OptimiseMapGeometryMaterial( bspSurface_t** rendererSurfaces, int numSurfaces );
+std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, bspSurface_t** rendererSurfaces, int numSurfaces,
+	const srfVert_t* vertices, const int numVerticesIn, const glIndex_t* indices, const int numIndicesIn );
 
 #endif // GEOMETRY_OPTIMISER_H

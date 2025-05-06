@@ -2530,6 +2530,10 @@ enum class ssaoMode {
 			grid = ( T* ) ri.Hunk_Alloc( size * sizeof( T ), ha_pref::h_low );
 		}
 
+		void Clear() {
+			memset( grid, 0, size * sizeof( T ) );
+		}
+
 		struct Iterator {
 			T* ptr;
 
@@ -2543,6 +2547,10 @@ enum class ssaoMode {
 
 			T* operator->() {
 				return ptr;
+			}
+
+			ptrdiff_t operator-( const Iterator& other ) const {
+				return ptr - other.ptr;
 			}
 
 			Iterator& operator++() {
