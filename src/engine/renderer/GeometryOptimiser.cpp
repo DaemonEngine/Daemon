@@ -122,8 +122,9 @@ void MarkShaderBuildFog( const shaderStage_t* pStage ) {
 	gl_fogQuake3Shader->MarkProgramForBuilding( 0 );
 }
 
-void MarkShaderBuild( const shader_t* shader, const int lightMapNum, const bool bspSurface,
+void MarkShaderBuild( shader_t* shader, const int lightMapNum, const bool bspSurface,
 	const bool vertexSkinning, const bool vertexAnimation ) {
+	tess.surfaceShader = shader;
 	tess.bspSurface = bspSurface;
 	tess.lightmapNum = lightMapNum;
 

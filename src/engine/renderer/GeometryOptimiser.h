@@ -113,7 +113,7 @@ void MarkShaderBuildIQM( const IQModel_t* model );
 void MarkShaderBuildMDV( const mdvModel_t* model );
 void MarkShaderBuildMD5( const md5Model_t* model );
 
-void MarkShaderBuild( const shader_t* shader, const int lightMapNum, const bool bspSurface,
+void MarkShaderBuild( shader_t* shader, const int lightMapNum, const bool bspSurface,
 	const bool vertexSkinning, const bool vertexAnimation );
 
 void OptimiseMapGeometryCore( world_t* world, bspSurface_t** rendererSurfaces, int numSurfaces );
