@@ -27,6 +27,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "GeometryOptimiser.h"
 
+#include "ShadeCommon.h"
+#include "GeometryCache.h"
+
 static int LeafSurfaceCompare( const void* a, const void* b ) {
 	bspSurface_t* aa, * bb;
 
@@ -420,32 +423,10 @@ void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, s
 	Log::Notice( "Merged %i vertices into %i in %i ms", numVerticesIn, numVerticesOut, Sys::Milliseconds() - start );
 }
 
-/* static void ProcessMaterialSurface( MaterialSurface& surface, std::vector<MaterialSurface>& materialSurfaces,
-	std::vector<MaterialSurface>& processedMaterialSurfaces,
-	srfVert_t* verts, glIndex_t* indices ) {
-	if ( surface.count == MAX_MATERIAL_SURFACE_TRIS ) {
-		materialSurfaces.emplace_back( surface );
-	}
-
-	while ( surface.count > MAX_MATERIAL_SURFACE_TRIS ) {
-		MaterialSurface srf = surface;
-
-		srf.count = MAX_MATERIAL_SURFACE_TRIS;
-		surface.count -= MAX_MATERIAL_SURFACE_TRIS;
-		surface.firstIndex += MAX_MATERIAL_SURFACE_TRIS;
-
-		processedMaterialSurfaces.push_back( srf );
-	}
-} */
-
-std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** rendererSurfaces, int numSurfaces ) {
+std::vector<MaterialSurface> OptimiseMapGeometryMaterial( bspSurface_t** rendererSurfaces, int numSurfaces,
+	const srfVert_t* vertices, const int numVerticesIn, const glIndex_t* indices, const int numIndicesIn ) {
 	std::vector<MaterialSurface> materialSurfaces;
 	materialSurfaces.reserve( numSurfaces );
-
-	std::vector<MaterialSurface> processedMaterialSurfaces;
-	processedMaterialSurfaces.reserve( numSurfaces );
-
-	// std::unordered_map<TriEdge, TriIndex> triEdges;
 
 	vec3_t worldBounds[2] = {};
 	materialSystem.buildOneShader = false;
@@ -483,13 +464,147 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial(bspSurface_t** renderer
 
 		materialSurfaces.emplace_back( srf );
 	}
-
 	materialSystem.buildOneShader = true;
 
+	/* GenerateWorldMaterialsBuffer() must be called before the surface merging loop, because it will compare the UBO offsets,
+	which are set by this call */
 	materialSystem.GenerateWorldMaterialsBuffer();
+
+	std::vector<MaterialSurface> processedMaterialSurfaces;
+	processedMaterialSurfaces.reserve( numSurfaces );
+
+	glIndex_t* idxs = ( glIndex_t* ) ri.Hunk_AllocateTempMemory( numIndicesIn * sizeof( glIndex_t ) );
+	uint32_t numIndices = 0;
+	for ( uint32_t i = 0; i < materialSurfaces.size(); i++ ) {
+		MaterialSurface* surface = &materialSurfaces[i];
+
+		if ( surface->merged ) {
+			continue;
+		}
+
+		memcpy( idxs + numIndices, indices + surface->firstIndex, surface->count * sizeof( glIndex_t ) );
+		
+		surface->firstIndex = numIndices;
+
+		numIndices += surface->count;
+
+		for ( uint32_t j = i + 1; j < materialSurfaces.size(); j++ ) {
+			MaterialSurface* surface2 = &materialSurfaces[j];
+
+			if ( surface2->merged ) {
+				continue;
+			}
+
+			if ( surface->stages != surface2->stages ) {
+				continue;
+			}
+
+			if ( surface->count + surface2->count > MAX_MATERIAL_SURFACE_INDEXES ) {
+				continue;
+			}
+
+			vec3_t mins;
+			vec3_t maxs;
+			ClearBounds( mins, maxs );
+			for ( uint32_t k = 0; k < surface->count; k++ ) {
+				AddPointToBounds( vertices[idxs[k + surface->firstIndex]].xyz, mins, maxs );
+			}
+
+			for ( uint32_t k = 0; k < surface2->count; k++ ) {
+				AddPointToBounds( vertices[indices[k + surface2->firstIndex]].xyz, mins, maxs );
+			}
+
+			vec3_t origin;
+			float radius;
+			SphereFromBounds( mins, maxs, origin, &radius );
+
+			// Check both against a mul and add increase, so we can reasonably merge both large and small surfaces
+			if ( radius > surface->radius * MAX_MATERIAL_SURFACE_RADIUS_INCREASE
+				&& radius > surface->radius + MAX_MATERIAL_SURFACE_RADIUS_INCREASE_ADD ) {
+				continue;
+			}
+
+			bool skip = false;
+			for ( uint8_t stage = 0; stage < surface->stages; stage++ ) {
+				if( ( surface->materialPackIDs[stage] != surface2->materialPackIDs[stage] )
+					|| ( surface->materialIDs[stage] != surface2->materialIDs[stage] ) ) {
+					skip = true;
+					break;
+				}
+
+				shaderStage_t* pStage = surface->shaderStages[stage];
+				pStage = pStage->materialRemappedStage ? pStage->materialRemappedStage : pStage;
+
+				const uint32_t surfaceMaterialID =
+					pStage->materialOffset + pStage->variantOffsets[surface->shaderVariant[stage]];
+
+				pStage = surface2->shaderStages[stage];
+				pStage = pStage->materialRemappedStage ? pStage->materialRemappedStage : pStage;
+
+				const uint32_t surfaceMaterialID2 =
+					pStage->materialOffset + pStage->variantOffsets[surface2->shaderVariant[stage]];
+
+				if ( surfaceMaterialID != surfaceMaterialID2 ) {
+					skip = true;
+					break;
+				}
+
+				uint32_t texData = surface->texDataDynamic[stage]
+					? ( surface->texDataIDs[stage] + materialSystem.GetTexDataSize() ) << TEX_BUNDLE_BITS
+						: surface->texDataIDs[stage] << TEX_BUNDLE_BITS;
+					texData |= ( HasLightMap( surface ) ? GetLightMapNum( surface ) : 255 ) << LIGHTMAP_BITS;
+
+				uint32_t texData2 = surface2->texDataDynamic[stage]
+					? ( surface2->texDataIDs[stage] + materialSystem.GetTexDataSize() ) << TEX_BUNDLE_BITS
+						: surface2->texDataIDs[stage] << TEX_BUNDLE_BITS;
+					texData2 |= ( HasLightMap( surface2 ) ? GetLightMapNum( surface2 ) : 255 ) << LIGHTMAP_BITS;
+
+				if( texData != texData2 ) {
+					skip = true;
+					break;
+				}
+			}
+
+			if ( skip ) {
+				continue;
+			}
+
+			memcpy( idxs + numIndices, indices + surface2->firstIndex, surface2->count * sizeof( glIndex_t ) );
+			numIndices += surface2->count;
+
+			surface->count += surface2->count;
+
+			VectorCopy( origin, surface->origin );
+			surface->radius = radius;
+
+			surface2->merged = true;
+
+			if ( surface->count >= MAX_MATERIAL_SURFACE_INDEXES ) {
+				break;
+			}
+		}
+	}
+
+	for( MaterialSurface& srf : materialSurfaces ) {
+		if ( !srf.merged ) {
+			processedMaterialSurfaces.push_back( srf );
+		}
+	}
+
 	materialSystem.GeneratePortalBoundingSpheres();
 	materialSystem.SetWorldBounds( worldBounds );
-	materialSystem.GenerateWorldCommandBuffer( materialSurfaces );
+	materialSystem.GenerateWorldCommandBuffer( processedMaterialSurfaces );
+
+	vertexAttributeSpec_t attrs[] {
+		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, &vertices[0].xyz, 3, sizeof( *vertices ), 0 },
+		{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, &vertices[0].lightColor, 4, sizeof( *vertices ), ATTR_OPTION_NORMALIZE },
+		{ ATTR_INDEX_QTANGENT, GL_SHORT, GL_SHORT, &vertices[0].qtangent, 4, sizeof( *vertices ), ATTR_OPTION_NORMALIZE },
+		{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, &vertices[0].st, 4, sizeof( *vertices ), 0 },
+	};
+
+	geometryCache.AddMapGeometry( numVerticesIn, numIndices, std::begin( attrs ), std::end( attrs ), idxs );
+
+	ri.Hunk_FreeTempMemory( idxs );
 
 	return materialSurfaces;
 }
