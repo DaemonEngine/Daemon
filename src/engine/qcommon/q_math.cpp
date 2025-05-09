@@ -530,14 +530,17 @@ void ProjectPointOnPlane( vec3_t dst, const vec3_t point, const vec3_t normal )
  *
  * Given a normalized forward vector, create two
  * other perpendicular vectors
+ * This function seems to aim to be continuous (unlike the similar vectoangles
+ * or PerpendicularVector), but that is impossible to fully realize per the
+ * Hairy Ball Theorem. At least it can work for stuff that doesn't use the
+ * roll angle.
  * ================
  */
 void MakeNormalVectors( const vec3_t forward, vec3_t right, vec3_t up )
 {
 	float d;
 
-	// this rotate and negate guarantees a vector
-	// not colinear with the original
+	// this fails at {-1/sqrt(3), -1/sqrt(3), 1/sqrt(3)}
 	right[ 1 ] = -forward[ 0 ];
 	right[ 2 ] = forward[ 1 ];
 	right[ 0 ] = forward[ 2 ];
