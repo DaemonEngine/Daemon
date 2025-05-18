@@ -2699,21 +2699,12 @@ static void R_CreateWorldVBO() {
 
 	bspSurface_t** rendererSurfaces = ( bspSurface_t** ) ri.Hunk_AllocateTempMemory( sizeof( bspSurface_t* ) * numSurfaces );
 	numSurfaces = 0;
-	vec3_t worldBounds[2] = {};
-	ClearBounds( worldBounds[0], worldBounds[1] );
 	for ( int i = 0; i < s_worldData.numSurfaces; i++ ) {
 		bspSurface_t* surface = &s_worldData.surfaces[i];
 
 		if ( surface->renderable ) {
 			rendererSurfaces[numSurfaces++] = surface;
-
-			BoundsAdd( worldBounds[0], worldBounds[1],
-				( ( srfGeneric_t* ) surface->data )->bounds[0], ( ( srfGeneric_t* ) surface->data )->bounds[1] );
 		}
-	}
-
-	if ( glConfig2.usingMaterialSystem ) {
-		materialSystem.SetWorldBounds( worldBounds );
 	}
 
 	OptimiseMapGeometryCore( &s_worldData, rendererSurfaces, numSurfaces );
