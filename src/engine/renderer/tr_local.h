@@ -165,7 +165,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define SMP_FRAMES            2
 
 #define MAX_SHADERS           ( 1 << 12 )
-#define SHADERS_MASK          ( MAX_SHADERS - 1 )
 
 #define MAX_SHADER_TABLES     1024
 #define MAX_SHADER_STAGES     16
@@ -353,7 +352,6 @@ enum class ssaoMode {
 	};
 
 #define REF_CUBEMAP_SIZE 32
-#define REF_CUBEMAP_STORE_SIZE 1024
 
 #define REF_COLORGRADE_SLOTS   4
 #define REF_COLORGRADEMAP_SIZE 16
@@ -967,8 +965,6 @@ enum class ssaoMode {
 	};
 
 #define MAX_SHADER_DEFORMS      3
-#define MAX_SHADER_DEFORM_STEPS	4
-#define MAX_SHADER_DEFORM_PARMS ( MAX_SHADER_DEFORMS * MAX_SHADER_DEFORM_STEPS )
 	struct deformStage_t
 	{
 		deform_t   deformation; // vertex coordinate modification type
@@ -1469,23 +1465,12 @@ enum class ssaoMode {
 		shader_t *shader;
 	};
 
-//----(SA) modified
-#define MAX_PART_MODELS 5
-
-	struct skinModel_t
-	{
-		char type[ MAX_QPATH ]; // md3_lower, md3_lbelt, md3_rbelt, etc.
-		char model[ MAX_QPATH ]; // lower.md3, belt1.md3, etc.
-		int  hash;
-	};
-
 	struct skin_t
 	{
 		char          name[ MAX_QPATH ]; // game path, including extension
 		int           numSurfaces;
 		int           numModels;
 		skinSurface_t *surfaces[ MD3_MAX_SURFACES ];
-		skinModel_t   *models[ MAX_PART_MODELS ];
 	};
 
 //----(SA) end
@@ -3170,10 +3155,8 @@ inline bool checkGLErrors()
 	====================================================================
 	*/
 	void GL_Bind( image_t *image );
-	void GL_BindNearestCubeMap( int unit, const vec3_t xyz );
 	void GL_Unbind( image_t *image );
 	GLuint64 BindAnimatedImage( int unit, const textureBundle_t *bundle );
-	void GL_TextureFilter( image_t *image, filterType_t filterType );
 	void GL_BindProgram( ShaderProgramDescriptor* program );
 	GLuint64 GL_BindToTMU( int unit, image_t *image );
 	void GL_BindNullProgram();
@@ -3237,9 +3220,6 @@ inline bool checkGLErrors()
 	void AssertCvarRange( cvar_t *cv, float minVal, float maxVal, bool shouldBeIntegral );
 
 	bool   R_GetModeInfo( int *width, int *height, int mode );
-
-// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=516
-	const void *RB_TakeScreenshotCmd( const void *data );
 
 	void       R_InitSkins();
 	skin_t     *R_GetSkinByHandle( qhandle_t hSkin );
@@ -3670,7 +3650,6 @@ void GLimp_LogComment_( std::string comment );
 	void RE_ClearScene();
 	void RE_AddRefEntityToScene( const refEntity_t *ent );
 
-	void RE_AddPolyToSceneQ3A( qhandle_t hShader, int numVerts, const polyVert_t *verts, int num );
 	void RE_AddPolyToSceneET( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 	void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 
@@ -4003,7 +3982,6 @@ void GLimp_LogComment_( std::string comment );
 
 
 // video stuff
-	const void *RB_TakeVideoFrameCmd( const void *data );
 	void       RE_TakeVideoFrame( int width, int height, byte *captureBuffer, byte *encodeBuffer, bool motionJpeg );
 
 // cubemap reflections stuff
