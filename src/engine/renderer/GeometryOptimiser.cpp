@@ -700,11 +700,7 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, bspSur
 	if( materialSurfacesExtended.size() ) {
 		VectorSubtract( worldBoundsExtended[1], worldBoundsExtended[0], worldSize );
 		for ( int i = 0; i < 3; i++ ) {
-			if ( worldSize[i] < 240000 ) {
-				cellSize[i] = 8192;
-			} else {
-				cellSize[i] = 65536;
-			}
+			cellSize[i] = std::max( 2048.0f, worldSize[i] / 32.0f );
 
 			gridSize[i] = ( worldSize[i] + cellSize[i] - 1 ) / cellSize[i];
 		}
