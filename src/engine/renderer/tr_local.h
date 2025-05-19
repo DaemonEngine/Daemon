@@ -1890,9 +1890,6 @@ enum class ssaoMode {
 		vec3_t maxs;
 	};
 
-// ydnar: optimization
-#define WORLD_MAX_SKY_NODES 32
-
 	struct world_t
 	{
 		char          name[ MAX_QPATH ]; // ie: maps/tim_dm2.bsp
@@ -1912,9 +1909,6 @@ enum class ssaoMode {
 		int           numnodes; // includes leafs
 		int           numDecisionNodes;
 		bspNode_t     *nodes;
-
-		int           numSkyNodes;
-		bspNode_t     **skyNodes; // ydnar: don't walk the entire bsp when rendering sky
 
 		int numPortals;
 		AABB *portals;

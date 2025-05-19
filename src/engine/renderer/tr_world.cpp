@@ -794,20 +794,6 @@ static void R_MarkLeaves()
 			continue;
 		}
 
-		// ydnar: don't want to walk the entire bsp to add skybox surfaces
-		if ( tr.refdef.rdflags & RDF_SKYBOXPORTAL )
-		{
-			// this only happens once, as game/cgame know the origin of the skybox
-			// this also means the skybox portal cannot move, as this list is calculated once and never again
-			if ( tr.world->numSkyNodes < WORLD_MAX_SKY_NODES )
-			{
-				tr.world->skyNodes[ tr.world->numSkyNodes++ ] = leaf;
-			}
-
-			R_AddLeafSurfaces( leaf, FRUSTUM_CLIPALL );
-			continue;
-		}
-
 		parent = leaf;
 
 		do
@@ -846,28 +832,14 @@ void R_AddWorldSurfaces()
 	// clear out the visible min/max
 	ClearBounds( tr.viewParms.visBounds[ 0 ], tr.viewParms.visBounds[ 1 ] );
 
-	// render sky or world?
-	if ( tr.refdef.rdflags & RDF_SKYBOXPORTAL && tr.world->numSkyNodes > 0 )
-	{
-		int       i;
-		bspNode_t **node;
+	// determine which leaves are in the PVS / areamask
+	R_MarkLeaves();
 
-		for ( i = 0, node = tr.world->skyNodes; i < tr.world->numSkyNodes; i++, node++ )
-		{
-			R_AddLeafSurfaces( *node, FRUSTUM_CLIPALL );
-		}
-	}
-	else
-	{
-		// determine which leaves are in the PVS / areamask
-		R_MarkLeaves();
+	// clear traversal list
+	backEndData[ tr.smpFrame ]->traversalLength = 0;
 
-		// clear traversal list
-		backEndData[ tr.smpFrame ]->traversalLength = 0;
-
-		// update visbounds and add surfaces that weren't cached with VBOs
-		R_RecursiveWorldNode( tr.world->nodes, FRUSTUM_CLIPALL );
-	}
+	// update visbounds and add surfaces that weren't cached with VBOs
+	R_RecursiveWorldNode( tr.world->nodes, FRUSTUM_CLIPALL );
 }
 
 /*
