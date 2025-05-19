@@ -1725,17 +1725,16 @@ enum class ssaoMode {
 
 		// BSP VBO offset
 		int firstIndex;
+
+		int numVerts;
+
+		int numTriangles;
+		srfTriangle_t* triangles;
 		// ^ Valid in: SF_FACE, SF_GRID, SF_TRIANGLES, SF_VBO_MESH
 
 		cplane_t plane; // Valid in: SF_FACE, SF_TRIANGLES
 
-		int numVerts; // Valid in: SF_FACE, SF_GRID, SF_TRIANGLES, SF_VBO_MESH
 		srfVert_t* verts; // Valid in: SF_FACE, SF_GRID, SF_TRIANGLES
-
-		// v Valid in: SF_FACE, SF_GRID, SF_TRIANGLES
-		int numTriangles;
-		srfTriangle_t* triangles;
-		// ^ Valid in: SF_FACE, SF_GRID, SF_TRIANGLES
 	};
 
 	struct srfGridMesh_t : srfGeneric_t {
