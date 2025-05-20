@@ -2712,21 +2712,6 @@ public:
 	}
 };
 
-class u_ViewUp :
-	GLUniform3f
-{
-public:
-	u_ViewUp( GLShader *shader ) :
-		GLUniform3f( shader, "u_ViewUp", true )
-	{
-	}
-
-	void SetUniform_ViewUp( const vec3_t v )
-	{
-		this->SetValue( v );
-	}
-};
-
 class u_LightDir :
 	GLUniform3f
 {
@@ -4066,7 +4051,6 @@ class GLShader_generic :
 	public u_DepthMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
-	public u_ViewUp,
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
@@ -4097,7 +4081,6 @@ class GLShader_genericMaterial :
 	public u_DepthMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
-	public u_ViewUp,
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,

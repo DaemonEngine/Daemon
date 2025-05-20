@@ -931,7 +931,6 @@ void Render_generic3D( shaderStage_t *pStage )
 	{
 		// calculate the environment texcoords in object space
 		gl_genericShader->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
-		gl_genericShader->SetUniform_ViewUp( backEnd.orientation.axis[ 2 ] );
 	}
 
 	// u_AlphaThreshold

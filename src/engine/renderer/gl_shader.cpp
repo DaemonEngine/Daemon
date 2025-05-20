@@ -1726,7 +1726,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	
 	/* Remove local uniform declarations, but avoid removing uniform / storage blocks;
 	*  their values will be sourced from a buffer instead
-	*  Global uniforms (like u_ViewUp and u_ViewOrigin) will still be set as regular uniforms */
+	*  Global uniforms (like u_ViewOrigin) will still be set as regular uniforms */
 	while( std::getline( shaderTextStream, line, '\n' ) ) {
 		bool skip = false;
 		if ( line.find( "uniform" ) < line.find( "//" ) && line.find( ";" ) != std::string::npos ) {
@@ -2460,7 +2460,6 @@ GLShader_generic::GLShader_generic() :
 	u_DepthMap( this ),
 	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
-	u_ViewUp( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
@@ -2495,7 +2494,6 @@ GLShader_genericMaterial::GLShader_genericMaterial() :
 	u_DepthMap( this ),
 	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
-	u_ViewUp( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
