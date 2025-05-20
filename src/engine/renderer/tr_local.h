@@ -400,6 +400,45 @@ enum class ssaoMode {
 	  CUBESIDE_CLIPALL = 1 | 2 | 4 | 8 | 16 | 32
 	};
 
+	enum class refLightType_t
+	{
+	  RL_OMNI, // point light
+	  RL_PROJ, // spot light
+	  RL_DIRECTIONAL, // sun light
+
+	  RL_MAX_REF_LIGHT_TYPE
+	};
+
+	struct refLight_t
+	{
+		refLightType_t rlType;
+
+		qhandle_t attenuationShader;
+
+		vec3_t    origin;
+		quat_t    rotation;
+		vec3_t    center;
+		vec3_t    color; // range from 0.0 to 1.0, should be color normalized
+
+		float     scale; // r_lightScale if not set
+
+		// omni-directional light specific
+		float     radius;
+
+		// projective light specific
+		vec3_t   projTarget;
+		vec3_t   projRight;
+		vec3_t   projUp;
+		vec3_t   projStart;
+		vec3_t   projEnd;
+
+		bool noShadows;
+		short    noShadowID; // don't cast shadows of all entities with this id
+
+		bool inverseShadows; // don't cast light and draw shadows by darken the scene
+		// this is useful for drawing player shadows with shadow mapping
+	};
+
 // a trRefLight_t has all the information passed in by
 // the client game, as well as some locally derived info
 	struct trRefLight_t
