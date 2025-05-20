@@ -1009,22 +1009,17 @@ void AxisMultiply( const float in1[ 3 ][ 3 ], const float in2[ 3 ][ 3 ], float o
 
 void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up )
 {
-	float        angle;
-	static float sr, sp, sy, cr, cp, cy;
-
-	// static to help MS compiler fp bugs
-
-	angle = DEG2RAD( angles[ YAW ] );
-	sy = sinf( angle );
-	cy = cosf( angle );
+	float angle = DEG2RAD( angles[ YAW ] );
+	float sy = sinf( angle );
+	float cy = cosf( angle );
 
 	angle = DEG2RAD( angles[ PITCH ] );
-	sp = sinf( angle );
-	cp = cosf( angle );
+	float sp = sinf( angle );
+	float cp = cosf( angle );
 
 	angle = DEG2RAD( angles[ ROLL ] );
-	sr = sinf( angle );
-	cr = cosf( angle );
+	float sr = sinf( angle );
+	float cr = cosf( angle );
 
 	if ( forward )
 	{
@@ -1900,17 +1895,14 @@ void MatrixToAngles( const matrix_t m, vec3_t angles )
 //  Tait-Bryan angles z-y-x
 void MatrixFromAngles( matrix_t m, vec_t pitch, vec_t yaw, vec_t roll )
 {
-	static float sr, sp, sy, cr, cp, cy;
+	float sp = sinf( DEG2RAD( pitch ) );
+	float cp = cosf( DEG2RAD( pitch ) );
 
-	// static to help MS compiler fp bugs
-	sp = sinf( DEG2RAD( pitch ) );
-	cp = cosf( DEG2RAD( pitch ) );
+	float sy = sinf( DEG2RAD( yaw ) );
+	float cy = cosf( DEG2RAD( yaw ) );
 
-	sy = sinf( DEG2RAD( yaw ) );
-	cy = cosf( DEG2RAD( yaw ) );
-
-	sr = sinf( DEG2RAD( roll ) );
-	cr = cosf( DEG2RAD( roll ) );
+	float sr = sinf( DEG2RAD( roll ) );
+	float cr = cosf( DEG2RAD( roll ) );
 
 	m[ 0 ] = cp * cy;
 	m[ 4 ] = ( sr * sp * cy + cr * -sy );
@@ -2839,17 +2831,14 @@ void QuatFromAngles( quat_t q, vec_t pitch, vec_t yaw, vec_t roll )
 	MatrixFromAngles( tmp, pitch, yaw, roll );
 	QuatFromMatrix( q, tmp );
 #else
-	static float sr, sp, sy, cr, cp, cy;
+	float sp = sinf(DEG2RAD(pitch) * 0.5);
+	float cp = cosf(DEG2RAD(pitch) * 0.5);
 
-	// static to help MS compiler fp bugs
-	sp = sinf(DEG2RAD(pitch) * 0.5);
-	cp = cosf(DEG2RAD(pitch) * 0.5);
+	float sy = sinf(DEG2RAD(yaw) * 0.5);
+	float cy = cosf(DEG2RAD(yaw) * 0.5);
 
-	sy = sinf(DEG2RAD(yaw) * 0.5);
-	cy = cosf(DEG2RAD(yaw) * 0.5);
-
-	sr = sinf(DEG2RAD(roll) * 0.5);
-	cr = cosf(DEG2RAD(roll) * 0.5);
+	float sr = sinf(DEG2RAD(roll) * 0.5);
+	float cr = cosf(DEG2RAD(roll) * 0.5);
 
 	q[0] = sr * cp * cy - cr * sp * sy; // x
 	q[1] = cr * sp * cy + sr * cp * sy; // y
