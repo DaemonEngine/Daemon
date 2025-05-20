@@ -451,55 +451,6 @@ void R_InitFBOs()
 		R_CheckFBO( tr.lighttileFBO );
 	}
 
-	if ( glConfig2.shadowMapping )
-	{
-		// shadowMap FBOs for shadow mapping offscreen rendering
-		for ( i = 0; i < MAX_SHADOWMAPS; i++ )
-		{
-			width = height = shadowMapResolutions[ i ];
-
-			tr.shadowMapFBO[ i ] = R_CreateFBO( va( "_shadowMap%d", i ), width, height );
-			R_BindFBO( tr.shadowMapFBO[ i ] );
-			R_AttachFBOTexture2D( GL_TEXTURE_2D,
-					      tr.shadowMapFBOImage[ i ]->texnum,
-					      0 );
-
-			R_CreateFBODepthBuffer( tr.shadowMapFBO[ i ], GL_DEPTH_COMPONENT24 );
-
-			R_CheckFBO( tr.shadowMapFBO[ i ] );
-		}
-
-		// sun requires different resolutions
-		for ( i = 0; i < MAX_SHADOWMAPS; i++ )
-		{
-			width = height = sunShadowMapResolutions[ i ];
-
-			tr.sunShadowMapFBO[ i ] = R_CreateFBO( va( "_sunShadowMap%d", i ), width, height );
-			R_BindFBO( tr.sunShadowMapFBO[ i ] );
-			R_AttachFBOTexture2D( GL_TEXTURE_2D,
-					      tr.sunShadowMapFBOImage[ i ]->texnum,
-					      0 );
-
-			R_CreateFBODepthBuffer( tr.sunShadowMapFBO[ i ], GL_DEPTH_COMPONENT24 );
-
-			if ( glConfig2.shadowingMode == shadowingMode_t::SHADOWING_EVSM32
-				&& r_evsmPostProcess->integer )
-			{
-				R_AttachFBOTextureDepth( tr.sunShadowMapFBOImage[ i ]->texnum );
-
-				/*
-				Since we don't have a color attachment, the framebuffer will be considered incomplete.
-				Consequently, we must inform the driver that we do not wish to render to the color buffer.
-				We do this with a call to set the draw-buffer and read-buffer to GL_NONE:
-				*/
-				glDrawBuffer( GL_NONE );
-				glReadBuffer( GL_NONE );
-			}
-
-			R_CheckFBO( tr.sunShadowMapFBO[ i ] );
-		}
-	}
-
 	{
 		width = glConfig.vidWidth;
 		height = glConfig.vidHeight;

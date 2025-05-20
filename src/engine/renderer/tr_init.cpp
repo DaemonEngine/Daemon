@@ -90,7 +90,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<bool> r_realtimeLighting( "r_realtimeLighting", "Enable realtime light rendering", Cvar::NONE, true );
 	Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers( "r_realtimeLightLayers", "Dynamic light layers per tile, each layer holds 16 lights",
 		Cvar::NONE, 4, 1, MAX_REF_LIGHTS / 16 );
-	cvar_t      *r_realtimeLightingCastShadows;
 	cvar_t      *r_precomputedLighting;
 	Cvar::Cvar<int> r_overbrightDefaultExponent("r_overbrightDefaultExponent", "default map light color shift (multiply by 2^x)", Cvar::NONE, 2);
 	Cvar::Range<Cvar::Cvar<int>> r_overbrightBits("r_overbrightBits", "clamp lightmap colors to 2^x", Cvar::NONE, 1, 0, 3);
@@ -133,35 +132,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Range<Cvar::Cvar<int>> r_shadows( "cg_shadows", "shadowing mode", Cvar::NONE,
 		Util::ordinal(shadowingMode_t::SHADOWING_BLOB),
 		Util::ordinal(shadowingMode_t::SHADOWING_NONE),
-		Util::ordinal(shadowingMode_t::SHADOWING_EVSM32) );
-	cvar_t      *r_softShadows;
-	cvar_t      *r_softShadowsPP;
-	cvar_t      *r_shadowBlur;
+		Util::ordinal(shadowingMode_t::SHADOWING_BLOB) );
 
-	cvar_t      *r_shadowMapSizeUltra;
-	cvar_t      *r_shadowMapSizeVeryHigh;
-	cvar_t      *r_shadowMapSizeHigh;
-	cvar_t      *r_shadowMapSizeMedium;
-	cvar_t      *r_shadowMapSizeLow;
-
-	cvar_t      *r_shadowMapSizeSunUltra;
-	cvar_t      *r_shadowMapSizeSunVeryHigh;
-	cvar_t      *r_shadowMapSizeSunHigh;
-	cvar_t      *r_shadowMapSizeSunMedium;
-	cvar_t      *r_shadowMapSizeSunLow;
-
-	cvar_t      *r_shadowLodBias;
-	cvar_t      *r_shadowLodScale;
-	cvar_t      *r_noShadowPyramids;
-	cvar_t      *r_cullShadowPyramidFaces;
-	cvar_t      *r_debugShadowMaps;
 	cvar_t      *r_noLightFrustums;
-	cvar_t      *r_shadowMapLinearFilter;
-	cvar_t      *r_lightBleedReduction;
-	cvar_t      *r_overDarkeningFactor;
-	cvar_t      *r_shadowMapDepthScale;
-	cvar_t      *r_parallelShadowSplits;
-	cvar_t      *r_parallelShadowSplitWeight;
 
 	cvar_t      *r_mode;
 	cvar_t      *r_nobind;
@@ -263,8 +236,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_showTris;
 	cvar_t      *r_showSky;
-	cvar_t      *r_showShadowLod;
-	cvar_t      *r_showShadowMaps;
 	cvar_t      *r_showSkeleton;
 	cvar_t      *r_showEntityTransforms;
 	cvar_t      *r_showLightTransforms;
@@ -294,7 +265,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Util::ordinal( MaterialDebugMode::NONE ),
 		Util::ordinal( MaterialDebugMode::OPAQUE_TRANSPARENT ) );
 	Cvar::Cvar<bool> r_materialDebug( "r_materialDebug", "Enable material debug SSBO", Cvar::NONE, false );
-	cvar_t      *r_showParallelShadowSplits;
 
 	Cvar::Cvar<bool> r_profilerRenderSubGroups( "r_profilerRenderSubGroups", "Enable subgroup profiling in rendering shaders", Cvar::CHEAT, false );
 	Cvar::Range<Cvar::Cvar<int>> r_profilerRenderSubGroupsMode( "r_profilerRenderSubGroupsMode", "Red: more wasted lanes, green: less wasted lanes; "
@@ -1197,7 +1167,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_customwidth = Cvar_Get( "r_customwidth", "1600", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customheight = Cvar_Get( "r_customheight", "1024", CVAR_LATCH | CVAR_ARCHIVE );
 		r_subdivisions = Cvar_Get( "r_subdivisions", "4", CVAR_LATCH );
-		r_realtimeLightingCastShadows = Cvar_Get( "r_realtimeLightingCastShadows", "1", 0 );
 		r_precomputedLighting = Cvar_Get( "r_precomputedLighting", "1", CVAR_CHEAT | CVAR_LATCH );
 		Cvar::Latch( r_overbrightDefaultExponent );
 		Cvar::Latch( r_overbrightBits );
@@ -1221,15 +1190,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		// temporary latched variables that can only change over a restart
 		r_singleShader = Cvar_Get( "r_singleShader", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_stitchCurves = Cvar_Get( "r_stitchCurves", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_debugShadowMaps = Cvar_Get( "r_debugShadowMaps", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_shadowMapLinearFilter = Cvar_Get( "r_shadowMapLinearFilter", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_lightBleedReduction = Cvar_Get( "r_lightBleedReduction", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_overDarkeningFactor = Cvar_Get( "r_overDarkeningFactor", "30.0", CVAR_CHEAT | CVAR_LATCH );
-		r_shadowMapDepthScale = Cvar_Get( "r_shadowMapDepthScale", "1.41", CVAR_CHEAT | CVAR_LATCH );
-
-		r_parallelShadowSplitWeight = Cvar_Get( "r_parallelShadowSplitWeight", "0.9", CVAR_CHEAT );
-		r_parallelShadowSplits = Cvar_Get( "r_parallelShadowSplits", "2", CVAR_CHEAT | CVAR_LATCH );
-		AssertCvarRange( r_parallelShadowSplits, 0, MAX_SHADOWMAPS - 1, true );
 
 		// archived variables that can change at any time
 		r_lodBias = Cvar_Get( "r_lodBias", "0", 0 );
@@ -1327,59 +1287,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Cvar::Latch( r_shadows );
 
-		r_softShadows = Cvar_Get( "r_softShadows", "0",  CVAR_LATCH );
-		AssertCvarRange( r_softShadows, 0, 6, true );
-
-		r_softShadowsPP = Cvar_Get( "r_softShadowsPP", "0",  CVAR_LATCH );
-
-		r_shadowBlur = Cvar_Get( "r_shadowBlur", "2",  CVAR_LATCH );
-
-		r_shadowMapSizeUltra = Cvar_Get( "r_shadowMapSizeUltra", "1024",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeUltra, 32, 2048, true );
-
-		r_shadowMapSizeVeryHigh = Cvar_Get( "r_shadowMapSizeVeryHigh", "512",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeVeryHigh, 32, 2048, true );
-
-		r_shadowMapSizeHigh = Cvar_Get( "r_shadowMapSizeHigh", "256",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeHigh, 32, 2048, true );
-
-		r_shadowMapSizeMedium = Cvar_Get( "r_shadowMapSizeMedium", "128",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeMedium, 32, 2048, true );
-
-		r_shadowMapSizeLow = Cvar_Get( "r_shadowMapSizeLow", "64",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeLow, 32, 2048, true );
-
-		shadowMapResolutions[ 0 ] = r_shadowMapSizeUltra->integer;
-		shadowMapResolutions[ 1 ] = r_shadowMapSizeVeryHigh->integer;
-		shadowMapResolutions[ 2 ] = r_shadowMapSizeHigh->integer;
-		shadowMapResolutions[ 3 ] = r_shadowMapSizeMedium->integer;
-		shadowMapResolutions[ 4 ] = r_shadowMapSizeLow->integer;
-
-		r_shadowMapSizeSunUltra = Cvar_Get( "r_shadowMapSizeSunUltra", "1024",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeSunUltra, 32, 2048, true );
-
-		r_shadowMapSizeSunVeryHigh = Cvar_Get( "r_shadowMapSizeSunVeryHigh", "1024",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeSunVeryHigh, 512, 2048, true );
-
-		r_shadowMapSizeSunHigh = Cvar_Get( "r_shadowMapSizeSunHigh", "1024",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeSunHigh, 512, 2048, true );
-
-		r_shadowMapSizeSunMedium = Cvar_Get( "r_shadowMapSizeSunMedium", "1024",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeSunMedium, 512, 2048, true );
-
-		r_shadowMapSizeSunLow = Cvar_Get( "r_shadowMapSizeSunLow", "1024",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeSunLow, 512, 2048, true );
-
-		sunShadowMapResolutions[ 0 ] = r_shadowMapSizeSunUltra->integer;
-		sunShadowMapResolutions[ 1 ] = r_shadowMapSizeSunVeryHigh->integer;
-		sunShadowMapResolutions[ 2 ] = r_shadowMapSizeSunHigh->integer;
-		sunShadowMapResolutions[ 3 ] = r_shadowMapSizeSunMedium->integer;
-		sunShadowMapResolutions[ 4 ] = r_shadowMapSizeSunLow->integer;
-
-		r_shadowLodBias = Cvar_Get( "r_shadowLodBias", "0", CVAR_CHEAT );
-		r_shadowLodScale = Cvar_Get( "r_shadowLodScale", "0.8", CVAR_CHEAT );
-		r_noShadowPyramids = Cvar_Get( "r_noShadowPyramids", "0", CVAR_CHEAT );
-		r_cullShadowPyramidFaces = Cvar_Get( "r_cullShadowPyramidFaces", "0", CVAR_CHEAT );
 		r_noLightFrustums = Cvar_Get( "r_noLightFrustums", "1", CVAR_CHEAT );
 
 		r_maxPolys = Cvar_Get( "r_maxpolys", "10000", CVAR_LATCH );  // 600 in vanilla Q3A
@@ -1390,8 +1297,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		r_showTris = Cvar_Get( "r_showTris", "0", CVAR_CHEAT );
 		r_showSky = Cvar_Get( "r_showSky", "0", CVAR_CHEAT );
-		r_showShadowLod = Cvar_Get( "r_showShadowLod", "0", CVAR_CHEAT );
-		r_showShadowMaps = Cvar_Get( "r_showShadowMaps", "0", CVAR_CHEAT );
 		r_showSkeleton = Cvar_Get( "r_showSkeleton", "0", CVAR_CHEAT );
 		r_showEntityTransforms = Cvar_Get( "r_showEntityTransforms", "0", CVAR_CHEAT );
 		r_showLightTransforms = Cvar_Get( "r_showLightTransforms", "0", CVAR_CHEAT );
@@ -1410,7 +1315,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showBspNodes = Cvar_Get( "r_showBspNodes", "0", CVAR_CHEAT );
 		Cvar::Latch( r_showGlobalMaterials );
 		Cvar::Latch( r_materialDebug );
-		r_showParallelShadowSplits = Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );
 
 		Cvar::Latch( r_profilerRenderSubGroups );
 	}

@@ -45,6 +45,8 @@ Maryland 20850 USA.
 #define bool DO_NOT_USE_BOOL_IN_IPC_MESSAGE_TYPES
 using bool8_t = uint8_t;
 
+// TODO(0.56): Remove all shadow stuff in here?
+
 // XreaL BEGIN
 #define MAX_REF_LIGHTS     1024
 #define MAX_REF_ENTITIES   1023 // can't be increased without changing drawsurf bit packing
@@ -131,11 +133,6 @@ enum class refEntityType_t
   RT_MAX_REF_ENTITY_TYPE
 };
 
-// XreaL BEGIN
-
-// RB: defining any of the following macros would break the compatibility to old ET mods
-//#define USE_REFENTITY_NOSHADOWID 1
-
 // RB: having bone names for each refEntity_t takes several MiBs
 // in backEndData_t so only use it for debugging and development
 // enabling this will show the bone names with r_showSkeleton 1
@@ -203,11 +200,6 @@ struct refEntity_t
 	// extra sprite information
 	float radius;
 	float rotation;
-
-#if defined( USE_REFENTITY_NOSHADOWID )
-	// extra light interaction information
-	short noShadowID;
-#endif
 
 	int altShaderIndex;
 
