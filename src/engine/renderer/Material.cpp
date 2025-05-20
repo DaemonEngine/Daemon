@@ -755,7 +755,6 @@ void BindShaderGeneric3D( Material* material ) {
 	// Set shader uniforms.
 	if ( material->tcGenEnvironment ) {
 		gl_genericShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
-		gl_genericShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
 	}
 
 	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
