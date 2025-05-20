@@ -185,8 +185,6 @@ set(GLSLSOURCELIST
     # Regular shaders
     ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/forwardLighting_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/forwardLighting_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/generic_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/generic_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/heatHaze_vp.glsl

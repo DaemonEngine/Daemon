@@ -1781,23 +1781,6 @@ static void ParseReflectionStageBlended( shaderStage_t *stage, const char **text
 	ParseReflectionMap( stage, text, TB_COLORMAP );
 }
 
-static void ParseLightFalloffImage( shaderStage_t *stage, const char **text )
-{
-	char buffer[ 1024 ] = "";
-
-	stage->active = true;
-	stage->type = stageType_t::ST_ATTENUATIONMAP_Z;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
-	stage->overrideWrapType = true;
-	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
-
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer, stageType_t::ST_COLORMAP );
-	}
-}
-
 static bool HasNormalFormat( shaderStage_t *stage )
 {
 	return stage->normalFormat[ 0 ];
@@ -2142,8 +2125,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "portalMap" ) )
 		else if ( !Q_stricmp( token, "heathazeMap" ) )
 		else if ( !Q_stricmp( token, "liquidMap" ) )
-		else if ( !Q_stricmp( token, "attenuationMapXY" ) )
-		else if ( !Q_stricmp( token, "attenuationMapZ" ) )
 		*/
 		// lightmap <name>
 		// What is the use case for this?
@@ -2646,14 +2627,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				stage->type = stageType_t::ST_LIQUIDMAP;
 				SetNormalFormat( stage, dxNormalFormat );
-			}
-			else if ( !Q_stricmp( token, "attenuationMapXY" ) )
-			{
-				stage->type = stageType_t::ST_ATTENUATIONMAP_XY;
-			}
-			else if ( !Q_stricmp( token, "attenuationMapZ" ) )
-			{
-				stage->type = stageType_t::ST_ATTENUATIONMAP_Z;
 			}
 			else
 			{
@@ -4638,13 +4611,6 @@ static bool ParseShader( const char *_text )
 			}
 			continue;
 		}
-		// lightFalloffImage <image>
-		else if ( !Q_stricmp( token, "lightFalloffImage" ) )
-		{
-			ParseLightFalloffImage( &stages[ s ], text );
-			s++;
-			continue;
-		}
 		// Doom 3 DECAL_MACRO
 		else if ( !Q_stricmp( token, "DECAL_MACRO" ) )
 		{
@@ -5208,11 +5174,6 @@ static void FinishStages()
 				lightStageFound = true;
 				break;
 
-			case stageType_t::ST_ATTENUATIONMAP_XY:
-			case stageType_t::ST_ATTENUATIONMAP_Z:
-				stage->active = ( glConfig2.realtimeLighting && r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::LEGACY ) );
-				break;
-
 			default:
 				break;
 		}
@@ -5355,9 +5316,6 @@ static void SetStagesRenderers()
 		surfaceDataUpdater_t surfaceDataUpdater;
 		stageShaderBinder_t shaderBinder;
 		stageMaterialProcessor_t materialProcessor;
-
-		// Per-stage configuration.
-		bool doForwardLighting;
 	};
 
 	for ( size_t s = 0; s < numStages; s++ )
@@ -5367,7 +5325,6 @@ static void SetStagesRenderers()
 		stageRendererOptions_t stageRendererOptions = {
 			&Render_NONE, &MarkShaderBuildNONE,
 			&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
-			false,
 		};
 
 		switch ( stage->type )
@@ -5376,7 +5333,6 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_generic, &MarkShaderBuildGeneric3D,
 					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
-					false,
 				};
 				break;
 			case stageType_t::ST_STYLELIGHTMAP:
@@ -5384,7 +5340,6 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_generic3D, &MarkShaderBuildGeneric3D,
 					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
-					false,
 				};
 				break;
 			case stageType_t::ST_LIGHTMAP:
@@ -5393,14 +5348,12 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_lightMapping, &MarkShaderBuildLightMapping,
 					&UpdateSurfaceDataLightMapping, &BindShaderLightMapping, &ProcessMaterialLightMapping,
-					true,
 				};
 				break;
 			case stageType_t::ST_COLLAPSE_COLORMAP:
 				stageRendererOptions = {
 					&Render_lightMapping, &MarkShaderBuildLightMapping,
 					&UpdateSurfaceDataLightMapping, &BindShaderLightMapping, &ProcessMaterialLightMapping,
-					false,
 				};
 				break;
 			case stageType_t::ST_REFLECTIONMAP:
@@ -5408,21 +5361,18 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_reflection_CB, &MarkShaderBuildReflection,
 					&UpdateSurfaceDataReflection, &BindShaderReflection, &ProcessMaterialReflection,
-					false,
 				};
 				break;
 			case stageType_t::ST_SKYBOXMAP:
 				stageRendererOptions = {
 					&Render_skybox, &MarkShaderBuildSkybox,
 					&UpdateSurfaceDataSkybox, &BindShaderSkybox, &ProcessMaterialSkybox,
-					false,
 				};
 				break;
 			case stageType_t::ST_SCREENMAP:
 				stageRendererOptions = {
 					&Render_screen, &MarkShaderBuildScreen,
 					&UpdateSurfaceDataScreen, &BindShaderScreen, &ProcessMaterialScreen,
-					false,
 				};
 				break;
 			case stageType_t::ST_PORTALMAP:
@@ -5431,36 +5381,24 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_portal, &MarkShaderBuildPortal,
 					&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
-					false,
 				};
 				break;
 			case stageType_t::ST_HEATHAZEMAP:
 				stageRendererOptions = {
 					&Render_heatHaze, &MarkShaderBuildHeatHaze,
 					&UpdateSurfaceDataHeatHaze, &BindShaderHeatHaze, &ProcessMaterialHeatHaze,
-					false,
 				};
 				break;
 			case stageType_t::ST_LIQUIDMAP:
 				stageRendererOptions = {
 					&Render_liquid, &MarkShaderBuildLiquid,
 					&UpdateSurfaceDataLiquid, &BindShaderLiquid, &ProcessMaterialLiquid,
-					false,
 				};
 				break;
 			case stageType_t::ST_FOGMAP:
 				stageRendererOptions = {
 					&Render_fog, &MarkShaderBuildFog,
 					&UpdateSurfaceDataFog, &BindShaderFog, &ProcessMaterialFog,
-					false,
-				};
-				break;
-			case stageType_t::ST_ATTENUATIONMAP_XY:
-			case stageType_t::ST_ATTENUATIONMAP_Z:
-				stageRendererOptions = {
-					&Render_NOP, &MarkShaderBuildNOP,
-					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
-					true,
 				};
 				break;
 			default:
@@ -5469,7 +5407,6 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_NOP, &MarkShaderBuildNOP,
 					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
-					false,
 				};
 				break;
 		}
@@ -5480,8 +5417,6 @@ static void SetStagesRenderers()
 		stage->surfaceDataUpdater = stageRendererOptions.surfaceDataUpdater;
 		stage->shaderBinder = stageRendererOptions.shaderBinder;
 		stage->materialProcessor = stageRendererOptions.materialProcessor;
-
-		stage->doForwardLighting = stageRendererOptions.doForwardLighting;
 
 		// Disable stages that have no renderer yet.
 		if ( stage->colorRenderer == &Render_NONE )
@@ -5667,8 +5602,6 @@ static void ValidateStage( shaderStage_t *pStage )
 		{ stageType_t::ST_STYLECOLORMAP, { true, true, false, "style color map" } },
 		{ stageType_t::ST_COLLAPSE_COLORMAP, { true, true, true, "collapsed color map" } },
 		{ stageType_t::ST_COLLAPSE_DIFFUSEMAP, { true, true, true, "collapsed diffuseMap" } },
-		{ stageType_t::ST_ATTENUATIONMAP_XY, { true, true, false, "attenuationMapXY" } },
-		{ stageType_t::ST_ATTENUATIONMAP_Z, { true, true, false, "attenuationMapZ" } },
 		// TODO: Document the remaining stage types.
 	};
 
@@ -5822,40 +5755,6 @@ static shader_t *FinishShader()
 		/* Mirrors will not use that range but we need all
 		other portals to have it set. */
 		shader.portalRange = r_portalDefaultRange.Get();
-	}
-
-	// all light materials need at least one z attenuation stage as first stage
-	if ( shader.type == shaderType_t::SHADER_LIGHT )
-	{
-		if ( stages[ 0 ].type != stageType_t::ST_ATTENUATIONMAP_Z )
-		{
-			// move up subsequent stages
-			memmove( &stages[ 1 ], &stages[ 0 ], sizeof( stages[ 0 ] ) * ( MAX_SHADER_STAGES - 1 ) );
-
-			stages[ 0 ].active = true;
-			stages[ 0 ].type = stageType_t::ST_ATTENUATIONMAP_Z;
-			stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY;
-			stages[ 0 ].stateBits = GLS_DEFAULT;
-			stages[ 0 ].overrideWrapType = true;
-			stages[ 0 ].wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
-
-			const char *squarelight1a = "lights/squarelight1a";
-			Log::Debug( "loading '%s' image as shader", squarelight1a );
-			LoadMap( &stages[ 0 ], squarelight1a, stageType_t::ST_COLORMAP );
-		}
-
-		// force following shader stages to be xy attenuation stages
-		for ( int i = 1; i < MAX_SHADER_STAGES; i++ )
-		{
-			shaderStage_t *pStage = &stages[ i ];
-
-			if ( !pStage->active )
-			{
-				break;
-			}
-
-			pStage->type = stageType_t::ST_ATTENUATIONMAP_XY;
-		}
 	}
 
 	numStages = MAX_SHADER_STAGES;
@@ -6340,22 +6239,6 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 				break;
 			}
 
-		case shaderType_t::SHADER_LIGHT:
-			{
-				stages[ 0 ].type = stageType_t::ST_ATTENUATIONMAP_Z;
-				stages[ 0 ].bundle[ 0 ].image[ 0 ] = tr.noFalloffImage; // FIXME should be attenuationZImage
-				stages[ 0 ].active = true;
-				stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY;
-				stages[ 0 ].stateBits = GLS_DEFAULT;
-
-				stages[ 1 ].type = stageType_t::ST_ATTENUATIONMAP_XY;
-				stages[ 1 ].bundle[ 0 ].image[ 0 ] = image;
-				stages[ 1 ].active = true;
-				stages[ 1 ].rgbGen = colorGen_t::CGEN_IDENTITY;
-				stages[ 1 ].stateBits = GLS_DEFAULT;
-				break;
-			}
-
 		default:
 			break;
 	}
@@ -6435,9 +6318,7 @@ qhandle_t RE_RegisterShader( const char *name, int flags )
 		return 0;
 	}
 
-	sh = R_FindShader( name,
-			   (flags & RSF_LIGHT_ATTENUATION) ? shaderType_t::SHADER_LIGHT : shaderType_t::SHADER_2D,
-			   flags );
+	sh = R_FindShader( name, shaderType_t::SHADER_2D, flags );
 
 	// we want to return 0 if the shader failed to
 	// load for some reason, but R_FindShader should
@@ -6495,7 +6376,6 @@ public:
 			{ shaderType_t::SHADER_2D, "2D" },
 			{ shaderType_t::SHADER_3D_DYNAMIC, "3D_DYNAMIC" },
 			{ shaderType_t::SHADER_3D_STATIC, "3D_STATIC" },
-			{ shaderType_t::SHADER_LIGHT, "LIGHT" },
 		};
 
 		static const std::unordered_map<shaderSort_t, std::string> shaderSortName = {
@@ -6545,8 +6425,6 @@ public:
 			{ stageType_t::ST_COLLAPSE_COLORMAP, "COLLAPSE_COLORMAP" },
 			{ stageType_t::ST_COLLAPSE_DIFFUSEMAP, "COLLAPSE_DIFFUSEMAP" },
 			{ stageType_t::ST_COLLAPSE_REFLECTIONMAP, "COLLAPSE_REFLECTIONMAP" },
-			{ stageType_t::ST_ATTENUATIONMAP_XY, "ATTENUATIONMAP_XY" },
-			{ stageType_t::ST_ATTENUATIONMAP_Z, "ATTENUATIONMAP_XZ" },
 		};
 
 		const char *prefix = args.Argc() > 1 ? args.Argv( 1 ).c_str() : nullptr;
@@ -7003,15 +6881,6 @@ static void CreateInternalShaders()
 	tr.fogLEShader = FinishShader();
 }
 
-static void CreateExternalShaders()
-{
-	Log::Debug("----- CreateExternalShaders -----" );
-
-	tr.defaultPointLightShader = R_FindShader( "lights/defaultPointLight", shaderType_t::SHADER_LIGHT, RSF_DEFAULT );
-	tr.defaultProjectedLightShader = R_FindShader( "lights/defaultProjectedLight", shaderType_t::SHADER_LIGHT, RSF_DEFAULT );
-	tr.defaultDynamicLightShader = R_FindShader( "lights/defaultDynamicLight", shaderType_t::SHADER_LIGHT, RSF_DEFAULT );
-}
-
 /*
 ==================
 R_InitShaders
@@ -7029,8 +6898,6 @@ void R_InitShaders()
 	CreateInternalShaders();
 
 	ScanAndLoadShaderFiles();
-
-	CreateExternalShaders();
 }
 
 /*

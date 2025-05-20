@@ -64,9 +64,6 @@ GLShader_generic                         *gl_genericShader = nullptr;
 GLShader_genericMaterial                 *gl_genericShaderMaterial = nullptr;
 GLShader_lightMapping                    *gl_lightMappingShader = nullptr;
 GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial = nullptr;
-GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ = nullptr;
-GLShader_forwardLighting_projXYZ         *gl_forwardLightingShader_projXYZ = nullptr;
-GLShader_forwardLighting_directionalSun  *gl_forwardLightingShader_directionalSun = nullptr;
 GLShader_fogQuake3                       *gl_fogQuake3Shader = nullptr;
 GLShader_fogQuake3Material               *gl_fogQuake3ShaderMaterial = nullptr;
 GLShader_heatHaze                        *gl_heatHazeShader = nullptr;
@@ -686,7 +683,6 @@ static std::string GenEngineConstants() {
 	if ( glConfig2.realtimeLighting )
 	{
 		AddDefine( str, "r_realtimeLighting", 1 );
-		AddDefine( str, "r_realtimeLightingRenderer", r_realtimeLightingRenderer.Get() );
 	}
 
 	if ( r_showNormalMaps->integer )
@@ -2551,160 +2547,6 @@ void GLShader_lightMappingMaterial::SetShaderProgramUniforms( ShaderProgramDescr
 	if ( !glConfig2.uniformBufferObjectAvailable ) {
 		glUniform1i( glGetUniformLocation( shaderProgram->id, "u_Lights" ), BIND_LIGHTS );
 	}
-}
-
-GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ():
-	GLShader( "forwardLighting_omniXYZ", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT,
-		false, "forwardLighting", "forwardLighting" ),
-	u_DiffuseMap( this ),
-	u_NormalMap( this ),
-	u_MaterialMap( this ),
-	u_AttenuationMapXY( this ),
-	u_AttenuationMapZ( this ),
-	u_RandomMap( this ),
-	u_HeightMap( this ),
-	u_TextureMatrix( this ),
-	u_SpecularExponent( this ),
-	u_AlphaThreshold( this ),
-	u_ColorModulateColorGen_Float( this ),
-	u_ColorModulateColorGen_Uint( this ),
-	u_Color_Float( this ),
-	u_Color_Uint( this ),
-	u_ViewOrigin( this ),
-	u_LightOrigin( this ),
-	u_LightColor( this ),
-	u_LightRadius( this ),
-	u_LightScale( this ),
-	u_LightAttenuationMatrix( this ),
-	u_ModelMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_Bones( this ),
-	u_VertexInterpolation( this ),
-	u_ReliefDepthScale( this ),
-	u_ReliefOffsetBias( this ),
-	u_NormalScale( this ),
-	GLDeformStage( this ),
-	GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
-	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
-	GLCompileMacro_USE_RELIEF_MAPPING( this )
-{
-}
-
-void GLShader_forwardLighting_omniXYZ::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DiffuseMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_MaterialMap" ), 2 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_AttenuationMapXY" ), 3 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_AttenuationMapZ" ), 4 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_RandomMap" ), 6 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
-}
-
-GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ():
-	GLShader( "forwardLighting_projXYZ", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT,
-		false, "forwardLighting", "forwardLighting" ),
-	u_DiffuseMap( this ),
-	u_NormalMap( this ),
-	u_MaterialMap( this ),
-	u_AttenuationMapXY( this ),
-	u_AttenuationMapZ( this ),
-	u_RandomMap( this ),
-	u_HeightMap( this ),
-	u_TextureMatrix( this ),
-	u_SpecularExponent( this ),
-	u_AlphaThreshold( this ),
-	u_ColorModulateColorGen_Float( this ),
-	u_ColorModulateColorGen_Uint( this ),
-	u_Color_Float( this ),
-	u_Color_Uint( this ),
-	u_ViewOrigin( this ),
-	u_LightOrigin( this ),
-	u_LightColor( this ),
-	u_LightRadius( this ),
-	u_LightScale( this ),
-	u_LightAttenuationMatrix( this ),
-	u_ModelMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_Bones( this ),
-	u_VertexInterpolation( this ),
-	u_ReliefDepthScale( this ),
-	u_ReliefOffsetBias( this ),
-	u_NormalScale( this ),
-	GLDeformStage( this ),
-	GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
-	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
-	GLCompileMacro_USE_RELIEF_MAPPING( this )
-{
-}
-
-void GLShader_forwardLighting_projXYZ::BuildShaderCompileMacros( std::string& compileMacros )
-{
-	compileMacros += "LIGHT_PROJ ";
-}
-
-void GLShader_forwardLighting_projXYZ::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DiffuseMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_MaterialMap" ), 2 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_AttenuationMapXY" ), 3 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_AttenuationMapZ" ), 4 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_RandomMap" ), 6 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
-}
-
-GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun():
-	GLShader( "forwardLighting_directionalSun", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT,
-		false, "forwardLighting", "forwardLighting" ),
-	u_DiffuseMap( this ),
-	u_NormalMap( this ),
-	u_MaterialMap( this ),
-	u_HeightMap( this ),
-	u_TextureMatrix( this ),
-	u_SpecularExponent( this ),
-	u_AlphaThreshold( this ),
-	u_ColorModulateColorGen_Float( this ),
-	u_ColorModulateColorGen_Uint( this ),
-	u_Color_Float( this ),
-	u_Color_Uint( this ),
-	u_ViewOrigin( this ),
-	u_LightDir( this ),
-	u_LightColor( this ),
-	u_LightRadius( this ),
-	u_LightScale( this ),
-	u_LightAttenuationMatrix( this ),
-	u_ModelMatrix( this ),
-	u_ViewMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_Bones( this ),
-	u_VertexInterpolation( this ),
-	u_ReliefDepthScale( this ),
-	u_ReliefOffsetBias( this ),
-	u_NormalScale( this ),
-	GLDeformStage( this ),
-	GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
-	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
-	GLCompileMacro_USE_RELIEF_MAPPING( this )
-{
-}
-
-void GLShader_forwardLighting_directionalSun::BuildShaderCompileMacros( std::string& compileMacros )
-{
-	compileMacros += "LIGHT_DIRECTIONAL ";
-}
-
-void GLShader_forwardLighting_directionalSun::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DiffuseMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_MaterialMap" ), 2 );
-	//glUniform1i(glGetUniformLocation( shaderProgram->id, "u_AttenuationMapXY" ), 3);
-	//glUniform1i(glGetUniformLocation( shaderProgram->id, "u_AttenuationMapZ" ), 4);
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_reflection::GLShader_reflection():

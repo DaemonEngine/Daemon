@@ -662,18 +662,6 @@ static void R_InitTileVBO()
 		return;
 	}
 
-	if ( r_realtimeLightingRenderer.Get() != Util::ordinal( realtimeLightingRenderer_t::TILED ) )
-	{
-		/* This computation is part of the tiled dynamic lighting renderer,
-		it's better to not run it and save CPU cycles when such effects
-		are disabled.
-
-		There is no need to create vertex buffers that are only used by the
-		tiled dynamic lighting renderer when this feature is disabled. */
-
-		return;
-	}
-
 	R_SyncRenderThread();
 	int       x, y, w, h;
 

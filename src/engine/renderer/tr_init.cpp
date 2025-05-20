@@ -79,14 +79,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_nocull;
 	cvar_t      *r_facePlaneCull;
 	cvar_t      *r_nocurves;
-	cvar_t      *r_lightScissors;
-	cvar_t      *r_noLightVisCull;
-	cvar_t      *r_noInteractionSort;
-	Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer( "r_realtimeLightingRenderer",
-		"renderer for real time lights: 0: legacy, 1: tiled", Cvar::NONE,
-		Util::ordinal(realtimeLightingRenderer_t::TILED),
-		Util::ordinal(realtimeLightingRenderer_t::LEGACY),
-		Util::ordinal(realtimeLightingRenderer_t::TILED) );
 	Cvar::Cvar<bool> r_realtimeLighting( "r_realtimeLighting", "Enable realtime light rendering", Cvar::NONE, true );
 	Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers( "r_realtimeLightLayers", "Dynamic light layers per tile, each layer holds 16 lights",
 		Cvar::NONE, 4, 1, MAX_REF_LIGHTS / 16 );
@@ -133,8 +125,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Util::ordinal(shadowingMode_t::SHADOWING_BLOB),
 		Util::ordinal(shadowingMode_t::SHADOWING_NONE),
 		Util::ordinal(shadowingMode_t::SHADOWING_BLOB) );
-
-	cvar_t      *r_noLightFrustums;
 
 	cvar_t      *r_mode;
 	cvar_t      *r_nobind;
@@ -238,10 +228,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_showSky;
 	cvar_t      *r_showSkeleton;
 	cvar_t      *r_showEntityTransforms;
-	cvar_t      *r_showLightTransforms;
-	cvar_t      *r_showLightInteractions;
-	cvar_t      *r_showLightScissors;
-	cvar_t      *r_showLightBatches;
 	cvar_t      *r_showLightGrid;
 	cvar_t      *r_showLightTiles;
 	cvar_t      *r_showBatches;
@@ -1225,13 +1211,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_debugSort = Cvar_Get( "r_debugSort", "0", CVAR_CHEAT );
 
 		r_nocurves = Cvar_Get( "r_nocurves", "0", CVAR_CHEAT );
-		r_lightScissors = Cvar_Get( "r_lightScissors", "1", CVAR_ARCHIVE );
-		AssertCvarRange( r_lightScissors, 0, 2, true );
 
-		r_noLightVisCull = Cvar_Get( "r_noLightVisCull", "0", CVAR_CHEAT );
-		r_noInteractionSort = Cvar_Get( "r_noInteractionSort", "0", CVAR_CHEAT );
-
-		Cvar::Latch( r_realtimeLightingRenderer );
 		Cvar::Latch( r_realtimeLighting );
 		Cvar::Latch( r_realtimeLightLayers );
 		Cvar::Latch( r_preferBindlessTextures );
@@ -1287,8 +1267,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Cvar::Latch( r_shadows );
 
-		r_noLightFrustums = Cvar_Get( "r_noLightFrustums", "1", CVAR_CHEAT );
-
 		r_maxPolys = Cvar_Get( "r_maxpolys", "10000", CVAR_LATCH );  // 600 in vanilla Q3A
 		AssertCvarRange( r_maxPolys, 600, 30000, true );
 
@@ -1299,10 +1277,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showSky = Cvar_Get( "r_showSky", "0", CVAR_CHEAT );
 		r_showSkeleton = Cvar_Get( "r_showSkeleton", "0", CVAR_CHEAT );
 		r_showEntityTransforms = Cvar_Get( "r_showEntityTransforms", "0", CVAR_CHEAT );
-		r_showLightTransforms = Cvar_Get( "r_showLightTransforms", "0", CVAR_CHEAT );
-		r_showLightInteractions = Cvar_Get( "r_showLightInteractions", "0", CVAR_CHEAT );
-		r_showLightScissors = Cvar_Get( "r_showLightScissors", "0", CVAR_CHEAT );
-		r_showLightBatches = Cvar_Get( "r_showLightBatches", "0", CVAR_CHEAT );
 		r_showLightGrid = Cvar_Get( "r_showLightGrid", "0", CVAR_CHEAT );
 		r_showLightTiles = Cvar_Get("r_showLightTiles", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showBatches = Cvar_Get( "r_showBatches", "0", CVAR_CHEAT );

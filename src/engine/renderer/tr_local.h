@@ -194,9 +194,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define MAX_DRAWSURFS      0x10000
 #define DRAWSURF_MASK      ( MAX_DRAWSURFS - 1 )
 
-#define MAX_INTERACTIONS   ( MAX_DRAWSURFS * 8 )
-#define INTERACTION_MASK   ( MAX_INTERACTIONS - 1 )
-
 // 16x16 pixels per tile
 #define TILE_SHIFT 4
 #define TILE_SIZE  (1 << TILE_SHIFT)
@@ -296,8 +293,6 @@ static inline void glFboSetExt()
 enum class lightMode_t { FULLBRIGHT, VERTEX, GRID, MAP };
 enum class deluxeMode_t { NONE, GRID, MAP };
 
-enum class realtimeLightingRenderer_t { LEGACY, TILED };
-
 enum class showCubeProbesMode {
 	DISABLED,
 	GRID,
@@ -330,9 +325,7 @@ enum class ssaoMode {
 	  RSPEEDS_GENERAL = 1,
 	  RSPEEDS_CULLING,
 	  RSPEEDS_VIEWCLUSTER,
-	  RSPEEDS_LIGHTS,
 	  RSPEEDS_FOG,
-	  RSPEEDS_SHADING_TIMES,
 	  RSPEEDS_CHC,
 	  RSPEEDS_NEAR_FAR,
 	};
@@ -386,17 +379,7 @@ enum class ssaoMode {
 
 	using frustum_t = cplane_t[6];
 
-	enum
-	{
-	  CUBESIDE_PX = ( 1 << 0 ),
-	  CUBESIDE_PY = ( 1 << 1 ),
-	  CUBESIDE_PZ = ( 1 << 2 ),
-	  CUBESIDE_NX = ( 1 << 3 ),
-	  CUBESIDE_NY = ( 1 << 4 ),
-	  CUBESIDE_NZ = ( 1 << 5 ),
-	  CUBESIDE_CLIPALL = 1 | 2 | 4 | 8 | 16 | 32
-	};
-
+	// FIXME: it is impossible for the game to create any type besides RL_OMNI
 	enum class refLightType_t
 	{
 	  RL_OMNI, // point light
@@ -410,11 +393,7 @@ enum class ssaoMode {
 	{
 		refLightType_t rlType;
 
-		qhandle_t attenuationShader;
-
 		vec3_t    origin;
-		quat_t    rotation;
-		vec3_t    center;
 		vec3_t    color; // range from 0.0 to 1.0, should be color normalized
 
 		float     scale; // r_lightScale if not set
@@ -424,55 +403,13 @@ enum class ssaoMode {
 
 		// projective light specific
 		vec3_t   projTarget;
-		vec3_t   projRight;
 		vec3_t   projUp;
-		vec3_t   projStart;
-		vec3_t   projEnd;
 	};
 
-// a trRefLight_t has all the information passed in by
-// the client game, as well as some locally derived info
+	// TODO: remove useless struct
 	struct trRefLight_t
 	{
 		refLight_t l;
-
-		// local
-		bool     additive; // texture detail is lost tho when the lightmap is dark
-		vec3_t       origin; // l.origin + rotated l.center
-		vec3_t       transformed; // origin in local coordinate system
-		vec3_t       direction; // for directional lights (sun)
-
-		matrix_t     transformMatrix; // light to world
-		matrix_t     viewMatrix; // object to light
-		matrix_t     projectionMatrix; // light frustum
-
-		float        falloffLength;
-
-		matrix_t     attenuationMatrix; // attenuation * (light view * entity transform)
-		matrix_t     attenuationMatrix2; // attenuation * tcMod matrices
-
-		vec3_t       localBounds[ 2 ];
-		vec3_t       worldBounds[ 2 ];
-		float        sphereRadius; // calculated from localBounds
-
-		int                       restrictInteractionFirst;
-		int                       restrictInteractionLast;
-
-		frustum_t                 frustum;
-		plane_t localFrustum[ 6 ];
-
-		screenRect_t              scissor;
-
-		struct shader_t           *shader;
-
-		struct interaction_t      *firstInteraction;
-
-		struct interaction_t      *lastInteraction;
-
-		uint16_t                  numInteractions; // total interactions
-		bool                  noSort; // don't sort interactions by material
-
-		int                       visCounts[ MAX_VISCOUNTS ]; // node needs to be traversed if current
 	};
 
 	// a structure matching the GLSL struct shaderLight in std140 layout
@@ -1100,10 +1037,6 @@ enum class ssaoMode {
 	  ST_COLLAPSE_COLORMAP,
 	  ST_COLLAPSE_DIFFUSEMAP,
 	  ST_COLLAPSE_REFLECTIONMAP,  // color cubemap + normalmap
-
-	  // light shader stage types
-	  ST_ATTENUATIONMAP_XY,
-	  ST_ATTENUATIONMAP_Z
 	};
 
 	enum class collapseType_t
@@ -1151,8 +1084,6 @@ enum class ssaoMode {
 		surfaceDataUpdater_t surfaceDataUpdater;
 		stageShaderBinder_t shaderBinder;
 		stageMaterialProcessor_t materialProcessor;
-
-		bool doForwardLighting;
 
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
 
@@ -1281,7 +1212,6 @@ enum class ssaoMode {
 	  SHADER_2D, // surface material: shader is for 2D rendering (like GUI elements)
 	  SHADER_3D_DYNAMIC, // surface material: shader is for cGen diffuseLighting lighting
 	  SHADER_3D_STATIC, // surface material: pre-lit triangle models
-	  SHADER_LIGHT // light material: attenuation
 	};
 
 	struct shader_t
@@ -1461,7 +1391,6 @@ enum class ssaoMode {
 		trRefEntity_t           *entities;
 
 		int                     numLights;
-		int                     numShaderLights;
 		trRefLight_t            *lights;
 
 		int                     numPolys;
@@ -1469,9 +1398,6 @@ enum class ssaoMode {
 
 		int                     numDrawSurfs;
 		struct drawSurf_t       *drawSurfs;
-
-		int                     numInteractions;
-		struct interaction_t    *interactions;
 
 		byte                    *pixelTarget; //set this to Non Null to copy to a buffer after scene rendering
 		int                     pixelTargetWidth;
@@ -1565,9 +1491,6 @@ enum class ssaoMode {
 		int                  numDrawSurfs;
 		struct drawSurf_t    *drawSurfs;
 		int                  firstDrawSurf[ Util::ordinal(shaderSort_t::SS_NUM_SORTS) + 1 ];
-
-		int                  numInteractions;
-		struct interaction_t *interactions;
 	};
 
 	/*
@@ -1679,33 +1602,6 @@ enum class ssaoMode {
 				( uint64_t( lightmapNum & SORT_LIGHTMAP_MASK ) << SORT_LIGHTMAP_SHIFT ) |
 				( uint64_t( shaderNum & SORT_SHADER_MASK ) << SORT_SHADER_SHIFT );
 		}
-	};
-
-	enum interactionType_t
-	{
-		IA_LIGHT = 1 << 0,		// the received light if not in shadow
-
-		IA_DEFAULT = IA_LIGHT, // lighting and shadowing
-		IA_DEFAULTCLIP = IA_LIGHT
-	};
-
-// an interaction is a node between a light and any surface
-	struct interaction_t
-	{
-		interactionType_t    type;
-
-		trRefLight_t         *light;
-
-		trRefEntity_t        *entity;
-		surfaceType_t        *surface; // any of surface*_t
-		shader_t             *shader;
-		int                  shaderNum;
-
-		byte                 cubeSideBits;
-
-		int16_t              scissorX, scissorY, scissorWidth, scissorHeight;
-
-		interaction_t *next;
 	};
 
 #define MAX_PATCH_SIZE  64 // max dimensions of a patch mesh in map file
@@ -1840,6 +1736,8 @@ enum class ssaoMode {
 	struct bspSurface_t
 	{
 		int             viewCount; // if == tr.viewCount, already added
+
+		// FIXME not used for lighting
 		int             lightCount;
 		int             interactionBits;
 
@@ -2317,16 +2215,9 @@ enum class ssaoMode {
 		int c_sphere_cull_mdv_in, c_sphere_cull_mdv_clip, c_sphere_cull_mdv_out;
 		int c_box_cull_mdv_in, c_box_cull_mdv_clip, c_box_cull_mdv_out;
 		int c_box_cull_md5_in, c_box_cull_md5_clip, c_box_cull_md5_out;
-		int c_box_cull_light_in, c_box_cull_light_clip, c_box_cull_light_out;
-		int c_pvs_cull_light_out;
 
 		int c_nodes;
 		int c_leafs;
-
-		int c_dlights;
-		int c_dlightSurfaces;
-		int c_dlightSurfacesCulled;
-		int c_dlightInteractions;
 	};
 
 #define FOG_TABLE_SIZE  256
@@ -2394,9 +2285,6 @@ enum class ssaoMode {
 		int   c_fogSurfaces;
 		int   c_fogBatches;
 
-		int   c_forwardAmbientTime;
-		int   c_forwardLightingTime;
-
 		int   c_multiDrawElements;
 		int   c_multiDrawPrimitives;
 		int   c_multiVboIndexes;
@@ -2423,7 +2311,6 @@ enum class ssaoMode {
 		visTestQueries_t  visTestQueries[ MAX_VISTESTS ];
 		bool          isHyperspace;
 		trRefEntity_t     *currentEntity;
-		trRefLight_t      *currentLight; // only used when lighting interactions
 		bool          skyRenderedThisView; // flag for drawing sun
 		bool postDepthLightTileRendered = false;
 
@@ -2633,7 +2520,6 @@ enum class ssaoMode {
 		int      sceneCount; // incremented every scene
 		int      viewCount; // incremented every view (twice a scene if portaled)
 		int      viewCountNoReset; // incremented when doing something that visits surfaces and sets their viewCount
-		int      lightCount; // incremented every time a dlight traverses the world
 		// and every R_MarkFragments call
 
 		int        smpFrame; // toggles from 0 to 1 every endFrame
@@ -2673,7 +2559,6 @@ enum class ssaoMode {
 		image_t    *blueImage;
 		image_t    *flatImage; // use this as default normalmap
 		image_t    *randomNormalsImage;
-		image_t    *noFalloffImage;
 		image_t    *blackCubeImage;
 		image_t    *whiteCubeImage;
 
@@ -2723,9 +2608,6 @@ enum class ssaoMode {
 		trRefEntity_t *currentEntity;
 		trRefEntity_t worldEntity; // point currentEntity at this when rendering world
 		model_t       *currentModel;
-
-		// render lights
-		trRefLight_t *currentLight;
 
 		// -----------------------------------------
 
@@ -2860,7 +2742,6 @@ enum class ssaoMode {
 	extern cvar_t *r_lightScale;
 
 	extern Cvar::Cvar<bool> r_drawSky; // Controls whether sky should be drawn or cleared.
-	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer;
 	extern Cvar::Cvar<bool> r_realtimeLighting;
 	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers;
 	extern cvar_t *r_precomputedLighting;
@@ -2890,9 +2771,6 @@ enum class ssaoMode {
 	extern cvar_t *r_nocull;
 	extern cvar_t *r_facePlaneCull; // enables culling of planar surfaces with back side test
 	extern cvar_t *r_nocurves;
-	extern cvar_t *r_lightScissors;
-	extern cvar_t *r_noLightVisCull;
-	extern cvar_t *r_noInteractionSort;
 
 	extern cvar_t *r_mode; // video mode
 	extern cvar_t *r_gamma;
@@ -2945,8 +2823,6 @@ enum class ssaoMode {
 
 	extern Cvar::Range<Cvar::Cvar<int>> r_shadows;
 
-	extern cvar_t *r_noLightFrustums;
-
 	extern cvar_t *r_lockpvs;
 	extern cvar_t *r_noportals;
 	extern cvar_t *r_max_portal_levels;
@@ -2975,10 +2851,6 @@ enum class ssaoMode {
 	extern cvar_t *r_showSky; // forces sky in front of all surfaces
 	extern cvar_t *r_showSkeleton;
 	extern cvar_t *r_showEntityTransforms;
-	extern cvar_t *r_showLightTransforms;
-	extern cvar_t *r_showLightInteractions;
-	extern cvar_t *r_showLightScissors;
-	extern cvar_t *r_showLightBatches;
 	extern cvar_t *r_showLightGrid;
 	extern cvar_t *r_showLightTiles;
 	extern cvar_t *r_showBatches;
@@ -3045,7 +2917,6 @@ inline bool checkGLErrors()
 	void           R_RenderPostProcess();
 
 	void           R_AddMDVSurfaces( trRefEntity_t *e );
-	void           R_AddMDVInteractions( trRefEntity_t *e, trRefLight_t *light, interactionType_t iaType );
 
 	void           R_AddPolygonSurfaces();
 
@@ -3064,7 +2935,6 @@ inline bool checkGLErrors()
 	void           R_SetupEntityWorldBounds( trRefEntity_t *ent );
 
 	void           R_RotateEntityForViewParms( const trRefEntity_t *ent, const viewParms_t *viewParms, orientationr_t *orien );
-	void           R_RotateLightForViewParms( const trRefLight_t *ent, const viewParms_t *viewParms, orientationr_t *orien );
 
 	void           R_SetupFrustum2( frustum_t frustum, const matrix_t modelViewProjectionMatrix );
 	template<size_t frustumSize>
@@ -3425,7 +3295,6 @@ void GLimp_LogComment_( std::string comment );
 	void Tess_StageIteratorDebug();
 	void Tess_StageIteratorColor();
 	void Tess_StageIteratorPortal();
-	void Tess_StageIteratorLighting();
 	void Tess_StageIteratorSky();
 
 	void Tess_AddQuadStamp( vec3_t origin, vec3_t left, vec3_t up, const Color::Color& color );
@@ -3491,8 +3360,6 @@ void GLimp_LogComment_( std::string comment );
 	bool R_inPVS( const vec3_t p1, const vec3_t p2 );
 	bool R_inPVVS( const vec3_t p1, const vec3_t p2 );
 
-	void     R_AddWorldInteractions( trRefLight_t *light );
-
 	/*
 	============================================================
 
@@ -3501,35 +3368,10 @@ void GLimp_LogComment_( std::string comment );
 	============================================================
 	*/
 
-	void     R_AddBrushModelInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType );
 	float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 				      float *factors[3], vec3_t ambientLight,
 				      vec3_t directedLight, vec3_t lightDir );
 	int      R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
-	void     R_TessLight( const trRefLight_t *light, const Color::Color& color );
-
-	void     R_SetupLightOrigin( trRefLight_t *light );
-	void     R_SetupLightLocalBounds( trRefLight_t *light );
-	void     R_SetupLightWorldBounds( trRefLight_t *light );
-
-	void     R_SetupLightView( trRefLight_t *light );
-	void     R_SetupLightFrustum( trRefLight_t *light );
-	void     R_SetupLightProjection( trRefLight_t *light );
-
-	bool R_AddLightInteraction( trRefLight_t *light, surfaceType_t *surface, shader_t *surfaceShader, byte cubeSideBits,
-	                                interactionType_t iaType );
-
-	void     R_SortInteractions( trRefLight_t *light );
-
-	void     R_SetupLightScissor( trRefLight_t *light );
-
-	void     R_SetupLightShader( trRefLight_t *light );
-
-	byte     R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] );
-
-	cullResult_t R_CullLightWorldBounds( trRefLight_t *light, vec3_t worldBounds[ 2 ] );
-
-	void     R_ComputeFinalAttenuation( shaderStage_t *pStage, trRefLight_t *light );
 
 	/*
 	============================================================
@@ -3664,10 +3506,8 @@ void GLimp_LogComment_( std::string comment );
 	skelAnimation_t *R_GetAnimationByHandle( qhandle_t hAnim );
 
 	void            R_AddMD5Surfaces( trRefEntity_t *ent );
-	void            R_AddMD5Interactions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType );
 
 	void		R_AddIQMSurfaces( trRefEntity_t *ent );
-	void            R_AddIQMInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType );
 
 	int             RE_CheckSkeleton( refSkeleton_t *skel, qhandle_t hModel, qhandle_t hAnim );
 	int             RE_BuildSkeleton( refSkeleton_t *skel, qhandle_t anim, int startFrame, int endFrame, float frac,
@@ -3894,7 +3734,6 @@ void GLimp_LogComment_( std::string comment );
 	struct backEndData_t
 	{
 		drawSurf_t          drawSurfs[ MAX_DRAWSURFS ];
-		interaction_t       interactions[ MAX_INTERACTIONS ];
 
 		trRefLight_t        lights[ MAX_REF_LIGHTS ];
 		trRefEntity_t       entities[ MAX_REF_ENTITIES ];

@@ -2201,22 +2201,6 @@ class u_GlowMap :
 	}
 };
 
-class u_RandomMap :
-	GLUniformSampler2D {
-	public:
-	u_RandomMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_RandomMap" ) {
-	}
-
-	void SetUniform_RandomMapBindless( GLuint64 bindlessHandle ) {
-		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_RandomMap() {
-		return this->GetLocation();
-	}
-};
-
 class u_PortalMap :
 	GLUniformSampler2D {
 	public:
@@ -2361,38 +2345,6 @@ class u_CurrentMap :
 	}
 };
 
-class u_AttenuationMapXY :
-	GLUniformSampler2D {
-	public:
-	u_AttenuationMapXY( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_AttenuationMapXY" ) {
-	}
-
-	void SetUniform_AttenuationMapXYBindless( GLuint64 bindlessHandle ) {
-		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_AttenuationMapXY() {
-		return this->GetLocation();
-	}
-};
-
-class u_AttenuationMapZ :
-	GLUniformSampler2D {
-	public:
-	u_AttenuationMapZ( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_AttenuationMapZ" ) {
-	}
-
-	void SetUniform_AttenuationMapZBindless( GLuint64 bindlessHandle ) {
-		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_AttenuationMapZ() {
-		return this->GetLocation();
-	}
-};
-
 class u_TextureMatrix :
 	GLUniformMatrix32f
 {
@@ -2487,111 +2439,6 @@ public:
 	void SetUniform_ViewOrigin( const vec3_t v )
 	{
 		this->SetValue( v );
-	}
-};
-
-class u_LightDir :
-	GLUniform3f
-{
-public:
-	u_LightDir( GLShader *shader ) :
-		GLUniform3f( shader, "u_LightDir" )
-	{
-	}
-
-	void SetUniform_LightDir( const vec3_t v )
-	{
-		this->SetValue( v );
-	}
-};
-
-class u_LightOrigin :
-	GLUniform3f
-{
-public:
-	u_LightOrigin( GLShader *shader ) :
-		GLUniform3f( shader, "u_LightOrigin" )
-	{
-	}
-
-	void SetUniform_LightOrigin( const vec3_t v )
-	{
-		this->SetValue( v );
-	}
-};
-
-class u_LightColor :
-	GLUniform3f
-{
-public:
-	u_LightColor( GLShader *shader ) :
-		GLUniform3f( shader, "u_LightColor" )
-	{
-	}
-
-	void SetUniform_LightColor( const vec3_t v )
-	{
-		this->SetValue( v );
-	}
-};
-
-class u_LightRadius :
-	GLUniform1f
-{
-public:
-	u_LightRadius( GLShader *shader ) :
-		GLUniform1f( shader, "u_LightRadius" )
-	{
-	}
-
-	void SetUniform_LightRadius( float value )
-	{
-		this->SetValue( value );
-	}
-};
-
-class u_LightScale :
-	GLUniform1f
-{
-public:
-	u_LightScale( GLShader *shader ) :
-		GLUniform1f( shader, "u_LightScale" )
-	{
-	}
-
-	void SetUniform_LightScale( float value )
-	{
-		this->SetValue( value );
-	}
-};
-
-class u_LightAttenuationMatrix :
-	GLUniformMatrix4f
-{
-public:
-	u_LightAttenuationMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_LightAttenuationMatrix" )
-	{
-	}
-
-	void SetUniform_LightAttenuationMatrix( const matrix_t m )
-	{
-		this->SetValue( GL_FALSE, m );
-	}
-};
-
-class u_LightFrustum :
-	GLUniform4fv
-{
-public:
-	u_LightFrustum( GLShader *shader ) :
-		GLUniform4fv( shader, "u_LightFrustum", 6 )
-	{
-	}
-
-	void SetUniform_LightFrustum( vec4_t lightFrustum[ 6 ] )
-	{
-		this->SetValue( 6, lightFrustum );
 	}
 };
 
@@ -3919,126 +3766,6 @@ class GLShader_lightMappingMaterial :
 	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
-class GLShader_forwardLighting_omniXYZ :
-	public GLShader,
-	public u_DiffuseMap,
-	public u_NormalMap,
-	public u_MaterialMap,
-	public u_AttenuationMapXY,
-	public u_AttenuationMapZ,
-	public u_RandomMap,
-	public u_HeightMap,
-	public u_TextureMatrix,
-	public u_SpecularExponent,
-	public u_AlphaThreshold,
-	public u_ColorModulateColorGen_Float,
-	public u_ColorModulateColorGen_Uint,
-	public u_Color_Float,
-	public u_Color_Uint,
-	public u_ViewOrigin,
-	public u_LightOrigin,
-	public u_LightColor,
-	public u_LightRadius,
-	public u_LightScale,
-	public u_LightAttenuationMatrix,
-	public u_ModelMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_Bones,
-	public u_VertexInterpolation,
-	public u_ReliefDepthScale,
-	public u_ReliefOffsetBias,
-	public u_NormalScale,
-	public GLDeformStage,
-	public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
-	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
-	public GLCompileMacro_USE_RELIEF_MAPPING
-{
-public:
-	GLShader_forwardLighting_omniXYZ();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
-};
-
-class GLShader_forwardLighting_projXYZ :
-	public GLShader,
-	public u_DiffuseMap,
-	public u_NormalMap,
-	public u_MaterialMap,
-	public u_AttenuationMapXY,
-	public u_AttenuationMapZ,
-	public u_RandomMap,
-	public u_HeightMap,
-	public u_TextureMatrix,
-	public u_SpecularExponent,
-	public u_AlphaThreshold,
-	public u_ColorModulateColorGen_Float,
-	public u_ColorModulateColorGen_Uint,
-	public u_Color_Float,
-	public u_Color_Uint,
-	public u_ViewOrigin,
-	public u_LightOrigin,
-	public u_LightColor,
-	public u_LightRadius,
-	public u_LightScale,
-	public u_LightAttenuationMatrix,
-	public u_ModelMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_Bones,
-	public u_VertexInterpolation,
-	public u_ReliefDepthScale,
-	public u_ReliefOffsetBias,
-	public u_NormalScale,
-	public GLDeformStage,
-	public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
-	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
-	public GLCompileMacro_USE_RELIEF_MAPPING
-{
-public:
-	GLShader_forwardLighting_projXYZ();
-	void BuildShaderCompileMacros( std::string& compileMacros ) override;
-	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
-};
-
-class GLShader_forwardLighting_directionalSun :
-	public GLShader,
-	public u_DiffuseMap,
-	public u_NormalMap,
-	public u_MaterialMap,
-	public u_HeightMap,
-	public u_TextureMatrix,
-	public u_SpecularExponent,
-	public u_AlphaThreshold,
-	public u_ColorModulateColorGen_Float,
-	public u_ColorModulateColorGen_Uint,
-	public u_Color_Float,
-	public u_Color_Uint,
-	public u_ViewOrigin,
-	public u_LightDir,
-	public u_LightColor,
-	public u_LightRadius,
-	public u_LightScale,
-	public u_LightAttenuationMatrix,
-	public u_ModelMatrix,
-	public u_ViewMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_Bones,
-	public u_VertexInterpolation,
-	public u_ReliefDepthScale,
-	public u_ReliefOffsetBias,
-	public u_NormalScale,
-	public GLDeformStage,
-	public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
-	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
-	public GLCompileMacro_USE_RELIEF_MAPPING
-{
-public:
-	GLShader_forwardLighting_directionalSun();
-	void BuildShaderCompileMacros( std::string& compileMacros ) override;
-	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
-};
-
 class GLShader_reflection :
 	public GLShader,
 	public u_ColorMapCube,
@@ -4481,9 +4208,6 @@ extern GLShader_generic                         *gl_genericShader;
 extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
 extern GLShader_lightMapping                    *gl_lightMappingShader;
 extern GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial;
-extern GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ;
-extern GLShader_forwardLighting_projXYZ         *gl_forwardLightingShader_projXYZ;
-extern GLShader_forwardLighting_directionalSun  *gl_forwardLightingShader_directionalSun;
 extern GLShader_fogQuake3                       *gl_fogQuake3Shader;
 extern GLShader_fogQuake3Material               *gl_fogQuake3ShaderMaterial;
 extern GLShader_heatHaze                        *gl_heatHazeShader;

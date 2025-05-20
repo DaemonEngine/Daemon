@@ -99,12 +99,7 @@ static float GetOpValue( const expOperation_t *op )
 			break;
 
 		case opcode_t::OP_PARM0:
-			if ( backEnd.currentLight )
-			{
-				value = backEnd.currentLight->l.color[ 0 ];
-				break;
-			}
-			else if ( backEnd.currentEntity )
+			if ( backEnd.currentEntity )
 			{
 				value = backEnd.currentEntity->e.shaderRGBA.Red() * inv255;
 			}
@@ -116,12 +111,7 @@ static float GetOpValue( const expOperation_t *op )
 			break;
 
 		case opcode_t::OP_PARM1:
-			if ( backEnd.currentLight )
-			{
-				value = backEnd.currentLight->l.color[ 1 ];
-				break;
-			}
-			else if ( backEnd.currentEntity )
+			if ( backEnd.currentEntity )
 			{
 				value = backEnd.currentEntity->e.shaderRGBA.Green() * inv255;
 			}
@@ -133,12 +123,7 @@ static float GetOpValue( const expOperation_t *op )
 			break;
 
 		case opcode_t::OP_PARM2:
-			if ( backEnd.currentLight )
-			{
-				value = backEnd.currentLight->l.color[ 2 ];
-				break;
-			}
-			else if ( backEnd.currentEntity )
+			if ( backEnd.currentEntity )
 			{
 				value = backEnd.currentEntity->e.shaderRGBA.Blue() * inv255;
 			}
@@ -150,12 +135,7 @@ static float GetOpValue( const expOperation_t *op )
 			break;
 
 		case opcode_t::OP_PARM3:
-			if ( backEnd.currentLight )
-			{
-				value = 1.0;
-				break;
-			}
-			else if ( backEnd.currentEntity )
+			if ( backEnd.currentEntity )
 			{
 				value = backEnd.currentEntity->e.shaderRGBA.Alpha() * inv255;
 			}

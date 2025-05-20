@@ -793,11 +793,9 @@ void BindShaderLightMapping( Material* material ) {
 		gl_lightMappingShaderMaterial->SetUniformBlock_Lights( tr.dlightUBO );
 
 		// bind u_LightTiles
-		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) ) {
-			gl_lightMappingShaderMaterial->SetUniform_LightTilesBindless(
-				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
-			);
-		}
+		gl_lightMappingShaderMaterial->SetUniform_LightTilesBindless(
+			GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
+		);
 	}
 
 	gl_lightMappingShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
@@ -1428,9 +1426,7 @@ void MaterialSystem::AddStageTextures( MaterialSurface* surface, shader_t* shade
 	surface->texDataDynamic[stage] = dynamic;
 
 	if ( glConfig2.realtimeLighting ) {
-		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) ) {
-			material->AddTexture( tr.lighttileRenderImage->texture );
-		}
+		material->AddTexture( tr.lighttileRenderImage->texture );
 	}
 }
 

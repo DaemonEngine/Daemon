@@ -679,32 +679,6 @@ void R_RotateEntityForViewParms( const trRefEntity_t *ent, const viewParms_t *vi
 
 /*
 =================
-R_RotateLightForViewParms
-=================
-*/
-void R_RotateLightForViewParms( const trRefLight_t *light, const viewParms_t *viewParms, orientationr_t * orientation )
-{
-	vec3_t delta;
-
-	VectorCopy( light->l.origin, orientation ->origin );
-
-	QuatToAxis( light->l.rotation, orientation ->axis );
-
-	MatrixSetupTransformFromVectorsFLU( orientation ->transformMatrix, orientation ->axis[ 0 ], orientation ->axis[ 1 ], orientation ->axis[ 2 ], orientation ->origin );
-	MatrixAffineInverse( orientation ->transformMatrix, orientation ->viewMatrix );
-	MatrixMultiply( viewParms->world.viewMatrix, orientation ->transformMatrix, orientation ->modelViewMatrix );
-
-	// calculate the viewer origin in the light's space
-	// needed for fog, specular, and environment mapping
-	VectorSubtract( viewParms->orientation.origin, orientation ->origin, delta );
-
-	orientation ->viewOrigin[ 0 ] = DotProduct( delta, orientation ->axis[ 0 ] );
-	orientation ->viewOrigin[ 1 ] = DotProduct( delta, orientation ->axis[ 1 ] );
-	orientation ->viewOrigin[ 2 ] = DotProduct( delta, orientation ->axis[ 2 ] );
-}
-
-/*
-=================
 R_RotateForViewer
 
 Sets up the modelview matrix for a given viewParm
@@ -1783,20 +1757,6 @@ static void R_SortDrawSurfs()
 		tr.viewParms.numDrawSurfs = MAX_DRAWSURFS;
 	}
 
-	// if we overflowed MAX_INTERACTIONS, the interactions
-	// wrapped around in the buffer and we will be missing
-	// the first interactions, not the last ones
-	if ( tr.viewParms.numInteractions > MAX_INTERACTIONS )
-	{
-		interaction_t *ia;
-
-		tr.viewParms.numInteractions = MAX_INTERACTIONS;
-
-		// reset last interaction's next pointer
-		ia = &tr.viewParms.interactions[ tr.viewParms.numInteractions - 1 ];
-		ia->next = nullptr;
-	}
-
 	std::sort( tr.viewParms.drawSurfs, tr.viewParms.drawSurfs + tr.viewParms.numDrawSurfs,
 	           []( const drawSurf_t &a, const drawSurf_t &b ) {
 	               return a.sort < b.sort;
@@ -1971,203 +1931,6 @@ void R_AddEntitySurfaces()
 	}
 }
 
-/*
-=============
-R_AddEntityInteractions
-=============
-*/
-void R_AddEntityInteractions( trRefLight_t *light )
-{
-	int               i;
-	trRefEntity_t     *ent;
-	interactionType_t iaType;
-
-	if ( !r_drawentities->integer )
-	{
-		return;
-	}
-
-	for ( i = 0; i < tr.refdef.numEntities; i++ )
-	{
-		iaType = IA_DEFAULT;
-
-		if ( light->restrictInteractionFirst >= 0 &&
-		     i >= light->restrictInteractionFirst &&
-		     i <= light->restrictInteractionLast )
-		{
-			iaType = (interactionType_t) (iaType & ~IA_LIGHT);
-		}
-
-		ent = tr.currentEntity = &tr.refdef.entities[ i ];
-
-		//
-		// the weapon model must be handled special --
-		// we don't want the hacked weapon position showing in
-		// mirrors, because the true body position will already be drawn
-		//
-		if ( ( ent->e.renderfx & RF_FIRST_PERSON ) &&
-		     ( tr.viewParms.portalLevel > 0 || tr.viewParms.isMirror ) )
-		{
-			continue;
-		}
-
-		// simple generated models, like sprites and beams, are not culled
-		switch ( ent->e.reType )
-		{
-			case refEntityType_t::RT_PORTALSURFACE:
-				break; // don't draw anything
-
-			case refEntityType_t::RT_SPRITE:
-				break;
-
-			case refEntityType_t::RT_MODEL:
-				tr.currentModel = R_GetModelByHandle( ent->e.hModel );
-
-				if ( tr.currentModel )
-				{
-					switch ( tr.currentModel->type )
-					{
-						case modtype_t::MOD_MESH:
-							R_AddMDVInteractions( ent, light, iaType );
-							break;
-
-						case modtype_t::MOD_MD5:
-							R_AddMD5Interactions( ent, light, iaType );
-							break;
-
-						case modtype_t::MOD_IQM:
-							R_AddIQMInteractions( ent, light, iaType );
-							break;
-
-						case modtype_t::MOD_BSP:
-							R_AddBrushModelInteractions( ent, light, iaType );
-							break;
-
-						case modtype_t::MOD_BAD: // null model axis
-							break;
-
-						default:
-							Sys::Drop( "R_AddEntityInteractions: Bad modeltype" );
-					}
-				}
-
-				break;
-
-			default:
-				Sys::Drop( "R_AddEntityInteractions: Bad reType" );
-		}
-	}
-}
-
-/*
-=============
-R_AddLightInteractions
-=============
-*/
-void R_AddLightInteractions()
-{
-	int          i;
-	trRefLight_t *light;
-
-	realtimeLightingRenderer_t realtimeLightingRenderer = realtimeLightingRenderer_t( r_realtimeLightingRenderer.Get() );
-
-	tr.refdef.numShaderLights = 0;
-
-	for ( i = 0; i < tr.refdef.numLights; i++ )
-	{
-		light = tr.currentLight = &tr.refdef.lights[ i ];
-
-		if ( realtimeLightingRenderer == realtimeLightingRenderer_t::TILED )
-		{
-			tr.refdef.numShaderLights++;
-			tr.pc.c_dlights++;
-
-			continue;
-		}
-
-		// we must set up parts of tr.or for light culling
-		R_RotateLightForViewParms( light, &tr.viewParms, &tr.orientation );
-
-		// calc local bounds for culling
-		{
-			// set up light transform matrix
-			MatrixSetupTransformFromQuat( light->transformMatrix, light->l.rotation, light->l.origin );
-
-			// set up light origin for lighting and shadowing
-			R_SetupLightOrigin( light );
-
-			// set up model to light view matrix
-			R_SetupLightView( light );
-
-			// set up projection
-			R_SetupLightProjection( light );
-
-			// calc local bounds for culling
-			R_SetupLightLocalBounds( light );
-
-			// look if we have to draw the light including its interactions
-			switch ( R_CullLocalBox( light->localBounds ) )
-			{
-				case cullResult_t::CULL_IN:
-				default:
-					tr.pc.c_box_cull_light_in++;
-					break;
-
-				case cullResult_t::CULL_CLIP:
-					tr.pc.c_box_cull_light_clip++;
-					break;
-
-				case cullResult_t::CULL_OUT:
-					// light is not visible so skip other light setup stuff to save speed
-					tr.pc.c_box_cull_light_out++;
-					continue;
-			}
-
-			// setup world bounds for intersection tests
-			R_SetupLightWorldBounds( light );
-
-			// setup frustum planes for intersection tests
-			R_SetupLightFrustum( light );
-
-			// ignore if not in visible bounds
-			if ( !BoundsIntersect
-			     ( light->worldBounds[ 0 ], light->worldBounds[ 1 ], tr.viewParms.visBounds[ 0 ], tr.viewParms.visBounds[ 1 ] ) )
-			{
-				continue;
-			}
-		}
-
-		// set up view dependent light scissor
-		R_SetupLightScissor( light );
-
-		// look for proper attenuation shader
-		R_SetupLightShader( light );
-
-		// setup interactions
-		light->firstInteraction = nullptr;
-		light->lastInteraction = nullptr;
-
-		light->numInteractions = 0;
-		light->noSort = false;
-
-		R_AddWorldInteractions( light );
-		R_AddEntityInteractions( light );
-
-		if ( light->numInteractions )
-		{
-			R_SortInteractions( light );
-
-			tr.pc.c_dlights++;
-		}
-		else
-		{
-			// skip all interactions of this light because it caused only shadow volumes
-			// but no lighting
-			tr.refdef.numInteractions -= light->numInteractions;
-		}
-	}
-}
-
 static std::vector<char> botDebugDrawCommands;
 void RE_SendBotDebugDrawCommands( std::vector<char> commands )
 {
@@ -2258,7 +2021,6 @@ or a mirror / remote location
 void R_RenderView( viewParms_t *parms )
 {
 	int      firstDrawSurf;
-	int      firstInteraction;
 
 	if ( parms->viewportWidth <= 0 || parms->viewportHeight <= 0 )
 	{
@@ -2280,7 +2042,6 @@ void R_RenderView( viewParms_t *parms )
 	tr.viewParms.viewCount = tr.viewCount; // % MAX_VIEWS;
 
 	firstDrawSurf = tr.refdef.numDrawSurfs;
-	firstInteraction = tr.refdef.numInteractions;
 
 	// set viewParms.world
 	R_RotateForViewer();
@@ -2314,17 +2075,12 @@ void R_RenderView( viewParms_t *parms )
 
 	R_AddEntitySurfaces();
 
-	R_AddLightInteractions();
-
 	// Transform the blur vector in view space, FIXME for some we need reason invert its Z component
 	MatrixTransformNormal2( tr.viewParms.world.viewMatrix, tr.refdef.blurVec );
 	tr.refdef.blurVec[2] *= -1;
 
 	tr.viewParms.drawSurfs = tr.refdef.drawSurfs + firstDrawSurf;
 	tr.viewParms.numDrawSurfs = tr.refdef.numDrawSurfs - firstDrawSurf;
-
-	tr.viewParms.interactions = tr.refdef.interactions + firstInteraction;
-	tr.viewParms.numInteractions = tr.refdef.numInteractions - firstInteraction;
 
 	R_SortDrawSurfs();
 

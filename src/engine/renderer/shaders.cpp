@@ -39,8 +39,6 @@
 
 #include "fogQuake3_vp.glsl.h"
 #include "fogQuake3_fp.glsl.h"
-#include "forwardLighting_vp.glsl.h"
-#include "forwardLighting_fp.glsl.h"
 #include "generic_vp.glsl.h"
 #include "generic_fp.glsl.h"
 #include "heatHaze_vp.glsl.h"
@@ -103,8 +101,6 @@ std::unordered_map<std::string, std::string> shadermap({
 	// Regular shaders
 	{ "fogQuake3_vp.glsl", std::string( reinterpret_cast< const char* >( fogQuake3_vp_glsl ), sizeof( fogQuake3_vp_glsl ) ) },
 	{ "fogQuake3_fp.glsl", std::string( reinterpret_cast< const char* >( fogQuake3_fp_glsl ), sizeof( fogQuake3_fp_glsl ) ) },
-	{ "forwardLighting_vp.glsl", std::string( reinterpret_cast< const char* >( forwardLighting_vp_glsl ), sizeof( forwardLighting_vp_glsl ) ) },
-	{ "forwardLighting_fp.glsl", std::string( reinterpret_cast< const char* >( forwardLighting_fp_glsl ), sizeof( forwardLighting_fp_glsl ) ) },
 	{ "generic_vp.glsl", std::string( reinterpret_cast< const char* >( generic_vp_glsl ), sizeof( generic_vp_glsl ) ) },
 	{ "generic_fp.glsl", std::string( reinterpret_cast< const char* >( generic_fp_glsl ), sizeof( generic_fp_glsl ) ) },
 	{ "heatHaze_vp.glsl", std::string( reinterpret_cast< const char* >( heatHaze_vp_glsl ), sizeof( heatHaze_vp_glsl ) ) },
