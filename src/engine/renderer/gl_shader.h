@@ -181,7 +181,6 @@ protected:
 	void PostProcessUniforms();
 	uint32_t GetUniqueCompileMacros( size_t permutation, const int type ) const;
 	bool GetCompileMacrosString( size_t permutation, std::string &compileMacrosOut, const int type ) const;
-	virtual void BuildShaderCompileMacros( std::string& /*vertexInlines*/ ) { };
 	virtual void SetShaderProgramUniforms( ShaderProgramDescriptor* /*shaderProgram*/ ) { };
 	int SelectProgram();
 public:

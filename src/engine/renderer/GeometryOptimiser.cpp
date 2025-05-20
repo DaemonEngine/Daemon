@@ -58,16 +58,16 @@ static int LeafSurfaceCompare( const void* a, const void* b ) {
 	}
 
 	// sort by leaf
-	if ( aa->interactionBits < bb->interactionBits ) {
+	if ( aa->scratch2 < bb->scratch2 ) {
 		return -1;
-	} else if ( aa->interactionBits > bb->interactionBits ) {
+	} else if ( aa->scratch2 > bb->scratch2 ) {
 		return 1;
 	}
 
 	// sort by leaf marksurfaces index to increase the likelihood of multidraw merging in the backend
-	if ( aa->lightCount < bb->lightCount ) {
+	if ( aa->scratch1 < bb->scratch1 ) {
 		return -1;
-	} else if ( aa->lightCount > bb->lightCount ) {
+	} else if ( aa->scratch1 > bb->scratch1 ) {
 		return 1;
 	}
 	return 0;
@@ -147,8 +147,8 @@ static void CoreResetSurfaceViewCounts( bspSurface_t** rendererSurfaces, int num
 		bspSurface_t* surface = rendererSurfaces[i];
 
 		surface->viewCount = -1;
-		surface->lightCount = -1;
-		surface->interactionBits = 0;
+		surface->scratch1 = -1;
+		surface->scratch2 = 0;
 	}
 }
 
@@ -175,8 +175,8 @@ void OptimiseMapGeometryCore( world_t* world, bspSurface_t** rendererSurfaces, i
 			int fogIndex1 = surf1->fogIndex;
 			int lightMapNum1 = surf1->lightmapNum;
 			surf1->viewCount = surf1 - world->surfaces;
-			surf1->lightCount = j;
-			surf1->interactionBits = i;
+			surf1->scratch1 = j;
+			surf1->scratch2 = i;
 
 			bool merged = false;
 			for ( int k = j + 1; k < leaf->numMarkSurfaces; k++ ) {
@@ -198,14 +198,14 @@ void OptimiseMapGeometryCore( world_t* world, bspSurface_t** rendererSurfaces, i
 				}
 
 				surf2->viewCount = surf1->viewCount;
-				surf2->lightCount = k;
-				surf2->interactionBits = i;
+				surf2->scratch1 = k;
+				surf2->scratch2 = i;
 				merged = true;
 			}
 
 			if ( !merged ) {
 				surf1->viewCount = -1;
-				surf1->lightCount = -1;
+				surf1->scratch1 = -1;
 				// don't clear the leaf number so
 				// surfaces that arn't merged are placed
 				// closer to other leafs in the vbo

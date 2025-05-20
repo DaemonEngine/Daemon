@@ -2757,8 +2757,6 @@ static void R_CreateWorldVBO() {
 
 		// clear data used for sorting
 		surface->viewCount = -1;
-		surface->lightCount = -1;
-		surface->interactionBits = 0;
 	}
 
 	ri.Hunk_FreeTempMemory( rendererSurfaces );

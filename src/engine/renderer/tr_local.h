@@ -406,12 +406,6 @@ enum class ssaoMode {
 		vec3_t   projUp;
 	};
 
-	// TODO: remove useless struct
-	struct trRefLight_t
-	{
-		refLight_t l;
-	};
-
 	// a structure matching the GLSL struct shaderLight in std140 layout
 	struct shaderLight_t {
 		vec3_t  center;
@@ -1391,7 +1385,7 @@ enum class ssaoMode {
 		trRefEntity_t           *entities;
 
 		int                     numLights;
-		trRefLight_t            *lights;
+		refLight_t              *lights;
 
 		int                     numPolys;
 		struct srfPoly_t        *polys;
@@ -1482,7 +1476,7 @@ enum class ssaoMode {
 		matrix_t       projectionMatrixNonPortal; // For skybox rendering in portals
 		matrix_t       unprojectionMatrix; // transform pixel window space -> world space
 
-		frustum_t      frustums[ 1 ]; // FIXME: need not be array (was for shadowmaps)
+		frustum_t      frustum;
 
 		vec3_t               visBounds[ 2 ];
 		float                zNear;
@@ -1737,9 +1731,7 @@ enum class ssaoMode {
 	{
 		int             viewCount; // if == tr.viewCount, already added
 
-		// FIXME not used for lighting
-		int             lightCount;
-		int             interactionBits;
+		int scratch1, scratch2;
 
 		struct shader_t *shader;
 
@@ -3735,7 +3727,7 @@ void GLimp_LogComment_( std::string comment );
 	{
 		drawSurf_t          drawSurfs[ MAX_DRAWSURFS ];
 
-		trRefLight_t        lights[ MAX_REF_LIGHTS ];
+		refLight_t          lights[ MAX_REF_LIGHTS ];
 		trRefEntity_t       entities[ MAX_REF_ENTITIES ];
 
 		srfPoly_t           *polys; //[MAX_POLYS];

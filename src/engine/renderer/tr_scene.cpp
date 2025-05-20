@@ -285,7 +285,7 @@ ydnar: modified dlight system to support separate radius and intensity
 */
 void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t, int flags )
 {
-	trRefLight_t *light;
+	refLight_t *light;
 
 	if ( !glConfig2.realtimeLighting || !r_drawDynamicLights.Get() )
 	{
@@ -315,16 +315,16 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 
 	light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
 
-	light->l.rlType = refLightType_t::RL_OMNI;
-	VectorCopy( org, light->l.origin );
+	light->rlType = refLightType_t::RL_OMNI;
+	VectorCopy( org, light->origin );
 
-	light->l.radius = radius;
+	light->radius = radius;
 
-	light->l.color[ 0 ] = r;
-	light->l.color[ 1 ] = g;
-	light->l.color[ 2 ] = b;
+	light->color[ 0 ] = r;
+	light->color[ 1 ] = g;
+	light->color[ 2 ] = b;
 
-	light->l.scale = intensity;
+	light->scale = intensity;
 }
 
 void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float radius, float r, float g, float b )
