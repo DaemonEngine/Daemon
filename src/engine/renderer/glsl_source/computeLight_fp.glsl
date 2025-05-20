@@ -70,7 +70,7 @@ vec4 EnvironmentalSpecularFactor( vec3 viewDir, vec3 normal )
 	#endif
 #endif
 
-#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || (defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1)
+#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || defined(r_realtimeLighting)
 void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 	vec4 diffuseColor, vec4 materialColor,
 	inout vec4 color )
@@ -134,7 +134,7 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 		#endif // r_specularMapping
 	#endif // !USE_PHYSICAL_MAPPING
 }
-#endif // defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || (defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1)
+#endif // defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) defined(r_realtimeLighting)
 
 #if !defined(USE_DELUXE_MAPPING) && !defined(USE_GRID_DELUXE_MAPPING)
 	void computeLight( in vec3 lightColor, vec4 diffuseColor, inout vec4 color ) {
@@ -142,7 +142,7 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 	}
 #endif // !defined(USE_DELUXE_MAPPING) && !defined(USE_GRID_DELUXE_MAPPING)
 
-#if defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
+#if defined(r_realtimeLighting)
 
 struct Light {
 	vec3 center;
@@ -253,4 +253,4 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 	#endif
 }
 
-#endif // defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
+#endif // defined(r_realtimeLighting)

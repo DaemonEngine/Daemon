@@ -54,7 +54,6 @@ using bool8_t = uint8_t;
 #define MAX_WEIGHTS        4 // GPU vertex skinning limit, never change this without rewriting many GLSL shaders
 // XreaL END
 
-#define MAX_DLIGHTS        32 // can't be increased, because bit flags are used on surfaces
 #define MAX_ENTITIES       MAX_REF_ENTITIES // RB: for compatibility
 
 // renderfx flags
@@ -95,6 +94,7 @@ using bool8_t = uint8_t;
 #define GL_INDEX_TYPE GL_UNSIGNED_INT
 using glIndex_t = unsigned int;
 
+// TODO(0.56): drop RSF_LIGHT_ATTENUATION
 enum RegisterShaderFlags_t {
 	RSF_DEFAULT = BIT( 0 ),
 	RSF_2D = BIT( 1 ),

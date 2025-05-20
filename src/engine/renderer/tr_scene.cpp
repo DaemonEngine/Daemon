@@ -28,7 +28,6 @@ static Cvar::Cvar<bool> r_drawDynamicLights(
 	"r_drawDynamicLights", "render dynamic lights (if realtime lighting is enabled)", Cvar::NONE, true );
 
 static int r_firstSceneDrawSurf;
-static int r_firstSceneInteraction;
 
 static int r_numLights;
 static int r_firstSceneLight;
@@ -66,7 +65,6 @@ void R_ToggleSmpFrame()
 	backEndData[ tr.smpFrame ]->commands.used = 0;
 
 	r_firstSceneDrawSurf = 0;
-	r_firstSceneInteraction = 0;
 
 	r_numLights = 0;
 	r_firstSceneLight = 0;
@@ -305,14 +303,6 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 		return;
 	}
 
-	// set last lights restrictInteractionEnd if needed
-	if ( r_numLights > r_firstSceneLight ) {
-		light = &backEndData[ tr.smpFrame ]->lights[ r_numLights - 1 ];
-		if( light->restrictInteractionFirst >= 0 ) {
-			light->restrictInteractionLast = r_numEntities - r_firstSceneEntity - 1;
-		}
-	}
-
 	if ( r_numLights >= MAX_REF_LIGHTS )
 	{
 		return;
@@ -328,27 +318,12 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 	light->l.rlType = refLightType_t::RL_OMNI;
 	VectorCopy( org, light->l.origin );
 
-	QuatClear( light->l.rotation );
-	VectorClear( light->l.center );
-
-	// HACK: this will tell the renderer backend to use tr.defaultLightShader
-	light->l.attenuationShader = 0;
-
 	light->l.radius = radius;
 
 	light->l.color[ 0 ] = r;
 	light->l.color[ 1 ] = g;
 	light->l.color[ 2 ] = b;
 
-	if( flags & REF_RESTRICT_DLIGHT ) {
-		light->restrictInteractionFirst = r_numEntities - r_firstSceneEntity;
-		light->restrictInteractionLast = 0;
-	} else {
-		light->restrictInteractionFirst = -1;
-		light->restrictInteractionLast = -1;
-	}
-
-	light->additive = true;
 	light->l.scale = intensity;
 }
 
@@ -571,9 +546,6 @@ void RE_RenderScene( const refdef_t *fd )
 	tr.refdef.numDrawSurfs = r_firstSceneDrawSurf;
 	tr.refdef.drawSurfs = backEndData[ tr.smpFrame ]->drawSurfs;
 
-	tr.refdef.numInteractions = r_firstSceneInteraction;
-	tr.refdef.interactions = backEndData[ tr.smpFrame ]->interactions;
-
 	tr.refdef.numEntities = r_numEntities - r_firstSceneEntity;
 	tr.refdef.entities = &backEndData[ tr.smpFrame ]->entities[ r_firstSceneEntity ];
 
@@ -661,7 +633,6 @@ void RE_RenderScene( const refdef_t *fd )
 
 	// the next scene rendered in this frame will tack on after this one
 	r_firstSceneDrawSurf = tr.refdef.numDrawSurfs;
-	r_firstSceneInteraction = tr.refdef.numInteractions;
 	r_firstSceneEntity = r_numEntities;
 	r_firstSceneLight = r_numLights;
 	r_firstScenePoly = r_numPolys;

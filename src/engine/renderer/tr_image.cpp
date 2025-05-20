@@ -2514,22 +2514,6 @@ static void R_CreateRandomNormalsImage()
 	tr.randomNormalsImage = R_CreateImage( "_randomNormals", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
 }
 
-static void R_CreateNoFalloffImage()
-{
-	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
-	// we use a solid white image instead of disabling texturing
-	memset(data, 255, sizeof(data));
-
-	byte *dataPtr = &data[0][0][0];
-
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_DEFAULT;
-	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
-
-	tr.noFalloffImage = R_CreateImage( "_noFalloff", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
-}
-
 static void R_CreateContrastRenderFBOImage()
 {
 	if ( !glConfig2.bloom)
@@ -2621,22 +2605,6 @@ static void R_CreateDepthRenderImage()
 
 	if ( !glConfig2.realtimeLighting )
 	{
-		return;
-	}
-
-	if ( r_realtimeLightingRenderer.Get() != Util::ordinal( realtimeLightingRenderer_t::TILED ) )
-	{
-		/* Do not create lightTile images when the tiled renderer is not used.
-
-		Those images are part of the tiled dynamic lighting renderer,
-		it's better to not create them and save memory when such effects
-		are disabled.
-
-		Some hardware not powerful enough to supported dynamic lighting may
-		even not support the related formats.
-
-		See https://github.com/DaemonEngine/Daemon/issues/745 */
-
 		return;
 	}
 
@@ -2877,7 +2845,6 @@ void R_CreateBuiltinImages()
 
 	R_CreateRandomNormalsImage();
 	R_CreateFogImage();
-	R_CreateNoFalloffImage();
 	R_CreateContrastRenderFBOImage();
 	R_CreateBloomRenderFBOImages();
 	R_CreateCurrentRenderImage();
