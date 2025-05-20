@@ -6576,7 +6576,6 @@ public:
 		std::string shaderType = "shaderType";
 		std::string shaderSort = "shaderSort";
 		std::string stageType = "stageType";
-		std::string interactLight = "interactLight";
 		std::string stageNumber = "stageNumber";
 		std::string shaderName = "shaderName";
 
@@ -6588,7 +6587,6 @@ public:
 		size_t shaderTypeLen = shaderType.length();
 		size_t shaderSortLen = shaderSort.length();
 		size_t stageTypeLen = stageType.length();
-		size_t interactLightLen = interactLight.length();
 
 		// Value size
 		for ( const auto& kv : shaderTypeName )
@@ -6615,7 +6613,6 @@ public:
 		lineStream << std::setw(shaderTypeLen) << shaderType << separator;
 		lineStream << std::setw(shaderSortLen) << shaderSort << separator;
 		lineStream << std::setw(stageTypeLen) << stageType << separator;
-		lineStream << std::setw(interactLightLen) << interactLight << separator;
 		lineStream << stageNumber << ":" << shaderName;
 
 		std::string lineSeparator( lineStream.str().length(), '-' );
@@ -6657,7 +6654,6 @@ public:
 				shaderSort = shaderSortName.at( (shaderSort_t) shader->sort );
 			}
 
-			interactLight = shader->interactLight ? "INTERACTLIGHT" : "";
 			shaderName = shader->name;
 			shaderName += shader->defaultShader ? " (DEFAULTED)" : "";
 
@@ -6671,7 +6667,6 @@ public:
 				lineStream << std::setw(shaderTypeLen) << shaderType << separator;
 				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
 				lineStream << std::setw(stageTypeLen) << stageType << separator;
-				lineStream << std::setw(interactLightLen) << interactLight << separator;
 				lineStream << "-:" << shaderName;
 
 				Print( lineStream.str() );
@@ -6704,7 +6699,6 @@ public:
 				lineStream << std::setw(shaderTypeLen) << shaderType << separator;
 				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
 				lineStream << std::setw(stageTypeLen) << stageType << separator;
-				lineStream << std::setw(interactLightLen) << interactLight << separator;
 				lineStream << j << ":" << shaderName;
 
 				Print( lineStream.str() );
