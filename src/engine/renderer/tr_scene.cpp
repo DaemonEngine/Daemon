@@ -299,6 +299,12 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 		return;
 	}
 
+	if ( flags & REF_INVERSE_DLIGHT )
+	{
+		Log::Warn( "REF_INVERSE_DLIGHT not implemtented" );
+		return;
+	}
+
 	// set last lights restrictInteractionEnd if needed
 	if ( r_numLights > r_firstSceneLight ) {
 		light = &backEndData[ tr.smpFrame ]->lights[ r_numLights - 1 ];
@@ -334,9 +340,6 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 	light->l.color[ 1 ] = g;
 	light->l.color[ 2 ] = b;
 
-	light->l.inverseShadows = (flags & REF_INVERSE_DLIGHT) != 0;
-	light->l.noShadows = !r_realtimeLightingCastShadows->integer && !light->l.inverseShadows;
-
 	if( flags & REF_RESTRICT_DLIGHT ) {
 		light->restrictInteractionFirst = r_numEntities - r_firstSceneEntity;
 		light->restrictInteractionLast = 0;
@@ -346,11 +349,7 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 	}
 
 	light->additive = true;
-
-	if( light->l.inverseShadows )
-		light->l.scale = -intensity;
-	else
-		light->l.scale = intensity;
+	light->l.scale = intensity;
 }
 
 void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float radius, float r, float g, float b )

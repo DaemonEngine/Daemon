@@ -3266,12 +3266,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		depthMaskBits = GLS_DEPTHMASK_TRUE;
 	}
 
-	// tell shader if this stage has an alpha test
-	if ( atestBits & GLS_ATEST_BITS )
-	{
-		shader.alphaTest = true;
-	}
-
 	// check that depthFade and depthWrite are mutually exclusive
 	if ( depthMaskBits && stage->hasDepthFade ) {
 		Log::Warn( "depth fade conflicts with depth mask in shader '%s'", shader.name );
@@ -4130,7 +4124,6 @@ static bool ParseShader( const char *_text )
 		// noShadows
 		else if ( !Q_stricmp( token, "noShadows" ) )
 		{
-			shader.noShadows = true;
 			continue;
 		}
 		// translucent
@@ -5364,7 +5357,6 @@ static void SetStagesRenderers()
 		stageMaterialProcessor_t materialProcessor;
 
 		// Per-stage configuration.
-		bool doShadowFill;
 		bool doForwardLighting;
 	};
 
@@ -5375,10 +5367,8 @@ static void SetStagesRenderers()
 		stageRendererOptions_t stageRendererOptions = {
 			&Render_NONE, &MarkShaderBuildNONE,
 			&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
-			false, false,
+			false,
 		};
-
-		bool opaqueOrLess = shader.sort <= Util::ordinal(shaderSort_t::SS_OPAQUE);
 
 		switch ( stage->type )
 		{
@@ -5386,7 +5376,7 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_generic, &MarkShaderBuildGeneric3D,
 					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
-					opaqueOrLess, false,
+					false,
 				};
 				break;
 			case stageType_t::ST_STYLELIGHTMAP:
@@ -5394,7 +5384,7 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_generic3D, &MarkShaderBuildGeneric3D,
 					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
-					true, false,
+					false,
 				};
 				break;
 			case stageType_t::ST_LIGHTMAP:
@@ -5403,14 +5393,14 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_lightMapping, &MarkShaderBuildLightMapping,
 					&UpdateSurfaceDataLightMapping, &BindShaderLightMapping, &ProcessMaterialLightMapping,
-					true, true,
+					true,
 				};
 				break;
 			case stageType_t::ST_COLLAPSE_COLORMAP:
 				stageRendererOptions = {
 					&Render_lightMapping, &MarkShaderBuildLightMapping,
 					&UpdateSurfaceDataLightMapping, &BindShaderLightMapping, &ProcessMaterialLightMapping,
-					true, false,
+					false,
 				};
 				break;
 			case stageType_t::ST_REFLECTIONMAP:
@@ -5418,21 +5408,21 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_reflection_CB, &MarkShaderBuildReflection,
 					&UpdateSurfaceDataReflection, &BindShaderReflection, &ProcessMaterialReflection,
-					false, false,
+					false,
 				};
 				break;
 			case stageType_t::ST_SKYBOXMAP:
 				stageRendererOptions = {
 					&Render_skybox, &MarkShaderBuildSkybox,
 					&UpdateSurfaceDataSkybox, &BindShaderSkybox, &ProcessMaterialSkybox,
-					false, false,
+					false,
 				};
 				break;
 			case stageType_t::ST_SCREENMAP:
 				stageRendererOptions = {
 					&Render_screen, &MarkShaderBuildScreen,
 					&UpdateSurfaceDataScreen, &BindShaderScreen, &ProcessMaterialScreen,
-					false, false,
+					false,
 				};
 				break;
 			case stageType_t::ST_PORTALMAP:
@@ -5441,28 +5431,28 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_portal, &MarkShaderBuildPortal,
 					&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
-					false, false,
+					false,
 				};
 				break;
 			case stageType_t::ST_HEATHAZEMAP:
 				stageRendererOptions = {
 					&Render_heatHaze, &MarkShaderBuildHeatHaze,
 					&UpdateSurfaceDataHeatHaze, &BindShaderHeatHaze, &ProcessMaterialHeatHaze,
-					false, false,
+					false,
 				};
 				break;
 			case stageType_t::ST_LIQUIDMAP:
 				stageRendererOptions = {
 					&Render_liquid, &MarkShaderBuildLiquid,
 					&UpdateSurfaceDataLiquid, &BindShaderLiquid, &ProcessMaterialLiquid,
-					false, false,
+					false,
 				};
 				break;
 			case stageType_t::ST_FOGMAP:
 				stageRendererOptions = {
 					&Render_fog, &MarkShaderBuildFog,
 					&UpdateSurfaceDataFog, &BindShaderFog, &ProcessMaterialFog,
-					false, false,
+					false,
 				};
 				break;
 			case stageType_t::ST_ATTENUATIONMAP_XY:
@@ -5470,7 +5460,7 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_NOP, &MarkShaderBuildNOP,
 					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
-					false, true,
+					true,
 				};
 				break;
 			default:
@@ -5479,7 +5469,7 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_NOP, &MarkShaderBuildNOP,
 					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
-					false, false,
+					false,
 				};
 				break;
 		}
@@ -5491,7 +5481,6 @@ static void SetStagesRenderers()
 		stage->shaderBinder = stageRendererOptions.shaderBinder;
 		stage->materialProcessor = stageRendererOptions.materialProcessor;
 
-		stage->doShadowFill = stageRendererOptions.doShadowFill;
 		stage->doForwardLighting = stageRendererOptions.doForwardLighting;
 
 		// Disable stages that have no renderer yet.
@@ -5910,15 +5899,6 @@ static shader_t *FinishShader()
 	GroupActiveStages();
 
 	shader.sort = DetermineShaderSort();
-
-	// HACK: allow alpha tested surfaces to create shadowmaps
-	if ( glConfig2.shadowMapping )
-	{
-		if ( shader.noShadows && shader.alphaTest )
-		{
-			shader.noShadows = false;
-		}
-	}
 
 	if ( shader.sort <= Util::ordinal( shaderSort_t::SS_OPAQUE ) ) {
 		shader.fogPass = fogPass_t::FP_EQUAL;

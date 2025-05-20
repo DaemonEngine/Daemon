@@ -49,26 +49,6 @@ void R_AddBrushModelInteractions( trRefEntity_t *ent, trRefLight_t *light, inter
 		return;
 	}
 
-	// avoid drawing of certain objects
-#if defined( USE_REFENTITY_NOSHADOWID )
-
-	if ( light->l.inverseShadows )
-	{
-		if ( (iaType & IA_SHADOW) && ( light->l.noShadowID && ( light->l.noShadowID != ent->e.noShadowID ) ) )
-		{
-			return;
-		}
-	}
-	else
-	{
-		if ( (iaType & IA_SHADOW) && ( light->l.noShadowID && ( light->l.noShadowID == ent->e.noShadowID ) ) )
-		{
-			return;
-		}
-	}
-
-#endif
-
 	pModel = R_GetModelByHandle( ent->e.hModel );
 	bspModel = pModel->bsp;
 
@@ -97,7 +77,7 @@ void R_AddBrushModelInteractions( trRefEntity_t *ent, trRefLight_t *light, inter
 		surf = bspModel->firstSurface + i;
 
 		// skip all surfaces that don't matter for lighting only pass
-		if ( surf->shader->isSky || ( !surf->shader->interactLight && surf->shader->noShadows ) )
+		if ( surf->shader->isSky || !surf->shader->interactLight )
 		{
 			continue;
 		}
@@ -786,7 +766,7 @@ bool R_AddLightInteraction( trRefLight_t *light, surfaceType_t *surface, shader_
 	// skip all surfaces that don't matter for lighting only pass
 	if ( surfaceShader )
 	{
-		if ( surfaceShader->isSky || ( !surfaceShader->interactLight && surfaceShader->noShadows ) )
+		if ( surfaceShader->isSky || !surfaceShader->interactLight )
 		{
 			return false;
 		}
@@ -819,13 +799,6 @@ bool R_AddLightInteraction( trRefLight_t *light, surfaceType_t *surface, shader_
 
 	// update counters
 	light->numInteractions++;
-
-	if( !(iaType & IA_LIGHT) ) {
-		light->numShadowOnlyInteractions++;
-	}
-	if( !(iaType & (IA_SHADOW | IA_SHADOWCLIP) ) ) {
-		light->numLightOnlyInteractions++;
-	}
 
 	ia->next = nullptr;
 
@@ -1207,227 +1180,12 @@ R_CalcLightCubeSideBits
 =============
 */
 // *INDENT-OFF*
-byte R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
+byte R_CalcLightCubeSideBits( trRefLight_t *, vec3_t /*worldBounds*/[2])
 {
-	int        i;
-	int        cubeSide;
-	byte       cubeSideBits;
-	float      xMin, xMax, yMin, yMax;
-	float      zNear, zFar;
-	float      fovX, fovY;
-	vec3_t     angles;
-	matrix_t   tmpMatrix, rotationMatrix, transformMatrix, viewMatrix, projectionMatrix, viewProjectionMatrix;
-	frustum_t  frustum;
-	cplane_t   *clipPlane;
-	int        r;
-	bool   anyClip;
-	bool   culled;
-
-	if ( light->l.rlType != refLightType_t::RL_OMNI || !glConfig2.shadowMapping || r_noShadowPyramids->integer )
-	{
-		return CUBESIDE_CLIPALL;
-	}
-
-	cubeSideBits = 0;
-
-	for ( cubeSide = 0; cubeSide < 6; cubeSide++ )
-	{
-		switch ( cubeSide )
-		{
-			default: // 0
-				{
-					// view parameters
-					VectorSet( angles, 0, 0, 0 );
-					break;
-				}
-
-			case 1:
-				{
-					VectorSet( angles, 0, 180, 0 );
-					break;
-				}
-
-			case 2:
-				{
-					VectorSet( angles, 0, 90, 0 );
-					break;
-				}
-
-			case 3:
-				{
-					VectorSet( angles, 0, 270, 0 );
-					break;
-				}
-
-			case 4:
-				{
-					VectorSet( angles, -90, 0, 0 );
-					break;
-				}
-
-			case 5:
-				{
-					VectorSet( angles, 90, 0, 0 );
-					break;
-				}
-		}
-
-		// Quake -> OpenGL view matrix from light perspective
-		MatrixFromAngles( rotationMatrix, angles[ PITCH ], angles[ YAW ], angles[ ROLL ] );
-		MatrixSetupTransformFromRotation( transformMatrix, rotationMatrix, light->origin );
-		MatrixAffineInverse( transformMatrix, tmpMatrix );
-
-		// convert from our coordinate system (looking down X)
-		// to OpenGL's coordinate system (looking down -Z)
-		MatrixMultiply( quakeToOpenGLMatrix, tmpMatrix, viewMatrix );
-
-		// OpenGL projection matrix
-		fovX = 90;
-		fovY = 90;
-
-		zNear = 1.0f;
-		zFar = light->sphereRadius;
-
-		xMax = zNear * tanf( fovX * M_PI / 360.0f );
-		xMin = -xMax;
-
-		yMax = zNear * tanf( fovY * M_PI / 360.0f );
-		yMin = -yMax;
-
-		MatrixPerspectiveProjection( projectionMatrix, xMin, xMax, yMin, yMax, zNear, zFar );
-
-		// calculate frustum planes using the modelview projection matrix
-		MatrixMultiply( projectionMatrix, viewMatrix, viewProjectionMatrix );
-		R_SetupFrustum2( frustum, viewProjectionMatrix );
-
-		// use the frustum planes to cut off shadowmaps beyond the light volume
-		anyClip = false;
-		culled = false;
-
-		for ( i = 0; i < 5; i++ )
-		{
-			clipPlane = &frustum[ i ];
-
-			r = BoxOnPlaneSide( worldBounds[ 0 ], worldBounds[ 1 ], clipPlane );
-
-			if ( r == 2 )
-			{
-				culled = true;
-				break;
-			}
-
-			if ( r == 3 )
-			{
-				anyClip = true;
-			}
-		}
-
-		if ( !culled )
-		{
-			if ( !anyClip )
-			{
-				// completely inside frustum
-				tr.pc.c_pyramid_cull_ent_in++;
-			}
-			else
-			{
-				// partially clipped
-				tr.pc.c_pyramid_cull_ent_clip++;
-			}
-
-			cubeSideBits |= ( 1 << cubeSide );
-		}
-		else
-		{
-			// completely outside frustum
-			tr.pc.c_pyramid_cull_ent_out++;
-		}
-	}
-
-	tr.pc.c_pyramidTests++;
-
-	return cubeSideBits;
+	return CUBESIDE_CLIPALL;
 }
 
 // *INDENT-ON*
-
-/*
-=================
-R_SetupLightLOD
-=================
-*/
-void R_SetupLightLOD( trRefLight_t *light )
-{
-	float radius;
-	float flod, lodscale;
-	float projectedRadius;
-	int   lod;
-	int   numLods;
-
-	if ( light->l.noShadows )
-	{
-		light->shadowLOD = -1;
-		return;
-	}
-
-	numLods = 5;
-
-	// compute projected bounding sphere
-	// and use that as a criteria for selecting LOD
-	radius = light->sphereRadius;
-
-	if ( ( projectedRadius = R_ProjectRadius( radius, light->l.origin ) ) != 0 )
-	{
-		lodscale = r_shadowLodScale->value;
-
-		if ( lodscale > 20 )
-		{
-			lodscale = 20;
-		}
-
-		flod = 1.0f - projectedRadius * lodscale;
-	}
-	else
-	{
-		// object intersects near view plane, e.g. view weapon
-		flod = 0;
-	}
-
-	flod *= numLods;
-	lod = Q_ftol( flod );
-
-	if ( lod < 0 )
-	{
-		lod = 0;
-	}
-	else if ( lod >= numLods )
-	{
-		//lod = numLods - 1;
-	}
-
-	lod += r_shadowLodBias->integer;
-
-	if ( lod < 0 )
-	{
-		lod = 0;
-	}
-
-	if ( lod >= numLods )
-	{
-		// don't draw any shadow
-		lod = -1;
-
-		//lod = numLods - 1;
-	}
-
-	// never give ultra quality for point lights
-	if ( lod == 0 && light->l.rlType == refLightType_t::RL_OMNI )
-	{
-		lod = 1;
-	}
-
-	light->shadowLOD = lod;
-}
 
 /*
 =================

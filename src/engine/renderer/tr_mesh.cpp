@@ -368,26 +368,6 @@ void R_AddMDVInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 		return;
 	}
 
-	// avoid drawing of certain objects
-#if defined( USE_REFENTITY_NOSHADOWID )
-
-	if ( light->l.inverseShadows )
-	{
-		if ( (iaType & IA_SHADOW) && ( light->l.noShadowID && ( light->l.noShadowID != ent->e.noShadowID ) ) )
-		{
-			return;
-		}
-	}
-	else
-	{
-		if ( (iaType & IA_SHADOW) && ( light->l.noShadowID && ( light->l.noShadowID == ent->e.noShadowID ) ) )
-		{
-			return;
-		}
-	}
-
-#endif
-
 	// don't add third_person objects if not in a portal
 	personalModel = ( ent->e.renderfx & RF_THIRD_PERSON ) &&
 	  tr.viewParms.portalLevel == 0;
@@ -431,7 +411,7 @@ void R_AddMDVInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 			shader_t *shader = GetMDVSurfaceShader( ent, mdvSurface );
 
 			// skip all surfaces that don't matter for lighting only pass
-			if ( shader->isSky || ( !shader->interactLight && shader->noShadows ) )
+			if ( shader->isSky || !shader->interactLight )
 			{
 				continue;
 			}
@@ -454,7 +434,7 @@ void R_AddMDVInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 			shader_t *shader = GetMDVSurfaceShader( ent, mdvSurface );
 
 			// skip all surfaces that don't matter for lighting only pass
-			if ( shader->isSky || ( !shader->interactLight && shader->noShadows ) )
+			if ( shader->isSky || !shader->interactLight )
 			{
 				continue;
 			}

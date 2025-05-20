@@ -174,8 +174,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define MAX_VISCOUNTS         5
 #define MAX_VIEWS             10
 
-#define MAX_SHADOWMAPS        5
-
 #define MAX_TEXTURE_MIPS      16
 #define MAX_TEXTURE_LAYERS    256
 
@@ -332,7 +330,6 @@ enum class ssaoMode {
 	  RSPEEDS_CULLING,
 	  RSPEEDS_VIEWCLUSTER,
 	  RSPEEDS_LIGHTS,
-	  RSPEEDS_SHADOWCUBE_CULLING,
 	  RSPEEDS_FOG,
 	  RSPEEDS_SHADING_TIMES,
 	  RSPEEDS_CHC,
@@ -429,12 +426,6 @@ enum class ssaoMode {
 		vec3_t   projUp;
 		vec3_t   projStart;
 		vec3_t   projEnd;
-
-		bool noShadows;
-		short    noShadowID; // don't cast shadows of all entities with this id
-
-		bool inverseShadows; // don't cast light and draw shadows by darken the scene
-		// this is useful for drawing player shadows with shadow mapping
 	};
 
 // a trRefLight_t has all the information passed in by
@@ -455,16 +446,12 @@ enum class ssaoMode {
 
 		float        falloffLength;
 
-		matrix_t     shadowMatrices[ MAX_SHADOWMAPS ];
-		matrix_t     shadowMatricesBiased[ MAX_SHADOWMAPS ];
 		matrix_t     attenuationMatrix; // attenuation * (light view * entity transform)
 		matrix_t     attenuationMatrix2; // attenuation * tcMod matrices
 
 		vec3_t       localBounds[ 2 ];
 		vec3_t       worldBounds[ 2 ];
 		float        sphereRadius; // calculated from localBounds
-
-		int8_t       shadowLOD; // Level of Detail for shadow mapping
 
 		int                       restrictInteractionFirst;
 		int                       restrictInteractionLast;
@@ -481,8 +468,6 @@ enum class ssaoMode {
 		struct interaction_t      *lastInteraction;
 
 		uint16_t                  numInteractions; // total interactions
-		uint16_t                  numShadowOnlyInteractions;
-		uint16_t                  numLightOnlyInteractions;
 		bool                  noSort; // don't sort interactions by material
 
 		int                       visCounts[ MAX_VISCOUNTS ]; // node needs to be traversed if current
@@ -1163,7 +1148,6 @@ enum class ssaoMode {
 		stageShaderBinder_t shaderBinder;
 		stageMaterialProcessor_t materialProcessor;
 
-		bool doShadowFill;
 		bool doForwardLighting;
 
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
@@ -1316,7 +1300,6 @@ enum class ssaoMode {
 		int            contentFlags;
 
 		bool       entityMergable; // merge across entites optimizable (smoke, blood)
-		bool       alphaTest; // helps merging shadowmap generating surfaces
 
 		fogParms_t     fogParms;
 		fogPass_t      fogPass; // draw a blended pass, possibly with depth test equals
@@ -1326,7 +1309,6 @@ enum class ssaoMode {
 		float      reliefOffsetBias; // offset the heightmap top relatively to the floor
 		float reliefDepthScale = 1.0f; // per-shader relief depth scale
 
-		bool       noShadows;
 		bool       ambientLight;
 		bool       translucent;
 		bool       forceOpaque;
@@ -1559,10 +1541,7 @@ enum class ssaoMode {
 		matrix_t       projectionMatrixNonPortal; // For skybox rendering in portals
 		matrix_t       unprojectionMatrix; // transform pixel window space -> world space
 
-		float          parallelSplitDistances[ MAX_SHADOWMAPS + 1 ]; // distances in camera space
-
-		frustum_t      frustums[ MAX_SHADOWMAPS + 1 ]; // first frustum is the default one with complete zNear - zFar range
-		// and the other ones are for PSSM
+		frustum_t      frustums[ 1 ]; // FIXME: need not be array (was for shadowmaps)
 
 		vec3_t               visBounds[ 2 ];
 		float                zNear;
@@ -1690,11 +1669,9 @@ enum class ssaoMode {
 	enum interactionType_t
 	{
 		IA_LIGHT = 1 << 0,		// the received light if not in shadow
-		IA_SHADOW = 1 << 1,		// the surface shadows the light
-		IA_SHADOWCLIP = 1 << 2,	// the surface clips the shadow
 
-		IA_DEFAULT = IA_LIGHT | IA_SHADOW, // lighting and shadowing
-		IA_DEFAULTCLIP = IA_LIGHT | IA_SHADOWCLIP
+		IA_DEFAULT = IA_LIGHT, // lighting and shadowing
+		IA_DEFAULTCLIP = IA_LIGHT
 	};
 
 // an interaction is a node between a light and any surface
@@ -2327,9 +2304,6 @@ enum class ssaoMode {
 		int c_box_cull_light_in, c_box_cull_light_clip, c_box_cull_light_out;
 		int c_pvs_cull_light_out;
 
-		int c_pyramidTests;
-		int c_pyramid_cull_ent_in, c_pyramid_cull_ent_clip, c_pyramid_cull_ent_out;
-
 		int c_nodes;
 		int c_leafs;
 
@@ -2704,13 +2678,6 @@ enum class ssaoMode {
 		image_t    *lighttileRenderImage;
 		image_t    *portalRenderImage;
 
-		image_t *shadowMapFBOImage[ MAX_SHADOWMAPS * 2 ];
-		image_t *shadowCubeFBOImage[ MAX_SHADOWMAPS ];
-		image_t *sunShadowMapFBOImage[ MAX_SHADOWMAPS * 2 ];
-		image_t *shadowClipMapFBOImage[ MAX_SHADOWMAPS * 2 ];
-		image_t *shadowClipCubeFBOImage[ MAX_SHADOWMAPS ];
-		image_t *sunShadowClipMapFBOImage[ MAX_SHADOWMAPS * 2 ];
-
 		// external images
 		image_t *colorGradeImage;
 		GLuint   colorGradePBO;
@@ -2723,8 +2690,6 @@ enum class ssaoMode {
 		FBO_t *portalRenderFBO; // holds a copy of the last currentRender that was rendered into a FBO
 		FBO_t *contrastRenderFBO;
 		FBO_t *bloomRenderFBO[ 2 ];
-		FBO_t *shadowMapFBO[ MAX_SHADOWMAPS ];
-		FBO_t *sunShadowMapFBO[ MAX_SHADOWMAPS ];
 
 		// vertex buffer objects
 		VBO_t *lighttileVBO;
@@ -2848,8 +2813,6 @@ enum class ssaoMode {
 	extern const matrix_t quakeToOpenGLMatrix;
 	extern const matrix_t openGLToQuakeMatrix;
 	extern const matrix_t flipZMatrix;
-	extern int            shadowMapResolutions[ 5 ];
-	extern int            sunShadowMapResolutions[ 5 ];
 
 	extern backEndState_t backEnd;
 	extern trGlobals_t    tr;
@@ -2892,7 +2855,6 @@ enum class ssaoMode {
 	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer;
 	extern Cvar::Cvar<bool> r_realtimeLighting;
 	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers;
-	extern cvar_t *r_realtimeLightingCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_overbrightDefaultExponent;
 	extern Cvar::Range<Cvar::Cvar<int>> r_overbrightBits;
@@ -2974,34 +2936,8 @@ enum class ssaoMode {
 	extern Cvar::Cvar<bool> r_highPrecisionRendering;
 
 	extern Cvar::Range<Cvar::Cvar<int>> r_shadows;
-	extern cvar_t *r_softShadows;
-	extern cvar_t *r_softShadowsPP;
-	extern cvar_t *r_shadowBlur;
 
-	extern cvar_t *r_shadowMapSizeUltra;
-	extern cvar_t *r_shadowMapSizeVeryHigh;
-	extern cvar_t *r_shadowMapSizeHigh;
-	extern cvar_t *r_shadowMapSizeMedium;
-	extern cvar_t *r_shadowMapSizeLow;
-
-	extern cvar_t *r_shadowMapSizeSunUltra;
-	extern cvar_t *r_shadowMapSizeSunVeryHigh;
-	extern cvar_t *r_shadowMapSizeSunHigh;
-	extern cvar_t *r_shadowMapSizeSunMedium;
-	extern cvar_t *r_shadowMapSizeSunLow;
-
-	extern cvar_t *r_shadowLodBias;
-	extern cvar_t *r_shadowLodScale;
-	extern cvar_t *r_noShadowPyramids;
-	extern cvar_t *r_cullShadowPyramidFaces;
-	extern cvar_t *r_debugShadowMaps;
 	extern cvar_t *r_noLightFrustums;
-	extern cvar_t *r_shadowMapLinearFilter;
-	extern cvar_t *r_lightBleedReduction;
-	extern cvar_t *r_overDarkeningFactor;
-	extern cvar_t *r_shadowMapDepthScale;
-	extern cvar_t *r_parallelShadowSplits;
-	extern cvar_t *r_parallelShadowSplitWeight;
 
 	extern cvar_t *r_lockpvs;
 	extern cvar_t *r_noportals;
@@ -3029,8 +2965,6 @@ enum class ssaoMode {
 
 	extern cvar_t *r_showTris; // enables wireframe rendering of the world
 	extern cvar_t *r_showSky; // forces sky in front of all surfaces
-	extern cvar_t *r_showShadowLod;
-	extern cvar_t *r_showShadowMaps;
 	extern cvar_t *r_showSkeleton;
 	extern cvar_t *r_showEntityTransforms;
 	extern cvar_t *r_showLightTransforms;
@@ -3051,7 +2985,6 @@ enum class ssaoMode {
 	extern cvar_t *r_showBspNodes;
 	extern Cvar::Range<Cvar::Cvar<int>> r_showGlobalMaterials;
 	extern Cvar::Cvar<bool> r_materialDebug;
-	extern cvar_t *r_showParallelShadowSplits;
 
 	extern Cvar::Cvar<int> r_forceRendererTime;
 
@@ -3123,7 +3056,6 @@ inline bool checkGLErrors()
 	void           R_SetupEntityWorldBounds( trRefEntity_t *ent );
 
 	void           R_RotateEntityForViewParms( const trRefEntity_t *ent, const viewParms_t *viewParms, orientationr_t *orien );
-	void           R_RotateEntityForLight( const trRefEntity_t *ent, const trRefLight_t *light, orientationr_t *orien );
 	void           R_RotateLightForViewParms( const trRefLight_t *ent, const viewParms_t *viewParms, orientationr_t *orien );
 
 	void           R_SetupFrustum2( frustum_t frustum, const matrix_t modelViewProjectionMatrix );
@@ -3480,7 +3412,6 @@ void GLimp_LogComment_( std::string comment );
 	void Tess_StageIteratorDebug();
 	void Tess_StageIteratorColor();
 	void Tess_StageIteratorPortal();
-	void Tess_StageIteratorShadowFill();
 	void Tess_StageIteratorLighting();
 	void Tess_StageIteratorSky();
 
@@ -3578,7 +3509,6 @@ void GLimp_LogComment_( std::string comment );
 	void     R_SortInteractions( trRefLight_t *light );
 
 	void     R_SetupLightScissor( trRefLight_t *light );
-	void     R_SetupLightLOD( trRefLight_t *light );
 
 	void     R_SetupLightShader( trRefLight_t *light );
 

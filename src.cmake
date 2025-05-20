@@ -183,8 +183,6 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/vertexSkinning_vp.glsl
 
     # Regular shaders
-    ${ENGINE_DIR}/renderer/glsl_source/debugShadowMap_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/debugShadowMap_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/forwardLighting_vp.glsl
@@ -203,8 +201,6 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/reflection_CB_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/screen_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/screen_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/shadowFill_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/shadowFill_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/skybox_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/skybox_fp.glsl
 )

@@ -125,7 +125,7 @@ static bool R_CullSurface( surfaceType_t *surface, shader_t *shader, int planeBi
 	return false;
 }
 
-static bool R_CullLightSurface( surfaceType_t *surface, shader_t *shader, trRefLight_t *light, byte *cubeSideBits )
+static bool R_CullLightSurface( surfaceType_t *surface, shader_t *shader, trRefLight_t *light, byte */*cubeSideBits*/)
 {
 	srfGeneric_t *gen;
 	float        d;
@@ -195,11 +195,6 @@ static bool R_CullLightSurface( surfaceType_t *surface, shader_t *shader, trRefL
 		}
 	}
 
-	if ( r_cullShadowPyramidFaces->integer )
-	{
-		*cubeSideBits = R_CalcLightCubeSideBits( light, gen->bounds );
-	}
-
 	return false;
 }
 
@@ -233,7 +228,7 @@ static void R_AddInteractionSurface( bspSurface_t *surf, trRefLight_t *light, in
 	surf->interactionBits |= bits;
 
 	//  skip all surfaces that don't matter for lighting only pass
-	if ( surf->shader->isSky || ( !surf->shader->interactLight && surf->shader->noShadows ) )
+	if ( surf->shader->isSky || !surf->shader->interactLight )
 	{
 		return;
 	}
@@ -873,10 +868,7 @@ void R_AddWorldInteractions( trRefLight_t *light )
 		interactionBits = IA_DEFAULTCLIP;
 	}
 
-	if ( !glConfig2.shadowMapping || light->l.noShadows )
-	{
-		interactionBits &= IA_LIGHT;
-	}
+	interactionBits &= IA_LIGHT;
 
 	R_RecursiveInteractionNode( tr.world->nodes, light, FRUSTUM_CLIPALL, interactionBits );
 }

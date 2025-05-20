@@ -91,18 +91,6 @@ static void EnableAvailableFeatures()
 		}
 	}
 
-	glConfig2.shadowingMode = shadowingMode_t( r_shadows.Get() );
-	glConfig2.shadowMapping = glConfig2.shadowingMode >= shadowingMode_t::SHADOWING_ESM16;
-
-	if ( glConfig2.shadowMapping )
-	{
-		if ( !glConfig2.textureFloatAvailable )
-		{
-			Log::Warn( "Shadow mapping disabled because ARB_texture_float is not available." );
-			glConfig2.shadowMapping = false;
-		}
-	}
-
 	glConfig2.deluxeMapping = r_deluxeMapping->integer;
 	glConfig2.normalMapping = r_normalMapping->integer;
 	glConfig2.specularMapping = r_specularMapping->integer;
@@ -174,7 +162,6 @@ static void EnableAvailableFeatures()
 	if ( !glConfig2.glCoreProfile && glConfig2.maxTexIndirections < 16 )
 	{
 		static const std::pair<bool*, std::string> indirectFeatures[] = {
-			{ &glConfig2.shadowMapping, "Shadow mapping" },
 			{ &glConfig2.bloom, "Bloom" },
 			{ &glConfig2.motionBlur, "Motion blur" },
 		};
@@ -277,22 +264,7 @@ static void GLSL_InitGPUShadersOrError()
 			gl_depthtile1Shader->MarkProgramForBuilding( 0 );
 			gl_depthtile2Shader->MarkProgramForBuilding( 0 );
 			gl_lighttileShader->MarkProgramForBuilding( 0 );
-			DAEMON_FALLTHROUGH;
-		default:
-			/* Dynamic shadowing code also needs this shader.
-			This code is not well known, so there may be a bug,
-			but commit a09f03bc8e775d83ac5e057593eff4e88cdea7eb mentions this:
-
-			> Use conventional shadow mapping code for inverse lights.
-			> This re-enables shadows for players in the tiled renderer.
-			> -- @gimhael
-
-			See also https://github.com/DaemonEngine/Daemon/pull/606#pullrequestreview-912402293 */
-			if ( glConfig2.shadowMapping )
-			{
-				// projective lighting ( Doom3 style )
-				gl_shaderManager.LoadShader( gl_forwardLightingShader_projXYZ );
-			}
+			break;
 		}
 	}
 
@@ -380,21 +352,12 @@ static void GLSL_InitGPUShadersOrError()
 
 	gl_cameraEffectsShader->MarkProgramForBuilding( 0 );
 
-	if ( glConfig2.bloom || glConfig2.shadowMapping )
+	if ( glConfig2.bloom )
 	{
 		// gaussian blur
 		gl_shaderManager.LoadShader( gl_blurShader );
 
 		gl_blurShader->MarkProgramForBuilding( 0 );
-	}
-
-	if ( glConfig2.shadowMapping )
-	{
-		// shadowmap distance compression
-		gl_shaderManager.LoadShader( gl_shadowFillShader );
-
-		// debug utils
-		gl_shaderManager.LoadShader( gl_debugShadowMapShader );
 	}
 
 	if ( r_liquidMapping->integer != 0 )
@@ -520,7 +483,6 @@ void GLSL_ShutdownGPUShaders()
 	gl_forwardLightingShader_omniXYZ = nullptr;
 	gl_forwardLightingShader_projXYZ = nullptr;
 	gl_forwardLightingShader_directionalSun = nullptr;
-	gl_shadowFillShader = nullptr;
 	gl_reflectionShader = nullptr;
 	gl_reflectionShaderMaterial = nullptr;
 	gl_skyboxShader = nullptr;
@@ -536,7 +498,6 @@ void GLSL_ShutdownGPUShaders()
 	gl_contrastShader = nullptr;
 	gl_cameraEffectsShader = nullptr;
 	gl_blurShader = nullptr;
-	gl_debugShadowMapShader = nullptr;
 	gl_liquidShader = nullptr;
 	gl_liquidShaderMaterial = nullptr;
 	gl_motionblurShader = nullptr;
@@ -1286,90 +1247,14 @@ void Render_lightMapping( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
-static void Render_shadowFill( shaderStage_t *pStage )
-{
-	uint32_t      stateBits;
-
-	GLIMP_LOGCOMMENT( "--- Render_shadowFill ---" );
-
-	// remove blend modes
-	stateBits = pStage->stateBits;
-	stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS );
-
-	GL_State( stateBits );
-
-	gl_shadowFillShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_shadowFillShader->SetVertexAnimation( tess.vboVertexAnimation );
-
-	gl_shadowFillShader->SetMacro_LIGHT_DIRECTIONAL( backEnd.currentLight->l.rlType == refLightType_t::RL_DIRECTIONAL );
-
-	gl_shadowFillShader->BindProgram( pStage->deformIndex );
-
-	gl_shadowFillShader->SetRequiredVertexPointers();
-
-	if ( r_debugShadowMaps->integer )
-	{
-		SetUniform_Color( gl_shadowFillShader, Color::Color::Indexed( backEnd.pc.c_batches % 8 ) );
-	}
-
-	// u_AlphaThreshold
-	gl_shadowFillShader->SetUniform_AlphaTest( pStage->stateBits );
-
-	if ( backEnd.currentLight->l.rlType != refLightType_t::RL_DIRECTIONAL )
-	{
-		gl_shadowFillShader->SetUniform_LightOrigin( backEnd.currentLight->origin );
-		gl_shadowFillShader->SetUniform_LightRadius( backEnd.currentLight->sphereRadius );
-	}
-
-	gl_shadowFillShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_shadowFillShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
-	{
-		gl_shadowFillShader->SetUniform_Bones( tess.numBones, tess.bones );
-	}
-
-	// u_VertexInterpolation
-	if ( tess.vboVertexAnimation )
-	{
-		gl_shadowFillShader->SetUniform_VertexInterpolation( glState.vertexAttribsInterpolation );
-	}
-
-	// u_DeformGen
-	gl_shadowFillShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
-
-	// bind u_ColorMap
-	if ( ( pStage->stateBits & GLS_ATEST_BITS ) != 0 )
-	{
-		gl_shadowFillShader->SetUniform_ColorMapBindless(
-			GL_BindToTMU( 0, pStage->bundle[TB_COLORMAP].image[0] )
-		);
-		gl_shadowFillShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
-	}
-	else
-	{
-		gl_shadowFillShader->SetUniform_ColorMapBindless(
-			GL_BindToTMU( 0, tr.whiteImage )
-		);
-	}
-
-	Tess_DrawElements();
-
-	GL_CheckErrors();
-}
-
 static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
     shaderStage_t *attenuationXYStage,
     shaderStage_t *attenuationZStage, trRefLight_t *light )
 {
 	vec3_t     viewOrigin;
 	vec3_t     lightOrigin;
-	float      shadowTexelSize;
 
 	GLIMP_LOGCOMMENT( "--- Render_forwardLighting_DBS_omni ---" );
-
-	bool shadowCompare = ( glConfig2.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_omniXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
@@ -1378,8 +1263,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_forwardLightingShader_omniXYZ->SetReliefMapping( pStage->enableReliefMapping );
-
-	gl_forwardLightingShader_omniXYZ->SetShadowing( shadowCompare );
 
 	gl_forwardLightingShader_omniXYZ->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
@@ -1421,15 +1304,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	VectorCopy( light->origin, lightOrigin );
 	Color::Color lightColor = tess.svars.color;
 
-	if ( shadowCompare )
-	{
-		shadowTexelSize = 1.0f / shadowMapResolutions[ light->shadowLOD ];
-	}
-	else
-	{
-		shadowTexelSize = 1.0f;
-	}
-
 	gl_forwardLightingShader_omniXYZ->SetUniform_ViewOrigin( viewOrigin );
 
 	gl_forwardLightingShader_omniXYZ->SetUniform_LightOrigin( lightOrigin );
@@ -1437,14 +1311,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	gl_forwardLightingShader_omniXYZ->SetUniform_LightRadius( light->sphereRadius );
 	gl_forwardLightingShader_omniXYZ->SetUniform_LightScale( light->l.scale );
 	gl_forwardLightingShader_omniXYZ->SetUniform_LightAttenuationMatrix( light->attenuationMatrix2 );
-
-	GL_CheckErrors();
-
-	if ( shadowCompare )
-	{
-		gl_forwardLightingShader_omniXYZ->SetUniform_ShadowTexelSize( shadowTexelSize );
-		gl_forwardLightingShader_omniXYZ->SetUniform_ShadowBlur( r_shadowBlur->value );
-	}
 
 	GL_CheckErrors();
 
@@ -1513,15 +1379,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	gl_forwardLightingShader_omniXYZ->SetUniform_AttenuationMapZBindless(
 		BindAnimatedImage( 4, &attenuationZStage->bundle[TB_COLORMAP] ) );
 
-	// bind u_ShadowMap
-	if ( shadowCompare )
-	{
-		gl_forwardLightingShader_omniXYZ->SetUniform_ShadowMapBindless(
-			GL_BindToTMU( 5, tr.shadowCubeFBOImage[light->shadowLOD] ) );
-		gl_forwardLightingShader_omniXYZ->SetUniform_ShadowClipMapBindless(
-			GL_BindToTMU( 7, tr.shadowClipCubeFBOImage[light->shadowLOD] ) );
-	}
-
 	// bind u_RandomMap
 	gl_forwardLightingShader_omniXYZ->SetUniform_RandomMapBindless(
 		GL_BindToTMU( 6, tr.randomNormalsImage )
@@ -1540,11 +1397,8 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 {
 	vec3_t     viewOrigin;
 	vec3_t     lightOrigin;
-	float      shadowTexelSize;
 
 	GLIMP_LOGCOMMENT( "--- Render_forwardLighting_DBS_proj ---" );
-
-	bool shadowCompare = ( glConfig2.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_projXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
@@ -1553,8 +1407,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_forwardLightingShader_projXYZ->SetReliefMapping( pStage->enableReliefMapping );
-
-	gl_forwardLightingShader_projXYZ->SetShadowing( shadowCompare );
 
 	gl_forwardLightingShader_projXYZ->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
@@ -1596,15 +1448,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	VectorCopy( light->origin, lightOrigin );
 	Color::Color lightColor = tess.svars.color;
 
-	if ( shadowCompare )
-	{
-		shadowTexelSize = 1.0f / shadowMapResolutions[ light->shadowLOD ];
-	}
-	else
-	{
-		shadowTexelSize = 1.0f;
-	}
-
 	gl_forwardLightingShader_projXYZ->SetUniform_ViewOrigin( viewOrigin );
 
 	gl_forwardLightingShader_projXYZ->SetUniform_LightOrigin( lightOrigin );
@@ -1612,15 +1455,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	gl_forwardLightingShader_projXYZ->SetUniform_LightRadius( light->sphereRadius );
 	gl_forwardLightingShader_projXYZ->SetUniform_LightScale( light->l.scale );
 	gl_forwardLightingShader_projXYZ->SetUniform_LightAttenuationMatrix( light->attenuationMatrix2 );
-
-	GL_CheckErrors();
-
-	if ( shadowCompare )
-	{
-		gl_forwardLightingShader_projXYZ->SetUniform_ShadowTexelSize( shadowTexelSize );
-		gl_forwardLightingShader_projXYZ->SetUniform_ShadowBlur( r_shadowBlur->value );
-		gl_forwardLightingShader_projXYZ->SetUniform_ShadowMatrix( light->shadowMatrices );
-	}
 
 	GL_CheckErrors();
 
@@ -1689,17 +1523,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	gl_forwardLightingShader_projXYZ->SetUniform_AttenuationMapZBindless(
 		BindAnimatedImage( 4, &attenuationZStage->bundle[TB_COLORMAP] ) );
 
-	// bind u_ShadowMap
-	if ( shadowCompare )
-	{
-		gl_forwardLightingShader_projXYZ->SetUniform_ShadowMap0Bindless(
-			GL_BindToTMU( 5, tr.shadowMapFBOImage[light->shadowLOD] )
-		);
-		gl_forwardLightingShader_projXYZ->SetUniform_ShadowClipMap0Bindless(
-			GL_BindToTMU( 7, tr.shadowClipMapFBOImage[light->shadowLOD] )
-		);
-	}
-
 	// bind u_RandomMap
 	gl_forwardLightingShader_projXYZ->SetUniform_RandomMapBindless(
 		GL_BindToTMU( 6, tr.randomNormalsImage )
@@ -1716,11 +1539,8 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 {
 	vec3_t     viewOrigin;
 	vec3_t     lightDirection;
-	float      shadowTexelSize;
 
 	GLIMP_LOGCOMMENT( "--- Render_forwardLighting_DBS_directional ---" );
-
-	bool shadowCompare = ( glConfig2.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_directionalSun->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
@@ -1729,8 +1549,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_forwardLightingShader_directionalSun->SetReliefMapping( pStage->enableReliefMapping );
-
-	gl_forwardLightingShader_directionalSun->SetShadowing( shadowCompare );
 
 	gl_forwardLightingShader_directionalSun->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
@@ -1774,15 +1592,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 
 	Color::Color lightColor = tess.svars.color;
 
-	if ( shadowCompare )
-	{
-		shadowTexelSize = 1.0f / sunShadowMapResolutions[ light->shadowLOD ];
-	}
-	else
-	{
-		shadowTexelSize = 1.0f;
-	}
-
 	gl_forwardLightingShader_directionalSun->SetUniform_ViewOrigin( viewOrigin );
 
 	gl_forwardLightingShader_directionalSun->SetUniform_LightDir( lightDirection );
@@ -1790,16 +1599,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	gl_forwardLightingShader_directionalSun->SetUniform_LightRadius( light->sphereRadius );
 	gl_forwardLightingShader_directionalSun->SetUniform_LightScale( light->l.scale );
 	gl_forwardLightingShader_directionalSun->SetUniform_LightAttenuationMatrix( light->attenuationMatrix2 );
-
-	GL_CheckErrors();
-
-	if ( shadowCompare )
-	{
-		gl_forwardLightingShader_directionalSun->SetUniform_ShadowMatrix( light->shadowMatricesBiased );
-		gl_forwardLightingShader_directionalSun->SetUniform_ShadowParallelSplitDistances( backEnd.viewParms.parallelSplitDistances );
-		gl_forwardLightingShader_directionalSun->SetUniform_ShadowTexelSize( shadowTexelSize );
-		gl_forwardLightingShader_directionalSun->SetUniform_ShadowBlur( r_shadowBlur->value );
-	}
 
 	GL_CheckErrors();
 
@@ -1858,57 +1657,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
 		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 		gl_forwardLightingShader_directionalSun->SetUniform_SpecularExponent( minSpec, maxSpec );
-	}
-
-	// bind u_ShadowMap
-	if ( shadowCompare )
-	{
-		gl_forwardLightingShader_directionalSun->SetUniform_ShadowMap0Bindless(
-			GL_BindToTMU( 5, tr.sunShadowMapFBOImage[ 0 ] )
-		);
-		gl_forwardLightingShader_directionalSun->SetUniform_ShadowClipMap0Bindless(
-			GL_BindToTMU( 10, tr.sunShadowClipMapFBOImage[ 0 ] )
-		);
-
-		if ( r_parallelShadowSplits->integer >= 1 )
-		{
-			gl_forwardLightingShader_directionalSun->SetUniform_ShadowMap1Bindless(
-				GL_BindToTMU( 6, tr.sunShadowMapFBOImage[ 1 ] )
-			);
-			gl_forwardLightingShader_directionalSun->SetUniform_ShadowClipMap1Bindless(
-				GL_BindToTMU( 11, tr.sunShadowClipMapFBOImage[ 1 ] )
-			);
-		}
-
-		if ( r_parallelShadowSplits->integer >= 2 )
-		{
-			gl_forwardLightingShader_directionalSun->SetUniform_ShadowMap2Bindless(
-				GL_BindToTMU( 7, tr.sunShadowMapFBOImage[ 2 ] )
-			);
-			gl_forwardLightingShader_directionalSun->SetUniform_ShadowClipMap2Bindless(
-				GL_BindToTMU( 12, tr.sunShadowClipMapFBOImage[ 2 ] )
-			);
-		}
-
-		if ( r_parallelShadowSplits->integer >= 3 )
-		{
-			gl_forwardLightingShader_directionalSun->SetUniform_ShadowMap3Bindless(
-				GL_BindToTMU( 8, tr.sunShadowMapFBOImage[ 3 ] )
-			);
-			gl_forwardLightingShader_directionalSun->SetUniform_ShadowClipMap3Bindless(
-				GL_BindToTMU( 13, tr.sunShadowClipMapFBOImage[ 3 ] )
-			);
-		}
-
-		if ( r_parallelShadowSplits->integer >= 4 )
-		{
-			gl_forwardLightingShader_directionalSun->SetUniform_ShadowMap4Bindless(
-				GL_BindToTMU( 9, tr.sunShadowMapFBOImage[ 4 ] )
-			);
-			gl_forwardLightingShader_directionalSun->SetUniform_ShadowClipMap4Bindless(
-				GL_BindToTMU( 14, tr.sunShadowClipMapFBOImage[ 4 ] )
-			);
-		}
 	}
 
 	gl_forwardLightingShader_directionalSun->SetRequiredVertexPointers();
@@ -2728,56 +2476,6 @@ void Tess_StageIteratorPortal() {
 	}
 }
 
-void Tess_StageIteratorShadowFill()
-{
-	GLIMP_LOGCOMMENT( "--- Tess_StageIteratorShadowFill( %s, %i vertices, %i triangles ) ---",
-		tess.surfaceShader->name, tess.numVertexes, tess.numIndexes / 3 );
-
-	GL_CheckErrors();
-
-	if ( tess.surfaceShader->autoSpriteMode != 0 )
-	{
-		Tess_AutospriteDeform( tess.surfaceShader->autoSpriteMode );
-	}
-
-	if ( !glState.currentVBO || !glState.currentIBO || glState.currentVBO == tess.vbo || glState.currentIBO == tess.ibo )
-	{
-		Tess_UpdateVBOs( );
-	}
-
-	// set face culling appropriately
-	if( backEnd.currentEntity->e.renderfx & RF_SWAPCULL )
-		GL_Cull( ReverseCull( tess.surfaceShader->cullType ) );
-	else
-		GL_Cull( tess.surfaceShader->cullType );
-
-	// set polygon offset if necessary
-	if ( tess.surfaceShader->polygonOffset )
-	{
-		glEnable( GL_POLYGON_OFFSET_FILL );
-		GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
-	}
-
-	// call shader function
-	for ( shaderStage_t *pStage = tess.surfaceStages; pStage < tess.surfaceLastStage; pStage++ )
-	{
-		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
-		{
-			continue;
-		}
-
-		Tess_ComputeTexMatrices( pStage );
-
-		if ( pStage->doShadowFill )
-		{
-			Render_shadowFill( pStage );
-		}
-	}
-
-	// reset polygon offset
-	glDisable( GL_POLYGON_OFFSET_FILL );
-}
-
 void Tess_StageIteratorLighting()
 {
 	trRefLight_t  *light;
@@ -2800,20 +2498,13 @@ void Tess_StageIteratorLighting()
 	}
 
 	// set OpenGL state for lighting
-	if ( light->l.inverseShadows )
+	if ( tess.surfaceShader->sort > Util::ordinal(shaderSort_t::SS_OPAQUE) )
 	{
-		GL_State( GLS_SRCBLEND_ZERO | GLS_DSTBLEND_ONE_MINUS_SRC_COLOR );
+		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
 	}
 	else
 	{
-		if ( tess.surfaceShader->sort > Util::ordinal(shaderSort_t::SS_OPAQUE) )
-		{
-			GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
-		}
-		else
-		{
-			GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHFUNC_EQUAL );
-		}
+		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHFUNC_EQUAL );
 	}
 
 	// set face culling appropriately
@@ -2941,8 +2632,7 @@ void Tess_End()
 		// call off to shader specific tess end function
 		tess.stageIteratorFunc();
 
-		if ( tess.stageIteratorFunc != Tess_StageIteratorShadowFill &&
-		     tess.stageIteratorFunc != Tess_StageIteratorDebug &&
+		if ( tess.stageIteratorFunc != Tess_StageIteratorDebug &&
 		     tess.stageIteratorFunc != Tess_StageIteratorDummy )
 		{
 			// draw debugging stuff
