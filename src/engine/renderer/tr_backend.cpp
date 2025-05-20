@@ -2208,8 +2208,8 @@ static void RB_RenderDebugUtils()
 					plane_t splitFrustum[ 6 ];
 					for ( j = 0; j < 6; j++ )
 					{
-						VectorCopy( backEnd.viewParms.frustums[ 0 ][ j ].normal, splitFrustum[ j ].normal );
-						splitFrustum[ j ].dist = backEnd.viewParms.frustums[ 0 ][ j ].dist;
+						VectorCopy( backEnd.viewParms.frustum[ j ].normal, splitFrustum[ j ].normal );
+						splitFrustum[ j ].dist = backEnd.viewParms.frustum[ j ].dist;
 					}
 
 					// calculate split frustum corner points
@@ -3170,20 +3170,20 @@ const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 							    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
 
 		for( int i = 0, j = 0; i < numLights; i++, j++ ) {
-			trRefLight_t *light = &refdef.lights[j];
+			refLight_t *light = &refdef.lights[j];
 
-			VectorCopy( light->l.origin, buffer[i].center );
-			buffer[i].radius = light->l.radius;
-			VectorScale( light->l.color, 4.0f * light->l.scale, buffer[i].color );
-			buffer[i].type = Util::ordinal( light->l.rlType );
-			switch( light->l.rlType ) {
+			VectorCopy( light->origin, buffer[i].center );
+			buffer[i].radius = light->radius;
+			VectorScale( light->color, 4.0f * light->scale, buffer[i].color );
+			buffer[i].type = Util::ordinal( light->rlType );
+			switch( light->rlType ) {
 			case refLightType_t::RL_PROJ:
-				VectorCopy( light->l.projTarget,
+				VectorCopy( light->projTarget,
 					    buffer[i].direction );
-				buffer[i].angle = cosf( atan2f( VectorLength( light->l.projUp), VectorLength( light->l.projTarget ) ) );
+				buffer[i].angle = cosf( atan2f( VectorLength( light->projUp), VectorLength( light->projTarget ) ) );
 				break;
 			case refLightType_t::RL_DIRECTIONAL:
-				VectorCopy( light->l.projTarget,
+				VectorCopy( light->projTarget,
 					    buffer[i].direction );
 				break;
 			default:

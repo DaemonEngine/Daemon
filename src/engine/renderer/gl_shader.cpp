@@ -1326,8 +1326,6 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 				continue;
 			}
 
-			shader->BuildShaderCompileMacros( compileMacros );
-
 			const uint32_t uniqueMacros = shader->GetUniqueCompileMacros( i, shaderType.type );
 
 			ShaderDescriptor* desc = FindShader( shader->_name, shaderType.mainText, shaderType.GLType, shaderType.headers,

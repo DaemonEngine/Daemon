@@ -349,7 +349,7 @@ cullResult_t R_CullBox( vec3_t worldBounds[ 2 ] )
 
 	for ( i = 0; i < FRUSTUM_PLANES; i++ )
 	{
-		frust = &tr.viewParms.frustums[ 0 ][ i ];
+		frust = &tr.viewParms.frustum[ i ];
 
 		r = BoxOnPlaneSide( worldBounds[ 0 ], worldBounds[ 1 ], frust );
 
@@ -426,7 +426,7 @@ cullResult_t R_CullPointAndRadius( vec3_t pt, float radius )
 	// check against frustum planes
 	for ( i = 0; i < Util::ordinal(frustumBits_t::FRUSTUM_PLANES); i++ )
 	{
-		frust = &tr.viewParms.frustums[ 0 ][ i ];
+		frust = &tr.viewParms.frustum[ i ];
 
 		dist = DotProduct( pt, frust->normal ) - frust->dist;
 
@@ -878,11 +878,11 @@ static void R_SetupFrustum()
 
 			MatrixTransformPlane2(invTransform, plane);
 
-			VectorCopy(plane.normal, tr.viewParms.frustums[0][i].normal);
-			tr.viewParms.frustums[0][i].dist = plane.dist;
+			VectorCopy(plane.normal, tr.viewParms.frustum[i].normal);
+			tr.viewParms.frustum[i].dist = plane.dist;
 
-			SetPlaneSignbits(&tr.viewParms.frustums[0][i]);
-			tr.viewParms.frustums[0][i].type = PLANE_NON_AXIAL;
+			SetPlaneSignbits(&tr.viewParms.frustum[i]);
+			tr.viewParms.frustum[i].type = PLANE_NON_AXIAL;
 		}
 	}
 	else
@@ -891,36 +891,36 @@ static void R_SetupFrustum()
 		xs = sinf( ang );
 		xc = cosf( ang );
 
-		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustums[ 0 ][ 0 ].normal );
-		VectorMA( tr.viewParms.frustums[ 0 ][ 0 ].normal, xc, tr.viewParms.orientation.axis[ 1 ], tr.viewParms.frustums[ 0 ][ 0 ].normal );
+		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustum[ 0 ].normal );
+		VectorMA( tr.viewParms.frustum[ 0 ].normal, xc, tr.viewParms.orientation.axis[ 1 ], tr.viewParms.frustum[ 0 ].normal );
 
-		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustums[ 0 ][ 1 ].normal );
-		VectorMA( tr.viewParms.frustums[ 0 ][ 1 ].normal, -xc, tr.viewParms.orientation.axis[ 1 ], tr.viewParms.frustums[ 0 ][ 1 ].normal );
+		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustum[ 1 ].normal );
+		VectorMA( tr.viewParms.frustum[ 1 ].normal, -xc, tr.viewParms.orientation.axis[ 1 ], tr.viewParms.frustum[ 1 ].normal );
 
 		ang = DEG2RAD( tr.viewParms.fovY * 0.5f );
 		xs = sinf( ang );
 		xc = cosf( ang );
 
-		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustums[ 0 ][ 2 ].normal );
-		VectorMA( tr.viewParms.frustums[ 0 ][ 2 ].normal, xc, tr.viewParms.orientation.axis[ 2 ], tr.viewParms.frustums[ 0 ][ 2 ].normal );
+		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustum[ 2 ].normal );
+		VectorMA( tr.viewParms.frustum[ 2 ].normal, xc, tr.viewParms.orientation.axis[ 2 ], tr.viewParms.frustum[ 2 ].normal );
 
-		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustums[ 0 ][ 3 ].normal );
-		VectorMA( tr.viewParms.frustums[ 0 ][ 3 ].normal, -xc, tr.viewParms.orientation.axis[ 2 ], tr.viewParms.frustums[ 0 ][ 3 ].normal );
+		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustum[ 3 ].normal );
+		VectorMA( tr.viewParms.frustum[ 3 ].normal, -xc, tr.viewParms.orientation.axis[ 2 ], tr.viewParms.frustum[ 3 ].normal );
 
 		for ( int i = 0; i < 4; i++ )
 		{
-			tr.viewParms.frustums[ 0 ][ i ].type = PLANE_NON_AXIAL;
-			tr.viewParms.frustums[ 0 ][ i ].dist = DotProduct( tr.viewParms.orientation.origin, tr.viewParms.frustums[ 0 ][ i ].normal );
-			SetPlaneSignbits( &tr.viewParms.frustums[ 0 ][ i ] );
+			tr.viewParms.frustum[ i ].type = PLANE_NON_AXIAL;
+			tr.viewParms.frustum[ i ].dist = DotProduct( tr.viewParms.orientation.origin, tr.viewParms.frustum[ i ].normal );
+			SetPlaneSignbits( &tr.viewParms.frustum[ i ] );
 		}
 
 		// Tr3B: set extra near plane which is required by the dynamic occlusion culling
-		tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].type = PLANE_NON_AXIAL;
-		VectorCopy( tr.viewParms.orientation.axis[ 0 ], tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].normal );
+		tr.viewParms.frustum[ FRUSTUM_NEAR ].type = PLANE_NON_AXIAL;
+		VectorCopy( tr.viewParms.orientation.axis[ 0 ], tr.viewParms.frustum[ FRUSTUM_NEAR ].normal );
 
-		VectorMA( tr.viewParms.orientation.origin, r_znear->value, tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].normal, planeOrigin );
-		tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].dist = DotProduct( planeOrigin, tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].normal );
-		SetPlaneSignbits( &tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ] );
+		VectorMA( tr.viewParms.orientation.origin, r_znear->value, tr.viewParms.frustum[ FRUSTUM_NEAR ].normal, planeOrigin );
+		tr.viewParms.frustum[ FRUSTUM_NEAR ].dist = DotProduct( planeOrigin, tr.viewParms.frustum[ FRUSTUM_NEAR ].normal );
+		SetPlaneSignbits( &tr.viewParms.frustum[ FRUSTUM_NEAR ] );
 	}
 }
 
@@ -2054,7 +2054,7 @@ void R_RenderView( viewParms_t *parms )
 
 	if ( glConfig2.usingMaterialSystem && !r_materialSystemSkip.Get() ) {
 		tr.viewParms.viewID = tr.viewCount;
-		materialSystem.QueueSurfaceCull( tr.viewCount, tr.viewParms.pvsOrigin, (frustum_t*) tr.viewParms.frustums[0] );
+		materialSystem.QueueSurfaceCull( tr.viewCount, tr.viewParms.pvsOrigin, (frustum_t*) tr.viewParms.frustum );
 		materialSystem.AddAutospriteSurfaces();
 	} else {
 		R_AddWorldSurfaces();

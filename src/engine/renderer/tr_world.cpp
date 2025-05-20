@@ -297,7 +297,7 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits )
 			{
 				if ( planeBits & ( 1 << i ) )
 				{
-					r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustums[ 0 ][ i ] );
+					r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustum[ i ] );
 
 					if ( r == 2 )
 					{
