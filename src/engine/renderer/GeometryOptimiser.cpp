@@ -462,38 +462,38 @@ static void OptimiseMaterialSurfaces( std::vector<MaterialSurface>& materialSurf
 	Grid<SurfaceIndexes> surfaceIdxsGrid( true );
 	surfaceIdxsGrid.SetSize( gridSize[0], gridSize[1], gridSize[2] );
 
-	uint32_t surfaceIndex = 0;
 	MaterialSurface* surface = &materialSurfaces[0];
-	while ( true ) {
-		MaterialSurface* surface2 = &materialSurfaces[surfaceIndex];
-		if ( surface2->skyBrush ) {
-			surfaceIndex++;
+	MaterialSurface* surface2;
+	bool addedSurfaces = false;
 
-			if ( surfaceIndex == materialSurfaces.size() ) {
-				break;
+	std::function<void()> processGrid = [&]() {
+		if ( !addedSurfaces ) {
+			surface = surface2;
+			return;
+		}
+
+		for ( Grid<uint32_t>::Iterator it = surfaceGrid.begin(); it != surfaceGrid.end(); it++ ) {
+			if ( *it ) {
+				SurfaceIndexes* srfIdxs = &surfaceIdxsGrid( it - surfaceGrid.begin() );
+				surface->count = *it;
+				ProcessMaterialSurface( surface, srfIdxs, processedMaterialSurfaces, vertices, idxs, &numIndices );
 			}
+		}
 
+		surfaceGrid.Clear();
+
+		surface = surface2;
+		addedSurfaces = false;
+	};
+
+	for ( uint32_t surfaceIndex = 0; surfaceIndex < materialSurfaces.size(); surfaceIndex++ ) {
+		surface2 = &materialSurfaces[surfaceIndex];
+		if ( surface2->skyBrush ) {
 			continue;
 		}
 
-		bool newGrid = materialSurfaceSort( *surface, *surface2 );
-
-		if ( surfaceIndex == materialSurfaces.size() - 1 ) {
-			newGrid = true;
-		}
-
-		if ( newGrid ) {
-			for ( Grid<uint32_t>::Iterator it = surfaceGrid.begin(); it != surfaceGrid.end(); it++ ) {
-				if ( *it ) {
-					SurfaceIndexes* srfIdxs = &surfaceIdxsGrid( it - surfaceGrid.begin() );
-					surface->count = *it;
-					ProcessMaterialSurface( surface, srfIdxs, processedMaterialSurfaces, vertices, idxs, &numIndices );
-				}
-			}
-
-			surfaceGrid.Clear();
-
-			surface = surface2;
+		if ( materialSurfaceSort( *surface, *surface2 ) ) {
+			processGrid();
 		}
 
 		for ( uint32_t i = 0; i < surface2->count; i += 3 ) {
@@ -527,14 +527,13 @@ static void OptimiseMaterialSurfaces( std::vector<MaterialSurface>& materialSurf
 
 				surface2->count = oldCount;
 				*count = 0;
+			} else {
+				addedSurfaces = true;
 			}
 		}
-
-		surfaceIndex++;
-		if ( surfaceIndex == materialSurfaces.size() ) {
-			break;
-		}
 	}
+
+	processGrid();
 }
 
 std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, bspSurface_t** rendererSurfaces, int numSurfaces,
