@@ -142,8 +142,6 @@ struct glconfig2_t
 	bool colorGrading;
 	bool realtimeLighting;
 	int realtimeLightLayers;
-	bool shadowMapping;
-	shadowingMode_t shadowingMode;
 	bool deluxeMapping;
 	bool normalMapping;
 	bool specularMapping;

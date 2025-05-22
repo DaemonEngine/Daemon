@@ -165,7 +165,6 @@ qhandle_t RE_RegisterSkin( const char *name )
 	qhandle_t     hSkin;
 	skin_t        *skin;
 	skinSurface_t *surf;
-	skinModel_t   *model; //----(SA) added
 	const char    *text_p;
 	const char    *token;
 	char          surfName[ MAX_QPATH ];
@@ -226,7 +225,6 @@ qhandle_t RE_RegisterSkin( const char *name )
 	tr.skins[ hSkin ] = skin;
 	Q_strncpyz( skin->name, name, sizeof( skin->name ) );
 	skin->numSurfaces = 0;
-	skin->numModels = 0; //----(SA) added
 
 //----(SA)  end
 
@@ -253,22 +251,6 @@ qhandle_t RE_RegisterSkin( const char *name )
 
 		if ( !Q_strnicmp( token, "tag_", 4 ) )
 		{
-			continue;
-		}
-
-		if ( !Q_strnicmp( token, "md3_", 4 ) )
-		{
-			// this is specifying a model
-			model = skin->models[ skin->numModels ] = (skinModel_t*) ri.Hunk_Alloc( sizeof( *skin->models[ 0 ] ), ha_pref::h_low );
-			Q_strncpyz( model->type, token, sizeof( model->type ) );
-			model->hash = Com_HashKey( model->type, sizeof( model->type ) );
-
-			// get the model name
-			token = CommaParse( &text_p );
-
-			Q_strncpyz( model->model, token, sizeof( model->model ) );
-
-			skin->numModels++;
 			continue;
 		}
 

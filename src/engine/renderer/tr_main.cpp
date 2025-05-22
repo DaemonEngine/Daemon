@@ -36,9 +36,6 @@ const matrix_t quakeToOpenGLMatrix =
     0,  0,  0,  1
 };
 
-int            shadowMapResolutions[ 5 ] = { 2048, 1024, 512, 256, 128 };
-int            sunShadowMapResolutions[ 5 ] = { 2048, 2048, 1024, 1024, 1024 };
-
 refimport_t    ri;
 
 // entities that will have procedurally generated surfaces will just
@@ -352,7 +349,7 @@ cullResult_t R_CullBox( vec3_t worldBounds[ 2 ] )
 
 	for ( i = 0; i < FRUSTUM_PLANES; i++ )
 	{
-		frust = &tr.viewParms.frustums[ 0 ][ i ];
+		frust = &tr.viewParms.frustum[ i ];
 
 		r = BoxOnPlaneSide( worldBounds[ 0 ], worldBounds[ 1 ], frust );
 
@@ -429,7 +426,7 @@ cullResult_t R_CullPointAndRadius( vec3_t pt, float radius )
 	// check against frustum planes
 	for ( i = 0; i < Util::ordinal(frustumBits_t::FRUSTUM_PLANES); i++ )
 	{
-		frust = &tr.viewParms.frustums[ 0 ][ i ];
+		frust = &tr.viewParms.frustum[ i ];
 
 		dist = DotProduct( pt, frust->normal ) - frust->dist;
 
@@ -682,101 +679,6 @@ void R_RotateEntityForViewParms( const trRefEntity_t *ent, const viewParms_t *vi
 
 /*
 =================
-R_RotateEntityForLight
-
-Generates an orientation for an entity and light
-Does NOT produce any GL calls
-Called by both the front end and the back end
-=================
-*/
-void R_RotateEntityForLight( const trRefEntity_t *ent, const trRefLight_t *light, orientationr_t * orientation )
-{
-	vec3_t delta;
-	float  axisLength;
-
-	if ( ent->e.reType != refEntityType_t::RT_MODEL )
-	{
-		*orientation = {};
-
-		orientation ->axis[ 0 ][ 0 ] = 1;
-		orientation ->axis[ 1 ][ 1 ] = 1;
-		orientation ->axis[ 2 ][ 2 ] = 1;
-
-		VectorCopy( light->l.origin, orientation ->viewOrigin );
-
-		MatrixIdentity( orientation ->transformMatrix );
-		MatrixMultiply( light->viewMatrix, orientation ->transformMatrix, orientation ->viewMatrix );
-		MatrixCopy( orientation ->viewMatrix, orientation ->modelViewMatrix );
-		return;
-	}
-
-	VectorCopy( ent->e.origin, orientation ->origin );
-
-	VectorCopy( ent->e.axis[ 0 ], orientation ->axis[ 0 ] );
-	VectorCopy( ent->e.axis[ 1 ], orientation ->axis[ 1 ] );
-	VectorCopy( ent->e.axis[ 2 ], orientation ->axis[ 2 ] );
-
-	MatrixSetupTransformFromVectorsFLU( orientation ->transformMatrix, orientation ->axis[ 0 ], orientation ->axis[ 1 ], orientation ->axis[ 2 ], orientation ->origin );
-	MatrixAffineInverse( orientation ->transformMatrix, orientation ->viewMatrix );
-
-	MatrixMultiply( light->viewMatrix, orientation ->transformMatrix, orientation ->modelViewMatrix );
-
-	// calculate the viewer origin in the model's space
-	// needed for fog, specular, and environment mapping
-	VectorSubtract( light->l.origin, orientation ->origin, delta );
-
-	// compensate for scale in the axes if necessary
-	if ( ent->e.nonNormalizedAxes )
-	{
-		axisLength = VectorLength( ent->e.axis[ 0 ] );
-
-		if ( !axisLength )
-		{
-			axisLength = 0;
-		}
-		else
-		{
-			axisLength = 1.0f / axisLength;
-		}
-	}
-	else
-	{
-		axisLength = 1.0f;
-	}
-
-	orientation ->viewOrigin[ 0 ] = DotProduct( delta, orientation ->axis[ 0 ] ) * axisLength;
-	orientation ->viewOrigin[ 1 ] = DotProduct( delta, orientation ->axis[ 1 ] ) * axisLength;
-	orientation ->viewOrigin[ 2 ] = DotProduct( delta, orientation ->axis[ 2 ] ) * axisLength;
-}
-
-/*
-=================
-R_RotateLightForViewParms
-=================
-*/
-void R_RotateLightForViewParms( const trRefLight_t *light, const viewParms_t *viewParms, orientationr_t * orientation )
-{
-	vec3_t delta;
-
-	VectorCopy( light->l.origin, orientation ->origin );
-
-	QuatToAxis( light->l.rotation, orientation ->axis );
-
-	MatrixSetupTransformFromVectorsFLU( orientation ->transformMatrix, orientation ->axis[ 0 ], orientation ->axis[ 1 ], orientation ->axis[ 2 ], orientation ->origin );
-	MatrixAffineInverse( orientation ->transformMatrix, orientation ->viewMatrix );
-	MatrixMultiply( viewParms->world.viewMatrix, orientation ->transformMatrix, orientation ->modelViewMatrix );
-
-	// calculate the viewer origin in the light's space
-	// needed for fog, specular, and environment mapping
-	VectorSubtract( viewParms->orientation.origin, orientation ->origin, delta );
-
-	orientation ->viewOrigin[ 0 ] = DotProduct( delta, orientation ->axis[ 0 ] );
-	orientation ->viewOrigin[ 1 ] = DotProduct( delta, orientation ->axis[ 1 ] );
-	orientation ->viewOrigin[ 2 ] = DotProduct( delta, orientation ->axis[ 2 ] );
-}
-
-/*
-=================
 R_RotateForViewer
 
 Sets up the modelview matrix for a given viewParm
@@ -976,11 +878,11 @@ static void R_SetupFrustum()
 
 			MatrixTransformPlane2(invTransform, plane);
 
-			VectorCopy(plane.normal, tr.viewParms.frustums[0][i].normal);
-			tr.viewParms.frustums[0][i].dist = plane.dist;
+			VectorCopy(plane.normal, tr.viewParms.frustum[i].normal);
+			tr.viewParms.frustum[i].dist = plane.dist;
 
-			SetPlaneSignbits(&tr.viewParms.frustums[0][i]);
-			tr.viewParms.frustums[0][i].type = PLANE_NON_AXIAL;
+			SetPlaneSignbits(&tr.viewParms.frustum[i]);
+			tr.viewParms.frustum[i].type = PLANE_NON_AXIAL;
 		}
 	}
 	else
@@ -989,36 +891,36 @@ static void R_SetupFrustum()
 		xs = sinf( ang );
 		xc = cosf( ang );
 
-		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustums[ 0 ][ 0 ].normal );
-		VectorMA( tr.viewParms.frustums[ 0 ][ 0 ].normal, xc, tr.viewParms.orientation.axis[ 1 ], tr.viewParms.frustums[ 0 ][ 0 ].normal );
+		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustum[ 0 ].normal );
+		VectorMA( tr.viewParms.frustum[ 0 ].normal, xc, tr.viewParms.orientation.axis[ 1 ], tr.viewParms.frustum[ 0 ].normal );
 
-		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustums[ 0 ][ 1 ].normal );
-		VectorMA( tr.viewParms.frustums[ 0 ][ 1 ].normal, -xc, tr.viewParms.orientation.axis[ 1 ], tr.viewParms.frustums[ 0 ][ 1 ].normal );
+		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustum[ 1 ].normal );
+		VectorMA( tr.viewParms.frustum[ 1 ].normal, -xc, tr.viewParms.orientation.axis[ 1 ], tr.viewParms.frustum[ 1 ].normal );
 
 		ang = DEG2RAD( tr.viewParms.fovY * 0.5f );
 		xs = sinf( ang );
 		xc = cosf( ang );
 
-		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustums[ 0 ][ 2 ].normal );
-		VectorMA( tr.viewParms.frustums[ 0 ][ 2 ].normal, xc, tr.viewParms.orientation.axis[ 2 ], tr.viewParms.frustums[ 0 ][ 2 ].normal );
+		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustum[ 2 ].normal );
+		VectorMA( tr.viewParms.frustum[ 2 ].normal, xc, tr.viewParms.orientation.axis[ 2 ], tr.viewParms.frustum[ 2 ].normal );
 
-		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustums[ 0 ][ 3 ].normal );
-		VectorMA( tr.viewParms.frustums[ 0 ][ 3 ].normal, -xc, tr.viewParms.orientation.axis[ 2 ], tr.viewParms.frustums[ 0 ][ 3 ].normal );
+		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustum[ 3 ].normal );
+		VectorMA( tr.viewParms.frustum[ 3 ].normal, -xc, tr.viewParms.orientation.axis[ 2 ], tr.viewParms.frustum[ 3 ].normal );
 
 		for ( int i = 0; i < 4; i++ )
 		{
-			tr.viewParms.frustums[ 0 ][ i ].type = PLANE_NON_AXIAL;
-			tr.viewParms.frustums[ 0 ][ i ].dist = DotProduct( tr.viewParms.orientation.origin, tr.viewParms.frustums[ 0 ][ i ].normal );
-			SetPlaneSignbits( &tr.viewParms.frustums[ 0 ][ i ] );
+			tr.viewParms.frustum[ i ].type = PLANE_NON_AXIAL;
+			tr.viewParms.frustum[ i ].dist = DotProduct( tr.viewParms.orientation.origin, tr.viewParms.frustum[ i ].normal );
+			SetPlaneSignbits( &tr.viewParms.frustum[ i ] );
 		}
 
 		// Tr3B: set extra near plane which is required by the dynamic occlusion culling
-		tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].type = PLANE_NON_AXIAL;
-		VectorCopy( tr.viewParms.orientation.axis[ 0 ], tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].normal );
+		tr.viewParms.frustum[ FRUSTUM_NEAR ].type = PLANE_NON_AXIAL;
+		VectorCopy( tr.viewParms.orientation.axis[ 0 ], tr.viewParms.frustum[ FRUSTUM_NEAR ].normal );
 
-		VectorMA( tr.viewParms.orientation.origin, r_znear->value, tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].normal, planeOrigin );
-		tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].dist = DotProduct( planeOrigin, tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].normal );
-		SetPlaneSignbits( &tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ] );
+		VectorMA( tr.viewParms.orientation.origin, r_znear->value, tr.viewParms.frustum[ FRUSTUM_NEAR ].normal, planeOrigin );
+		tr.viewParms.frustum[ FRUSTUM_NEAR ].dist = DotProduct( planeOrigin, tr.viewParms.frustum[ FRUSTUM_NEAR ].normal );
+		SetPlaneSignbits( &tr.viewParms.frustum[ FRUSTUM_NEAR ] );
 	}
 }
 
@@ -1109,68 +1011,6 @@ void R_CalcFrustumFarCornersUnsafe( const plane_t frustum[ FRUSTUM_FAR + 1 ], ve
 	PlanesGetIntersectionPoint( frustum[ FRUSTUM_RIGHT ], frustum[ FRUSTUM_TOP ], frustum[ FRUSTUM_FAR ], corners[ 1 ] );
 	PlanesGetIntersectionPoint( frustum[ FRUSTUM_RIGHT ], frustum[ FRUSTUM_BOTTOM ], frustum[ FRUSTUM_FAR ], corners[ 2 ] );
 	PlanesGetIntersectionPoint( frustum[ FRUSTUM_LEFT ], frustum[ FRUSTUM_BOTTOM ], frustum[ FRUSTUM_FAR ], corners[ 3 ] );
-}
-
-static void CopyPlane( const cplane_t *in, cplane_t *out )
-{
-	VectorCopy( in->normal, out->normal );
-	out->dist = in->dist;
-	out->type = in->type;
-	out->signbits = in->signbits;
-	out->pad[ 0 ] = in->pad[ 0 ];
-	out->pad[ 1 ] = in->pad[ 1 ];
-}
-
-static void R_SetupSplitFrustums()
-{
-	int    i, j;
-	float  lambda;
-	float  ratio;
-	vec3_t planeOrigin;
-	float  zNear, zFar;
-
-	lambda = r_parallelShadowSplitWeight->value;
-	ratio = tr.viewParms.zFar / tr.viewParms.zNear;
-
-	for ( j = 0; j < 5; j++ )
-	{
-		CopyPlane( &tr.viewParms.frustums[ 0 ][ j ], &tr.viewParms.frustums[ 1 ][ j ] );
-	}
-
-	for ( i = 1; i <= ( r_parallelShadowSplits->integer + 1 ); i++ )
-	{
-		float si = i / ( float )( r_parallelShadowSplits->integer + 1 );
-
-		zFar = 1.005f * lambda * ( tr.viewParms.zNear * powf( ratio, si ) ) + ( 1 - lambda ) * ( tr.viewParms.zNear + ( tr.viewParms.zFar - tr.viewParms.zNear ) * si );
-
-		if ( i <= r_parallelShadowSplits->integer )
-		{
-			tr.viewParms.parallelSplitDistances[ i - 1 ] = zFar;
-		}
-
-		tr.viewParms.frustums[ i ][ FRUSTUM_FAR ].type = PLANE_NON_AXIAL;
-		VectorNegate( tr.viewParms.orientation.axis[ 0 ], tr.viewParms.frustums[ i ][ FRUSTUM_FAR ].normal );
-
-		VectorMA( tr.viewParms.orientation.origin, zFar, tr.viewParms.orientation.axis[ 0 ], planeOrigin );
-		tr.viewParms.frustums[ i ][ FRUSTUM_FAR ].dist = DotProduct( planeOrigin, tr.viewParms.frustums[ i ][ FRUSTUM_FAR ].normal );
-		SetPlaneSignbits( &tr.viewParms.frustums[ i ][ FRUSTUM_FAR ] );
-
-		if ( i <= ( r_parallelShadowSplits->integer ) )
-		{
-			zNear = zFar - ( zFar * 0.005f );
-			tr.viewParms.frustums[ i + 1 ][ FRUSTUM_NEAR ].type = PLANE_NON_AXIAL;
-			VectorCopy( tr.viewParms.orientation.axis[ 0 ], tr.viewParms.frustums[ i + 1 ][ FRUSTUM_NEAR ].normal );
-
-			VectorMA( tr.viewParms.orientation.origin, zNear, tr.viewParms.orientation.axis[ 0 ], planeOrigin );
-			tr.viewParms.frustums[ i + 1 ][ FRUSTUM_NEAR ].dist = DotProduct( planeOrigin, tr.viewParms.frustums[ i + 1 ][ FRUSTUM_NEAR ].normal );
-			SetPlaneSignbits( &tr.viewParms.frustums[ i + 1 ][ FRUSTUM_NEAR ] );
-		}
-
-		for ( j = 0; j < 4; j++ )
-		{
-			CopyPlane( &tr.viewParms.frustums[ 0 ][ j ], &tr.viewParms.frustums[ i ][ j ] );
-		}
-	}
 }
 
 /*
@@ -1670,6 +1510,7 @@ static void R_SetupPortalFrustum( const viewParms_t& oldParms, const orientation
 	frustum[FRUSTUM_NEAR].dist = DotProduct(worldNearPlane, newParms.orientation.origin) - worldNearPlane[3];
 
 	// calculate new znear for parallel split frustums in this view
+	// TODO get rid of this? "Parallel split" was a shadow mapping thing
 	plane_t frustumPlanes[FRUSTUM_PLANES];
 	for (int i = 0; i < FRUSTUM_PLANES; i++)
 	{
@@ -1916,20 +1757,6 @@ static void R_SortDrawSurfs()
 		tr.viewParms.numDrawSurfs = MAX_DRAWSURFS;
 	}
 
-	// if we overflowed MAX_INTERACTIONS, the interactions
-	// wrapped around in the buffer and we will be missing
-	// the first interactions, not the last ones
-	if ( tr.viewParms.numInteractions > MAX_INTERACTIONS )
-	{
-		interaction_t *ia;
-
-		tr.viewParms.numInteractions = MAX_INTERACTIONS;
-
-		// reset last interaction's next pointer
-		ia = &tr.viewParms.interactions[ tr.viewParms.numInteractions - 1 ];
-		ia->next = nullptr;
-	}
-
 	std::sort( tr.viewParms.drawSurfs, tr.viewParms.drawSurfs + tr.viewParms.numDrawSurfs,
 	           []( const drawSurf_t &a, const drawSurf_t &b ) {
 	               return a.sort < b.sort;
@@ -2104,266 +1931,6 @@ void R_AddEntitySurfaces()
 	}
 }
 
-/*
-=============
-R_AddEntityInteractions
-=============
-*/
-void R_AddEntityInteractions( trRefLight_t *light )
-{
-	int               i;
-	trRefEntity_t     *ent;
-	interactionType_t iaType;
-
-	if ( !r_drawentities->integer )
-	{
-		return;
-	}
-
-	for ( i = 0; i < tr.refdef.numEntities; i++ )
-	{
-		iaType = IA_DEFAULT;
-
-		if ( !glConfig2.shadowMapping || light->l.noShadows ) {
-			iaType = (interactionType_t) (iaType & (~IA_SHADOW));
-		}
-
-		if ( light->restrictInteractionFirst >= 0 &&
-		     ( i < light->restrictInteractionFirst ||
-		       i > light->restrictInteractionLast ) ) {
-			iaType = (interactionType_t) (iaType & (~IA_SHADOW));
-		}
-
-		if ( light->restrictInteractionFirst >= 0 &&
-		     i >= light->restrictInteractionFirst &&
-		     i <= light->restrictInteractionLast )
-		{
-			iaType = (interactionType_t) (iaType & ~IA_LIGHT);
-		}
-
-		ent = tr.currentEntity = &tr.refdef.entities[ i ];
-
-		//
-		// the weapon model must be handled special --
-		// we don't want the hacked weapon position showing in
-		// mirrors, because the true body position will already be drawn
-		//
-		if ( ( ent->e.renderfx & RF_FIRST_PERSON ) &&
-		     ( tr.viewParms.portalLevel > 0 || tr.viewParms.isMirror ) )
-		{
-			continue;
-		}
-
-		// simple generated models, like sprites and beams, are not culled
-		switch ( ent->e.reType )
-		{
-			case refEntityType_t::RT_PORTALSURFACE:
-				break; // don't draw anything
-
-			case refEntityType_t::RT_SPRITE:
-				break;
-
-			case refEntityType_t::RT_MODEL:
-				tr.currentModel = R_GetModelByHandle( ent->e.hModel );
-
-				if ( tr.currentModel )
-				{
-					switch ( tr.currentModel->type )
-					{
-						case modtype_t::MOD_MESH:
-							R_AddMDVInteractions( ent, light, iaType );
-							break;
-
-						case modtype_t::MOD_MD5:
-							R_AddMD5Interactions( ent, light, iaType );
-							break;
-
-						case modtype_t::MOD_IQM:
-							R_AddIQMInteractions( ent, light, iaType );
-							break;
-
-						case modtype_t::MOD_BSP:
-							R_AddBrushModelInteractions( ent, light, iaType );
-							break;
-
-						case modtype_t::MOD_BAD: // null model axis
-							break;
-
-						default:
-							Sys::Drop( "R_AddEntityInteractions: Bad modeltype" );
-					}
-				}
-
-				break;
-
-			default:
-				Sys::Drop( "R_AddEntityInteractions: Bad reType" );
-		}
-	}
-}
-
-/*
-=============
-R_TransformShadowLight
-
-check if OMNI shadow light can be turned into PROJ for better shadow map quality
-=============
-*/
-void R_TransformShadowLight( trRefLight_t *light ) {
-	int    i;
-	vec3_t mins, maxs, mids;
-	vec3_t forward, right, up;
-	float  radius;
-
-	if( !light->l.inverseShadows || light->l.rlType != refLightType_t::RL_OMNI ||
-	    light->restrictInteractionFirst < 0 )
-		return;
-
-	ClearBounds( mins, maxs );
-	for( i = light->restrictInteractionFirst; i <= light->restrictInteractionLast; i++ ) {
-		trRefEntity_t *ent = &tr.refdef.entities[ i ];
-
-		BoundsAdd(ent->worldBounds[0], ent->worldBounds[1], mins, maxs);
-	}
-
-	// if light origin is outside BBox of shadow receivers, build
-	// a projection light on the closest plane of the BBox
-	VectorAdd( mins, maxs, mids );
-	VectorScale( mids, 0.5f, mids );
-	radius = Distance( mids, maxs );
-
-	light->l.rlType = refLightType_t::RL_PROJ;
-	VectorSubtract( mids, light->l.origin, forward );
-	VectorNormalize( forward );
-	PerpendicularVector( right, forward );
-	CrossProduct( forward, right, up );
-
-	VectorScale( right, 2.0f * radius, light->l.projRight );
-	VectorScale( up, 2.0f * radius, light->l.projUp );
-	VectorCopy( vec3_origin, light->l.projStart );
-	VectorCopy( vec3_origin, light->l.projEnd );
-	VectorScale( forward, light->l.radius, light->l.projTarget );
-}
-
-/*
-=============
-R_AddLightInteractions
-=============
-*/
-void R_AddLightInteractions()
-{
-	int          i;
-	trRefLight_t *light;
-
-	realtimeLightingRenderer_t realtimeLightingRenderer = realtimeLightingRenderer_t( r_realtimeLightingRenderer.Get() );
-
-	tr.refdef.numShaderLights = 0;
-
-	for ( i = 0; i < tr.refdef.numLights; i++ )
-	{
-		light = tr.currentLight = &tr.refdef.lights[ i ];
-
-		if ( !light->l.inverseShadows )
-		{
-			if ( realtimeLightingRenderer == realtimeLightingRenderer_t::TILED )
-			{
-				tr.refdef.numShaderLights++;
-				tr.pc.c_dlights++;
-
-				continue;
-			}
-		}
-
-		R_TransformShadowLight( light );
-
-		// we must set up parts of tr.or for light culling
-		R_RotateLightForViewParms( light, &tr.viewParms, &tr.orientation );
-
-		// calc local bounds for culling
-		{
-			// set up light transform matrix
-			MatrixSetupTransformFromQuat( light->transformMatrix, light->l.rotation, light->l.origin );
-
-			// set up light origin for lighting and shadowing
-			R_SetupLightOrigin( light );
-
-			// set up model to light view matrix
-			R_SetupLightView( light );
-
-			// set up projection
-			R_SetupLightProjection( light );
-
-			// calc local bounds for culling
-			R_SetupLightLocalBounds( light );
-
-			// look if we have to draw the light including its interactions
-			switch ( R_CullLocalBox( light->localBounds ) )
-			{
-				case cullResult_t::CULL_IN:
-				default:
-					tr.pc.c_box_cull_light_in++;
-					break;
-
-				case cullResult_t::CULL_CLIP:
-					tr.pc.c_box_cull_light_clip++;
-					break;
-
-				case cullResult_t::CULL_OUT:
-					// light is not visible so skip other light setup stuff to save speed
-					tr.pc.c_box_cull_light_out++;
-					continue;
-			}
-
-			// setup world bounds for intersection tests
-			R_SetupLightWorldBounds( light );
-
-			// setup frustum planes for intersection tests
-			R_SetupLightFrustum( light );
-
-			// ignore if not in visible bounds
-			if ( !BoundsIntersect
-			     ( light->worldBounds[ 0 ], light->worldBounds[ 1 ], tr.viewParms.visBounds[ 0 ], tr.viewParms.visBounds[ 1 ] ) )
-			{
-				continue;
-			}
-		}
-
-		// set up view dependent light scissor
-		R_SetupLightScissor( light );
-
-		// set up view dependent light Level of Detail
-		R_SetupLightLOD( light );
-
-		// look for proper attenuation shader
-		R_SetupLightShader( light );
-
-		// setup interactions
-		light->firstInteraction = nullptr;
-		light->lastInteraction = nullptr;
-
-		light->numInteractions = 0;
-		light->numShadowOnlyInteractions = 0;
-		light->numLightOnlyInteractions = 0;
-		light->noSort = false;
-
-		R_AddWorldInteractions( light );
-		R_AddEntityInteractions( light );
-
-		if ( light->numInteractions && light->numInteractions != light->numShadowOnlyInteractions )
-		{
-			R_SortInteractions( light );
-
-			tr.pc.c_dlights++;
-		}
-		else
-		{
-			// skip all interactions of this light because it caused only shadow volumes
-			// but no lighting
-			tr.refdef.numInteractions -= light->numInteractions;
-		}
-	}
-}
-
 static std::vector<char> botDebugDrawCommands;
 void RE_SendBotDebugDrawCommands( std::vector<char> commands )
 {
@@ -2454,7 +2021,6 @@ or a mirror / remote location
 void R_RenderView( viewParms_t *parms )
 {
 	int      firstDrawSurf;
-	int      firstInteraction;
 
 	if ( parms->viewportWidth <= 0 || parms->viewportHeight <= 0 )
 	{
@@ -2476,7 +2042,6 @@ void R_RenderView( viewParms_t *parms )
 	tr.viewParms.viewCount = tr.viewCount; // % MAX_VIEWS;
 
 	firstDrawSurf = tr.refdef.numDrawSurfs;
-	firstInteraction = tr.refdef.numInteractions;
 
 	// set viewParms.world
 	R_RotateForViewer();
@@ -2489,7 +2054,7 @@ void R_RenderView( viewParms_t *parms )
 
 	if ( glConfig2.usingMaterialSystem && !r_materialSystemSkip.Get() ) {
 		tr.viewParms.viewID = tr.viewCount;
-		materialSystem.QueueSurfaceCull( tr.viewCount, tr.viewParms.pvsOrigin, (frustum_t*) tr.viewParms.frustums[0] );
+		materialSystem.QueueSurfaceCull( tr.viewCount, tr.viewParms.pvsOrigin, (frustum_t*) tr.viewParms.frustum );
 		materialSystem.AddAutospriteSurfaces();
 	} else {
 		R_AddWorldSurfaces();
@@ -2508,12 +2073,7 @@ void R_RenderView( viewParms_t *parms )
 	// set camera frustum planes in world space again, but this time including the far plane
 	tr.orientation = tr.viewParms.world;
 
-	// for parallel split shadow mapping
-	R_SetupSplitFrustums();
-
 	R_AddEntitySurfaces();
-
-	R_AddLightInteractions();
 
 	// Transform the blur vector in view space, FIXME for some we need reason invert its Z component
 	MatrixTransformNormal2( tr.viewParms.world.viewMatrix, tr.refdef.blurVec );
@@ -2521,9 +2081,6 @@ void R_RenderView( viewParms_t *parms )
 
 	tr.viewParms.drawSurfs = tr.refdef.drawSurfs + firstDrawSurf;
 	tr.viewParms.numDrawSurfs = tr.refdef.numDrawSurfs - firstDrawSurf;
-
-	tr.viewParms.interactions = tr.refdef.interactions + firstInteraction;
-	tr.viewParms.numInteractions = tr.refdef.numInteractions - firstInteraction;
 
 	R_SortDrawSurfs();
 

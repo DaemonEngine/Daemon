@@ -28,7 +28,6 @@ static Cvar::Cvar<bool> r_drawDynamicLights(
 	"r_drawDynamicLights", "render dynamic lights (if realtime lighting is enabled)", Cvar::NONE, true );
 
 static int r_firstSceneDrawSurf;
-static int r_firstSceneInteraction;
 
 static int r_numLights;
 static int r_firstSceneLight;
@@ -66,7 +65,6 @@ void R_ToggleSmpFrame()
 	backEndData[ tr.smpFrame ]->commands.used = 0;
 
 	r_firstSceneDrawSurf = 0;
-	r_firstSceneInteraction = 0;
 
 	r_numLights = 0;
 	r_firstSceneLight = 0;
@@ -307,48 +305,22 @@ void RE_AddDynamicLightToScene( const vec3_t org, float radius, float r, float g
 		return;
 	}
 
-	trRefLight_t* light;
-	// set last lights restrictInteractionEnd if needed
-	if ( r_numLights > r_firstSceneLight ) {
-		light = &backEndData[ tr.smpFrame ]->lights[ r_numLights - 1 ];
-		if( light->restrictInteractionFirst >= 0 ) {
-			light->restrictInteractionLast = r_numEntities - r_firstSceneEntity - 1;
-		}
+	if ( flags & REF_INVERSE_DLIGHT )
+	{
+		Log::Warn( "REF_INVERSE_DLIGHT not implemtented" );
+		return;
 	}
 
-	light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
+	refLight_t *light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
 
-	light->l.rlType = refLightType_t::RL_OMNI;
-	VectorCopy( org, light->l.origin );
+	light->rlType = refLightType_t::RL_OMNI;
+	VectorCopy( org, light->origin );
 
-	QuatClear( light->l.rotation );
-	VectorClear( light->l.center );
+	light->radius = radius;
 
-	// HACK: this will tell the renderer backend to use tr.defaultLightShader
-	light->l.attenuationShader = 0;
-
-	light->l.radius = radius;
-
-	light->l.color[ 0 ] = r;
-	light->l.color[ 1 ] = g;
-	light->l.color[ 2 ] = b;
-
-	light->l.inverseShadows = (flags & REF_INVERSE_DLIGHT) != 0;
-	light->l.noShadows = !r_realtimeLightingCastShadows->integer && !light->l.inverseShadows;
-
-	if( flags & REF_RESTRICT_DLIGHT ) {
-		light->restrictInteractionFirst = r_numEntities - r_firstSceneEntity;
-		light->restrictInteractionLast = 0;
-	} else {
-		light->restrictInteractionFirst = -1;
-		light->restrictInteractionLast = -1;
-	}
-
-	light->additive = true;
-
-	if ( light->l.inverseShadows ) {
-		VectorNegate( light->l.color, light->l.color );
-	}
+	light->color[ 0 ] = r;
+	light->color[ 1 ] = g;
+	light->color[ 2 ] = b;
 }
 
 static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {
@@ -565,9 +537,6 @@ void RE_RenderScene( const refdef_t *fd )
 	tr.refdef.numDrawSurfs = r_firstSceneDrawSurf;
 	tr.refdef.drawSurfs = backEndData[ tr.smpFrame ]->drawSurfs;
 
-	tr.refdef.numInteractions = r_firstSceneInteraction;
-	tr.refdef.interactions = backEndData[ tr.smpFrame ]->interactions;
-
 	tr.refdef.numEntities = r_numEntities - r_firstSceneEntity;
 	tr.refdef.entities = &backEndData[ tr.smpFrame ]->entities[ r_firstSceneEntity ];
 
@@ -655,7 +624,6 @@ void RE_RenderScene( const refdef_t *fd )
 
 	// the next scene rendered in this frame will tack on after this one
 	r_firstSceneDrawSurf = tr.refdef.numDrawSurfs;
-	r_firstSceneInteraction = tr.refdef.numInteractions;
 	r_firstSceneEntity = r_numEntities;
 	r_firstSceneLight = r_numLights;
 	r_firstScenePoly = r_numPolys;

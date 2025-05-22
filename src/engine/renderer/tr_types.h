@@ -45,6 +45,8 @@ Maryland 20850 USA.
 #define bool DO_NOT_USE_BOOL_IN_IPC_MESSAGE_TYPES
 using bool8_t = uint8_t;
 
+// TODO(0.56): Remove all shadow stuff in here?
+
 // XreaL BEGIN
 #define MAX_REF_LIGHTS     1024
 #define MAX_REF_ENTITIES   1023 // can't be increased without changing drawsurf bit packing
@@ -84,6 +86,7 @@ using bool8_t = uint8_t;
 #define GL_INDEX_TYPE GL_UNSIGNED_INT
 using glIndex_t = unsigned int;
 
+// TODO(0.56): drop RSF_LIGHT_ATTENUATION
 enum RegisterShaderFlags_t {
 	RSF_DEFAULT = BIT( 0 ),
 	RSF_2D = BIT( 1 ),
@@ -121,11 +124,6 @@ enum class refEntityType_t
 
   RT_MAX_REF_ENTITY_TYPE
 };
-
-// XreaL BEGIN
-
-// RB: defining any of the following macros would break the compatibility to old ET mods
-//#define USE_REFENTITY_NOSHADOWID 1
 
 // RB: having bone names for each refEntity_t takes several MiBs
 // in backEndData_t so only use it for debugging and development
@@ -195,11 +193,6 @@ struct refEntity_t
 	float radius;
 	float rotation;
 
-#if defined( USE_REFENTITY_NOSHADOWID )
-	// extra light interaction information
-	short noShadowID;
-#endif
-
 	int altShaderIndex;
 
 	// KEEP SKELETON AT THE END OF THE STRUCTURE
@@ -208,50 +201,6 @@ struct refEntity_t
 	refSkeleton_t skeleton;
 
 };
-
-// ================================================================================================
-
-// XreaL BEGIN
-
-enum class refLightType_t
-{
-  RL_OMNI, // point light
-  RL_PROJ, // spot light
-  RL_DIRECTIONAL, // sun light
-
-  RL_MAX_REF_LIGHT_TYPE
-};
-
-struct refLight_t
-{
-	refLightType_t rlType;
-//  int             lightfx;
-
-	qhandle_t attenuationShader;
-
-	vec3_t    origin;
-	quat_t    rotation;
-	vec3_t    center;
-	vec3_t    color; // should be color normalized
-
-	// omni-directional light specific
-	float     radius;
-
-	// projective light specific
-	vec3_t   projTarget;
-	vec3_t   projRight;
-	vec3_t   projUp;
-	vec3_t   projStart;
-	vec3_t   projEnd;
-
-	bool8_t noShadows;
-	short    noShadowID; // don't cast shadows of all entities with this id
-
-	bool8_t inverseShadows; // don't cast light and draw shadows by darken the scene
-	// this is useful for drawing player shadows with shadow mapping
-};
-
-// XreaL END
 
 // ================================================================================================
 

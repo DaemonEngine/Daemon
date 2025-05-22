@@ -46,12 +46,6 @@ void R_PerformanceCounters()
 		           backEnd.pc.c_views, backEnd.pc.c_portals, backEnd.pc.c_batches, backEnd.pc.c_surfaces, tr.pc.c_leafs,
 		           backEnd.pc.c_vertexes, backEnd.pc.c_indexes / 3 );
 
-		Log::Notice("%i lights %i bout %i pvsout %i interactions",
-		           tr.pc.c_dlights,
-		           tr.pc.c_box_cull_light_out,
-		           tr.pc.c_pvs_cull_light_out,
-		           tr.pc.c_dlightInteractions );
-
 		Log::Notice("%i draws %i vbos %i ibos %i verts %i tris",
 		           backEnd.pc.c_drawElements,
 		           backEnd.pc.c_vboVertexBuffers, backEnd.pc.c_vboIndexBuffers,
@@ -79,25 +73,9 @@ void R_PerformanceCounters()
 	{
 		Log::Notice("viewcluster: %i", tr.visClusters[ tr.visIndex ] );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_LIGHTS ))
-	{
-		Log::Notice("dlight srf:%i culled:%i", tr.pc.c_dlightSurfaces, tr.pc.c_dlightSurfacesCulled );
-
-		Log::Notice("dlights:%i interactions:%i", tr.pc.c_dlights, tr.pc.c_dlightInteractions );
-	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADOWCUBE_CULLING ))
-	{
-		Log::Notice("omni pyramid tests:%i bin:%i bclip:%i bout:%i",
-		           tr.pc.c_pyramidTests, tr.pc.c_pyramid_cull_ent_in, tr.pc.c_pyramid_cull_ent_clip, tr.pc.c_pyramid_cull_ent_out );
-	}
 	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_FOG ))
 	{
 		Log::Notice("fog srf:%i batches:%i", backEnd.pc.c_fogSurfaces, backEnd.pc.c_fogBatches );
-	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADING_TIMES ))
-	{
-		Log::Notice("forward shading times: ambient:%i lighting:%i", backEnd.pc.c_forwardAmbientTime,
-			           backEnd.pc.c_forwardLightingTime );
 	}
 	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_NEAR_FAR ))
 	{
@@ -245,8 +223,7 @@ R_AddSetupLightsCmd
 */
 void R_AddSetupLightsCmd()
 {
-	if ( !glConfig2.realtimeLighting ||
-	     r_realtimeLightingRenderer.Get() != Util::ordinal( realtimeLightingRenderer_t::TILED ) )
+	if ( !glConfig2.realtimeLighting )
 	{
 		return;
 	}

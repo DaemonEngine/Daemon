@@ -2514,22 +2514,6 @@ static void R_CreateRandomNormalsImage()
 	tr.randomNormalsImage = R_CreateImage( "_randomNormals", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
 }
 
-static void R_CreateNoFalloffImage()
-{
-	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
-	// we use a solid white image instead of disabling texturing
-	memset(data, 255, sizeof(data));
-
-	byte *dataPtr = &data[0][0][0];
-
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_DEFAULT;
-	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
-
-	tr.noFalloffImage = R_CreateImage( "_noFalloff", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
-}
-
 static void R_CreateContrastRenderFBOImage()
 {
 	if ( !glConfig2.bloom)
@@ -2624,22 +2608,6 @@ static void R_CreateDepthRenderImage()
 		return;
 	}
 
-	if ( r_realtimeLightingRenderer.Get() != Util::ordinal( realtimeLightingRenderer_t::TILED ) )
-	{
-		/* Do not create lightTile images when the tiled renderer is not used.
-
-		Those images are part of the tiled dynamic lighting renderer,
-		it's better to not create them and save memory when such effects
-		are disabled.
-
-		Some hardware not powerful enough to supported dynamic lighting may
-		even not support the related formats.
-
-		See https://github.com/DaemonEngine/Daemon/issues/745 */
-
-		return;
-	}
-
 	{
 		int width = glConfig.vidWidth;
 		int height = glConfig.vidHeight;
@@ -2683,156 +2651,6 @@ static void R_CreatePortalRenderImage()
 
 	tr.portalRenderImage = R_CreateImage( "_portalRender", nullptr, width, height, 1, imageParams );
 }
-
-// *INDENT-OFF*
-static void R_CreateShadowMapFBOImage()
-{
-	if ( !glConfig2.shadowMapping )
-	{
-		return;
-	}
-
-	int numFactor = 1;
-	int format = IF_NOPICMIP;
-
-	// FIXME: We should test if those formats are supported.
-	switch( glConfig2.shadowingMode )
-	{
-		case shadowingMode_t::SHADOWING_ESM16:
-			format |= IF_ONECOMP16F;
-			break;
-		case shadowingMode_t::SHADOWING_ESM32:
-			format |= IF_ONECOMP32F;
-			break;
-		case shadowingMode_t::SHADOWING_VSM16:
-			numFactor = 2;
-			format |= IF_TWOCOMP16F;
-			break;
-		case shadowingMode_t::SHADOWING_VSM32:
-			numFactor = 2;
-			format |= IF_TWOCOMP32F;
-			break;
-		case shadowingMode_t::SHADOWING_EVSM32:
-			numFactor = 2;
-			if ( r_evsmPostProcess->integer )
-			{
-				format |= IF_ONECOMP32F;
-			}
-			else
-			{
-				format |= IF_RGBA32F;
-			}
-			break;
-		case shadowingMode_t::SHADOWING_NONE:
-		case shadowingMode_t::SHADOWING_BLOB:
-		default:
-			DAEMON_ASSERT( false );
-			return;
-	}
-
-	int numShadowMaps = MAX_SHADOWMAPS;
-
-	if ( r_softShadowsPP->integer )
-	{
-		numShadowMaps *= numFactor;
-	}
-
-	filterType_t filter = filterType_t::FT_NEAREST;
-
-	if( r_shadowMapLinearFilter->integer )
-	{
-		filter = filterType_t::FT_LINEAR;
-	}
-
-	imageParams_t imageParams = {};
-	imageParams.bits = format;
-	imageParams.filterType = filter;
-	imageParams.wrapType = wrapTypeEnum_t::WT_ONE_CLAMP;
-
-	for ( int i = 0; i < numShadowMaps; i++ )
-	{
-		int size = shadowMapResolutions[ i % MAX_SHADOWMAPS ];
-
-		tr.shadowMapFBOImage[ i ] = R_CreateImage( va( "_shadowMapFBO%d", i ), nullptr, size, size, 1, imageParams );
-		tr.shadowClipMapFBOImage[ i ] = R_CreateImage( va( "_shadowClipMapFBO%d", i ), nullptr, size, size, 1, imageParams );
-	}
-
-	// sun shadow maps
-	for ( int i = 0; i < numShadowMaps; i++ )
-	{
-		int size = sunShadowMapResolutions[ i % MAX_SHADOWMAPS ];
-
-		tr.sunShadowMapFBOImage[ i ] = R_CreateImage( va( "_sunShadowMapFBO%d", i ), nullptr, size, size, 1, imageParams );
-		tr.sunShadowClipMapFBOImage[ i ] = R_CreateImage( va( "_sunShadowClipMapFBO%d", i ), nullptr, size, size, 1, imageParams );
-	}
-}
-
-// *INDENT-ON*
-
-// *INDENT-OFF*
-static void R_CreateShadowCubeFBOImage()
-{
-	if ( !glConfig2.shadowMapping )
-	{
-		return;
-	}
-
-	int format = IF_NOPICMIP;
-
-	// FIXME: We should test if those formats are supported.
-	switch( glConfig2.shadowingMode )
-	{
-		case shadowingMode_t::SHADOWING_ESM16:
-			format |= IF_ONECOMP16F;
-			break;
-		case shadowingMode_t::SHADOWING_ESM32:
-			format |= IF_ONECOMP32F;
-			break;
-		case shadowingMode_t::SHADOWING_VSM16:
-			format |= IF_TWOCOMP16F;
-			break;
-		case shadowingMode_t::SHADOWING_VSM32:
-			format |= IF_TWOCOMP32F;
-			break;
-		case shadowingMode_t::SHADOWING_EVSM32:
-			if ( r_evsmPostProcess->integer )
-			{
-				format |= IF_ONECOMP32F;
-			}
-			else
-			{
-				format |= IF_RGBA32F;
-			}
-			break;
-		case shadowingMode_t::SHADOWING_NONE:
-		case shadowingMode_t::SHADOWING_BLOB:
-		default:
-			DAEMON_ASSERT( false );
-			return;
-	}
-
-	filterType_t filter = filterType_t::FT_NEAREST;
-
-	if ( r_shadowMapLinearFilter->integer )
-	{
-		filter = filterType_t::FT_LINEAR;
-	}
-
-	imageParams_t imageParams = {};
-	imageParams.bits = format;
-	imageParams.filterType = filter;
-	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
-
-	for ( int i = 0; i < 5; i++ )
-	{
-		int size = shadowMapResolutions[ i ];
-
-		tr.shadowCubeFBOImage[ i ] = R_CreateCubeImage( va( "_shadowCubeFBO%d", i ), nullptr, size, size, imageParams );
-		tr.shadowClipCubeFBOImage[ i ] = R_CreateCubeImage( va( "_shadowClipCubeFBO%d", i ), nullptr, size, size, imageParams );
-	}
-}
-
-// *INDENT-ON*
 
 // *INDENT-OFF*
 static void R_CreateBlackCubeImage()
@@ -3027,14 +2845,11 @@ void R_CreateBuiltinImages()
 
 	R_CreateRandomNormalsImage();
 	R_CreateFogImage();
-	R_CreateNoFalloffImage();
 	R_CreateContrastRenderFBOImage();
 	R_CreateBloomRenderFBOImages();
 	R_CreateCurrentRenderImage();
 	R_CreateDepthRenderImage();
 	R_CreatePortalRenderImage();
-	R_CreateShadowMapFBOImage();
-	R_CreateShadowCubeFBOImage();
 	R_CreateBlackCubeImage();
 	R_CreateWhiteCubeImage();
 	R_CreateColorGradeImage();

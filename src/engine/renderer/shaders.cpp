@@ -37,12 +37,8 @@
 #include "vertexSimple_vp.glsl.h"
 #include "vertexSkinning_vp.glsl.h"
 
-#include "debugShadowMap_vp.glsl.h"
-#include "debugShadowMap_fp.glsl.h"
 #include "fogQuake3_vp.glsl.h"
 #include "fogQuake3_fp.glsl.h"
-#include "forwardLighting_vp.glsl.h"
-#include "forwardLighting_fp.glsl.h"
 #include "generic_vp.glsl.h"
 #include "generic_fp.glsl.h"
 #include "heatHaze_vp.glsl.h"
@@ -57,8 +53,6 @@
 #include "reflection_CB_fp.glsl.h"
 #include "screen_vp.glsl.h"
 #include "screen_fp.glsl.h"
-#include "shadowFill_vp.glsl.h"
-#include "shadowFill_fp.glsl.h"
 #include "skybox_vp.glsl.h"
 #include "skybox_fp.glsl.h"
 
@@ -105,12 +99,8 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "vertexSkinning_vp.glsl", std::string( reinterpret_cast< const char* >( vertexSkinning_vp_glsl ), sizeof( vertexSkinning_vp_glsl ) ) },
 
 	// Regular shaders
-	{ "debugShadowMap_vp.glsl", std::string( reinterpret_cast< const char* >( debugShadowMap_vp_glsl ), sizeof( debugShadowMap_vp_glsl ) ) },
-	{ "debugShadowMap_fp.glsl", std::string( reinterpret_cast< const char* >( debugShadowMap_fp_glsl ), sizeof( debugShadowMap_fp_glsl ) ) },
 	{ "fogQuake3_vp.glsl", std::string( reinterpret_cast< const char* >( fogQuake3_vp_glsl ), sizeof( fogQuake3_vp_glsl ) ) },
 	{ "fogQuake3_fp.glsl", std::string( reinterpret_cast< const char* >( fogQuake3_fp_glsl ), sizeof( fogQuake3_fp_glsl ) ) },
-	{ "forwardLighting_vp.glsl", std::string( reinterpret_cast< const char* >( forwardLighting_vp_glsl ), sizeof( forwardLighting_vp_glsl ) ) },
-	{ "forwardLighting_fp.glsl", std::string( reinterpret_cast< const char* >( forwardLighting_fp_glsl ), sizeof( forwardLighting_fp_glsl ) ) },
 	{ "generic_vp.glsl", std::string( reinterpret_cast< const char* >( generic_vp_glsl ), sizeof( generic_vp_glsl ) ) },
 	{ "generic_fp.glsl", std::string( reinterpret_cast< const char* >( generic_fp_glsl ), sizeof( generic_fp_glsl ) ) },
 	{ "heatHaze_vp.glsl", std::string( reinterpret_cast< const char* >( heatHaze_vp_glsl ), sizeof( heatHaze_vp_glsl ) ) },
@@ -125,8 +115,6 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "reflection_CB_fp.glsl", std::string( reinterpret_cast< const char* >( reflection_CB_fp_glsl ), sizeof( reflection_CB_fp_glsl ) ) },
 	{ "screen_vp.glsl", std::string( reinterpret_cast< const char* >( screen_vp_glsl ), sizeof( screen_vp_glsl ) ) },
 	{ "screen_fp.glsl", std::string( reinterpret_cast< const char* >( screen_fp_glsl ), sizeof( screen_fp_glsl ) ) },
-	{ "shadowFill_vp.glsl", std::string( reinterpret_cast< const char* >( shadowFill_vp_glsl ), sizeof( shadowFill_vp_glsl ) ) },
-	{ "shadowFill_fp.glsl", std::string( reinterpret_cast< const char* >( shadowFill_fp_glsl ), sizeof( shadowFill_fp_glsl ) ) },
 	{ "skybox_vp.glsl", std::string( reinterpret_cast< const char* >( skybox_vp_glsl ), sizeof( skybox_vp_glsl ) ) },
 	{ "skybox_fp.glsl", std::string( reinterpret_cast< const char* >( skybox_fp_glsl ), sizeof( skybox_fp_glsl ) ) },
 	});

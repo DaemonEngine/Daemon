@@ -498,6 +498,17 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 
 	totalBatchCount = 0;
 
+	for ( MaterialSurface& surface : surfaces ) {
+		if ( surface.skyBrush ) {
+			continue;
+		}
+
+		for ( uint8_t stage = 0; stage < surface.stages; stage++ ) {
+			Material* material = &materialPacks[surface.materialPackIDs[stage]].materials[surface.materialIDs[stage]];
+			material->drawCommandCount++;
+		}
+	}
+
 	uint32_t batchOffset = 0;
 	uint32_t globalID = 0;
 	for ( MaterialPack& pack : materialPacks ) {
@@ -514,12 +525,16 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 			batchOffset += batchCount;
 			material.globalID = globalID;
 
+			material.drawCommandCount = 0;
+
 			totalBatchCount += batchCount;
 			globalID++;
 		}
 	}
 
 	Log::Debug( "Total batch count: %u", totalBatchCount );
+
+	totalDrawSurfs = surfaces.size();
 
 	surfaceDescriptorsCount = totalDrawSurfs;
 	descriptorSize = BOUNDING_SPHERE_SIZE + maxStages;
@@ -650,7 +665,7 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 
 		for ( uint8_t stage = 0; stage < surface.stages; stage++ ) {
 			Material* material = &materialPacks[surface.materialPackIDs[stage]].materials[surface.materialIDs[stage]];
-			uint32_t cmdID = material->surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH + material->drawCommandCount2;
+			uint32_t cmdID = material->surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH + material->drawCommandCount;
 			// Add 1 because cmd 0 == no-command
 			surfaceDescriptor.surfaceCommandIDs[stage] = cmdID + 1;
 
@@ -670,7 +685,7 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 			surfaceCommand.drawCommand.baseInstance |= ( HasLightMap( &surface ) ? GetLightMapNum( &surface ) : 255 ) << LIGHTMAP_BITS;
 			surfaceCommands[cmdID] = surfaceCommand;
 
-			material->drawCommandCount2++;
+			material->drawCommandCount++;
 		}
 
 		memcpy( surfaceDescriptors, &surfaceDescriptor, descriptorSize * sizeof( uint32_t ) );
@@ -685,7 +700,7 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 	for ( MaterialPack& pack : materialPacks ) {
 		totalCount += pack.materials.size();
 	}
-	Log::Notice( "Generated %u BSP materials from %u BSP surfaces", totalCount, surfaces.size() );
+	Log::Notice( "Generated %u BSP materials from %u BSP surfaces", totalCount, totalDrawSurfs );
 	Log::Notice( "Materials UBO: total: %.2f kb, dynamic: %.2f kb, texData: %.2f kb",
 		totalStageSize * 4 / 1024.0f, dynamicStagesSize * 4 / 1024.0f,
 		( texData.size() + dynamicTexData.size() ) * TEX_BUNDLE_SIZE * 4 / 1024.0f );
@@ -740,7 +755,6 @@ void BindShaderGeneric3D( Material* material ) {
 	// Set shader uniforms.
 	if ( material->tcGenEnvironment ) {
 		gl_genericShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
-		gl_genericShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
 	}
 
 	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
@@ -794,11 +808,9 @@ void BindShaderLightMapping( Material* material ) {
 		gl_lightMappingShaderMaterial->SetUniformBlock_Lights( tr.dlightUBO );
 
 		// bind u_LightTiles
-		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) ) {
-			gl_lightMappingShaderMaterial->SetUniform_LightTilesBindless(
-				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
-			);
-		}
+		gl_lightMappingShaderMaterial->SetUniform_LightTilesBindless(
+			GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
+		);
 	}
 
 	gl_lightMappingShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
@@ -1317,8 +1329,6 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 
 	packIDs[materialPack] = id;
 
-	materials[previousMaterialID].drawCommandCount++;
-
 	stage++;
 }
 
@@ -1326,8 +1336,6 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 A material represents a distinct global OpenGL state (e. g. blend function, depth test, depth write etc.)
 Materials can have a dependency on other materials to make sure that consecutive stages are rendered in the proper order */
 void MaterialSystem::GenerateMaterial( MaterialSurface* surface ) {
-	totalDrawSurfs++;
-
 	uint32_t stage = 0;
 	uint32_t previousMaterialID = 0;
 
@@ -1429,9 +1437,7 @@ void MaterialSystem::AddStageTextures( MaterialSurface* surface, shader_t* shade
 	surface->texDataDynamic[stage] = dynamic;
 
 	if ( glConfig2.realtimeLighting ) {
-		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) ) {
-			material->AddTexture( tr.lighttileRenderImage->texture );
-		}
+		material->AddTexture( tr.lighttileRenderImage->texture );
 	}
 }
 
