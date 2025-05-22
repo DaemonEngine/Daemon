@@ -540,7 +540,7 @@ qhandle_t RE_RegisterAnimation( const char *name )
 		return 0;
 	}
 
-	if ( Str::IsPrefix( "MD5Version", buffer ) )
+	if ( Str::IsPrefix( MD5_IDENTSTRING, buffer ) )
 	{
 		loaded = R_LoadMD5Anim( anim, buffer.c_str(), name );
 	}
