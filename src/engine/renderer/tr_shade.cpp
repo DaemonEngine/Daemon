@@ -207,6 +207,8 @@ void GLSL_InitWorldShaders() {
 	// Material system shaders that are always loaded if material system is available
 	if ( glConfig2.usingMaterialSystem ) {
 		gl_shaderManager.LoadShader( gl_cullShader );
+
+		gl_cullShader->MarkProgramForBuilding( 0 );
 	}
 }
 
@@ -240,6 +242,10 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.LoadShader( gl_clearSurfacesShader );
 		gl_shaderManager.LoadShader( gl_processSurfacesShader );
 		gl_shaderManager.LoadShader( gl_depthReductionShader );
+
+		gl_clearSurfacesShader->MarkProgramForBuilding( 0 );
+		gl_processSurfacesShader->MarkProgramForBuilding( 0 );
+		gl_depthReductionShader->MarkProgramForBuilding( 0 );
 	}
 
 	if ( tr.world ) // this only happens with /glsl_restart
@@ -267,6 +273,10 @@ static void GLSL_InitGPUShadersOrError()
 			gl_shaderManager.LoadShader( gl_depthtile1Shader );
 			gl_shaderManager.LoadShader( gl_depthtile2Shader );
 			gl_shaderManager.LoadShader( gl_lighttileShader );
+
+			gl_depthtile1Shader->MarkProgramForBuilding( 0 );
+			gl_depthtile2Shader->MarkProgramForBuilding( 0 );
+			gl_lighttileShader->MarkProgramForBuilding( 0 );
 			DAEMON_FALLTHROUGH;
 		default:
 			/* Dynamic shadowing code also needs this shader.
@@ -302,9 +312,13 @@ static void GLSL_InitGPUShadersOrError()
 		// skybox drawing for abitrary polygons
 		gl_shaderManager.LoadShader( gl_skyboxShader );
 
+		gl_skyboxShader->MarkProgramForBuilding( 0 );
+
 		if ( glConfig2.usingMaterialSystem )
 		{
 			gl_shaderManager.LoadShader( gl_skyboxShaderMaterial );
+
+			gl_skyboxShaderMaterial->MarkProgramForBuilding( 0 );
 		}
 	}
 
@@ -320,6 +334,8 @@ static void GLSL_InitGPUShadersOrError()
 
 		// global fog post process effect
 		gl_shaderManager.LoadShader( gl_fogGlobalShader );
+
+		gl_fogGlobalShader->MarkProgramForBuilding( 0 );
 	}
 
 	if ( r_heatHaze->integer )
@@ -338,26 +354,38 @@ static void GLSL_InitGPUShadersOrError()
 		// screen post process effect
 		gl_shaderManager.LoadShader( gl_screenShader );
 
+		gl_screenShader->MarkProgramForBuilding( 0 );
+
 		if ( glConfig2.usingMaterialSystem )
 		{
 			gl_shaderManager.LoadShader( gl_screenShaderMaterial );
+
+			gl_screenShaderMaterial->MarkProgramForBuilding( 0 );
 		}
 
 		// LDR bright pass filter
 		gl_shaderManager.LoadShader( gl_contrastShader );
+
+		gl_contrastShader->MarkProgramForBuilding( 0 );
 	}
 
 	
 	// portal process effect
 	gl_shaderManager.LoadShader( gl_portalShader );
 
+	gl_portalShader->MarkProgramForBuilding( 0 );
+
 	// camera post process effect
 	gl_shaderManager.LoadShader( gl_cameraEffectsShader );
+
+	gl_cameraEffectsShader->MarkProgramForBuilding( 0 );
 
 	if ( glConfig2.bloom || glConfig2.shadowMapping )
 	{
 		// gaussian blur
 		gl_shaderManager.LoadShader( gl_blurShader );
+
+		gl_blurShader->MarkProgramForBuilding( 0 );
 	}
 
 	if ( glConfig2.shadowMapping )
@@ -382,21 +410,27 @@ static void GLSL_InitGPUShadersOrError()
 	if ( glConfig2.motionBlur )
 	{
 		gl_shaderManager.LoadShader( gl_motionblurShader );
+
+		gl_motionblurShader->MarkProgramForBuilding( 0 );
 	}
 
 	if ( glConfig2.ssao )
 	{
 		gl_shaderManager.LoadShader( gl_ssaoShader );
+
+		gl_ssaoShader->MarkProgramForBuilding( 0 );
 	}
 
 	if ( r_FXAA->integer != 0 )
 	{
 		gl_shaderManager.LoadShader( gl_fxaaShader );
+
+		gl_fxaaShader->MarkProgramForBuilding( 0 );
 	}
 
 	if ( r_lazyShaders.Get() == 0 )
 	{
-		gl_shaderManager.BuildAll();
+		gl_shaderManager.BuildAll( false );
 	}
 }
 
@@ -438,7 +472,7 @@ void GLSL_InitGPUShaders()
 			GLSL_InitGPUShadersOrError();
 			if ( r_lazyShaders.Get() == 1 && tr.world != nullptr )
 			{
-				gl_shaderManager.BuildAll();
+				gl_shaderManager.BuildAll( false );
 			}
 			Log::Warn("External shaders in use.");
 		}
@@ -519,7 +553,7 @@ void GLSL_FinishGPUShaders()
 {
 	R_SyncRenderThread();
 
-	gl_shaderManager.BuildAll();
+	gl_shaderManager.BuildAll( true );
 }
 
 /*
@@ -788,6 +822,87 @@ void SetNormalScale( const shaderStage_t *pStage, vec3_t normalScale )
 
 // *INDENT-ON*
 
+void ProcessShaderNONE( const shaderStage_t* ) {
+	ASSERT_UNREACHABLE();
+}
+
+void ProcessShaderNOP( const shaderStage_t* ) {
+}
+
+void ProcessShaderGeneric3D( const shaderStage_t* pStage ) {
+	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
+	gl_genericShader->SetTCGenEnvironment( pStage->tcGen_Environment );
+	gl_genericShader->SetTCGenLightmap( pStage->tcGen_Lightmap );
+	gl_genericShader->SetDepthFade( pStage->hasDepthFade );
+}
+
+void ProcessShaderLightMapping( const shaderStage_t* pStage ) {
+	lightMode_t lightMode;
+	deluxeMode_t deluxeMode;
+	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
+
+	bool enableDeluxeMapping = ( deluxeMode == deluxeMode_t::MAP );
+	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
+	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
+
+	// Not implemented yet in PBR code.
+	bool enableReflectiveSpecular =
+		pStage->enableSpecularMapping && glConfig2.reflectionMapping
+		&& !( tr.refdef.rdflags & RDF_NOCUBEMAP );
+
+	gl_lightMappingShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_lightMappingShader->SetVertexAnimation( tess.vboVertexAnimation );
+
+	gl_lightMappingShader->SetBspSurface( tess.bspSurface );
+
+	gl_lightMappingShader->SetDeluxeMapping( enableDeluxeMapping );
+
+	gl_lightMappingShader->SetGridLighting( enableGridLighting );
+	gl_lightMappingShader->SetGridDeluxeMapping( enableGridDeluxeMapping );
+
+	gl_lightMappingShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
+
+	gl_lightMappingShader->SetReliefMapping( pStage->enableReliefMapping );
+
+	gl_lightMappingShader->SetReflectiveSpecular( enableReflectiveSpecular );
+
+	gl_lightMappingShader->SetPhysicalShading( pStage->enablePhysicalMapping );
+}
+
+void ProcessShaderReflection( const shaderStage_t* pStage ) {
+	gl_reflectionShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
+
+	gl_reflectionShader->SetReliefMapping( pStage->enableReliefMapping );
+
+	gl_reflectionShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_reflectionShader->SetVertexAnimation( tess.vboVertexAnimation );
+}
+
+void ProcessShaderHeatHaze( const shaderStage_t* ) {
+	gl_heatHazeShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_heatHazeShader->SetVertexAnimation( tess.vboVertexAnimation );
+}
+
+void ProcessShaderLiquid( const shaderStage_t* pStage ) {
+	lightMode_t lightMode;
+	deluxeMode_t deluxeMode;
+	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
+
+	gl_liquidShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
+
+	gl_liquidShader->SetReliefMapping( pStage->enableReliefMapping );
+
+	gl_liquidShader->SetGridDeluxeMapping( deluxeMode == deluxeMode_t::GRID );
+
+	gl_liquidShader->SetGridLighting( lightMode == lightMode_t::GRID );
+}
+
+void ProcessShaderFog( const shaderStage_t* ) {
+	gl_fogQuake3Shader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_fogQuake3Shader->SetVertexAnimation( tess.vboVertexAnimation );
+}
+
 void Render_NONE( shaderStage_t * )
 {
 	ASSERT_UNREACHABLE();
@@ -807,11 +922,7 @@ void Render_generic3D( shaderStage_t *pStage )
 	bool needDepthMap = pStage->hasDepthFade;
 
 	// choose right shader program ----------------------------------
-	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
-	gl_genericShader->SetTCGenEnvironment( pStage->tcGen_Environment );
-	gl_genericShader->SetTCGenLightmap( pStage->tcGen_Lightmap );
-	gl_genericShader->SetDepthFade( hasDepthFade );
+	ProcessShaderGeneric3D( pStage );
 	gl_genericShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
@@ -945,11 +1056,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 		stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_ATEST_BITS );
 	}
 
-	bool enableDeluxeMapping = ( deluxeMode == deluxeMode_t::MAP );
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
-
-	DAEMON_ASSERT( !( enableDeluxeMapping && enableGridDeluxeMapping ) );
 
 	// Not implemented yet in PBR code.
 	bool enableReflectiveSpecular =
@@ -959,27 +1067,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 	GL_State( stateBits );
 
 	// choose right shader program ----------------------------------
-
-	gl_lightMappingShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-
-	gl_lightMappingShader->SetVertexAnimation( tess.vboVertexAnimation );
-
-	gl_lightMappingShader->SetBspSurface( tess.bspSurface );
-
-	gl_lightMappingShader->SetDeluxeMapping( enableDeluxeMapping );
-
-	gl_lightMappingShader->SetGridLighting( enableGridLighting );
-
-	gl_lightMappingShader->SetGridDeluxeMapping( enableGridDeluxeMapping );
-
-	gl_lightMappingShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
-
-	gl_lightMappingShader->SetReliefMapping( pStage->enableReliefMapping );
-
-	gl_lightMappingShader->SetReflectiveSpecular( enableReflectiveSpecular );
-
-	gl_lightMappingShader->SetPhysicalShading( pStage->enablePhysicalMapping );
-
+	ProcessShaderLightMapping( pStage );
 	gl_lightMappingShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
@@ -1212,7 +1300,7 @@ static void Render_shadowFill( shaderStage_t *pStage )
 	GL_State( stateBits );
 
 	gl_shadowFillShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_shadowFillShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+	gl_shadowFillShader->SetVertexAnimation( tess.vboVertexAnimation );
 
 	gl_shadowFillShader->SetMacro_LIGHT_DIRECTIONAL( backEnd.currentLight->l.rlType == refLightType_t::RL_DIRECTIONAL );
 
@@ -1286,7 +1374,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_omniXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_forwardLightingShader_omniXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+	gl_forwardLightingShader_omniXYZ->SetVertexAnimation( tess.vboVertexAnimation );
 
 	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
@@ -1461,7 +1549,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_projXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_forwardLightingShader_projXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+	gl_forwardLightingShader_projXYZ->SetVertexAnimation( tess.vboVertexAnimation );
 
 	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
@@ -1637,7 +1725,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_directionalSun->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_forwardLightingShader_directionalSun->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+	gl_forwardLightingShader_directionalSun->SetVertexAnimation( tess.vboVertexAnimation );
 
 	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
@@ -1838,13 +1926,7 @@ void Render_reflection_CB( shaderStage_t *pStage )
 	GL_State( pStage->stateBits );
 
 	// choose right shader program ----------------------------------
-	gl_reflectionShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
-
-	gl_reflectionShader->SetReliefMapping( pStage->enableReliefMapping );
-
-	gl_reflectionShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_reflectionShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
-
+	ProcessShaderReflection( pStage );
 	gl_reflectionShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
@@ -2014,9 +2096,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 	GL_State( stateBits );
 
 	// choose right shader program ----------------------------------
-	gl_heatHazeShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_heatHazeShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
-
+	ProcessShaderHeatHaze( pStage );
 	gl_heatHazeShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
@@ -2102,13 +2182,7 @@ void Render_liquid( shaderStage_t *pStage )
 	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
 
 	// choose right shader program
-	gl_liquidShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
-
-	gl_liquidShader->SetReliefMapping( pStage->enableReliefMapping );
-
-	gl_liquidShader->SetGridDeluxeMapping( deluxeMode == deluxeMode_t::GRID );
-
-	gl_liquidShader->SetGridLighting( lightMode == lightMode_t::GRID );
+	ProcessShaderLiquid( pStage );
 
 	// enable shader, set arrays
 	gl_liquidShader->BindProgram( pStage->deformIndex );
@@ -2238,9 +2312,7 @@ void Render_fog( shaderStage_t* pStage )
 
 	GL_State( pStage->stateBits );
 
-	gl_fogQuake3Shader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_fogQuake3Shader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
-
+	ProcessShaderFog( pStage );
 	gl_fogQuake3Shader->BindProgram( 0 );
 
 	gl_fogQuake3Shader->SetUniform_FogDistanceVector( fogDistanceVector );

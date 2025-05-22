@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "gl_shader.h"
 #include "framework/CvarSystem.h"
 #include "Material.h"
+#include "GeometryOptimiser.h"
 #include <iomanip>
 
 static const int MAX_SHADERTABLE_HASH = 1024;
@@ -5355,6 +5356,7 @@ static void SetStagesRenderers()
 	struct stageRendererOptions_t {
 		// Core renderer (code path for when only OpenGL Core is available, or compatible OpenGL 2).
 		stageRenderer_t colorRenderer;
+		stageShaderBuildMarker_t shaderBuildMarker;
 
 		// Material renderer (code path for advanced OpenGL techniques like bindless textures).
 		surfaceDataUpdater_t surfaceDataUpdater;
@@ -5371,7 +5373,7 @@ static void SetStagesRenderers()
 		shaderStage_t *stage = &stages[ s ];
 
 		stageRendererOptions_t stageRendererOptions = {
-			&Render_NONE,
+			&Render_NONE, &MarkShaderBuildNONE,
 			&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
 			false, false,
 		};
@@ -5382,7 +5384,7 @@ static void SetStagesRenderers()
 		{
 			case stageType_t::ST_COLORMAP:
 				stageRendererOptions = {
-					&Render_generic,
+					&Render_generic, &MarkShaderBuildGeneric3D,
 					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
 					opaqueOrLess, false,
 				};
@@ -5390,7 +5392,7 @@ static void SetStagesRenderers()
 			case stageType_t::ST_STYLELIGHTMAP:
 			case stageType_t::ST_STYLECOLORMAP:
 				stageRendererOptions = {
-					&Render_generic3D,
+					&Render_generic3D, &MarkShaderBuildGeneric3D,
 					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
 					true, false,
 				};
@@ -5399,14 +5401,14 @@ static void SetStagesRenderers()
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				stageRendererOptions = {
-					&Render_lightMapping,
+					&Render_lightMapping, &MarkShaderBuildLightMapping,
 					&UpdateSurfaceDataLightMapping, &BindShaderLightMapping, &ProcessMaterialLightMapping,
 					true, true,
 				};
 				break;
 			case stageType_t::ST_COLLAPSE_COLORMAP:
 				stageRendererOptions = {
-					&Render_lightMapping,
+					&Render_lightMapping, &MarkShaderBuildLightMapping,
 					&UpdateSurfaceDataLightMapping, &BindShaderLightMapping, &ProcessMaterialLightMapping,
 					true, false,
 				};
@@ -5414,21 +5416,21 @@ static void SetStagesRenderers()
 			case stageType_t::ST_REFLECTIONMAP:
 			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
 				stageRendererOptions = {
-					&Render_reflection_CB,
+					&Render_reflection_CB, &MarkShaderBuildReflection,
 					&UpdateSurfaceDataReflection, &BindShaderReflection, &ProcessMaterialReflection,
 					false, false,
 				};
 				break;
 			case stageType_t::ST_SKYBOXMAP:
 				stageRendererOptions = {
-					&Render_skybox,
+					&Render_skybox, &MarkShaderBuildSkybox,
 					&UpdateSurfaceDataSkybox, &BindShaderSkybox, &ProcessMaterialSkybox,
 					false, false,
 				};
 				break;
 			case stageType_t::ST_SCREENMAP:
 				stageRendererOptions = {
-					&Render_screen,
+					&Render_screen, &MarkShaderBuildScreen,
 					&UpdateSurfaceDataScreen, &BindShaderScreen, &ProcessMaterialScreen,
 					false, false,
 				};
@@ -5437,28 +5439,28 @@ static void SetStagesRenderers()
 				/* Comment from the Material code:
 				This is supposedly used for alphagen portal and portal surfaces should never get here. */
 				stageRendererOptions = {
-					&Render_portal,
+					&Render_portal, &MarkShaderBuildPortal,
 					&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
 					false, false,
 				};
 				break;
 			case stageType_t::ST_HEATHAZEMAP:
 				stageRendererOptions = {
-					&Render_heatHaze,
+					&Render_heatHaze, &MarkShaderBuildHeatHaze,
 					&UpdateSurfaceDataHeatHaze, &BindShaderHeatHaze, &ProcessMaterialHeatHaze,
 					false, false,
 				};
 				break;
 			case stageType_t::ST_LIQUIDMAP:
 				stageRendererOptions = {
-					&Render_liquid,
+					&Render_liquid, &MarkShaderBuildLiquid,
 					&UpdateSurfaceDataLiquid, &BindShaderLiquid, &ProcessMaterialLiquid,
 					false, false,
 				};
 				break;
 			case stageType_t::ST_FOGMAP:
 				stageRendererOptions = {
-					&Render_fog,
+					&Render_fog, &MarkShaderBuildFog,
 					&UpdateSurfaceDataFog, &BindShaderFog, &ProcessMaterialFog,
 					false, false,
 				};
@@ -5466,7 +5468,7 @@ static void SetStagesRenderers()
 			case stageType_t::ST_ATTENUATIONMAP_XY:
 			case stageType_t::ST_ATTENUATIONMAP_Z:
 				stageRendererOptions = {
-					&Render_NOP,
+					&Render_NOP, &MarkShaderBuildNOP,
 					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
 					false, true,
 				};
@@ -5475,7 +5477,7 @@ static void SetStagesRenderers()
 				Log::Warn( "Missing renderer for stage type %d in shader %s, stage %d",
 					Util::ordinal(stage->type), shader.name, s );
 				stageRendererOptions = {
-					&Render_NOP,
+					&Render_NOP, &MarkShaderBuildNOP,
 					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
 					false, false,
 				};
@@ -5483,6 +5485,7 @@ static void SetStagesRenderers()
 		}
 
 		stage->colorRenderer = stageRendererOptions.colorRenderer;
+		stage->shaderBuildMarker = stageRendererOptions.shaderBuildMarker;
 
 		stage->surfaceDataUpdater = stageRendererOptions.surfaceDataUpdater;
 		stage->shaderBinder = stageRendererOptions.shaderBinder;

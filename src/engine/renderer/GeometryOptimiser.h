@@ -97,6 +97,25 @@ struct MapVertEqual {
 	}
 };
 
+void MarkShaderBuildNONE( const shaderStage_t* );
+void MarkShaderBuildNOP( const shaderStage_t* );
+void MarkShaderBuildGeneric3D( const shaderStage_t* pStage );
+void MarkShaderBuildLightMapping( const shaderStage_t* pStage );
+void MarkShaderBuildReflection( const shaderStage_t* pStage );
+void MarkShaderBuildSkybox( const shaderStage_t* pStage );
+void MarkShaderBuildScreen( const shaderStage_t* pStage );
+void MarkShaderBuildPortal( const shaderStage_t* pStage );
+void MarkShaderBuildHeatHaze( const shaderStage_t* pStage );
+void MarkShaderBuildLiquid( const shaderStage_t* pStage );
+void MarkShaderBuildFog( const shaderStage_t* pStage );
+
+void MarkShaderBuildIQM( const IQModel_t* model );
+void MarkShaderBuildMDV( const mdvModel_t* model );
+void MarkShaderBuildMD5( const md5Model_t* model );
+
+void MarkShaderBuild( shader_t* shader, const int lightMapNum, const bool bspSurface,
+	const bool vertexSkinning, const bool vertexAnimation );
+
 void OptimiseMapGeometryCore( world_t* world, bspSurface_t** rendererSurfaces, int numSurfaces );
 void MergeLeafSurfacesCore( world_t* world, bspSurface_t** rendererSurfaces, int numSurfaces );
 void MergeDuplicateVertices( bspSurface_t** rendererSurfaces, int numSurfaces, srfVert_t* vertices, int numVerticesIn,

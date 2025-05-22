@@ -108,6 +108,7 @@ protected:
 	uint32_t _vertexAttribs = 0; // can be set by uniforms
 
 	std::vector<ShaderProgramDescriptor> shaderPrograms;
+	std::vector<bool> shaderProgramsToBuild;
 
 	std::vector<int> vertexShaderDescriptors;
 	std::vector<int> fragmentShaderDescriptors;
@@ -184,7 +185,8 @@ protected:
 	virtual void SetShaderProgramUniforms( ShaderProgramDescriptor* /*shaderProgram*/ ) { };
 	int SelectProgram();
 public:
-	GLuint GetProgram( int deformIndex );
+	void MarkProgramForBuilding( int deformIndex );
+	GLuint GetProgram( int deformIndex, const bool buildOneShader );
 	void BindProgram( int deformIndex );
 	void DispatchCompute( const GLuint globalWorkgroupX, const GLuint globalWorkgroupY, const GLuint globalWorkgroupZ );
 	void DispatchComputeIndirect( const GLintptr indirectBuffer );
@@ -328,7 +330,6 @@ class GLShaderManager {
 	std::unordered_map<std::string, int> _deformShaderLookup;
 
 	unsigned int _driverVersionHash; // For cache invalidation if hardware changes
-	bool _shaderBinaryCacheInvalidated;
 
 public:
 	GLHeader GLVersionDeclaration;
@@ -364,8 +365,8 @@ public:
 
 	int GetDeformShaderIndex( deformStage_t *deforms, int numDeforms );
 
-	bool BuildPermutation( GLShader* shader, int macroIndex, int deformIndex );
-	void BuildAll();
+	bool BuildPermutation( GLShader* shader, int macroIndex, int deformIndex, const bool buildOneShader );
+	void BuildAll( const bool buildOnlyMarked );
 	void FreeAll();
 private:
 	struct InfoLogEntry {

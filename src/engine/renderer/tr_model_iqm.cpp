@@ -33,6 +33,7 @@ Maryland 20850 USA.
 */
 
 #include "tr_local.h"
+#include "GeometryOptimiser.h"
 
 /* Flags -O2, -O3 and -0s produce SIGBUS in R_LoadIQModel() on armhf,
 see https://github.com/DaemonEngine/Daemon/issues/736 */
@@ -1054,5 +1055,16 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 		}
 
 		surface++;
+	}
+}
+
+void MarkShaderBuildIQM( const IQModel_t* model ) {
+	for ( srfIQModel_t* surface = model->surfaces; surface < model->surfaces + model->num_surfaces; surface++ ) {
+		MarkShaderBuild( surface->shader, -1, false, true, false );
+
+		for ( int i = 0; i < MAX_ALTSHADERS; i++ ) {
+			shader_t* shader = R_GetShaderByHandle( surface->shader->altShader[i].index );
+			MarkShaderBuild( shader, -1, false, true, false );
+		}
 	}
 }

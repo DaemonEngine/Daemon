@@ -2980,10 +2980,6 @@ static void R_LoadNodesAndLeafs( lump_t *nodeLump, lump_t *leafLump )
 	s_worldData.numnodes = numNodes + numLeafs;
 	s_worldData.numDecisionNodes = numNodes;
 
-	// ydnar: skybox optimization
-	s_worldData.numSkyNodes = 0;
-	s_worldData.skyNodes = (bspNode_t**) ri.Hunk_Alloc( WORLD_MAX_SKY_NODES * sizeof( *s_worldData.skyNodes ), ha_pref::h_low );
-
 	// load nodes
 	for ( i = 0; i < numNodes; i++, in++, out++ )
 	{

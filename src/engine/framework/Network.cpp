@@ -54,14 +54,18 @@ void OutOfBandData( netsrc_t sock, const netadr_t& adr, byte *data, std::size_t 
 		return;
 	}
 
-	std::basic_string<byte> message;
-	message.reserve(OOBHeader().size() + len);
-	message.append(OOBHeader().begin(), OOBHeader().end());
-	message.append(data, len);
+	byte buf[MAX_MSGLEN]; // TODO should this be shorter, like MAX_PACKET?
+	size_t size = OOBHeader().size() + len;
+	if (size > sizeof(buf)) {
+		Log::Warn("OutOfBandData: not sending excessively large (%d) message", len);
+		return;
+	}
+	std::copy_n(OOBHeader().begin(), OOBHeader().size(), buf);
+	std::copy_n(data, len, buf + OOBHeader().size());
 
-	msg_t mbuf;
-	mbuf.data = &message[0];
-	mbuf.cursize = message.size();
+	msg_t mbuf{};
+	mbuf.data = buf;
+	mbuf.cursize = size;
 	Huff_Compress( &mbuf, 12 );
 	// send the datagram
 	NET_SendPacket( sock, mbuf.cursize, mbuf.data, adr );

@@ -534,7 +534,7 @@ void RE_RenderScene( const refdef_t *fd )
 	// will force a reset of the visible leafs even if the view hasn't moved
 	tr.refdef.areamaskModified = false;
 
-	if ( !( tr.refdef.rdflags & RDF_NOWORLDMODEL ) && !( ( tr.refdef.rdflags & RDF_SKYBOXPORTAL ) && tr.world->numSkyNodes > 0 ) )
+	if ( !( tr.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
 		int areaDiff;
 		int i;
