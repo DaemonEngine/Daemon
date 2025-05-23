@@ -85,8 +85,8 @@ LDFLAGS=''
 
 log() {
 	level="${1}"; shift
-	printf '%s: %s\n' "${level^^}" "${@}" >&2
-	[ "${level}" != 'error' ]
+	printf '%s: %s\n' "${level}" "${@}" >&2
+	[ "${level}" != 'ERROR' ]
 }
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
@@ -120,7 +120,7 @@ extract() {
 		rmdir "${2}-dmg"
 		;;
 	*)
-		log error "Unknown archive type for ${1}"
+		log ERROR "Unknown archive type for ${1}"
 		;;
 	esac
 	cd "${2}"
@@ -132,13 +132,13 @@ download() {
 	while [ ! -f "${tarball_file}" ]; do
 		if [ -z "${1:-}" ]
 		then
-			log error "No more mirror to download ${tarball_file} from"
+			log ERROR "No more mirror to download ${tarball_file} from"
 		fi
 		local download_url="${1}"; shift
 		log status "Downloading ${download_url}"
 		if ! "${CURL}" -R -L --fail -o "${tarball_file}" "${download_url}"
 		then
-			log warning "Failed to download ${download_url}"
+			log WARNING "Failed to download ${download_url}"
 			rm -f "${tarball_file}"
 		fi
 	done
@@ -167,6 +167,7 @@ download_extract() {
 }
 
 # Build pkg-config
+# Still needed, at least on macos, for opusfile
 build_pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
@@ -178,7 +179,7 @@ build_pkgconfig() {
 
 	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --with-internal-glib
+	CFLAGS="${CFLAGS} -O2 -Wno-error=int-conversion" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --with-internal-glib
 	make
 	make install
 }
@@ -198,7 +199,7 @@ build_nasm() {
 		cp "${dir_name}/nasm" "${PREFIX}/bin"
 		;;
 	*)
-		log error 'Unsupported platform for NASM'
+		log ERROR 'Unsupported platform for NASM'
 		;;
 	esac
 }
@@ -340,7 +341,7 @@ build_sdl2() {
 	case "${PLATFORM}" in
 	windows-*-mingw)
 		cd "${dir_name}"
-		make install-package arch="${HOST}" prefix="${PREFIX}"
+		cp -rv "${HOST}"/* "${PREFIX}/"
 		;;
 	windows-*-msvc)
 		cd "${dir_name}"
@@ -357,7 +358,7 @@ build_sdl2() {
 			local sdl2_lib_dir='lib/x64'
 			;;
 		*)
-			log error 'Unsupported platform for SDL2'
+			log ERROR 'Unsupported platform for SDL2'
 			;;
 		esac
 
@@ -396,10 +397,16 @@ build_glew() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
+	# env hack: CFLAGS.EXTRA is populated with some flags, which are sometimess necessary for
+	# compilation, in the makefile with +=. If CFLAGS.EXTRA is set on the command line, those
+	# += will be ignored. But if it is set via the environment, the two sources are actually
+	# concatenated how we would like. Bash doesn't allow variables with a dot so use env.
+	# The hack doesn't work on Mac's ancient Make (the env var has no effect), so we have to
+	# manually re-add the required flags there.
 	case "${PLATFORM}" in
 	windows-*-*)
-		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
-		make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
+		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}"
+		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}"
 		mv "${PREFIX}/lib/glew32.dll" "${PREFIX}/bin/"
 		rm "${PREFIX}/lib/libglew32.a"
 		cp lib/libglew32.dll.a "${PREFIX}/lib/"
@@ -410,11 +417,12 @@ build_glew() {
 		install_name_tool -id "@rpath/libGLEW.${GLEW_VERSION}.dylib" "${PREFIX}/lib/libGLEW.${GLEW_VERSION}.dylib"
 		;;
 	linux-*-*)
-		make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
-		make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" LIBDIR="${PREFIX}/lib"
+		local strip="${HOST/-unknown-/-}-strip"
+		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" STRIP="${strip}"
+		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" LIBDIR="${PREFIX}/lib"
 		;;
 	*)
-		log error 'Unsupported platform for GLEW'
+		log ERROR 'Unsupported platform for GLEW'
 		;;
 	esac
 }
@@ -460,7 +468,7 @@ build_jpeg() {
 		# Other platforms can build but we need need to explicitly
 		# set CMAKE_SYSTEM_NAME for CMAKE_CROSSCOMPILING to be set
 		# and CMAKE_SYSTEM_PROCESSOR to not be ignored by cmake.
-		log error 'Unsupported platform for JPEG'
+		log ERROR 'Unsupported platform for JPEG'
 		;;
 	esac
 
@@ -482,7 +490,7 @@ build_jpeg() {
 		local SYSTEM_PROCESSOR='arm'
 		;;
 	*)
-		log error 'Unsupported platform for JPEG'
+		log ERROR 'Unsupported platform for JPEG'
 		;;
 	esac
 
@@ -539,7 +547,7 @@ build_openal() {
 			-DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF)
 		;;
 	*)
-		log error 'Unsupported platform for OpenAL'
+		log ERROR 'Unsupported platform for OpenAL'
 		;;
 	esac
 
@@ -695,7 +703,7 @@ build_wasisdk() {
 	*-amd64-*)
 		;;
 	*)
-		log error "wasi doesn't have release for ${PLATFORM}"
+		log ERROR "wasi doesn't have release for ${PLATFORM}"
 		;;
 	esac
 
@@ -735,7 +743,7 @@ build_wasmtime() {
 		local WASMTIME_ARCH=aarch64
 		;;
 	*)
-		log error "wasmtime doesn't have release for ${PLATFORM}"
+		log ERROR "wasmtime doesn't have release for ${PLATFORM}"
 		;;
 	esac
 
@@ -863,7 +871,7 @@ build_naclruntime() {
 		local NACL_ARCH=x86-64
 		;;
 	*)
-		log error 'Unsupported platform for naclruntime'
+		log ERROR 'Unsupported platform for naclruntime'
 		;;
 	esac
 
@@ -879,6 +887,30 @@ build_naclruntime() {
 	env -i /usr/bin/env bash -l -c "python3 /usr/bin/scons --mode=opt-linux 'platform=${NACL_ARCH}' werror=0 sysinfo=0 sel_ldr"
 	cp "scons-out/opt-linux-${NACL_ARCH}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
 	cp "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader"
+}
+
+# Check for DLL dependencies on MinGW stuff. For MSVC platforms this is bad because it should work
+# without having MinGW installed. For MinGW platforms it is still bad because it might not work
+# when building with different flavors, or newer/older versions.
+build_depcheck() {
+	"${download_only}" && return
+
+	case "${PLATFORM}" in
+	windows-*-*)
+		local good=true
+		for dll in $(find "${PREFIX}/bin" -type f -name '*.dll'); do
+			# https://wiki.unvanquished.net/wiki/MinGW#Built-in_DLL_dependencies
+			if objdump -p "${dll}" | grep -oP '(?<=DLL Name: )(libgcc_s|libstdc|libssp|libwinpthread).*'; then
+				echo "${dll} depends on above DLLs"
+				good=false
+			fi
+		done
+		"${good}" || log ERROR 'Built DLLs depend on MinGW runtime DLLs'
+		;;
+	*)
+		log ERROR 'Unsupported platform for depcheck'
+		;;
+	esac
 }
 
 # The import libraries generated by MinGW seem to have issues, so we use LLVM's version instead.
@@ -903,7 +935,7 @@ build_genlib() {
 				local MACHINE='i386:x86-64'
 				;;
 			*)
-				log error 'Unsupported platform for genlib'
+				log ERROR 'Unsupported platform for genlib'
 				;;
 			esac
 
@@ -917,7 +949,7 @@ build_genlib() {
 		done
 		;;
 	*)
-		log error 'Unsupported platform for genlib'
+		log ERROR 'Unsupported platform for genlib'
 		;;
 	esac
 }
@@ -971,6 +1003,9 @@ build_install() {
 		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${HOST}-strip" --strip-unneeded -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.a' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.exp' -execdir rm -f -- {} \;
+
+		# Fix import lib paths to use MSVC-style instead of MinGW ones (see 'genlib' target)
+		find "${PKG_PREFIX}/lib/cmake" -name '*.cmake' -execdir sed -i -E 's@[.]dll[.]a\b@.lib@g' {} \;
 		;;
 	esac
 
@@ -1038,7 +1073,7 @@ common_setup_arch() {
 		CXXFLAGS+=' -march=armv7-a -mfpu=neon'
 		;;
 	*)
-		log error 'Unsupported platform'
+		log ERROR 'Unsupported platform'
 		;;
 	esac
 }
@@ -1140,13 +1175,13 @@ setup_linux-arm64-default() {
 	common_setup linux aarch64-unknown-linux-gnu
 }
 
-base_windows_amd64_msvc_packages='pkgconfig zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk genlib'
+base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck genlib'
 all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
 
 base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 
-base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck'
 all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
