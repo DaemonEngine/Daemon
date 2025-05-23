@@ -61,7 +61,7 @@ Cvar::Cvar<bool> cvar_demo_timedemo(
     Cvar::CHEAT | Cvar::TEMPORARY,
     false
 );
-cvar_t *com_sv_running;
+Cvar::Cvar<bool> com_sv_running("sv_running", "do we have a server running?", Cvar::ROM, false);
 cvar_t *com_cl_running;
 cvar_t *com_version;
 
@@ -183,7 +183,7 @@ bool Com_IsDedicatedServer()
 
 bool Com_ServerRunning()
 {
-	return com_sv_running->integer;
+	return com_sv_running.Get();
 }
 
 /*
@@ -384,7 +384,7 @@ static void HandlePacketEvent(const Sys::PacketEvent& event)
 	buf.cursize = event.data.size();
 	memcpy( buf.data, event.data.data(), buf.cursize );
 
-	if ( com_sv_running->integer )
+	if ( com_sv_running.Get() )
 	{
 		Com_RunAndTimeServerPacket( &event.adr, &buf );
 	}
@@ -432,7 +432,7 @@ void Com_EventLoop()
 			while ( NET_GetLoopPacket( netsrc_t::NS_SERVER, &evFrom, &buf ) )
 			{
 				// if the server just shut down, flush the events
-				if ( com_sv_running->integer )
+				if ( com_sv_running.Get() )
 				{
 					Com_RunAndTimeServerPacket( &evFrom, &buf );
 				}
@@ -560,7 +560,6 @@ void Com_Init()
 	com_dropsim = Cvar_Get( "com_dropsim", "0", CVAR_CHEAT );
 	com_speeds = Cvar_Get( "com_speeds", "0", 0 );
 
-	com_sv_running = Cvar_Get( "sv_running", "0", CVAR_ROM );
 	com_cl_running = Cvar_Get( "cl_running", "0", CVAR_ROM );
 
 	com_unfocused = Cvar_Get( "com_unfocused", "0", CVAR_ROM );
