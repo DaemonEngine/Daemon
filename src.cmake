@@ -78,6 +78,7 @@ set(COMMONTESTLIST
 )
 
 set(RENDERERLIST
+    ${ENGINE_DIR}/renderer/BufferBind.h
     ${ENGINE_DIR}/renderer/DetectGLVendors.cpp
     ${ENGINE_DIR}/renderer/DetectGLVendors.h
     ${ENGINE_DIR}/renderer/gl_shader.cpp
