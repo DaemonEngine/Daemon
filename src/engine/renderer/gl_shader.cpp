@@ -286,7 +286,7 @@ void GLShaderManager::UpdateShaderProgramUniformLocations( GLShader* shader, Sha
 		uniform->UpdateShaderProgramUniformLocation( shaderProgram );
 	}
 
-	if( glConfig2.uniformBufferObjectAvailable ) {
+	if( glConfig2.uniformBufferObjectAvailable && !glConfig2.shadingLanguage420PackAvailable ) {
 		// create buffer for storing uniform block indexes
 		shaderProgram->uniformBlockIndexes = ( GLuint* ) Z_Malloc( sizeof( GLuint ) * numUniformBlocks );
 
@@ -301,6 +301,10 @@ void GLShaderManager::UpdateShaderProgramUniformLocations( GLShader* shader, Sha
 static inline void AddDefine( std::string& defines, const std::string& define, int value )
 {
 	defines += Str::Format("#ifndef %s\n#define %s %d\n#endif\n", define, define, value);
+}
+
+static inline void AddDefine( std::string& defines, const std::string& define, uint32_t value ) {
+	defines += Str::Format( "#ifndef %s\n#define %s %d\n#endif\n", define, define, value );
 }
 
 // Epsilon for float is 5.96e-08, so exponential notation with 8 decimal places should give exact values.
@@ -412,6 +416,7 @@ struct addedExtension_t {
 static const std::vector<addedExtension_t> fragmentVertexAddedExtensions = {
 	{ glConfig2.gpuShader4Available, 130, "EXT_gpu_shader4" },
 	{ glConfig2.gpuShader5Available, 400, "ARB_gpu_shader5" },
+	{ glConfig2.shadingLanguage420PackAvailable, 420, "ARB_shading_language_420pack" },
 	{ glConfig2.textureFloatAvailable, 130, "ARB_texture_float" },
 	{ glConfig2.textureGatherAvailable, 400, "ARB_texture_gather" },
 	{ glConfig2.textureIntegerAvailable, 0, "EXT_texture_integer" },
@@ -577,9 +582,10 @@ static std::string GenVertexHeader() {
 	}
 
 	if ( glConfig2.usingMaterialSystem ) {
-		AddDefine( str, "BIND_MATERIALS", Util::ordinal( BufferBind::MATERIALS ) );
-		AddDefine( str, "BIND_TEX_DATA", Util::ordinal( BufferBind::TEX_DATA ) );
-		AddDefine( str, "BIND_LIGHTMAP_DATA", Util::ordinal( BufferBind::LIGHTMAP_DATA ) );
+		AddDefine( str, "BIND_MATERIALS", BufferBind::MATERIALS );
+		AddDefine( str, "BIND_TEX_DATA", BufferBind::TEX_DATA );
+		AddDefine( str, "BIND_TEX_DATA_STORAGE", BufferBind::TEX_DATA_STORAGE );
+		AddDefine( str, "BIND_LIGHTMAP_DATA", BufferBind::LIGHTMAP_DATA );
 	}
 
 	return str;
@@ -616,10 +622,15 @@ static std::string GenFragmentHeader() {
 		str += "#define baseInstance in_baseInstance\n\n";
 	}
 
+	if ( glConfig2.shadingLanguage420PackAvailable ) {
+		AddDefine( str, "BIND_LIGHTS", BufferBind::LIGHTS );
+	}
+
 	if ( glConfig2.usingMaterialSystem ) {
-		AddDefine( str, "BIND_MATERIALS", Util::ordinal( BufferBind::MATERIALS ) );
-		AddDefine( str, "BIND_TEX_DATA", Util::ordinal( BufferBind::TEX_DATA ) );
-		AddDefine( str, "BIND_LIGHTMAP_DATA", Util::ordinal( BufferBind::LIGHTMAP_DATA ) );
+		AddDefine( str, "BIND_MATERIALS", BufferBind::MATERIALS );
+		AddDefine( str, "BIND_TEX_DATA", BufferBind::TEX_DATA );
+		AddDefine( str, "BIND_TEX_DATA_STORAGE", BufferBind::TEX_DATA_STORAGE );
+		AddDefine( str, "BIND_LIGHTMAP_DATA", BufferBind::LIGHTMAP_DATA );
 	}
 
 	return str;
@@ -636,15 +647,15 @@ static std::string GenComputeHeader() {
 		AddDefine( str, "MAX_SURFACE_COMMAND_BATCHES", MAX_SURFACE_COMMAND_BATCHES );
 		AddDefine( str, "MAX_COMMAND_COUNTERS", MAX_COMMAND_COUNTERS );
 
-		AddDefine( str, "BIND_SURFACE_DESCRIPTORS", Util::ordinal( BufferBind::SURFACE_DESCRIPTORS ) );
-		AddDefine( str, "BIND_SURFACE_COMMANDS", Util::ordinal( BufferBind::SURFACE_COMMANDS ) );
-		AddDefine( str, "BIND_CULLED_COMMANDS", Util::ordinal( BufferBind::CULLED_COMMANDS ) );
-		AddDefine( str, "BIND_SURFACE_BATCHES", Util::ordinal( BufferBind::SURFACE_BATCHES ) );
-		AddDefine( str, "BIND_COMMAND_COUNTERS_ATOMIC", Util::ordinal( BufferBind::COMMAND_COUNTERS_ATOMIC ) );
-		AddDefine( str, "BIND_COMMAND_COUNTERS_STORAGE", Util::ordinal( BufferBind::COMMAND_COUNTERS_STORAGE ) );
-		AddDefine( str, "BIND_PORTAL_SURFACES", Util::ordinal( BufferBind::PORTAL_SURFACES ) );
+		AddDefine( str, "BIND_SURFACE_DESCRIPTORS", BufferBind::SURFACE_DESCRIPTORS );
+		AddDefine( str, "BIND_SURFACE_COMMANDS", BufferBind::SURFACE_COMMANDS );
+		AddDefine( str, "BIND_CULLED_COMMANDS", BufferBind::CULLED_COMMANDS );
+		AddDefine( str, "BIND_SURFACE_BATCHES", BufferBind::SURFACE_BATCHES );
+		AddDefine( str, "BIND_COMMAND_COUNTERS_ATOMIC", BufferBind::COMMAND_COUNTERS_ATOMIC );
+		AddDefine( str, "BIND_COMMAND_COUNTERS_STORAGE", BufferBind::COMMAND_COUNTERS_STORAGE );
+		AddDefine( str, "BIND_PORTAL_SURFACES", BufferBind::PORTAL_SURFACES );
 
-		AddDefine( str, "BIND_DEBUG", Util::ordinal( BufferBind::DEBUG ) );
+		AddDefine( str, "BIND_DEBUG", BufferBind::DEBUG );
 	}
 
 	if ( glConfig2.usingBindlessTextures ) {
@@ -1170,6 +1181,10 @@ void GLShaderManager::BuildAll( const bool buildOnlyMarked ) {
 		cacheLoadCount, cacheLoadTime, cacheSaveCount, cacheSaveTime );
 }
 
+void GLShaderManager::BindBuffers() {
+	glBindBufferBase( GL_UNIFORM_BUFFER, BufferBind::LIGHTS, tr.dlightUBO );
+}
+
 std::string GLShaderManager::ProcessInserts( const std::string& shaderText ) const {
 	std::string out;
 	std::istringstream shaderTextStream( shaderText );
@@ -1510,19 +1525,19 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	// 6 kb for materials
 	const uint32_t count = ( 4096 + 2048 ) / shader->GetPaddedSize();
 	std::string materialBlock = "layout(std140, binding = "
-		                        + std::to_string( Util::ordinal( BufferBind::MATERIALS ) )
+		                        + std::to_string( BufferBind::MATERIALS )
 		                        + ") uniform materialsUBO {\n"
 	                            "	Material materials[" + std::to_string( count ) + "]; \n"
 	                            "};\n\n";
 
 	std::string texBuf = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ?
 		"layout(std140, binding = "
-		+ std::to_string( Util::ordinal( BufferBind::TEX_DATA ) )
+		+ std::to_string( BufferBind::TEX_DATA )
 		+ ") uniform texDataUBO {\n"
 		"	TexData texData[" + std::to_string( MAX_TEX_BUNDLES ) + "]; \n"
 		"};\n\n"
 		: "layout(std430, binding = "
-		+ std::to_string( Util::ordinal( BufferBind::TEX_DATA ) )
+		+ std::to_string( BufferBind::TEX_DATA )
 		+ ") restrict readonly buffer texDataSSBO {\n"
 		"	TexData texData[];\n"
 		"};\n\n";
@@ -1548,7 +1563,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	                           "	uvec2 u_DeluxeMap;\n"
 	                           "};\n\n"
 	                           "layout(std140, binding = "
-		                       + std::to_string( Util::ordinal( BufferBind::LIGHTMAP_DATA ) )
+		                       + std::to_string( BufferBind::LIGHTMAP_DATA )
 		                       + ") uniform lightMapDataUBO {\n"
 	                           "	LightMapData lightMapData[256];\n"
 	                           "};\n\n"

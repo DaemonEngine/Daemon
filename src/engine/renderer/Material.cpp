@@ -35,21 +35,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tr_local.h"
 #include "Material.h"
+#include "BufferBind.h"
 #include "ShadeCommon.h"
 #include "GeometryCache.h"
 
-GLUBO materialsUBO( "materials", Util::ordinal( BufferBind::MATERIALS ), GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
-GLBuffer texDataBuffer( "texData", Util::ordinal( BufferBind::TEX_DATA ), GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-GLUBO lightMapDataUBO( "lightMapData", Util::ordinal( BufferBind::LIGHTMAP_DATA ), GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLUBO materialsUBO( "materials", BufferBind::MATERIALS, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+GLBuffer texDataBuffer( "texData", BufferBind::TEX_DATA, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLUBO lightMapDataUBO( "lightMapData", BufferBind::LIGHTMAP_DATA, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 
-GLSSBO surfaceDescriptorsSSBO( "surfaceDescriptors", Util::ordinal( BufferBind::SURFACE_DESCRIPTORS ), GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
-GLSSBO surfaceCommandsSSBO( "surfaceCommands", Util::ordinal( BufferBind::SURFACE_COMMANDS ), GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-GLBuffer culledCommandsBuffer( "culledCommands", Util::ordinal( BufferBind::CULLED_COMMANDS ), GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-GLUBO surfaceBatchesUBO( "surfaceBatches", Util::ordinal( BufferBind::SURFACE_BATCHES ), GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
-GLBuffer atomicCommandCountersBuffer( "atomicCommandCounters", Util::ordinal( BufferBind::COMMAND_COUNTERS_ATOMIC ), GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-GLSSBO portalSurfacesSSBO( "portalSurfaces", Util::ordinal( BufferBind::PORTAL_SURFACES ), GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT, 0 );
+GLSSBO surfaceDescriptorsSSBO( "surfaceDescriptors", BufferBind::SURFACE_DESCRIPTORS, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+GLSSBO surfaceCommandsSSBO( "surfaceCommands", BufferBind::SURFACE_COMMANDS, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLBuffer culledCommandsBuffer( "culledCommands", BufferBind::CULLED_COMMANDS, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLUBO surfaceBatchesUBO( "surfaceBatches", BufferBind::SURFACE_BATCHES, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+GLBuffer atomicCommandCountersBuffer( "atomicCommandCounters", BufferBind::COMMAND_COUNTERS_ATOMIC, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLSSBO portalSurfacesSSBO( "portalSurfaces", BufferBind::PORTAL_SURFACES, GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT, 0 );
 
-GLSSBO debugSSBO( "debug", Util::ordinal( BufferBind::DEBUG ), GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+GLSSBO debugSSBO( "debug", BufferBind::DEBUG, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 
 PortalView portalStack[MAX_VIEWS];
 
@@ -541,7 +542,13 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 	surfaceDescriptorsSSBO.BufferData( surfaceDescriptorsCount * descriptorSize, nullptr, GL_STATIC_DRAW );
 	uint32_t* surfaceDescriptors = surfaceDescriptorsSSBO.MapBufferRange( surfaceDescriptorsCount * descriptorSize );
 
-	texDataBufferType = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ? GL_UNIFORM_BUFFER : GL_SHADER_STORAGE_BUFFER;
+	if ( glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ) {
+		texDataBufferType = GL_UNIFORM_BUFFER;
+		texDataBindingPoint = BufferBind::TEX_DATA;
+	} else {
+		texDataBufferType = GL_SHADER_STORAGE_BUFFER;
+		texDataBindingPoint = BufferBind::TEX_DATA_STORAGE;
+	}
 
 	texDataBuffer.BufferStorage( ( texData.size() + dynamicTexData.size() ) * TEX_BUNDLE_SIZE, 1, nullptr );
 	texDataBuffer.MapAll();
@@ -718,6 +725,31 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 	GL_CheckErrors();
 }
 
+void MaterialSystem::BindBuffers() {
+	materialsUBO.BindBufferBase();
+	texDataBuffer.BindBufferBase( texDataBufferType, texDataBindingPoint );
+	lightMapDataUBO.BindBufferBase();
+
+	culledCommandsBuffer.BindBuffer( GL_DRAW_INDIRECT_BUFFER );
+	atomicCommandCountersBuffer.BindBuffer( GL_PARAMETER_BUFFER_ARB );
+
+	atomicCommandCountersBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER, BufferBind::COMMAND_COUNTERS_STORAGE );
+
+	surfaceDescriptorsSSBO.BindBufferBase();
+	surfaceCommandsSSBO.BindBufferBase();
+	culledCommandsBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER );
+	surfaceBatchesUBO.BindBufferBase();
+	atomicCommandCountersBuffer.BindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
+
+	if ( totalPortals > 0 ) {
+		portalSurfacesSSBO.BindBufferBase();
+	}
+
+	if ( r_materialDebug.Get() ) {
+		debugSSBO.BindBufferBase();
+	}
+}
+
 void MaterialSystem::GenerateDepthImages( const int width, const int height, imageParams_t imageParms ) {
 	imageParms.bits ^= ( IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8 );
 	imageParms.bits |= IF_ONECOMP32F;
@@ -805,8 +837,6 @@ void BindShaderLightMapping( Material* material ) {
 	}
 
 	if ( glConfig2.realtimeLighting ) {
-		gl_lightMappingShaderMaterial->SetUniformBlock_Lights( tr.dlightUBO );
-
 		// bind u_LightTiles
 		gl_lightMappingShaderMaterial->SetUniform_LightTilesBindless(
 			GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
@@ -1464,13 +1494,9 @@ void MaterialSystem::UpdateDynamicSurfaces() {
 }
 
 void MaterialSystem::UpdateFrameData() {
-	atomicCommandCountersBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER, Util::ordinal( BufferBind::COMMAND_COUNTERS_STORAGE ) );
-
 	gl_clearSurfacesShader->BindProgram( 0 );
 	gl_clearSurfacesShader->SetUniform_Frame( nextFrame );
 	gl_clearSurfacesShader->DispatchCompute( MAX_VIEWS, 1, 1 );
-
-	atomicCommandCountersBuffer.UnBindBufferBase( GL_SHADER_STORAGE_BUFFER, Util::ordinal( BufferBind::COMMAND_COUNTERS_STORAGE ) );
 
 	GL_CheckErrors();
 }
@@ -1523,28 +1549,14 @@ void MaterialSystem::DepthReduction() {
 
 		glMemoryBarrier( GL_SHADER_IMAGE_ACCESS_BARRIER_BIT );
 	}
+
+	GL_CheckErrors();
 }
 
 void MaterialSystem::CullSurfaces() {
 	if ( r_gpuOcclusionCulling.Get() ) {
 		DepthReduction();
 	}
-
-	surfaceDescriptorsSSBO.BindBufferBase();
-	surfaceCommandsSSBO.BindBufferBase();
-	culledCommandsBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER );
-	surfaceBatchesUBO.BindBufferBase();
-	atomicCommandCountersBuffer.BindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
-
-	if ( totalPortals > 0 ) {
-		portalSurfacesSSBO.BindBufferBase();
-	}
-
-	if ( r_materialDebug.Get() ) {
-		debugSSBO.BindBufferBase();
-	}
-
-	GL_CheckErrors();
 
 	for ( uint32_t view = 0; view < frames[nextFrame].viewCount; view++ ) {
 		vec3_t origin;
@@ -1614,20 +1626,6 @@ void MaterialSystem::CullSurfaces() {
 
 		glMemoryBarrier( GL_SHADER_STORAGE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT );
 		gl_processSurfacesShader->DispatchCompute( totalBatchCount, 1, 1 );
-	}
-
-	surfaceDescriptorsSSBO.UnBindBufferBase();
-	surfaceCommandsSSBO.UnBindBufferBase();
-	culledCommandsBuffer.UnBindBufferBase( GL_SHADER_STORAGE_BUFFER );
-	surfaceBatchesUBO.UnBindBufferBase();
-	atomicCommandCountersBuffer.UnBindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
-
-	if ( totalPortals > 0 ) {
-		portalSurfacesSSBO.UnBindBufferBase();
-	}
-
-	if ( r_materialDebug.Get() ) {
-		debugSSBO.UnBindBufferBase();
 	}
 
 	GL_CheckErrors();
@@ -1848,7 +1846,6 @@ void MaterialSystem::AddPortalSurfaces() {
 		return;
 	}
 
-	portalSurfacesSSBO.BindBufferBase();
 	PortalSurface* portalSurfs = ( PortalSurface* ) portalSurfacesSSBO.GetCurrentAreaData();
 	viewCount = 0;
 	// This will recursively find potentially visible portals in each view based on the data read back from the GPU
@@ -1886,8 +1883,6 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 		glMemoryBarrier( GL_COMMAND_BARRIER_BIT );
 		frameStart = false;
 	}
-
-	materialsUBO.BindBufferBase();
 
 	geometryCache.Bind();
 
@@ -2019,13 +2014,6 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 	}
 	material.texturesResident = true;
 
-	culledCommandsBuffer.BindBuffer( GL_DRAW_INDIRECT_BUFFER );
-
-	atomicCommandCountersBuffer.BindBuffer( GL_PARAMETER_BUFFER_ARB );
-
-	texDataBuffer.BindBufferBase( texDataBufferType );
-	lightMapDataUBO.BindBufferBase();
-
 	if ( r_showGlobalMaterials.Get() && material.sort != 0
 		&& ( material.shaderBinder == BindShaderLightMapping || material.shaderBinder == BindShaderGeneric3D ) ) {
 		vec3_t color;
@@ -2135,13 +2123,6 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 			gl_genericShaderMaterial->SetUniform_ShowTris( 0 );
 		}
 	}
-
-	culledCommandsBuffer.UnBindBuffer( GL_DRAW_INDIRECT_BUFFER );
-
-	atomicCommandCountersBuffer.UnBindBuffer( GL_PARAMETER_BUFFER_ARB );
-
-	texDataBuffer.UnBindBufferBase( texDataBufferType );
-	lightMapDataUBO.UnBindBufferBase();
 
 	if ( material.usePolygonOffset ) {
 		glDisable( GL_POLYGON_OFFSET_FILL );
