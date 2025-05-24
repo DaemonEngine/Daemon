@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tr_local.h"
 #include "Material.h"
+#include "BufferBind.h"
 #include "ShadeCommon.h"
 #include "GeometryCache.h"
 
@@ -541,7 +542,13 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 	surfaceDescriptorsSSBO.BufferData( surfaceDescriptorsCount * descriptorSize, nullptr, GL_STATIC_DRAW );
 	uint32_t* surfaceDescriptors = surfaceDescriptorsSSBO.MapBufferRange( surfaceDescriptorsCount * descriptorSize );
 
-	texDataBufferType = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ? GL_UNIFORM_BUFFER : GL_SHADER_STORAGE_BUFFER;
+	if ( glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ) {
+		texDataBufferType = GL_UNIFORM_BUFFER;
+		texDataBindingPoint = BufferBind::TEX_DATA;
+	} else {
+		texDataBufferType = GL_SHADER_STORAGE_BUFFER;
+		texDataBindingPoint = BufferBind::TEX_DATA_STORAGE;
+	}
 
 	texDataBuffer.BufferStorage( ( texData.size() + dynamicTexData.size() ) * TEX_BUNDLE_SIZE, 1, nullptr );
 	texDataBuffer.MapAll();
@@ -2023,7 +2030,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 
 	atomicCommandCountersBuffer.BindBuffer( GL_PARAMETER_BUFFER_ARB );
 
-	texDataBuffer.BindBufferBase( texDataBufferType );
+	texDataBuffer.BindBufferBase( texDataBufferType, texDataBindingPoint );
 	lightMapDataUBO.BindBufferBase();
 
 	if ( r_showGlobalMaterials.Get() && material.sort != 0
@@ -2140,7 +2147,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 
 	atomicCommandCountersBuffer.UnBindBuffer( GL_PARAMETER_BUFFER_ARB );
 
-	texDataBuffer.UnBindBufferBase( texDataBufferType );
+	texDataBuffer.UnBindBufferBase( texDataBufferType, texDataBindingPoint );
 	lightMapDataUBO.UnBindBufferBase();
 
 	if ( material.usePolygonOffset ) {
