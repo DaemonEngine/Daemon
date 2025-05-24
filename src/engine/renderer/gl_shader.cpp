@@ -286,7 +286,7 @@ void GLShaderManager::UpdateShaderProgramUniformLocations( GLShader* shader, Sha
 		uniform->UpdateShaderProgramUniformLocation( shaderProgram );
 	}
 
-	if( glConfig2.uniformBufferObjectAvailable ) {
+	if( glConfig2.uniformBufferObjectAvailable && !glConfig2.shadingLanguage420PackAvailable ) {
 		// create buffer for storing uniform block indexes
 		shaderProgram->uniformBlockIndexes = ( GLuint* ) Z_Malloc( sizeof( GLuint ) * numUniformBlocks );
 
@@ -416,6 +416,7 @@ struct addedExtension_t {
 static const std::vector<addedExtension_t> fragmentVertexAddedExtensions = {
 	{ glConfig2.gpuShader4Available, 130, "EXT_gpu_shader4" },
 	{ glConfig2.gpuShader5Available, 400, "ARB_gpu_shader5" },
+	{ glConfig2.shadingLanguage420PackAvailable, 420, "ARB_shading_language_420pack" },
 	{ glConfig2.textureFloatAvailable, 130, "ARB_texture_float" },
 	{ glConfig2.textureGatherAvailable, 400, "ARB_texture_gather" },
 	{ glConfig2.textureIntegerAvailable, 0, "EXT_texture_integer" },
@@ -618,6 +619,10 @@ static std::string GenFragmentHeader() {
 		str += "IN(flat) int in_baseInstance;\n";
 		str += "#define drawID in_drawID\n";
 		str += "#define baseInstance in_baseInstance\n\n";
+	}
+
+	if ( glConfig2.shadingLanguage420PackAvailable ) {
+		AddDefine( str, "BIND_LIGHTS", BufferBind::LIGHTS );
 	}
 
 	if ( glConfig2.usingMaterialSystem ) {
