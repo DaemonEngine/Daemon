@@ -54,6 +54,7 @@ namespace BufferBind {
 
 		GEOMETRY_CACHE_INPUT_VBO = 5,
 		GEOMETRY_CACHE_VBO = 6,
+		GEOMETRY_CACHE_IBO = 7,
 
 		COMMAND_COUNTERS_STORAGE = 9,
 		TEX_DATA_STORAGE = 11,
@@ -61,9 +62,7 @@ namespace BufferBind {
 		DEBUG = 10,
 		
 		// Atomic
-		COMMAND_COUNTERS_ATOMIC = 0,
-		
-		UNUSED = INT32_MAX
+		COMMAND_COUNTERS_ATOMIC = 0
 	};
 };
 
