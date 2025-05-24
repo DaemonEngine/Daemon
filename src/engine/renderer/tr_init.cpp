@@ -1540,6 +1540,10 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			GLSL_FinishGPUShaders();
 		}
 
+		if ( glConfig2.shadingLanguage420PackAvailable ) {
+			gl_shaderManager.BindBuffers();
+		}
+
 		/* TODO: Move this into a loading step and don't render it to the screen
 		For now though do it here to avoid the ugly square rendering appearing on top of the loading screen */
 		if ( glConfig2.reflectionMappingAvailable ) {

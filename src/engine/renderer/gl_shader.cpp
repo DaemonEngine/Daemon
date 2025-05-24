@@ -1181,6 +1181,10 @@ void GLShaderManager::BuildAll( const bool buildOnlyMarked ) {
 		cacheLoadCount, cacheLoadTime, cacheSaveCount, cacheSaveTime );
 }
 
+void GLShaderManager::BindBuffers() {
+	glBindBufferBase( GL_UNIFORM_BUFFER, BufferBind::LIGHTS, tr.dlightUBO );
+}
+
 std::string GLShaderManager::ProcessInserts( const std::string& shaderText ) const {
 	std::string out;
 	std::istringstream shaderTextStream( shaderText );
