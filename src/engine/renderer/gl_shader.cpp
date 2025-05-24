@@ -1563,7 +1563,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	                           "	uvec2 u_DeluxeMap;\n"
 	                           "};\n\n"
 	                           "layout(std140, binding = "
-		                       + std::to_string( Util::ordinal( BufferBind::LIGHTMAP_DATA ) )
+		                       + std::to_string( BufferBind::LIGHTMAP_DATA )
 		                       + ") uniform lightMapDataUBO {\n"
 	                           "	LightMapData lightMapData[256];\n"
 	                           "};\n\n"
