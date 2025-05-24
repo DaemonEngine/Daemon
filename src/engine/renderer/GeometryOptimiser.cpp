@@ -716,6 +716,8 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, bspSur
 	materialSystem.GeneratePortalBoundingSpheres();
 	materialSystem.GenerateWorldCommandBuffer( processedMaterialSurfaces );
 
+	materialSystem.BindBuffers();
+
 	vertexAttributeSpec_t attrs[] {
 		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, &vertices[0].xyz, 3, sizeof( *vertices ), 0 },
 		{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, &vertices[0].lightColor, 4, sizeof( *vertices ), ATTR_OPTION_NORMALIZE },
