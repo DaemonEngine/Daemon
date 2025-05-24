@@ -584,6 +584,7 @@ static std::string GenVertexHeader() {
 	if ( glConfig2.usingMaterialSystem ) {
 		AddDefine( str, "BIND_MATERIALS", BufferBind::MATERIALS );
 		AddDefine( str, "BIND_TEX_DATA", BufferBind::TEX_DATA );
+		AddDefine( str, "BIND_TEX_DATA_STORAGE", BufferBind::TEX_DATA_STORAGE );
 		AddDefine( str, "BIND_LIGHTMAP_DATA", BufferBind::LIGHTMAP_DATA );
 	}
 
@@ -628,6 +629,7 @@ static std::string GenFragmentHeader() {
 	if ( glConfig2.usingMaterialSystem ) {
 		AddDefine( str, "BIND_MATERIALS", BufferBind::MATERIALS );
 		AddDefine( str, "BIND_TEX_DATA", BufferBind::TEX_DATA );
+		AddDefine( str, "BIND_TEX_DATA_STORAGE", BufferBind::TEX_DATA_STORAGE );
 		AddDefine( str, "BIND_LIGHTMAP_DATA", BufferBind::LIGHTMAP_DATA );
 	}
 

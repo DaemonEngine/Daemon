@@ -306,26 +306,6 @@ struct SurfaceCommandBatch {
 	uint32_t materialIDs[2] { 0, 0 };
 };
 
-namespace BufferBind {
-	enum : uint32_t {
-		MATERIALS = 1,
-		TEX_DATA = 6,
-		LIGHTMAP_DATA = 2,
-		LIGHTS = 0,
-		SURFACE_DESCRIPTORS = 0,
-		SURFACE_COMMANDS = 1,
-		CULLED_COMMANDS = 2,
-		SURFACE_BATCHES = 3,
-		COMMAND_COUNTERS_ATOMIC = 0,
-		COMMAND_COUNTERS_STORAGE = 4, // Avoid needlessly rebinding buffers
-		PORTAL_SURFACES = 5,
-		GEOMETRY_CACHE_INPUT_VBO = 6,
-		GEOMETRY_CACHE_VBO = 7,
-		DEBUG = 10,
-		UNUSED = INT32_MAX
-	};
-};
-
 class MaterialSystem {
 	public:
 	vec3_t worldViewBounds[2];
@@ -431,6 +411,7 @@ class MaterialSystem {
 	std::vector<shaderStage_t*> dynamicStages;
 
 	GLenum texDataBufferType;
+	GLuint texDataBindingPoint;
 	std::vector<TextureData> texData;
 	std::vector<TextureData> dynamicTexData;
 

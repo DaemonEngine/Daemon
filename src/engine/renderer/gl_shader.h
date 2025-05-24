@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define GL_SHADER_H
 
 #include "tr_local.h"
+#include "BufferBind.h"
 #include <stdexcept>
 
 #define USE_UNIFORM_FIREWALL 1
@@ -1234,7 +1235,7 @@ protected:
 	size_t      _locationIndex; // Only valid if GL_ARB_shading_language_420pack is not available
 	const GLuint bindingPoint; // Only valid if GL_ARB_shading_language_420pack is available
 
-	GLUniformBlock( GLShader *shader, const char *name, const GLuint newBindingPoint = 0 ) :
+	GLUniformBlock( GLShader *shader, const char *name, const GLuint newBindingPoint ) :
 		_shader( shader ),
 		_name( name ),
 		bindingPoint( newBindingPoint )
@@ -3605,7 +3606,7 @@ class u_Lights :
 {
  public:
 	u_Lights( GLShader *shader ) :
-		GLUniformBlock( shader, "u_Lights" )
+		GLUniformBlock( shader, "u_Lights", BufferBind::LIGHTS )
 	{
 	}
 
