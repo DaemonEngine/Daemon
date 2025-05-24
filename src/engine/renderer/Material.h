@@ -308,9 +308,10 @@ struct SurfaceCommandBatch {
 
 namespace BufferBind {
 	enum : uint32_t {
-		MATERIALS = 1, // LightTile UBO uses binding point 0, so avoid it here
+		MATERIALS = 1,
 		TEX_DATA = 6,
 		LIGHTMAP_DATA = 2,
+		LIGHTS = 0,
 		SURFACE_DESCRIPTORS = 0,
 		SURFACE_COMMANDS = 1,
 		CULLED_COMMANDS = 2,

@@ -1231,12 +1231,13 @@ class GLUniformBlock
 protected:
 	GLShader   *_shader;
 	std::string _name;
-	size_t      _locationIndex;
+	size_t      _locationIndex; // Only valid if GL_ARB_shading_language_420pack is not available
+	const GLuint _bindingPoint; // Only valid if GL_ARB_shading_language_420pack is available
 
-	GLUniformBlock( GLShader *shader, const char *name ) :
+	GLUniformBlock( GLShader *shader, const char *name, const GLuint bindingPoint ) :
 		_shader( shader ),
 		_name( name ),
-		_locationIndex( 0 )
+		_bindingPoint( bindingPoint )
 	{
 		_shader->RegisterUniformBlock( this );
 	}
@@ -1258,10 +1259,15 @@ public:
 	}
 
 	void SetBuffer( GLuint buffer ) {
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-		GLuint blockIndex = p->uniformBlockIndexes[ _locationIndex ];
+		if ( glConfig2.shadingLanguage420PackAvailable ) {
+			glBindBufferBase( GL_UNIFORM_BUFFER, _bindingPoint, buffer );
+			return;
+		}
 
-		ASSERT_EQ(p, glState.currentProgram);
+		ShaderProgramDescriptor *p = _shader->GetProgram();
+		GLuint blockIndex = p->uniformBlockIndexes[_locationIndex];
+
+		ASSERT_EQ( p, glState.currentProgram );
 
 		if( blockIndex != GL_INVALID_INDEX ) {
 			glBindBufferBase( GL_UNIFORM_BUFFER, blockIndex, buffer );
@@ -3599,7 +3605,7 @@ class u_Lights :
 {
  public:
 	u_Lights( GLShader *shader ) :
-		GLUniformBlock( shader, "u_Lights" )
+		GLUniformBlock( shader, "u_Lights", BufferBind::LIGHTS )
 	{
 	}
 
