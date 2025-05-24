@@ -730,11 +730,6 @@ void MaterialSystem::BindBuffers() {
 	texDataBuffer.BindBufferBase( texDataBufferType, texDataBindingPoint );
 	lightMapDataUBO.BindBufferBase();
 
-	if ( glConfig2.realtimeLighting ) {
-		// UBOs are actually completely independent of shaders since we set the binding points explicitly here
-		gl_lightMappingShaderMaterial->SetUniformBlock_Lights( tr.dlightUBO );
-	}
-
 	culledCommandsBuffer.BindBuffer( GL_DRAW_INDIRECT_BUFFER );
 	atomicCommandCountersBuffer.BindBuffer( GL_PARAMETER_BUFFER_ARB );
 
