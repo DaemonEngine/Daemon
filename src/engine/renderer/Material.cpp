@@ -725,6 +725,36 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 	GL_CheckErrors();
 }
 
+void MaterialSystem::BindBuffers() {
+	materialsUBO.BindBufferBase();
+	texDataBuffer.BindBufferBase( texDataBufferType, texDataBindingPoint );
+	lightMapDataUBO.BindBufferBase();
+
+	if ( glConfig2.realtimeLighting ) {
+		// UBOs are actually completely independent of shaders since we set the binding points explicitly here
+		gl_lightMappingShaderMaterial->SetUniformBlock_Lights( tr.dlightUBO );
+	}
+
+	culledCommandsBuffer.BindBuffer( GL_DRAW_INDIRECT_BUFFER );
+	atomicCommandCountersBuffer.BindBuffer( GL_PARAMETER_BUFFER_ARB );
+
+	atomicCommandCountersBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER, Util::ordinal( BufferBind::COMMAND_COUNTERS_STORAGE ) );
+
+	surfaceDescriptorsSSBO.BindBufferBase();
+	surfaceCommandsSSBO.BindBufferBase();
+	culledCommandsBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER );
+	surfaceBatchesUBO.BindBufferBase();
+	atomicCommandCountersBuffer.BindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
+
+	if ( totalPortals > 0 ) {
+		portalSurfacesSSBO.BindBufferBase();
+	}
+
+	if ( r_materialDebug.Get() ) {
+		debugSSBO.BindBufferBase();
+	}
+}
+
 void MaterialSystem::GenerateDepthImages( const int width, const int height, imageParams_t imageParms ) {
 	imageParms.bits ^= ( IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8 );
 	imageParms.bits |= IF_ONECOMP32F;
@@ -812,8 +842,6 @@ void BindShaderLightMapping( Material* material ) {
 	}
 
 	if ( glConfig2.realtimeLighting ) {
-		gl_lightMappingShaderMaterial->SetUniformBlock_Lights( tr.dlightUBO );
-
 		// bind u_LightTiles
 		gl_lightMappingShaderMaterial->SetUniform_LightTilesBindless(
 			GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
@@ -1471,13 +1499,9 @@ void MaterialSystem::UpdateDynamicSurfaces() {
 }
 
 void MaterialSystem::UpdateFrameData() {
-	atomicCommandCountersBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER, Util::ordinal( BufferBind::COMMAND_COUNTERS_STORAGE ) );
-
 	gl_clearSurfacesShader->BindProgram( 0 );
 	gl_clearSurfacesShader->SetUniform_Frame( nextFrame );
 	gl_clearSurfacesShader->DispatchCompute( MAX_VIEWS, 1, 1 );
-
-	atomicCommandCountersBuffer.UnBindBufferBase( GL_SHADER_STORAGE_BUFFER, Util::ordinal( BufferBind::COMMAND_COUNTERS_STORAGE ) );
 
 	GL_CheckErrors();
 }
@@ -1530,28 +1554,14 @@ void MaterialSystem::DepthReduction() {
 
 		glMemoryBarrier( GL_SHADER_IMAGE_ACCESS_BARRIER_BIT );
 	}
+
+	GL_CheckErrors();
 }
 
 void MaterialSystem::CullSurfaces() {
 	if ( r_gpuOcclusionCulling.Get() ) {
 		DepthReduction();
 	}
-
-	surfaceDescriptorsSSBO.BindBufferBase();
-	surfaceCommandsSSBO.BindBufferBase();
-	culledCommandsBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER );
-	surfaceBatchesUBO.BindBufferBase();
-	atomicCommandCountersBuffer.BindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
-
-	if ( totalPortals > 0 ) {
-		portalSurfacesSSBO.BindBufferBase();
-	}
-
-	if ( r_materialDebug.Get() ) {
-		debugSSBO.BindBufferBase();
-	}
-
-	GL_CheckErrors();
 
 	for ( uint32_t view = 0; view < frames[nextFrame].viewCount; view++ ) {
 		vec3_t origin;
@@ -1621,20 +1631,6 @@ void MaterialSystem::CullSurfaces() {
 
 		glMemoryBarrier( GL_SHADER_STORAGE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT );
 		gl_processSurfacesShader->DispatchCompute( totalBatchCount, 1, 1 );
-	}
-
-	surfaceDescriptorsSSBO.UnBindBufferBase();
-	surfaceCommandsSSBO.UnBindBufferBase();
-	culledCommandsBuffer.UnBindBufferBase( GL_SHADER_STORAGE_BUFFER );
-	surfaceBatchesUBO.UnBindBufferBase();
-	atomicCommandCountersBuffer.UnBindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
-
-	if ( totalPortals > 0 ) {
-		portalSurfacesSSBO.UnBindBufferBase();
-	}
-
-	if ( r_materialDebug.Get() ) {
-		debugSSBO.UnBindBufferBase();
 	}
 
 	GL_CheckErrors();
@@ -1855,7 +1851,6 @@ void MaterialSystem::AddPortalSurfaces() {
 		return;
 	}
 
-	portalSurfacesSSBO.BindBufferBase();
 	PortalSurface* portalSurfs = ( PortalSurface* ) portalSurfacesSSBO.GetCurrentAreaData();
 	viewCount = 0;
 	// This will recursively find potentially visible portals in each view based on the data read back from the GPU
@@ -1893,8 +1888,6 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 		glMemoryBarrier( GL_COMMAND_BARRIER_BIT );
 		frameStart = false;
 	}
-
-	materialsUBO.BindBufferBase();
 
 	geometryCache.Bind();
 
@@ -2026,13 +2019,6 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 	}
 	material.texturesResident = true;
 
-	culledCommandsBuffer.BindBuffer( GL_DRAW_INDIRECT_BUFFER );
-
-	atomicCommandCountersBuffer.BindBuffer( GL_PARAMETER_BUFFER_ARB );
-
-	texDataBuffer.BindBufferBase( texDataBufferType, texDataBindingPoint );
-	lightMapDataUBO.BindBufferBase();
-
 	if ( r_showGlobalMaterials.Get() && material.sort != 0
 		&& ( material.shaderBinder == BindShaderLightMapping || material.shaderBinder == BindShaderGeneric3D ) ) {
 		vec3_t color;
@@ -2142,13 +2128,6 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 			gl_genericShaderMaterial->SetUniform_ShowTris( 0 );
 		}
 	}
-
-	culledCommandsBuffer.UnBindBuffer( GL_DRAW_INDIRECT_BUFFER );
-
-	atomicCommandCountersBuffer.UnBindBuffer( GL_PARAMETER_BUFFER_ARB );
-
-	texDataBuffer.UnBindBufferBase( texDataBufferType, texDataBindingPoint );
-	lightMapDataUBO.UnBindBufferBase();
 
 	if ( material.usePolygonOffset ) {
 		glDisable( GL_POLYGON_OFFSET_FILL );

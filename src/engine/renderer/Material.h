@@ -364,6 +364,8 @@ class MaterialSystem {
 	void InitGLBuffers();
 	void FreeGLBuffers();
 
+	void BindBuffers();
+
 	uint32_t GetTexDataSize() const {
 		return texData.size();
 	}
