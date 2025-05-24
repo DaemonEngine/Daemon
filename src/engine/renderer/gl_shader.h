@@ -368,6 +368,8 @@ public:
 	bool BuildPermutation( GLShader* shader, int macroIndex, int deformIndex, const bool buildOneShader );
 	void BuildAll( const bool buildOnlyMarked );
 	void FreeAll();
+
+	void BindBuffers();
 private:
 	struct InfoLogEntry {
 		int line;
@@ -1261,7 +1263,6 @@ public:
 
 	void SetBuffer( GLuint buffer ) {
 		if ( glConfig2.shadingLanguage420PackAvailable ) {
-			glBindBufferBase( GL_UNIFORM_BUFFER, _bindingPoint, buffer );
 			return;
 		}
 
