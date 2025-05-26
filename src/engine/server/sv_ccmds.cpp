@@ -153,7 +153,7 @@ static void SV_MapRestart_f()
 	}
 
 	// make sure server is running
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		Log::Notice( "Server is not running." );
 		return;
@@ -166,7 +166,7 @@ static void SV_MapRestart_f()
 	// generate a new serverid
 	// TTimo - don't update restartedserverId there, otherwise we won't deal correctly with multiple map_restart
 	sv.serverId = com_frameTime;
-	Cvar_Set( "sv_serverid", va( "%i", sv.serverId ) );
+	Cvar::SetValueForce( "sv_serverid", va( "%i", sv.serverId ) );
 
 	// reset all the VM data in place without changing memory allocation
 	// note that we do NOT set sv.state = SS_LOADING, so configstrings that
@@ -245,7 +245,7 @@ public:
 	void Run(const Cmd::Args&) const override
 	{
 		// make sure server is running
-		if ( !com_sv_running->integer )
+		if ( !com_sv_running.Get() )
 		{
 			Log::Notice( "Server is not running." );
 			return;
@@ -286,12 +286,12 @@ public:
 			"players:  %d / %d\n"
 			"num score connection address                port   name\n"
 			"--- ----- ---------- ---------------------- ------ ----",
-			sv_hostname->string,
+			sv_hostname.Get(),
 			Q3_VERSION " on " Q3_ENGINE,
 			PROTOCOL_VERSION,
 			cpu,
 			time_string,
-			sv_mapname->string,
+			sv_mapname.Get(),
 			players,
 			sv_maxClients.Get()
 		);
@@ -352,7 +352,7 @@ Examine the serverinfo string
 static void SV_Serverinfo_f()
 {
 	// make sure server is running
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		Log::Notice( "Server is not running." );
 		return;
@@ -372,7 +372,7 @@ Examine the systeminfo string
 static void SV_Systeminfo_f()
 {
 	// make sure server is running
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		Log::Notice( "Server is not running." );
 		return;
@@ -413,7 +413,7 @@ SV_AddOperatorCommands
 */
 void SV_AddOperatorCommands()
 {
-	if ( com_sv_running->integer )
+	if ( com_sv_running.Get() )
 	{
 		// These commands should only be available while the server is running.
 		Cmd_AddCommand( "fieldinfo",   SV_FieldInfo_f );
