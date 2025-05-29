@@ -97,6 +97,8 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/GeometryCache.h
     ${ENGINE_DIR}/renderer/GeometryOptimiser.cpp
     ${ENGINE_DIR}/renderer/GeometryOptimiser.h
+    ${ENGINE_DIR}/renderer/GLMemory.cpp
+    ${ENGINE_DIR}/renderer/GLMemory.h
     ${ENGINE_DIR}/renderer/InternalImage.cpp
     ${ENGINE_DIR}/renderer/InternalImage.h
     ${ENGINE_DIR}/renderer/Material.cpp
