@@ -1284,6 +1284,8 @@ class GLBuffer {
 	std::string name;
 	const GLuint64 SYNC_TIMEOUT = 10000000000; // 10 seconds
 
+	GLuint id;
+
 	GLBuffer( const char* newName, const GLuint newBindingPoint, const GLbitfield newFlags, const GLbitfield newMapFlags ) :
 		name( newName ),
 		internalTarget( 0 ),
@@ -1332,6 +1334,8 @@ class GLBuffer {
 		maxAreas = areaCount;
 		glNamedBufferStorage( id, areaSize * areaCount * sizeof( uint32_t ), data, flags );
 		syncs.resize( areaCount );
+
+		GL_CheckErrors();
 	}
 
 	void AreaIncr() {
@@ -1372,6 +1376,10 @@ class GLBuffer {
 		glFlushMappedNamedBufferRange( id, 0, maxAreas * areaSize * sizeof( uint32_t ) );
 	}
 
+	void FlushRange( const GLsizeiptr offset, const GLsizeiptr size ) {
+		glFlushMappedNamedBufferRange( id, offset * sizeof( uint32_t ), size * sizeof( uint32_t ) );
+	}
+
 	uint32_t* MapBufferRange( const GLuint count ) {
 		return MapBufferRange( 0, count );
 	}
@@ -1400,13 +1408,12 @@ class GLBuffer {
 
 	void DelBuffer() {
 		glDeleteBuffers( 1, &id );
+		mapped = false;
 	}
 
 	private:
 	const GLenum internalTarget;
 	const GLuint internalBindingPoint;
-
-	GLuint id;
 
 	bool mapped = false;
 	const GLbitfield flags;

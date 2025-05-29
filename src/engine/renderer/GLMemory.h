@@ -31,40 +31,48 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// BufferBind.h
+// GLMemory.h
 
-#ifndef BUFFERBIND_H
-#define BUFFERBIND_H
+#ifndef GLMEMORY_H
+#define GLMEMORY_H
 
-namespace BufferBind {
-	enum : uint32_t {
-		// UBO
-		MATERIALS = 0,
-		TEX_DATA = 1,
-		LIGHTMAP_DATA = 2,
-		LIGHTS = 3,
+#include "gl_shader.h"
 
-		SURFACE_BATCHES = 4,
+void GLBufferCopy( GLBuffer* src, GLBuffer* dst, GLintptr srcOffset, GLintptr dstOffset, GLsizeiptr size );
 
-		// SSBO
-		SURFACE_DESCRIPTORS = 0,
-		SURFACE_COMMANDS = 1,
-		CULLED_COMMANDS = 2,
-		PORTAL_SURFACES = 4,
-
-		GEOMETRY_CACHE_INPUT_VBO = 5,
-		GEOMETRY_CACHE_VBO = 6,
-		GEOMETRY_CACHE_IBO = 7,
-
-		COMMAND_COUNTERS_STORAGE = 9,
-		TEX_DATA_STORAGE = 11,
-		STAGING = 12,
-
-		DEBUG = 10,
-		
-		// Atomic
-		COMMAND_COUNTERS_ATOMIC = 0
-	};
+struct GLStagingCopy {
+	GLBuffer* dst;
+	GLsizeiptr stagingOffset;
+	GLsizeiptr dstOffset;
+	GLsizeiptr size;
 };
 
-#endif // BUFFERBIND_H
+class GLStagingBuffer {
+	public:
+	uint32_t* MapBuffer( const GLsizeiptr size );
+	void FlushBuffer();
+	void QueueStagingCopy( GLBuffer* dst, const GLsizeiptr dstOffset );
+	void FlushStagingCopyQueue();
+	void FlushAll();
+
+	void InitGLBuffer();
+	void FreeGLBuffer();
+
+	private:
+	static const GLsizeiptr SIZE;
+
+	GLsizeiptr pointer = 0;
+	GLsizeiptr current = 0;
+	GLsizeiptr last = 0;
+
+	static const uint32_t MAX_COPIES = 16;
+	GLStagingCopy copyQueue[MAX_COPIES];
+	uint32_t currentCopy = 0;
+
+	GLBuffer buffer = GLBuffer( "staging", BufferBind::STAGING, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT,
+		GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
+};
+
+extern GLStagingBuffer stagingBuffer;
+
+#endif // GLMEMORY_H

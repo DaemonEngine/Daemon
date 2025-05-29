@@ -72,7 +72,7 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "depthReduction_cp.glsl", std::string( reinterpret_cast< const char* >( depthReduction_cp_glsl ), sizeof( depthReduction_cp_glsl ) ) },
 	{ "processSurfaces_cp.glsl", std::string( reinterpret_cast< const char* >( processSurfaces_cp_glsl ), sizeof( processSurfaces_cp_glsl ) ) },
 
-	//  Screen-space shaders
+	// Screen-space shaders
 	{ "screenSpace_vp.glsl", std::string( reinterpret_cast< const char* >( screenSpace_vp_glsl ), sizeof( screenSpace_vp_glsl ) ) },
 	{ "blur_fp.glsl", std::string( reinterpret_cast< const char* >( blur_fp_glsl ), sizeof( blur_fp_glsl ) ) },
 	{ "cameraEffects_fp.glsl", std::string( reinterpret_cast< const char* >( cameraEffects_fp_glsl ), sizeof( cameraEffects_fp_glsl ) ) },
