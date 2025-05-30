@@ -130,7 +130,7 @@ download() {
 			log ERROR "No more mirror to download ${tarball_file} from"
 		fi
 		local download_url="${1}"; shift
-		log status "Downloading ${download_url}"
+		log STATUS "Downloading ${download_url}"
 		if ! "${CURL}" -R -L --fail -o "${tarball_file}" "${download_url}"
 		then
 			log WARNING "Failed to download ${download_url}"
