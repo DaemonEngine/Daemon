@@ -119,10 +119,38 @@ class ClientApplication : public Application {
             SV_Shutdown(Str::Format("Server %s: %s", error ? "crashed" : "shutdown", reason).c_str());
             CL_Disconnect(true);
             CL_ShutdownAll();
-            if (error)
-            {
-                Cvar::SetValue("com_errorMessage", Str::Format("^3%s", reason));
+
+            if (error) {
+                const char* bannedPrefix = "You have been banned by";
+                std::string reasonStr = reason.c_str();
+
+                auto trim = [](std::string& s) {
+                    const char* ws = " \t";
+                    s.erase(0, s.find_first_not_of(ws));
+                    s.erase(s.find_last_not_of(ws) + 1);
+                };
+
+                auto extractValue = [&](const std::string& key) -> std::string {
+                    size_t pos = reasonStr.find(key);
+                    if (pos == std::string::npos) return "";
+                    pos += key.length();
+                    size_t end = reasonStr.find('\n', pos);
+                    if (end == std::string::npos) end = reasonStr.length();
+                    std::string val = reasonStr.substr(pos, end - pos);
+                    trim(val);
+                    return val;
+                };
+
+                if (reasonStr.find(bannedPrefix) != std::string::npos) {
+                    Cvar::SetValue("ui_BannedBy", extractValue(bannedPrefix).c_str());
+                    Cvar::SetValue("ui_BanDuration", extractValue("Duration:").c_str());
+                    Cvar::SetValue("ui_BanReason", extractValue("Reason:").c_str());
+                    Cvar::SetValue("com_bannedMessage", Str::Format("^3%s", reason).c_str());
+                } else {
+                    Cvar::SetValue("com_errorMessage", Str::Format("^3%s", reason).c_str());
+                }
             }
+
             CL_StartHunkUsers();
         }
 
