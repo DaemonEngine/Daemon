@@ -2833,7 +2833,6 @@ enum class ssaoMode {
 	extern cvar_t *r_showTris; // enables wireframe rendering of the world
 	extern cvar_t *r_showSky; // forces sky in front of all surfaces
 	extern cvar_t *r_showSkeleton;
-	extern cvar_t *r_showEntityTransforms;
 	extern cvar_t *r_showLightGrid;
 	extern cvar_t *r_showLightTiles;
 	extern cvar_t *r_showBatches;
