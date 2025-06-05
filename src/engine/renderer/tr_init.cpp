@@ -227,7 +227,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_showTris;
 	cvar_t      *r_showSky;
 	cvar_t      *r_showSkeleton;
-	cvar_t      *r_showEntityTransforms;
 	cvar_t      *r_showLightGrid;
 	cvar_t      *r_showLightTiles;
 	cvar_t      *r_showBatches;
@@ -1276,7 +1275,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showTris = Cvar_Get( "r_showTris", "0", CVAR_CHEAT );
 		r_showSky = Cvar_Get( "r_showSky", "0", CVAR_CHEAT );
 		r_showSkeleton = Cvar_Get( "r_showSkeleton", "0", CVAR_CHEAT );
-		r_showEntityTransforms = Cvar_Get( "r_showEntityTransforms", "0", CVAR_CHEAT );
 		r_showLightGrid = Cvar_Get( "r_showLightGrid", "0", CVAR_CHEAT );
 		r_showLightTiles = Cvar_Get("r_showLightTiles", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showBatches = Cvar_Get( "r_showBatches", "0", CVAR_CHEAT );
