@@ -1830,68 +1830,6 @@ void MatrixMultiplyShear( matrix_t m, vec_t x, vec_t y )
 	m[ 7 ] += tmp[ 3 ] * x;
 }
 
-void MatrixToAngles( const matrix_t m, vec3_t angles )
-{
-#if 1
-	float theta;
-	float cp;
-	float sp;
-
-	sp = m[ 2 ];
-
-	// cap off our sin value so that we don't get any NANs
-	if ( sp > 1.0f )
-	{
-		sp = 1.0f;
-	}
-
-	else if ( sp < -1.0f )
-	{
-		sp = -1.0f;
-	}
-
-	theta = -asinf( sp );
-	cp = cosf( theta );
-
-	if ( cp > 8192 * FLT_EPSILON )
-	{
-		angles[ PITCH ] = RAD2DEG( theta );
-		angles[ YAW ] = RAD2DEG( atan2f( m[ 1 ], m[ 0 ] ) );
-		angles[ ROLL ] = RAD2DEG( atan2f( m[ 6 ], m[ 10 ] ) );
-	}
-
-	else
-	{
-		angles[ PITCH ] = RAD2DEG( theta );
-		angles[ YAW ] = RAD2DEG( -atan2f( m[ 4 ], m[ 5 ] ) );
-		angles[ ROLL ] = 0;
-	}
-
-#else
-	float a;
-	float ca;
-
-	a = asinf( -m[ 2 ] );
-	ca = cosf( a );
-
-	if ( fabsf( ca ) > 0.005f )  // Gimbal lock?
-	{
-		angles[ PITCH ] = RAD2DEG( atan2f( m[ 6 ] / ca, m[ 10 ] / ca ) );
-		angles[ YAW ] = RAD2DEG( a );
-		angles[ ROLL ] = RAD2DEG( atan2f( m[ 1 ] / ca, m[ 0 ] / ca ) );
-	}
-
-	else
-	{
-		// Gimbal lock has occurred
-		angles[ PITCH ] = RAD2DEG( atan2f( -m[ 9 ], m[ 5 ] ) );
-		angles[ YAW ] = RAD2DEG( a );
-		angles[ ROLL ] = 0;
-	}
-
-#endif
-}
-
 //  Tait-Bryan angles z-y-x
 void MatrixFromAngles( matrix_t m, vec_t pitch, vec_t yaw, vec_t roll )
 {
