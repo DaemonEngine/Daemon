@@ -1950,15 +1950,12 @@ static void RB_RenderDebugUtils()
 					}
 
 					VectorCopy( skel->bones[ j ].t.trans, offset );
-					vec3_t forward, right, up;
-					QuatToVectorsFRU( skel->bones[ j ].t.rot, forward, right, up );
 
 					VectorSubtract( offset, origin, diff );
 
 					if ( ( length = VectorNormalize( diff ) ) )
 					{
 						PerpendicularVector( tmp, diff );
-						//VectorCopy(up, tmp);
 
 						VectorScale( tmp, length * 0.1, tmp2 );
 						VectorMA( tmp2, length * 0.2, diff, tmp2 );
