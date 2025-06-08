@@ -919,7 +919,7 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 
 	// We may have a nodraw surface, because they might still need to be around for movement clipping
 	if ( s_worldData.shaders[LittleLong( ds->shaderNum )].surfaceFlags & SURF_NODRAW ) {
-		surfaceType_t skipData = surfaceType_t::SF_SKIP;
+		static surfaceType_t skipData = surfaceType_t::SF_SKIP;
 		surf->data = &skipData;
 		return;
 	}
