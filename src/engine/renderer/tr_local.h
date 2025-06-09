@@ -424,7 +424,6 @@ enum class ssaoMode {
 		// local
 		float        axisLength; // compensate for non-normalized axis
 
-		cullResult_t cull;
 		vec3_t       localBounds[ 2 ];
 		vec3_t       worldBounds[ 2 ];
 	};

@@ -185,9 +185,7 @@ void R_AddBSPModelSurfaces( trRefEntity_t *ent )
 	VectorAdd( ent->worldBounds[ 0 ], ent->worldBounds[ 1 ], boundsCenter );
 	VectorScale( boundsCenter, 0.5f, boundsCenter );
 
-	ent->cull = R_CullBox( ent->worldBounds );
-
-	if ( ent->cull == CULL_OUT )
+	if ( R_CullBox( ent->worldBounds ) == CULL_OUT )
 	{
 		return;
 	}

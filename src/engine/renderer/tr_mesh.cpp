@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 R_CullMDV
 =============
 */
-static void R_CullMDV( mdvModel_t *model, trRefEntity_t *ent )
+static cullResult_t R_CullMDV( mdvModel_t *model, trRefEntity_t *ent )
 {
 	mdvFrame_t *oldFrame, *newFrame;
 	int        i;
@@ -59,13 +59,11 @@ static void R_CullMDV( mdvModel_t *model, trRefEntity_t *ent )
 			{
 				case cullResult_t::CULL_OUT:
 					tr.pc.c_sphere_cull_mdv_out++;
-					ent->cull = cullResult_t::CULL_OUT;
-					return;
+					return cullResult_t::CULL_OUT;
 
 				case cullResult_t::CULL_IN:
 					tr.pc.c_sphere_cull_mdv_in++;
-					ent->cull = cullResult_t::CULL_IN;
-					return;
+					return cullResult_t::CULL_IN;
 
 				case cullResult_t::CULL_CLIP:
 					tr.pc.c_sphere_cull_mdv_clip++;
@@ -91,14 +89,12 @@ static void R_CullMDV( mdvModel_t *model, trRefEntity_t *ent )
 				if ( sphereCull == cullResult_t::CULL_OUT )
 				{
 					tr.pc.c_sphere_cull_mdv_out++;
-					ent->cull = cullResult_t::CULL_OUT;
-					return;
+					return cullResult_t::CULL_OUT;
 				}
 				else if ( sphereCull == cullResult_t::CULL_IN )
 				{
 					tr.pc.c_sphere_cull_mdv_in++;
-					ent->cull = cullResult_t::CULL_IN;
-					return;
+					return cullResult_t::CULL_IN;
 				}
 				else
 				{
@@ -112,19 +108,16 @@ static void R_CullMDV( mdvModel_t *model, trRefEntity_t *ent )
 	{
 		case cullResult_t::CULL_IN:
 			tr.pc.c_box_cull_mdv_in++;
-			ent->cull = cullResult_t::CULL_IN;
-			return;
+			return cullResult_t::CULL_IN;
 
 		case cullResult_t::CULL_CLIP:
 			tr.pc.c_box_cull_mdv_clip++;
-			ent->cull = cullResult_t::CULL_CLIP;
-			return;
+			return cullResult_t::CULL_CLIP;
 
 		case cullResult_t::CULL_OUT:
 		default:
 			tr.pc.c_box_cull_mdv_out++;
-			ent->cull = cullResult_t::CULL_OUT;
-			return;
+			return cullResult_t::CULL_OUT;
 	}
 }
 
@@ -296,9 +289,7 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 
 	// cull the entire model if merged bounding box of both frames
 	// is outside the view frustum.
-	R_CullMDV( model, ent );
-
-	if ( ent->cull == CULL_OUT )
+	if ( R_CullMDV( model, ent ) == CULL_OUT )
 	{
 		return;
 	}

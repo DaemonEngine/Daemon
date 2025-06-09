@@ -610,7 +610,7 @@ static ListAnimationsCmd listAnimationsCmdRegistration;
 R_CullMD5
 =============
 */
-static void R_CullMD5( trRefEntity_t *ent )
+static cullResult_t R_CullMD5( trRefEntity_t *ent )
 {
 	int        i;
 
@@ -638,19 +638,16 @@ static void R_CullMD5( trRefEntity_t *ent )
 	{
 		case cullResult_t::CULL_IN:
 			tr.pc.c_box_cull_md5_in++;
-			ent->cull = cullResult_t::CULL_IN;
-			return;
+			return cullResult_t::CULL_IN;
 
 		case cullResult_t::CULL_CLIP:
 			tr.pc.c_box_cull_md5_clip++;
-			ent->cull = cullResult_t::CULL_CLIP;
-			return;
+			return cullResult_t::CULL_CLIP;
 
 		case cullResult_t::CULL_OUT:
 		default:
 			tr.pc.c_box_cull_md5_out++;
-			ent->cull = cullResult_t::CULL_OUT;
-			return;
+			return cullResult_t::CULL_OUT;
 	}
 }
 
@@ -674,9 +671,7 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 
 	// cull the entire model if merged bounding box of both frames
 	// is outside the view frustum
-	R_CullMD5( ent );
-
-	if ( ent->cull == cullResult_t::CULL_OUT )
+	if ( R_CullMD5( ent ) == cullResult_t::CULL_OUT )
 	{
 		return;
 	}
