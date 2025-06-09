@@ -1595,6 +1595,11 @@ static void RB_RenderDebugUtils()
 
 		for ( i = 0; i < backEnd.refdef.numEntities; i++, ent++ )
 		{
+			if ( ent->e.reType != refEntityType_t::RT_MODEL )
+			{
+				continue;
+			}
+
 			if ( ( ent->e.renderfx & RF_THIRD_PERSON ) &&
 			     backEnd.viewParms.portalLevel == 0 )
 			{
