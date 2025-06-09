@@ -1606,11 +1606,6 @@ static void RB_RenderDebugUtils()
 				continue;
 			}
 
-			if ( ent->cull == cullResult_t::CULL_OUT )
-			{
-				continue;
-			}
-
 			// set up the transformation matrix
 			R_RotateEntityForViewParms( ent, &backEnd.viewParms, &backEnd.orientation );
 			GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
