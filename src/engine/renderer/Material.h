@@ -401,11 +401,9 @@ class MaterialSystem {
 	image_t* depthImage;
 	int depthImageLevels;
 
-	uint32_t totalDrawSurfs;
-	uint32_t totalBatchCount = 0;
-
 	uint32_t surfaceCommandsCount = 0;
 	uint32_t surfaceDescriptorsCount = 0;
+	uint32_t totalBatchCount = 0;
 
 	uint32_t packIDs[3] = { 0, 0, 0 };
 

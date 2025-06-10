@@ -2764,15 +2764,15 @@ class u_P11 :
 	}
 };
 
-class u_TotalDrawSurfs :
+class u_SurfaceDescriptorsCount :
 	GLUniform1ui {
 	public:
-	u_TotalDrawSurfs( GLShader* shader ) :
-		GLUniform1ui( shader, "u_TotalDrawSurfs", true ) {
+	u_SurfaceDescriptorsCount( GLShader* shader ) :
+		GLUniform1ui( shader, "u_SurfaceDescriptorsCount", true ) {
 	}
 
-	void SetUniform_TotalDrawSurfs( const uint totalDrawSurfs ) {
-		this->SetValue( totalDrawSurfs );
+	void SetUniform_SurfaceDescriptorsCount( const uint SurfaceDescriptorsCount ) {
+		this->SetValue( SurfaceDescriptorsCount );
 	}
 };
 
@@ -4153,7 +4153,7 @@ class GLShader_cull :
 	public GLShader,
 	public u_Frame,
 	public u_ViewID,
-	public u_TotalDrawSurfs,
+	public u_SurfaceDescriptorsCount,
 	public u_SurfaceCommandsOffset,
 	public u_Frustum,
 	public u_UseFrustumCulling,
