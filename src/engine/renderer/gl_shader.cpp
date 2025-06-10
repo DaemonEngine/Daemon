@@ -3028,7 +3028,7 @@ GLShader_cull::GLShader_cull() :
 		false, "cull" ),
 	u_Frame( this ),
 	u_ViewID( this ),
-	u_TotalDrawSurfs( this ),
+	u_SurfaceDescriptorsCount( this ),
 	u_SurfaceCommandsOffset( this ),
 	u_Frustum( this ),
 	u_UseFrustumCulling( this ),
