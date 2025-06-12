@@ -223,6 +223,10 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 		return;
 	}
 
+	#if defined(r_showLightTiles)
+		uint totalLights = 0u;
+	#endif
+
 	vec2 tile = floor( gl_FragCoord.xy * ( 1.0 / float( TILE_SIZE ) ) ) + 0.5;
 
 	for( uint layer = 0u; layer < uint( NUM_LIGHT_LAYERS ); layer++ ) {
@@ -243,12 +247,15 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 			computeDynamicLight( idx, P, normal, viewDir, diffuse, material, color );
 			lightCount++;
 		}
+		#if defined(r_showLightTiles)
+			totalLights += lightCount;
+		#endif
 	}
 
 	#if defined(r_showLightTiles)
-		if ( lightCount > 0 ) {
-			color = vec4( float( lightCount ) / u_numLights, float( lightCount ) / u_numLights,
-				float( lightCount ) / u_numLights, 1.0 );
+		if ( totalLights > 0 ) {
+			color = vec4( float( totalLights ) / u_numLights, float( totalLights ) / u_numLights,
+				float( totalLights ) / u_numLights, 1.0 );
 		}
 	#endif
 }
