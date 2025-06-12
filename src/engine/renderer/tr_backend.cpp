@@ -34,6 +34,8 @@ backEndState_t backEnd;
 
 static Cvar::Cvar<bool> r_clear( "r_clear", "Clear screen before painting over it on every frame", Cvar::NONE, false );
 Cvar::Cvar<bool> r_drawSky( "r_drawSky", "Draw the sky (clear the sky if disabled)", Cvar::NONE, true );
+static Cvar::Cvar<int> r_showEntityBounds(
+	"r_showEntityBounds", "show bboxes used for culling (1: wireframe; 2: translucent solid)", Cvar::CHEAT, 0);
 
 void GL_Bind( image_t *image )
 {
@@ -1563,7 +1565,7 @@ static void RB_RenderDebugUtils()
 {
 	GLIMP_LOGCOMMENT( "--- RB_RenderDebugUtils ---" );
 
-	if ( r_showEntityTransforms->integer )
+	if ( r_showEntityBounds.Get() )
 	{
 		trRefEntity_t *ent;
 		int           i;
@@ -1577,13 +1579,23 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetDepthFade( false );
 		gl_genericShader->BindProgram( 0 );
 
-		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
+		if ( r_showEntityBounds.Get() == 2 )
+		{
+			GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
+			glEnable( GL_POLYGON_OFFSET_FILL );
+			GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
+		}
+		else
+		{
+			GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
+		}
+
 		GL_Cull( cullType_t::CT_TWO_SIDED );
 
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-		SetUniform_Color( gl_genericShader, Color::Black );
+		SetUniform_Color( gl_genericShader, Color::Color(0, 0, 0, 0) );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -1595,13 +1607,13 @@ static void RB_RenderDebugUtils()
 
 		for ( i = 0; i < backEnd.refdef.numEntities; i++, ent++ )
 		{
-			if ( ( ent->e.renderfx & RF_THIRD_PERSON ) &&
-			     backEnd.viewParms.portalLevel == 0 )
+			if ( ent->e.reType != refEntityType_t::RT_MODEL )
 			{
 				continue;
 			}
 
-			if ( ent->cull == cullResult_t::CULL_OUT )
+			if ( ( ent->e.renderfx & RF_THIRD_PERSON ) &&
+			     backEnd.viewParms.portalLevel == 0 )
 			{
 				continue;
 			}
@@ -1613,9 +1625,15 @@ static void RB_RenderDebugUtils()
 
 			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
-			Tess_AddCube( vec3_origin, ent->localBounds[ 0 ], ent->localBounds[ 1 ], Color::Blue );
-
-			Tess_AddCube( vec3_origin, mins, maxs,Color::White );
+			if ( r_showEntityBounds.Get() == 2)
+			{
+				Tess_AddCube( vec3_origin, ent->localBounds[ 0 ], ent->localBounds[ 1 ], Color::Color(0, 0, 0.5, 0.4) );
+			}
+			else
+			{
+				Tess_AddCube( vec3_origin, ent->localBounds[ 0 ], ent->localBounds[ 1 ], Color::Blue );
+				Tess_AddCube( vec3_origin, mins, maxs,Color::White );
+			}
 
 			Tess_End();
 		}
@@ -1623,6 +1641,7 @@ static void RB_RenderDebugUtils()
 		// go back to the world modelview matrix
 		backEnd.orientation = backEnd.viewParms.world;
 		GL_LoadModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
+		glDisable( GL_POLYGON_OFFSET_FILL );
 	}
 
 	if ( r_showSkeleton->integer )

@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define GL_SHADER_H
 
 #include "tr_local.h"
+#include "BufferBind.h"
 #include <stdexcept>
 
 #define USE_UNIFORM_FIREWALL 1
@@ -367,6 +368,8 @@ public:
 	bool BuildPermutation( GLShader* shader, int macroIndex, int deformIndex, const bool buildOneShader );
 	void BuildAll( const bool buildOnlyMarked );
 	void FreeAll();
+
+	void BindBuffers();
 private:
 	struct InfoLogEntry {
 		int line;
@@ -1231,12 +1234,13 @@ class GLUniformBlock
 protected:
 	GLShader   *_shader;
 	std::string _name;
-	size_t      _locationIndex;
+	size_t      _locationIndex; // Only valid if GL_ARB_shading_language_420pack is not available
+	const GLuint _bindingPoint; // Only valid if GL_ARB_shading_language_420pack is available
 
-	GLUniformBlock( GLShader *shader, const char *name ) :
+	GLUniformBlock( GLShader *shader, const char *name, const GLuint bindingPoint ) :
 		_shader( shader ),
 		_name( name ),
-		_locationIndex( 0 )
+		_bindingPoint( bindingPoint )
 	{
 		_shader->RegisterUniformBlock( this );
 	}
@@ -1258,10 +1262,14 @@ public:
 	}
 
 	void SetBuffer( GLuint buffer ) {
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-		GLuint blockIndex = p->uniformBlockIndexes[ _locationIndex ];
+		if ( glConfig2.shadingLanguage420PackAvailable ) {
+			return;
+		}
 
-		ASSERT_EQ(p, glState.currentProgram);
+		ShaderProgramDescriptor *p = _shader->GetProgram();
+		GLuint blockIndex = p->uniformBlockIndexes[_locationIndex];
+
+		ASSERT_EQ( p, glState.currentProgram );
 
 		if( blockIndex != GL_INVALID_INDEX ) {
 			glBindBufferBase( GL_UNIFORM_BUFFER, blockIndex, buffer );
@@ -3599,7 +3607,7 @@ class u_Lights :
 {
  public:
 	u_Lights( GLShader *shader ) :
-		GLUniformBlock( shader, "u_Lights" )
+		GLUniformBlock( shader, "u_Lights", BufferBind::LIGHTS )
 	{
 	}
 

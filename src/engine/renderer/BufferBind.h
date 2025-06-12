@@ -31,38 +31,39 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// GeometryCache.h
+// BufferBind.h
 
-#ifndef GEOMETRY_CACHE_H
-#define GEOMETRY_CACHE_H
+#ifndef BUFFERBIND_H
+#define BUFFERBIND_H
 
-#include "gl_shader.h"
-#include "Material.h"
+namespace BufferBind {
+	enum : uint32_t {
+		// UBO
+		MATERIALS = 0,
+		TEX_DATA = 1,
+		LIGHTMAP_DATA = 2,
+		LIGHTS = 3,
 
-class GeometryCache {
-	public:
-	void Bind();
+		SURFACE_BATCHES = 4,
 
-	void InitGLBuffers();
-	void FreeGLBuffers();
+		// SSBO
+		SURFACE_DESCRIPTORS = 0,
+		SURFACE_COMMANDS = 1,
+		CULLED_COMMANDS = 2,
+		PORTAL_SURFACES = 4,
 
-	void AllocBuffers();
-	void AddMapGeometry( const uint32_t verticesNumber, const uint32_t indicesNumber,
-		const vertexAttributeSpec_t* attrBegin,
-		const vertexAttributeSpec_t* attrEnd,
-		const glIndex_t* indices );
+		GEOMETRY_CACHE_INPUT_VBO = 5,
+		GEOMETRY_CACHE_VBO = 6,
+		GEOMETRY_CACHE_IBO = 7,
 
-	private:
-	uint32_t mapVerticesNumber;
-	uint32_t mapIndicesNumber;
+		COMMAND_COUNTERS_STORAGE = 9,
+		TEX_DATA_STORAGE = 11,
 
-	GLVAO VAO = GLVAO( 0 );
-
-	GLBuffer inputVBO = GLBuffer( "geometryCacheInputVBO", BufferBind::GEOMETRY_CACHE_INPUT_VBO, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
-	GLBuffer VBO = GLBuffer( "geometryCacheVBO", BufferBind::GEOMETRY_CACHE_VBO, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-	GLBuffer IBO = GLBuffer( "geometryCacheIBO", BufferBind::GEOMETRY_CACHE_IBO, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+		DEBUG = 10,
+		
+		// Atomic
+		COMMAND_COUNTERS_ATOMIC = 0
+	};
 };
 
-extern GeometryCache geometryCache;
-
-#endif // GEOMETRY_CACHE_H
+#endif // BUFFERBIND_H

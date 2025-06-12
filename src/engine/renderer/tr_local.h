@@ -422,7 +422,6 @@ enum class ssaoMode {
 		// local
 		float        axisLength; // compensate for non-normalized axis
 
-		cullResult_t cull;
 		vec3_t       localBounds[ 2 ];
 		vec3_t       worldBounds[ 2 ];
 	};
@@ -2833,7 +2832,6 @@ enum class ssaoMode {
 	extern cvar_t *r_showTris; // enables wireframe rendering of the world
 	extern cvar_t *r_showSky; // forces sky in front of all surfaces
 	extern cvar_t *r_showSkeleton;
-	extern cvar_t *r_showEntityTransforms;
 	extern cvar_t *r_showLightGrid;
 	extern cvar_t *r_showLightTiles;
 	extern cvar_t *r_showBatches;
