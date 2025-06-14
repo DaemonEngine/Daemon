@@ -58,6 +58,7 @@ namespace BufferBind {
 
 		COMMAND_COUNTERS_STORAGE = 9,
 		TEX_DATA_STORAGE = 11,
+		STAGING = 12,
 
 		DEBUG = 10,
 		

@@ -70,7 +70,7 @@ layout(std430, binding = BIND_PORTAL_SURFACES) restrict buffer portalSurfacesSSB
 
 uniform uint u_Frame;
 uniform uint u_ViewID;
-uniform uint u_TotalDrawSurfs;
+uniform uint u_SurfaceDescriptorsCount;
 uniform uint u_SurfaceCommandsOffset;
 uniform vec4 u_Frustum[6]; // xyz - normal, w - distance
 uniform bool u_UseFrustumCulling;
@@ -198,7 +198,7 @@ void main() {
 	}
 
 	// Regular surfaces
-	if( globalInvocationID >= u_TotalDrawSurfs ) {
+	if( globalInvocationID >= u_SurfaceDescriptorsCount ) {
 		return;
 	}
 	SurfaceDescriptor surface = surfaces[globalInvocationID];
