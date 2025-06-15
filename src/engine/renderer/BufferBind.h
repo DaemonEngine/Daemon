@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -31,66 +31,40 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// GeometryCache.cpp
+// BufferBind.h
 
-#include "common/Common.h"
+#ifndef BUFFERBIND_H
+#define BUFFERBIND_H
 
-#include "GeometryCache.h"
-#include "GLMemory.h"
-#include "tr_local.h"
+namespace BufferBind {
+	enum : uint32_t {
+		// UBO
+		MATERIALS = 0,
+		TEX_DATA = 1,
+		LIGHTMAP_DATA = 2,
+		LIGHTS = 3,
 
-GeometryCache geometryCache;
+		SURFACE_BATCHES = 4,
 
-void GeometryCache::Bind() {
-	VAO.Bind();
-}
+		// SSBO
+		SURFACE_DESCRIPTORS = 0,
+		SURFACE_COMMANDS = 1,
+		CULLED_COMMANDS = 2,
+		PORTAL_SURFACES = 4,
 
-void GeometryCache::InitGLBuffers() {
-	inputVBO.GenBuffer();
-	VBO.GenBuffer();
-	IBO.GenBuffer();
+		GEOMETRY_CACHE_INPUT_VBO = 5,
+		GEOMETRY_CACHE_VBO = 6,
+		GEOMETRY_CACHE_IBO = 7,
 
-	VAO.GenVAO();
-}
+		COMMAND_COUNTERS_STORAGE = 9,
+		TEX_DATA_STORAGE = 11,
+		STAGING = 12,
 
-void GeometryCache::FreeGLBuffers() {
-	inputVBO.DelBuffer();
-	VBO.DelBuffer();
-	IBO.DelBuffer();
+		DEBUG = 10,
+		
+		// Atomic
+		COMMAND_COUNTERS_ATOMIC = 0
+	};
+};
 
-	VAO.DelVAO();
-}
-
-void GeometryCache::AddMapGeometry( const uint32_t verticesNumber, const uint32_t indicesNumber,
-	const vertexAttributeSpec_t* attrBegin, const vertexAttributeSpec_t* attrEnd,
-	const glIndex_t* indices ) {
-	mapVerticesNumber = verticesNumber;
-	mapIndicesNumber = indicesNumber;
-
-	VAO.Bind();
-
-	VAO.SetAttrs( attrBegin, attrEnd );
-
-	VAO.SetVertexBuffer( VBO, 0 );
-	VAO.SetIndexBuffer( IBO );
-	
-	VBO.BufferStorage( mapVerticesNumber * 8, 1, nullptr );
-	uint32_t* VBOVerts = stagingBuffer.MapBuffer( mapVerticesNumber * 8 );
-	for ( const vertexAttributeSpec_t* spec = attrBegin; spec < attrEnd; spec++ ) {
-		vboAttributeLayout_t& attr = VAO.attrs[spec->attrIndex];
-
-		R_CopyVertexAttribute( attr, *spec, mapVerticesNumber, ( byte* ) VBOVerts );
-	}
-
-	stagingBuffer.QueueStagingCopy( &VBO, 0 );
-
-	IBO.BufferStorage( mapIndicesNumber, 1, nullptr );
-	uint32_t* IBOIndices = stagingBuffer.MapBuffer( mapIndicesNumber );
-	memcpy( IBOIndices, indices, mapIndicesNumber * sizeof( uint32_t ) );
-
-	stagingBuffer.QueueStagingCopy( &IBO, 0 );
-
-	stagingBuffer.FlushAll();
-
-	glBindVertexArray( backEnd.currentVAO );
-}
+#endif // BUFFERBIND_H

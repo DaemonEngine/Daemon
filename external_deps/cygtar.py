@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright (c) 2012 The Native Client Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -78,12 +78,12 @@ def CreateCygwinSymlink(filepath, target):
       lnk.close()
       break
     except EnvironmentError:
-      print 'Try %d: Failed open %s -> %s\n' % (cnt, filepath, target)
+      print('Try %d: Failed open %s -> %s\n' % (cnt, filepath, target))
 
   # Verify the file was created
   if not os.path.isfile(filepath):
-    print 'Try %d: Failed create %s -> %s\n' % (cnt, filepath, target)
-    print 'Giving up.'
+    print('Try %d: Failed create %s -> %s\n' % (cnt, filepath, target))
+    print('Giving up.')
     return False
 
   # Now set the system attribute bit so that Cygwin knows it's a link.
@@ -92,8 +92,8 @@ def CreateCygwinSymlink(filepath, target):
       return subprocess.call(['cmd', '/C', 'C:\\Windows\\System32\\attrib.exe',
                               '+S', ToNativePath(filepath)])
     except EnvironmentError:
-      print 'Try %d: Failed attrib %s -> %s\n' % (cnt, filepath, target)
-  print 'Giving up.'
+      print('Try %d: Failed attrib %s -> %s\n' % (cnt, filepath, target))
+  print('Giving up.')
   return False
 
 
@@ -122,8 +122,8 @@ def CreateWin32Hardlink(filepath, targpath, try_mklink):
         shutil.copyfile(targpath, filepath)
         return False
       except EnvironmentError:
-        print 'Try %d: Failed hardlink %s -> %s\n' % (cnt, filepath, targpath)
-    print 'Giving up.'
+        print('Try %d: Failed hardlink %s -> %s\n' % (cnt, filepath, targpath))
+    print('Giving up.')
   return try_mklink
 
 
@@ -170,7 +170,7 @@ class CygTar(object):
     if tarinfo.isfile():
       typeinfo = 'F'
     reable_size = ReadableSizeOf(tarinfo.size)
-    print '%s %s : %s %s' % (reable_size, typeinfo, tarinfo.name, lnk)
+    print('%s %s : %s %s' % (reable_size, typeinfo, tarinfo.name, lnk))
     return tarinfo
 
   def __AddFile(self, tarinfo, fileobj=None):
@@ -232,7 +232,7 @@ class CygTar(object):
 
     # At this point we only allow addition of "FILES"
     if not tarinfo.isfile():
-      print 'Failed to add non real file: %s' % filepath
+      print('Failed to add non real file: %s' % filepath)
       return False
 
     # Now check if it is a Cygwin style link disguised as a file.

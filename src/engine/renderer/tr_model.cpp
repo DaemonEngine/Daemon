@@ -147,7 +147,7 @@ qhandle_t RE_RegisterModel( const char *name )
 
 		if ( !err )
 		{
-			if ( Str::IsIPrefix( "MD5Version", buffer ) )
+			if ( Str::IsIPrefix( MD5_IDENTSTRING, buffer ) )
 			{
 				loaded = R_LoadMD5( mod, buffer.c_str(), name );
 			}

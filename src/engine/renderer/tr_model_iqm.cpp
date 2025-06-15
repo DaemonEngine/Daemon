@@ -930,7 +930,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 R_CullIQM
 =============
 */
-static void R_CullIQM( trRefEntity_t *ent ) {
+static cullResult_t R_CullIQM( trRefEntity_t *ent ) {
 	vec3_t     localBounds[ 2 ];
 	float      scale = ent->e.skeleton.scale;
 	IQModel_t *model = tr.currentModel->iqm;
@@ -962,17 +962,14 @@ static void R_CullIQM( trRefEntity_t *ent ) {
 	{
 	case cullResult_t::CULL_IN:
 		tr.pc.c_box_cull_md5_in++;
-		ent->cull = cullResult_t::CULL_IN;
-		return;
+		return cullResult_t::CULL_IN;
 	case cullResult_t::CULL_CLIP:
 		tr.pc.c_box_cull_md5_clip++;
-		ent->cull = cullResult_t::CULL_CLIP;
-		return;
+		return cullResult_t::CULL_CLIP;
 	case cullResult_t::CULL_OUT:
 	default:
 		tr.pc.c_box_cull_md5_out++;
-		ent->cull = cullResult_t::CULL_OUT;
-		return;
+		return cullResult_t::CULL_OUT;
 	}
 }
 
@@ -999,14 +996,9 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 	personalModel = (ent->e.renderfx & RF_THIRD_PERSON) &&
 	  tr.viewParms.portalLevel == 0;
 
-	// cull the entire model if merged bounding box of both frames
-	// is outside the view frustum.
-	R_CullIQM( ent );
-
 	// HACK: Never cull first-person models, due to issues with a certain model's bounds
 	// A first-person model not in the player's sight seems like something that should not happen in any case
-	// But R_CullIQM is always called because it sets some fields used by other code
-	if ( ent->cull == cullResult_t::CULL_OUT && !( ent->e.renderfx & RF_FIRST_PERSON ) )
+	if ( !( ent->e.renderfx & RF_FIRST_PERSON ) && R_CullIQM( ent ) == cullResult_t::CULL_OUT )
 	{
 		return;
 	}

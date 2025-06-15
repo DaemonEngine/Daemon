@@ -46,7 +46,6 @@ class GeometryCache {
 	void InitGLBuffers();
 	void FreeGLBuffers();
 
-	void AllocBuffers();
 	void AddMapGeometry( const uint32_t verticesNumber, const uint32_t indicesNumber,
 		const vertexAttributeSpec_t* attrBegin,
 		const vertexAttributeSpec_t* attrEnd,
@@ -58,9 +57,9 @@ class GeometryCache {
 
 	GLVAO VAO = GLVAO( 0 );
 
-	GLBuffer inputVBO = GLBuffer( "geometryCacheInputVBO", Util::ordinal( BufferBind::GEOMETRY_CACHE_INPUT_VBO ), GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
-	GLBuffer VBO = GLBuffer( "geometryCacheVBO", Util::ordinal( BufferBind::GEOMETRY_CACHE_VBO ), GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-	GLBuffer IBO = GLBuffer( "geometryCacheIBO", Util::ordinal( BufferBind::UNUSED ), GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+	GLBuffer inputVBO = GLBuffer( "geometryCacheInputVBO", BufferBind::GEOMETRY_CACHE_INPUT_VBO, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+	GLBuffer VBO = GLBuffer( "geometryCacheVBO", BufferBind::GEOMETRY_CACHE_VBO, 0, 0 );
+	GLBuffer IBO = GLBuffer( "geometryCacheIBO", BufferBind::GEOMETRY_CACHE_IBO, 0, 0 );
 };
 
 extern GeometryCache geometryCache;

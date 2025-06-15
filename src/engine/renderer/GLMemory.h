@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -31,66 +31,48 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// GeometryCache.cpp
+// GLMemory.h
 
-#include "common/Common.h"
+#ifndef GLMEMORY_H
+#define GLMEMORY_H
 
-#include "GeometryCache.h"
-#include "GLMemory.h"
-#include "tr_local.h"
+#include "gl_shader.h"
 
-GeometryCache geometryCache;
+void GLBufferCopy( GLBuffer* src, GLBuffer* dst, GLintptr srcOffset, GLintptr dstOffset, GLsizeiptr size );
 
-void GeometryCache::Bind() {
-	VAO.Bind();
-}
+struct GLStagingCopy {
+	GLBuffer* dst;
+	GLsizeiptr stagingOffset;
+	GLsizeiptr dstOffset;
+	GLsizeiptr size;
+};
 
-void GeometryCache::InitGLBuffers() {
-	inputVBO.GenBuffer();
-	VBO.GenBuffer();
-	IBO.GenBuffer();
+class GLStagingBuffer {
+	public:
+	uint32_t* MapBuffer( const GLsizeiptr size );
+	void FlushBuffer();
+	void QueueStagingCopy( GLBuffer* dst, const GLsizeiptr dstOffset );
+	void FlushStagingCopyQueue();
+	void FlushAll();
 
-	VAO.GenVAO();
-}
+	void InitGLBuffer();
+	void FreeGLBuffer();
 
-void GeometryCache::FreeGLBuffers() {
-	inputVBO.DelBuffer();
-	VBO.DelBuffer();
-	IBO.DelBuffer();
+	private:
+	static const GLsizeiptr SIZE;
 
-	VAO.DelVAO();
-}
+	GLsizeiptr pointer = 0;
+	GLsizeiptr current = 0;
+	GLsizeiptr last = 0;
 
-void GeometryCache::AddMapGeometry( const uint32_t verticesNumber, const uint32_t indicesNumber,
-	const vertexAttributeSpec_t* attrBegin, const vertexAttributeSpec_t* attrEnd,
-	const glIndex_t* indices ) {
-	mapVerticesNumber = verticesNumber;
-	mapIndicesNumber = indicesNumber;
+	static const uint32_t MAX_COPIES = 16;
+	GLStagingCopy copyQueue[MAX_COPIES];
+	uint32_t currentCopy = 0;
 
-	VAO.Bind();
+	GLBuffer buffer = GLBuffer( "staging", BufferBind::STAGING, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT,
+		GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
+};
 
-	VAO.SetAttrs( attrBegin, attrEnd );
+extern GLStagingBuffer stagingBuffer;
 
-	VAO.SetVertexBuffer( VBO, 0 );
-	VAO.SetIndexBuffer( IBO );
-	
-	VBO.BufferStorage( mapVerticesNumber * 8, 1, nullptr );
-	uint32_t* VBOVerts = stagingBuffer.MapBuffer( mapVerticesNumber * 8 );
-	for ( const vertexAttributeSpec_t* spec = attrBegin; spec < attrEnd; spec++ ) {
-		vboAttributeLayout_t& attr = VAO.attrs[spec->attrIndex];
-
-		R_CopyVertexAttribute( attr, *spec, mapVerticesNumber, ( byte* ) VBOVerts );
-	}
-
-	stagingBuffer.QueueStagingCopy( &VBO, 0 );
-
-	IBO.BufferStorage( mapIndicesNumber, 1, nullptr );
-	uint32_t* IBOIndices = stagingBuffer.MapBuffer( mapIndicesNumber );
-	memcpy( IBOIndices, indices, mapIndicesNumber * sizeof( uint32_t ) );
-
-	stagingBuffer.QueueStagingCopy( &IBO, 0 );
-
-	stagingBuffer.FlushAll();
-
-	glBindVertexArray( backEnd.currentVAO );
-}
+#endif // GLMEMORY_H

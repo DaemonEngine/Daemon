@@ -78,6 +78,7 @@ set(COMMONTESTLIST
 )
 
 set(RENDERERLIST
+    ${ENGINE_DIR}/renderer/BufferBind.h
     ${ENGINE_DIR}/renderer/DetectGLVendors.cpp
     ${ENGINE_DIR}/renderer/DetectGLVendors.h
     ${ENGINE_DIR}/renderer/gl_shader.cpp
@@ -96,6 +97,8 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/GeometryCache.h
     ${ENGINE_DIR}/renderer/GeometryOptimiser.cpp
     ${ENGINE_DIR}/renderer/GeometryOptimiser.h
+    ${ENGINE_DIR}/renderer/GLMemory.cpp
+    ${ENGINE_DIR}/renderer/GLMemory.h
     ${ENGINE_DIR}/renderer/InternalImage.cpp
     ${ENGINE_DIR}/renderer/InternalImage.h
     ${ENGINE_DIR}/renderer/Material.cpp
@@ -183,12 +186,8 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/vertexSkinning_vp.glsl
 
     # Regular shaders
-    ${ENGINE_DIR}/renderer/glsl_source/debugShadowMap_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/debugShadowMap_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/forwardLighting_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/forwardLighting_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/generic_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/generic_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/heatHaze_vp.glsl
@@ -203,8 +202,6 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/reflection_CB_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/screen_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/screen_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/shadowFill_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/shadowFill_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/skybox_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/skybox_fp.glsl
 )

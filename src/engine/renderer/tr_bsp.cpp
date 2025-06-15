@@ -919,7 +919,7 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 
 	// We may have a nodraw surface, because they might still need to be around for movement clipping
 	if ( s_worldData.shaders[LittleLong( ds->shaderNum )].surfaceFlags & SURF_NODRAW ) {
-		surfaceType_t skipData = surfaceType_t::SF_SKIP;
+		static surfaceType_t skipData = surfaceType_t::SF_SKIP;
 		surf->data = &skipData;
 		return;
 	}
@@ -2721,7 +2721,7 @@ static void R_CreateWorldVBO() {
 	MergeDuplicateVertices( rendererSurfaces, numSurfaces, vboVerts, numVertsInitial, vboIdxs, 3 * numTriangles, numVerts, numIndices );
 
 	if ( glConfig2.usingMaterialSystem ) {
-		OptimiseMapGeometryMaterial( rendererSurfaces, numSurfaces );
+		OptimiseMapGeometryMaterial( &s_worldData, rendererSurfaces, numSurfaces, vboVerts, numVerts, vboIdxs, numIndices );
 	}
 
 	vertexAttributeSpec_t attrs[]{
@@ -2730,10 +2730,6 @@ static void R_CreateWorldVBO() {
 		{ ATTR_INDEX_QTANGENT, GL_SHORT, GL_SHORT, &vboVerts[0].qtangent, 4, sizeof( *vboVerts ), ATTR_OPTION_NORMALIZE },
 		{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, &vboVerts[0].st, 4, sizeof( *vboVerts ), 0 },
 	};
-
-	if ( glConfig2.usingGeometryCache ) {
-		geometryCache.AddMapGeometry( numVerts, numIndices, std::begin( attrs ), std::end( attrs ), vboIdxs );
-	}
 
 	s_worldData.vbo = R_CreateStaticVBO(
 		"staticWorld_VBO", std::begin( attrs ), std::end( attrs ), numVerts );
@@ -2757,8 +2753,6 @@ static void R_CreateWorldVBO() {
 
 		// clear data used for sorting
 		surface->viewCount = -1;
-		surface->lightCount = -1;
-		surface->interactionBits = 0;
 	}
 
 	ri.Hunk_FreeTempMemory( rendererSurfaces );
@@ -2979,10 +2973,6 @@ static void R_LoadNodesAndLeafs( lump_t *nodeLump, lump_t *leafLump )
 	s_worldData.nodes = out;
 	s_worldData.numnodes = numNodes + numLeafs;
 	s_worldData.numDecisionNodes = numNodes;
-
-	// ydnar: skybox optimization
-	s_worldData.numSkyNodes = 0;
-	s_worldData.skyNodes = (bspNode_t**) ri.Hunk_Alloc( WORLD_MAX_SKY_NODES * sizeof( *s_worldData.skyNodes ), ha_pref::h_low );
 
 	// load nodes
 	for ( i = 0; i < numNodes; i++, in++, out++ )

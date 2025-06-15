@@ -45,7 +45,11 @@ struct Light {
 	float angle;
 };
 
+#if defined( HAVE_ARB_shading_language_420pack )
+layout(std140, binding = BIND_LIGHTS) uniform u_Lights {
+#else
 layout(std140) uniform u_Lights {
+#endif
 	Light lights[MAX_REF_LIGHTS];
 };
 

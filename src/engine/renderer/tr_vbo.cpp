@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include "Material.h"
 #include "GeometryCache.h"
+#include "GLMemory.h"
 
 // interleaved data: position, colour, qtangent, texcoord
 // -> struct shaderVertex_t in tr_local.h
@@ -662,18 +663,6 @@ static void R_InitTileVBO()
 		return;
 	}
 
-	if ( r_realtimeLightingRenderer.Get() != Util::ordinal( realtimeLightingRenderer_t::TILED ) )
-	{
-		/* This computation is part of the tiled dynamic lighting renderer,
-		it's better to not run it and save CPU cycles when such effects
-		are disabled.
-
-		There is no need to create vertex buffers that are only used by the
-		tiled dynamic lighting renderer when this feature is disabled. */
-
-		return;
-	}
-
 	R_SyncRenderThread();
 	int       x, y, w, h;
 
@@ -773,6 +762,10 @@ void R_InitVBOs()
 		geometryCache.InitGLBuffers();
 	}
 
+	if ( glConfig2.directStateAccessAvailable && glConfig2.uniformBufferObjectAvailable ) {
+		stagingBuffer.InitGLBuffer();
+	}
+
 	GL_CheckErrors();
 }
 
@@ -843,6 +836,10 @@ void R_ShutdownVBOs()
 
 	if ( glConfig2.usingGeometryCache ) {
 		geometryCache.FreeGLBuffers();
+	}
+
+	if ( glConfig2.directStateAccessAvailable && glConfig2.uniformBufferObjectAvailable ) {
+		stagingBuffer.FreeGLBuffer();
 	}
 
 	tess.verts = tess.vertsBuffer = nullptr;

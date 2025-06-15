@@ -70,7 +70,7 @@ vec4 EnvironmentalSpecularFactor( vec3 viewDir, vec3 normal )
 	#endif
 #endif
 
-#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || (defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1)
+#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || defined(r_realtimeLighting)
 void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 	vec4 diffuseColor, vec4 materialColor,
 	inout vec4 color )
@@ -134,7 +134,7 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 		#endif // r_specularMapping
 	#endif // !USE_PHYSICAL_MAPPING
 }
-#endif // defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || (defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1)
+#endif // defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) defined(r_realtimeLighting)
 
 #if !defined(USE_DELUXE_MAPPING) && !defined(USE_GRID_DELUXE_MAPPING)
 	void computeLight( in vec3 lightColor, vec4 diffuseColor, inout vec4 color ) {
@@ -142,7 +142,7 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 	}
 #endif // !defined(USE_DELUXE_MAPPING) && !defined(USE_GRID_DELUXE_MAPPING)
 
-#if defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
+#if defined(r_realtimeLighting)
 
 struct Light {
 	vec3 center;
@@ -153,7 +153,11 @@ struct Light {
 	float angle;
 };
 
+#if defined( HAVE_ARB_shading_language_420pack )
+layout(std140, binding = BIND_LIGHTS) uniform u_Lights {
+#else
 layout(std140) uniform u_Lights {
+#endif
 	Light lights[MAX_REF_LIGHTS];
 };
 
@@ -223,6 +227,10 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 		return;
 	}
 
+	#if defined(r_showLightTiles)
+		uint totalLights = 0u;
+	#endif
+
 	vec2 tile = floor( gl_FragCoord.xy * ( 1.0 / float( TILE_SIZE ) ) ) + 0.5;
 
 	for( uint layer = 0u; layer < uint( NUM_LIGHT_LAYERS ); layer++ ) {
@@ -243,14 +251,17 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 			computeDynamicLight( idx, P, normal, viewDir, diffuse, material, color );
 			lightCount++;
 		}
+		#if defined(r_showLightTiles)
+			totalLights += lightCount;
+		#endif
 	}
 
 	#if defined(r_showLightTiles)
-		if ( lightCount > 0 ) {
-			color = vec4( float( lightCount ) / u_numLights, float( lightCount ) / u_numLights,
-				float( lightCount ) / u_numLights, 1.0 );
+		if ( totalLights > 0 ) {
+			color = vec4( float( totalLights ) / u_numLights, float( totalLights ) / u_numLights,
+				float( totalLights ) / u_numLights, 1.0 );
 		}
 	#endif
 }
 
-#endif // defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
+#endif // defined(r_realtimeLighting)
