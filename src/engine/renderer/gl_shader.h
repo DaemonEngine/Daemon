@@ -102,7 +102,6 @@ private:
 
 	GLuint std430Size = 0;
 	uint32_t padding = 0;
-	uint32_t textureCount = 0;
 protected:
 	int _activeMacros = 0;
 	ShaderProgramDescriptor* currentProgram;
@@ -117,6 +116,7 @@ protected:
 
 	size_t _uniformStorageSize;
 	std::vector<GLUniform*> _uniforms;
+	std::vector<GLUniform*> _materialSystemUniforms;
 	std::vector<GLUniformBlock*> _uniformBlocks;
 	std::vector<GLCompileMacro*> _compileMacros;
 
@@ -218,18 +218,6 @@ public:
 
 	GLuint GetSTD430Size() const {
 		return std430Size;
-	}
-
-	uint32_t GetPadding() const {
-		return padding;
-	}
-
-	uint32_t GetPaddedSize() const {
-		return std430Size + padding;
-	}
-
-	uint32_t GetTextureCount() const {
-		return textureCount;
 	}
 
 	bool UseMaterialSystem() const {
@@ -429,16 +417,14 @@ protected:
 	const GLuint _std430Size;
 	const GLuint _std430Alignment;
 
-	const bool _global; // This uniform won't go into materials SSBO if true
+	const bool _global; // This uniform won't go into the materials UBO if true
 	const int _components;
-	const bool _isTexture;
 
-	size_t      _firewallIndex;
-	size_t      _locationIndex;
+	size_t _firewallIndex;
+	size_t _locationIndex;
 
 	GLUniform( GLShader *shader, const char *name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
-	                             const bool global, const int components = 0,
-	                             const bool isTexture = false ) :
+	                             const bool global, const int components = 0 ) :
 		_shader( shader ),
 		_name( name ),
 		_type( type ),
@@ -446,7 +432,6 @@ protected:
 		_std430Alignment( std430Alignment ),
 		_global( global ),
 		_components( components ),
-		_isTexture( isTexture ),
 		_firewallIndex( 0 ),
 		_locationIndex( 0 )
 	{
@@ -487,10 +472,6 @@ public:
 		return _global;
 	}
 
-	bool IsTexture() const {
-		return _isTexture;
-	}
-
 	// This should return a pointer to the memory right after the one this uniform wrote to
 	virtual uint32_t* WriteToBuffer( uint32_t* buffer );
 
@@ -507,9 +488,9 @@ public:
 
 class GLUniformSampler : protected GLUniform {
 	protected:
-	GLUniformSampler( GLShader* shader, const char* name, const char* type, const GLuint size, const bool global = false ) :
-		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? size * 2 : size,
-									   glConfig2.bindlessTexturesAvailable ? size * 2 : size, global, 0, true ) {
+	GLUniformSampler( GLShader* shader, const char* name, const char* type ) :
+		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? 2 : 1,
+		                               glConfig2.bindlessTexturesAvailable ? 2 : 1, true ) {
 	}
 
 	inline GLint GetLocation() {
@@ -563,7 +544,7 @@ class GLUniformSampler : protected GLUniform {
 class GLUniformSampler1D : protected GLUniformSampler {
 	protected:
 	GLUniformSampler1D( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "sampler1D", 1 ) {
+		GLUniformSampler( shader, name, "sampler1D" ) {
 	}
 
 	inline GLint GetLocation() {
@@ -584,8 +565,8 @@ class GLUniformSampler1D : protected GLUniformSampler {
 
 class GLUniformSampler2D : protected GLUniformSampler {
 	protected:
-	GLUniformSampler2D( GLShader* shader, const char* name, const bool global = false ) :
-		GLUniformSampler( shader, name, "sampler2D", 1, global ) {
+	GLUniformSampler2D( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "sampler2D" ) {
 	}
 
 	inline GLint GetLocation() {
@@ -606,8 +587,8 @@ class GLUniformSampler2D : protected GLUniformSampler {
 
 class GLUniformSampler3D : protected GLUniformSampler {
 	protected:
-	GLUniformSampler3D( GLShader* shader, const char* name, const bool global = false ) :
-		GLUniformSampler( shader, name, "sampler3D", 1, global ) {
+	GLUniformSampler3D( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "sampler3D" ) {
 	}
 
 	inline GLint GetLocation() {
@@ -628,8 +609,8 @@ class GLUniformSampler3D : protected GLUniformSampler {
 
 class GLUniformUSampler3D : protected GLUniformSampler {
 	protected:
-	GLUniformUSampler3D( GLShader* shader, const char* name, const bool global = false ) :
-		GLUniformSampler( shader, name, "usampler3D", 1, global ) {
+	GLUniformUSampler3D( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "usampler3D" ) {
 	}
 
 	inline GLint GetLocation() {
@@ -650,8 +631,8 @@ class GLUniformUSampler3D : protected GLUniformSampler {
 
 class GLUniformSamplerCube : protected GLUniformSampler {
 	protected:
-	GLUniformSamplerCube( GLShader* shader, const char* name, const bool global = false ) :
-		GLUniformSampler( shader, name, "samplerCube", 1, global ) {
+	GLUniformSamplerCube( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "samplerCube" ) {
 	}
 
 	inline GLint GetLocation() {
@@ -983,7 +964,7 @@ public:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( vec3_t ) );
-		return buffer + 4; // vec3 is aligned to 4 components
+		return buffer + 3;
 	}
 
 	private:
@@ -2042,7 +2023,6 @@ class u_ColorMap :
 	GLUniformSampler2D {
 	public:
 	u_ColorMap( GLShader* shader ) :
-		// While u_ColorMap is used for some screen-space shaders, it's never global in material system shaders
 		GLUniformSampler2D( shader, "u_ColorMap" ) {
 	}
 
@@ -2091,7 +2071,7 @@ class u_DepthMap :
 	GLUniformSampler2D {
 	public:
 	u_DepthMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_DepthMap", true ) {
+		GLUniformSampler2D( shader, "u_DepthMap" ) {
 	}
 
 	void SetUniform_DepthMapBindless( GLuint64 bindlessHandle ) {
@@ -2171,7 +2151,7 @@ class u_LightMap :
 	GLUniformSampler {
 	public:
 	u_LightMap( GLShader* shader ) :
-		GLUniformSampler( shader, "u_LightMap", "sampler2D", 1, true ) {
+		GLUniformSampler( shader, "u_LightMap", "sampler2D" ) {
 	}
 
 	void SetUniform_LightMapBindless( GLuint64 bindlessHandle ) {
@@ -2187,7 +2167,7 @@ class u_DeluxeMap :
 	GLUniformSampler {
 	public:
 	u_DeluxeMap( GLShader* shader ) :
-		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D", 1, true ) {
+		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D" ) {
 	}
 
 	void SetUniform_DeluxeMapBindless( GLuint64 bindlessHandle ) {
@@ -2219,7 +2199,7 @@ class u_PortalMap :
 	GLUniformSampler2D {
 	public:
 	u_PortalMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_PortalMap", true ) {
+		GLUniformSampler2D( shader, "u_PortalMap" ) {
 	}
 
 	void SetUniform_PortalMapBindless( GLuint64 bindlessHandle ) {
@@ -2251,7 +2231,7 @@ class u_FogMap :
 	GLUniformSampler2D {
 	public:
 	u_FogMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_FogMap", true ) {
+		GLUniformSampler2D( shader, "u_FogMap" ) {
 	}
 
 	void SetUniform_FogMapBindless( GLuint64 bindlessHandle ) {
@@ -2267,7 +2247,7 @@ class u_LightTiles :
 	GLUniformSampler3D {
 	public:
 	u_LightTiles( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightTiles", true ) {
+		GLUniformSampler3D( shader, "u_LightTiles" ) {
 	}
 
 	void SetUniform_LightTilesBindless( GLuint64 bindlessHandle ) {
@@ -2283,7 +2263,7 @@ class u_LightGrid1 :
 	GLUniformSampler3D {
 	public:
 	u_LightGrid1( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightGrid1", true ) {
+		GLUniformSampler3D( shader, "u_LightGrid1" ) {
 	}
 
 	void SetUniform_LightGrid1Bindless( GLuint64 bindlessHandle ) {
@@ -2299,7 +2279,7 @@ class u_LightGrid2 :
 	GLUniformSampler3D {
 	public:
 	u_LightGrid2( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightGrid2", true ) {
+		GLUniformSampler3D( shader, "u_LightGrid2" ) {
 	}
 
 	void SetUniform_LightGrid2Bindless( GLuint64 bindlessHandle ) {
@@ -2315,7 +2295,7 @@ class u_EnvironmentMap0 :
 	GLUniformSamplerCube {
 	public:
 	u_EnvironmentMap0( GLShader* shader ) :
-		GLUniformSamplerCube( shader, "u_EnvironmentMap0", true ) {
+		GLUniformSamplerCube( shader, "u_EnvironmentMap0" ) {
 	}
 
 	void SetUniform_EnvironmentMap0Bindless( GLuint64 bindlessHandle ) {
@@ -2331,7 +2311,7 @@ class u_EnvironmentMap1 :
 	GLUniformSamplerCube {
 	public:
 	u_EnvironmentMap1( GLShader* shader ) :
-		GLUniformSamplerCube( shader, "u_EnvironmentMap1", true ) {
+		GLUniformSamplerCube( shader, "u_EnvironmentMap1" ) {
 	}
 
 	void SetUniform_EnvironmentMap1Bindless( GLuint64 bindlessHandle ) {
@@ -2347,7 +2327,7 @@ class u_CurrentMap :
 	GLUniformSampler2D {
 	public:
 	u_CurrentMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_CurrentMap", true ) {
+		GLUniformSampler2D( shader, "u_CurrentMap" ) {
 	}
 
 	void SetUniform_CurrentMapBindless( GLuint64 bindlessHandle ) {

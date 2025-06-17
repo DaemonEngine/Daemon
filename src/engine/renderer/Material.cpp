@@ -1313,7 +1313,7 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 
 	material.bspSurface = surface->bspSurface;
 	pStage->materialProcessor( &material, pStage, surface );
-	pStage->paddedSize = material.shader->GetPaddedSize();
+	pStage->paddedSize = material.shader->GetSTD430Size();
 
 	// HACK: Copy the shaderStage_t and MaterialSurface that we need into the material, so we can use it with glsl_restart
 	material.refStage = pStage;
