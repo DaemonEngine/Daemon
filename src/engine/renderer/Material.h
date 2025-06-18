@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gl_shader.h"
 #include "tr_local.h"
+#include "GLMemory.h"
 
 static constexpr uint32_t MAX_DRAWCOMMAND_TEXTURES = 64;
 
