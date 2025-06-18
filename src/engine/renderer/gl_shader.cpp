@@ -2992,7 +2992,7 @@ void GLShader_fxaa::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderPro
 
 GLShader_cull::GLShader_cull() :
 	GLShader( "cull",
-		false, "cull" ),
+		false, "cull", true ),
 	u_Frame( this ),
 	u_ViewID( this ),
 	u_SurfaceDescriptorsCount( this ),

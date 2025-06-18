@@ -103,6 +103,8 @@ private:
 
 	GLuint std430Size = 0;
 	uint32_t padding = 0;
+
+	const bool worldShader;
 protected:
 	int _activeMacros = 0;
 	ShaderProgramDescriptor* currentProgram;
@@ -131,19 +133,21 @@ protected:
 		fragmentShaderName( newFragmentShaderName ),
 		hasVertexShader( true ),
 		hasFragmentShader( true ),
-		hasComputeShader( false ) {
+		hasComputeShader( false ),
+		worldShader( false ) {
 	}
 
 	GLShader( const std::string& name,
 		const bool useMaterialSystem,
-		const std::string newComputeShaderName ) :
+		const std::string newComputeShaderName, const bool newWorldShader = false ) :
 		_name( name ),
 		_vertexAttribsRequired( 0 ),
 		_useMaterialSystem( useMaterialSystem ),
 		computeShaderName( newComputeShaderName ),
 		hasVertexShader( false ),
 		hasFragmentShader( false ),
-		hasComputeShader( true ) {
+		hasComputeShader( true ),
+		worldShader( newWorldShader ) {
 	}
 
 public:
@@ -387,17 +391,32 @@ public:
 	void GenerateWorldHeaders();
 
 	template<class T>
-	void LoadShader( T *& shader ) {
-		if( !deformShaderCount ) {
+	void LoadShader( T*& shader ) {
+		if ( !deformShaderCount ) {
 			Q_UNUSED( GetDeformShaderIndex( nullptr, 0 ) );
 			initTime = 0;
 			initCount = 0;
 		}
 
 		shader = new T();
-		InitShader( shader );
 		_shaders.emplace_back( shader );
 		_shaderBuildQueue.push( shader );
+	}
+
+	void InitShaders() {
+		for ( const std::unique_ptr<GLShader>& shader : _shaders ) {
+			if ( !shader.get()->worldShader ) {
+				InitShader( shader.get() );
+			}
+		}
+	}
+
+	void InitWorldShaders() {
+		for ( const std::unique_ptr<GLShader>& shader : _shaders ) {
+			if ( shader.get()->worldShader ) {
+				InitShader( shader.get() );
+			}
+		}
 	}
 
 	int GetDeformShaderIndex( deformStage_t *deforms, int numDeforms );
