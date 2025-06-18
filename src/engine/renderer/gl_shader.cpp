@@ -2094,13 +2094,9 @@ GLint GLShader::GetUniformLocation( const GLchar *uniformName ) const {
 
 static int FindUniformForAlignment( std::vector<GLUniform*>& uniforms, const GLuint alignment ) {
 	for ( uint32_t i = 0; i < uniforms.size(); i++ ) {
-		if ( uniforms[i]->GetSTD430Size() == alignment ) {
+		if ( uniforms[i]->GetSTD430Size() <= alignment ) {
 			return i;
 		}
-	}
-
-	if ( uniforms[uniforms.size() - 1]->GetSTD430Size() < alignment ) {
-		return uniforms.size() - 1;
 	}
 
 	return -1;
@@ -2131,7 +2127,7 @@ void GLShader::PostProcessUniforms() {
 		// Higher-alignment uniforms first to avoid wasting memory
 		GLuint size = _materialSystemUniforms[0]->GetSTD430Size();
 		GLuint components = _materialSystemUniforms[0]->GetComponentSize();
-		size = components ? 4 * components : size;
+		size = components ? PAD( size, 4 ) * components : size;
 		GLuint alignmentConsume = 4 - size % 4;
 
 		tmp.emplace_back( _materialSystemUniforms[0] );
