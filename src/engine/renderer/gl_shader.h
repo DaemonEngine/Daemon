@@ -414,7 +414,7 @@ protected:
 	const std::string _type;
 
 	// In multiples of 4 bytes
-	const GLuint _std430Size;
+	GLuint _std430Size;
 	const GLuint _std430Alignment;
 
 	const bool _global; // This uniform won't go into the materials UBO if true
@@ -458,6 +458,10 @@ public:
 
 	const std::string GetType() const {
 		return _type;
+	}
+
+	void SetSTD430Size( const GLuint size ) {
+		_std430Size = size;
 	}
 
 	GLuint GetSTD430Size() const;
@@ -525,15 +529,13 @@ class GLUniformSampler : protected GLUniform {
 	}
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		uint32_t* bufferNext = buffer;
 		if ( glConfig2.usingBindlessTextures ) {
 			memcpy( buffer, &currentValueBindless, sizeof( GLuint64 ) );
-			bufferNext += 2;
 		} else {
 			memcpy( buffer, &currentValue, sizeof( GLint ) );
-			bufferNext += 1;
 		}
-		return bufferNext;
+
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -692,7 +694,7 @@ public:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( int ) );
-		return buffer + 1;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -735,7 +737,7 @@ class GLUniform1ui : protected GLUniform {
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( uint ) );
-		return buffer + 1;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -780,7 +782,7 @@ class GLUniform1Bool : protected GLUniform {
 
 	uint32_t* WriteToBuffer( uint32_t *buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( bool ) );
-		return buffer + 1;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -828,7 +830,7 @@ public:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( float ) );
-		return buffer + 1;
+		return buffer + _std430Size;
 	}
 	
 	private:
@@ -862,7 +864,7 @@ protected:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + _components;
+		return buffer + _components * _std430Size;
 	}
 
 	private:
@@ -913,7 +915,7 @@ protected:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( vec2_t ) );
-		return buffer + 2;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -964,7 +966,7 @@ public:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( vec3_t ) );
-		return buffer + 3;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -1016,7 +1018,7 @@ public:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( vec4_t ) );
-		return buffer + 4;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -1051,7 +1053,7 @@ protected:
 	public:
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + 4 * _components;
+		return buffer + _std430Size * _components;
 	}
 
 	private:
@@ -1100,7 +1102,7 @@ public:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( matrix_t ) );
-		return buffer + 16;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -1134,7 +1136,7 @@ class GLUniformMatrix32f : protected GLUniform {
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, currentValue, 6 * sizeof( float ) );
-		return buffer + 6 * _components;
+		return buffer + _std430Size * _components;
 	}
 
 	private:
@@ -1169,7 +1171,7 @@ protected:
 	public:
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + 16 * _components;
+		return buffer + _std430Size * _components;
 	}
 
 	private:
@@ -1203,7 +1205,7 @@ protected:
 	public:
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + 12 * _components;
+		return buffer + _std430Size * _components;
 	}
 
 	private:
