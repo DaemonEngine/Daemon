@@ -1583,18 +1583,18 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	*/
 
 	for( GLUniform* uniform : shader->_materialSystemUniforms ) {
-		materialStruct += "	" + uniform->GetType() + " " + uniform->GetName();
+		materialStruct += "	" + uniform->_type + " " + uniform->_name;
 
-		if ( uniform->GetComponentSize() ) {
-			materialStruct += "[" + std::to_string( uniform->GetComponentSize() ) + "]";
+		if ( uniform->_components ) {
+			materialStruct += "[" + std::to_string( uniform->_components ) + "]";
 		}
 		materialStruct += ";\n";
 
 		materialDefines += "#define ";
-		materialDefines += uniform->GetName();
+		materialDefines += uniform->_name;
 
 		materialDefines += " materials[baseInstance & 0xFFF].";
-		materialDefines += uniform->GetName();
+		materialDefines += uniform->_name;
 
 		materialDefines += "\n";
 	}
@@ -1620,8 +1620,8 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 		bool skip = false;
 		if ( line.find( "uniform" ) < line.find( "//" ) && line.find( ";" ) != std::string::npos ) {
 			for ( GLUniform* uniform : shader->_materialSystemUniforms ) {
-				const size_t pos = line.find( uniform->GetName() );
-				if ( pos != std::string::npos && !Str::cisalpha( line[pos + strlen( uniform->GetName() )] ) ) {
+				const size_t pos = line.find( uniform->_name );
+				if ( pos != std::string::npos && !Str::cisalpha( line[pos + strlen( uniform->_name.c_str() )] ) ) {
 					skip = true;
 					break;
 				}
@@ -2071,14 +2071,6 @@ bool GLCompileMacro_USE_BSP_SURFACE::HasConflictingMacros(size_t permutation, co
 	return false;
 }
 
-GLuint GLUniform::GetSTD430Size() const {
-	return _std430Size;
-}
-
-GLuint GLUniform::GetSTD430Alignment() const {
-	return _std430Alignment;
-}
-
 uint32_t* GLUniform::WriteToBuffer( uint32_t* buffer ) {
 	return buffer;
 }
@@ -2094,7 +2086,7 @@ GLint GLShader::GetUniformLocation( const GLchar *uniformName ) const {
 
 static int FindUniformForAlignment( std::vector<GLUniform*>& uniforms, const GLuint alignment ) {
 	for ( uint32_t i = 0; i < uniforms.size(); i++ ) {
-		if ( uniforms[i]->GetSTD430Size() <= alignment ) {
+		if ( uniforms[i]->_std430Size <= alignment ) {
 			return i;
 		}
 	}
@@ -2109,14 +2101,14 @@ void GLShader::PostProcessUniforms() {
 	}
 
 	for ( GLUniform* uniform : _uniforms ) {
-		if ( !uniform->IsGlobal() ) {
+		if ( !uniform->_global ) {
 			_materialSystemUniforms.emplace_back( uniform );
 		}
 	}
 
 	std::sort( _materialSystemUniforms.begin(), _materialSystemUniforms.end(),
 		[]( const GLUniform* lhs, const GLUniform* rhs ) {
-			return lhs->GetSTD430Size() > rhs->GetSTD430Size();
+			return lhs->_std430Size > rhs->_std430Size;
 		}
 	);
 
@@ -2125,8 +2117,8 @@ void GLShader::PostProcessUniforms() {
 	std::vector<GLUniform*> tmp;
 	while ( tmp.size() < numUniforms ) {
 		// Higher-alignment uniforms first to avoid wasting memory
-		GLuint size = _materialSystemUniforms[0]->GetSTD430Size();
-		GLuint components = _materialSystemUniforms[0]->GetComponentSize();
+		GLuint size = _materialSystemUniforms[0]->_std430Size;
+		GLuint components = _materialSystemUniforms[0]->_components;
 		size = components ? PAD( size, 4 ) * components : size;
 		GLuint alignmentConsume = 4 - size % 4;
 
@@ -2137,7 +2129,7 @@ void GLShader::PostProcessUniforms() {
 		int uniform;
 		while ( ( alignmentConsume & 3 ) && _materialSystemUniforms.size()
 			&& ( uniform = FindUniformForAlignment( _materialSystemUniforms, alignmentConsume ) ) != -1 ) {
-			alignmentConsume -= _materialSystemUniforms[uniform]->GetSTD430Size();
+			alignmentConsume -= _materialSystemUniforms[uniform]->_std430Size;
 
 			tmpUniform = _materialSystemUniforms[uniform];
 
@@ -2146,7 +2138,7 @@ void GLShader::PostProcessUniforms() {
 		}
 
 		if ( alignmentConsume ) {
-			tmpUniform->SetSTD430Size( tmpUniform->GetSTD430Size() + alignmentConsume );
+			tmpUniform->_std430Size += alignmentConsume;
 		}
 
 		size = PAD( size, 4 );
