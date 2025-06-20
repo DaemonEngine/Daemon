@@ -548,42 +548,12 @@ class GLUniformSampler2D : protected GLUniformSampler {
 	GLUniformSampler2D( GLShader* shader, const char* name ) :
 		GLUniformSampler( shader, name, "sampler2D" ) {
 	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
-	}
 };
 
 class GLUniformSampler3D : protected GLUniformSampler {
 	protected:
 	GLUniformSampler3D( GLShader* shader, const char* name ) :
 		GLUniformSampler( shader, name, "sampler3D" ) {
-	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
 	}
 };
 
@@ -592,42 +562,12 @@ class GLUniformUSampler3D : protected GLUniformSampler {
 	GLUniformUSampler3D( GLShader* shader, const char* name ) :
 		GLUniformSampler( shader, name, "usampler3D" ) {
 	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
-	}
 };
 
 class GLUniformSamplerCube : protected GLUniformSampler {
 	protected:
 	GLUniformSamplerCube( GLShader* shader, const char* name ) :
 		GLUniformSampler( shader, name, "samplerCube" ) {
-	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
 	}
 };
 
