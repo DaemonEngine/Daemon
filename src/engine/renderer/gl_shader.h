@@ -84,11 +84,12 @@ struct GLHeader {
 
 class GLShader {
 	friend class GLShaderManager;
+public:
+	const std::string _name;
 private:
 	GLShader( const GLShader & ) = delete;
 	GLShader &operator = ( const GLShader & ) = delete;
 
-	std::string _name;
 	const uint32_t _vertexAttribsRequired;
 
 	const bool _useMaterialSystem;
@@ -172,10 +173,6 @@ public:
 
 	ShaderProgramDescriptor* GetProgram() const {
 		return currentProgram;
-	}
-
-	const std::string &GetName() const {
-		return _name;
 	}
 
 protected:
@@ -3118,7 +3115,7 @@ public:
 	{
 		GLIMP_LOGCOMMENT( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Float( "
 			"program = %s, colorGen = %s, alphaGen = %s ) ---",
-			_shader->GetName().c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
+			_shader->_name.c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
 
 		colorModulation_t colorModulation = ColorModulateColorGen(
 			colorGen, alphaGen, vertexOverbright, useMapLightFactor );
@@ -3149,7 +3146,7 @@ class u_ColorModulateColorGen_Uint :
 	{
 		GLIMP_LOGCOMMENT( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Uint( "
 			"program = %s, colorGen = %s, alphaGen = %s ) ---",
-			_shader->GetName().c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
+			_shader->_name.c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
 
 		colorModulation_t colorModulation = ColorModulateColorGen(
 			colorGen, alphaGen, vertexOverbright, useMapLightFactor );
