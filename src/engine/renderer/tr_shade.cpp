@@ -1188,7 +1188,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 			GL_BindToTMU( BIND_LIGHTMAP, lightmap )
 		);
 	} else {
-		gl_lightMappingShader->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTMAP, lightmap ) );
+		gl_lightMappingShader->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTGRID1, lightmap ) );
 	}
 
 	// bind u_DeluxeMap
@@ -1197,7 +1197,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 			GL_BindToTMU( BIND_DELUXEMAP, deluxemap )
 		);
 	} else {
-		gl_lightMappingShader->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_DELUXEMAP, deluxemap ) );
+		gl_lightMappingShader->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_LIGHTGRID2, deluxemap ) );
 	}
 
 	// bind u_GlowMap

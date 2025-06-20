@@ -2455,9 +2455,9 @@ void GLShader_lightMapping::SetShaderProgramUniforms( ShaderProgramDescriptor *s
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), BIND_HEIGHTMAP );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_MaterialMap" ), BIND_MATERIALMAP );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightMap" ), BIND_LIGHTMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid1" ), BIND_LIGHTMAP );
+	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid1" ), BIND_LIGHTGRID1 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DeluxeMap" ), BIND_DELUXEMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid2" ), BIND_DELUXEMAP );
+	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid2" ), BIND_LIGHTGRID2 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_GlowMap" ), BIND_GLOWMAP );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
