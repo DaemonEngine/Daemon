@@ -543,28 +543,6 @@ class GLUniformSampler : protected GLUniform {
 	GLuint currentValue = 0;
 };
 
-class GLUniformSampler1D : protected GLUniformSampler {
-	protected:
-	GLUniformSampler1D( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "sampler1D" ) {
-	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
-	}
-};
-
 class GLUniformSampler2D : protected GLUniformSampler {
 	protected:
 	GLUniformSampler2D( GLShader* shader, const char* name ) :
