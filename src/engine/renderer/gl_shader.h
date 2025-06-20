@@ -408,9 +408,8 @@ private:
 
 class GLUniform
 {
-protected:
-	GLShader   *_shader;
-	std::string _name;
+public:
+	const std::string _name;
 	const std::string _type;
 
 	// In multiples of 4 bytes
@@ -420,20 +419,20 @@ protected:
 	const bool _global; // This uniform won't go into the materials UBO if true
 	const int _components;
 
+protected:
+	GLShader *_shader;
 	size_t _firewallIndex;
 	size_t _locationIndex;
 
 	GLUniform( GLShader *shader, const char *name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
 	                             const bool global, const int components = 0 ) :
-		_shader( shader ),
 		_name( name ),
 		_type( type ),
 		_std430Size( std430Size ),
 		_std430Alignment( std430Alignment ),
 		_global( global ),
 		_components( components ),
-		_firewallIndex( 0 ),
-		_locationIndex( 0 )
+		_shader( shader )
 	{
 		_shader->RegisterUniform( this );
 	}
@@ -451,37 +450,12 @@ public:
 		_locationIndex = index;
 	}
 
-	const char *GetName()
-	{
-		return _name.c_str();
-	}
-
-	const std::string GetType() const {
-		return _type;
-	}
-
-	void SetSTD430Size( const GLuint size ) {
-		_std430Size = size;
-	}
-
-	GLuint GetSTD430Size() const;
-
-	GLuint GetSTD430Alignment() const;
-
-	int GetComponentSize() const {
-		return _components;
-	}
-
-	bool IsGlobal() const {
-		return _global;
-	}
-
 	// This should return a pointer to the memory right after the one this uniform wrote to
 	virtual uint32_t* WriteToBuffer( uint32_t* buffer );
 
 	void UpdateShaderProgramUniformLocation( ShaderProgramDescriptor* shaderProgram )
 	{
-		shaderProgram->uniformLocations[_locationIndex] = glGetUniformLocation( shaderProgram->id, GetName() );
+		shaderProgram->uniformLocations[_locationIndex] = glGetUniformLocation( shaderProgram->id, _name.c_str() );
 	}
 
 	virtual size_t GetSize()
@@ -505,10 +479,6 @@ class GLUniformSampler : protected GLUniform {
 		}
 
 		return p->uniformLocations[_locationIndex];
-	}
-
-	inline size_t GetFirewallIndex() const {
-		return _firewallIndex;
 	}
 
 	public:
