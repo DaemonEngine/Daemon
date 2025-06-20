@@ -1071,7 +1071,7 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 	}
 
 	Log::Debug( "Building %s shader permutation with macro: %s",
-		shader->GetName(),
+		shader->_name,
 		compileMacros.empty() ? "none" : compileMacros );
 
 	if ( buildOneShader ) {
@@ -2294,7 +2294,7 @@ void GLShader::BindProgram( int deformIndex ) {
 		GetCompileMacrosString( index, macros, GLCompileMacro::VERTEX | GLCompileMacro::FRAGMENT );
 
 		GLIMP_LOGCOMMENT( "--- GL_BindProgram( name = '%s', macros = '%s' ) ---",
-			this->GetName(), macros );
+			_name, macros );
 	}
 
 	GL_BindProgram( &shaderPrograms[index] );
