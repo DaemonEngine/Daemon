@@ -1100,8 +1100,8 @@ protected:
 class GLUniformBlock
 {
 protected:
-	GLShader   *_shader;
-	std::string _name;
+	GLShader *_shader;
+	const std::string _name;
 	size_t      _locationIndex; // Only valid if GL_ARB_shading_language_420pack is not available
 	const GLuint _bindingPoint; // Only valid if GL_ARB_shading_language_420pack is available
 
@@ -1119,14 +1119,9 @@ public:
 		_locationIndex = index;
 	}
 
-	const char *GetName()
-	{
-		return _name.c_str();
-	}
-
 	void UpdateShaderProgramUniformBlockIndex( ShaderProgramDescriptor* shaderProgram )
 	{
-		shaderProgram->uniformBlockIndexes[_locationIndex] = glGetUniformBlockIndex( shaderProgram->id, GetName() );
+		shaderProgram->uniformBlockIndexes[_locationIndex] = glGetUniformBlockIndex( shaderProgram->id, _name.c_str() );
 	}
 
 	void SetBuffer( GLuint buffer ) {
