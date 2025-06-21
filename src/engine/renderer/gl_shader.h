@@ -84,11 +84,12 @@ struct GLHeader {
 
 class GLShader {
 	friend class GLShaderManager;
+public:
+	const std::string _name;
 private:
 	GLShader( const GLShader & ) = delete;
 	GLShader &operator = ( const GLShader & ) = delete;
 
-	std::string _name;
 	const uint32_t _vertexAttribsRequired;
 
 	const bool _useMaterialSystem;
@@ -172,10 +173,6 @@ public:
 
 	ShaderProgramDescriptor* GetProgram() const {
 		return currentProgram;
-	}
-
-	const std::string &GetName() const {
-		return _name;
 	}
 
 protected:
@@ -408,9 +405,8 @@ private:
 
 class GLUniform
 {
-protected:
-	GLShader   *_shader;
-	std::string _name;
+public:
+	const std::string _name;
 	const std::string _type;
 
 	// In multiples of 4 bytes
@@ -420,20 +416,20 @@ protected:
 	const bool _global; // This uniform won't go into the materials UBO if true
 	const int _components;
 
+protected:
+	GLShader *_shader;
 	size_t _firewallIndex;
 	size_t _locationIndex;
 
 	GLUniform( GLShader *shader, const char *name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
 	                             const bool global, const int components = 0 ) :
-		_shader( shader ),
 		_name( name ),
 		_type( type ),
 		_std430Size( std430Size ),
 		_std430Alignment( std430Alignment ),
 		_global( global ),
 		_components( components ),
-		_firewallIndex( 0 ),
-		_locationIndex( 0 )
+		_shader( shader )
 	{
 		_shader->RegisterUniform( this );
 	}
@@ -451,37 +447,12 @@ public:
 		_locationIndex = index;
 	}
 
-	const char *GetName()
-	{
-		return _name.c_str();
-	}
-
-	const std::string GetType() const {
-		return _type;
-	}
-
-	void SetSTD430Size( const GLuint size ) {
-		_std430Size = size;
-	}
-
-	GLuint GetSTD430Size() const;
-
-	GLuint GetSTD430Alignment() const;
-
-	int GetComponentSize() const {
-		return _components;
-	}
-
-	bool IsGlobal() const {
-		return _global;
-	}
-
 	// This should return a pointer to the memory right after the one this uniform wrote to
 	virtual uint32_t* WriteToBuffer( uint32_t* buffer );
 
 	void UpdateShaderProgramUniformLocation( ShaderProgramDescriptor* shaderProgram )
 	{
-		shaderProgram->uniformLocations[_locationIndex] = glGetUniformLocation( shaderProgram->id, GetName() );
+		shaderProgram->uniformLocations[_locationIndex] = glGetUniformLocation( shaderProgram->id, _name.c_str() );
 	}
 
 	virtual size_t GetSize()
@@ -505,10 +476,6 @@ class GLUniformSampler : protected GLUniform {
 		}
 
 		return p->uniformLocations[_locationIndex];
-	}
-
-	inline size_t GetFirewallIndex() const {
-		return _firewallIndex;
 	}
 
 	public:
@@ -543,47 +510,10 @@ class GLUniformSampler : protected GLUniform {
 	GLuint currentValue = 0;
 };
 
-class GLUniformSampler1D : protected GLUniformSampler {
-	protected:
-	GLUniformSampler1D( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "sampler1D" ) {
-	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
-	}
-};
-
 class GLUniformSampler2D : protected GLUniformSampler {
 	protected:
 	GLUniformSampler2D( GLShader* shader, const char* name ) :
 		GLUniformSampler( shader, name, "sampler2D" ) {
-	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
 	}
 };
 
@@ -592,21 +522,6 @@ class GLUniformSampler3D : protected GLUniformSampler {
 	GLUniformSampler3D( GLShader* shader, const char* name ) :
 		GLUniformSampler( shader, name, "sampler3D" ) {
 	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
-	}
 };
 
 class GLUniformUSampler3D : protected GLUniformSampler {
@@ -614,42 +529,12 @@ class GLUniformUSampler3D : protected GLUniformSampler {
 	GLUniformUSampler3D( GLShader* shader, const char* name ) :
 		GLUniformSampler( shader, name, "usampler3D" ) {
 	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
-	}
 };
 
 class GLUniformSamplerCube : protected GLUniformSampler {
 	protected:
 	GLUniformSamplerCube( GLShader* shader, const char* name ) :
 		GLUniformSampler( shader, name, "samplerCube" ) {
-	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
 	}
 };
 
@@ -1215,8 +1100,8 @@ protected:
 class GLUniformBlock
 {
 protected:
-	GLShader   *_shader;
-	std::string _name;
+	GLShader *_shader;
+	const std::string _name;
 	size_t      _locationIndex; // Only valid if GL_ARB_shading_language_420pack is not available
 	const GLuint _bindingPoint; // Only valid if GL_ARB_shading_language_420pack is available
 
@@ -1234,14 +1119,9 @@ public:
 		_locationIndex = index;
 	}
 
-	const char *GetName()
-	{
-		return _name.c_str();
-	}
-
 	void UpdateShaderProgramUniformBlockIndex( ShaderProgramDescriptor* shaderProgram )
 	{
-		shaderProgram->uniformBlockIndexes[_locationIndex] = glGetUniformBlockIndex( shaderProgram->id, GetName() );
+		shaderProgram->uniformBlockIndexes[_locationIndex] = glGetUniformBlockIndex( shaderProgram->id, _name.c_str() );
 	}
 
 	void SetBuffer( GLuint buffer ) {
@@ -3230,7 +3110,7 @@ public:
 	{
 		GLIMP_LOGCOMMENT( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Float( "
 			"program = %s, colorGen = %s, alphaGen = %s ) ---",
-			_shader->GetName().c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
+			_shader->_name.c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
 
 		colorModulation_t colorModulation = ColorModulateColorGen(
 			colorGen, alphaGen, vertexOverbright, useMapLightFactor );
@@ -3261,7 +3141,7 @@ class u_ColorModulateColorGen_Uint :
 	{
 		GLIMP_LOGCOMMENT( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Uint( "
 			"program = %s, colorGen = %s, alphaGen = %s ) ---",
-			_shader->GetName().c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
+			_shader->_name.c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
 
 		colorModulation_t colorModulation = ColorModulateColorGen(
 			colorGen, alphaGen, vertexOverbright, useMapLightFactor );
