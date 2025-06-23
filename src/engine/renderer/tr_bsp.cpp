@@ -4468,8 +4468,6 @@ static void SetWorldLight() {
 static void SetConstUniforms() {
 	GLIMP_LOGCOMMENT( "--- SetConstUniforms ---" );
 
-	uint32_t* data = pushBuffer.MapGlobalUniformData( GLUniform::CONST );
-
 	globalUBOProxy->SetUniform_LightGridOrigin( tr.world->lightGridGLOrigin );
 	globalUBOProxy->SetUniform_LightGridScale( tr.world->lightGridGLScale );
 
@@ -4512,6 +4510,11 @@ static void SetConstUniforms() {
 		materialSystem.SetConstUniforms();
 	}
 
+	if ( !globalUBOProxy->uniformsUpdated ) {
+		return;
+	}
+
+	uint32_t* data = pushBuffer.MapGlobalUniformData( GLUniform::CONST );
 	globalUBOProxy->WriteUniformsToBuffer( data, GLShader::PUSH, GLUniform::CONST );
 
 	pushBuffer.PushGlobalUniforms();
