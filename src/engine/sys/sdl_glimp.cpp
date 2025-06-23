@@ -2529,6 +2529,11 @@ static void GLimp_InitExtensions()
 
 	glConfig.geometryCacheAvailable = glConfig.vertexAttribBindingAvailable && glConfig.directStateAccessAvailable;
 
+	glConfig.pushBufferAvailable =
+		glConfig.directStateAccessAvailable
+		&& glConfig.explicitUniformLocationAvailable
+		&& glConfig.uniformBufferObjectAvailable;
+
 	glConfig.materialSystemAvailable =
 		glConfig.bindlessTexturesAvailable
 		&& glConfig.computeShaderAvailable
@@ -2538,6 +2543,7 @@ static void GLimp_InitExtensions()
 		&& glConfig.gpuShader4Available
 		&& glConfig.indirectParametersAvailable
 		&& glConfig.multiDrawIndirectAvailable
+		&& glConfig.pushBufferAvailable
 		&& glConfig.shaderAtomicCountersAvailable
 		&& glConfig.shaderDrawParametersAvailable
 		&& glConfig.shaderImageLoadStoreAvailable
