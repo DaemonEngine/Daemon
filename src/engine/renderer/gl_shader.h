@@ -188,6 +188,7 @@ private:
 	GLuint std140Size = 0;
 
 	const bool worldShader;
+	const bool pushSkip;
 protected:
 	int _activeMacros = 0;
 	ShaderProgramDescriptor* currentProgram;
@@ -202,13 +203,15 @@ protected:
 
 	size_t _uniformStorageSize;
 	std::vector<GLUniform*> _uniforms;
+	std::vector<GLUniform*> _pushUniforms;
 	std::vector<GLUniform*> _materialSystemUniforms;
 	std::vector<GLUniformBlock*> _uniformBlocks;
 	std::vector<GLCompileMacro*> _compileMacros;
 
 	GLShader( const std::string& name, uint32_t vertexAttribsRequired,
 		const bool useMaterialSystem,
-		const std::string newVertexShaderName, const std::string newFragmentShaderName ) :
+		const std::string newVertexShaderName, const std::string newFragmentShaderName,
+		const bool newPushSkip = false ) :
 		_name( name ),
 		_vertexAttribsRequired( vertexAttribsRequired ),
 		_useMaterialSystem( useMaterialSystem ),
@@ -217,7 +220,8 @@ protected:
 		hasVertexShader( true ),
 		hasFragmentShader( true ),
 		hasComputeShader( false ),
-		worldShader( false ) {
+		worldShader( false ),
+		pushSkip( newPushSkip ) {
 	}
 
 	GLShader( const std::string& name,
@@ -230,7 +234,8 @@ protected:
 		hasVertexShader( false ),
 		hasFragmentShader( false ),
 		hasComputeShader( true ),
-		worldShader( newWorldShader ) {
+		worldShader( newWorldShader ),
+		pushSkip( false ) {
 	}
 
 public:
@@ -395,6 +400,10 @@ public:
 
 	void GenerateBuiltinHeaders();
 	void GenerateWorldHeaders();
+
+	static GLuint SortUniforms( std::vector<GLUniform*>& uniforms );
+	static std::vector<GLUniform*> ProcessUniforms( const GLUniform::UpdateType minType, const GLUniform::UpdateType maxType,
+		const bool skipTextures, std::vector<GLUniform*>& uniforms, GLuint& structSize, GLuint& padding );
 
 	template<class T>
 	void LoadShader( T*& shader ) {
