@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* ssao_fp.glsl */
 
+#define DEPTHMAP_GLSL
+
 uniform sampler2D u_DepthMap;
 uniform vec3 u_UnprojectionParams;
 
@@ -52,7 +54,7 @@ vec4 rangeTest( vec4 diff1, vec4 diff2, vec4 deltaX, vec4 deltaY ) {
 
 // Based on AMD HDAO, adapted for lack of normals
 void computeOcclusionForQuad( in vec2 centerTC, in float centerDepth,
-			      in vec2 quadOffset,
+			      in vec2 quadOffset, in sampler2D u_DepthMap,
 			      inout vec4 occlusion, inout vec4 total ) {
 	vec2 tc1 = centerTC + quadOffset * pixelScale;
 	vec2 tc2 = centerTC - quadOffset * pixelScale;
@@ -85,6 +87,8 @@ vec4 offsets[] = vec4[6](
 
 void	main()
 {
+	#insert material_fp
+
 	vec2 st = gl_FragCoord.st * pixelScale;
 	vec4 occlusion = vec4( 0.0 );
 	vec4 total = vec4( 0.0 );
@@ -107,7 +111,7 @@ void	main()
 		} else {
 			of = offsets[i].zw;
 		}
-		computeOcclusionForQuad( st, center, spread * of,
+		computeOcclusionForQuad( st, center, spread * of, u_DepthMap,
 					 occlusion, total );
 	}
 

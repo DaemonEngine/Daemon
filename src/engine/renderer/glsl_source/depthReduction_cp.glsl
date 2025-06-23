@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* depthReduction_cp.glsl */
 
+#define DEPTHMAP_GLSL
+
 #insert common_cp
 
 // Keep this to 8x8 because we don't want extra shared mem etc. to be allocated, and to minimize wasted lanes
@@ -48,6 +50,8 @@ uniform uint u_ViewHeight;
 uniform bool u_InitialDepthLevel;
 
 void main() {
+    #insert material_fp
+
     const uint globalInvocationID = GLOBAL_INVOCATION_ID;
 
     const ivec2 position = ivec2( gl_GlobalInvocationID.xy );
