@@ -224,6 +224,8 @@ static void GLSL_InitGPUShadersOrError()
 	// standard light mapping
 	gl_shaderManager.LoadShader( gl_lightMappingShader );
 
+	gl_shaderManager.LoadShader( globalUBOProxy );
+
 	// Material system shaders that are always loaded if material system is available
 	if ( glConfig2.usingMaterialSystem )
 	{
@@ -465,6 +467,7 @@ void GLSL_ShutdownGPUShaders()
 
 	gl_genericShader = nullptr;
 	gl_genericShaderMaterial = nullptr;
+	globalUBOProxy = nullptr;
 	gl_cullShader = nullptr;
 	gl_depthReductionShader = nullptr;
 	gl_clearSurfacesShader = nullptr;

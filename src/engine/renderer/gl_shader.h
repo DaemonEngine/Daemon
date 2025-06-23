@@ -3807,6 +3807,42 @@ class GLShader_processSurfaces :
 	GLShader_processSurfaces();
 };
 
+class GlobalUBOProxy :
+	public GLShader,
+	// CONST
+	public u_ColorMap3D,
+	public u_DepthMap,
+	public u_PortalMap,
+	public u_FogMap,
+	public u_DepthTile1,
+	public u_DepthTile2,
+	public u_LightTiles,
+	public u_LightGrid1,
+	public u_LightGrid2,
+	public u_LightGridOrigin,
+	public u_LightGridScale,
+	public u_GlobalLightFactor,
+	public u_SRGB,
+	public u_FirstPortalGroup,
+	public u_TotalPortals,
+	public u_SurfaceDescriptorsCount,
+	public u_ProfilerZero,
+	// FRAME
+	public u_Frame,
+	public u_UseFrustumCulling,
+	public u_UseOcclusionCulling,
+	public u_blurVec,
+	public u_numLights,
+	public u_ColorModulate,
+	public u_InverseGamma,
+	public u_Tonemap,
+	public u_TonemapParms,
+	public u_TonemapExposure {
+
+	public:
+	GlobalUBOProxy();
+};
+
 
 std::string GetShaderPath();
 
@@ -3846,6 +3882,7 @@ extern GLShader_screen                          *gl_screenShader;
 extern GLShader_screenMaterial                  *gl_screenShaderMaterial;
 extern GLShader_skybox                          *gl_skyboxShader;
 extern GLShader_skyboxMaterial                  *gl_skyboxShaderMaterial;
+extern GlobalUBOProxy                           *globalUBOProxy;
 extern GLShaderManager                           gl_shaderManager;
 
 #endif // GL_SHADER_H
