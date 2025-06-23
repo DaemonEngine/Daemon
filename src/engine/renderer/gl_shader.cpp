@@ -3029,11 +3029,12 @@ GLShader_depthReduction::GLShader_depthReduction() :
 		false, "depthReduction" ),
 	u_ViewWidth( this ),
 	u_ViewHeight( this ),
+	u_DepthMap( this ),
 	u_InitialDepthLevel( this ) {
 }
 
 void GLShader_depthReduction::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "depthTextureInitial" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
 }
 
 GLShader_clearSurfaces::GLShader_clearSurfaces() :
