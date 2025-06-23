@@ -1911,10 +1911,6 @@ class u_ColorMap :
 	void SetUniform_ColorMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_ColorMap() {
-		return this->GetLocation();
-	}
 };
 
 class u_ColorMap3D :
@@ -1926,10 +1922,6 @@ class u_ColorMap3D :
 
 	void SetUniform_ColorMap3DBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_ColorMap3D() {
-		return this->GetLocation();
 	}
 };
 
@@ -1943,10 +1935,6 @@ class u_ColorMapCube :
 	void SetUniform_ColorMapCubeBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_ColorMapCube() {
-		return this->GetLocation();
-	}
 };
 
 class u_DepthMap :
@@ -1958,10 +1946,6 @@ class u_DepthMap :
 
 	void SetUniform_DepthMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_DepthMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -1975,10 +1959,6 @@ class u_DiffuseMap :
 	void SetUniform_DiffuseMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_DiffuseMap() {
-		return this->GetLocation();
-	}
 };
 
 class u_HeightMap :
@@ -1990,10 +1970,6 @@ class u_HeightMap :
 
 	void SetUniform_HeightMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_HeightMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -2007,10 +1983,6 @@ class u_NormalMap :
 	void SetUniform_NormalMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_NormalMap() {
-		return this->GetLocation();
-	}
 };
 
 class u_MaterialMap :
@@ -2022,10 +1994,6 @@ class u_MaterialMap :
 
 	void SetUniform_MaterialMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_MaterialMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -2039,10 +2007,6 @@ class u_LightMap :
 	void SetUniform_LightMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_LightMap() {
-		return this->GetLocation();
-	}
 };
 
 class u_DeluxeMap :
@@ -2054,10 +2018,6 @@ class u_DeluxeMap :
 
 	void SetUniform_DeluxeMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_DeluxeMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -2071,10 +2031,6 @@ class u_GlowMap :
 	void SetUniform_GlowMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_GlowMap() {
-		return this->GetLocation();
-	}
 };
 
 class u_PortalMap :
@@ -2086,10 +2042,6 @@ class u_PortalMap :
 
 	void SetUniform_PortalMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_PortalMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -2103,10 +2055,6 @@ class u_CloudMap :
 	void SetUniform_CloudMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_CloudMap() {
-		return this->GetLocation();
-	}
 };
 
 class u_FogMap :
@@ -2118,10 +2066,6 @@ class u_FogMap :
 
 	void SetUniform_FogMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_FogMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -2135,10 +2079,6 @@ class u_LightTiles :
 	void SetUniform_LightTilesBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_LightTiles() {
-		return this->GetLocation();
-	}
 };
 
 class u_LightGrid1 :
@@ -2150,10 +2090,6 @@ class u_LightGrid1 :
 
 	void SetUniform_LightGrid1Bindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_LightGrid1() {
-		return this->GetLocation();
 	}
 };
 
@@ -2167,10 +2103,6 @@ class u_LightGrid2 :
 	void SetUniform_LightGrid2Bindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_LightGrid2() {
-		return this->GetLocation();
-	}
 };
 
 class u_EnvironmentMap0 :
@@ -2182,10 +2114,6 @@ class u_EnvironmentMap0 :
 
 	void SetUniform_EnvironmentMap0Bindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_EnvironmentMap0() {
-		return this->GetLocation();
 	}
 };
 
@@ -2199,10 +2127,6 @@ class u_EnvironmentMap1 :
 	void SetUniform_EnvironmentMap1Bindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_EnvironmentMap1() {
-		return this->GetLocation();
-	}
 };
 
 class u_CurrentMap :
@@ -2214,10 +2138,6 @@ class u_CurrentMap :
 
 	void SetUniform_CurrentMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_CurrentMap() {
-		return this->GetLocation();
 	}
 };
 
