@@ -1840,6 +1840,30 @@ class u_FogMap :
 	}
 };
 
+class u_DepthTile1 :
+	GLUniformSampler2D {
+	public:
+	u_DepthTile1( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_DepthTile1" ) {
+	}
+
+	void SetUniform_DepthTile1Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+};
+
+class u_DepthTile2 :
+	GLUniformSampler2D {
+	public:
+	u_DepthTile2( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_DepthTile2" ) {
+	}
+
+	void SetUniform_DepthTile2Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+};
+
 class u_LightTiles :
 	GLUniformSampler3D {
 	public:
@@ -3674,7 +3698,7 @@ public:
 
 class GLShader_depthtile2 :
 	public GLShader,
-	public u_DepthMap {
+	public u_DepthTile1 {
 public:
 	GLShader_depthtile2();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
@@ -3682,7 +3706,7 @@ public:
 
 class GLShader_lighttile :
 	public GLShader,
-	public u_DepthMap,
+	public u_DepthTile2,
 	public u_Lights,
 	public u_numLights,
 	public u_lightLayer,

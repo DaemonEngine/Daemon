@@ -59,7 +59,7 @@ Light GetLight( in uint idx ) {
 
 uniform int u_numLights;
 uniform mat4 u_ModelMatrix;
-uniform sampler2D u_DepthMap;
+uniform sampler2D u_DepthTile2;
 uniform int u_lightLayer;
 uniform vec3 u_zFar;
 
@@ -96,7 +96,7 @@ vec3 ProjToView( vec2 inp ) {
 }
 
 void main() {
-	vec2 minmax = texture2D( u_DepthMap, 0.5 * vPosition + 0.5 ).xy;
+	vec2 minmax = texture2D( u_DepthTile2, 0.5 * vPosition + 0.5 ).xy;
 
 	float minx = vPosition.x - r_tileStep.x;
 	float maxx = vPosition.x + r_tileStep.x;
