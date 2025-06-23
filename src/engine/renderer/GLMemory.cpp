@@ -136,6 +136,10 @@ void GLStagingBuffer::FreeGLBuffer() {
 
 void PushBuffer::InitGLBuffers() {
 	globalUBO.GenBuffer();
+
+	globalUBO.BufferStorage( pushBuffer.constUniformsSize + pushBuffer.frameUniformsSize, 1, nullptr );
+
+	globalUBO.BindBufferBase();
 }
 
 void PushBuffer::FreeGLBuffers() {
