@@ -3761,6 +3761,7 @@ class GLShader_depthReduction :
 	public GLShader,
 	public u_ViewWidth,
 	public u_ViewHeight,
+	public u_DepthMap,
 	public u_InitialDepthLevel {
 	public:
 	GLShader_depthReduction();

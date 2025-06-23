@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Keep this to 8x8 because we don't want extra shared mem etc. to be allocated, and to minimize wasted lanes
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout(binding = 0) uniform sampler2D depthTextureInitial;
+layout(binding = 0) uniform sampler2D u_DepthMap;
 layout(r32f, binding = 1) uniform readonly image2D depthImageIn;
 layout(r32f, binding = 2) uniform writeonly image2D depthImageOut;
 
@@ -57,7 +57,7 @@ void main() {
 
     // Depth buffer uses a packed D24S8 format, so we have to copy it over to an r32f image first
     if( u_InitialDepthLevel ) {
-        vec4 depthOut = texelFetch( depthTextureInitial, position, 0 );
+        vec4 depthOut = texelFetch( u_DepthMap, position, 0 );
         imageStore( depthImageOut, position, depthOut );
     } else {
         float depth[4];
