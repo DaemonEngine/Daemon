@@ -321,6 +321,28 @@ class GLStagingBuffer {
 		GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
 };
 
+struct PushBuffer {
+	uint32_t constUniformsSize;
+	uint32_t frameUniformsSize;
+	uint32_t globalUBOSize;
+	uint32_t* globalUBOData;
+
+	uint32_t pushStart = UINT32_MAX;
+	uint32_t pushEnd = 0;
+
+	uint32_t sector = 0;
+	const uint32_t MAX_SECTORS = 1024;
+
+	GLUBO globalUBO = GLUBO( "globalUniforms", BufferBind::GLOBAL_DATA, 0, 0 );
+
+	void InitGLBuffers();
+	void FreeGLBuffers();
+
+	uint32_t* MapGlobalUniformData( const int updateType );
+	void PushGlobalUniforms();
+};
+
 extern GLStagingBuffer stagingBuffer;
+extern PushBuffer pushBuffer;
 
 #endif // GLMEMORY_H
