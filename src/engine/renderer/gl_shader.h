@@ -391,6 +391,8 @@ public:
 	GLHeader GLWorldHeader;
 	GLHeader GLEngineConstants;
 
+	std::string globalUniformBlock;
+
 	GLShaderManager() {}
 	~GLShaderManager();
 
@@ -412,6 +414,9 @@ public:
 		}
 
 		shader = new T();
+
+		shader->PostProcessUniforms();
+
 		_shaders.emplace_back( shader );
 		_shaderBuildQueue.push( shader );
 	}
@@ -437,6 +442,8 @@ public:
 	bool BuildPermutation( GLShader* shader, int macroIndex, int deformIndex, const bool buildOneShader );
 	void BuildAll( const bool buildOnlyMarked );
 	void FreeAll();
+
+	void PostProcessGlobalUniforms();
 
 	void BindBuffers();
 private:

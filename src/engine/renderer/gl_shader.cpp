@@ -1276,8 +1276,6 @@ std::string GLShaderManager::BuildShaderText( const std::string& mainShaderText,
 void GLShaderManager::InitShader( GLShader* shader ) {
 	const int start = Sys::Milliseconds();
 
-	shader->PostProcessUniforms();
-
 	shader->_uniformStorageSize = 0;
 	for ( std::size_t i = 0; i < shader->_uniforms.size(); i++ ) {
 		GLUniform* uniform = shader->_uniforms[i];
@@ -1577,6 +1575,61 @@ void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUnif
 	}
 
 	uniformDefines += "\n";
+}
+
+void GLShaderManager::PostProcessGlobalUniforms() {
+	/* Generate the struct and defines in the form of:
+	* struct GlobalUniforms {
+	*   type uniform0;
+	*   type uniform1;
+	*   ..
+	*   type uniformn;
+	* }
+	*
+	* #define uniformx globalUniforms.uniformx
+	*/
+
+	std::string uniformStruct = "\nstruct GlobalUniforms {\n";
+	std::string uniformBlock = "layout(std140, binding = "
+		+ std::to_string( BufferBind::GLOBAL_DATA )
+		+ ") uniform globalUBO {\n"
+		+ "GlobalUniforms globalUniforms;\n"
+		+ "};\n\n";
+	std::string uniformDefines;
+
+	GLuint size;
+	GLuint padding;
+	std::vector<GLUniform*>* uniforms = &( ( GLShader* ) globalUBOProxy )->_uniforms;
+	std::vector<GLUniform*> constUniforms =
+		ProcessUniforms( GLUniform::CONST, GLUniform::CONST, false, *uniforms, size, padding );
+
+	GenerateUniformStructDefinesText( constUniforms, padding, 0, "globalUniforms", uniformStruct, uniformDefines );
+
+	uint32_t paddingCount = padding;
+
+	pushBuffer.constUniformsSize = size + padding;
+
+	std::vector<GLUniform*> frameUniforms =
+		ProcessUniforms( GLUniform::FRAME, GLUniform::FRAME, false, *uniforms, size, padding );
+	
+	GenerateUniformStructDefinesText( frameUniforms, padding, paddingCount, "globalUniforms", uniformStruct, uniformDefines );
+
+	pushBuffer.frameUniformsSize = size + padding;
+
+	uniformStruct += "};\n\n";
+
+	globalUniformBlock = uniformStruct + uniformBlock + uniformDefines;
+
+	uniforms = &( ( GLShader* ) globalUBOProxy )->_pushUniforms;
+	uniforms->clear();
+
+	for ( GLUniform* uniform : constUniforms ) {
+		uniforms->push_back( uniform );
+	}
+
+	for ( GLUniform* uniform : frameUniforms ) {
+		uniforms->push_back( uniform );
+	}
 }
 
 // This will generate all the extra code for material system shaders
