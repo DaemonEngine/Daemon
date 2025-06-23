@@ -322,6 +322,7 @@ class GLUniform {
 
 	const bool _global; // This uniform won't go into the materials UBO if true
 	const int _components;
+	const bool _isTexture;
 
 	protected:
 	GLShader* _shader;
@@ -329,13 +330,15 @@ class GLUniform {
 	size_t _locationIndex;
 
 	GLUniform( GLShader* shader, const char* name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
-		const bool global, const int components = 0 ) :
+		const bool global, const int components = 0,
+		const bool isTexture = false ) :
 		_name( name ),
 		_type( type ),
 		_std430Size( std430Size ),
 		_std430Alignment( std430Alignment ),
 		_global( global ),
 		_components( components ),
+		_isTexture( isTexture ),
 		_shader( shader ) {
 		_shader->RegisterUniform( this );
 	}
@@ -458,14 +461,21 @@ private:
 		ShaderProgramDescriptor* out );
 	void SaveShaderBinary( ShaderProgramDescriptor* descriptor );
 
+	void GenerateUniformStructDefinesText( const std::vector<GLUniform*>& uniforms, const uint32_t padding,
+		const uint32_t paddingCount, const std::string& definesName,
+		std::string& uniformStruct, std::string& uniformDefines );
+	std::string RemoveUniformsFromShaderText( const std::string& shaderText, const std::vector<GLUniform*>& uniforms );
 	std::string ShaderPostProcess( GLShader *shader, const std::string& shaderText, const uint32_t offset );
 	std::string BuildDeformShaderText( const std::string& steps );
 	std::string ProcessInserts( const std::string& shaderText ) const;
+
 	void LinkProgram( GLuint program ) const;
 	void BindAttribLocations( GLuint program ) const;
 	void PrintShaderSource( Str::StringRef programName, GLuint object, std::vector<InfoLogEntry>& infoLogLines ) const;
+
 	std::vector<InfoLogEntry> ParseInfoLog( const std::string& infoLog ) const;
 	std::string GetInfoLog( GLuint object ) const;
+
 	std::string BuildShaderText( const std::string& mainShaderText, const std::vector<GLHeader*>& headers, const std::string& macros );
 	ShaderDescriptor* FindShader( const std::string& name, const std::string& mainText,
 		const GLenum type, const std::vector<GLHeader*>& headers,
@@ -478,7 +488,7 @@ class GLUniformSampler : protected GLUniform {
 	protected:
 	GLUniformSampler( GLShader* shader, const char* name, const char* type ) :
 		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? 2 : 1,
-		                               glConfig2.bindlessTexturesAvailable ? 2 : 1, true ) {
+		                               glConfig2.bindlessTexturesAvailable ? 2 : 1, true, 0, true ) {
 	}
 
 	inline GLint GetLocation() {
