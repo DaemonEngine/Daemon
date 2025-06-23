@@ -1643,7 +1643,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	materialStruct += "};\n\n";
 
 	// 6 kb for materials
-	const uint32_t count = ( 4096 + 2048 ) / shader->GetSTD430Size();
+	const uint32_t count = ( 4096 + 2048 ) / shader->GetSTD430PaddedSize();
 	std::string materialBlock = "layout(std140, binding = "
 		+ std::to_string( BufferBind::MATERIALS )
 		+ ") uniform materialsUBO {\n"
@@ -2109,59 +2109,91 @@ static int FindUniformForAlignment( std::vector<GLUniform*>& uniforms, const GLu
 	return -1;
 }
 
-// Compute std430 size/alignment and sort uniforms from highest to lowest alignment
-void GLShader::PostProcessUniforms() {
-	if ( !_useMaterialSystem ) {
-		return;
-	}
-
-	for ( GLUniform* uniform : _uniforms ) {
-		if ( !uniform->_global ) {
-			_materialSystemUniforms.emplace_back( uniform );
-		}
-	}
-
-	std::sort( _materialSystemUniforms.begin(), _materialSystemUniforms.end(),
+GLuint GLShaderManager::SortUniforms( std::vector<GLUniform*>& uniforms ) {
+	std::sort( uniforms.begin(), uniforms.end(),
 		[]( const GLUniform* lhs, const GLUniform* rhs ) {
 			return lhs->_std430Size > rhs->_std430Size;
 		}
 	);
 
-	// Sort uniforms from highest to lowest alignment so we don't need to pad uniforms (other than vec3s)
-	const uint numUniforms = _materialSystemUniforms.size();
+	const uint numUniforms = uniforms.size();
 	std::vector<GLUniform*> tmp;
+	GLuint structSize = 0;
 	while ( tmp.size() < numUniforms ) {
 		// Higher-alignment uniforms first to avoid wasting memory
-		GLuint size = _materialSystemUniforms[0]->_std430Size;
-		GLuint components = _materialSystemUniforms[0]->_components;
+		GLuint size = uniforms[0]->_std430Size;
+		GLuint components = uniforms[0]->_components;
 		size = components ? PAD( size, 4 ) * components : size;
 		GLuint alignmentConsume = 4 - size % 4;
+		GLuint usedSpace = size;
 
-		GLUniform* tmpUniform = _materialSystemUniforms[0];
-		tmp.emplace_back( _materialSystemUniforms[0] );
-		_materialSystemUniforms.erase( _materialSystemUniforms.begin() );
+		GLUniform* tmpUniform = uniforms[0];
+		tmp.emplace_back( uniforms[0] );
+		uniforms.erase( uniforms.begin() );
 
 		int uniform;
-		while ( ( alignmentConsume & 3 ) && _materialSystemUniforms.size()
-			&& ( uniform = FindUniformForAlignment( _materialSystemUniforms, alignmentConsume ) ) != -1 ) {
-			alignmentConsume -= _materialSystemUniforms[uniform]->_std430Size;
+		while ( ( alignmentConsume & 3 ) && uniforms.size()
+			&& ( uniform = FindUniformForAlignment( uniforms, alignmentConsume ) ) != -1 ) {
+			alignmentConsume -= uniforms[uniform]->_std430Size;
+			usedSpace += uniforms[uniform]->_std430Size;
 
-			tmpUniform = _materialSystemUniforms[uniform];
+			tmpUniform = uniforms[uniform];
 
-			tmp.emplace_back( _materialSystemUniforms[uniform] );
-			_materialSystemUniforms.erase( _materialSystemUniforms.begin() + uniform );
+			tmp.emplace_back( uniforms[uniform] );
+			uniforms.erase( uniforms.begin() + uniform );
 		}
 
-		if ( alignmentConsume ) {
+		if ( alignmentConsume & 3 ) {
 			tmpUniform->_std430Size += alignmentConsume;
 		}
 
-		size = PAD( size, 4 );
-		std430Size += size;
-		padding = alignmentConsume;
+		if ( uniforms.size() ) {
+			structSize += PAD( size, 4 );
+		} else {
+			structSize += usedSpace;
+		}
 	}
 
-	_materialSystemUniforms = tmp;
+	uniforms = tmp;
+
+	return structSize;
+}
+
+std::vector<GLUniform*> GLShaderManager::ProcessUniforms( const GLUniform::UpdateType minType, const GLUniform::UpdateType maxType,
+	const bool skipTextures,
+	std::vector<GLUniform*>& uniforms, GLuint& structSize, GLuint& padding ) {
+	std::vector<GLUniform*> tmp;
+
+	tmp.reserve( uniforms.size() );
+	for ( GLUniform* uniform : uniforms ) {
+		if ( uniform->_updateType >= minType && uniform->_updateType <= maxType
+			&& ( !uniform->_isTexture || !skipTextures ) ) {
+			tmp.emplace_back( uniform );
+		}
+	}
+
+	structSize = SortUniforms( tmp );
+
+	const GLuint structAlignment = 4; // Material buffer is now a UBO, so it uses std140 layout, which is aligned to vec4
+	if ( structSize > 0 ) {
+		padding = ( structAlignment - ( structSize % structAlignment ) ) % structAlignment;
+	}
+
+	return tmp;
+}
+
+// Compute std140 size/alignment and sort uniforms from highest to lowest alignment
+void GLShader::PostProcessUniforms() {
+	if ( _useMaterialSystem ) {
+		_materialSystemUniforms = gl_shaderManager.ProcessUniforms( GLUniform::MATERIAL_OR_PUSH, GLUniform::MATERIAL_OR_PUSH,
+			true, _uniforms, std430Size, padding );
+	}
+
+	if ( glConfig2.pushBufferAvailable && !pushSkip ) {
+		GLuint unused;
+		_pushUniforms = gl_shaderManager.ProcessUniforms( GLUniform::CONST, GLUniform::FRAME,
+			false, _uniforms, unused, unused );
+	}
 }
 
 uint32_t GLShader::GetUniqueCompileMacros( size_t permutation, const int type ) const {
