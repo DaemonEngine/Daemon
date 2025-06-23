@@ -315,6 +315,18 @@ public:
 
 class GLUniform {
 	public:
+	enum UpdateType {
+		CONST, // Set once at map load
+		FRAME, // Set at the start of a frame
+		PUSH, // Set based on the surface/shader/etc.
+		// Set based on the surface/shader/etc. If the material system is enabled, will go into the materials UBO instead
+		MATERIAL_OR_PUSH,
+		// Set based on the surface/shader/etc. If the material system is enabled, will go into the texbundles buffer instead
+		TEXDATA_OR_PUSH,
+		LEGACY, // These won't actually go into the buffer, it's only to skip uniforms used as fallbacks for older devices
+		SKIP
+	};
+
 	const std::string _name;
 	const std::string _type;
 

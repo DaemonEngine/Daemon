@@ -122,6 +122,7 @@ struct GLConfig
 	bool materialSystemAvailable; // do the driver/hardware support it
 	bool usingMaterialSystem; // are we using it right now
 	bool geometryCacheAvailable;
+	bool pushBufferAvailable;
 	bool usingGeometryCache;
 	bool gpuShader4Available;
 	bool gpuShader5Available;
