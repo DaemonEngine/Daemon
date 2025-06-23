@@ -382,6 +382,7 @@ static void GLSL_InitGPUShadersOrError()
 		gl_fxaaShader->MarkProgramForBuilding( 0 );
 	}
 
+	gl_shaderManager.PostProcessGlobalUniforms();
 	gl_shaderManager.InitShaders();
 
 	if ( r_lazyShaders.Get() == 0 )
