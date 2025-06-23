@@ -46,6 +46,43 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    in the beginning of main() once
    Any texture samplers should be passed to functions from main() or other functions */
 
+#ifdef HAVE_ARB_bindless_texture
+
+	#if defined(CAMERAEFFECTS_GLSL)
+		sampler3D u_ColorMap3D = sampler3D( u_ColorMap3D_initial );
+	#endif // !CAMERAEFFECTS_GLSL
+
+	#if defined(LIQUID_GLSL)
+		sampler2D u_PortalMap = sampler2D( u_PortalMap_initial );
+	#endif // !LIQUID_GLSL
+
+	#if defined(DEPTHMAP_GLSL)
+		sampler2D u_DepthMap = sampler2D( u_DepthMap_initial );
+	#endif // !DEPTHMAP_GLSL
+
+	#if defined(DEPTHTILE1_GLSL)
+		sampler2D u_DepthTile1 = sampler2D( u_DepthTile1_initial );
+	#endif // !DEPTHTILE1_GLSL
+
+	#if defined(DEPTHTILE2_GLSL)
+		sampler2D u_DepthTile2 = sampler2D( u_DepthTile2_initial );
+	#endif // !DEPTHTILE2_GLSL
+	
+	#if defined(DEPTHREDUCTION_GLSL)
+		sampler2D depthTextureInitial = sampler2D( depthTextureInitial_initial );
+	#endif // !DEPTHREDUCTION_GLSL
+
+	#if defined(COMPUTELIGHT_GLSL)
+		usampler3D u_LightTiles = usampler3D( u_LightTiles_initial );
+	#endif // !COMPUTELIGHT_GLSL
+
+	#if defined(LIGHTGRID_GLSL)
+		sampler3D u_LightGrid1 = sampler3D( u_LightGrid1_initial );
+		sampler3D u_LightGrid2 = sampler3D( u_LightGrid2_initial );
+	#endif // !LIGHTGRID_GLSL
+
+#endif // !HAVE_ARB_bindless_texture
+
 #if defined(USE_MATERIAL_SYSTEM)
 
 	#ifdef HAVE_ARB_bindless_texture

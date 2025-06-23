@@ -81,6 +81,7 @@ GLShader_screen                          *gl_screenShader = nullptr;
 GLShader_screenMaterial                  *gl_screenShaderMaterial = nullptr;
 GLShader_skybox                          *gl_skyboxShader = nullptr;
 GLShader_skyboxMaterial                  *gl_skyboxShaderMaterial = nullptr;
+GlobalUBOProxy                           *globalUBOProxy = nullptr;
 GLShaderManager                           gl_shaderManager;
 
 namespace // Implementation details
@@ -1260,8 +1261,6 @@ std::string GLShaderManager::BuildShaderText( const std::string& mainShaderText,
 void GLShaderManager::InitShader( GLShader* shader ) {
 	const int start = Sys::Milliseconds();
 
-	shader->PostProcessUniforms();
-
 	shader->_uniformStorageSize = 0;
 	for ( std::size_t i = 0; i < shader->_uniforms.size(); i++ ) {
 		GLUniform* uniform = shader->_uniforms[i];
@@ -1331,6 +1330,12 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 
 			ShaderDescriptor* desc = FindShader( shader->_name, shaderType.mainText, shaderType.GLType, shaderType.headers,
 				uniqueMacros, compileMacros, true );
+
+			if ( desc && glConfig.pushBufferAvailable ) {
+				desc->shaderSource = RemoveUniformsFromShaderText( desc->shaderSource, shader->_pushUniforms );
+
+				desc->shaderSource.insert( shaderType.offset, globalUniformBlock );
+			}
 
 			if ( desc && glConfig.usingMaterialSystem && shader->_useMaterialSystem ) {
 				desc->shaderSource = ShaderPostProcess( shader, desc->shaderSource, shaderType.offset );
@@ -1559,6 +1564,70 @@ void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUnif
 	}
 
 	uniformDefines += "\n";
+}
+
+static uint32_t CountPadding( const std::vector<GLUniform *> &uniforms )
+{
+	uint32_t sum = 0;
+
+	for ( const GLUniform *uniform : uniforms )
+	{
+		sum += uniform->_std430Size - uniform->_std430BaseSize;
+	}
+
+	return sum;
+}
+
+void GLShaderManager::PostProcessGlobalUniforms() {
+	/* Generate the struct and defines in the form of:
+	* struct GlobalUniforms {
+	*   type uniform0;
+	*   type uniform1;
+	*   ..
+	*   type uniformn;
+	* }
+	*
+	* #define uniformx globalUniforms.uniformx
+	*/
+
+	std::string uniformStruct = "\nstruct GlobalUniforms {\n";
+	std::string uniformBlock = "layout(std140, binding = "
+		+ std::to_string( BufferBind::GLOBAL_DATA )
+		+ ") uniform globalUBO {\n"
+		+ "GlobalUniforms globalUniforms;\n"
+		+ "};\n\n";
+	std::string uniformDefines;
+
+	GLuint size;
+	std::vector<GLUniform*>* uniforms = &( ( GLShader* ) globalUBOProxy )->_uniforms;
+	std::vector<GLUniform*> constUniforms =
+		ProcessUniforms( GLUniform::CONST, GLUniform::CONST, !glConfig.usingBindlessTextures, *uniforms, size );
+
+	GenerateUniformStructDefinesText( constUniforms, "globalUniforms", uniformStruct, uniformDefines );
+
+	pushBuffer.constUniformsSize = size + CountPadding( constUniforms );
+
+	std::vector<GLUniform*> frameUniforms =
+		ProcessUniforms( GLUniform::FRAME, GLUniform::FRAME, !glConfig.usingBindlessTextures, *uniforms, size );
+	
+	GenerateUniformStructDefinesText( frameUniforms, "globalUniforms", uniformStruct, uniformDefines );
+
+	pushBuffer.frameUniformsSize = size + CountPadding( frameUniforms );
+
+	uniformStruct += "};\n\n";
+
+	globalUniformBlock = uniformStruct + uniformBlock + uniformDefines;
+
+	uniforms = &( ( GLShader* ) globalUBOProxy )->_pushUniforms;
+	uniforms->clear();
+
+	for ( GLUniform* uniform : constUniforms ) {
+		uniforms->push_back( uniform );
+	}
+
+	for ( GLUniform* uniform : frameUniforms ) {
+		uniforms->push_back( uniform );
+	}
 }
 
 // This will generate all the extra code for material system shaders
@@ -2095,17 +2164,8 @@ static auto FindUniformForOffset( std::vector<GLUniform*>& uniforms, const GLuin
 // Compute std140 size/alignment and sort uniforms from highest to lowest alignment
 // Note: using the std430 uniform size will give the wrong result for matrix types where
 // the number of rows is not 4
-void GLShader::PostProcessUniforms() {
-	if ( !_useMaterialSystem ) {
-		return;
-	}
-
-	std::vector<GLUniform*> uniformQueue;
-	for ( GLUniform* uniform : _uniforms ) {
-		if ( !uniform->_global ) {
-			uniformQueue.emplace_back( uniform );
-		}
-	}
+GLuint GLShaderManager::SortUniforms( std::vector<GLUniform*>& uniforms ) {
+	std::vector<GLUniform*> uniformQueue = uniforms;
 
 	std::stable_sort( uniformQueue.begin(), uniformQueue.end(),
 		[]( const GLUniform* lhs, const GLUniform* rhs ) {
@@ -2115,27 +2175,59 @@ void GLShader::PostProcessUniforms() {
 
 	// Sort uniforms from highest to lowest alignment so we don't need to pad uniforms (other than vec3s)
 	GLuint align = 4; // mininum alignment since this will be used as an std140 array element
-	std140Size = 0;
-	_materialSystemUniforms.clear();
-	while ( !uniformQueue.empty() || std140Size & ( align - 1 ) ) {
-		auto iterNext = FindUniformForOffset( uniformQueue, std140Size );
+	GLuint structSize = 0;
+	uniforms.clear();
+	while ( !uniformQueue.empty() || structSize & ( align - 1 ) ) {
+		auto iterNext = FindUniformForOffset( uniformQueue, structSize );
 		if ( iterNext == uniformQueue.end() ) {
 			// add 1 unit of padding
-			ASSERT( !_materialSystemUniforms.back()->_components); // array WriteToBuffer impls don't handle padding correctly
-			++std140Size;
-			++_materialSystemUniforms.back()->_std430Size;
+			ASSERT( !uniforms.back()->_components); // array WriteToBuffer impls don't handle padding correctly
+			++structSize;
+			++uniforms.back()->_std430Size;
 		} else {
 			( *iterNext )->_std430Size = ( *iterNext )->_std430BaseSize;
 			if ( ( *iterNext )->_components ) {
 				ASSERT_GE( ( *iterNext )->_std430Alignment, 4u ); // these would need extra padding in a std130 array
-				std140Size += ( *iterNext )->_std430Size * ( *iterNext )->_components;
+				structSize += ( *iterNext )->_std430Size * ( *iterNext )->_components;
 			} else {
-				std140Size += ( *iterNext )->_std430Size;
+				structSize += ( *iterNext )->_std430Size;
 			}
 			align = std::max( align, ( *iterNext )->_std430Alignment );
-			_materialSystemUniforms.push_back( *iterNext );
+			uniforms.push_back( *iterNext );
 			uniformQueue.erase( iterNext );
 		}
+	}
+	return structSize;
+}
+
+std::vector<GLUniform*> GLShaderManager::ProcessUniforms( const GLUniform::UpdateType minType, const GLUniform::UpdateType maxType,
+	const bool skipTextures,
+	std::vector<GLUniform*>& uniforms, GLuint& structSize ) {
+	std::vector<GLUniform*> tmp;
+
+	tmp.reserve( uniforms.size() );
+	for ( GLUniform* uniform : uniforms ) {
+		if ( uniform->_updateType >= minType && uniform->_updateType <= maxType
+			&& ( !uniform->_isTexture || !skipTextures ) ) {
+			tmp.emplace_back( uniform );
+		}
+	}
+
+	structSize = SortUniforms( tmp );
+
+	return tmp;
+}
+
+void GLShader::PostProcessUniforms() {
+	if ( _useMaterialSystem ) {
+		_materialSystemUniforms = gl_shaderManager.ProcessUniforms( GLUniform::MATERIAL_OR_PUSH, GLUniform::MATERIAL_OR_PUSH,
+			true, _uniforms, std140Size );
+	}
+
+	if ( glConfig.pushBufferAvailable && !pushSkip ) {
+		GLuint unused;
+		_pushUniforms = gl_shaderManager.ProcessUniforms( GLUniform::CONST, GLUniform::FRAME,
+			!glConfig.usingBindlessTextures, _uniforms, unused );
 	}
 }
 
@@ -2315,10 +2407,24 @@ void GLShader::SetRequiredVertexPointers()
 	GL_VertexAttribsState( attribs );
 }
 
-void GLShader::WriteUniformsToBuffer( uint32_t* buffer ) {
+void GLShader::WriteUniformsToBuffer( uint32_t* buffer, const Mode mode, const int filter ) {
 	uint32_t* bufPtr = buffer;
-	for ( GLUniform* uniform : _materialSystemUniforms ) {
-		bufPtr = uniform->WriteToBuffer( bufPtr );
+	std::vector<GLUniform*>* uniforms;
+	switch ( mode ) {
+		case MATERIAL:
+			uniforms = &_materialSystemUniforms;
+			break;
+		case PUSH:
+			uniforms = &_pushUniforms;
+			break;
+		default:
+			ASSERT_UNREACHABLE();
+	}
+
+	for ( GLUniform* uniform : *uniforms ) {
+		if ( filter == -1 || uniform->_updateType == filter ) {
+			bufPtr = uniform->WriteToBuffer( bufPtr );
+		}
 	}
 }
 
@@ -2947,4 +3053,39 @@ GLShader_processSurfaces::GLShader_processSurfaces() :
 	u_Frame( this ),
 	u_ViewID( this ),
 	u_SurfaceCommandsOffset( this ) {
+}
+
+GlobalUBOProxy::GlobalUBOProxy() :
+	/* HACK: A GLShader* is required to initialise uniforms,
+	but we don't need the GLSL shader itself, so we won't actually build it */
+	GLShader( "proxy", 0,
+		false, "screenSpace", "generic", true ),
+	// CONST
+	u_ColorMap3D( this ),
+	u_DepthMap( this ),
+	u_PortalMap( this ),
+	u_DepthTile1( this ),
+	u_DepthTile2( this ),
+	u_LightTiles( this ),
+	u_LightGrid1( this ),
+	u_LightGrid2( this ),
+	u_LightGridOrigin( this ),
+	u_LightGridScale( this ),
+	u_GlobalLightFactor( this ),
+	u_SRGB( this ),
+	u_FirstPortalGroup( this ),
+	u_TotalPortals( this ),
+	u_SurfaceDescriptorsCount( this ),
+	u_ProfilerZero( this ),
+	// FRAME
+	u_Frame( this ),
+	u_UseFrustumCulling( this ),
+	u_UseOcclusionCulling( this ),
+	u_blurVec( this ),
+	u_numLights( this ),
+	u_ColorModulate( this ),
+	u_InverseGamma( this ),
+	u_Tonemap( this ),
+	u_TonemapParms( this ),
+	u_TonemapExposure( this ) {
 }
