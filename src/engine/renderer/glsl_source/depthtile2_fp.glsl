@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* depthtile2_fp.glsl */
 
+#define DEPTHTILE1_GLSL
+
 uniform sampler2D u_DepthTile1;
 
 #if __VERSION__ > 120
@@ -44,6 +46,8 @@ out vec4 outputColor;
 
 void	main()
 {
+  #insert material_fp
+
   vec2 st = gl_FragCoord.st * r_tileStep;
   float x, y;
   vec4 accum = vec4( 0.0, 99999.0, 0.0, 0.0 );

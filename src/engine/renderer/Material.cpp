@@ -1495,6 +1495,22 @@ void MaterialSystem::UpdateDynamicSurfaces() {
 	GL_CheckErrors();
 }
 
+void MaterialSystem::SetConstUniforms() {
+	globalUBOProxy->SetUniform_SurfaceDescriptorsCount( surfaceDescriptorsCount );
+	uint32_t globalWorkGroupX = surfaceDescriptorsCount % MAX_COMMAND_COUNTERS == 0 ?
+		surfaceDescriptorsCount / MAX_COMMAND_COUNTERS : surfaceDescriptorsCount / MAX_COMMAND_COUNTERS + 1;
+
+	globalUBOProxy->SetUniform_FirstPortalGroup( globalWorkGroupX );
+	globalUBOProxy->SetUniform_TotalPortals( totalPortals );
+}
+
+void MaterialSystem::SetFrameUniforms() {
+	globalUBOProxy->SetUniform_Frame( nextFrame );
+
+	globalUBOProxy->SetUniform_UseFrustumCulling( r_gpuFrustumCulling.Get() );
+	globalUBOProxy->SetUniform_UseOcclusionCulling( r_gpuOcclusionCulling.Get() );
+}
+
 void MaterialSystem::UpdateFrameData() {
 	gl_clearSurfacesShader->BindProgram( 0 );
 	gl_clearSurfacesShader->SetUniform_Frame( nextFrame );
