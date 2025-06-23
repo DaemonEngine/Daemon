@@ -554,9 +554,9 @@ class GLUniformSampler : protected GLUniform {
 			if ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) {
 				return;
 			}
-		}
 
 		glUniformHandleui64ARB( GetLocation(), currentValueBindless );
+		}
 	}
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
