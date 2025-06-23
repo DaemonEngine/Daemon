@@ -1514,21 +1514,74 @@ void GLShaderManager::SaveShaderBinary( ShaderProgramDescriptor* descriptor ) {
 	cacheSaveCount++;
 }
 
+std::string GLShaderManager::RemoveUniformsFromShaderText( const std::string& shaderText, const std::vector<GLUniform*>& uniforms ) {
+	std::istringstream shaderTextStream( shaderText );
+	std::string shaderMain;
+
+	std::string line;
+	/* Remove local uniform declarations, but avoid removing uniform / storage blocks;
+	*  their values will be sourced from a buffer instead
+	*  Global uniforms (like u_ViewOrigin) will still be set as regular uniforms */
+	while ( std::getline( shaderTextStream, line, '\n' ) ) {
+		bool skip = false;
+		if ( line.find( "uniform" ) < line.find( "//" ) && line.find( ";" ) != std::string::npos ) {
+			for ( GLUniform* uniform : uniforms ) {
+				const size_t pos = line.find( uniform->_name );
+				if ( pos != std::string::npos && !Str::cisalpha( line[pos + uniform->_name.size()] ) ) {
+					skip = true;
+					break;
+				}
+			}
+		}
+
+		if ( skip ) {
+			continue;
+		}
+
+		shaderMain += line + "\n";
+	}
+
+	return shaderMain;
+}
+
+void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUniform*>& uniforms, const uint32_t padding,
+	const uint32_t paddingCount, const std::string& definesName,
+	std::string& uniformStruct, std::string& uniformDefines ) {
+	for ( GLUniform* uniform : uniforms ) {
+		uniformStruct += "	" + ( uniform->_isTexture ? "uvec2" : uniform->_type ) + " " + uniform->_name;
+
+		if ( uniform->_components ) {
+			uniformStruct += "[" + std::to_string( uniform->_components ) + "]";
+		}
+		uniformStruct += ";\n";
+
+		uniformDefines += "#define ";
+		uniformDefines += uniform->_name;
+
+		if ( uniform->_isTexture ) {
+			uniformDefines += "_initial";
+		}
+
+		uniformDefines += " " + definesName + ".";
+		uniformDefines += uniform->_name;
+
+		uniformDefines += "\n";
+	}
+
+	// Array of structs is aligned to the largest member of the struct
+	for ( uint32_t i = 0; i < padding; i++ ) {
+		uniformStruct += "	int uniform_padding" + std::to_string( i + paddingCount );
+		uniformStruct += ";\n";
+	}
+
+	uniformDefines += "\n";
+}
+
 // This will generate all the extra code for material system shaders
 std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::string& shaderText, const uint32_t offset ) {
 	if ( !shader->std430Size ) {
 		return shaderText;
 	}
-
-	std::string newShaderText;
-	std::string materialStruct = "\nstruct Material {\n";
-	// 6 kb for materials
-	const uint32_t count = ( 4096 + 2048 ) / shader->GetSTD430Size();
-	std::string materialBlock = "layout(std140, binding = "
-	                            + std::to_string( BufferBind::MATERIALS )
-	                            + ") uniform materialsUBO {\n"
-	                            "	Material materials[" + std::to_string( count ) + "]; \n"
-	                            "};\n\n";
 
 	std::string texBuf = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ?
 		"layout(std140, binding = "
@@ -1569,7 +1622,6 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	                           "};\n\n"
 		                       "#define u_LightMap_initial lightMapData[( baseInstance >> 24 ) & 0xFF].u_LightMap\n"
 		                       "#define u_DeluxeMap_initial lightMapData[( baseInstance >> 24 ) & 0xFF].u_DeluxeMap\n\n";
-	std::string materialDefines;
 
 	/* Generate the struct and defines in the form of:
 	* struct Material {
@@ -1582,62 +1634,24 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	* #define uniformx materials[baseInstance].uniformx
 	*/
 
-	for( GLUniform* uniform : shader->_materialSystemUniforms ) {
-		materialStruct += "	" + uniform->_type + " " + uniform->_name;
-
-		if ( uniform->_components ) {
-			materialStruct += "[" + std::to_string( uniform->_components ) + "]";
-		}
-		materialStruct += ";\n";
-
-		materialDefines += "#define ";
-		materialDefines += uniform->_name;
-
-		materialDefines += " materials[baseInstance & 0xFFF].";
-		materialDefines += uniform->_name;
-
-		materialDefines += "\n";
-	}
-
-	// Array of structs is aligned to the largest member of the struct
-	for ( uint i = 0; i < shader->padding; i++ ) {
-		materialStruct += "	int material_padding" + std::to_string( i );
-		materialStruct += ";\n";
-	}
+	std::string materialStruct = "\nstruct Material {\n";
+	std::string materialDefines;
+	GenerateUniformStructDefinesText( shader->_materialSystemUniforms, shader->padding,
+		0, "materials[baseInstance & 0xFFF]", materialStruct, materialDefines );
 
 	materialStruct += "};\n\n";
-	materialDefines += "\n";
 
-	std::istringstream shaderTextStream( shaderText );
-	std::string shaderMain;
+	// 6 kb for materials
+	const uint32_t count = ( 4096 + 2048 ) / shader->GetSTD430Size();
+	std::string materialBlock = "layout(std140, binding = "
+		+ std::to_string( BufferBind::MATERIALS )
+		+ ") uniform materialsUBO {\n"
+		"	Material materials[" + std::to_string( count ) + "]; \n"
+		"};\n\n";
 
-	std::string line;
-	
-	/* Remove local uniform declarations, but avoid removing uniform / storage blocks;
-	*  their values will be sourced from a buffer instead
-	*  Global uniforms (like u_ViewOrigin) will still be set as regular uniforms */
-	while( std::getline( shaderTextStream, line, '\n' ) ) {
-		bool skip = false;
-		if ( line.find( "uniform" ) < line.find( "//" ) && line.find( ";" ) != std::string::npos ) {
-			for ( GLUniform* uniform : shader->_materialSystemUniforms ) {
-				const size_t pos = line.find( uniform->_name );
-				if ( pos != std::string::npos && !Str::cisalpha( line[pos + strlen( uniform->_name.c_str() )] ) ) {
-					skip = true;
-					break;
-				}
-			}
-		}
+	std::string shaderMain = RemoveUniformsFromShaderText( shaderText, shader->_materialSystemUniforms );
 
-		if ( skip ) {
-			continue;
-		}
-
-		shaderMain += line + "\n";
-	}
-
-	materialDefines += "\n";
-
-	newShaderText = "#define USE_MATERIAL_SYSTEM\n" + materialStruct + materialBlock + texDataBlock + materialDefines;
+	std::string newShaderText = "#define USE_MATERIAL_SYSTEM\n" + materialStruct + materialBlock + texDataBlock + materialDefines;
 	shaderMain.insert( offset, newShaderText );
 	return shaderMain;
 }
