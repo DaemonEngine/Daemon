@@ -25,6 +25,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #insert common
 #insert fogEquation_fp
 
+#define DEPTHMAP_GLSL
+
 uniform sampler2D	u_DepthMap;
 
 uniform colorPack u_Color;
@@ -37,6 +39,8 @@ DECLARE_OUTPUT(vec4)
 
 void	main()
 {
+	#insert material_fp
+
 	// calculate the screen texcoord in the 0.0 to 1.0 range
 	vec2 st = gl_FragCoord.st / r_FBufSize;
 

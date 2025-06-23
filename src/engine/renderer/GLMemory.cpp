@@ -117,6 +117,10 @@ void GLStagingBuffer::FlushAll() {
 	FlushStagingCopyQueue();
 }
 
+bool GLStagingBuffer::Active() const {
+	return buffer.id;
+}
+
 void GLStagingBuffer::InitGLBuffer() {
 	buffer.GenBuffer();
 
@@ -136,6 +140,10 @@ void GLStagingBuffer::FreeGLBuffer() {
 
 void PushBuffer::InitGLBuffers() {
 	globalUBO.GenBuffer();
+
+	globalUBO.BufferStorage( pushBuffer.constUniformsSize + pushBuffer.frameUniformsSize, 1, nullptr );
+
+	globalUBO.BindBufferBase();
 }
 
 void PushBuffer::FreeGLBuffers() {
