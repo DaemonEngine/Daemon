@@ -160,7 +160,7 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage, boo
 		gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
 	}
 
-	gl_genericShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_genericShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, bool, bool vertexLit, bool fullbright ) {
@@ -212,7 +212,7 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, 
 		gl_lightMappingShaderMaterial->SetUniform_SpecularExponent( specExpMin, specExpMax );
 	}
 
-	gl_lightMappingShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_lightMappingShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
@@ -253,7 +253,7 @@ void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage, bo
 		gl_reflectionShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
 	}
 
-	gl_reflectionShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_reflectionShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
@@ -264,7 +264,7 @@ void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage, bool, 
 	// u_AlphaThreshold
 	gl_skyboxShaderMaterial->SetUniform_AlphaTest( GLS_ATEST_NONE );
 
-	gl_skyboxShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_skyboxShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
@@ -277,7 +277,7 @@ void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage, bool, 
 	this seems to be the only material system shader that might need it to not be global */
 	gl_screenShaderMaterial->SetUniform_CurrentMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 
-	gl_screenShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_screenShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
@@ -296,7 +296,7 @@ void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool
 		gl_heatHazeShaderMaterial->SetUniform_NormalScale( normalScale );
 	}
 
-	gl_heatHazeShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_heatHazeShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
@@ -348,7 +348,7 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, 
 		gl_liquidShaderMaterial->SetUniform_NormalScale( normalScale );
 	}
 
-	gl_liquidShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_liquidShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
@@ -356,7 +356,7 @@ void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage, bool, boo
 
 	materials += pStage->bufferOffset;
 
-	gl_fogQuake3ShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_fogQuake3ShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 /*
