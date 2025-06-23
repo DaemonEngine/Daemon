@@ -77,6 +77,7 @@ GLShader_screen                          *gl_screenShader = nullptr;
 GLShader_screenMaterial                  *gl_screenShaderMaterial = nullptr;
 GLShader_skybox                          *gl_skyboxShader = nullptr;
 GLShader_skyboxMaterial                  *gl_skyboxShaderMaterial = nullptr;
+GlobalUBOProxy                           *globalUBOProxy = nullptr;
 GLShaderManager                           gl_shaderManager;
 
 namespace // Implementation details
@@ -3083,4 +3084,40 @@ GLShader_processSurfaces::GLShader_processSurfaces() :
 	u_Frame( this ),
 	u_ViewID( this ),
 	u_SurfaceCommandsOffset( this ) {
+}
+
+GlobalUBOProxy::GlobalUBOProxy() :
+	/* HACK: A GLShader* is required to initialise uniforms,
+	but we don't need the GLSL shader itself, so we won't actually build it */
+	GLShader( "proxy", 0,
+		false, "screenSpace", "generic", true ),
+	// CONST
+	u_ColorMap3D( this ),
+	u_DepthMap( this ),
+	u_PortalMap( this ),
+	u_FogMap( this ),
+	u_DepthTile1( this ),
+	u_DepthTile2( this ),
+	u_LightTiles( this ),
+	u_LightGrid1( this ),
+	u_LightGrid2( this ),
+	u_LightGridOrigin( this ),
+	u_LightGridScale( this ),
+	u_GlobalLightFactor( this ),
+	u_SRGB( this ),
+	u_FirstPortalGroup( this ),
+	u_TotalPortals( this ),
+	u_SurfaceDescriptorsCount( this ),
+	u_ProfilerZero( this ),
+	// FRAME
+	u_Frame( this ),
+	u_UseFrustumCulling( this ),
+	u_UseOcclusionCulling( this ),
+	u_blurVec( this ),
+	u_numLights( this ),
+	u_ColorModulate( this ),
+	u_InverseGamma( this ),
+	u_Tonemap( this ),
+	u_TonemapParms( this ),
+	u_TonemapExposure( this ) {
 }
