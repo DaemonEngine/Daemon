@@ -2429,10 +2429,24 @@ void GLShader::SetRequiredVertexPointers()
 	GL_VertexAttribsState( attribs );
 }
 
-void GLShader::WriteUniformsToBuffer( uint32_t* buffer ) {
+void GLShader::WriteUniformsToBuffer( uint32_t* buffer, const Mode mode, const int filter ) {
 	uint32_t* bufPtr = buffer;
-	for ( GLUniform* uniform : _materialSystemUniforms ) {
-		bufPtr = uniform->WriteToBuffer( bufPtr );
+	std::vector<GLUniform*>* uniforms;
+	switch ( mode ) {
+		case MATERIAL:
+			uniforms = &_materialSystemUniforms;
+			break;
+		case PUSH:
+			uniforms = &_pushUniforms;
+			break;
+		default:
+			ASSERT_UNREACHABLE();
+	}
+
+	for ( GLUniform* uniform : *uniforms ) {
+		if ( filter == -1 || uniform->_updateType == filter ) {
+			bufPtr = uniform->WriteToBuffer( bufPtr );
+		}
 	}
 }
 
