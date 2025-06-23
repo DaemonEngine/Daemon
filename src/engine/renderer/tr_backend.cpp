@@ -1160,7 +1160,7 @@ void RB_RenderPostDepthLightTile()
 	GL_Scissor( 0, 0, w, h );
 	gl_depthtile2Shader->BindProgram( 0 );
 
-	gl_depthtile2Shader->SetUniform_DepthMapBindless(
+	gl_depthtile2Shader->SetUniform_DepthTile1Bindless(
 		GL_BindToTMU( 0, tr.depthtile1RenderImage )
 	);
 
@@ -1180,7 +1180,7 @@ void RB_RenderPostDepthLightTile()
 
 	gl_lighttileShader->SetUniformBlock_Lights( tr.dlightUBO );
 
-	gl_lighttileShader->SetUniform_DepthMapBindless(
+	gl_lighttileShader->SetUniform_DepthTile2Bindless(
 		GL_BindToTMU( 1, tr.depthtile2RenderImage ) 
 	);
 

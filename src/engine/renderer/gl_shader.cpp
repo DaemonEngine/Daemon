@@ -2950,7 +2950,7 @@ void GLShader_depthtile1::SetShaderProgramUniforms( ShaderProgramDescriptor *sha
 GLShader_depthtile2::GLShader_depthtile2() :
 	GLShader( "depthtile2", ATTR_POSITION,
 		false, "screenSpace", "depthtile2" ),
-	u_DepthMap( this ) {
+	u_DepthTile1( this ) {
 }
 
 void GLShader_depthtile2::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
@@ -2961,7 +2961,7 @@ void GLShader_depthtile2::SetShaderProgramUniforms( ShaderProgramDescriptor *sha
 GLShader_lighttile::GLShader_lighttile() :
 	GLShader( "lighttile", ATTR_POSITION | ATTR_TEXCOORD,
 		false, "lighttile", "lighttile" ),
-	u_DepthMap( this ),
+	u_DepthTile2( this ),
 	u_Lights( this ),
 	u_numLights( this ),
 	u_lightLayer( this ),
