@@ -218,6 +218,12 @@ GLShaderManager::~GLShaderManager()
 = default;
 
 void GLShaderManager::FreeAll() {
+	for ( const std::unique_ptr<GLShader>& shader : _shaders ) {
+		if ( shader.get()->uniformStorage ) {
+			Z_Free( shader.get()->uniformStorage );
+		}
+	}
+
 	_shaders.clear();
 
 	deformShaderCount = 0;
@@ -236,8 +242,8 @@ void GLShaderManager::FreeAll() {
 			Z_Free( program.uniformBlockIndexes );
 		}
 
-		if ( program.uniformFirewall ) {
-			Z_Free( program.uniformFirewall );
+		if ( program.uniformStorage ) {
+			Z_Free( program.uniformStorage );
 		}
 	}
 
@@ -266,7 +272,7 @@ void GLShaderManager::UpdateShaderProgramUniformLocations( GLShader* shader, Sha
 	shaderProgram->uniformLocations = ( GLint* ) Z_Malloc( sizeof( GLint ) * numUniforms );
 
 	// create buffer for uniform firewall
-	shaderProgram->uniformFirewall = ( byte* ) Z_Malloc( uniformSize );
+	shaderProgram->uniformStorage = ( uint32_t* ) Z_Malloc( uniformSize );
 
 	// update uniforms
 	for (GLUniform *uniform : shader->_uniforms)
@@ -1273,9 +1279,15 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 	for ( std::size_t i = 0; i < shader->_uniforms.size(); i++ ) {
 		GLUniform* uniform = shader->_uniforms[i];
 		uniform->SetLocationIndex( i );
-		uniform->SetFirewallIndex( shader->_uniformStorageSize );
-		shader->_uniformStorageSize += uniform->GetSize();
+		uniform->SetUniformStorageOffset( shader->_uniformStorageSize );
+
+		const uint32_t size = uniform->_components ? uniform->_std430Size * uniform->_components : uniform->_std430Size;
+		shader->_uniformStorageSize += size;
 	}
+
+	shader->_uniformStorageSize *= sizeof( uint32_t );
+
+	shader->uniformStorage = ( uint32_t* ) Z_Malloc( shader->_uniformStorageSize );
 
 	for ( std::size_t i = 0; i < shader->_uniformBlocks.size(); i++ ) {
 		GLUniformBlock* uniformBlock = shader->_uniformBlocks[i];
@@ -2136,10 +2148,6 @@ bool GLCompileMacro_USE_BSP_SURFACE::HasConflictingMacros(size_t permutation, co
 	return false;
 }
 
-uint32_t* GLUniform::WriteToBuffer( uint32_t * ) {
-	Sys::Error( "WriteToBuffer not implemented for GLUniform '%s'", _name );
-}
-
 void GLShader::RegisterUniform( GLUniform* uniform ) {
 	_uniforms.push_back( uniform );
 }
@@ -2425,6 +2433,8 @@ void GLShader::WriteUniformsToBuffer( uint32_t* buffer, const Mode mode, const i
 			bufPtr = uniform->WriteToBuffer( bufPtr );
 		}
 	}
+
+	uniformsUpdated = false;
 }
 
 GLShader_generic::GLShader_generic() :
