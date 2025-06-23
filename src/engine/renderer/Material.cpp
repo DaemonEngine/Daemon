@@ -1729,17 +1729,7 @@ void MaterialSystem::Free() {
 	texData.clear();
 	dynamicTexData.clear();
 
-	R_SyncRenderThread();
-
-	surfaceCommandsSSBO.UnmapBuffer();
-	culledCommandsBuffer.UnmapBuffer();
-	atomicCommandCountersBuffer.UnmapBuffer();
-	texDataBuffer.UnmapBuffer();
-	lightMapDataUBO.UnmapBuffer();
-
 	if ( totalPortals > 0 ) {
-		portalSurfacesSSBO.UnmapBuffer();
-
 		for ( PortalView& portalView : portalStack ) {
 			memset( portalView.views, 0, MAX_VIEWS * sizeof( uint32_t ) );
 			portalView.count = 0;
