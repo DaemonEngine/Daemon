@@ -2096,11 +2096,7 @@ static auto FindUniformForOffset( std::vector<GLUniform*>& uniforms, const GLuin
 // Compute std140 size/alignment and sort uniforms from highest to lowest alignment
 // Note: using the std430 uniform size will give the wrong result for matrix types where
 // the number of rows is not 4
-void GLShader::PostProcessUniforms() {
-	if ( !_useMaterialSystem ) {
-		return;
-	}
-
+GLuint GLShaderManager::SortUniforms( std::vector<GLUniform*>& uniforms ) {
 	std::vector<GLUniform*> uniformQueue;
 	for ( GLUniform* uniform : _uniforms ) {
 		if ( !uniform->_global ) {
@@ -2116,15 +2112,15 @@ void GLShader::PostProcessUniforms() {
 
 	// Sort uniforms from highest to lowest alignment so we don't need to pad uniforms (other than vec3s)
 	GLuint align = 4; // mininum alignment since this will be used as an std140 array element
-	std140Size = 0;
-	_materialSystemUniforms.clear();
+	GLuint structSize = 0;
+	uniforms.clear();
 	while ( !uniformQueue.empty() || std140Size & ( align - 1 ) ) {
 		auto iterNext = FindUniformForOffset( uniformQueue, std140Size );
 		if ( iterNext == uniformQueue.end() ) {
 			// add 1 unit of padding
 			ASSERT( !_materialSystemUniforms.back()->_components); // array WriteToBuffer impls don't handle padding correctly
 			++std140Size;
-			++_materialSystemUniforms.back()->_std430Size;
+			++uniforms.back()->_std430Size;
 		} else {
 			( *iterNext )->_std430Size = ( *iterNext )->_std430BaseSize;
 			if ( ( *iterNext )->_components ) {
@@ -2134,9 +2130,23 @@ void GLShader::PostProcessUniforms() {
 				std140Size += ( *iterNext )->_std430Size;
 			}
 			align = std::max( align, ( *iterNext )->_std430Alignment );
-			_materialSystemUniforms.push_back( *iterNext );
+			uniforms.push_back( *iterNext );
 			uniformQueue.erase( iterNext );
 		}
+	}
+	return structSize;
+}
+
+void GLShader::PostProcessUniforms() {
+	if ( _useMaterialSystem ) {
+		_materialSystemUniforms = gl_shaderManager.ProcessUniforms( GLUniform::MATERIAL_OR_PUSH, GLUniform::MATERIAL_OR_PUSH,
+			true, _uniforms, std430Size, padding );
+	}
+
+	if ( glConfig.pushBufferAvailable && !pushSkip ) {
+		GLuint unused;
+		_pushUniforms = gl_shaderManager.ProcessUniforms( GLUniform::CONST, GLUniform::FRAME,
+			false, _uniforms, unused, unused );
 	}
 }
 
