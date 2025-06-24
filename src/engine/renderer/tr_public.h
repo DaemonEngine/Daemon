@@ -120,6 +120,7 @@ struct glconfig2_t
 	bool usingMaterialSystem; // are we using it right now
 	bool geometryCacheAvailable;
 	bool usingGeometryCache;
+	bool pushBufferAvailable;
 	bool gpuShader4Available;
 	bool gpuShader5Available;
 	bool textureGatherAvailable;
