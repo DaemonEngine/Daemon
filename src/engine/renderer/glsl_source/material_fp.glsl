@@ -52,9 +52,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		sampler3D u_ColorMap3D = sampler3D( u_ColorMap3D_initial );
 	#endif // !CAMERAEFFECTS_GLSL
 
-	#if defined(FOGQUAKE3_GLSL)
+	#if defined(FOGMAP_GLSL)
 		sampler2D u_FogMap = sampler2D( u_FogMap_initial );
-	#endif // !FOGQUAKE3_GLSL
+	#endif // !FOGMAP_GLSL
 
 	#if defined(LIQUID_GLSL)
 		sampler2D u_PortalMap = sampler2D( u_PortalMap_initial );
