@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/Common.h"
 
 #include "GeometryCache.h"
-
+#include "GLMemory.h"
 #include "tr_local.h"
 
 GeometryCache geometryCache;
@@ -61,12 +61,6 @@ void GeometryCache::FreeGLBuffers() {
 	VAO.DelVAO();
 }
 
-void GeometryCache::AllocBuffers() {
-	VBO.BufferData( mapVerticesNumber * 8, nullptr, GL_STATIC_DRAW );
-
-	IBO.BufferData( mapIndicesNumber, nullptr, GL_STATIC_DRAW );
-}
-
 void GeometryCache::AddMapGeometry( const uint32_t verticesNumber, const uint32_t indicesNumber,
 	const vertexAttributeSpec_t* attrBegin, const vertexAttributeSpec_t* attrEnd,
 	const glIndex_t* indices ) {
@@ -75,28 +69,28 @@ void GeometryCache::AddMapGeometry( const uint32_t verticesNumber, const uint32_
 
 	VAO.Bind();
 
-	AllocBuffers();
-
 	VAO.SetAttrs( attrBegin, attrEnd );
 
 	VAO.SetVertexBuffer( VBO, 0 );
 	VAO.SetIndexBuffer( IBO );
 	
 	VBO.BufferStorage( mapVerticesNumber * 8, 1, nullptr );
-	VBO.MapAll();
-	uint32_t* VBOVerts = VBO.GetData();
+	uint32_t* VBOVerts = stagingBuffer.MapBuffer( mapVerticesNumber * 8 );
 	for ( const vertexAttributeSpec_t* spec = attrBegin; spec < attrEnd; spec++ ) {
 		vboAttributeLayout_t& attr = VAO.attrs[spec->attrIndex];
 
 		R_CopyVertexAttribute( attr, *spec, mapVerticesNumber, ( byte* ) VBOVerts );
 	}
-	VBO.UnmapBuffer();
+
+	stagingBuffer.QueueStagingCopy( &VBO, 0 );
 
 	IBO.BufferStorage( mapIndicesNumber, 1, nullptr );
-	IBO.MapAll();
-	uint32_t* IBOIndices = IBO.GetData();
+	uint32_t* IBOIndices = stagingBuffer.MapBuffer( mapIndicesNumber );
 	memcpy( IBOIndices, indices, mapIndicesNumber * sizeof( uint32_t ) );
-	IBO.UnmapBuffer();
+
+	stagingBuffer.QueueStagingCopy( &IBO, 0 );
+
+	stagingBuffer.FlushAll();
 
 	glBindVertexArray( backEnd.currentVAO );
 }

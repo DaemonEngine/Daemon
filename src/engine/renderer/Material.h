@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gl_shader.h"
 #include "tr_local.h"
+#include "GLMemory.h"
 
 static constexpr uint32_t MAX_DRAWCOMMAND_TEXTURES = 64;
 
@@ -401,11 +402,9 @@ class MaterialSystem {
 	image_t* depthImage;
 	int depthImageLevels;
 
-	uint32_t totalDrawSurfs;
-	uint32_t totalBatchCount = 0;
-
 	uint32_t surfaceCommandsCount = 0;
 	uint32_t surfaceDescriptorsCount = 0;
+	uint32_t totalBatchCount = 0;
 
 	uint32_t packIDs[3] = { 0, 0, 0 };
 

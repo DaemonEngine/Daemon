@@ -36,7 +36,7 @@ IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
 
 #if defined(USE_DEPTH_FADE)
-IN(smooth) vec2         var_FadeDepth;
+IN(smooth) float        var_FadeDepth;
 uniform sampler2D       u_DepthMap;
 #endif
 
@@ -67,7 +67,14 @@ void	main()
 
 #if defined(USE_DEPTH_FADE)
 	float depth = texture2D(u_DepthMap, gl_FragCoord.xy / r_FBufSize).x;
-	float fadeDepth = 0.5 * var_FadeDepth.x / var_FadeDepth.y + 0.5;
+
+	// convert z from normalized device coordinates [-1, 1]
+	// to window coordinates [0, 1]
+	float fadeDepth = 0.5 * var_FadeDepth + 0.5;
+
+	// HACK: the (distance from triangle to object behind it) / (shader's depthFade distance) ratio
+	// is calculated by using (nonlinear) depth values instead of the correct world units, so the
+	// fade curve will be different depending on the distance to the viewer and znear/zfar
 	color.a *= smoothstep(gl_FragCoord.z, fadeDepth, depth);
 #endif
 	
