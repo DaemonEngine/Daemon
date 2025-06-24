@@ -2730,7 +2730,7 @@ GLShader_fogGlobal::GLShader_fogGlobal() :
 
 void GLShader_fogGlobal::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_FogMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
 }
 
