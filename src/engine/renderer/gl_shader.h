@@ -345,7 +345,6 @@ class GLUniform {
 	// In multiples of 4 bytes
 	// FIXME: the uniform structs are actually std140 so it would be more relevant to provide std140 info
 	const GLuint _std430BaseSize;
-	GLuint _std430Size; // includes padding that depends on the other uniforms in the struct
 	const GLuint _std430Alignment;
 	GLuint _nextUniformOffset;
 
@@ -374,7 +373,7 @@ class GLUniform {
 		_shader->RegisterUniform( this );
 	}
 
-	bool CacheValue( void* value ) {
+	bool CacheValue( const void* value ) {
 		uint32_t* currentValue;
 
 		const bool bufferUniform = ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
@@ -432,10 +431,6 @@ class GLUniform {
 
 	void UpdateShaderProgramUniformLocation( ShaderProgramDescriptor* shaderProgram ) {
 		shaderProgram->uniformLocations[_locationIndex] = glGetUniformLocation( shaderProgram->id, _name.c_str() );
-	}
-
-	virtual size_t GetSize() {
-		return 0;
 	}
 };
 
@@ -586,10 +581,6 @@ class GLUniformSampler : protected GLUniform {
 	}
 
 	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
-	}
-
 	void SetValue( GLuint value ) {
 		if ( !CacheValue( &value ) ) {
 			return;
@@ -653,11 +644,6 @@ protected:
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform1i( p->uniformLocations[ _locationIndex ], value );
 	}
-public:
-	size_t GetSize() override
-	{
-		return sizeof( int );
-	}
 };
 
 class GLUniform1ui : protected GLUniform {
@@ -673,10 +659,6 @@ class GLUniform1ui : protected GLUniform {
 
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform1ui( p->uniformLocations[_locationIndex], value );
-	}
-	public:
-	size_t GetSize() override {
-		return sizeof( uint );
 	}
 };
 
@@ -695,11 +677,6 @@ class GLUniform1Bool : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform1i( p->uniformLocations[_locationIndex], value );
 	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( int );
-	}
 };
 
 class GLUniform1f : protected GLUniform
@@ -717,11 +694,6 @@ protected:
 
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform1f( p->uniformLocations[ _locationIndex ], value );
-	}
-public:
-	size_t GetSize() override
-	{
-		return sizeof( float );
 	}
 };
 
@@ -759,11 +731,6 @@ protected:
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform2f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ] );
 	}
-
-	size_t GetSize() override
-	{
-		return sizeof( vec2_t );
-	}
 };
 
 class GLUniform3f : protected GLUniform
@@ -782,11 +749,6 @@ protected:
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform3f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ], v[ 2 ] );
 	}
-public:
-	size_t GetSize() override
-	{
-		return sizeof( vec3_t );
-	}
 };
 
 class GLUniform4f : protected GLUniform
@@ -804,11 +766,6 @@ protected:
 
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform4f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
-	}
-public:
-	size_t GetSize() override
-	{
-		return sizeof( vec4_t );
 	}
 };
 
@@ -846,11 +803,6 @@ protected:
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniformMatrix4fv( p->uniformLocations[ _locationIndex ], 1, transpose, m );
 	}
-public:
-	size_t GetSize() override
-	{
-		return sizeof( matrix_t );
-	}
 };
 
 class GLUniformMatrix32f : protected GLUniform {
@@ -869,10 +821,6 @@ class GLUniformMatrix32f : protected GLUniform {
 
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniformMatrix3x2fv( p->uniformLocations[_locationIndex], 1, transpose, m );
-	}
-	public:
-	size_t GetSize() override {
-		return 6 * sizeof( float );
 	}
 };
 
