@@ -344,6 +344,7 @@ class GLUniform {
 	// In multiples of 4 bytes
 	const GLuint _std430Size;
 	const GLuint _std430Alignment;
+	const GLuint _bufferSize;
 	GLuint _nextUniformOffset;
 
 	const UpdateType _updateType;
@@ -362,6 +363,7 @@ class GLUniform {
 		_type( type ),
 		_std430Size( std430Size ),
 		_std430Alignment( std430Alignment ),
+		_bufferSize( components ? components * 4 : std430Size ),
 		_nextUniformOffset( components ? components * 4 : std430Size ),
 		_updateType( updateType ),
 		_components( components ),
@@ -385,11 +387,10 @@ class GLUniform {
 			currentValue = p->uniformStorage + _uniformStorageOffset;
 		}
 
-		const uint32_t size = _components ? _std430Size * _components : _std430Size;
-		const bool updated = memcmp( currentValue, value, size * sizeof( uint32_t ) );
+		const bool updated = memcmp( currentValue, value, _bufferSize * sizeof( uint32_t ) );
 
 		if ( updated ) {
-			memcpy( currentValue, value, size * sizeof( uint32_t ) );
+			memcpy( currentValue, value, _bufferSize * sizeof( uint32_t ) );
 			_shader->uniformsUpdated = true;
 		}
 
@@ -420,8 +421,7 @@ class GLUniform {
 			return buffer;
 		}
 
-		const uint32_t size = _components ? _std430Size * _components : _std430Size;
-		memcpy( buffer, currentValue, size * sizeof( uint32_t ) );
+		memcpy( buffer, currentValue, _bufferSize * sizeof( uint32_t ) );
 
 		return buffer + _nextUniformOffset;
 	}
