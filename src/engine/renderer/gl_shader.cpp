@@ -1281,8 +1281,7 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 		uniform->SetLocationIndex( i );
 		uniform->SetUniformStorageOffset( shader->_uniformStorageSize );
 
-		const uint32_t size = uniform->_components ? uniform->_std430Size * uniform->_components : uniform->_std430Size;
-		shader->_uniformStorageSize += size;
+		shader->_uniformStorageSize += uniform->_bufferSize;
 	}
 
 	shader->_uniformStorageSize *= sizeof( uint32_t );
