@@ -580,6 +580,7 @@ struct consoleBoxWidth_t
 struct console_t
 {
 	bool initialized;
+	bool changedMap;
 
 	std::vector<std::string> lines;
 
