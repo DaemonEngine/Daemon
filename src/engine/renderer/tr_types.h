@@ -73,9 +73,6 @@ using bool8_t = uint8_t;
 #define RDF_NOWORLDMODEL ( 1 << 0 ) // used for player configuration screen
 #define RDF_HYPERSPACE   ( 1 << 1 ) // teleportation effect
 
-// Rafael
-#define RDF_SKYBOXPORTAL ( 1 << 2 )
-
 // XreaL BEGIN
 #define RDF_NOCUBEMAP    ( 1 << 3 ) // RB: don't use cubemaps
 #define RDF_NOBLOOM      ( 1 << 4 ) // RB: disable bloom. useful for HUD models
