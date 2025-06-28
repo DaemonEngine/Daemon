@@ -828,12 +828,12 @@ void BindShaderLightMapping( Material* material ) {
 
 	// bind u_LightGrid1
 	if ( material->enableGridLighting ) {
-		gl_lightMappingShaderMaterial->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTMAP, tr.lightGrid1Image ) );
+		gl_lightMappingShaderMaterial->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTGRID1, tr.lightGrid1Image ) );
 	}
 
 	// bind u_LightGrid2
 	if ( material->enableGridDeluxeMapping ) {
-		gl_lightMappingShaderMaterial->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_DELUXEMAP, tr.lightGrid2Image ) );
+		gl_lightMappingShaderMaterial->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_LIGHTGRID2, tr.lightGrid2Image ) );
 	}
 
 	if ( glConfig2.realtimeLighting ) {
@@ -1729,17 +1729,7 @@ void MaterialSystem::Free() {
 	texData.clear();
 	dynamicTexData.clear();
 
-	R_SyncRenderThread();
-
-	surfaceCommandsSSBO.UnmapBuffer();
-	culledCommandsBuffer.UnmapBuffer();
-	atomicCommandCountersBuffer.UnmapBuffer();
-	texDataBuffer.UnmapBuffer();
-	lightMapDataUBO.UnmapBuffer();
-
 	if ( totalPortals > 0 ) {
-		portalSurfacesSSBO.UnmapBuffer();
-
 		for ( PortalView& portalView : portalStack ) {
 			memset( portalView.views, 0, MAX_VIEWS * sizeof( uint32_t ) );
 			portalView.count = 0;

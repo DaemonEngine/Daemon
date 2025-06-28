@@ -190,10 +190,10 @@ void GLSL_InitWorldShaders() {
 
 	// Material system shaders that are always loaded if material system is available
 	if ( glConfig2.usingMaterialSystem ) {
-		gl_shaderManager.LoadShader( gl_cullShader );
-
 		gl_cullShader->MarkProgramForBuilding( 0 );
 	}
+
+	gl_shaderManager.InitWorldShaders();
 }
 
 static void GLSL_InitGPUShadersOrError()
@@ -224,6 +224,9 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.LoadShader( gl_lightMappingShaderMaterial );
 
 		gl_shaderManager.LoadShader( gl_clearSurfacesShader );
+		/* Load gl_cullShader so we can post-process it correctly for push buffer,
+		it will only actually be built in GLSL_InitWorldShaders() */
+		gl_shaderManager.LoadShader( gl_cullShader );
 		gl_shaderManager.LoadShader( gl_processSurfacesShader );
 		gl_shaderManager.LoadShader( gl_depthReductionShader );
 
@@ -320,7 +323,6 @@ static void GLSL_InitGPUShadersOrError()
 
 		gl_contrastShader->MarkProgramForBuilding( 0 );
 	}
-
 	
 	// portal process effect
 	gl_shaderManager.LoadShader( gl_portalShader );
@@ -370,6 +372,8 @@ static void GLSL_InitGPUShadersOrError()
 
 		gl_fxaaShader->MarkProgramForBuilding( 0 );
 	}
+
+	gl_shaderManager.InitShaders();
 
 	if ( r_lazyShaders.Get() == 0 )
 	{
@@ -1184,7 +1188,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 			GL_BindToTMU( BIND_LIGHTMAP, lightmap )
 		);
 	} else {
-		gl_lightMappingShader->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTMAP, lightmap ) );
+		gl_lightMappingShader->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTGRID1, lightmap ) );
 	}
 
 	// bind u_DeluxeMap
@@ -1193,7 +1197,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 			GL_BindToTMU( BIND_DELUXEMAP, deluxemap )
 		);
 	} else {
-		gl_lightMappingShader->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_DELUXEMAP, deluxemap ) );
+		gl_lightMappingShader->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_LIGHTGRID2, deluxemap ) );
 	}
 
 	// bind u_GlowMap
