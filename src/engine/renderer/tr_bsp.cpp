@@ -451,6 +451,15 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 		return;
 	}
 
+	int lightmapBits = IF_LIGHTMAP | IF_NOPICMIP;
+	int deluxemapBits = IF_NORMALMAP | IF_NOPICMIP;
+
+	if ( tr.worldLinearizeLightMap )
+	{
+		lightmapBits |= IF_SRGB;
+		deluxemapBits |= IF_SRGB;
+	}
+
 	int len = l->filelen;
 	if ( !len )
 	{
@@ -493,7 +502,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 				LoadRGBEToBytes( va( "%s/%s", mapName, filename.c_str() ), &ldrImage, &width, &height );
 
 				imageParams_t imageParams = {};
-				imageParams.bits = IF_NOPICMIP | IF_LIGHTMAP;
+				imageParams.bits = lightmapBits;
 				imageParams.filterType = filterType_t::FT_DEFAULT;
 				imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -520,7 +529,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					Log::Debug("...loading external lightmap '%s/%s'", mapName, filename);
 
 					imageParams_t imageParams = {};
-					imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
+					imageParams.bits = deluxemapBits;
 					imageParams.filterType = filterType_t::FT_DEFAULT;
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -549,7 +558,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 				if (!tr.worldDeluxeMapping || i % 2 == 0) {
 					imageParams_t imageParams = {};
-					imageParams.bits = IF_NOPICMIP | IF_LIGHTMAP;
+					imageParams.bits = lightmapBits;
 					imageParams.filterType = filterType_t::FT_LINEAR;
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -559,7 +568,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 				else if (tr.worldDeluxeMapping)
 				{
 					imageParams_t imageParams = {};
-					imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
+					imageParams.bits = deluxemapBits;
 					imageParams.filterType = filterType_t::FT_LINEAR;
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -629,7 +638,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			}
 
 			imageParams_t imageParams = {};
-			imageParams.bits = IF_NOPICMIP | IF_LIGHTMAP;
+			imageParams.bits = lightmapBits;
 			imageParams.filterType = filterType_t::FT_DEFAULT;
 			imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -971,6 +980,11 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 		}
 
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
+
+		if ( tr.worldLinearizeLightMap )
+		{
+			cv->verts[ i ].lightColor.ConvertFromSRGB();
+		}
 
 		if ( tr.overbrightBits < tr.mapOverBrightBits ) {
 			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
@@ -3502,6 +3516,12 @@ void R_LoadLightGrid( lump_t *l )
 		{
 			ambientColor[ j ] = tmpAmbient[ j ] * ( 1.0f / 255.0f );
 			directedColor[ j ] = tmpDirected[ j ] * ( 1.0f / 255.0f );
+
+			if ( tr.worldLinearizeLightMap )
+			{
+				ambientColor[ j ] = convertFromSRGB( ambientColor[ j ] );
+				directedColor[ j ] = convertFromSRGB( directedColor[ j ] );
+			}
 		}
 
 		const float forceAmbient = r_forceAmbient.Get();
@@ -3764,6 +3784,70 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 				Log::Debug("map features directional light mapping" );
 				// This will be disabled if the engine fails to load the lightmaps.
 				tr.worldDeluxeMapping = glConfig2.deluxeMapping;
+			}
+
+			bool sRGBtex = false;
+			bool sRGBcolor = false;
+			bool sRGBlight = false;
+
+			s = strstr( value, "-sRGB" );
+
+			if ( s && ( s[5] == ' ' || s[5] == '\0' ) )
+			{
+				sRGBtex = true;
+				sRGBcolor = true;
+				sRGBlight = true;
+			}
+
+			s = strstr( value, "-nosRGB" );
+
+			if ( s && ( s[5] == ' ' || s[5] == '\0' ) )
+			{
+				sRGBtex = false;
+				sRGBcolor = false;
+				sRGBlight = true;
+			}
+
+			if ( strstr( value, "-sRGBlight" ) )
+			{
+				sRGBlight = true;
+			}
+
+			if ( strstr( value, "-nosRGBlight" ) )
+			{
+				sRGBlight = false;
+			}
+
+			if ( strstr( value, "-sRGBcolor" ) )
+			{
+				sRGBcolor = true;
+			}
+
+			if ( strstr( value, "-nosRGBcolor" ) )
+			{
+				sRGBcolor = false;
+			}
+
+			if ( strstr( value, "-sRGBtex" ) )
+			{
+				sRGBtex = true;
+			}
+
+			if ( strstr( value, "-nosRGBtex" ) )
+			{
+				sRGBtex = false;
+			}
+
+			if ( sRGBlight )
+			{
+				Log::Debug("map features lights in sRGB colorspace" );
+				tr.worldLinearizeLightMap = true;
+			}
+
+			if ( sRGBcolor && sRGBtex )
+			{
+				Log::Debug("map features lights computed with linear colors and textures" );
+				tr.worldLinearizeTexture = true;
 			}
 
 			continue;
@@ -4517,6 +4601,8 @@ void RE_LoadWorldMap( const char *name )
 	tr.overbrightBits = std::min( tr.mapOverBrightBits, r_overbrightBits.Get() ); // set by RE_LoadWorldMap
 	tr.mapLightFactor = 1.0f; // set by RE_LoadWorldMap
 	tr.identityLight = 1.0f; // set by RE_LoadWorldMap
+	tr.worldLinearizeTexture = false;
+	tr.worldLinearizeLightMap = false;
 
 	s_worldData = {};
 	Q_strncpyz( s_worldData.name, name, sizeof( s_worldData.name ) );
