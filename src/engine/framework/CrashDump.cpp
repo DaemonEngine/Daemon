@@ -46,6 +46,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static Log::Logger crashDumpLogs("common.breakpad", "", Log::Level::NOTICE);
 
+static Cvar::Cvar<bool> enableNaclCrashDump("vm.nacl.crashDump", "save NaCl crash dumps", Cvar::NONE, true);
+
 namespace Sys {
 
 static std::string CrashDumpPath() {
@@ -70,6 +72,10 @@ bool CreateCrashDumpPath() {
 // Records a crash dump sent from the VM in minidump format. This is the same
 // format that Breakpad uses, but nacl minidump does not require Breakpad to work.
 void NaclCrashDump(const std::vector<uint8_t>& dump, Str::StringRef vmName) {
+    if (!enableNaclCrashDump.Get()) {
+       Log::Notice("Discarding %s crash dump because NaCl crash dumps are disabled", vmName);
+       return;
+    }
     const size_t maxDumpSize = (512 + 64) * 1024; // from http://src.chromium.org/viewvc/native_client/trunk/src/native_client/src/untrusted/minidump_generator/minidump_generator.cc
     if(dump.size() > maxDumpSize) { // sanity check: shouldn't be bigger than the buffer in nacl
         crashDumpLogs.Warn("Ignoring NaCl crash dump request: size too large");
