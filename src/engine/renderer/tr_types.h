@@ -83,13 +83,11 @@ using bool8_t = uint8_t;
 #define GL_INDEX_TYPE GL_UNSIGNED_INT
 using glIndex_t = unsigned int;
 
-// TODO(0.56): drop RSF_LIGHT_ATTENUATION
 enum RegisterShaderFlags_t {
 	RSF_DEFAULT = BIT( 0 ),
 	RSF_2D = BIT( 1 ),
 	RSF_NOMIP = BIT( 2 ),
 	RSF_FITSCREEN = BIT( 3 ),
-	RSF_LIGHT_ATTENUATION = BIT( 4 ),
 	RSF_FORCE_LIGHTMAP = BIT( 5 ), // Used to make particles/trails work with the lightGrid in GLSL
 	RSF_SPRITE = BIT( 6 ),
 };
