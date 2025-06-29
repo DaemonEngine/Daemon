@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* ssao_fp.glsl */
 
+#define DEPTHMAP_GLSL
+
 uniform sampler2D u_DepthMap;
 uniform vec3 u_UnprojectionParams;
 
@@ -85,6 +87,8 @@ vec4 offsets[] = vec4[6](
 
 void	main()
 {
+	#insert material_fp
+
 	vec2 st = gl_FragCoord.st * pixelScale;
 	vec4 occlusion = vec4( 0.0 );
 	vec4 total = vec4( 0.0 );
