@@ -36,6 +36,8 @@ extern glconfig2_t glConfig2;
 
 void GL_CheckErrors_( const char *filename, int line );
 
+void GL_BindVAO( const GLuint id );
+
 #define GL_CheckErrors() do { if ( !glConfig.smpActive ) GL_CheckErrors_( __FILE__, __LINE__ ); } while ( false )
 
 #endif // GLUTILS_H

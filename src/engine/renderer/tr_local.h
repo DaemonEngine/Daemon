@@ -2200,7 +2200,8 @@ enum
 		Color::Color32Bit color2D;
 		trRefEntity_t     entity2D; // currentEntity will point at this when doing 2D rendering
 		int               currentMainFBO;
-		GLuint            currentVAO;
+		GLuint currentVAO;
+		GLuint defaultVAO;
 	};
 
 	struct visTest_t
@@ -3124,6 +3125,8 @@ void GLimp_LogComment_( std::string comment );
 
 		// enabled when an MD3 VBO is used
 		bool    vboVertexAnimation;
+
+		bool settingUpVAO = false;
 
 		// This can be thought of a "flush" function for the vertex buffer.
 		// Which function depends on backend mode and also the shader.

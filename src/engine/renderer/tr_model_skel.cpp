@@ -192,6 +192,10 @@ srfVBOMD5Mesh_t *R_GenerateMD5VBOSurface(
 
 	vboSurf->ibo = R_CreateStaticIBO( ( "MD5 surface IBO " + surfName ).c_str(), indexes, indexesNum );
 
+	SetupVAOBuffers( vboSurf->vbo, vboSurf->ibo,
+		ATTR_BONE_FACTORS | ATTR_POSITION | ATTR_QTANGENT | ATTR_TEXCOORD | ATTR_COLOR,
+		&vboSurf->vbo->VAO );
+
 	ri.Hunk_FreeTempMemory( indexes );
 	ri.Hunk_FreeTempMemory( boneFactors );
 	ri.Hunk_FreeTempMemory( qtangents );

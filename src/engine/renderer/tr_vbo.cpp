@@ -445,6 +445,25 @@ IBO_t *R_CreateStaticIBO( const char *name, glIndex_t *indexes, int numIndexes )
 	return ibo;
 }
 
+void SetupVAOBuffers( VBO_t* VBO, const IBO_t* IBO, const uint32_t stateBits,
+	GLVAO* VAO ) {
+	VAO->GenVAO();
+
+	VAO->Bind();
+
+	R_BindVBO( VBO );
+
+	tess.settingUpVAO = true;
+	GL_VertexAttribsState( stateBits );
+	tess.settingUpVAO = false;
+
+	if ( IBO ) {
+		VAO->SetIndexBuffer( IBO->indexesVBO );
+	}
+
+	GL_BindVAO( backEnd.defaultVAO );
+}
+
 /*
 ============
 R_BindVBO
@@ -598,6 +617,10 @@ static void R_InitGenericVBOs() {
 		surface->ibo = R_CreateStaticIBO( "genericQuad_IBO", indexes, surface->numTriangles * 3 );
 		genericQuad->surface = ( surfaceType_t* ) surface;
 
+		SetupVAOBuffers( surface->vbo, surface->ibo, 
+			ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD,
+			&surface->vbo->VAO );
+
 		tr.genericQuad = genericQuad;
 	}
 
@@ -656,6 +679,10 @@ static void R_InitTileVBO()
 
 	tr.lighttileVBO = R_CreateStaticVBO( "lighttile_VBO", std::begin( attrs ), std::end( attrs ), w * h );
 
+	SetupVAOBuffers( tr.lighttileVBO, nullptr, 
+		ATTR_POSITION | ATTR_TEXCOORD,
+		&tr.lighttileVBO->VAO );
+
 	ri.Hunk_FreeTempMemory( stf );
 	ri.Hunk_FreeTempMemory( xy );
 }
@@ -705,6 +732,9 @@ void R_InitVBOs()
 
 		tess.ibo = R_CreateDynamicIBO( "tessVertexArray_IBO", SHADER_MAX_INDEXES );
 	}
+
+	SetupVAOBuffers( tess.vbo, tess.ibo, attribs, &tess.vbo->VAO );
+	tess.vbo->dynamicVAO = true;
 
 	R_InitGenericVBOs();
 
@@ -774,6 +804,7 @@ void R_ShutdownVBOs()
 		if ( vbo->vertexesVBO )
 		{
 			glDeleteBuffers( 1, &vbo->vertexesVBO );
+			vbo->VAO.DelVAO();
 		}
 	}
 
