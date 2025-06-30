@@ -287,7 +287,11 @@ namespace Resource {
         auto it = resources.begin();
 
         while (it != resources.end()) {
+#if __cplusplus == 201703L || __cplusplus == 202002L || __cplusplus == 202302L
+            if ( not it->second->keep and it->second.use_count() ) {
+#else
             if (not it->second->keep and it->second.unique()) {
+#endif
                 it->second->Cleanup();
                 it = resources.erase(it);
             } else {

@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required (VERSION 3.12)
+cmake_minimum_required (VERSION 3.28)
 
 # Choose Python versions by location instead of getting whatever is in PYTHON_EXECUTABLE
 # Can be removed once we require CMake 3.15
@@ -889,16 +889,23 @@ endmacro()
 
 function(AddApplication)
     set(oneValueArgs Target ExecutableName)
-    set(multiValueArgs ApplicationMain Definitions Flags Files Libs Tests)
+    set(multiValueArgs ApplicationMain Definitions Flags CompileFeatures Files Libs Tests)
     cmake_parse_arguments(A "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     # Reuse object files between the real application and the test one
     add_library(${A_Target}-objects OBJECT EXCLUDE_FROM_ALL ${A_Files} ${PCH_FILE})
     target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE})
+
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
+
     set_target_properties(${A_Target}-objects PROPERTIES FOLDER "engine/objects")
+    
+    if( DEFINED A_CompileFeatures AND NOT "$A_CompileFeatures" STREQUAL "" )
+        # message(A_CompileFeatures="${A_CompileFeatures}")
+        target_compile_features( ${A_Target}-objects PRIVATE cxx_std_20 )
+    endif()
 
     set(Sources WIN32 ${A_ApplicationMain})
     AddApplicationInternal(${A_Target} ${A_ExecutableName})
@@ -951,8 +958,10 @@ if (BUILD_CLIENT)
 
     if (USE_VULKAN)
         set(CLIENT_EXECUTABLE_NAME daemon-vulkan)
+        set(COMPILE_FEATURES "PRIVATE cxx_std_20")
     else()
         set(CLIENT_EXECUTABLE_NAME daemon)
+        set(COMPILE_FEATURES)
     endif()
 
     AddApplication(
@@ -961,6 +970,7 @@ if (BUILD_CLIENT)
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions ${Definitions}
         Flags ${WARNINGS}
+        CompileFeatures ${COMPILE_FEATURES}
         Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
         Libs ${LIBS_CLIENT} ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
         Tests ${ENGINETESTLIST}

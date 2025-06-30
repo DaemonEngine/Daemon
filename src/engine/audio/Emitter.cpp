@@ -132,7 +132,11 @@ namespace Audio {
             emitter->Update();
 
             // No sound is using this emitter, destroy it
+#if __cplusplus == 201703L || __cplusplus == 202002L || __cplusplus == 202302L
+            if ( emitter.use_count() ) {
+#else
             if (emitter.unique()) {
+#endif
                 emitter = nullptr;
             }
         }
@@ -141,7 +145,11 @@ namespace Audio {
             (*it)->Update();
 
             // No sound is using this emitter, destroy it
+#if __cplusplus == 201703L || __cplusplus == 202002L || __cplusplus == 202302L
+            if ( ( *it ).use_count() ) {
+#else
             if ((*it).unique()) {
+#endif
                 it = posEmitters.erase(it);
             } else {
                 it ++;
