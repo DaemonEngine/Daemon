@@ -125,4 +125,8 @@ void GLStagingBuffer::InitGLBuffer() {
 
 void GLStagingBuffer::FreeGLBuffer() {
 	buffer.DelBuffer();
+
+	pointer = 0;
+	current = 0;
+	last = 0;
 }

@@ -84,11 +84,12 @@ struct GLHeader {
 
 class GLShader {
 	friend class GLShaderManager;
+public:
+	const std::string _name;
 private:
 	GLShader( const GLShader & ) = delete;
 	GLShader &operator = ( const GLShader & ) = delete;
 
-	std::string _name;
 	const uint32_t _vertexAttribsRequired;
 
 	const bool _useMaterialSystem;
@@ -102,7 +103,6 @@ private:
 
 	GLuint std430Size = 0;
 	uint32_t padding = 0;
-	uint32_t textureCount = 0;
 protected:
 	int _activeMacros = 0;
 	ShaderProgramDescriptor* currentProgram;
@@ -117,6 +117,7 @@ protected:
 
 	size_t _uniformStorageSize;
 	std::vector<GLUniform*> _uniforms;
+	std::vector<GLUniform*> _materialSystemUniforms;
 	std::vector<GLUniformBlock*> _uniformBlocks;
 	std::vector<GLCompileMacro*> _compileMacros;
 
@@ -174,10 +175,6 @@ public:
 		return currentProgram;
 	}
 
-	const std::string &GetName() const {
-		return _name;
-	}
-
 protected:
 	void PostProcessUniforms();
 	uint32_t GetUniqueCompileMacros( size_t permutation, const int type ) const;
@@ -218,18 +215,6 @@ public:
 
 	GLuint GetSTD430Size() const {
 		return std430Size;
-	}
-
-	uint32_t GetPadding() const {
-		return padding;
-	}
-
-	uint32_t GetPaddedSize() const {
-		return std430Size + padding;
-	}
-
-	uint32_t GetTextureCount() const {
-		return textureCount;
 	}
 
 	bool UseMaterialSystem() const {
@@ -320,6 +305,58 @@ struct ShaderProgramDescriptor {
 
 		shaderCount++;
 	};
+};
+
+class GLUniform {
+	public:
+	const std::string _name;
+	const std::string _type;
+
+	// In multiples of 4 bytes
+	GLuint _std430Size;
+	const GLuint _std430Alignment;
+
+	const bool _global; // This uniform won't go into the materials UBO if true
+	const int _components;
+
+	protected:
+	GLShader* _shader;
+	size_t _firewallIndex;
+	size_t _locationIndex;
+
+	GLUniform( GLShader* shader, const char* name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
+		const bool global, const int components = 0 ) :
+		_name( name ),
+		_type( type ),
+		_std430Size( std430Size ),
+		_std430Alignment( std430Alignment ),
+		_global( global ),
+		_components( components ),
+		_shader( shader ) {
+		_shader->RegisterUniform( this );
+	}
+
+	public:
+	virtual ~GLUniform() = default;
+
+	void SetFirewallIndex( size_t offSetValue ) {
+		_firewallIndex = offSetValue;
+	}
+
+	void SetLocationIndex( size_t index ) {
+		_locationIndex = index;
+	}
+
+	// This should return a pointer to the memory right after the one this uniform wrote to
+	virtual uint32_t* WriteToBuffer( uint32_t* buffer );
+
+	void UpdateShaderProgramUniformLocation( ShaderProgramDescriptor* shaderProgram ) {
+		shaderProgram->uniformLocations[_locationIndex] = glGetUniformLocation( shaderProgram->id, _name.c_str() );
+	}
+
+	virtual size_t GetSize() {
+		return 0;
+	}
 };
 
 class GLShaderManager {
@@ -418,98 +455,11 @@ private:
 	void UpdateShaderProgramUniformLocations( GLShader* shader, ShaderProgramDescriptor* shaderProgram ) const;
 };
 
-class GLUniform
-{
-protected:
-	GLShader   *_shader;
-	std::string _name;
-	const std::string _type;
-
-	// In multiples of 4 bytes
-	const GLuint _std430Size;
-	const GLuint _std430Alignment;
-
-	const bool _global; // This uniform won't go into materials SSBO if true
-	const int _components;
-	const bool _isTexture;
-
-	size_t      _firewallIndex;
-	size_t      _locationIndex;
-
-	GLUniform( GLShader *shader, const char *name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
-	                             const bool global, const int components = 0,
-	                             const bool isTexture = false ) :
-		_shader( shader ),
-		_name( name ),
-		_type( type ),
-		_std430Size( std430Size ),
-		_std430Alignment( std430Alignment ),
-		_global( global ),
-		_components( components ),
-		_isTexture( isTexture ),
-		_firewallIndex( 0 ),
-		_locationIndex( 0 )
-	{
-		_shader->RegisterUniform( this );
-	}
-
-public:
-	virtual ~GLUniform() = default;
-
-	void SetFirewallIndex( size_t offSetValue )
-	{
-		_firewallIndex = offSetValue;
-	}
-
-	void SetLocationIndex( size_t index )
-	{
-		_locationIndex = index;
-	}
-
-	const char *GetName()
-	{
-		return _name.c_str();
-	}
-
-	const std::string GetType() const {
-		return _type;
-	}
-
-	GLuint GetSTD430Size() const;
-
-	GLuint GetSTD430Alignment() const;
-
-	int GetComponentSize() const {
-		return _components;
-	}
-
-	bool IsGlobal() const {
-		return _global;
-	}
-
-	bool IsTexture() const {
-		return _isTexture;
-	}
-
-	// This should return a pointer to the memory right after the one this uniform wrote to
-	virtual uint32_t* WriteToBuffer( uint32_t* buffer );
-
-	void UpdateShaderProgramUniformLocation( ShaderProgramDescriptor* shaderProgram )
-	{
-		shaderProgram->uniformLocations[_locationIndex] = glGetUniformLocation( shaderProgram->id, GetName() );
-	}
-
-	virtual size_t GetSize()
-	{
-		return 0;
-	}
-};
-
 class GLUniformSampler : protected GLUniform {
 	protected:
-	GLUniformSampler( GLShader* shader, const char* name, const char* type, const GLuint size, const bool global = false ) :
-		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? size * 2 : size,
-									   glConfig2.bindlessTexturesAvailable ? size * 2 : size, global, 0, true ) {
+	GLUniformSampler( GLShader* shader, const char* name, const char* type ) :
+		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? 2 : 1,
+		                               glConfig2.bindlessTexturesAvailable ? 2 : 1, true ) {
 	}
 
 	inline GLint GetLocation() {
@@ -520,10 +470,6 @@ class GLUniformSampler : protected GLUniform {
 		}
 
 		return p->uniformLocations[_locationIndex];
-	}
-
-	inline size_t GetFirewallIndex() const {
-		return _firewallIndex;
 	}
 
 	public:
@@ -544,15 +490,13 @@ class GLUniformSampler : protected GLUniform {
 	}
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		uint32_t* bufferNext = buffer;
 		if ( glConfig2.usingBindlessTextures ) {
 			memcpy( buffer, &currentValueBindless, sizeof( GLuint64 ) );
-			bufferNext += 2;
 		} else {
 			memcpy( buffer, &currentValue, sizeof( GLint ) );
-			bufferNext += 1;
 		}
-		return bufferNext;
+
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -560,113 +504,31 @@ class GLUniformSampler : protected GLUniform {
 	GLuint currentValue = 0;
 };
 
-class GLUniformSampler1D : protected GLUniformSampler {
-	protected:
-	GLUniformSampler1D( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "sampler1D", 1 ) {
-	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
-	}
-};
-
 class GLUniformSampler2D : protected GLUniformSampler {
 	protected:
-	GLUniformSampler2D( GLShader* shader, const char* name, const bool global = false ) :
-		GLUniformSampler( shader, name, "sampler2D", 1, global ) {
-	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
+	GLUniformSampler2D( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "sampler2D" ) {
 	}
 };
 
 class GLUniformSampler3D : protected GLUniformSampler {
 	protected:
-	GLUniformSampler3D( GLShader* shader, const char* name, const bool global = false ) :
-		GLUniformSampler( shader, name, "sampler3D", 1, global ) {
-	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
+	GLUniformSampler3D( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "sampler3D" ) {
 	}
 };
 
 class GLUniformUSampler3D : protected GLUniformSampler {
 	protected:
-	GLUniformUSampler3D( GLShader* shader, const char* name, const bool global = false ) :
-		GLUniformSampler( shader, name, "usampler3D", 1, global ) {
-	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
+	GLUniformUSampler3D( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "usampler3D" ) {
 	}
 };
 
 class GLUniformSamplerCube : protected GLUniformSampler {
 	protected:
-	GLUniformSamplerCube( GLShader* shader, const char* name, const bool global = false ) :
-		GLUniformSampler( shader, name, "samplerCube", 1, global ) {
-	}
-
-	inline GLint GetLocation() {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
-		}
-
-		return p->uniformLocations[_locationIndex];
-	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
+	GLUniformSamplerCube( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "samplerCube" ) {
 	}
 };
 
@@ -711,7 +573,7 @@ public:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( int ) );
-		return buffer + 1;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -754,7 +616,7 @@ class GLUniform1ui : protected GLUniform {
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( uint ) );
-		return buffer + 1;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -799,7 +661,7 @@ class GLUniform1Bool : protected GLUniform {
 
 	uint32_t* WriteToBuffer( uint32_t *buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( bool ) );
-		return buffer + 1;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -847,7 +709,7 @@ public:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( float ) );
-		return buffer + 1;
+		return buffer + _std430Size;
 	}
 	
 	private:
@@ -881,7 +743,7 @@ protected:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + _components;
+		return buffer + _components * _std430Size;
 	}
 
 	private:
@@ -932,7 +794,7 @@ protected:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( vec2_t ) );
-		return buffer + 2;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -983,7 +845,7 @@ public:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( vec3_t ) );
-		return buffer + 4; // vec3 is aligned to 4 components
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -1035,7 +897,7 @@ public:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( vec4_t ) );
-		return buffer + 4;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -1070,7 +932,7 @@ protected:
 	public:
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + 4 * _components;
+		return buffer + _std430Size * _components;
 	}
 
 	private:
@@ -1119,7 +981,7 @@ public:
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, &currentValue, sizeof( matrix_t ) );
-		return buffer + 16;
+		return buffer + _std430Size;
 	}
 
 	private:
@@ -1153,7 +1015,7 @@ class GLUniformMatrix32f : protected GLUniform {
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, currentValue, 6 * sizeof( float ) );
-		return buffer + 6 * _components;
+		return buffer + _std430Size * _components;
 	}
 
 	private:
@@ -1188,7 +1050,7 @@ protected:
 	public:
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + 16 * _components;
+		return buffer + _std430Size * _components;
 	}
 
 	private:
@@ -1222,7 +1084,7 @@ protected:
 	public:
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + 12 * _components;
+		return buffer + _std430Size * _components;
 	}
 
 	private:
@@ -1232,8 +1094,8 @@ protected:
 class GLUniformBlock
 {
 protected:
-	GLShader   *_shader;
-	std::string _name;
+	GLShader *_shader;
+	const std::string _name;
 	size_t      _locationIndex; // Only valid if GL_ARB_shading_language_420pack is not available
 	const GLuint _bindingPoint; // Only valid if GL_ARB_shading_language_420pack is available
 
@@ -1251,14 +1113,9 @@ public:
 		_locationIndex = index;
 	}
 
-	const char *GetName()
-	{
-		return _name.c_str();
-	}
-
 	void UpdateShaderProgramUniformBlockIndex( ShaderProgramDescriptor* shaderProgram )
 	{
-		shaderProgram->uniformBlockIndexes[_locationIndex] = glGetUniformBlockIndex( shaderProgram->id, GetName() );
+		shaderProgram->uniformBlockIndexes[_locationIndex] = glGetUniformBlockIndex( shaderProgram->id, _name.c_str() );
 	}
 
 	void SetBuffer( GLuint buffer ) {
@@ -1275,248 +1132,6 @@ public:
 			glBindBufferBase( GL_UNIFORM_BUFFER, blockIndex, buffer );
 		}
 	}
-};
-
-class GLBuffer {
-	public:
-	friend class GLVAO;
-
-	std::string name;
-	const GLuint64 SYNC_TIMEOUT = 10000000000; // 10 seconds
-
-	GLuint id;
-
-	GLBuffer( const char* newName, const GLuint newBindingPoint, const GLbitfield newFlags, const GLbitfield newMapFlags ) :
-		name( newName ),
-		internalTarget( 0 ),
-		internalBindingPoint( newBindingPoint ),
-		flags( newFlags ),
-		mapFlags( newMapFlags ) {
-	}
-
-	GLBuffer( const char* newName, const GLenum newTarget, const GLuint newBindingPoint,
-		const GLbitfield newFlags, const GLbitfield newMapFlags ) :
-		name( newName ),
-		internalTarget( newTarget ),
-		internalBindingPoint( newBindingPoint ),
-		flags( newFlags ),
-		mapFlags( newMapFlags ) {
-	}
-
-	void BindBufferBase( GLenum target = 0, GLuint bindingPoint = 0 ) {
-		target = target ? target : internalTarget;
-		bindingPoint = bindingPoint ? bindingPoint : internalBindingPoint;
-		glBindBufferBase( target, bindingPoint, id );
-	}
-
-	void UnBindBufferBase( GLenum target = 0, GLuint bindingPoint = 0 ) {
-		target = target ? target : internalTarget;
-		bindingPoint = bindingPoint ? bindingPoint : internalBindingPoint;
-		glBindBufferBase( target, bindingPoint, 0 );
-	}
-
-	void BindBuffer( GLenum target = 0 ) {
-		target = target ? target : internalTarget;
-		glBindBuffer( target, id );
-	}
-
-	void UnBindBuffer( GLenum target = 0 ) {
-		target = target ? target : internalTarget;
-		glBindBuffer( target, 0 );
-	}
-
-	void BufferData( const GLsizeiptr size, const void* data, const GLenum usageFlags ) {
-		glNamedBufferData( id, size * sizeof( uint32_t ), data, usageFlags );
-	}
-
-	void BufferStorage( const GLsizeiptr newAreaSize, const GLsizeiptr areaCount, const void* data ) {
-		areaSize = newAreaSize;
-		maxAreas = areaCount;
-		glNamedBufferStorage( id, areaSize * areaCount * sizeof( uint32_t ), data, flags );
-		syncs.resize( areaCount );
-
-		GL_CheckErrors();
-	}
-
-	void AreaIncr() {
-		syncs[area] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
-		area++;
-		if ( area >= maxAreas ) {
-			area = 0;
-		}
-	}
-
-	void MapAll() {
-		if ( !mapped ) {
-			mapped = true;
-			data = ( uint32_t* ) glMapNamedBufferRange( id, 0, areaSize * maxAreas * sizeof( uint32_t ), flags | mapFlags );
-		}
-	}
-
-	uint32_t* GetCurrentAreaData() {
-		if ( syncs[area] != nullptr ) {
-			if ( glClientWaitSync( syncs[area], GL_SYNC_FLUSH_COMMANDS_BIT, SYNC_TIMEOUT ) == GL_TIMEOUT_EXPIRED ) {
-				Sys::Drop( "Failed buffer %s area %u sync", name, area );
-			}
-			glDeleteSync( syncs[area] );
-		}
-
-		return data + area * areaSize;
-	}
-
-	uint32_t* GetData() {
-		return data;
-	}
-
-	void FlushCurrentArea() {
-		glFlushMappedNamedBufferRange( id, area * areaSize * sizeof( uint32_t ), areaSize * sizeof( uint32_t ) );
-	}
-
-	void FlushAll() {
-		glFlushMappedNamedBufferRange( id, 0, maxAreas * areaSize * sizeof( uint32_t ) );
-	}
-
-	void FlushRange( const GLsizeiptr offset, const GLsizeiptr size ) {
-		glFlushMappedNamedBufferRange( id, offset * sizeof( uint32_t ), size * sizeof( uint32_t ) );
-	}
-
-	uint32_t* MapBufferRange( const GLuint count ) {
-		return MapBufferRange( 0, count );
-	}
-
-	uint32_t* MapBufferRange( const GLuint offset, const GLuint count ) {
-		if ( !mapped ) {
-			mapped = true;
-			data = ( uint32_t* ) glMapNamedBufferRange( id,
-				offset * sizeof( uint32_t ), count * sizeof( uint32_t ),
-				flags | mapFlags );
-		}
-
-		return data;
-	}
-
-	void UnmapBuffer() {
-		if ( mapped ) {
-			mapped = false;
-			glUnmapNamedBuffer( id );
-		}
-	}
-
-	void GenBuffer() {
-		glCreateBuffers( 1, &id );
-	}
-
-	void DelBuffer() {
-		glDeleteBuffers( 1, &id );
-		mapped = false;
-	}
-
-	private:
-	const GLenum internalTarget;
-	const GLuint internalBindingPoint;
-
-	bool mapped = false;
-	const GLbitfield flags;
-	const GLbitfield mapFlags;
-
-	std::vector<GLsync> syncs;
-	GLsizeiptr area = 0;
-	GLsizeiptr areaSize = 0;
-	GLsizeiptr maxAreas = 0;
-	uint32_t* data;
-};
-
-// Shorthands for buffers that are only bound to one specific target
-class GLSSBO : public GLBuffer {
-	public:
-	GLSSBO( const char* name, const GLuint bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
-		GLBuffer( name, GL_SHADER_STORAGE_BUFFER, bindingPoint, flags, mapFlags ) {
-	}
-};
-
-class GLUBO : public GLBuffer {
-	public:
-	GLUBO( const char* name, const GLsizeiptr bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
-		GLBuffer( name, GL_UNIFORM_BUFFER, bindingPoint, flags, mapFlags ) {
-	}
-};
-
-class GLAtomicCounterBuffer : public GLBuffer {
-	public:
-	GLAtomicCounterBuffer( const char* name, const GLsizeiptr bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
-		GLBuffer( name, GL_ATOMIC_COUNTER_BUFFER, bindingPoint, flags, mapFlags ) {
-	}
-};
-
-class GLVAO {
-	public:
-	vboAttributeLayout_t attrs[ATTR_INDEX_MAX];
-	uint32_t enabledAttrs;
-
-	GLVAO( const GLuint newVBOBindingPoint ) :
-		VBOBindingPoint( newVBOBindingPoint ) {
-	}
-
-	~GLVAO() = default;
-
-	void Bind() {
-		glBindVertexArray( id );
-	}
-
-	void SetAttrs( const vertexAttributeSpec_t* attrBegin, const vertexAttributeSpec_t* attrEnd ) {
-		uint32_t ofs = 0;
-		for ( const vertexAttributeSpec_t* spec = attrBegin; spec < attrEnd; spec++ ) {
-			vboAttributeLayout_t& attr = attrs[spec->attrIndex];
-			ASSERT_NQ( spec->numComponents, 0U );
-			attr.componentType = spec->componentStorageType;
-			if ( attr.componentType == GL_HALF_FLOAT && !glConfig2.halfFloatVertexAvailable ) {
-				attr.componentType = GL_FLOAT;
-			}
-			attr.numComponents = spec->numComponents;
-			attr.normalize = spec->attrOptions & ATTR_OPTION_NORMALIZE ? GL_TRUE : GL_FALSE;
-
-			attr.ofs = ofs;
-			ofs += attr.numComponents * R_ComponentSize( attr.componentType );
-			ofs = ( ofs + 3 ) & ~3; // 4 is minimum alignment for any vertex attribute
-
-			enabledAttrs |= 1 << spec->attrIndex;
-		}
-
-		stride = ofs;
-
-		for ( const vertexAttributeSpec_t* spec = attrBegin; spec < attrEnd; spec++ ) {
-			const int index = spec->attrIndex;
-			vboAttributeLayout_t& attr = attrs[index];
-
-			attr.stride = stride;
-
-			glEnableVertexArrayAttrib( id, index );
-			glVertexArrayAttribFormat( id, index, attr.numComponents, attr.componentType,
-				attr.normalize, attr.ofs );
-			glVertexArrayAttribBinding( id, index, VBOBindingPoint );
-		}
-	}
-
-	void SetVertexBuffer( const GLBuffer buffer, const GLuint offset ) {
-		glVertexArrayVertexBuffer( id, VBOBindingPoint, buffer.id, offset, stride );
-	}
-
-	void SetIndexBuffer( const GLBuffer buffer ) {
-		glVertexArrayElementBuffer( id, buffer.id );
-	}
-
-	void GenVAO() {
-		glGenVertexArrays( 1, &id );
-	}
-
-	void DelVAO() {
-		glDeleteVertexArrays( 1, &id );
-	}
-
-	private:
-	GLuint id;
-	const GLuint VBOBindingPoint;
-	GLuint stride;
 };
 
 class GLCompileMacro
@@ -2042,16 +1657,11 @@ class u_ColorMap :
 	GLUniformSampler2D {
 	public:
 	u_ColorMap( GLShader* shader ) :
-		// While u_ColorMap is used for some screen-space shaders, it's never global in material system shaders
 		GLUniformSampler2D( shader, "u_ColorMap" ) {
 	}
 
 	void SetUniform_ColorMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_ColorMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -2065,10 +1675,6 @@ class u_ColorMap3D :
 	void SetUniform_ColorMap3DBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_ColorMap3D() {
-		return this->GetLocation();
-	}
 };
 
 class u_ColorMapCube :
@@ -2081,25 +1687,17 @@ class u_ColorMapCube :
 	void SetUniform_ColorMapCubeBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_ColorMapCube() {
-		return this->GetLocation();
-	}
 };
 
 class u_DepthMap :
 	GLUniformSampler2D {
 	public:
 	u_DepthMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_DepthMap", true ) {
+		GLUniformSampler2D( shader, "u_DepthMap" ) {
 	}
 
 	void SetUniform_DepthMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_DepthMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -2113,10 +1711,6 @@ class u_DiffuseMap :
 	void SetUniform_DiffuseMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_DiffuseMap() {
-		return this->GetLocation();
-	}
 };
 
 class u_HeightMap :
@@ -2128,10 +1722,6 @@ class u_HeightMap :
 
 	void SetUniform_HeightMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_HeightMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -2145,10 +1735,6 @@ class u_NormalMap :
 	void SetUniform_NormalMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_NormalMap() {
-		return this->GetLocation();
-	}
 };
 
 class u_MaterialMap :
@@ -2161,25 +1747,17 @@ class u_MaterialMap :
 	void SetUniform_MaterialMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_MaterialMap() {
-		return this->GetLocation();
-	}
 };
 
 class u_LightMap :
 	GLUniformSampler {
 	public:
 	u_LightMap( GLShader* shader ) :
-		GLUniformSampler( shader, "u_LightMap", "sampler2D", 1, true ) {
+		GLUniformSampler( shader, "u_LightMap", "sampler2D" ) {
 	}
 
 	void SetUniform_LightMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_LightMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -2187,15 +1765,11 @@ class u_DeluxeMap :
 	GLUniformSampler {
 	public:
 	u_DeluxeMap( GLShader* shader ) :
-		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D", 1, true ) {
+		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D" ) {
 	}
 
 	void SetUniform_DeluxeMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_DeluxeMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -2209,25 +1783,17 @@ class u_GlowMap :
 	void SetUniform_GlowMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_GlowMap() {
-		return this->GetLocation();
-	}
 };
 
 class u_PortalMap :
 	GLUniformSampler2D {
 	public:
 	u_PortalMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_PortalMap", true ) {
+		GLUniformSampler2D( shader, "u_PortalMap" ) {
 	}
 
 	void SetUniform_PortalMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_PortalMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -2241,25 +1807,17 @@ class u_CloudMap :
 	void SetUniform_CloudMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
 	}
-
-	GLint GetUniformLocation_CloudMap() {
-		return this->GetLocation();
-	}
 };
 
 class u_FogMap :
 	GLUniformSampler2D {
 	public:
 	u_FogMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_FogMap", true ) {
+		GLUniformSampler2D( shader, "u_FogMap" ) {
 	}
 
 	void SetUniform_FogMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_FogMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -2267,15 +1825,11 @@ class u_LightTiles :
 	GLUniformSampler3D {
 	public:
 	u_LightTiles( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightTiles", true ) {
+		GLUniformSampler3D( shader, "u_LightTiles" ) {
 	}
 
 	void SetUniform_LightTilesBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_LightTiles() {
-		return this->GetLocation();
 	}
 };
 
@@ -2283,15 +1837,11 @@ class u_LightGrid1 :
 	GLUniformSampler3D {
 	public:
 	u_LightGrid1( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightGrid1", true ) {
+		GLUniformSampler3D( shader, "u_LightGrid1" ) {
 	}
 
 	void SetUniform_LightGrid1Bindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_LightGrid1() {
-		return this->GetLocation();
 	}
 };
 
@@ -2299,15 +1849,11 @@ class u_LightGrid2 :
 	GLUniformSampler3D {
 	public:
 	u_LightGrid2( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightGrid2", true ) {
+		GLUniformSampler3D( shader, "u_LightGrid2" ) {
 	}
 
 	void SetUniform_LightGrid2Bindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_LightGrid2() {
-		return this->GetLocation();
 	}
 };
 
@@ -2315,15 +1861,11 @@ class u_EnvironmentMap0 :
 	GLUniformSamplerCube {
 	public:
 	u_EnvironmentMap0( GLShader* shader ) :
-		GLUniformSamplerCube( shader, "u_EnvironmentMap0", true ) {
+		GLUniformSamplerCube( shader, "u_EnvironmentMap0" ) {
 	}
 
 	void SetUniform_EnvironmentMap0Bindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_EnvironmentMap0() {
-		return this->GetLocation();
 	}
 };
 
@@ -2331,15 +1873,11 @@ class u_EnvironmentMap1 :
 	GLUniformSamplerCube {
 	public:
 	u_EnvironmentMap1( GLShader* shader ) :
-		GLUniformSamplerCube( shader, "u_EnvironmentMap1", true ) {
+		GLUniformSamplerCube( shader, "u_EnvironmentMap1" ) {
 	}
 
 	void SetUniform_EnvironmentMap1Bindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_EnvironmentMap1() {
-		return this->GetLocation();
 	}
 };
 
@@ -2347,15 +1885,11 @@ class u_CurrentMap :
 	GLUniformSampler2D {
 	public:
 	u_CurrentMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_CurrentMap", true ) {
+		GLUniformSampler2D( shader, "u_CurrentMap" ) {
 	}
 
 	void SetUniform_CurrentMapBindless( GLuint64 bindlessHandle ) {
 		this->SetValueBindless( bindlessHandle );
-	}
-
-	GLint GetUniformLocation_CurrentMap() {
-		return this->GetLocation();
 	}
 };
 
@@ -3248,7 +2782,7 @@ public:
 	{
 		GLIMP_LOGCOMMENT( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Float( "
 			"program = %s, colorGen = %s, alphaGen = %s ) ---",
-			_shader->GetName().c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
+			_shader->_name.c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
 
 		colorModulation_t colorModulation = ColorModulateColorGen(
 			colorGen, alphaGen, vertexOverbright, useMapLightFactor );
@@ -3279,7 +2813,7 @@ class u_ColorModulateColorGen_Uint :
 	{
 		GLIMP_LOGCOMMENT( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Uint( "
 			"program = %s, colorGen = %s, alphaGen = %s ) ---",
-			_shader->GetName().c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
+			_shader->_name.c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
 
 		colorModulation_t colorModulation = ColorModulateColorGen(
 			colorGen, alphaGen, vertexOverbright, useMapLightFactor );

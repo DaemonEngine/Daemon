@@ -53,6 +53,7 @@ cvar_t    *con_animationSpeed;
 cvar_t    *con_animationType;
 
 cvar_t    *con_autoclear;
+Cvar::Cvar<bool> con_persistOnMapChange( "con_persistOnMapChange", "Current console input will be saved when changing map", Cvar::NONE, false );
 
 /**
  * 0: no scroll lock at all, scroll down on any message arriving
@@ -97,10 +98,12 @@ Con_ToggleConsole_f
 void Con_ToggleConsole_f()
 {
 	// ydnar: persistent console input is more useful
-	if ( con_autoclear->integer )
+	if ( con_autoclear->integer && !( con_persistOnMapChange.Get() && consoleState.changedMap ) )
 	{
 		g_consoleField.Clear();
 	}
+
+	consoleState.changedMap = false;
 
 	g_consoleField.SetWidth(g_console_field_width);
 
@@ -413,7 +416,9 @@ void Con_Init()
 
 	// Done defining cvars for console colors
 
-	g_consoleField.Clear();
+	if ( !con_persistOnMapChange.Get() ) {
+		g_consoleField.Clear();
+	}
 	g_consoleField.SetWidth(g_console_field_width);
 
 	Cmd_AddCommand( "toggleConsole", Con_ToggleConsole_f );
@@ -1299,9 +1304,12 @@ void Con_Close()
 		return;
 	}
 
-	g_consoleField.Clear();
+	if ( !con_persistOnMapChange.Get() ) {
+		g_consoleField.Clear();
+	}
 	cls.keyCatchers &= ~KEYCATCH_CONSOLE;
 	consoleState.isOpened = false;
+	consoleState.changedMap = true;
 
 	//instant disappearance, if we need it for situations where this is not called by the user
 	consoleState.currentAnimationFraction = 0;
