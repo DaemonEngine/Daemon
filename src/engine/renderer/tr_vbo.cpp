@@ -766,6 +766,10 @@ void R_InitVBOs()
 		stagingBuffer.InitGLBuffer();
 	}
 
+	if ( glConfig2.pushBufferAvailable ) {
+		pushBuffer.InitGLBuffers();
+	}
+
 	GL_CheckErrors();
 }
 
@@ -840,6 +844,10 @@ void R_ShutdownVBOs()
 
 	if ( glConfig2.directStateAccessAvailable && glConfig2.uniformBufferObjectAvailable ) {
 		stagingBuffer.FreeGLBuffer();
+	}
+
+	if ( glConfig2.pushBufferAvailable ) {
+		pushBuffer.FreeGLBuffers();
 	}
 
 	tess.verts = tess.vertsBuffer = nullptr;
