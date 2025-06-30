@@ -359,7 +359,7 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 					indexes[ f++ ] = surf->triangles[ j ].indexes[ k ];
 				}
 			}
-			vboSurf->ibo = R_CreateStaticIBO2( ( "MD3 surface IBO " + name ).c_str(), surf->numTriangles, indexes );
+			vboSurf->ibo = R_CreateStaticIBO( ( "MD3 surface IBO " + name ).c_str(), indexes, surf->numTriangles * 3 );
 
 			ri.Hunk_FreeTempMemory(indexes);
 		}

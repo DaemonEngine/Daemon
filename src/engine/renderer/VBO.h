@@ -66,7 +66,6 @@ VBO_t* R_CreateStaticVBO(
 	uint32_t numVerts, uint32_t numFrames = 0 );
 
 IBO_t* R_CreateStaticIBO( const char* name, glIndex_t* indexes, int numIndexes );
-IBO_t* R_CreateStaticIBO2( const char* name, int numTriangles, glIndex_t* indexes );
 
 void  R_BindVBO( VBO_t* vbo );
 void  R_BindNullVBO();
