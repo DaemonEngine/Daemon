@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "gl_shader.h"
 #include "Material.h"
 #include "ShadeCommon.h"
+#include "GLUtils.h"
 
 /*
 =================================================================================

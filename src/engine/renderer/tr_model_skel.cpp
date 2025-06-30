@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_models.c -- model loading and caching
 #include "tr_local.h"
+#include "GLUtils.h"
 
 bool R_AddTriangleToVBOTriangleList(
 	const skelTriangle_t *tri, int *numBoneReferences, int boneReferences[ MAX_BONES ] )
