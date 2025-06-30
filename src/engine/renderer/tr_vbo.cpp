@@ -410,7 +410,7 @@ R_CreateIBO2
 */
 IBO_t *R_CreateStaticIBO( const char *name, glIndex_t *indexes, int numIndexes )
 {
-	IBO_t         *ibo;
+	IBO_t *ibo;
 
 	if ( !numIndexes )
 	{
@@ -441,41 +441,6 @@ IBO_t *R_CreateStaticIBO( const char *name, glIndex_t *indexes, int numIndexes )
 	R_BindNullIBO();
 
 	GL_CheckErrors();
-
-	return ibo;
-}
-
-IBO_t *R_CreateStaticIBO2( const char *name, int numTriangles, glIndex_t *indexes )
-{
-	IBO_t         *ibo;
-
-	if ( !numTriangles )
-	{
-		return nullptr;
-	}
-
-	// make sure the render thread is stopped
-	R_SyncRenderThread();
-
-	ibo = ( IBO_t * ) ri.Hunk_Alloc( sizeof( *ibo ), ha_pref::h_low );
-	tr.ibos.push_back( ibo );
-
-	Q_strncpyz( ibo->name, name, sizeof( ibo->name ) );
-	ibo->indexesNum = numTriangles * 3;
-	ibo->indexesSize = ibo->indexesNum * sizeof( glIndex_t );
-
-	glGenBuffers( 1, &ibo->indexesVBO );
-	R_BindIBO( ibo );
-
-	if( glConfig2.bufferStorageAvailable ) {
-		glBufferStorage( GL_ELEMENT_ARRAY_BUFFER, ibo->indexesSize,
-			indexes, 0 );
-	} else {
-		glBufferData( GL_ELEMENT_ARRAY_BUFFER, ibo->indexesSize,
-			indexes, GL_STATIC_DRAW );
-	}
-
-	R_BindNullIBO();
 
 	return ibo;
 }

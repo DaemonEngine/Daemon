@@ -2768,7 +2768,7 @@ static void R_CreateWorldVBO() {
 
 	s_worldData.vbo = R_CreateStaticVBO(
 		"staticWorld_VBO", std::begin( attrs ), std::end( attrs ), numVerts );
-	s_worldData.ibo = R_CreateStaticIBO2( "staticWorld_IBO", numTriangles, vboIdxs );
+	s_worldData.ibo = R_CreateStaticIBO( "staticWorld_IBO", vboIdxs, numTriangles * 3 );
 
 	ri.Hunk_FreeTempMemory( vboIdxs );
 	ri.Hunk_FreeTempMemory( vboVerts );
