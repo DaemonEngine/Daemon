@@ -858,6 +858,11 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 		// create IBO
 		ibo = R_CreateStaticIBO( ( "IQM surface IBO " + name ).c_str(),
 		                         ( glIndex_t* )IQModel->triangles, IQModel->num_triangles * 3 );
+
+		SetupVAOBuffers( vbo, ibo, 
+			ATTR_BONE_FACTORS | ATTR_POSITION | ATTR_QTANGENT | ATTR_TEXCOORD
+			| ATTR_COLOR,
+			&vbo->VAO );
 	} else {
 		vbo = nullptr;
 		ibo = nullptr;
