@@ -2029,6 +2029,7 @@ void Tess_Clear()
 {
 	tess.vboVertexSkinning = false;
 	tess.vboVertexAnimation = false;
+	GL_BindVAO( backEnd.defaultVAO );
 
 	// clear shader so we can tell we don't have any unclosed surfaces
 	tess.multiDrawPrimitives = 0;

@@ -361,6 +361,12 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 			}
 			vboSurf->ibo = R_CreateStaticIBO( ( "MD3 surface IBO " + name ).c_str(), indexes, surf->numTriangles * 3 );
 
+			SetupVAOBuffers( vboSurf->vbo, vboSurf->ibo,
+				ATTR_TEXCOORD | ATTR_COLOR | ATTR_QTANGENT | ATTR_POSITION
+				| ATTR_POSITION2 | ATTR_QTANGENT2,
+				&vboSurf->vbo->VAO );
+			vboSurf->vbo->dynamicVAO = true;
+
 			ri.Hunk_FreeTempMemory(indexes);
 		}
 

@@ -144,6 +144,13 @@ void GL_BindNullProgram()
 	}
 }
 
+void GL_BindVAO( const GLuint id ) {
+	if ( backEnd.currentVAO != id ) {
+		glBindVertexArray( id );
+		backEnd.currentVAO = id;
+	}
+}
+
 void GL_SelectTexture( int unit )
 {
 	if ( glState.currenttmu == unit )
@@ -613,6 +620,11 @@ void GL_VertexAttribsState( uint32_t stateBits )
 	uint32_t diff;
 	uint32_t i;
 
+	if ( !tess.settingUpVAO && glState.currentVBO && !glState.currentVBO->dynamicVAO ) {
+		glState.currentVBO->VAO.Bind();
+		return;
+	}
+
 	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		stateBits |= ATTR_BONE_FACTORS;
@@ -620,7 +632,15 @@ void GL_VertexAttribsState( uint32_t stateBits )
 
 	GL_VertexAttribPointers( stateBits );
 
-	diff = stateBits ^ glState.vertexAttribsState;
+	if ( !tess.settingUpVAO && backEnd.currentVAO != backEnd.defaultVAO ) {
+		return;
+	}
+
+	diff = stateBits;
+
+	if ( backEnd.currentVAO == backEnd.defaultVAO ) {
+		diff ^= glState.vertexAttribsState;
+	}
 
 	if ( !diff )
 	{
@@ -648,7 +668,9 @@ void GL_VertexAttribsState( uint32_t stateBits )
 		}
 	}
 
-	glState.vertexAttribsState = stateBits;
+	if ( backEnd.currentVAO == backEnd.defaultVAO ) {
+		glState.vertexAttribsState = stateBits;
+	}
 }
 
 void GL_VertexAttribPointers( uint32_t attribBits )
@@ -680,7 +702,7 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 		if ( ( attribBits & bit ) != 0 &&
 		     ( !( glState.vertexAttribPointersSet & bit ) ||
 		       tess.vboVertexAnimation ||
-		       glState.currentVBO == tess.vbo ) )
+		       glState.currentVBO == tess.vbo || tess.settingUpVAO || glState.currentVBO->dynamicVAO ) )
 		{
 			const vboAttributeLayout_t *layout = &glState.currentVBO->attribs[ i ];
 

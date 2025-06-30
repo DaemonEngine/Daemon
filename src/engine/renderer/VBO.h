@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "common/Common.h"
 #include "GL/glew.h"
 
+#include "GLMemory.h"
 #include "VertexSpecification.h"
 #include "tr_types.h"
 
@@ -47,6 +48,9 @@ struct VBO_t
 	vboLayout_t layout;
 	uint32_t attribBits; // Which attributes it has. Mostly for detecting errors
 	GLenum usage;
+
+	GLVAO VAO;
+	bool dynamicVAO = false;
 };
 
 struct IBO_t
@@ -66,6 +70,9 @@ VBO_t* R_CreateStaticVBO(
 	uint32_t numVerts, uint32_t numFrames = 0 );
 
 IBO_t* R_CreateStaticIBO( const char* name, glIndex_t* indexes, int numIndexes );
+
+void SetupVAOBuffers( VBO_t* VBO, const IBO_t* IBO, const uint32_t stateBits,
+	GLVAO* VAO );
 
 void  R_BindVBO( VBO_t* vbo );
 void  R_BindNullVBO();
