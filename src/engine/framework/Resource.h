@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef FRAMEWORK_RESOURCE_H_
 #define FRAMEWORK_RESOURCE_H_
 
+#include "common/CPPStandard.h"
 #include "common/Common.h"
 
 /*
@@ -287,7 +288,7 @@ namespace Resource {
         auto it = resources.begin();
 
         while (it != resources.end()) {
-#if __cplusplus == 201703L || __cplusplus == 202002L || __cplusplus == 202302L
+#if defined( CPP_17_FEATURES )
             if ( not it->second->keep and it->second.use_count() ) {
 #else
             if (not it->second->keep and it->second.unique()) {

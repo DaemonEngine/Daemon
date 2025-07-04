@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
+#include "common/CPPStandard.h"
+
 #include "AudioPrivate.h"
 
 namespace Audio {
@@ -132,7 +134,7 @@ namespace Audio {
             emitter->Update();
 
             // No sound is using this emitter, destroy it
-#if __cplusplus == 201703L || __cplusplus == 202002L || __cplusplus == 202302L
+#if defined( CPP_17_FEATURES )
             if ( emitter.use_count() ) {
 #else
             if (emitter.unique()) {
@@ -145,7 +147,7 @@ namespace Audio {
             (*it)->Update();
 
             // No sound is using this emitter, destroy it
-#if __cplusplus == 201703L || __cplusplus == 202002L || __cplusplus == 202302L
+#if defined( CPP_17_FEATURES )
             if ( ( *it ).use_count() ) {
 #else
             if ((*it).unique()) {

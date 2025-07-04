@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
+#include "common/CPPStandard.h"
+
 #include <common/FileSystem.h>
 #include "framework/CvarSystem.h"
 #include "AudioPrivate.h"
@@ -222,7 +224,7 @@ namespace Audio {
         for (auto &loop : entityLoops) {
             loop.addedThisFrame = false;
             // if we are the unique owner of a loop pointer, then it means it was stopped, free it.
-#if __cplusplus == 201703L || __cplusplus == 202002L || __cplusplus == 202302L
+#if defined( CPP_17_FEATURES )
             if ( loop.sound.use_count() ) {
 #else
             if (loop.sound.unique()) {
@@ -232,7 +234,7 @@ namespace Audio {
         }
 
         for (auto &stream : streams) {
-#if __cplusplus == 201703L || __cplusplus == 202002L || __cplusplus == 202302L
+#if defined( CPP_17_FEATURES )
             if ( stream and stream.use_count() ) {
 #else
             if (stream and stream.unique()) {

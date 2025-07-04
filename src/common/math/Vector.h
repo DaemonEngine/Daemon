@@ -27,7 +27,9 @@ along with Daemon Source Code.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <ostream>
 
-#if __cplusplus == 201703L || __cplusplus == 202002L || __cplusplus == 202302L
+#include "common/CPPStandard.h"
+
+#if defined( CPP_17_FEATURES )
 	#include <type_traits>
 	#define invoke_result std::invoke_result
 #else
