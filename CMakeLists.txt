@@ -902,9 +902,8 @@ function(AddApplication)
 
     set_target_properties(${A_Target}-objects PROPERTIES FOLDER "engine/objects")
     
-    if( DEFINED A_CompileFeatures AND NOT "$A_CompileFeatures" STREQUAL "" )
-        # message(A_CompileFeatures="${A_CompileFeatures}")
-        target_compile_features( ${A_Target}-objects PRIVATE cxx_std_20 )
+    if( DEFINED A_CompileFeatures AND NOT $A_CompileFeatures STREQUAL "" )
+        target_compile_features( ${A_Target}-objects PRIVATE ${A_CompileFeatures} )
     endif()
 
     set(Sources WIN32 ${A_ApplicationMain})
@@ -958,7 +957,7 @@ if (BUILD_CLIENT)
 
     if (USE_VULKAN)
         set(CLIENT_EXECUTABLE_NAME daemon-vulkan)
-        set(COMPILE_FEATURES "PRIVATE cxx_std_20")
+        set(COMPILE_FEATURES "cxx_std_23")
     else()
         set(CLIENT_EXECUTABLE_NAME daemon)
         set(COMPILE_FEATURES)
