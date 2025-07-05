@@ -31,36 +31,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// LogExtend.h
+// Memory.cpp
 
-#ifndef LOGEXTEND_H
-#define LOGEXTEND_H
+#include "../SrcDebug/LogExtend.h"
 
-#include <source_location>
+#include "Memory.h"
 
-#include "common/Common.h"
+void* AllocAligned( const uint64_t size, const uint64_t alignment ) {
+	if ( !size ) {
+		return nullptr;
+	}
 
-extern Cvar::Cvar<bool> r_vkLogExtend;
+	const uint64_t paddedSize = ( size + alignment - 1 ) & ~alignment;
 
-extern Cvar::Cvar<bool> r_vkLogExtendWarn;
-extern Cvar::Cvar<bool> r_vkLogExtendNotice;
-extern Cvar::Cvar<bool> r_vkLogExtendVerbose;
-extern Cvar::Cvar<bool> r_vkLogExtendDebug;
+	void* ret = Com_Allocate_Aligned( alignment, paddedSize );
+	if ( !ret ) {
+		Sys::Drop( "AllocAligned failed: memory allocation returned nullptr (size: %u, alignment: %u)",
+			paddedSize, alignment );
+	}
 
-namespace Log {
-    inline Str::StringRef AddSrc( Str::StringRef format, const bool extend, const std::source_location& loc ) {
-        if ( r_vkLogExtend.Get() || extend ) {
-            return format + Str::Format( " (file: %s, line: %u:%u, func: %s",
-                loc.file_name(), loc.line(), loc.column(), loc.function_name() );
-        }
-
-        return format;
-    }
-
-	#define LogWarnExt( format, ... ) ( Log::Warn( Log::AddSrc( format, r_vkLogExtendWarn.Get(), std::source_location::current() ), __VA_ARGS__ ) )
-	#define NoticeExt( format, ... ) ( Log::Warn( Log::AddSrc( format, r_vkLogExtendNotice.Get(), std::source_location::current() ), __VA_ARGS__ ) )
-	#define VerboseExt( format, ... ) ( Log::Warn( Log::AddSrc( format, r_vkLogExtendVerbose.Get(), std::source_location::current() ), __VA_ARGS__ ) )
-	#define LogDebugExt( format, ... ) ( Log::Warn( Log::AddSrc( format, r_vkLogExtendDebug.Get(), std::source_location::current() ), __VA_ARGS__ ) )
+	return ret;
 }
 
-#endif // LOGEXTEND_H
+void FreeAligned( void* memory ) {
+	if ( !memory ) {
+		LogWarnExt( "Freeing nullptr in FreeAligned" );
+	}
+
+	Com_Free_Aligned( memory );
+}
