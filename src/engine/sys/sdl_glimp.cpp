@@ -1768,8 +1768,8 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 	rserr_t err = GLimp_SetMode(mode, fullscreen, bordered);
 
 	const char* glRequirements =
-		"You need a graphics card with drivers supporting at least\n"
-		"OpenGL 3.2 or OpenGL 2.1 with EXT_framebuffer_object.";
+		"You need a graphics card with drivers supporting at least OpenGL 3.2\n"
+		"or OpenGL 2.1 with EXT_framebuffer_object and ARB_vertex_array_object.";
 
 	switch ( err )
 	{
@@ -2261,9 +2261,10 @@ static void GLimp_InitExtensions()
 
 	// made required in OpenGL 1.3
 	glConfig.textureCompression = textureCompression_t::TC_NONE;
+
 	/* ExtFlag_REQUIRED could be turned into ExtFlag_NONE if s3tc-to-rgba is implemented.
 	See https://github.com/DaemonEngine/Daemon/pull/738 */
-	if( LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_texture_compression_s3tc ) )
+	if ( LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_texture_compression_s3tc ) )
 	{
 		glConfig.textureCompression = textureCompression_t::TC_S3TC;
 	}
@@ -2282,6 +2283,14 @@ static void GLimp_InitExtensions()
 		// Bound texture anisotropy.
 		glConfig2.textureAnisotropy = std::max( std::min( r_ext_texture_filter_anisotropic.Get(), glConfig2.maxTextureAnisotropy ), 1.0f );
 	}
+
+	// VAO and VBO
+
+	// made required in OpenGL 3.0
+	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_vertex_array_object );
+
+	// made required in OpenGL 2.1
+	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_vertex_buffer_object );
 
 	/* We call RV300 the first generation of R300 cards, to make a difference
 	with RV400 and RV500 cards that are also supported by the Mesa r300 driver.
@@ -2346,7 +2355,6 @@ static void GLimp_InitExtensions()
 			}
 		}
 
-		// VAO and VBO
 		// made required in OpenGL 3.0
 		glConfig2.halfFloatVertexAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_vertex, halfFloatVertexEnabled );
 
@@ -2355,6 +2363,8 @@ static void GLimp_InitExtensions()
 			logger.Notice( "Missing half-float vertex, using float vertex instead." );
 		}
 	}
+
+	// FBO
 
 	if ( !workaround_glExtension_missingArbFbo_useExtFbo.Get() )
 	{
@@ -2388,7 +2398,6 @@ static void GLimp_InitExtensions()
 		glFboSetExt();
 	}
 
-	// FBO
 	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig2.maxRenderbufferSize );
 	glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &glConfig2.maxColorAttachments );
 
