@@ -36,7 +36,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef STACKTRACE_H
 #define STACKTRACE_H
 
-#include "common/CPPStandard.h"
+#include "CPPStandard.h"
+#include "String.h"
+
+#include "Log.h"
 
 #if defined( CPP_23_FEATURES )
 

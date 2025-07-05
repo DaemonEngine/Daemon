@@ -36,11 +36,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef TIMER_H
 #define TIMER_H
 
-#include "common/Common.h"
+#include <stdint.h>
+#include <string>
 
 class Timer {
 	public:
-	Timer( uint64_t* newTimeVar = nullptr );
+	Timer( const bool start = true, uint64_t* newTimeVar = nullptr );
 	~Timer();
 
 	static std::string FormatTime( uint64_t time );
@@ -48,6 +49,7 @@ class Timer {
 	uint64_t Time() const;
 	void Start();
 	void Stop();
+	void Clear();
 	uint64_t Restart();
 
 	private:
@@ -56,6 +58,11 @@ class Timer {
 	bool running = false;
 	uint64_t time;
 	uint64_t runTime = 0;
+};
+
+class GlobalTimer :
+	public Timer {
+	GlobalTimer( uint64_t* newTimeVar = nullptr );
 };
 
 #endif // TIMER_H

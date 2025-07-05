@@ -33,6 +33,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Timer.cpp
 
+#include <chrono>
+
+#include "common/Common.h"
+
 #include "Timer.h"
 
 static uint64_t TimeNanoseconds() {
@@ -40,9 +44,11 @@ static uint64_t TimeNanoseconds() {
 }
 
 // If newTimeVar is specified, it will be set to the Timer's runTime when the destructor is called
-Timer::Timer( uint64_t* newTimeVar ) :
+Timer::Timer( const bool start, uint64_t* newTimeVar ) :
 	timeVar( newTimeVar ) {
-	Start();
+	if ( start ) {
+		Start();
+	}
 }
 
 Timer::~Timer() {
@@ -89,6 +95,11 @@ void Timer::Stop() {
 	running = false;
 }
 
+void Timer::Clear() {
+	runTime = 0;
+	running = false;
+}
+
 uint64_t Timer::Restart() {
 	Stop();
 
@@ -97,4 +108,8 @@ uint64_t Timer::Restart() {
 	running = true;
 
 	return diff;
+}
+
+GlobalTimer::GlobalTimer( uint64_t* newTimeVar ) :
+	Timer( false, newTimeVar ) {
 }
