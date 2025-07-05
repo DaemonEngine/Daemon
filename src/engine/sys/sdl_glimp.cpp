@@ -2286,6 +2286,9 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.0
 	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_vertex_array_object );
 
+	// made required in OpenGL 2.1
+	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_vertex_buffer_object );
+
 	/* We call RV300 the first generation of R300 cards, to make a difference
 	with RV400 and RV500 cards that are also supported by the Mesa r300 driver.
 
