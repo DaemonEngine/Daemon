@@ -932,6 +932,7 @@ if (NOT NACL)
     set_property(TARGET engine-lib APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_OPTIONS ${WARNINGS})
     set_target_properties(engine-lib PROPERTIES FOLDER "engine/objects")
+    target_compile_features( engine-lib PRIVATE "cxx_std_23" )
     ADD_PRECOMPILED_HEADER(engine-lib)
 
     if (BUILD_DUMMY_APP)
