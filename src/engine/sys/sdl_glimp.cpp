@@ -1768,8 +1768,8 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 	rserr_t err = GLimp_SetMode(mode, fullscreen, bordered);
 
 	const char* glRequirements =
-		"You need a graphics card with drivers supporting at least\n"
-		"OpenGL 3.2 or OpenGL 2.1 with EXT_framebuffer_object.";
+		"You need a graphics card with drivers supporting at least OpenGL 3.2\n"
+		"or OpenGL 2.1 with EXT_framebuffer_object and ARB_vertex_array_object.";
 
 	switch ( err )
 	{
@@ -2282,6 +2282,9 @@ static void GLimp_InitExtensions()
 		// Bound texture anisotropy.
 		glConfig2.textureAnisotropy = std::max( std::min( r_ext_texture_filter_anisotropic.Get(), glConfig2.maxTextureAnisotropy ), 1.0f );
 	}
+
+	// made required in OpenGL 3.0
+	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_vertex_array_object );
 
 	/* We call RV300 the first generation of R300 cards, to make a difference
 	with RV400 and RV500 cards that are also supported by the Mesa r300 driver.
