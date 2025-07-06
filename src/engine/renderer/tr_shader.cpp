@@ -6182,7 +6182,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 
 	Log::Debug( "loading '%s' image as shader", fileName );
 
-	if( bits & RSF_2D )
+	if ( flags & RSF_2D )
 	{
 		imageParams_t imageParams = {};
 		imageParams.bits = bits;
