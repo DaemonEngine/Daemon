@@ -54,7 +54,7 @@ vec4 rangeTest( vec4 diff1, vec4 diff2, vec4 deltaX, vec4 deltaY ) {
 
 // Based on AMD HDAO, adapted for lack of normals
 void computeOcclusionForQuad( in vec2 centerTC, in float centerDepth,
-			      in vec2 quadOffset,
+			      in vec2 quadOffset, in sampler2D u_DepthMap,
 			      inout vec4 occlusion, inout vec4 total ) {
 	vec2 tc1 = centerTC + quadOffset * pixelScale;
 	vec2 tc2 = centerTC - quadOffset * pixelScale;
@@ -111,7 +111,7 @@ void	main()
 		} else {
 			of = offsets[i].zw;
 		}
-		computeOcclusionForQuad( st, center, spread * of,
+		computeOcclusionForQuad( st, center, spread * of, u_DepthMap,
 					 occlusion, total );
 	}
 
