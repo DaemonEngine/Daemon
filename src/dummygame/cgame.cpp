@@ -155,7 +155,8 @@ public:
 			// the renderer starts (though there is no way to get it back later)
 			refdef.gradingWeights[0] = 1.0f;
 
-			trap_R_LoadWorldMap(("maps/" + args.Argv(2) + ".bsp").c_str());
+			trap_R_LoadWorldSpawn(("maps/" + args.Argv(2)).c_str());
+			trap_R_LoadWorldData();
 
 			// This is done by EndRegistration but there is no way to invoke that
 			bool reflection;

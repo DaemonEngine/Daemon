@@ -3033,7 +3033,8 @@ inline bool checkGLErrors()
 
 	void      RE_BeginFrame();
 	bool  RE_BeginRegistration( glconfig_t *glconfig, glconfig2_t *glconfig2 );
-	void      RE_LoadWorldMap( const char *mapname );
+	void RE_LoadWorldSpawn( const std::string worldName );
+	void RE_LoadWorldData();
 	void      RE_SetWorldVisData( const byte *vis );
 	qhandle_t RE_RegisterModel( const char *name );
 	qhandle_t RE_RegisterSkin( const char *name );

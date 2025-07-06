@@ -184,7 +184,8 @@ struct refexport_t
 	void   ( *Glyph )( fontInfo_t *font, const char *str, glyphInfo_t *glyph );
 	void   ( *GlyphChar )( fontInfo_t *font, int ch, glyphInfo_t *glyph );
 
-	void ( *LoadWorld )( const char *name );
+	void ( *LoadWorldSpawn )( std::string worldName );
+	void ( *LoadWorldData )();
 
 	// the vis data is a large enough block of data that we go to the trouble
 	// of sharing it with the clipmodel subsystem

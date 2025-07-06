@@ -1591,7 +1591,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.RegisterSkin = RE_RegisterSkin;
 		re.RegisterShader = RE_RegisterShader;
 
-		re.LoadWorld = RE_LoadWorldMap;
+		re.LoadWorldSpawn = RE_LoadWorldSpawn;
+		re.LoadWorldData = RE_LoadWorldData;
 		re.SetWorldVisData = RE_SetWorldVisData;
 		re.EndRegistration = RE_EndRegistration;
 

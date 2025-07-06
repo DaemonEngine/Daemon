@@ -1185,10 +1185,18 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			});
 			break;
 
-		case CG_R_LOADWORLDMAP:
-			IPC::HandleMsg<Render::LoadWorldMapMsg>(channel, std::move(reader), [this] (const std::string& mapName) {
+		case CG_R_LOADWORLDSPAWN:
+			IPC::HandleMsg<Render::LoadWorldSpawnMsg>(channel, std::move(reader), [this] (const std::string& mapName, bool &done) {
 				re.SetWorldVisData(CM_ClusterPVS(-1));
-				re.LoadWorld(mapName.c_str());
+				re.LoadWorldSpawn(mapName);
+				done = true;
+			});
+			break;
+
+		case CG_R_LOADWORLDDATA:
+			IPC::HandleMsg<Render::LoadWorldDataMsg>(channel, std::move(reader), [this] (bool &done) {
+				re.LoadWorldData();
+				done = true;
 			});
 			break;
 

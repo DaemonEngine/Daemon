@@ -257,9 +257,16 @@ void trap_R_ScissorSet( int x, int y, int w, int h )
 	cmdBuffer.SendMsg<Render::ScissorSetMsg>(x, y, w, h);
 }
 
-void trap_R_LoadWorldMap( const char *mapname )
+void trap_R_LoadWorldSpawn( std::string worldName )
 {
-	VM::SendMsg<Render::LoadWorldMapMsg>(mapname);
+	bool done;
+	VM::SendMsg<Render::LoadWorldSpawnMsg>(worldName, done);
+}
+
+void trap_R_LoadWorldData()
+{
+	bool done;
+	VM::SendMsg<Render::LoadWorldDataMsg>(done);
 }
 
 qhandle_t trap_R_RegisterModel( const char *name )
