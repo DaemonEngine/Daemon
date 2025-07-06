@@ -31,8 +31,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ========================================================
 Loads and prepares a map file for scene rendering.
 
-A single entry point:
-RE_LoadWorldMap(const char *name);
+Two entry points, to be called in this order:
+RE_LoadWorldSpawn(const std::string worldName);
+RE_LoadWorldData();
 ========================================================
 */
 
@@ -411,11 +412,11 @@ static void LoadRGBEToBytes( const char *name, byte **ldrImage, int *width, int 
 	Z_Free( hdrImage );
 }
 
-static std::vector<std::string> R_LoadExternalLightmaps( const char *mapName )
+static std::vector<std::string> R_LoadExternalLightmaps( std::string worldName )
 {
 	const char *const extensions[] {".png", ".tga", ".webp", ".crn", ".jpg", ".jpeg"};
 	std::vector<std::string> files[ ARRAY_LEN( extensions ) ];
-	for ( const std::string& filename : FS::PakPath::ListFiles( mapName ) ) {
+	for ( const std::string& filename : FS::PakPath::ListFiles( worldName ) ) {
 		for ( size_t i = 0; i < ARRAY_LEN( extensions ); i++ )
 		{
 			if ( Str::IsISuffix( extensions[ i ], filename ) )
@@ -440,7 +441,7 @@ static std::vector<std::string> R_LoadExternalLightmaps( const char *mapName )
 R_LoadLightmaps
 ===============
 */
-static void R_LoadLightmaps( lump_t *l, const char *bspName )
+static void R_LoadLightmaps( lump_t *l, std::string worldName )
 {
 	tr.worldLightMapping = r_precomputedLighting->integer && tr.lightMode == lightMode_t::MAP;
 
@@ -454,11 +455,6 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 	int len = l->filelen;
 	if ( !len )
 	{
-		char mapName[ MAX_QPATH ];
-
-		Q_strncpyz( mapName, bspName, sizeof( mapName ) );
-		COM_StripExtension3( mapName, mapName, sizeof( mapName ) );
-
 		if ( tr.worldHDR_RGBE )
 		{
 			// we are about to upload textures
@@ -469,7 +465,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			byte *ldrImage;
 
 			std::vector<std::string> hdrFiles;
-			for ( const std::string& filename : FS::PakPath::ListFiles( mapName ) )
+			for ( const std::string& filename : FS::PakPath::ListFiles( worldName ) )
 			{
 				if ( Str::IsISuffix( ".hdr", filename ) )
 				{
@@ -487,17 +483,17 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 			for ( const std::string& filename : hdrFiles )
 			{
-				Log::Debug("...loading external lightmap as RGB8 LDR '%s/%s'", mapName, filename );
+				Log::Debug("...loading external lightmap as RGB8 LDR '%s/%s'", worldName, filename );
 
 				width = height = 0;
-				LoadRGBEToBytes( va( "%s/%s", mapName, filename.c_str() ), &ldrImage, &width, &height );
+				LoadRGBEToBytes( va( "%s/%s", worldName.c_str(), filename.c_str() ), &ldrImage, &width, &height );
 
 				imageParams_t imageParams = {};
 				imageParams.bits = IF_NOPICMIP | IF_LIGHTMAP;
 				imageParams.filterType = filterType_t::FT_DEFAULT;
 				imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-				auto image = R_CreateImage( va( "%s/%s", mapName, filename.c_str() ), (const byte **)&ldrImage, width, height, 1, imageParams );
+				auto image = R_CreateImage( va( "%s/%s", worldName.c_str(), filename.c_str() ), (const byte **)&ldrImage, width, height, 1, imageParams );
 
 				tr.lightmaps.push_back( image );
 
@@ -506,7 +502,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 			if (tr.worldDeluxeMapping) {
 				// load deluxemaps
-				std::vector<std::string> lightmapFiles = R_LoadExternalLightmaps(mapName);
+				std::vector<std::string> lightmapFiles = R_LoadExternalLightmaps( worldName );
 				if (lightmapFiles.empty()) {
 					Log::Warn("no lightmap files found");
 					tr.worldLightMapping = false;
@@ -517,21 +513,21 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 				Log::Debug("...loading %i deluxemaps", lightmapFiles.size());
 
 				for (const std::string& filename : lightmapFiles) {
-					Log::Debug("...loading external lightmap '%s/%s'", mapName, filename);
+					Log::Debug("...loading external lightmap '%s/%s'", worldName.c_str(), filename);
 
 					imageParams_t imageParams = {};
 					imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
 					imageParams.filterType = filterType_t::FT_DEFAULT;
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-					auto image = R_FindImageFile(va("%s/%s", mapName, filename.c_str()), imageParams);
+					auto image = R_FindImageFile(va("%s/%s", worldName.c_str(), filename.c_str()), imageParams);
 					tr.deluxemaps.push_back(image);
 				}
 			}
 		}
 		else
 		{
-			std::vector<std::string> lightmapFiles = R_LoadExternalLightmaps(mapName);
+			std::vector<std::string> lightmapFiles = R_LoadExternalLightmaps( worldName );
 			if (lightmapFiles.empty()) {
 				Log::Warn("no lightmap files found");
 				tr.worldLightMapping = false;
@@ -545,7 +541,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			R_SyncRenderThread();
 
 			for (size_t i = 0; i < lightmapFiles.size(); i++) {
-				Log::Debug("...loading external lightmap '%s/%s'", mapName, lightmapFiles[i]);
+				Log::Debug("...loading external lightmap '%s/%s'", worldName.c_str(), lightmapFiles[i]);
 
 				if (!tr.worldDeluxeMapping || i % 2 == 0) {
 					imageParams_t imageParams = {};
@@ -553,7 +549,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					imageParams.filterType = filterType_t::FT_LINEAR;
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i].c_str()), imageParams);
+					auto image = R_FindImageFile(va("%s/%s", worldName.c_str(), lightmapFiles[i].c_str()), imageParams);
 					tr.lightmaps.push_back(image);
 				}
 				else if (tr.worldDeluxeMapping)
@@ -563,7 +559,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					imageParams.filterType = filterType_t::FT_LINEAR;
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i].c_str()), imageParams);
+					auto image = R_FindImageFile(va("%s/%s", worldName.c_str(), lightmapFiles[i].c_str()), imageParams);
 					tr.deluxemaps.push_back( image );
 				}
 			}
@@ -4465,25 +4461,24 @@ static void SetWorldLight() {
 	}
 }
 
-/*
-=================
-RE_LoadWorldMap
+std::string worldName;
+std::string bspBuffer;
+dheader_t *bspHeader;
+byte *bspStartMarker;
 
-Called directly from cgame
-=================
-*/
-void RE_LoadWorldMap( const char *name )
+// Called directly from cgame.
+void RE_LoadWorldSpawn( const std::string name )
 {
-	int       i;
-	dheader_t *header;
-	byte      *startMarker;
+	worldName = name;
+
+	Log::Debug("----- RE_LoadWorldSpawn( %s ) -----", worldName );
 
 	if ( tr.worldMapLoaded )
 	{
 		Sys::Drop( "ERROR: attempted to redundantly load world map" );
 	}
 
-	Log::Debug("----- RE_LoadWorldMap( %s ) -----", name );
+	tr.worldMapLoaded = true;
 
 	// set default sun direction to be used if it isn't
 	// overridden by a shader
@@ -4493,16 +4488,18 @@ void RE_LoadWorldMap( const char *name )
 
 	VectorNormalize( tr.sunDirection );
 
-	tr.worldMapLoaded = true;
+	std::string bspName = name + ".bsp";
 
 	// load it
 	std::error_code err;
-	std::string buffer = FS::PakPath::ReadFile( name, err );
+	bspBuffer = FS::PakPath::ReadFile( bspName, err );
 
 	if ( err )
 	{
-		Sys::Drop( "RE_LoadWorldMap: %s not found", name );
+		Sys::Drop( "RE_LoadWorldSpawn: %s not found", bspName );
 	}
+
+	Log::Debug( "Loading %s…", bspName );
 
 	// clear tr.world so if the level fails to load, the next
 	// try will not look at the partially loaded version
@@ -4514,45 +4511,45 @@ void RE_LoadWorldMap( const char *name )
 	tr.worldDeluxeMapping = false; // set by R_LoadEntities
 	tr.worldHDR_RGBE = false; // set by R_LoadEntities
 	tr.mapOverBrightBits = r_overbrightDefaultExponent.Get(); // maybe set by R_LoadEntities
-	tr.overbrightBits = std::min( tr.mapOverBrightBits, r_overbrightBits.Get() ); // set by RE_LoadWorldMap
-	tr.mapLightFactor = 1.0f; // set by RE_LoadWorldMap
-	tr.identityLight = 1.0f; // set by RE_LoadWorldMap
+	tr.overbrightBits = std::min( tr.mapOverBrightBits, r_overbrightBits.Get() ); // set by RE_LoadWorldSpawn
+	tr.mapLightFactor = 1.0f; // set by RE_LoadWorldSpawn
+	tr.identityLight = 1.0f; // set by RE_LoadWorldSpawn
 
 	s_worldData = {};
-	Q_strncpyz( s_worldData.name, name, sizeof( s_worldData.name ) );
+	Q_strncpyz( s_worldData.name, bspName.c_str(), sizeof( s_worldData.name ) );
 
 	Q_strncpyz( s_worldData.baseName, COM_SkipPath( s_worldData.name ), sizeof( s_worldData.name ) );
 	COM_StripExtension3( s_worldData.baseName, s_worldData.baseName, sizeof( s_worldData.baseName ) );
 	tr.loadingMap = s_worldData.baseName;
 
-	startMarker = (byte*) ri.Hunk_Alloc( 0, ha_pref::h_low );
+	bspStartMarker = (byte*) ri.Hunk_Alloc( 0, ha_pref::h_low );
 
-	header = ( dheader_t * ) buffer.data();
-	fileBase = ( byte * ) header;
+	bspHeader = ( dheader_t * ) bspBuffer.data();
+	fileBase = ( byte * ) bspHeader;
 
-	i = LittleLong( header->version );
+	int i = LittleLong( bspHeader->version );
 
 	if ( i != BSP_VERSION && i != BSP_VERSION_Q3 )
 	{
-		Sys::Drop( "RE_LoadWorldMap: %s has wrong version number (%i should be %i for ET or %i for Q3)",
-		           name, i, BSP_VERSION, BSP_VERSION_Q3 );
+		Sys::Drop( "RE_LoadWorldSpawn: %s has wrong version number (%i should be %i for ET or %i for Q3)",
+			bspName, i, BSP_VERSION, BSP_VERSION_Q3 );
 	}
 
 	// swap all the lumps
 	for ( unsigned j = 0; j < sizeof( dheader_t ) / 4; j++ )
 	{
-		( ( int * ) header ) [ j ] = LittleLong( ( ( int * ) header ) [ j ] );
+		( ( int * ) bspHeader ) [ j ] = LittleLong( ( ( int * ) bspHeader ) [ j ] );
 	}
 
 	if ( glConfig2.reflectionMappingAvailable ) {
 		// TODO: Take into account potential shader changes
-		headerString = Str::Format( "%i %i %i %i %i", header->lumps[LUMP_PLANES].filelen, header->lumps[LUMP_NODES].filelen,
-			header->lumps[LUMP_LEAFS].filelen, header->lumps[LUMP_BRUSHES].filelen, header->lumps[LUMP_SURFACES].filelen );
+		headerString = Str::Format( "%i %i %i %i %i", bspHeader->lumps[LUMP_PLANES].filelen, bspHeader->lumps[LUMP_NODES].filelen,
+			bspHeader->lumps[LUMP_LEAFS].filelen, bspHeader->lumps[LUMP_BRUSHES].filelen, bspHeader->lumps[LUMP_SURFACES].filelen );
 	}
 
 	// load into heap
 
-	std::string externalEntitiesFileName = FS::Path::StripExtension( name ) + ".ent";
+	std::string externalEntitiesFileName = worldName + ".ent";
 	std::string externalEntities = FS::PakPath::ReadFile( externalEntitiesFileName, err );
 	if ( err )
 	{
@@ -4563,31 +4560,36 @@ void RE_LoadWorldMap( const char *name )
 		}
 		externalEntities = "";
 	}
-	R_LoadEntities( &header->lumps[ LUMP_ENTITIES ], externalEntities );
+	R_LoadEntities( &bspHeader->lumps[ LUMP_ENTITIES ], externalEntities );
 
 	// Now we can set this after checking a possible worldspawn value for mapOverbrightBits
 	tr.overbrightBits = std::min( tr.mapOverBrightBits, r_overbrightBits.Get() );
+}
 
-	R_LoadShaders( &header->lumps[ LUMP_SHADERS ] );
+// Called directly from cgame.
+// Should be called after RE_LoadWorldSpawn().
+void RE_LoadWorldData()
+{
+	R_LoadShaders( &bspHeader->lumps[ LUMP_SHADERS ] );
 
-	R_LoadLightmaps( &header->lumps[ LUMP_LIGHTMAPS ], name );
+	R_LoadLightmaps( &bspHeader->lumps[ LUMP_LIGHTMAPS ], worldName );
 
-	R_LoadPlanes( &header->lumps[ LUMP_PLANES ] );
+	R_LoadPlanes( &bspHeader->lumps[ LUMP_PLANES ] );
 
-	R_LoadSurfaces( &header->lumps[ LUMP_SURFACES ], &header->lumps[ LUMP_DRAWVERTS ], &header->lumps[ LUMP_DRAWINDEXES ] );
+	R_LoadSurfaces( &bspHeader->lumps[ LUMP_SURFACES ], &bspHeader->lumps[ LUMP_DRAWVERTS ], &bspHeader->lumps[ LUMP_DRAWINDEXES ] );
 
-	R_LoadMarksurfaces( &header->lumps[ LUMP_LEAFSURFACES ] );
+	R_LoadMarksurfaces( &bspHeader->lumps[ LUMP_LEAFSURFACES ] );
 
-	R_LoadNodesAndLeafs( &header->lumps[ LUMP_NODES ], &header->lumps[ LUMP_LEAFS ] );
+	R_LoadNodesAndLeafs( &bspHeader->lumps[ LUMP_NODES ], &bspHeader->lumps[ LUMP_LEAFS ] );
 
-	R_LoadSubmodels( &header->lumps[ LUMP_MODELS ] );
+	R_LoadSubmodels( &bspHeader->lumps[ LUMP_MODELS ] );
 
 	// moved fog lump loading here, so fogs can be tagged with a model num
-	R_LoadFogs( &header->lumps[ LUMP_FOGS ], &header->lumps[ LUMP_BRUSHES ], &header->lumps[ LUMP_BRUSHSIDES ] );
+	R_LoadFogs( &bspHeader->lumps[ LUMP_FOGS ], &bspHeader->lumps[ LUMP_BRUSHES ], &bspHeader->lumps[ LUMP_BRUSHSIDES ] );
 
-	R_LoadVisibility( &header->lumps[ LUMP_VISIBILITY ] );
+	R_LoadVisibility( &bspHeader->lumps[ LUMP_VISIBILITY ] );
 
-	R_LoadLightGrid( &header->lumps[ LUMP_LIGHTGRID ] );
+	R_LoadLightGrid( &bspHeader->lumps[ LUMP_LIGHTGRID ] );
 
 	// create a static vbo for the world
 	// Do SetWorldLight() before R_CreateWorldVBO(), because the latter will use the world light values to generate materials
@@ -4600,7 +4602,7 @@ void RE_LoadWorldMap( const char *name )
 		FinishSkybox();
 	}
 
-	s_worldData.dataSize = ( byte * ) ri.Hunk_Alloc( 0, ha_pref::h_low ) - startMarker;
+	s_worldData.dataSize = ( byte * ) ri.Hunk_Alloc( 0, ha_pref::h_low ) - bspStartMarker;
 	// only set tr.world now that we know the entire level has loaded properly
 	tr.world = &s_worldData;
 

@@ -159,7 +159,8 @@ enum cgameImport_t
   CG_R_GETSHADERNAMEFROMHANDLE,
   CG_R_SCISSOR_ENABLE,
   CG_R_SCISSOR_SET,
-  CG_R_LOADWORLDMAP,
+  CG_R_LOADWORLDSPAWN,
+  CG_R_LOADWORLDDATA,
   CG_R_REGISTERMODEL,
   CG_R_REGISTERSKIN,
   CG_R_REGISTERSHADER,
@@ -301,8 +302,16 @@ namespace Render {
 		IPC::Message<IPC::Id<VM::QVM, CG_R_GETSHADERNAMEFROMHANDLE>, int>,
 		IPC::Reply<std::string>
 	>;
-	// TODO is it really async?
-	using LoadWorldMapMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_LOADWORLDMAP>, std::string>;
+	// It better be sync even if it doesn't return anything.
+	using LoadWorldSpawnMsg = IPC::SyncMessage<
+		IPC::Message<IPC::Id<VM::QVM, CG_R_LOADWORLDSPAWN>, std::string>,
+		IPC::Reply<bool>
+	>;
+	// It better be sync even if it doesn't return anything.
+	using LoadWorldDataMsg = IPC::SyncMessage<
+		IPC::Message<IPC::Id<VM::QVM, CG_R_LOADWORLDDATA>>,
+		IPC::Reply<bool>
+	>;
 	using RegisterModelMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_R_REGISTERMODEL>, std::string>,
 		IPC::Reply<int>

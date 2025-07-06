@@ -75,7 +75,8 @@ void RE_GlyphChar( fontInfo_t *font, int, glyphInfo_t *glyph )
 	RE_Glyph( font, nullptr, glyph );
 }
 void RE_UnregisterFont( fontInfo_t* ) { }
-void RE_LoadWorldMap( const char * ) { }
+void RE_LoadWorldSpawn( const std::string ) { }
+void RE_LoadWorldData() { }
 void RE_SetWorldVisData( const byte * ) { }
 void RE_EndRegistration() { }
 void RE_ClearScene() { }
@@ -208,7 +209,8 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.Glyph = RE_Glyph;
     re.GlyphChar = RE_GlyphChar;
     re.UnregisterFont = RE_UnregisterFont;
-    re.LoadWorld = RE_LoadWorldMap;
+    re.LoadWorldSpawn = RE_LoadWorldSpawn;
+    re.LoadWorldData = RE_LoadWorldData;
     re.SetWorldVisData = RE_SetWorldVisData;
     re.EndRegistration = RE_EndRegistration;
 
