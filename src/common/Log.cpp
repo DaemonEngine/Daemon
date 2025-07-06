@@ -31,6 +31,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Common.h"
 
 namespace Log {
+    Cvar::Cvar<bool> logExtendAll(
+        "logs.writeSrcLocation.all", "Always print source code location for logs", Cvar::NONE, true );
+    Cvar::Cvar<bool> logExtendWarn(
+        "logs.writeSrcLocation.warn", "Print source code location for Warn logs", Cvar::NONE, false );
+    Cvar::Cvar<bool> logExtendNotice(
+        "logs.writeSrcLocation.notice", "Print source code location for Notice logs", Cvar::NONE, false );
+    Cvar::Cvar<bool> logExtendVerbose(
+        "logs.writeSrcLocation.verbose", "Print source code location for Verbose logs", Cvar::NONE, false );
+    Cvar::Cvar<bool> logExtendDebug(
+        "logs.writeSrcLocation.debug", "Print source code location for Debug logs", Cvar::NONE, false );
 
     Logger::Logger(Str::StringRef name, std::string prefix, Level defaultLevel)
         : filterLevel(new Cvar::Cvar<Log::Level>(

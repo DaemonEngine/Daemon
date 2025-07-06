@@ -39,7 +39,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Memory.h"
 
 #include "../Shared/Timer.h"
-#include "../SrcDebug/LogExtend.h"
 
 template<typename T>
 class RingBuffer {
@@ -114,7 +113,7 @@ class AtomicRingBuffer {
 
 	void Resize( const uint64_t newElementCount ) {
 		if ( newElementCount < elementCount ) {
-			LogWarnExt( "RingBuffer: Resize: newElementCount < elementCount (%u < %u)",
+			Log::Warn( "RingBuffer: Resize: newElementCount < elementCount (%u < %u)",
 				newElementCount, elementCount );
 			return;
 		}
@@ -143,7 +142,7 @@ class AtomicRingBuffer {
 
 		while ( memory[element].active ) {
 			std::this_thread::yield();
-			LogDebugExt( "RingBuffer yielding" );
+			Log::Debug( "RingBuffer yielding" );
 		}
 
 		memory[element].active = true;
@@ -157,18 +156,18 @@ class AtomicRingBuffer {
 
 		Timer t;
 		do {
-			LogDebugExt( "RingBuffer get: retrying\n" );
+			Log::Debug( "RingBuffer get: retrying\n" );
 			if ( memory[expected].active ) {
 				desired = ( expected + 1 ) & mask;
 			} else if ( expected < ( pointer & mask ) ) {
 				desired = expected + 1;
 			} else {
-				LogDebugExt( "RingBuffer get none: %s\n", Timer::FormatTime( t.Time() ).c_str() );
+				Log::Debug( "RingBuffer get none: %s\n", Timer::FormatTime( t.Time() ).c_str() );
 				return nullptr;
 			}
 		} while ( !current.compare_exchange_weak( expected, desired, std::memory_order_relaxed ) );
 
-		LogDebugExt( "RingBuffer get: %s\n", Timer::FormatTime( t.Time() ).c_str() );
+		Log::Debug( "RingBuffer get: %s\n", Timer::FormatTime( t.Time() ).c_str() );
 
 		return &memory[expected];
 	}

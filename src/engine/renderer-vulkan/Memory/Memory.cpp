@@ -33,8 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Memory.cpp
 
-#include "../SrcDebug/LogExtend.h"
-
 #include "Memory.h"
 
 void* AllocAligned( const uint64_t size, const uint64_t alignment ) {
@@ -55,7 +53,7 @@ void* AllocAligned( const uint64_t size, const uint64_t alignment ) {
 
 void FreeAligned( void* memory ) {
 	if ( !memory ) {
-		LogWarnExt( "Freeing nullptr in FreeAligned" );
+		Log::Warn( "Freeing nullptr in FreeAligned" );
 	}
 
 	Com_Free_Aligned( memory );

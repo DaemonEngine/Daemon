@@ -47,7 +47,7 @@ extern Cvar::Cvar<bool> r_vkLogExtendNotice;
 extern Cvar::Cvar<bool> r_vkLogExtendVerbose;
 extern Cvar::Cvar<bool> r_vkLogExtendDebug;
 
-namespace Log {
+/* namespace Log {
     inline Str::StringRef AddSrc( Str::StringRef format, const bool extend, const std::source_location& loc ) {
         if ( r_vkLogExtend.Get() || extend ) {
             return format + Str::Format( " (file: %s, line: %u:%u, func: %s",
@@ -61,6 +61,6 @@ namespace Log {
 	#define NoticeExt( format, ... ) ( Log::Warn( Log::AddSrc( format, r_vkLogExtendNotice.Get(), std::source_location::current() ), __VA_ARGS__ ) )
 	#define VerboseExt( format, ... ) ( Log::Warn( Log::AddSrc( format, r_vkLogExtendVerbose.Get(), std::source_location::current() ), __VA_ARGS__ ) )
 	#define LogDebugExt( format, ... ) ( Log::Warn( Log::AddSrc( format, r_vkLogExtendDebug.Get(), std::source_location::current() ), __VA_ARGS__ ) )
-}
+} */
 
 #endif // LOGEXTEND_H

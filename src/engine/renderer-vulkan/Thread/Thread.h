@@ -39,7 +39,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 #include <cstdint>
 
-#include "TaskListShared.h"
 #include "Task.h"
 
 #include "../Shared/Timer.h"
