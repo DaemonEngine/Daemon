@@ -43,6 +43,10 @@ static uint64_t TimeNanoseconds() {
 	return std::chrono::duration_cast< std::chrono::nanoseconds >( Sys::SteadyClock::now().time_since_epoch() ).count();
 }
 
+Timer::Timer( uint64_t* newTimeVar ) :
+	timeVar( newTimeVar ) {
+}
+
 // If newTimeVar is specified, it will be set to the Timer's runTime when the destructor is called
 Timer::Timer( const bool start, uint64_t* newTimeVar ) :
 	timeVar( newTimeVar ) {
