@@ -41,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Timer {
 	public:
-	Timer( uint64_t* newTimeVar = nullptr );
+	Timer( uint64_t* newTimeVar );
 	Timer( const bool start = true, uint64_t* newTimeVar = nullptr );
 	~Timer();
 
