@@ -79,6 +79,7 @@ uint8_t TaskList::LockQueue( Task* task ) {
 	uint64_t desired;
 	uint8_t queue;
 	do {
+		// TODO: Use projected task time or a uniform distribution to select a queue
 		queue = rand() % 63;
 		desired = SetBit( expected, queue );
 	} while ( !taskRing.queueLocks.compare_exchange_weak( expected, desired, std::memory_order_relaxed ) );
