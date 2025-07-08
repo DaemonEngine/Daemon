@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef ARRAY_H
 #define ARRAY_H
 
+#include <cstdint>
+
 template<typename T, uint64_t newSize>
 struct Array {
 	const uint64_t size = newSize;
