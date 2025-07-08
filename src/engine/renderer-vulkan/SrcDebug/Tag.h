@@ -38,6 +38,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 
+namespace LogExtendedFunctionMode {
+	enum {
+		NAME,
+		TEMPLATE,
+		FULL
+	};
+};
+
+extern Cvar::Range<Cvar::Cvar<int>> r_vkLogExtendedFunctionNames;
+
 constexpr size_t TypeDelimiter( const std::string_view name ) {
 	return name.find_first_of( "::" );
 }
@@ -55,6 +65,11 @@ constexpr size_t TypeClosingBracket( const std::string_view name ) {
 	return name.find_last_of( "]" );
 }
 
+// MSVC adds template specialisation as <...> before the opening parenthesis
+constexpr size_t TypeTemplateStart( const std::string_view name ) {
+	return name.find_first_of( "<" );
+}
+
 constexpr size_t TypeStart( const std::string_view name ) {
 	return TypeWhiteSpace( name ) == std::string_view::npos ? 0 : TypeWhiteSpace( name ) + 1;
 }
@@ -64,7 +79,7 @@ constexpr std::string_view TypeLeft( const std::string_view name ) {
 }
 
 constexpr std::string_view TypeRight( const std::string_view name ) {
-	return name.substr( TypeDelimiter( name ) + 2 );
+	return name.substr( TypeDelimiter( name ) == std::string_view::npos ? 0 : TypeDelimiter( name ) + 2 );
 }
 
 constexpr const std::string_view TypeName( const std::string_view name ) {
@@ -73,6 +88,14 @@ constexpr const std::string_view TypeName( const std::string_view name ) {
 
 constexpr const std::string_view FunctionName( const std::string_view name ) {
 	#if defined(__GNUC__)
+		return TypeRight( name ).substr( 0, TypeParenthesis( name ) );
+	#else
+		return TypeRight( name ).substr( 0, std::min( TypeParenthesis( name ), TypeTemplateStart( name ) ) );
+	#endif
+}
+
+constexpr const std::string_view FunctionNameTemplate( const std::string_view name ) {
+	#if defined(__GNUC__)
 		return TypeRight( name ).substr( 0, TypeClosingBracket( name ) );
 	#else
 		return TypeRight( name ).substr( 0, TypeParenthesis( name ) );
@@ -80,14 +103,32 @@ constexpr const std::string_view FunctionName( const std::string_view name ) {
 }
 
 inline std::string Tagged( const std::string& message, const std::source_location& loc = std::source_location::current() ) {
-	return Str::Format( "%s(): %s", FunctionName( loc.function_name() ), message );
+	switch ( r_vkLogExtendedFunctionNames.Get() ) {
+		case LogExtendedFunctionMode::NAME:
+			return Str::Format( "%s(): %s", FunctionName( loc.function_name() ), message );
+		case LogExtendedFunctionMode::TEMPLATE:
+			return Str::Format( "%s(): %s", FunctionNameTemplate( loc.function_name() ), message );
+		case LogExtendedFunctionMode::FULL:
+			return Str::Format( "%s(): %s", loc.function_name(), message );
+		default:
+			ASSERT_UNREACHABLE();
+	}
 }
 
 /* Add this as a base class to be able to use Log::WarnTag() etc.
 Allows either specifying a custom name for an object, or otherwise automatically using the class name */
 struct Tag {
 	std::string Tagged( const std::string& message, const std::source_location& loc = std::source_location::current() ) {
-		return Str::Format( "%s:%s(): %s", name, FunctionName( loc.function_name() ), message );
+		switch ( r_vkLogExtendedFunctionNames.Get() ) {
+			case LogExtendedFunctionMode::NAME:
+				return Str::Format( "%s:%s(): %s", name, FunctionName( loc.function_name() ), message );
+			case LogExtendedFunctionMode::TEMPLATE:
+				return Str::Format( "%s:%s(): %s", name, FunctionNameTemplate( loc.function_name() ), message );
+			case LogExtendedFunctionMode::FULL:
+				return Str::Format( "%s(): %s", loc.function_name(), message );
+			default:
+				ASSERT_UNREACHABLE();
+		}
 	}
 
 	protected:

@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // MiscCVarStore.cpp
 
 #include "SrcDebug/LogExtend.h"
+#include "SrcDebug/Tag.h"
 
 Cvar::Cvar<bool> r_vkLogExtend( "r_vkLogExtend", "Print src location in all logs", Cvar::NONE, false );
 
@@ -41,3 +42,7 @@ Cvar::Cvar<bool> r_vkLogExtendWarn( "r_vkLogExtendWarn", "Print src location in 
 Cvar::Cvar<bool> r_vkLogExtendNotice( "r_vkLogExtendNotice", "Print src location in notice logs", Cvar::NONE, false );
 Cvar::Cvar<bool> r_vkLogExtendVerbose( "r_vkLogExtendVerbose", "Print src location in verbose logs", Cvar::NONE, false );
 Cvar::Cvar<bool> r_vkLogExtendDebug( "r_vkLogExtendDebug", "Print src location in debug logs", Cvar::NONE, false );
+
+Cvar::Range<Cvar::Cvar<int>> r_vkLogExtendedFunctionNames( "r_vkLogExtendedFunctionNames",
+	"Extended log function format: 0 - only name, 1 - name + template specialisation, 2 - all", Cvar::NONE,
+	LogExtendedFunctionMode::NAME, LogExtendedFunctionMode::NAME, LogExtendedFunctionMode::FULL );
