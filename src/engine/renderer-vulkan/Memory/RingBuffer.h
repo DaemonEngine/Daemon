@@ -39,10 +39,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Memory.h"
 
 #include "../Shared/Timer.h"
+#include "../SrcDebug/Tag.h"
 
 template<typename T>
-class RingBuffer {
+class RingBuffer :
+	public Tag {
+
 	public:
+	RingBuffer() {
+	}
+
+	RingBuffer( const std::string name ) :
+		Tag( name ) {
+	}
+
 	void Alloc( const uint64_t newElementCount ) {
 		elementCount = newElementCount;
 		size = ( elementCount * sizeof( T ) + 63 ) & ~64;
@@ -53,8 +63,7 @@ class RingBuffer {
 
 	void Resize( const uint64_t newElementCount ) {
 		if ( newElementCount < elementCount ) {
-			printf( "RingBuffer: Resize: newElementCount < elementCount (%u < %u)",
-				newElementCount, elementCount );
+			Log::WarnTag( "newElementCount < elementCount (%u < %u)", newElementCount, elementCount );
 			return;
 		}
 
@@ -89,12 +98,21 @@ class RingBuffer {
 };
 
 template<typename T>
-class AtomicRingBuffer {
+class AtomicRingBuffer :
+	public Tag {
+
 	public:
 	T* memory;
 
 	Timer getTimer;
 	Timer addTimer;
+
+	AtomicRingBuffer() {
+	}
+
+	AtomicRingBuffer( const std::string name ) :
+		Tag( name ) {
+	}
 
 	void Alloc( const uint64_t newElementCount ) {
 		elementCount = newElementCount;
@@ -113,7 +131,7 @@ class AtomicRingBuffer {
 
 	void Resize( const uint64_t newElementCount ) {
 		if ( newElementCount < elementCount ) {
-			Log::Warn( "RingBuffer: Resize: newElementCount < elementCount (%u < %u)",
+			Log::WarnTag( "newElementCount < elementCount (%u < %u)",
 				newElementCount, elementCount );
 			return;
 		}
@@ -142,7 +160,7 @@ class AtomicRingBuffer {
 
 		while ( memory[element].active ) {
 			std::this_thread::yield();
-			Log::Debug( "RingBuffer yielding" );
+			Log::DebugTag( "Yielding" );
 		}
 
 		memory[element].active = true;
@@ -156,18 +174,18 @@ class AtomicRingBuffer {
 
 		Timer t;
 		do {
-			Log::Debug( "RingBuffer get: retrying\n" );
+			Log::DebugTag( "Retrying" );
 			if ( memory[expected].active ) {
 				desired = ( expected + 1 ) & mask;
 			} else if ( expected < ( pointer & mask ) ) {
 				desired = expected + 1;
 			} else {
-				Log::Debug( "RingBuffer get none: %s\n", Timer::FormatTime( t.Time() ).c_str() );
+				Log::DebugTag( "None: %s", Timer::FormatTime( t.Time() ) );
 				return nullptr;
 			}
 		} while ( !current.compare_exchange_weak( expected, desired, std::memory_order_relaxed ) );
 
-		Log::Debug( "RingBuffer get: %s\n", Timer::FormatTime( t.Time() ).c_str() );
+		Log::DebugTag( Timer::FormatTime( t.Time() ) );
 
 		return &memory[expected];
 	}

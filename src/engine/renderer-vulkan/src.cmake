@@ -19,6 +19,7 @@ set(TASKLIST
 
 set(UTILSLIST
     ${ENGINE_DIR}/renderer-vulkan/SrcDebug/LogExtend.h
+    ${ENGINE_DIR}/renderer-vulkan/SrcDebug/Tag.h
 )
 
 set(RENDERERLIST

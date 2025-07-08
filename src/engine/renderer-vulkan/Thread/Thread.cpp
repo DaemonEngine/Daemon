@@ -51,7 +51,7 @@ void Thread::Start( const uint32_t newID ) {
 	runTime = 0;
 	osThread = std::thread( &Thread::Run, this );
 
-	printf( "thread start: %u\n", id );
+	Log::DebugTag( "id: %u", id );
 }
 
 void Thread::Run() {
@@ -84,10 +84,7 @@ void Thread::Run() {
 
 		runTime = runTimeTimer.Time();
 
-		if ( task ) {
-			printf( "???\n" );
-			continue;
-		}
+		ASSERT_EQ( task, nullptr );
 
 		fetching.Start();
 		task = taskList.FetchTask( this );
@@ -97,11 +94,11 @@ void Thread::Run() {
 			idle.Start();
 			std::this_thread::yield();
 			idle.Stop();
-			printf( "%u yielding\n", id );
+			Log::DebugTag( "id: %u, yielding", id );
 			continue;
 		}
 
-		printf( "Execing %u\n", id );
+		Log::DebugTag( "id: %u, execing", id );
 
 		Timer t;
 		execing.Start();
@@ -125,9 +122,9 @@ void Thread::Exit() {
 
 	osThread.join();
 
-	printf( "thread end: %u\n", id );
+	Log::DebugTag( "id: %u", id );
 
-	printf( "%u: total: %s, fetching: %s, execing: %s, idle: %s\n", id, Timer::FormatTime( total.Time() ).c_str(),
-		Timer::FormatTime( fetching.Time() ).c_str(), Timer::FormatTime( execing.Time() ).c_str(),
-		Timer::FormatTime( idle.Time() ).c_str() );
+	Log::DebugTag( "id: %u: total: %s, fetching: %s, execing: %s, idle: %s\n", id, Timer::FormatTime( total.Time() ),
+		Timer::FormatTime( fetching.Time() ), Timer::FormatTime( execing.Time() ),
+		Timer::FormatTime( idle.Time() ) );
 }

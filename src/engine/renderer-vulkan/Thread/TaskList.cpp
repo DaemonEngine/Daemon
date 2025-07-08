@@ -127,7 +127,7 @@ void TaskList::AddTask( Task task ) {
 }
 
 Task* TaskList::FetchTask( Thread* thread ) {
-	printf( "thread %u fetching\n", thread->id );
+	Log::DebugTag( "Thread %u fetching", thread->id );
 
 	thread->exiting = exiting;
 

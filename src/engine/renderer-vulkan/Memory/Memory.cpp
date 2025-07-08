@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Memory.cpp
 
+#include "../SrcDebug/Tag.h"
+
 #include "Memory.h"
 
 void* AllocAligned( const uint64_t size, const uint64_t alignment ) {
@@ -44,7 +46,7 @@ void* AllocAligned( const uint64_t size, const uint64_t alignment ) {
 
 	void* ret = Com_Allocate_Aligned( alignment, paddedSize );
 	if ( !ret ) {
-		Sys::Drop( "AllocAligned failed: memory allocation returned nullptr (size: %u, alignment: %u)",
+		Sys::Drop( "AllocAligned: failed: memory allocation returned nullptr (size: %u, alignment: %u)",
 			paddedSize, alignment );
 	}
 
@@ -53,7 +55,7 @@ void* AllocAligned( const uint64_t size, const uint64_t alignment ) {
 
 void FreeAligned( void* memory ) {
 	if ( !memory ) {
-		Log::Warn( "Freeing nullptr in FreeAligned" );
+		Log::WarnTag( "Freeing nullptr" );
 	}
 
 	Com_Free_Aligned( memory );

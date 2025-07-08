@@ -56,7 +56,8 @@ struct TaskRing {
 	TaskQueue queues[64];
 };
 
-class TaskList {
+class TaskList :
+	public Tag {
 	public:
 	friend class Thread;
 
@@ -74,7 +75,7 @@ class TaskList {
 	void FinishShutdown();
 
 	private:
-	AtomicRingBuffer<Task> tasks;
+	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory" };
 	TaskRing taskRing;
 
 	static const uint32_t MAX_THREADS = 256;

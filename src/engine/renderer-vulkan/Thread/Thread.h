@@ -42,8 +42,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Task.h"
 
 #include "../Shared/Timer.h"
+#include "../SrcDebug/Tag.h"
 
-class Thread {
+class Thread :
+	public Tag {
 	public:
 	Thread();
 	~Thread();

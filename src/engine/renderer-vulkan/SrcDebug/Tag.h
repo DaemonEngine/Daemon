@@ -1,0 +1,113 @@
+/*
+===========================================================================
+
+Daemon BSD Source Code
+Copyright (c) 2025 Daemon Developers
+All rights reserved.
+
+This file is part of the Daemon BSD Source Code (Daemon Source Code).
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of the Daemon developers nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL DAEMON DEVELOPERS BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+===========================================================================
+*/
+// Tag.h
+
+#ifndef TAG_H
+#define TAG_H
+
+#include "common/Common.h"
+
+constexpr size_t TypeDelimiter( const std::string_view name ) {
+	return name.find_first_of( "::" );
+}
+
+constexpr size_t TypeWhiteSpace( const std::string_view name ) {
+	return name.find_last_of( " " );
+}
+
+constexpr size_t TypeParenthesis( const std::string_view name ) {
+	return name.find_first_of( "(" );
+}
+
+// GCC/Clang adds template specialisation at the end in []
+constexpr size_t TypeClosingBracket( const std::string_view name ) {
+	return name.find_last_of( "]" );
+}
+
+constexpr size_t TypeStart( const std::string_view name ) {
+	return TypeWhiteSpace( name ) == std::string_view::npos ? 0 : TypeWhiteSpace( name ) + 1;
+}
+
+constexpr std::string_view TypeLeft( const std::string_view name ) {
+	return name.substr( 0, TypeDelimiter( name ) );
+}
+
+constexpr std::string_view TypeRight( const std::string_view name ) {
+	return name.substr( TypeDelimiter( name ) + 2 );
+}
+
+constexpr const std::string_view TypeName( const std::string_view name ) {
+	return TypeLeft( name ).substr( TypeStart( TypeLeft( name ) ) );
+}
+
+constexpr const std::string_view FunctionName( const std::string_view name ) {
+	#if defined(__GNUC__)
+		return TypeRight( name ).substr( 0, TypeClosingBracket( name ) );
+	#else
+		return TypeRight( name ).substr( 0, TypeParenthesis( name ) );
+	#endif
+}
+
+inline std::string Tagged( const std::string& message, const std::source_location& loc = std::source_location::current() ) {
+	return Str::Format( "%s(): %s", FunctionName( loc.function_name() ), message );
+}
+
+/* Add this as a base class to be able to use Log::WarnTag() etc.
+Allows either specifying a custom name for an object, or otherwise automatically using the class name */
+struct Tag {
+	std::string Tagged( const std::string& message, const std::source_location& loc = std::source_location::current() ) {
+		return Str::Format( "%s:%s(): %s", name, FunctionName( loc.function_name() ), message );
+	}
+
+	protected:
+	const bool useCustomName;
+	const std::string name;
+
+	Tag( const std::string_view newName = std::source_location::current().function_name() ) :
+		useCustomName( false ),
+		name( TypeName( newName ) ) {
+	}
+
+	Tag( const std::string newName ) :
+		useCustomName( true ),
+		name( newName ) {
+	}
+};
+
+#define WarnTag( format, ... ) Warn( Tagged( format ), __VA_ARGS__ )
+#define NoticeTag( format, ... ) Warn( Tagged( format ), __VA_ARGS__ )
+#define VerboseTag( format, ... ) Warn( Tagged( format ), __VA_ARGS__ )
+#define DebugTag( format, ... ) Warn( Tagged( format ), __VA_ARGS__ )
+
+#endif // TAG_H
