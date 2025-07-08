@@ -41,6 +41,16 @@ static byte       *fileBase;
 
 //===============================================================================
 
+static bool cannotColorShiftLighting()
+{
+	if ( tr.overbrightBits >= tr.mapOverBrightBits )
+	{
+		return true;
+	}
+
+	return false;
+}
+
 /*
 ===============
 R_ColorShiftLightingBytes
@@ -48,7 +58,10 @@ R_ColorShiftLightingBytes
 */
 static void R_ColorShiftLightingBytes( byte bytes[ 4 ] )
 {
-	ASSERT_LT( tr.overbrightBits, tr.mapOverBrightBits );
+	if ( cannotColorShiftLighting() )
+	{
+		return;
+	}
 
 	int shift = tr.mapOverBrightBits - tr.overbrightBits;
 
@@ -76,7 +89,10 @@ static void R_ColorShiftLightingBytes( byte bytes[ 4 ] )
 
 static void R_ColorShiftLightingBytesCompressed( byte bytes[ 8 ] )
 {
-	ASSERT_LT( tr.overbrightBits, tr.mapOverBrightBits );
+	if ( cannotColorShiftLighting() )
+	{
+		return;
+	}
 
 	// color shift the endpoint colors in the dxt block
 	unsigned short rgb565 = bytes[1] << 8 | bytes[0];
@@ -117,7 +133,7 @@ R_ProcessLightmap
 */
 void R_ProcessLightmap( byte *bytes, int width, int height, int bits )
 {
-	if ( tr.overbrightBits >= tr.mapOverBrightBits )
+	if ( cannotColorShiftLighting() )
 	{
 		return;
 	}
@@ -621,10 +637,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					lightMapBuffer[( index * 4 ) + 2 ] = buf_p[( ( x + ( y * internalLightMapSize ) ) * 3 ) + 2 ];
 					lightMapBuffer[( index * 4 ) + 3 ] = 255;
 
-					if ( tr.overbrightBits < tr.mapOverBrightBits )
-					{
-						R_ColorShiftLightingBytes( &lightMapBuffer[( index * 4 ) + 0 ] );
-					}
+					R_ColorShiftLightingBytes( &lightMapBuffer[( index * 4 ) + 0 ] );
 				}
 			}
 
@@ -972,9 +985,7 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		if ( tr.overbrightBits < tr.mapOverBrightBits ) {
-			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
-		}
+		R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
 	}
 
 	// Copy triangles
@@ -1206,10 +1217,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 
 		points[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		if ( tr.overbrightBits < tr.mapOverBrightBits )
-		{
-			R_ColorShiftLightingBytes( points[ i ].lightColor.ToArray() );
-		}
+		R_ColorShiftLightingBytes( points[ i ].lightColor.ToArray() );
 	}
 
 	// center texture coords
@@ -3494,11 +3502,8 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
 
-		if ( tr.overbrightBits < tr.mapOverBrightBits )
-		{
-			R_ColorShiftLightingBytes( tmpAmbient );
-			R_ColorShiftLightingBytes( tmpDirected );
-		}
+		R_ColorShiftLightingBytes( tmpAmbient );
+		R_ColorShiftLightingBytes( tmpDirected );
 
 		for ( j = 0; j < 3; j++ )
 		{
