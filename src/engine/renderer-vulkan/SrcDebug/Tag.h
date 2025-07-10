@@ -48,6 +48,8 @@ namespace LogExtendedFunctionMode {
 
 extern Cvar::Range<Cvar::Cvar<int>> r_vkLogExtendedFunctionNames;
 
+// This is kinda ugly, but it's the only way we can make it constexpr
+
 constexpr size_t TypeDelimiter( const std::string_view name ) {
 	return name.find_first_of( "::" );
 }
@@ -90,15 +92,15 @@ constexpr const std::string_view FunctionName( const std::string_view name ) {
 	#if defined(__GNUC__)
 		return TypeRight( name ).substr( 0, TypeParenthesis( name ) );
 	#else
-		return TypeRight( name ).substr( 0, std::min( TypeParenthesis( name ), TypeTemplateStart( name ) ) );
+		return TypeRight( name ).substr( 0, std::min( TypeParenthesis( TypeRight( name ) ), TypeTemplateStart( TypeRight( name ) ) ) );
 	#endif
 }
 
 constexpr const std::string_view FunctionNameTemplate( const std::string_view name ) {
 	#if defined(__GNUC__)
-		return TypeRight( name ).substr( 0, TypeClosingBracket( name ) );
+		return TypeRight( name ).substr( 0, TypeClosingBracket( TypeRight( name ) ) );
 	#else
-		return TypeRight( name ).substr( 0, TypeParenthesis( name ) );
+		return TypeRight( name ).substr( 0, TypeParenthesis( TypeRight( name ) ) );
 	#endif
 }
 
