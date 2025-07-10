@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using byte = uint8_t;
 
-void* AllocAligned( const uint64_t size, const uint64_t alignment );
+MALLOC_LIKE void* AllocAligned( const uint64_t size, const uint64_t alignment );
 void FreeAligned( void* memory );
 
 inline void* Alloc64( const uint64_t size ) {

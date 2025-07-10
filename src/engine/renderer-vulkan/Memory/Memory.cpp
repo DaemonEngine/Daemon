@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Memory.h"
 
-void* AllocAligned( const uint64_t size, const uint64_t alignment ) {
+MALLOC_LIKE void* AllocAligned( const uint64_t size, const uint64_t alignment ) {
 	if ( !size ) {
 		return nullptr;
 	}
