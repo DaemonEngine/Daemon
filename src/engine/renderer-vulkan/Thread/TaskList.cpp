@@ -40,8 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 TaskList taskList;
 
 TaskList::TaskList() {
-	tasks.Alloc( 2048 );
-	AdjustThreadCount( std::thread::hardware_concurrency() );
+	// tasks.Alloc( 2048 );
+	// AdjustThreadCount( std::thread::hardware_concurrency() );
 }
 
 TaskList::~TaskList() {
@@ -60,6 +60,11 @@ void TaskList::AdjustThreadCount( uint32_t newMaxThreads ) {
 
 		currentMaxThreads = newMaxThreads;
 	}
+}
+
+void TaskList::Init() {
+	tasks.Alloc( 2048 );
+	AdjustThreadCount( std::thread::hardware_concurrency() );
 }
 
 void TaskList::Shutdown() {
