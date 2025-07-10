@@ -71,6 +71,7 @@ class TaskList :
 
 	void AdjustThreadCount( const uint32_t newMaxThreads );
 
+	void Init();
 	void Shutdown();
 	void FinishShutdown();
 
