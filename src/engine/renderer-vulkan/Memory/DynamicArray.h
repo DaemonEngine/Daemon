@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 #include "Memory.h"
+#include "IteratorSeq.h"
 #include "../SrcDebug/Tag.h"
 
 template<typename T>
@@ -144,51 +145,12 @@ class DynamicArray :
 		return memory[index];
 	}
 
-	struct Iterator {
-		T* ptr;
-
-		constexpr Iterator( T* newPtr ) :
-			ptr( newPtr ) {
-		}
-
-		constexpr T& operator*() const {
-			return *ptr;
-		}
-
-		constexpr T* operator->() {
-			return ptr;
-		}
-
-		constexpr ptrdiff_t operator-( const Iterator& other ) const {
-			return ptr - other.ptr;
-		}
-
-		constexpr Iterator& operator++() {
-			ptr++;
-			return *this;
-		}
-
-		constexpr Iterator operator++( int ) {
-			Iterator current = *this;
-			++( *this );
-			return current;
-		}
-
-		friend constexpr bool operator==( const Iterator& lhs, const Iterator& rhs ) {
-			return lhs.ptr == rhs.ptr;
-		}
-
-		friend constexpr bool operator!=( const Iterator& lhs, const Iterator& rhs ) {
-			return lhs.ptr != rhs.ptr;
-		}
-	};
-
-	constexpr Iterator begin() {
-		return Iterator{ &memory[0] };
+	constexpr IteratorSeq<T> begin() {
+		return IteratorSeq<T>{ &memory[0] };
 	}
 
-	constexpr Iterator end() {
-		return Iterator{ &memory[size] };
+	constexpr IteratorSeq<T> end() {
+		return IteratorSeq<T>{ &memory[size] };
 	}
 };
 
