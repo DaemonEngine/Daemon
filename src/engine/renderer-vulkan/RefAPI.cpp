@@ -38,11 +38,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "RefAPI.h"
 
+#include "Thread/TaskList.h"
+
 Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen( "r_fullscreen", "use full-screen window", CVAR_ARCHIVE, true );
 
 cvar_t* r_allowResize;
 
 struct SDL_Window* window;
+
+namespace TempAPI {
+	void Shutdown( bool destroyWindow ) {
+		Q_UNUSED( destroyWindow );
+	}
+
+	bool BeginRegistration( glconfig_t*, glconfig2_t* ) {
+		taskList.Init();
+		return true;
+	}
+}
 
 refexport_t* GetRefAPI( int apiVersion, refimport_t* rimp ) {
 	static refexport_t re;
@@ -61,9 +74,9 @@ refexport_t* GetRefAPI( int apiVersion, refimport_t* rimp ) {
 	// the RE_ functions are Renderer Entry points
 
 	// Q3A BEGIN
-	re.Shutdown = nullptr;
+	re.Shutdown = TempAPI::Shutdown;
 
-	re.BeginRegistration = nullptr;
+	re.BeginRegistration = TempAPI::BeginRegistration;
 	re.RegisterModel = nullptr;
 
 	re.RegisterSkin = nullptr;
