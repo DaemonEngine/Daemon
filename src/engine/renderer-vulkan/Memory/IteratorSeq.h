@@ -31,44 +31,49 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Array.h
+// IteratorSeq.h
 
-#ifndef ARRAY_H
-#define ARRAY_H
+#ifndef ITERATOR_SEQ_H
+#define ITERATOR_SEQ_H
 
-#include <cstdint>
+template<typename T>
+struct IteratorSeq {
+	T* ptr;
 
-#include "IteratorSeq.h"
-
-template<typename T, uint64_t newSize>
-struct Array {
-	const uint64_t size = newSize;
-    T memory[newSize];
-
-	constexpr Array( std::initializer_list<T> args ) {
-		for ( uint64_t i = 0; i < args.size(); i++ ) {
-			memory[i] = args.begin()[i];
-		}
+	constexpr IteratorSeq( T* newPtr ) :
+		ptr( newPtr ) {
 	}
 
-	constexpr uint64_t Size() {
-		return newSize;
+	constexpr T& operator*() const {
+		return *ptr;
 	}
 
-	constexpr T& operator[]( const uint64_t index ) {
-		return memory[index];
+	constexpr T* operator->() {
+		return ptr;
 	}
 
-	constexpr IteratorSeq<T> begin() {
-		return IteratorSeq<T>{ &memory[0] };
+	constexpr ptrdiff_t operator-( const IteratorSeq& other ) const {
+		return ptr - other.ptr;
 	}
 
-	constexpr IteratorSeq<T> end() {
-		return IteratorSeq<T>{ &memory[size] };
+	constexpr IteratorSeq& operator++() {
+		ptr++;
+		return *this;
+	}
+
+	constexpr IteratorSeq operator++( int ) {
+		IteratorSeq current = *this;
+		++( *this );
+		return current;
+	}
+
+	friend constexpr bool operator==( const IteratorSeq& lhs, const IteratorSeq& rhs ) {
+		return lhs.ptr == rhs.ptr;
+	}
+
+	friend constexpr bool operator!=( const IteratorSeq& lhs, const IteratorSeq& rhs ) {
+		return lhs.ptr != rhs.ptr;
 	}
 };
 
-template<typename T>
-Array( T args... ) -> Array<T, sizeof( args )>;
-
-#endif // ARRAY_H
+#endif // ITERATOR_SEQ_H
