@@ -4,6 +4,7 @@ set(MATHLIST
 
 set(MEMORYLIST
     ${ENGINE_DIR}/renderer-vulkan/Memory/Array.h
+    ${ENGINE_DIR}/renderer-vulkan/Memory/DynamicArray.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/Memory.cpp
     ${ENGINE_DIR}/renderer-vulkan/Memory/Memory.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/RingBuffer.cpp
