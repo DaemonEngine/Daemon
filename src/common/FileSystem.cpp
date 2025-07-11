@@ -2842,8 +2842,11 @@ std::set<std::string> GetAvailableMaps(bool allowLegacyPaks)
 				FS::PakPath::LoadPakPrefix(pak, "maps/", ignored);
 			}
 		} else {
-			if (Str::IsPrefix(pakPrefix, pak.name) && pak.name.size() > pakPrefix.size()) {
-				maps.insert(pak.name.substr(pakPrefix.size()));
+			std::string basename = FS::Path::BaseName(pak.name);
+			if (Str::IsPrefix(pakPrefix, basename) && basename.size() > pakPrefix.size()
+			    && FS::FindPak(basename) != nullptr) {
+				// FS::FindPak checked that the pak can be loaded via its base name respecting fs_pakprefixes.
+				maps.insert(basename.substr(pakPrefix.size()));
 			}
 		}
 	}
