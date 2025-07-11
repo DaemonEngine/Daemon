@@ -857,11 +857,19 @@ enum class ssaoMode {
 		float    value;
 	};
 
+
+enum
+{
+	EXP_NONE,
+	EXP_SRGB = BIT( 1 ),
+};
+
 #define MAX_EXPRESSION_OPS 32
 	struct expression_t
 	{
 		expOperation_t ops[ MAX_EXPRESSION_OPS ];
 		size_t numOps;
+		int bits;
 
 		bool operator==( const expression_t& other ) {
 			if ( numOps != other.numOps ) {

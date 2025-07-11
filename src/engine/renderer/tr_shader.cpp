@@ -693,8 +693,10 @@ static char    *ParseExpressionElement( const char **data_p )
 ParseExpression
 ===============
 */
-static void ParseExpression( const char **text, expression_t *exp )
+static void ParseExpression( const char **text, expression_t *exp, int bits = 0 )
 {
+	exp->bits = bits;
+
 	expOperation_t op, op2;
 
 	expOperation_t inFixOps[ MAX_EXPRESSION_OPS ];
@@ -2727,25 +2729,25 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "rgb" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGB;
-			ParseExpression( text, &stage->rgbExp );
+			ParseExpression( text, &stage->rgbExp, EXP_SRGB );
 		}
 		// red <arithmetic expression>
 		else if ( !Q_stricmp( token, "red" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
-			ParseExpression( text, &stage->redExp );
+			ParseExpression( text, &stage->redExp, EXP_SRGB );
 		}
 		// green <arithmetic expression>
 		else if ( !Q_stricmp( token, "green" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
-			ParseExpression( text, &stage->greenExp );
+			ParseExpression( text, &stage->greenExp, EXP_SRGB );
 		}
 		// blue <arithmetic expression>
 		else if ( !Q_stricmp( token, "blue" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
-			ParseExpression( text, &stage->blueExp );
+			ParseExpression( text, &stage->blueExp, EXP_SRGB );
 		}
 		// colored
 		else if ( !Q_stricmp( token, "colored" ) )
@@ -2854,9 +2856,9 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
 			stage->alphaGen = alphaGen_t::AGEN_CUSTOM;
-			ParseExpression( text, &stage->redExp );
-			ParseExpression( text, &stage->greenExp );
-			ParseExpression( text, &stage->blueExp );
+			ParseExpression( text, &stage->redExp, EXP_SRGB );
+			ParseExpression( text, &stage->greenExp, EXP_SRGB );
+			ParseExpression( text, &stage->blueExp, EXP_SRGB );
 			ParseExpression( text, &stage->alphaExp );
 		}
 		// tcGen <function>
