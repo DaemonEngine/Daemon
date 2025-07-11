@@ -2757,17 +2757,27 @@ RENDER BACK END THREAD FUNCTIONS
 
 void RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool dirty )
 {
-	// FIXME: Implement sRGB support.
-
 	GL_Bind( tr.cinematicImage[ client ] );
 
 	// if the scratchImage isn't in the format we want, specify it as a new texture
+	/* HACK: This also detects we start playing a video to set the appropriate colorspace
+	because this assumes a video cannot have a 1×1 size (the RoQ format expects the size
+	to be a multiples of 4). */
 	if ( cols != tr.cinematicImage[ client ]->width || rows != tr.cinematicImage[ client ]->height )
 	{
 		tr.cinematicImage[ client ]->width = tr.cinematicImage[ client ]->uploadWidth = cols;
 		tr.cinematicImage[ client ]->height = tr.cinematicImage[ client ]->uploadHeight = rows;
 
-		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB8, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
+		bool isSRGB = tr.worldLinearizeTexture;
+
+		// Makes sure listImages lists the colorspace properly.
+		if ( isSRGB )
+		{
+			tr.cinematicImage[ client ]->bits |= IF_SRGB;
+		}
+		// No need to delete the bit otherwise because R_InitImages() is called at every map load.
+
+		GL_TexImage2D( GL_TEXTURE_2D, 0, GL_RGB8, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data, isSRGB );
 
 		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
