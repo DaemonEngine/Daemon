@@ -863,6 +863,7 @@ enum class ssaoMode {
 enum
 {
 	EXP_NONE,
+	EXP_CLAMP = BIT( 0 ),
 	EXP_SRGB = BIT( 1 ),
 };
 

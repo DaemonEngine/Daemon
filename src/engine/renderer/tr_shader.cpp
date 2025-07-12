@@ -2739,25 +2739,25 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "rgb" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGB;
-			ParseExpression( text, &stage->rgbExp, EXP_SRGB );
+			ParseExpression( text, &stage->rgbExp, EXP_CLAMP | EXP_SRGB );
 		}
 		// red <arithmetic expression>
 		else if ( !Q_stricmp( token, "red" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
-			ParseExpression( text, &stage->redExp, EXP_SRGB );
+			ParseExpression( text, &stage->redExp, EXP_CLAMP | EXP_SRGB );
 		}
 		// green <arithmetic expression>
 		else if ( !Q_stricmp( token, "green" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
-			ParseExpression( text, &stage->greenExp, EXP_SRGB );
+			ParseExpression( text, &stage->greenExp, EXP_CLAMP | EXP_SRGB );
 		}
 		// blue <arithmetic expression>
 		else if ( !Q_stricmp( token, "blue" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
-			ParseExpression( text, &stage->blueExp, EXP_SRGB );
+			ParseExpression( text, &stage->blueExp, EXP_CLAMP | EXP_SRGB );
 		}
 		// colored
 		else if ( !Q_stricmp( token, "colored" ) )
@@ -2859,17 +2859,17 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "alpha" ) )
 		{
 			stage->alphaGen = alphaGen_t::AGEN_CUSTOM;
-			ParseExpression( text, &stage->alphaExp );
+			ParseExpression( text, &stage->alphaExp, EXP_CLAMP );
 		}
 		// color <exp>, <exp>, <exp>, <exp>
 		else if ( !Q_stricmp( token, "color" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
 			stage->alphaGen = alphaGen_t::AGEN_CUSTOM;
-			ParseExpression( text, &stage->redExp, EXP_SRGB );
-			ParseExpression( text, &stage->greenExp, EXP_SRGB );
-			ParseExpression( text, &stage->blueExp, EXP_SRGB );
-			ParseExpression( text, &stage->alphaExp );
+			ParseExpression( text, &stage->redExp, EXP_CLAMP | EXP_SRGB );
+			ParseExpression( text, &stage->greenExp, EXP_CLAMP | EXP_SRGB );
+			ParseExpression( text, &stage->blueExp, EXP_CLAMP | EXP_SRGB );
+			ParseExpression( text, &stage->alphaExp, EXP_CLAMP );
 		}
 		// tcGen <function>
 		else if ( !Q_stricmp( token, "texGen" ) || !Q_stricmp( token, "tcGen" ) )
