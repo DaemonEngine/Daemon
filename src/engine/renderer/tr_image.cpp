@@ -27,6 +27,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <iomanip>
 #include "Material.h"
 
+static Cvar::Cvar<bool> r_allowImageParamMismatch(
+	"r_allowImageParamMismatch", "reuse images when requested with different parameters",
+	Cvar::NONE, false);
+
 int                  gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int                  gl_filter_max = GL_LINEAR;
 
@@ -1813,25 +1817,31 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 	{
 		if ( !Q_strnicmp( imageName, image->name, sizeof( image->name ) ) )
 		{
-			// The white image can be used with any set of parms, but other mismatches are errors.
-			if ( Q_stricmp( imageName, "_white" ) )
+			if ( imageParams == image->initialParams || r_allowImageParamMismatch.Get() )
 			{
-				unsigned int diff = imageParams.bits ^ image->bits;
-
-				if ( diff & IF_NOPICMIP )
-				{
-					Log::Warn("reused image '%s' with mixed allowPicmip parm for shader", imageName );
-				}
-
-				if ( image->wrapType != imageParams.wrapType )
-				{
-					Log::Warn("reused image '%s' with mixed glWrapType parm for shader", imageName);
-				}
+				return image;
 			}
 
-			return image;
+			// Built-in images can't be reloaded with different parameters, so return them as-is.
+			// For most of the usable ones e.g. _white, parameters wouldn't make a difference anyway.
+			// HACK: detect built-in images by naming convention, though nothing stops users from using such names
+			if ( image->name[ 0 ] == '_' && !strchr( image->name, '/' ) )
+			{
+				return image;
+			}
+
+			Log::Verbose( "image params mismatch for %s: 0x%X %d %d/%d %d %d vs. 0x%X %d %d/%d %d %d",
+				imageName,
+				image->initialParams.bits, Util::ordinal( image->initialParams.filterType ),
+				Util::ordinal( image->initialParams.wrapType.s ), Util::ordinal( image->initialParams.wrapType.t ),
+				image->initialParams.minDimension, image->initialParams.maxDimension,
+				imageParams.bits, Util::ordinal( imageParams.filterType ),
+				Util::ordinal( imageParams.wrapType.s ), Util::ordinal( imageParams.wrapType.t ),
+				imageParams.minDimension, imageParams.maxDimension );
 		}
 	}
+
+	const imageParams_t initialParams = imageParams;
 
 	// Load and create the image.
 	int width = 0, height = 0, numLayers = 0, numMips = 0;
@@ -1859,6 +1869,7 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 	}
 
 	image_t *image = R_CreateImage( imageName, (const byte **)pic, width, height, numMips, imageParams );
+	image->initialParams = initialParams;
 
 	Z_Free( *pic );
 
