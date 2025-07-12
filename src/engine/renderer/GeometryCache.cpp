@@ -92,5 +92,5 @@ void GeometryCache::AddMapGeometry( const uint32_t verticesNumber, const uint32_
 
 	stagingBuffer.FlushAll();
 
-	glBindVertexArray( backEnd.currentVAO );
+	GL_BindVAO( backEnd.defaultVAO );
 }
