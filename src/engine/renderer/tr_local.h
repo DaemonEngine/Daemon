@@ -2494,6 +2494,8 @@ enum
 		int       h;
 	};
 
+	using floatProcessor_t = float(*)(float);
+
 	/*
 	** trGlobals_t
 	**
@@ -2526,6 +2528,8 @@ enum
 		bool   worldHDR_RGBE;
 		bool worldLinearizeTexture;
 		bool worldLinearizeLightMap;
+
+		floatProcessor_t convertFromSRGB;
 
 		lightMode_t lightMode;
 		lightMode_t worldLight;

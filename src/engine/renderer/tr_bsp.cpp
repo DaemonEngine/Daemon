@@ -3655,6 +3655,21 @@ void R_LoadLightGrid( lump_t *l )
 	Log::Debug("%i light grid points created", w->numLightGridPoints );
 }
 
+static float convertFromSRGB_accurate( float f )
+{
+	return convertFromSRGB( f );
+}
+
+static float convertFromSRGB_cheap( float f )
+{
+	return pow( f, 2.2f );
+}
+
+static float convertFromSRGB_none( float f )
+{
+	return f;
+}
+
 /*
 ================
 R_LoadEntities
@@ -3895,6 +3910,18 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 		{
 			Log::Warn("expected worldspawn found '%s'", value );
 			continue;
+		}
+	}
+
+	if ( tr.worldLinearizeTexture )
+	{
+		if ( r_accurateSRGB.Get() )
+		{
+			tr.convertFromSRGB = convertFromSRGB_accurate;
+		}
+		else
+		{
+			tr.convertFromSRGB = convertFromSRGB_cheap;
 		}
 	}
 }
@@ -4633,6 +4660,7 @@ void RE_LoadWorldMap( const char *name )
 	tr.identityLight = 1.0f; // set by RE_LoadWorldMap
 	tr.worldLinearizeTexture = false;
 	tr.worldLinearizeLightMap = false;
+	tr.convertFromSRGB = convertFromSRGB_none;
 
 	s_worldData = {};
 	Q_strncpyz( s_worldData.name, name, sizeof( s_worldData.name ) );

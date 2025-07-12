@@ -441,10 +441,12 @@ float RB_EvalExpression( const expression_t *exp, float defaultValue )
 
 	float value = EvalExpression( exp, defaultValue );
 
-	if ( exp->bits & EXP_SRGB && tr.worldLinearizeTexture )
+	if ( exp->bits & EXP_SRGB )
 	{
 		value = Math::Clamp( value, 0.0f, 1.0f );
-		value = convertFromSRGB( value );
+		ASSERT( tr.convertFromSRGB );
+
+		value = tr.convertFromSRGB( value );
 	}
 
 	return value;
