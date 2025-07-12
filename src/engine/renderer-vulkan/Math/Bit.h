@@ -288,4 +288,21 @@ inline uint32_t FindZeroBitFast( const uint64_t value ) {
 	return bit ? bit - 1 : FindLSB( ~value );
 }
 
+inline uint32_t CountSetBits( uint64_t value ) {
+	uint32_t count = 0;
+	while ( value ) {
+		const uint32_t forward = FindLSB( value );
+		const uint32_t back = FindLSB( ~value );
+
+		if ( forward ) {
+			value >>= forward;
+		} else {
+			value >>= back;
+			count += back;
+		}
+	}
+
+	return count;
+}
+
 #endif // BIT_H
