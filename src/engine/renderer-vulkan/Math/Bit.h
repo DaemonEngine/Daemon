@@ -280,8 +280,12 @@ inline uint32_t FindMZeroBit( uint64_t value ) {
 }
 
 inline uint32_t FindZeroBitFast( const uint64_t value ) {
+	if ( value == UINT64_MAX ) {
+		return 64;
+	}
+
 	const uint32_t bit = FindLSB( value );
-	return bit ? bit - 1 : FindLSB( ~value ) - 1;
+	return bit ? bit - 1 : FindLSB( ~value );
 }
 
 #endif // BIT_H
