@@ -1778,7 +1778,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 
 		case colorGen_t::CGEN_CUSTOM_RGB:
 			{
-				rgb = Math::Clamp( RB_EvalExpression( &pStage->rgbExp, 1.0 ), 0.0f, 1.0f );
+				rgb = RB_EvalExpression( &pStage->rgbExp, 1.0 );
 
 				tess.svars.color = Color::White * rgb;
 				break;
@@ -1788,18 +1788,15 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 			{
 				if ( backEnd.currentEntity )
 				{
-					red =
-					  Math::Clamp( RB_EvalExpression( &pStage->redExp, backEnd.currentEntity->e.shaderRGBA.Red() * ( 1.0 / 255.0 ) ), 0.0f, 1.0f );
-					green =
-					  Math::Clamp( RB_EvalExpression( &pStage->greenExp, backEnd.currentEntity->e.shaderRGBA.Green() * ( 1.0 / 255.0 ) ), 0.0f, 1.0f );
-					blue =
-					  Math::Clamp( RB_EvalExpression( &pStage->blueExp, backEnd.currentEntity->e.shaderRGBA.Blue() * ( 1.0 / 255.0 ) ), 0.0f, 1.0f );
+					red = RB_EvalExpression( &pStage->redExp, backEnd.currentEntity->e.shaderRGBA.Red() * ( 1.0 / 255.0 ) );
+					green = RB_EvalExpression( &pStage->greenExp, backEnd.currentEntity->e.shaderRGBA.Green() * ( 1.0 / 255.0 ) );
+					blue = RB_EvalExpression( &pStage->blueExp, backEnd.currentEntity->e.shaderRGBA.Blue() * ( 1.0 / 255.0 ) );
 				}
 				else
 				{
-					red = Math::Clamp( RB_EvalExpression( &pStage->redExp, 1.0 ), 0.0f, 1.0f );
-					green = Math::Clamp( RB_EvalExpression( &pStage->greenExp, 1.0 ), 0.0f, 1.0f );
-					blue = Math::Clamp( RB_EvalExpression( &pStage->blueExp, 1.0 ), 0.0f, 1.0f );
+					red = RB_EvalExpression( &pStage->redExp, 1.0 );
+					green = RB_EvalExpression( &pStage->greenExp, 1.0 );
+					blue = RB_EvalExpression( &pStage->blueExp, 1.0 );
 				}
 
 				tess.svars.color.SetRed( red );
@@ -1878,7 +1875,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 
 		case alphaGen_t::AGEN_CUSTOM:
 			{
-				alpha = Math::Clamp( RB_EvalExpression( &pStage->alphaExp, 1.0 ), 0.0f, 1.0f );
+				alpha = RB_EvalExpression( &pStage->alphaExp, 1.0 );
 
 				tess.svars.color.SetAlpha( alpha );
 				break;
