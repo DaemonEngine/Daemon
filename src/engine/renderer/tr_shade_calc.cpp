@@ -441,9 +441,13 @@ float RB_EvalExpression( const expression_t *exp, float defaultValue )
 
 	float value = EvalExpression( exp, defaultValue );
 
-	if ( exp->bits & EXP_SRGB )
+	if ( exp->bits & EXP_NORM )
 	{
 		value = Math::Clamp( value, 0.0f, 1.0f );
+	}
+
+	if ( exp->bits & EXP_SRGB )
+	{
 		ASSERT( tr.convertFromSRGB );
 
 		value = tr.convertFromSRGB( value );
