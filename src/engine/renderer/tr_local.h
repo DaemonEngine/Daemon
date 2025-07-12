@@ -523,11 +523,19 @@ enum class ssaoMode {
 		wrapType_t wrapType;
 		int minDimension = 0;
 		int maxDimension = 0;
+
+		bool operator==(const imageParams_t &o) const
+		{
+			return o.bits == bits && o.filterType == filterType && o.wrapType == wrapType
+				&& o.minDimension == minDimension && o.maxDimension == maxDimension;
+		}
 	};
 
 	struct image_t
 	{
 		char name[ MAX_QPATH ];
+
+		imageParams_t initialParams; // may not match final values
 
 		GLenum         type;
 		GLuint         texnum; // gl texture binding
