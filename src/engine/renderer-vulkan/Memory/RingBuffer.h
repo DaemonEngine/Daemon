@@ -55,7 +55,7 @@ class RingBuffer :
 
 	void Alloc( const uint64_t newElementCount ) {
 		elementCount = newElementCount;
-		size = ( elementCount * sizeof( T ) + 63 ) & ~64;
+		size = ( elementCount * sizeof( T ) + 63 ) & ~63;
 		memory = ( T* ) Alloc64( size );
 
 		pointer = 0;

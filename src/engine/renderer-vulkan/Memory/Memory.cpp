@@ -42,7 +42,9 @@ MALLOC_LIKE void* AllocAligned( const uint64_t size, const uint64_t alignment ) 
 		return nullptr;
 	}
 
-	const uint64_t paddedSize = ( size + alignment - 1 ) & ~alignment;
+	ASSERT_EQ( ( alignment & ( alignment - 1 ) ), 0 );
+
+	const uint64_t paddedSize = ( size + alignment - 1 ) & ~( alignment - 1 );
 
 	void* ret = Com_Allocate_Aligned( alignment, paddedSize );
 	if ( !ret ) {
