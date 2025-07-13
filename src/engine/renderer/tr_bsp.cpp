@@ -829,7 +829,7 @@ static shader_t* ShaderForShaderNum( int shaderNum ) {
 
 	dshader_t* dsh = &s_worldData.shaders[shaderNum];
 
-	shader_t* shader = R_FindShader( dsh->shader, shaderType_t::SHADER_3D_STATIC, RSF_DEFAULT );
+	shader_t* shader = R_FindShader( dsh->shader, shaderType_t::SHADER_3D, RSF_DEFAULT );
 
 	// If the shader had errors, just use default shader
 	if ( shader->defaultShader ) {
@@ -3271,7 +3271,7 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		}
 
 		// get information from the shader for fog parameters
-		shader = R_FindShader( fogs->shader, shaderType_t::SHADER_3D_DYNAMIC, RSF_DEFAULT );
+		shader = R_FindShader( fogs->shader, shaderType_t::SHADER_3D, RSF_DEFAULT );
 
 		out->fogParms = shader->fogParms;
 
