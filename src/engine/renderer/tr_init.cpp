@@ -968,10 +968,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d", glConfig2.glMajor, glConfig2.glMinor, glConfig2.glRequestedMajor, glConfig2.glRequestedMinor );
 		}
 
-		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
+		if ( std::make_pair( glConfig2.glMajor, glConfig2.glMinor ) >= std::make_pair( 3, 2 ) )
 		{
-			Log::Notice("%sUsing OpenGL 3.x context.", Color::ToString( Color::Green ) );
-
 			/* See https://www.khronos.org/opengl/wiki/OpenGL_Context
 			for information about core, compatibility and forward context. */
 
@@ -983,10 +981,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			{
 				Log::Notice("%sUsing an OpenGL compatibility profile.", Color::ToString( Color::Red ) );
 			}
-		}
-		else
-		{
-			Log::Notice("%sUsing OpenGL 2.x context.", Color::ToString( Color::Red ) );
 		}
 
 		if ( glConfig2.glForwardCompatibleContext )
