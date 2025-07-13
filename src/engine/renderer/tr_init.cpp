@@ -983,19 +983,19 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			{
 				Log::Notice("%sUsing an OpenGL compatibility profile.", Color::ToString( Color::Red ) );
 			}
-
-			if ( glConfig2.glForwardCompatibleContext )
-			{
-				Log::Notice("OpenGL 3.x context is forward compatible.");
-			}
-			else
-			{
-				Log::Notice("OpenGL 3.x context is not forward compatible.");
-			}
 		}
 		else
 		{
 			Log::Notice("%sUsing OpenGL 2.x context.", Color::ToString( Color::Red ) );
+		}
+
+		if ( glConfig2.glForwardCompatibleContext )
+		{
+			Log::Notice("OpenGL context is forward compatible.");
+		}
+		else
+		{
+			Log::Notice("OpenGL context is not forward compatible.");
 		}
 
 		if ( glConfig2.glEnabledExtensionsString.length() != 0 )
