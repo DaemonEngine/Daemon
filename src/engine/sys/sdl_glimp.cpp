@@ -1377,7 +1377,19 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 		}
 	}
 
-	if ( requestedConfiguration.profile == glProfile::CORE )
+	{
+		int GLmajor, GLminor;
+		if ( 2 != sscanf( ( const char * ) glGetString( GL_VERSION ), "%d.%d", &GLmajor, &GLminor ) )
+		{
+			Sys::Error( "Indecipherable GL_VERSION" );
+		}
+
+		glConfig2.glMajor = GLmajor;
+		glConfig2.glMinor = GLminor;
+	}
+
+	// CONTEXT_FLAGS and forward compatibility were added in OpenGL 3.0
+	if ( glConfig2.glMajor >= 3 )
 	{
 		// Check if context is forward compatible.
 		int contextFlags;
@@ -1387,24 +1399,16 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 
 		if ( glConfig2.glForwardCompatibleContext )
 		{
-			logger.Debug( "Provided OpenGL core context is forward compatible." );
+			logger.Debug( "Provided OpenGL context is forward compatible." );
 		}
 		else
 		{
-			logger.Debug( "Provided OpenGL core context is not forward compatible." );
+			logger.Debug( "Provided OpenGL context is not forward compatible." );
 		}
 	}
 	else
 	{
 		glConfig2.glForwardCompatibleContext = false;
-	}
-
-	{
-		int GLmajor, GLminor;
-		sscanf( ( const char * ) glGetString( GL_VERSION ), "%d.%d", &GLmajor, &GLminor );
-
-		glConfig2.glMajor = GLmajor;
-		glConfig2.glMinor = GLminor;
 	}
 
 	// Get our config strings.
@@ -2754,10 +2758,11 @@ bool GLimp_Init()
 
 	glConfig2.glExtensionsString = std::string();
 
-	if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
+	if ( glConfig2.glMajor >= 3 )
 	{
 		GLint numExts, i;
 
+		// NUM_EXTENSIONS and glGetStringi( GL_EXTENSIONS, i ) were added in OpenGL 3.0
 		glGetIntegerv( GL_NUM_EXTENSIONS, &numExts );
 
 		logger.Debug( "Found %d OpenGL extensions.", numExts );
@@ -2795,6 +2800,7 @@ bool GLimp_Init()
 	}
 	else
 	{
+		// glGetString( GL_EXTENSIONS ) was deprecated in OpenGL 3.0
 		char* extensions_string = ( char * ) glGetString( GL_EXTENSIONS );
 
 		if ( extensions_string == nullptr )
