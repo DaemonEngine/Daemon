@@ -919,18 +919,6 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		format = GL_DEPTH_STENCIL;
 		internalFormat = GL_DEPTH24_STENCIL8;
 	}
-	else if ( image->bits & IF_RGBA16 )
-	{
-		if ( !glConfig2.textureRGBA16BlendAvailable )
-		{
-			Log::Warn("RGBA16 image '%s' cannot be blended", image->name );
-			internalFormat = GL_RGBA8;
-		}
-		else
-		{
-			internalFormat = GL_RGBA16;
-		}
-	}
 	else if ( image->bits & ( IF_RGBA16F | IF_RGBA32F | IF_TWOCOMP16F | IF_TWOCOMP32F | IF_ONECOMP16F | IF_ONECOMP32F ) )
 	{
 		if( !glConfig2.textureFloatAvailable ) {
