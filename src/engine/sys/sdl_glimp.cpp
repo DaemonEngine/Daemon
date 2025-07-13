@@ -46,8 +46,6 @@ static Cvar::Modified<Cvar::Cvar<bool>> r_noBorder(
 static Cvar::Modified<Cvar::Range<Cvar::Cvar<int>>> r_swapInterval(
 	"r_swapInterval", "enable vsync on every Nth frame, negative for apdative", Cvar::ARCHIVE, 0, -5, 5 );
 
-static Cvar::Cvar<std::string> r_glForceDriver(
-	"r_glForceDriver", "treat the OpenGL driver type as: 'icd' 'standalone' or 'opengl3'", Cvar::NONE, "");
 static Cvar::Cvar<std::string> r_glForceHardware(
 	"r_glForceHardware", "treat the GPU type as: 'r300' or 'generic'", Cvar::NONE, "");
 
@@ -1467,17 +1465,6 @@ static rserr_t GLimp_CheckOpenGLVersion( const glConfiguration &requestedConfigu
 		return rserr_t::RSERR_OLD_GL;
 	}
 
-	if ( glConfig2.glMajor < 3 || ( glConfig2.glMajor == 3 && glConfig2.glMinor < 2 ) )
-	{
-		// Shaders are supported, but not all OpenGL 3.x features
-		logger.Notice("Using GL3 Renderer in OpenGL 2.x mode..." );
-	}
-	else
-	{
-		logger.Notice("Using GL3 Renderer in OpenGL 3.x mode..." );
-		glConfig.driverType = glDriverType_t::GLDRV_OPENGL3;
-	}
-
 	return rserr_t::RSERR_OK;
 }
 
@@ -2594,19 +2581,6 @@ static const int R_MODE_FALLBACK = 3; // 640 * 480
 
 /* Support code for GLimp_Init */
 
-static void reportDriverType( bool force )
-{
-	static const char *const drivers[] = {
-		"integrated", "stand-alone", "OpenGL 3+", "Mesa"
-	};
-	if (glConfig.driverType > glDriverType_t::GLDRV_UNKNOWN && (unsigned) glConfig.driverType < ARRAY_LEN( drivers ) )
-	{
-		logger.Notice("%s graphics driver class '%s'",
-		           force ? "User has forced" : "Detected",
-		           drivers[Util::ordinal(glConfig.driverType)] );
-	}
-}
-
 static void reportHardwareType( bool force )
 {
 	static const char *const hardware[] = {
@@ -2630,7 +2604,7 @@ of OpenGL
 */
 bool GLimp_Init()
 {
-	glConfig.driverType = glDriverType_t::GLDRV_ICD;
+	glConfig.driverType = glDriverType_t::GLDRV_OPENGL3;
 
 	r_sdlDriver = Cvar_Get( "r_sdlDriver", "", CVAR_ROM );
 	r_allowResize = Cvar_Get( "r_allowResize", "0", CVAR_LATCH );
@@ -2821,33 +2795,17 @@ bool GLimp_Init()
 		}
 	}
 
-	if ( glConfig2.hardwareVendor == glHardwareVendor_t::ATI
-		&& glConfig.driverType != glDriverType_t::GLDRV_OPENGL3 )
+	if ( glConfig2.hardwareVendor == glHardwareVendor_t::ATI &&
+	     std::make_pair( glConfig2.glMajor, glConfig2.glMinor ) < std::make_pair( 3, 2 ) )
 	{
 		glConfig.hardwareType = glHardwareType_t::GLHW_R300;
 	}
 
-	reportDriverType( false );
 	reportHardwareType( false );
 
 	{ // allow overriding where the user really does know better
-		Cvar::Latch( r_glForceDriver );
 		Cvar::Latch( r_glForceHardware );
-		glDriverType_t   driverType   = glDriverType_t::GLDRV_UNKNOWN;
 		glHardwareType_t hardwareType = glHardwareType_t::GLHW_UNKNOWN;
-
-		if      ( Str::IsIEqual( r_glForceDriver.Get(), "icd" ) )
-		{
-			driverType = glDriverType_t::GLDRV_ICD;
-		}
-		else if ( Str::IsIEqual( r_glForceDriver.Get(), "standalone" ) )
-		{
-			driverType = glDriverType_t::GLDRV_STANDALONE;
-		}
-		else if ( Str::IsIEqual( r_glForceDriver.Get(), "opengl3" ) )
-		{
-			driverType = glDriverType_t::GLDRV_OPENGL3;
-		}
 
 		if      ( Str::IsIEqual( r_glForceHardware.Get(), "generic" ) )
 		{
@@ -2856,12 +2814,6 @@ bool GLimp_Init()
 		else if ( Str::IsIEqual( r_glForceHardware.Get(), "r300" ) )
 		{
 			hardwareType = glHardwareType_t::GLHW_R300;
-		}
-
-		if ( driverType != glDriverType_t::GLDRV_UNKNOWN )
-		{
-			glConfig.driverType = driverType;
-			reportDriverType( true );
 		}
 
 		if ( hardwareType != glHardwareType_t::GLHW_UNKNOWN )
