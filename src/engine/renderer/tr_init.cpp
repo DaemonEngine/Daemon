@@ -1047,20 +1047,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("%sMissing GPU vertex skinning, models are not hardware-accelerated.", Color::ToString( Color::Red ) );
 		}
 
-		switch ( glConfig2.textureRGBA16BlendAvailable )
-		{
-			case 1:
-				Log::Notice( "%sUsing GL_RGBA16 with GL_FRAMEBUFFER_BLEND.", Color::ToString( Color::Green ) );
-				break;
-			case -1:
-				Log::Notice( "%sUsing GL_RGBA16 with GL_FRAMEBUFFER_BLEND (assumed to be available).", Color::ToString( Color::Yellow ) );
-				break;
-			default:
-			case 0:
-				Log::Notice( "%sMissing GL_RGBA16 with GL_FRAMEBUFFER_BLEND.", Color::ToString( Color::Red ) );
-				break;
-		}
-
 		if ( glConfig.smpActive )
 		{
 			Log::Notice("Using dual processor acceleration." );
