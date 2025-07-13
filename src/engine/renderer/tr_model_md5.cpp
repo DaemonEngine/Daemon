@@ -317,7 +317,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 		// lowercase the surface name so skin compares are faster
 
 		// register the shaders
-		sh = R_FindShader( surf->shader, shaderType_t::SHADER_3D_DYNAMIC, RSF_DEFAULT );
+		sh = R_FindShader( surf->shader, shaderType_t::SHADER_3D, RSF_DEFAULT );
 
 		if ( sh->defaultShader )
 		{

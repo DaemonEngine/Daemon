@@ -1209,8 +1209,7 @@ enum class ssaoMode {
 	enum class shaderType_t
 	{
 	  SHADER_2D, // surface material: shader is for 2D rendering (like GUI elements)
-	  SHADER_3D_DYNAMIC, // surface material: shader is for cGen diffuseLighting lighting
-	  SHADER_3D_STATIC, // surface material: pre-lit triangle models
+	  SHADER_3D,
 	};
 
 	struct shader_t

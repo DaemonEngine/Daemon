@@ -5993,10 +5993,6 @@ shader_t       *R_FindShaderByName( const char *name )
 	// see if the shader is already loaded
 	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
 	{
-		// NOTE: if there was no shader or image available with the name strippedName
-		// then a default shader is created with type == SHADER_3D_DYNAMIC, so we
-		// have to check all default shaders otherwise for every call to R_FindShader
-		// with that same strippedName a new default shader is created.
 		if ( Q_stricmp( sh->name, strippedName ) == 0 )
 		{
 			// match found
@@ -6022,19 +6018,14 @@ Will always return a valid shader, but it might be the
 default shader if the real one can't be found.
 
 In the interest of not requiring an explicit shader text entry to
-be defined for every single image used in the game, three default
-shader behaviors can be auto-created for any image:
+be defined for every single image used in the game, two default
+shader behaviors can be auto-created for any image that does not
+have an explicit shader:
 
-If type == SHADER_2D, then the image will be used
-for 2D rendering unless an explicit shader is found
+If type == SHADER_2D, then the image will default to using vertex colors.
 
-If type == SHADER_3D_DYNAMIC, then the image will have
-dynamic diffuse lighting applied to it, as appropriate for most
-entity skin surfaces.
-
-If type == SHADER_3D_STATIC, then the image will use
-the vertex rgba modulate values, as appropriate for misc_model
-pre-lit surfaces.
+If type == SHADER_3D, then the renderer will choose appropriate precomputed
+lighting: lightmap, (precomputed) vertex or light grid.
 ===============
 */
 shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
@@ -6059,7 +6050,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
 	{
 		// NOTE: if there was no shader or image available with the name strippedName
-		// then a default shader is created with type == SHADER_3D_DYNAMIC, so we
+		// then a default shader is created with type == SHADER_3D, so we
 		// have to check all default shaders otherwise for every call to R_FindShader
 		// with that same strippedName a new default shader is created.
 		if ( ( sh->type == type || sh->defaultShader ) && !Q_stricmp( sh->name, strippedName ) )
@@ -6214,20 +6205,8 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 				break;
 			}
 
-		case shaderType_t::SHADER_3D_DYNAMIC:
+		case shaderType_t::SHADER_3D:
 			{
-				// dynamic colors at vertexes
-				stages[ 0 ].type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
-				stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
-				stages[ 0 ].active = true;
-				stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY_LIGHTING;
-				stages[ 0 ].stateBits = implicitStateBits;
-				break;
-			}
-
-		case shaderType_t::SHADER_3D_STATIC:
-			{
-				// explicit colors at vertexes
 				stages[ 0 ].type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
 				stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
 				stages[ 0 ].active = true;
@@ -6349,8 +6328,7 @@ public:
 	{
 		static const std::unordered_map<shaderType_t, std::string> shaderTypeName = {
 			{ shaderType_t::SHADER_2D, "2D" },
-			{ shaderType_t::SHADER_3D_DYNAMIC, "3D_DYNAMIC" },
-			{ shaderType_t::SHADER_3D_STATIC, "3D_STATIC" },
+			{ shaderType_t::SHADER_3D, "3D" },
 		};
 
 		static const std::unordered_map<shaderSort_t, std::string> shaderSortName = {
@@ -6822,7 +6800,7 @@ static void CreateInternalShaders()
 
 	Q_strncpyz( shader.name, "<default>", sizeof( shader.name ) );
 
-	shader.type = shaderType_t::SHADER_3D_DYNAMIC;
+	shader.type = shaderType_t::SHADER_3D;
 	shader.noFog = true;
 	shader.fogShader = nullptr;
 	stages[ 0 ].type = stageType_t::ST_DIFFUSEMAP;
@@ -6833,7 +6811,7 @@ static void CreateInternalShaders()
 
 	Q_strncpyz( shader.name, "<fogEqual>", sizeof( shader.name ) );
 
-	shader.type = shaderType_t::SHADER_3D_DYNAMIC;
+	shader.type = shaderType_t::SHADER_3D;
 	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
 	stages[0].type = stageType_t::ST_FOGMAP;
 	for ( int i = 0; i < 5; i++ ) {
@@ -6845,7 +6823,7 @@ static void CreateInternalShaders()
 
 	Q_strncpyz( shader.name, "<fogLE>", sizeof( shader.name ) );
 
-	shader.type = shaderType_t::SHADER_3D_DYNAMIC;
+	shader.type = shaderType_t::SHADER_3D;
 	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
 	stages[0].type = stageType_t::ST_FOGMAP;
 	for ( int i = 0; i < 5; i++ ) {

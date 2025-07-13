@@ -881,7 +881,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 		}
 
 		surface->shader = R_FindShader( ( char* )IQMPtr(header, header->ofs_text + mesh->material),
-						shaderType_t::SHADER_3D_DYNAMIC, RSF_DEFAULT );
+						shaderType_t::SHADER_3D, RSF_DEFAULT );
 		if( surface->shader->defaultShader )
 			surface->shader = tr.defaultShader;
 		surface->data = IQModel;
