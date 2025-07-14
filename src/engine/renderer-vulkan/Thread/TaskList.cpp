@@ -116,7 +116,7 @@ void TaskList::AddTask( Task task ) {
 		std::this_thread::yield();
 	}
 
-	uint32_t taskSlot = FindZeroBitFast( taskRing.queues[queue].availableTasks );
+	uint32_t taskSlot = FindLZeroBit( taskRing.queues[queue].availableTasks );
 
 	SetBit( &taskRing.queues[queue].availableTasks, taskSlot );
 	taskRing.queues[queue].tasks[taskSlot] = taskMemory - tasks.memory;
@@ -161,7 +161,7 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 			break;
 		}
 
-		task = FindMSB( taskRing.queues[queue].availableTasks );
+		task = FindLSB( taskRing.queues[queue].availableTasks );
 
 		if ( task == 64 ) {
 			taskRing.queueLocks -= 1ull << queue;
