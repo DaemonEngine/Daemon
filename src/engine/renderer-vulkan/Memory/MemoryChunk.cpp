@@ -61,20 +61,20 @@ MemoryChunk MemoryChunkSystem::Alloc( uint64_t size ) {
 	SizeToLevel( size, &level, &count );
 
 	if ( count > 64 ) {
-		Sys::Drop( "Allocation size too large: %ull\n", size );
+		Sys::Drop( "Allocation size too large: %ull", size );
 	}
 
 	MemoryChunk out;
 
 	if ( count > 1 ) {
-		Sys::Drop( "Couldn't find memory chunk large enough to support allocation (%u bytes, requires %u * %u byte chunks)\n",
+		Sys::Drop( "Couldn't find memory chunk large enough to support allocation (%u bytes, requires %u * %u byte chunks)",
 			size, count, memoryAreas[level].config.chunkSize );
 	}
 
 	uint32_t initialLevel = level;
 	while ( !LockArea( &memoryAreas[level], &out.chunkArea, &out.chunk ) ) {
 		if ( level == 0 ) {
-			Log::WarnTag( "No memory chunks available, yielding" );
+			Log::WarnTagT( "No memory chunks available, yielding" );
 			std::this_thread::yield();
 			level = initialLevel;
 		} else {
@@ -89,8 +89,7 @@ MemoryChunk MemoryChunkSystem::Alloc( uint64_t size ) {
 }
 
 void MemoryChunkSystem::Free( MemoryChunk* memoryChunk ) {
-	Log::DebugTag( "%i: freeing area %u chunk %u:%u\n", std::this_thread::get_id(),
-		memoryChunk->area, memoryChunk->chunkArea, memoryChunk->chunk );
+	Log::DebugTagT( "Freeing area %u chunk %u:%u", memoryChunk->area, memoryChunk->chunkArea, memoryChunk->chunk );
 
 	memoryAreas[memoryChunk->area].chunkLocks[memoryChunk->chunkArea].value -= 1ull << memoryChunk->chunk;
 }
@@ -111,7 +110,7 @@ void MemoryChunkSystem::SizeToLevel( const uint64_t size, uint32_t* level, uint3
 		} */
 	}
 
-	Sys::Drop( "Couldn't find memory area with large enough chunkSize" );
+	Sys::Drop( "Couldn't find memory area with large enough chunkSize, requested: %u bytes", size );
 }
 
 bool MemoryChunkSystem::LockArea( MemoryArea* memoryArea, uint32_t* chunkArea, uint32_t* chunk ) {
@@ -144,10 +143,10 @@ bool MemoryChunkSystem::LockArea( MemoryArea* memoryArea, uint32_t* chunkArea, u
 
 			area = FindLZeroBit( expectedLocks );
 
-			Log::DebugTag( "%i: trying area %u\n", std::this_thread::get_id(), area );
+			Log::DebugTagT( "Trying chunk %u", area );
 
 			if ( i * 64 + area >= memoryArea->config.chunks ) {
-				Log::DebugTag( "%i: Failed: chunk %u out of range\n", std::this_thread::get_id(), area );
+				Log::DebugTagT( "Failed: chunk %u out of range", area );
 				return false;
 			}
 
@@ -162,8 +161,8 @@ bool MemoryChunkSystem::LockArea( MemoryArea* memoryArea, uint32_t* chunkArea, u
 		!memoryArea->chunkLocks[current].value.compare_exchange_strong( expectedLocks, desiredLocks, std::memory_order_relaxed )
 	);
 
-	Log::DebugTag( "%i: locked area %u:%u in %s, loop: %u\n",
-		std::this_thread::get_id(), current, area, Timer::FormatTime( t.Time() ).c_str(),
+	Log::DebugTagT( "Locked area %u:%u in %s, loop: %u",
+		current, area, Timer::FormatTime( t.Time() ),
 		loopCount );
 
 	*chunkArea = current;

@@ -38,8 +38,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 
+#include "../Thread/ThreadMemory.h"
+
 namespace LogExtendedFunctionMode {
 	enum {
+		GLOBAL_NAME,
 		NAME,
 		TEMPLATE,
 		FULL
@@ -47,6 +50,7 @@ namespace LogExtendedFunctionMode {
 };
 
 extern Cvar::Range<Cvar::Cvar<int>> r_vkLogExtendedFunctionNames;
+extern Cvar::Cvar<bool> r_vkLogShowThreadID;
 
 // This is kinda ugly, but it's the only way we can make it constexpr
 
@@ -104,14 +108,18 @@ constexpr const std::string_view FunctionNameTemplate( const std::string_view na
 	#endif
 }
 
-inline std::string Tagged( const std::string& message, const std::source_location& loc = std::source_location::current() ) {
+inline std::string Tagged( const std::string& message, const bool useThreadID,
+	const std::source_location& loc = std::source_location::current() ) {
+	const std::string threadID = useThreadID ? Str::Format( "Thread %s", TLM.id ) : "";
+
 	switch ( r_vkLogExtendedFunctionNames.Get() ) {
+		case LogExtendedFunctionMode::GLOBAL_NAME:
 		case LogExtendedFunctionMode::NAME:
-			return Str::Format( "%s(): %s", FunctionName( loc.function_name() ), message );
+			return Str::Format( "%s:%s(): %s", threadID, FunctionName( loc.function_name() ), message );
 		case LogExtendedFunctionMode::TEMPLATE:
-			return Str::Format( "%s(): %s", FunctionNameTemplate( loc.function_name() ), message );
+			return Str::Format( "%s:%s(): %s", threadID, FunctionNameTemplate( loc.function_name() ), message );
 		case LogExtendedFunctionMode::FULL:
-			return Str::Format( "%s(): %s", loc.function_name(), message );
+			return Str::Format( "%s:%s(): %s", threadID, loc.function_name(), message );
 		default:
 			ASSERT_UNREACHABLE();
 	}
@@ -120,14 +128,19 @@ inline std::string Tagged( const std::string& message, const std::source_locatio
 /* Add this as a base class to be able to use Log::WarnTag() etc.
 Allows either specifying a custom name for an object, or otherwise automatically using the class name */
 struct Tag {
-	std::string Tagged( const std::string& message, const std::source_location& loc = std::source_location::current() ) {
+	std::string Tagged( const std::string& message, const bool useThreadID,
+		const std::source_location& loc = std::source_location::current() ) {
+		const std::string threadID = useThreadID ? Str::Format( "Thread %s", TLM.id ) : "";
+
 		switch ( r_vkLogExtendedFunctionNames.Get() ) {
+			case LogExtendedFunctionMode::GLOBAL_NAME:
+				return Str::Format( "%s:%s: %s", threadID, name, message );
 			case LogExtendedFunctionMode::NAME:
-				return Str::Format( "%s:%s(): %s", name, FunctionName( loc.function_name() ), message );
+				return Str::Format( "%s:%s:%s(): %s", threadID, name, FunctionName( loc.function_name() ), message );
 			case LogExtendedFunctionMode::TEMPLATE:
-				return Str::Format( "%s:%s(): %s", name, FunctionNameTemplate( loc.function_name() ), message );
+				return Str::Format( "%s:%s:%s(): %s", threadID, name, FunctionNameTemplate( loc.function_name() ), message );
 			case LogExtendedFunctionMode::FULL:
-				return Str::Format( "%s(): %s", loc.function_name(), message );
+				return Str::Format( "%s:%s(): %s", threadID, loc.function_name(), message );
 			default:
 				ASSERT_UNREACHABLE();
 		}
@@ -148,9 +161,14 @@ struct Tag {
 	}
 };
 
-#define WarnTag( format, ... ) Warn( Tagged( format ), __VA_ARGS__ )
-#define NoticeTag( format, ... ) Warn( Tagged( format ), __VA_ARGS__ )
-#define VerboseTag( format, ... ) Warn( Tagged( format ), __VA_ARGS__ )
-#define DebugTag( format, ... ) Warn( Tagged( format ), __VA_ARGS__ )
+#define WarnTag( format, ... ) Warn( Tagged( format, r_vkLogShowThreadID.Get() ), __VA_ARGS__ )
+#define NoticeTag( format, ... ) Warn( Tagged( format, r_vkLogShowThreadID.Get() ), __VA_ARGS__ )
+#define VerboseTag( format, ... ) Warn( Tagged( format, r_vkLogShowThreadID.Get() ), __VA_ARGS__ )
+#define DebugTag( format, ... ) Warn( Tagged( format, r_vkLogShowThreadID.Get() ), __VA_ARGS__ )
+
+#define WarnTagT( format, ... ) Warn( Tagged( format, true ), __VA_ARGS__ )
+#define NoticeTagT( format, ... ) Warn( Tagged( format, true ), __VA_ARGS__ )
+#define VerboseTagT( format, ... ) Warn( Tagged( format, true ), __VA_ARGS__ )
+#define DebugTagT( format, ... ) Warn( Tagged( format, true ), __VA_ARGS__ )
 
 #endif // TAG_H
