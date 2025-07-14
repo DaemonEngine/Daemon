@@ -144,9 +144,14 @@ bool MemoryChunkSystem::LockArea( MemoryArea* memoryArea, uint32_t* chunkArea, u
 				continue;
 			}
 
-			area = FindZeroBitFast( expectedLocks );
+			area = FindLZeroBit( expectedLocks );
 
 			Log::DebugTag( "%i: trying area %u\n", std::this_thread::get_id(), area );
+
+			if ( i * 64 + area >= memoryArea->config.chunks ) {
+				Log::DebugTag( "%i: Failed: chunk %u out of range\n", std::this_thread::get_id(), area );
+				return false;
+			}
 
 			desiredLocks = SetBit( expectedLocks, area );
 
