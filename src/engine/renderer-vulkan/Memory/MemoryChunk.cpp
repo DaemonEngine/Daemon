@@ -1,4 +1,3 @@
-#include "MemoryChunk.h"
 /*
 ===========================================================================
 
@@ -33,6 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 // MemoryChunk.cpp
+
+#include "MemoryChunk.h"
 
 MemoryChunkSystem memoryChunkSystem;
 
