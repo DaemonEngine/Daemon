@@ -87,7 +87,7 @@ void Thread::Run() {
 		ASSERT_EQ( task, nullptr );
 
 		fetching.Start();
-		task = taskList.FetchTask( this );
+		task = taskList.FetchTask( this, true );
 		fetching.Stop();
 
 		if ( !task ) {

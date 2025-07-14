@@ -67,7 +67,7 @@ class TaskList :
 	uint8_t LockQueue( Task* task );
 	void UnlockQueue( const uint8_t queue );
 	void AddTask( Task task );
-	Task* FetchTask( Thread* thread );
+	Task* FetchTask( Thread* thread, const bool longestTask );
 
 	void AdjustThreadCount( const uint32_t newMaxThreads );
 
