@@ -6073,10 +6073,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 
 	// make sure the render thread is stopped, because we are probably
 	// going to have to upload an image
-	if ( r_smp->integer )
-	{
-		R_SyncRenderThread();
-	}
+	R_SyncRenderThread();
 
 	ClearGlobalShader();
 
@@ -6269,10 +6266,7 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image )
 
 	// make sure the render thread is stopped, because we are probably
 	// going to have to upload an image
-	if ( r_smp->integer )
-	{
-		R_SyncRenderThread();
-	}
+	R_SyncRenderThread();
 
 	ClearGlobalShader();
 
