@@ -40,7 +40,61 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define REF_API_VERSION 10
 
-struct glconfig_t {};
+using bool8_t = uint8_t;
+
+enum class textureCompression_t {
+	TC_NONE,
+	TC_S3TC,
+	TC_EXT_COMP_S3TC
+};
+
+// Keep the list in sdl_glimp.c:reportDriverType in sync with this
+enum class glDriverType_t {
+	GLDRV_UNKNOWN = -1,
+	GLDRV_ICD, // driver is integrated with window system
+	// WARNING: there are tests that check for
+	// > GLDRV_ICD for minidriverness, so this
+	// should always be the lowest value in this
+	// enum set
+	GLDRV_STANDALONE, // driver is a non-3Dfx standalone driver
+
+	// XreaL BEGIN
+	GLDRV_OPENGL3, // new driver system
+	// XreaL END
+};
+
+// Keep the list in sdl_glimp.c:reportHardwareType in sync with this
+enum class glHardwareType_t {
+	GLHW_UNKNOWN = -1,
+	GLHW_GENERIC, // where everthing works the way it should
+
+	// XreaL BEGIN
+	GLHW_R300, // pre-GL3 ATI hack
+	// XreaL END
+};
+
+struct glconfig_t {
+	char                 renderer_string[MAX_STRING_CHARS];
+	char                 vendor_string[MAX_STRING_CHARS];
+	char                 version_string[MAX_STRING_CHARS];
+
+	int                  maxTextureSize; // queried from GL
+
+	int colorBits;
+
+	glDriverType_t       driverType;
+	glHardwareType_t     hardwareType;
+
+	textureCompression_t textureCompression;
+
+	int displayIndex;
+	float displayAspect;
+	int displayWidth, displayHeight; // the entire monitor (the one indicated by displayIndex)
+	int vidWidth, vidHeight; // what the game is using
+
+	bool8_t smpActive; // dual processor
+};
+
 struct glconfig2_t {};
 
 struct refBone_t {
@@ -84,8 +138,6 @@ enum class refEntityType_t {
 
 	RT_MAX_REF_ENTITY_TYPE
 };
-
-using bool8_t = uint8_t;
 
 struct refEntity_t {
 	refEntityType_t reType;
