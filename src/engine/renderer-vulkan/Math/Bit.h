@@ -262,21 +262,12 @@ inline const bool BitSet( const uint32_t value, const uint32_t bit ) {
 	return value & ( 1u << bit );
 }
 
-inline const bool BitSet( const uint64_t value, const uint32_t bit ) {
-	return value & ( 1ull << bit );
+inline uint32_t FindLZeroBit( uint64_t value ) {
+	return FindLSB( ~value );
 }
 
 inline uint32_t FindMZeroBit( uint64_t value ) {
-	if ( value == UINT64_MAX ) {
-		return 64;
-	}
-
-	uint32_t bit;
-	while ( !( bit = FindMSB( value ) ) ) {
-		UnSetBit( &value, bit );
-	}
-
-	return bit - 1;
+	return FindMSB( ~value );
 }
 
 inline uint32_t FindZeroBitFast( const uint64_t value ) {
