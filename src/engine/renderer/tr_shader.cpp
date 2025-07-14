@@ -6243,27 +6243,9 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 	return FinishShader();
 }
 
+// This is used for textures for 2D rendering generated at runtime.
 qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image )
 {
-	int      i, hash;
-	shader_t *sh;
-
-	hash = generateHashValue( name, FILE_HASH_SIZE );
-
-	// see if the shader is already loaded
-	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
-	{
-		// NOTE: if there was no shader or image available with the name strippedName
-		// then a default shader is created with type == SHADER_3D_DYNAMIC, so we
-		// have to check all default shaders otherwise for every call to R_FindShader
-		// with that same strippedName a new default shader is created.
-		if ( ( sh->type == shaderType_t::SHADER_2D || sh->defaultShader ) && !Q_stricmp( sh->name, name ) )
-		{
-			// match found
-			return sh->index;
-		}
-	}
-
 	// make sure the render thread is stopped, because we are probably
 	// going to have to upload an image
 	R_SyncRenderThread();
@@ -6274,7 +6256,7 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image )
 	shader.type = shaderType_t::SHADER_2D;
 	shader.cullType = CT_TWO_SIDED;
 
-	for ( i = 0; i < MAX_SHADER_STAGES; i++ )
+	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
 		stages[ i ].bundle[ 0 ].texMods = texMods[ i ];
 	}
@@ -6288,8 +6270,7 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image )
 	stages[ 0 ].alphaGen = alphaGen_t::AGEN_VERTEX;
 	stages[ 0 ].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
 
-	sh = FinishShader();
-	return sh->index;
+	return FinishShader()->index;
 }
 
 /*
