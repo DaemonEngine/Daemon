@@ -43,6 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/Bit.h"
 #include "../Shared/Timer.h"
+#include "../SrcDebug/Tag.h"
+
 #include "Memory.h"
 
 struct MemoryChunk {
@@ -75,7 +77,9 @@ struct MemoryChunkConfig {
 	MemoryAreaConfig areas[MAX_MEMORY_AREAS];
 };
 
-class MemoryChunkSystem {
+class MemoryChunkSystem :
+	public Tag {
+	
 	public:
 	MemoryChunkConfig config;
 	MemoryArea memoryAreas[MAX_MEMORY_AREAS];

@@ -34,8 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // MemoryChunk.cpp
 
-#include "../SrcDebug/Tag.h"
-
 MemoryChunkSystem memoryChunkSystem;
 
 MemoryChunkSystem::MemoryChunkSystem() {
