@@ -20,6 +20,8 @@ set(TASKLIST
     ${ENGINE_DIR}/renderer-vulkan/Thread/TaskList.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/Thread.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/Thread.h
+    ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadMemory.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadMemory.h
 )
 
 set(UTILSLIST
