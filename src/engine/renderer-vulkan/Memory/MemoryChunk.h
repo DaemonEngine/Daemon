@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MemoryChunk.cpp
+// MemoryChunk.h
 
 #ifndef MEMORY_CHUNK_H
 #define MEMORY_CHUNK_H
