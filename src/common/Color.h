@@ -281,14 +281,14 @@ public:
 		data_[ 3 ] = v;
 	}
 
-	CONSTEXPR_FUNCTION_RELAXED static component_type ConvertFromSRGB( component_type v, bool accurate = true ) NOEXCEPT
+	static component_type ConvertFromSRGB( component_type v, bool accurate = true ) NOEXCEPT
 	{
 		float f = float( v ) / float( component_max );
 		f = convertFromSRGB( f, accurate );
 		return component_type( f * float( component_max ) );
 	}
 
-	CONSTEXPR_FUNCTION_RELAXED BasicColor ConvertFromSRGB( bool accurate = true ) NOEXCEPT
+	BasicColor ConvertFromSRGB( bool accurate = true ) const NOEXCEPT
 	{
 		return BasicColor(
 			ConvertFromSRGB( Red(), accurate ),
