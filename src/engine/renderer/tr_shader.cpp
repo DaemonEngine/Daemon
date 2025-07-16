@@ -5833,7 +5833,7 @@ static shader_t *FinishShader()
 	    numStages > 0 &&
 	    (stages[0].stateBits & GLS_DEPTHMASK_TRUE) &&
 	    !(stages[0].stateBits & GLS_DEPTHFUNC_EQUAL) &&
-	    !(shader.type == shaderType_t::SHADER_2D) &&
+	    !( shader.registerFlags & RSF_2D ) &&
 	    !shader.polygonOffset ) {
 		// keep only the first stage
 		stages[1].active = false;
@@ -5920,7 +5920,7 @@ static shader_t *FinishShader()
 		if ( ret->altShader[ i ].name )
 		{
 			// flags were previously stashed in altShader[0].index
-			shader_t *sh = R_FindShader( ret->altShader[ i ].name, ret->type, (RegisterShaderFlags_t)ret->altShader[ 0 ].index );
+			shader_t *sh = R_FindShader( ret->altShader[ i ].name, ret->registerFlags );
 
 			ret->altShader[ i ].index = sh->defaultShader ? 0 : sh->index;
 		}
@@ -6018,17 +6018,16 @@ Will always return a valid shader, but it might be the
 default shader if the real one can't be found.
 
 In the interest of not requiring an explicit shader text entry to
-be defined for every single image used in the game, two default
-shader behaviors can be auto-created for any image that does not
-have an explicit shader:
-
-If type == SHADER_2D, then the image will default to using vertex colors.
-
-If type == SHADER_3D, then the renderer will choose appropriate precomputed
+be defined for every single image used in the game, shaders
+can be auto-created for any image that does not
+have an explicit shader. RSF_ flags like RSF_2D and RSF_3D
+can influence the behaviors of these implicit shaders. For example
+among other effects, RSF_3D will cause an implicit shader to use the
+appropriate precomputed
 lighting: lightmap, (precomputed) vertex or light grid.
 ===============
 */
-shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
+shader_t       *R_FindShader( const char *name, int flags )
 {
 	char     strippedName[ MAX_QPATH ];
 	char     fileName[ MAX_QPATH ];
@@ -6042,6 +6041,9 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 		return tr.defaultShader;
 	}
 
+	// TODO(0.56): RSF_DEFAULT should be 0!
+	flags &= ~RSF_DEFAULT;
+
 	COM_StripExtension3( name, strippedName, sizeof( strippedName ) );
 
 	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
@@ -6049,14 +6051,20 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 	// see if the shader is already loaded
 	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
 	{
-		// NOTE: if there was no shader or image available with the name strippedName
-		// then a default shader is created with type == SHADER_3D, so we
-		// have to check all default shaders otherwise for every call to R_FindShader
-		// with that same strippedName a new default shader is created.
-		if ( ( sh->type == type || sh->defaultShader ) && !Q_stricmp( sh->name, strippedName ) )
+		if ( !Q_stricmp( sh->name, strippedName ) )
 		{
-			// match found
-			return sh;
+			// NOTE: if there was no shader or image available with the name strippedName
+			// then a default shader is created, so we
+			// have to check all default shaders otherwise for every call to R_FindShader
+			// with that same strippedName a new default shader is created.
+			if ( sh->registerFlags == flags || sh->defaultShader )
+			{
+				// match found
+				return sh;
+			}
+
+			Log::Verbose( "shader %s registered with varying flags: previously with 0x%X, now with 0x%X",
+			              strippedName, sh->registerFlags, flags );
 		}
 	}
 
@@ -6069,7 +6077,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 	ClearGlobalShader();
 
 	Q_strncpyz( shader.name, strippedName, sizeof( shader.name ) );
-	shader.type = type;
+	shader.registerFlags = flags;
 
 	for ( i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
@@ -6079,13 +6087,14 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 	// ydnar: default to no implicit mappings
 	implicitMap[ 0 ] = '\0';
 	implicitStateBits = GLS_DEFAULT;
-	if( shader.type == shaderType_t::SHADER_2D )
+
+	if ( shader.registerFlags & RSF_3D )
 	{
-		implicitCullType = CT_TWO_SIDED;
+		implicitCullType = CT_FRONT_SIDED;
 	}
 	else
 	{
-		implicitCullType = CT_FRONT_SIDED;
+		implicitCullType = CT_TWO_SIDED;
 	}
 
 	if ( flags & RSF_NOMIP )
@@ -6191,32 +6200,22 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 		shader.cullType = implicitCullType;
 	}
 
-	// create the default shading commands
-	switch ( shader.type )
+	if ( flags & RSF_3D )
 	{
-		case shaderType_t::SHADER_2D:
-			{
-				// GUI elements
-				stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
-				stages[ 0 ].active = true;
-				stages[ 0 ].rgbGen = colorGen_t::CGEN_VERTEX;
-				stages[ 0 ].alphaGen = alphaGen_t::AGEN_VERTEX;
-				stages[ 0 ].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-				break;
-			}
-
-		case shaderType_t::SHADER_3D:
-			{
-				stages[ 0 ].type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
-				stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
-				stages[ 0 ].active = true;
-				stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY;
-				stages[ 0 ].stateBits = implicitStateBits;
-				break;
-			}
-
-		default:
-			break;
+		stages[ 0 ].type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
+		stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
+		stages[ 0 ].active = true;
+		stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY;
+		stages[ 0 ].stateBits = implicitStateBits;
+	}
+	else
+	{
+		// preset appropriate for GUI elements
+		stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
+		stages[ 0 ].active = true;
+		stages[ 0 ].rgbGen = colorGen_t::CGEN_VERTEX;
+		stages[ 0 ].alphaGen = alphaGen_t::AGEN_VERTEX;
+		stages[ 0 ].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
 	}
 
 	return FinishShader();
@@ -6232,7 +6231,6 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image )
 	ClearGlobalShader();
 
 	Q_strncpyz( shader.name, name, sizeof( shader.name ) );
-	shader.type = shaderType_t::SHADER_2D;
 	shader.cullType = CT_TWO_SIDED;
 
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
@@ -6258,9 +6256,6 @@ RE_RegisterShader
 
 This is the exported shader entry point for the rest of the system
 It will always return an index that will be valid.
-
-This should really only be used for explicit shaders, because there is no
-way to ask for different implicit lighting modes (vertex, lightmap, etc)
 ====================
 */
 qhandle_t RE_RegisterShader( const char *name, int flags )
@@ -6272,7 +6267,7 @@ qhandle_t RE_RegisterShader( const char *name, int flags )
 		return 0;
 	}
 
-	sh = R_FindShader( name, shaderType_t::SHADER_2D, flags );
+	sh = R_FindShader( name, flags );
 
 	// we want to return 0 if the shader failed to
 	// load for some reason, but R_FindShader should
@@ -6326,11 +6321,6 @@ public:
 
 	void Run( const Cmd::Args &args ) const override
 	{
-		static const std::unordered_map<shaderType_t, std::string> shaderTypeName = {
-			{ shaderType_t::SHADER_2D, "2D" },
-			{ shaderType_t::SHADER_3D, "3D" },
-		};
-
 		static const std::unordered_map<shaderSort_t, std::string> shaderSortName = {
 			{ shaderSort_t::SS_BAD, "BAD" },
 			{ shaderSort_t::SS_PORTAL, "PORTAL" },
@@ -6384,7 +6374,6 @@ public:
 
 		// Header names
 		std::string num = "num";
-		std::string shaderType = "shaderType";
 		std::string shaderSort = "shaderSort";
 		std::string stageType = "stageType";
 		std::string stageNumber = "stageNumber";
@@ -6395,15 +6384,10 @@ public:
 
 		// Header number sizes
 		numLen = std::max( numLen, num.length() );
-		size_t shaderTypeLen = shaderType.length();
 		size_t shaderSortLen = shaderSort.length();
 		size_t stageTypeLen = stageType.length();
 
 		// Value size
-		for ( const auto& kv : shaderTypeName )
-		{
-			shaderTypeLen = std::max( shaderTypeLen, kv.second.length() );
-		}
 
 		for ( const auto& kv : shaderSortName )
 		{
@@ -6421,7 +6405,6 @@ public:
 		// Print header
 		lineStream << std::left;
 		lineStream << std::setw(numLen) << num << separator;
-		lineStream << std::setw(shaderTypeLen) << shaderType << separator;
 		lineStream << std::setw(shaderSortLen) << shaderSort << separator;
 		lineStream << std::setw(stageTypeLen) << stageType << separator;
 		lineStream << stageNumber << ":" << shaderName;
@@ -6445,16 +6428,6 @@ public:
 				continue;
 			}
 
-			if ( !shaderTypeName.count( shader->type ) )
-			{
-				Log::Debug( "Undocumented shader type %i for shader %s",
-					Util::ordinal( shader->type ), shader->name );
-			}
-			else
-			{
-				shaderType = shaderTypeName.at( shader->type );
-			}
-
 			if ( !shaderSortName.count( (shaderSort_t) shader->sort ) )
 			{
 				Log::Debug( "Undocumented shader sort %f for shader %s",
@@ -6475,7 +6448,6 @@ public:
 
 				lineStream << std::left;
 				lineStream << std::setw(numLen) << i << separator;
-				lineStream << std::setw(shaderTypeLen) << shaderType << separator;
 				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
 				lineStream << std::setw(stageTypeLen) << stageType << separator;
 				lineStream << "-:" << shaderName;
@@ -6507,7 +6479,6 @@ public:
 
 				lineStream << std::left;
 				lineStream << std::setw(numLen) << i << separator;
-				lineStream << std::setw(shaderTypeLen) << shaderType << separator;
 				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
 				lineStream << std::setw(stageTypeLen) << stageType << separator;
 				lineStream << j << ":" << shaderName;
@@ -6800,7 +6771,6 @@ static void CreateInternalShaders()
 
 	Q_strncpyz( shader.name, "<default>", sizeof( shader.name ) );
 
-	shader.type = shaderType_t::SHADER_3D;
 	shader.noFog = true;
 	shader.fogShader = nullptr;
 	stages[ 0 ].type = stageType_t::ST_DIFFUSEMAP;
@@ -6811,7 +6781,6 @@ static void CreateInternalShaders()
 
 	Q_strncpyz( shader.name, "<fogEqual>", sizeof( shader.name ) );
 
-	shader.type = shaderType_t::SHADER_3D;
 	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
 	stages[0].type = stageType_t::ST_FOGMAP;
 	for ( int i = 0; i < 5; i++ ) {
@@ -6823,7 +6792,6 @@ static void CreateInternalShaders()
 
 	Q_strncpyz( shader.name, "<fogLE>", sizeof( shader.name ) );
 
-	shader.type = shaderType_t::SHADER_3D;
 	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
 	stages[0].type = stageType_t::ST_FOGMAP;
 	for ( int i = 0; i < 5; i++ ) {

@@ -261,7 +261,7 @@ qhandle_t RE_RegisterSkin( const char *name )
 		Q_strncpyz( surf->name, surfName, sizeof( surf->name ) );
 
 		// RB: bspSurface_t does not have ::hash yet
-		surf->shader = R_FindShader( token, shaderType_t::SHADER_3D, RSF_DEFAULT );
+		surf->shader = R_FindShader( token, RSF_3D );
 		skin->numSurfaces++;
 	}
 

@@ -187,7 +187,7 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 
 		// only consider the first shader
 		md3Shader = ( md3Shader_t * )( ( byte * ) md3Surf + md3Surf->ofsShaders );
-		surf->shader = R_FindShader( md3Shader->name, shaderType_t::SHADER_3D, RSF_DEFAULT );
+		surf->shader = R_FindShader( md3Shader->name, RSF_3D );
 
 		// swap all the triangles
 		surf->numTriangles = md3Surf->numTriangles;
