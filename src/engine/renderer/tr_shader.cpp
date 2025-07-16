@@ -6374,6 +6374,7 @@ public:
 
 		// Header names
 		std::string num = "num";
+		std::string regFlags = "regFlags";
 		std::string shaderSort = "shaderSort";
 		std::string stageType = "stageType";
 		std::string stageNumber = "stageNumber";
@@ -6384,6 +6385,7 @@ public:
 
 		// Header number sizes
 		numLen = std::max( numLen, num.length() );
+		size_t regFlagsLen = regFlags.length();
 		size_t shaderSortLen = shaderSort.length();
 		size_t stageTypeLen = stageType.length();
 
@@ -6405,6 +6407,7 @@ public:
 		// Print header
 		lineStream << std::left;
 		lineStream << std::setw(numLen) << num << separator;
+		lineStream << std::setw(regFlagsLen) << regFlags << separator;
 		lineStream << std::setw(shaderSortLen) << shaderSort << separator;
 		lineStream << std::setw(stageTypeLen) << stageType << separator;
 		lineStream << stageNumber << ":" << shaderName;
@@ -6427,6 +6430,14 @@ public:
 			{
 				continue;
 			}
+
+			regFlags = {
+				shader->registerFlags & RSF_2D ? '2' : '_',
+				shader->registerFlags & RSF_NOMIP ? 'N' : '_',
+				shader->registerFlags & RSF_FITSCREEN ? 'F' : '_',
+				shader->registerFlags & RSF_SPRITE ? 'S' : '_',
+				shader->registerFlags & RSF_3D ? '3' : '_',
+			};
 
 			if ( !shaderSortName.count( (shaderSort_t) shader->sort ) )
 			{
@@ -6479,6 +6490,7 @@ public:
 
 				lineStream << std::left;
 				lineStream << std::setw(numLen) << i << separator;
+				lineStream << std::setw(regFlagsLen) << regFlags << separator;
 				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
 				lineStream << std::setw(stageTypeLen) << stageType << separator;
 				lineStream << j << ":" << shaderName;
