@@ -25,7 +25,8 @@ PNG_BASEURL='https://sourceforge.net/projects/libpng/files/libpng16'
 JPEG_BASEURL='https://github.com/libjpeg-turbo/libjpeg-turbo/releases'
 # Index: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/index.html
 WEBP_BASEURL='https://storage.googleapis.com/downloads.webmproject.org/releases/webp'
-OPENAL_BASEURL='https://openal-soft.org/openal-releases'
+# Index: https://github.com/kcat/openal-soft/releases
+OPENAL_BASEURL='https://github.com/kcat/openal-soft'
 OGG_BASEURL='https://downloads.xiph.org/releases/ogg'
 VORBIS_BASEURL='https://downloads.xiph.org/releases/vorbis'
 OPUS_BASEURL='https://downloads.xiph.org/releases/opus'
@@ -50,7 +51,9 @@ GLEW_VERSION=2.2.0
 PNG_VERSION=1.6.50
 JPEG_VERSION=3.1.1
 WEBP_VERSION=1.6.0
-OPENAL_VERSION=1.24.3
+# OpenAL 1.24.2 and later requires at least CMake 3.26 but Debian Bullseye
+# only provides 3.18 (and even only 3.25 in backports).
+OPENAL_VERSION=1.24.1
 OGG_VERSION=1.3.6
 VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.5.2
@@ -557,7 +560,7 @@ build_jpeg() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract jpeg "${archive_name}" \
-		"${JPEG_BASEURL}/${JPEG_VERSION}/${archive_name}"
+		"${JPEG_BASEURL}/download/${JPEG_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -668,6 +671,9 @@ build_openal() {
 	# They contain the same content, but GitHub is more reliable so we use the tar.gz archive.
 	# We mirror it as openal-soft-1.24.3.tar.gz for convenience.
 
+	# There is no tar.bz2 uploaded to GitHub anymore, so we cannot use GitHub as a mirror
+	# for the OpenAL website.
+
 	case "${PLATFORM}" in
 	windows-*-*)
 		local dir_name="openal-soft-${OPENAL_VERSION}-bin"
@@ -685,7 +691,7 @@ build_openal() {
 	esac
 
 	download_extract openal "${archive_name}" \
-		"https://github.com/kcat/openal-soft/${github_subdir}/${OPENAL_VERSION}/${github_archive_name}"
+		"${OPENAL_BASEURL}/${github_subdir}/${OPENAL_VERSION}/${github_archive_name}"
 
 	"${download_only}" && return
 
