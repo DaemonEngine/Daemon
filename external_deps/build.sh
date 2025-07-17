@@ -705,7 +705,7 @@ build_openal() {
 
 		cmake_build \
 			-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-			-DALSOFT_EXAMPLES=OFF
+			-DALSOFT_EXAMPLES=OFF \
 			-DLIBTYPE=STATIC
 		;;
 	esac
