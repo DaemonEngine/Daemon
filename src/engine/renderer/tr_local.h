@@ -1257,6 +1257,8 @@ enum
 		bool       polygonOffset; // set for decals and other items that must be offset
 		float          polygonOffsetValue;
 
+		bool is2D;
+
 		bool       noPicMip; // for images that must always be full resolution
 		bool fitScreen; // For images that should be scaled to fit the screen size.
 		int        imageMinDimension;   // for images that must not be loaded with smaller size

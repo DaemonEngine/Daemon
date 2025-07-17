@@ -1491,7 +1491,9 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 			case stageType_t::ST_REFLECTIONMAP:
 			case stageType_t::ST_SKYBOXMAP:
 			case stageType_t::ST_SPECULARMAP:
-				imageParams.bits |= IF_SRGB;
+				/* Some stage types may be meaningless in 2D but we can't prevent people
+				to use any shader in UI, so we better take care of more than ST_COLORMAP. */
+				imageParams.bits |= shader.is2D ? 0 : IF_SRGB;
 				break;
 			default:
 				break;
@@ -6111,6 +6113,8 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 
 	Q_strncpyz( shader.name, strippedName, sizeof( shader.name ) );
 	shader.type = type;
+
+	shader.is2D = flags & RSF_2D;
 
 	for ( i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
