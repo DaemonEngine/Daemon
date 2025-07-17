@@ -22,8 +22,7 @@ SDL2_BASEURL='https://www.libsdl.org/release'
 GLEW_BASEURL='https://github.com/nigels-com/glew/releases'
 # Index: https://download.sourceforge.net/libpng/files/libpng16
 PNG_BASEURL='https://sourceforge.net/projects/libpng/files/libpng16'
-# Index: https://downloads.sourceforge.net/project/libjpeg-turbo
-JPEG_BASEURL='https://sourceforge.net/projects/libjpeg-turbo/files'
+JPEG_BASEURL='https://github.com/libjpeg-turbo/libjpeg-turbo/releases'
 # Index: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/index.html
 WEBP_BASEURL='https://storage.googleapis.com/downloads.webmproject.org/releases/webp'
 OPENAL_BASEURL='https://openal-soft.org/openal-releases'
@@ -49,7 +48,7 @@ CURL_VERSION=8.15.0
 SDL2_VERSION=2.32.8
 GLEW_VERSION=2.2.0
 PNG_VERSION=1.6.50
-JPEG_VERSION=3.0.1
+JPEG_VERSION=3.1.1
 WEBP_VERSION=1.6.0
 OPENAL_VERSION=1.24.3
 OGG_VERSION=1.3.6
