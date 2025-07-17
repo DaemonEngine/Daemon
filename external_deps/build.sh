@@ -656,21 +656,37 @@ build_webp() {
 
 # Build OpenAL
 build_openal() {
+	# On OpenAL website, Windows binaries are on:
+	#  https://openal-soft.org/openal-binaries/openal-soft-1.24.3-bin.zip
+	# and sources are on:
+	#  https://openal-soft.org/openal-releases/openal-soft-1.24.3.tar.bz2
+
+	# But on GitHub Windows binaries are on:
+	#   https://github.com/kcat/openal-soft/releases/download/1.24.3/openal-soft-1.24.3-bin.zip
+	# and sources are on:
+	#   https://github.com/kcat/openal-soft/archive/refs/tags/1.24.3.tar.gz
+
+	# They contain the same content, but GitHub is more reliable so we use the tar.gz archive.
+	# We mirror it as openal-soft-1.24.3.tar.gz for convenience.
+
 	case "${PLATFORM}" in
 	windows-*-*)
 		local dir_name="openal-soft-${OPENAL_VERSION}-bin"
 		local archive_name="${dir_name}.zip"
+		local github_archive_name="${archive_name}"
+		local github_subdir='releases/download'
 		;;
 	*)
 		local dir_name="openal-soft-${OPENAL_VERSION}"
-		local archive_name="${dir_name}.tar.bz2"
+		local archive_name="${dir_name}.tar.gz"
+		local github_archive_name="${OPENAL_VERSION}.tar.gz"
+		local github_subdir='archive/refs/tags'
 		local openal_cmake_args=(-DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF)
 		;;
 	esac
 
 	download_extract openal "${archive_name}" \
-		"${OPENAL_BASEURL}/${archive_name}" \
-		"https://github.com/kcat/openal-soft/releases/download/${OPENAL_VERSION}/${archive_name}" \
+		"https://github.com/kcat/openal-soft/${github_subdir}/${OPENAL_VERSION}/${github_archive_name}"
 
 	"${download_only}" && return
 
