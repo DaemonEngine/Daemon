@@ -352,6 +352,7 @@ build_curl() {
 	cmake_build \
 		-DBUILD_CURL_EXE=OFF \
 		-DBUILD_TESTING=OFF \
+		-DENABLE_CURL_MANUAL=OFF \
 		-DENABLE_THREADED_RESOLVER=OFF \
 		-DENABLE_UNIX_SOCKETS=OFF \
 		-DUSE_HTTPSRR=OFF \
@@ -727,8 +728,10 @@ build_ogg() {
 	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
 	mv os_types.tmp include/ogg/os_types.h
 
-	# The provided CMakeLists.txt doesn't have an install target.
-	configure_build
+	cmake_build \
+		-DINSTALL_DOCS=OFF \
+		-DINSTALL_CMAKE_PACKAGE_MODULE=ON \
+		-DINSTALL_PKG_CONFIG_MODULE=OFF
 }
 
 # Build Vorbis
