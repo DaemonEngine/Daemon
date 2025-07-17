@@ -3362,6 +3362,17 @@ static void R_SetConstantColorLightGrid( const byte color[3] )
 	tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
 }
 
+static float convertToSRGB( float x )
+{
+	//return x < 0.0031308f ? 12.92f * x : 1.055f * powf( x, 1.0f/2.2f ) - 0.055f;
+	return powf( x, 1.0f / 2.2f );
+}
+
+static float convertFromSRGB( float x )
+{
+	return powf( x, 2.2f );
+}
+
 /*
 ================
 R_LoadLightGrid
@@ -3534,10 +3545,31 @@ void R_LoadLightGrid( lump_t *l )
 		direction[ 1 ] = sinf( lat ) * sinf( lng );
 		direction[ 2 ] = cosf( lng );
 
+		if ( tr.worldSRGB )
+		{
+			ambientColor[ 0 ] = convertFromSRGB( ambientColor[ 0 ] );
+			ambientColor[ 1 ] = convertFromSRGB( ambientColor[ 1 ] );
+			ambientColor[ 2 ] = convertFromSRGB( ambientColor[ 2 ] );
+			directedColor[ 0 ] = convertFromSRGB( directedColor[ 0 ] );
+			directedColor[ 1 ] = convertFromSRGB( directedColor[ 1 ] );
+			directedColor[ 2 ] = convertFromSRGB( directedColor[ 2 ] );
+		}
+
+		float avgColor[ 3 ];
+		VectorAdd( ambientColor, directedColor, avgColor );
+		VectorScale( avgColor, 0.5f, avgColor );
+
+		if ( tr.worldSRGB )
+		{
+			avgColor[ 0 ] = convertToSRGB( avgColor[ 0 ] );
+			avgColor[ 1 ] = convertToSRGB( avgColor[ 1 ] );
+			avgColor[ 2 ] = convertToSRGB( avgColor[ 2 ] );
+		}
+
 		// Pack data into an bspGridPoint
-		gridPoint1->color[ 0 ] = floatToUnorm8( 0.5f * (ambientColor[ 0 ] + directedColor[ 0 ]) );
-		gridPoint1->color[ 1 ] = floatToUnorm8( 0.5f * (ambientColor[ 1 ] + directedColor[ 1 ]) );
-		gridPoint1->color[ 2 ] = floatToUnorm8( 0.5f * (ambientColor[ 2 ] + directedColor[ 2 ]) );
+		gridPoint1->color[ 0 ] = floatToUnorm8( avgColor[ 0 ] );
+		gridPoint1->color[ 1 ] = floatToUnorm8( avgColor[ 1 ] );
+		gridPoint1->color[ 2 ] = floatToUnorm8( avgColor[ 2 ] );
 
 		// Avoid division-by-zero.
 		float ambientLength = VectorLength(ambientColor);
@@ -3765,6 +3797,8 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 				// This will be disabled if the engine fails to load the lightmaps.
 				tr.worldDeluxeMapping = glConfig2.deluxeMapping;
 			}
+
+			tr.worldSRGB = !!Q_stristr( value, "-srgb" );
 
 			continue;
 		}
@@ -4566,7 +4600,14 @@ void RE_LoadWorldMap( const char *name )
 	R_LoadEntities( &header->lumps[ LUMP_ENTITIES ], externalEntities );
 
 	// Now we can set this after checking a possible worldspawn value for mapOverbrightBits
-	tr.overbrightBits = std::min( tr.mapOverBrightBits, r_overbrightBits.Get() );
+	if ( tr.worldSRGB )
+	{
+		tr.overbrightBits = tr.mapOverBrightBits;
+	}
+	else
+	{
+		tr.overbrightBits = std::min( tr.mapOverBrightBits, r_overbrightBits.Get() );
+	}
 
 	R_LoadShaders( &header->lumps[ LUMP_SHADERS ] );
 

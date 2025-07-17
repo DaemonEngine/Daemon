@@ -50,13 +50,19 @@ vec4 EnvironmentalSpecularFactor( vec3 viewDir, vec3 normal )
 // lighting helper functions
 
 #if defined(USE_GRID_LIGHTING) || defined(USE_GRID_DELUXE_MAPPING)
-	void ReadLightGrid( in vec4 texel, in float lightFactor, out vec3 ambientColor, out vec3 lightColor ) {
+	void ReadLightGrid( in vec4 texel,  const in colorModulatePack colorMod, out vec3 ambientColor, out vec3 lightColor ) {
 		float ambientScale = 2.0 * texel.a;
 		float directedScale = 2.0 - ambientScale;
+		float rawLightFactor = float(colorMod >> 28);
+		ambientScale *= rawLightFactor;
+		directedScale *= rawLightFactor;
+		if (0 != (colorMod & (1u << 26)))
+		{
+			ambientScale = pow(ambientScale, 1.0/2.2);
+			directedScale = pow(directedScale, 1.0/2.2);
+		}
 		ambientColor = ambientScale * texel.rgb;
 		lightColor = directedScale * texel.rgb;
-		ambientColor *= lightFactor;
-		lightColor *= lightFactor;
 	}
 #endif
 

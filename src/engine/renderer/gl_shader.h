@@ -2878,6 +2878,7 @@ class u_ColorModulateColorGen_Uint :
 			ALPHA_MINUS_ONE = 3,
 			ALPHA_ADD_ONE = 4,
 			// <-- Insert new bits there.
+			LIGHTFACTOR_LINEARIZE = 26,
 			IS_LIGHT_STYLE = 27,
 			LIGHTFACTOR_BIT0 = 28,
 			LIGHTFACTOR_BIT1 = 29,
@@ -2898,6 +2899,8 @@ class u_ColorModulateColorGen_Uint :
 			<< Util::ordinal( ColorModulate_Bit::ALPHA_MINUS_ONE );
 		colorModulate_Uint |= colorModulation.alphaAddOne
 			<< Util::ordinal( ColorModulate_Bit::ALPHA_ADD_ONE );
+		colorModulate_Uint |= tr.worldSRGB
+			<< Util::ordinal( ColorModulate_Bit::LIGHTFACTOR_LINEARIZE );
 		colorModulate_Uint |= colorModulation.useVertexLightFactor
 			<< Util::ordinal( ColorModulate_Bit::IS_LIGHT_STYLE );
 		colorModulate_Uint |= uint32_t( colorModulation.lightFactor )

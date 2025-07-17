@@ -156,8 +156,7 @@ void main()
 	#else
 		// Compute light color from lightgrid.
 		vec3 ambientColor, lightColor;
-		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), lightFactor, ambientColor, lightColor);
-
+		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), u_ColorModulateColorGen, ambientColor, lightColor);
 		color.rgb = ambientColor * r_AmbientScale * diffuse.rgb;
 	#endif
 

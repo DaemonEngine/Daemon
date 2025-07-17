@@ -2522,6 +2522,7 @@ enum class ssaoMode {
 		bool   worldLightMapping;
 		bool   worldDeluxeMapping;
 		bool   worldHDR_RGBE;
+		bool worldSRGB;
 
 		lightMode_t lightMode;
 		lightMode_t worldLight;
