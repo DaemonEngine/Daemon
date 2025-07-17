@@ -50,10 +50,8 @@ SDL2_VERSION=2.32.8
 GLEW_VERSION=2.2.0
 PNG_VERSION=1.6.50
 JPEG_VERSION=3.0.1
-# WebP 1.5.0 requires vld1q_u8_x4() on arm64, but GCC 8.3.0 from Debian Buster doesn't provide it.
-WEBP_VERSION=1.4.0
-# OpenAL 1.24.2 requires for_each_n() from C++ 20, but GCC 8.3.0 from Debian Buster doesn't provide it.
-OPENAL_VERSION=1.23.1
+WEBP_VERSION=1.6.0
+OPENAL_VERSION=1.24.3
 OGG_VERSION=1.3.6
 VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.5.2
