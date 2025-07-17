@@ -1051,6 +1051,10 @@ enum class ssaoMode {
 	struct Material;
 	struct MaterialSurface;
 
+	// Use 3D-appropriate defaults if it is an implicit shader without shader text.
+	// TODO(0.56): move to the public RegisterShaderFlags_t interface
+#define RSF_IMPLICIT_3D ( BIT( 30 ) )
+
 	using stageRenderer_t = void(*)(shaderStage_t *);
 	using stageShaderBuildMarker_t = void(*)(const shaderStage_t*);
 	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
@@ -1205,17 +1209,10 @@ enum class ssaoMode {
 		float  depthForOpaque;
 	};
 
-	enum class shaderType_t
-	{
-	  SHADER_2D, // surface material: shader is for 2D rendering (like GUI elements)
-	  SHADER_3D_DYNAMIC, // surface material: shader is for cGen diffuseLighting lighting
-	  SHADER_3D_STATIC, // surface material: pre-lit triangle models
-	};
-
 	struct shader_t
 	{
 		char         name[ MAX_QPATH ]; // game path, including extension
-		shaderType_t type;
+		int registerFlags; // RSF_
 
 		int          index; // this shader == tr.shaders[index]
 		int          sortedIndex; // this shader == tr.sortedShaders[sortedIndex]
@@ -3104,7 +3101,7 @@ inline bool checkGLErrors()
 	qhandle_t RE_RegisterShader( const char *name, int flags );
 	qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image );
 
-	shader_t  *R_FindShader( const char *name, shaderType_t type, int flags );
+	shader_t  *R_FindShader( const char *name, int flags );
 	shader_t  *R_GetShaderByHandle( qhandle_t hShader );
 	shader_t  *R_FindShaderByName( const char *name );
 	const char *RE_GetShaderNameFromHandle( qhandle_t shader );
