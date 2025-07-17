@@ -170,6 +170,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_rimExponent;
 
 	Cvar::Cvar<bool> r_highPrecisionRendering("r_highPrecisionRendering", "use high precision frame buffers for rendering and blending", Cvar::NONE, true);
+	Cvar::Cvar<bool> r_accurateSRGB("r_accurateSRGB", "Use accurate sRGB computation when converting images", Cvar::NONE, true);
 
 	cvar_t      *r_gamma;
 
@@ -1239,6 +1240,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		AssertCvarRange( r_rimExponent, 0.5, 8.0, false );
 
 		Cvar::Latch( r_highPrecisionRendering );
+		Cvar::Latch( r_accurateSRGB );
 
 		r_drawBuffer = Cvar_Get( "r_drawBuffer", "GL_BACK", CVAR_CHEAT );
 		r_lockpvs = Cvar_Get( "r_lockpvs", "0", CVAR_CHEAT );
@@ -1271,6 +1273,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_profilerRenderSubGroups );
 	}
 
+	static float convertFloatFromSRGB_NOP( float f ) { return f; }
+	static Color::Color convertColorFromSRGB_NOP( Color::Color c ) { return c; }
+
 	/*
 	===============
 	R_Init
@@ -1286,6 +1291,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		ResetStruct( tr );
 		ResetStruct( backEnd );
 		ResetStruct( tess );
+
+		tr.convertFloatFromSRGB = convertFloatFromSRGB_NOP;
+		tr.convertColorFromSRGB = convertColorFromSRGB_NOP;
 
 		if ( ( intptr_t ) tess.verts & 15 )
 		{

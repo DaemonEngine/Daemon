@@ -476,6 +476,7 @@ enum class ssaoMode {
 	  IF_RGBE = BIT( 15 ),
 	  IF_ALPHATEST = BIT( 16 ), // FIXME: this is unused
 	  IF_ALPHA = BIT( 17 ),
+	  IF_SRGB = BIT( 18 ),
 	  IF_BC1 = BIT( 19 ),
 	  IF_BC2 = BIT( 20 ),
 	  IF_BC3 = BIT( 21 ),
@@ -863,11 +864,20 @@ enum class ssaoMode {
 		float    value;
 	};
 
+
+enum
+{
+	EXP_NONE,
+	EXP_NORM = BIT( 0 ),
+	EXP_SRGB = BIT( 1 ),
+};
+
 #define MAX_EXPRESSION_OPS 32
 	struct expression_t
 	{
 		expOperation_t ops[ MAX_EXPRESSION_OPS ];
 		size_t numOps;
+		int bits;
 
 		bool operator==( const expression_t& other ) {
 			if ( numOps != other.numOps ) {
@@ -1253,6 +1263,8 @@ enum class ssaoMode {
 		cullType_t     cullType; // CT_FRONT_SIDED, CT_BACK_SIDED, or CT_TWO_SIDED
 		bool       polygonOffset; // set for decals and other items that must be offset
 		float          polygonOffsetValue;
+
+		bool is2D;
 
 		bool       noPicMip; // for images that must always be full resolution
 		bool fitScreen; // For images that should be scaled to fit the screen size.
@@ -2492,6 +2504,9 @@ enum class ssaoMode {
 		int       h;
 	};
 
+	using floatProcessor_t = float(*)(float);
+	using colorProcessor_t = Color::Color(*)(Color::Color);
+
 	/*
 	** trGlobals_t
 	**
@@ -2522,6 +2537,11 @@ enum class ssaoMode {
 		bool   worldLightMapping;
 		bool   worldDeluxeMapping;
 		bool   worldHDR_RGBE;
+		bool worldLinearizeTexture;
+		bool worldLinearizeLightMap;
+
+		floatProcessor_t convertFloatFromSRGB;
+		colorProcessor_t convertColorFromSRGB;
 
 		lightMode_t lightMode;
 		lightMode_t worldLight;
@@ -2812,6 +2832,7 @@ enum class ssaoMode {
 	extern cvar_t *r_rimExponent;
 
 	extern Cvar::Cvar<bool> r_highPrecisionRendering;
+	extern Cvar::Cvar<bool> r_accurateSRGB;
 
 	extern Cvar::Range<Cvar::Cvar<int>> r_shadows;
 
@@ -3029,6 +3050,10 @@ inline bool checkGLErrors()
 	void GL_VertexAttribsState( uint32_t stateBits );
 	void GL_VertexAttribPointers( uint32_t attribBits );
 	void GL_Cull( cullType_t cullType );
+void GL_TexImage2D( GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB );
+void GL_TexImage3D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB );
+void GL_CompressedTexImage2D( GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data, bool isSRGB );
+void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLint yOffset, GLint zOffset, GLsizei width, GLsizei height, GLsizei depth, GLenum internalFormat, GLsizei size, const void *data, bool isSRGB );
 	void R_ShutdownBackend();
 
 	/*
