@@ -1703,6 +1703,20 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 {
 	int numDisplays;
 
+#if !defined(_WIN32) && !defined(__APPLE__)
+	/* Let X11 and Wayland desktops (Linux, FreeBSD…) associate the game
+	window with the XDG .desktop file, with the proper name and icon.
+	The .desktop file should have PRODUCT_APPID as base name or set the
+	StartupWMClass variable to PRODUCT_APPID. */
+
+	// SDL2.
+	Sys::SetEnv( "SDL_VIDEO_X11_WMCLASS", PRODUCT_APPID );
+	Sys::SetEnv( "SDL_VIDEO_WAYLAND_WMCLASS", PRODUCT_APPID );
+
+	// SDL3.
+	Sys::SetEnv( "SDL_HINT_APP_ID", PRODUCT_APPID );
+#endif
+
 	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
 	{
 		const char *driverName;
