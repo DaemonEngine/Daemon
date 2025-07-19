@@ -747,10 +747,11 @@ build_ogg() {
 	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
 	mv os_types.tmp include/ogg/os_types.h
 
+	# The opusfile build system requires the pkg-config module.
 	cmake_build \
 		-DINSTALL_DOCS=OFF \
 		-DINSTALL_CMAKE_PACKAGE_MODULE=ON \
-		-DINSTALL_PKG_CONFIG_MODULE=OFF
+		-DINSTALL_PKG_CONFIG_MODULE=ON
 }
 
 # Build Vorbis
