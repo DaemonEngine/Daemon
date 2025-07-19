@@ -1187,13 +1187,13 @@ base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl2 glew png jpeg 
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
 base_linux_i686_default_packages='naclsdk'
-all_linux_i686_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+all_linux_i686_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
 
 base_linux_amd64_default_packages="${base_linux_i686_default_packages} naclruntime"
 all_linux_amd64_default_packages="${all_linux_i686_default_packages} naclruntime"
 
 base_linux_arm64_default_packages='naclsdk'
-all_linux_arm64_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+all_linux_arm64_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
 
 base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
 all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
