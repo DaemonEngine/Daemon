@@ -688,7 +688,7 @@ build_openal() {
 		local archive_name="${dir_name}.tar.gz"
 		local github_archive_name="${OPENAL_VERSION}.tar.gz"
 		local github_subdir='archive/refs/tags'
-		local openal_cmake_args=(-DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF)
+		local openal_cmake_args=(-DALSOFT_EXAMPLES=OFF)
 		;;
 	esac
 
@@ -728,7 +728,8 @@ build_openal() {
 		cmake_build \
 			-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 			-DALSOFT_EXAMPLES=OFF \
-			-DLIBTYPE=STATIC
+			-DLIBTYPE=STATIC \
+			"${openal_cmake_args[@]}"
 		;;
 	esac
 }
