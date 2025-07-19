@@ -1703,6 +1703,17 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 {
 	int numDisplays;
 
+#if !defined(_WIN32) && !defined(__APPLE__)
+	/* SDL2: Let X11 and Wayland desktops (Linux, FreeBSD…) display the game
+	name on the game windows instead of the engine binary name. This also
+	makes possible to display the correct icon if that WMCLASS is also set
+	in the net.unvanquished.Unvanquished.desktop file. */
+	Sys::SetEnv( "SDL_VIDEO_X11_WMCLASS", PRODUCT_NAME );
+	Sys::SetEnv( "SDL_VIDEO_WAYLAND_WMCLASS", PRODUCT_NAME );
+	// SDL3 relies on this instead.
+	Sys::SetEnv( "SDL_HINT_APP_ID", PRODUCT_APPID );
+#endif
+
 	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
 	{
 		const char *driverName;
