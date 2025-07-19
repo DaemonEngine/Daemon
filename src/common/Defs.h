@@ -37,6 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** No case, No spaces */
 #define PRODUCT_NAME_LOWER  "unvanquished"
 
+#define PRODUCT_APPID "net.unvanquished.Unvanquished"
+
 #define PRODUCT_VERSION     "0.55.4"
 
 /** Default base package */
