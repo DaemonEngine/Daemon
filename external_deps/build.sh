@@ -1168,6 +1168,10 @@ build_base() {
 	list_build base
 }
 
+build_release() {
+	list_build release
+}
+
 build_all() {
 	list_build all
 }
@@ -1390,30 +1394,39 @@ setup_linux-arm64-default() {
 }
 
 base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck genlib'
+release_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
 all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
 
 base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
+release_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 
 base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck'
+release_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
+release_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 
 base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+release_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
 base_linux_i686_default_packages='naclsdk'
-all_linux_i686_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+release_linux_i686_default_packages='zlib gmp curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+all_linux_i686_default_packages="nettle ${release_linux_i686_default_packages}"
 
 base_linux_amd64_default_packages="${base_linux_i686_default_packages} naclruntime"
-all_linux_amd64_default_packages="${all_linux_i686_default_packages} naclruntime"
+release_linux_amd64_default_packages="${all_linux_i686_default_packages} naclruntime"
+all_linux_amd64_default_packages="nettle ${release_linux_amd64_default_packages}"
 
 base_linux_arm64_default_packages='naclsdk'
-all_linux_arm64_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+release_linux_arm64_default_packages='zlib gmp curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+all_linux_arm64_default_packages="nettle ${release_linux_arm64_default_packages}"
 
 base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
+release_linux_armhf_default_packages="${release_linux_arm64_default_packages}"
 all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
 
 linux_build_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
@@ -1443,6 +1456,7 @@ errorHelp() {
 
 	Virtual packages:
 	\tbase — build packages for pre-built binaries to be downloaded when building the game
+	\trelease — build packages used when building a release
 	\tall — build all supported packages that can possibly be involved in building the game
 	\tinstall — create a stripped down version of the built packages that CMake can use
 	\tpackage — create a zip/tarball of the dependencies so they can be distributed
@@ -1453,28 +1467,34 @@ errorHelp() {
 	windows-amd64-msvc:
 	windows-i686-msvc:
 	\tbase: ${base_windows_amd64_msvc_packages}
+	\trelease: same
 	\tall: same
 
 	windows-amd64-mingw:
 	windows-i686-mingw:
 	\tbase: ${base_windows_amd64_mingw_packages}
+	\trelease: same
 	\tall: same
 
 	macos-amd64-default:
 	\tbase: ${base_macos_amd64_default_packages}
+	\trelease: same
 	\tall: same
 
 	linux-amd64-default:
 	\tbase: ${base_linux_amd64_default_packages}
+	\trelease: ${release_linux_amd64_default_packages}
 	\tall: ${all_linux_amd64_default_packages}
 
 	linux-i686-default:
 	\tbase: ${base_linux_i686_default_packages}
+	\trelease: ${release_linux_i686_default_packages}
 	\tall: ${all_linux_i686_default_packages}
 
 	linux-arm64-default:
 	linux-armhf-default:
 	\tbase: ${base_linux_arm64_default_packages}
+	\trelease: ${release_linux_arm64_default_packages}
 	\tall: ${all_linux_arm64_default_packages}
 
 	EOF
