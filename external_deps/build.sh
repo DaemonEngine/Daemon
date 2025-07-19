@@ -615,7 +615,7 @@ build_jpeg() {
 		# Workaround for: undefined reference to `log10'
 		# The CMakeLists.txt file only does -lm if UNIX,
 		# but UNIX may not be true on Linux.
-		jpeg_cmake_args=(-DUNIX=True)
+		jpeg_cmake_args+=(-DUNIX=True)
 		;;
 	esac
 		
