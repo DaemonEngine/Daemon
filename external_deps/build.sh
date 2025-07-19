@@ -50,7 +50,9 @@ SDL2_VERSION=2.32.8
 GLEW_VERSION=2.2.0
 PNG_VERSION=1.6.50
 JPEG_VERSION=3.1.1
-WEBP_VERSION=1.6.0
+# WebP 1.6.0 introduced AVX2 intrinsics that are not available on
+# the GCC 10 compiler provided by Debian Bullseye.
+WEBP_VERSION=1.5.0
 # OpenAL 1.24.2 and later requires at least CMake 3.26 but Debian Bullseye
 # only provides 3.18 (and even only 3.25 in backports).
 OPENAL_VERSION=1.24.1
