@@ -550,10 +550,30 @@ build_png() {
 
 	cd "${dir_name}"
 
+	local png_cmake_args=()
+
+	# PNG CMake relies on uname's output to add platform-indepedent
+	# code to the build, to we need to help it. It expects the “on”
+	# lowercase string, not the “ON” boolean.
+	case "${PLATFORM}" in
+	*-amd64-*|*-i686-*)
+		png_cmake_args+=(-DPNG_INTEL_SSE=on)
+		;;
+	*-arm64-*|*-armhf-*)
+		png_cmake_args+=(-DPNG_ARM_NEON=on)
+		;;
+	*)
+		# Other platforms can build but we may need to explicitly
+		# set related intrinsics-enablement variables.
+		log ERROR 'Unsupported platform for PNG'
+		;;
+	esac
+
 	cmake_build \
 		-DPNG_EXECUTABLES=OFF \
 		-DPNG_SHARED="${LIBS_SHARED}" \
-		-DPNG_STATIC="${LIBS_STATIC}"
+		-DPNG_STATIC="${LIBS_STATIC}" \
+		"${png_cmake_args[@]}"
 }
 
 # Build JPEG
