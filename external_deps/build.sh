@@ -577,7 +577,7 @@ build_jpeg() {
 		local SYSTEM_NAME='Linux'
 		;;
 	*)
-		# Other platforms can build but we need need to explicitly
+		# Other platforms can build but we need to explicitly
 		# set CMAKE_SYSTEM_NAME for CMAKE_CROSSCOMPILING to be set
 		# and CMAKE_SYSTEM_PROCESSOR to not be ignored by cmake.
 		log ERROR 'Unsupported platform for JPEG'
