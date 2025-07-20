@@ -688,6 +688,7 @@ enum class ssaoMode {
 
 //===============================================================================
 
+	// Sorts commented "keyword only" will never be used unless the shader text has a `sort` keyword specifying it.
 	enum class shaderSort_t
 	{
 	  SS_BAD,
@@ -702,30 +703,22 @@ enum class ssaoMode {
 	  SS_ENVIRONMENT_NOFOG, // Tr3B: moved skybox here so we can fog post process all SS_OPAQUE materials
 
 	  SS_DECAL, // scorch marks, etc.
-	  SS_SEE_THROUGH, // ladders, grates, grills that may have small blended edges
-	  // in addition to alpha test
-	  SS_BANNER,
-
+	  SS_SEE_THROUGH, // ladders, grates, grills that may have small blended edges in addition to alpha test
+	  SS_BANNER, // keyword only
 	  SS_FOG,
 
-	  SS_UNDERWATER, // for items that should be drawn in front of the water plane
-	  SS_WATER,
+	  SS_UNDERWATER, // keyword only
+	  SS_FAR, // keyword only
+	  SS_MEDIUM, // keyword only
+	  SS_CLOSE, // keyword only
 
-	  SS_FAR,
-	  SS_MEDIUM,
-	  SS_CLOSE,
+	  // Must have value 15 because binary.shader contains numerical sort values between 15 and 16
+	  SS_BLEND0 = 15, // regular transparency and filters
 
-	  SS_BLEND0, // regular transparency and filters
-	  SS_BLEND1, // generally only used for additive type effects
-	  SS_BLEND2,
-	  SS_BLEND3,
-
-	  SS_BLEND6,
-
-	  SS_ALMOST_NEAREST, // gun smoke puffs
-
-	  SS_NEAREST, // blood blobs
-	  SS_POST_PROCESS,
+	  SS_BLEND1, // Keyword only. Generally only used for additive type effects
+	  SS_ALMOST_NEAREST, // keyword only
+	  SS_NEAREST, // keyword only
+	  SS_POST_PROCESS, // keyword only
 
 	  SS_NUM_SORTS
 	};
