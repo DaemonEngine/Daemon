@@ -550,6 +550,11 @@ void Tess_DrawElements()
 		backEnd.pc.c_indexes += tess.numIndexes;
 		backEnd.pc.c_vertexes += tess.numVertexes;
 	}
+
+	if ( glState.glStateBits & GLS_DEPTHMASK_TRUE )
+	{
+		backEnd.dirtyDepthBuffer = true;
+	}
 }
 
 /*
@@ -862,6 +867,14 @@ void Render_generic3D( shaderStage_t *pStage )
 
 	bool hasDepthFade = pStage->hasDepthFade;
 	bool needDepthMap = pStage->hasDepthFade;
+
+	if ( needDepthMap && backEnd.dirtyDepthBuffer && glConfig2.textureBarrierAvailable )
+	{
+		// Flush depth buffer to make sure it is available for reading in the depth fade
+		// GLSL - prevents https://github.com/DaemonEngine/Daemon/issues/1676
+		glTextureBarrier();
+		backEnd.dirtyDepthBuffer = false;
+	}
 
 	// choose right shader program ----------------------------------
 	ProcessShaderGeneric3D( pStage );
