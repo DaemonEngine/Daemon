@@ -2587,6 +2587,9 @@ static void RB_RenderView( bool depthPass )
 	// draw everything that is translucent
 	if ( glConfig2.usingMaterialSystem ) {
 		materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, backEnd.viewParms.viewID );
+
+		// HACK: assume surfaces with depth fade don't use the material system
+		backEnd.dirtyDepthBuffer = true;
 	}
 	RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, DRAWSURFACES_ALL );
 
@@ -3255,6 +3258,8 @@ const RenderCommand *ClearBufferCommand::ExecuteSelf( ) const
 	// we will need to change the projection matrix before drawing
 	// 2D images again
 	backEnd.projection2D = false;
+
+	backEnd.dirtyDepthBuffer = false;
 
 	// set the modelview matrix for the viewer
 	SetViewportAndScissor();

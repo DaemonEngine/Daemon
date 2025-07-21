@@ -2289,6 +2289,7 @@ enum class ssaoMode {
 		bool          isHyperspace;
 		trRefEntity_t     *currentEntity;
 		bool          skyRenderedThisView; // flag for drawing sun
+		bool dirtyDepthBuffer;
 		bool postDepthLightTileRendered = false;
 
 		bool          projection2D; // if true, drawstretchpic doesn't need to change modes
