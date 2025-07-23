@@ -94,14 +94,29 @@ using bool8_t = uint8_t;
 #define GL_INDEX_TYPE GL_UNSIGNED_INT
 using glIndex_t = unsigned int;
 
-// TODO(0.56): drop RSF_LIGHT_ATTENUATION
+// "[implicit only]" means the flag only has effect if there is no shader text and the
+// shader was auto-generated from an image.
+// TODO(0.56): drop RSF_LIGHT_ATTENUATION, RSF_NOLIGHTSCALE
 enum RegisterShaderFlags_t {
+	// nothing
 	RSF_DEFAULT = BIT( 0 ),
+
+	// [implicit only] alter filter and wrap type
 	RSF_2D = BIT( 1 ),
+
+	// load images without mipmaps
 	RSF_NOMIP = BIT( 2 ),
+
+	// mip images to the screen size when they are larger than the screen
 	RSF_FITSCREEN = BIT( 3 ),
+
+	// nothing
 	RSF_LIGHT_ATTENUATION = BIT( 4 ),
-	RSF_NOLIGHTSCALE = BIT( 5 ), // TODO(0.56): delete, does nothing
+
+	// nothing
+	RSF_NOLIGHTSCALE = BIT( 5 ),
+
+	// when the shader is used on an entity sprite, face view direction instead of viewer
 	RSF_SPRITE = BIT( 6 ),
 };
 
