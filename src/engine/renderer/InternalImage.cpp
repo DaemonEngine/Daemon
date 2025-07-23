@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // InternalImage.cpp
 #include "tr_local.h"
+#include "GLUtils.h"
 
 // Comments may include short quotes from other authors.
 

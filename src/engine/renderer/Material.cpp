@@ -1887,7 +1887,7 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 		}
 	}
 
-	glBindVertexArray( backEnd.currentVAO );
+	GL_BindVAO( backEnd.defaultVAO );
 
 	// Draw the skybox here because we skipped R_AddWorldSurfaces()
 	const bool environmentFogDraw = ( fromSort <= shaderSort_t::SS_ENVIRONMENT_FOG ) && ( toSort >= shaderSort_t::SS_ENVIRONMENT_FOG );
