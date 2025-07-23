@@ -46,8 +46,6 @@ static Cvar::Modified<Cvar::Cvar<bool>> r_noBorder(
 static Cvar::Modified<Cvar::Range<Cvar::Cvar<int>>> r_swapInterval(
 	"r_swapInterval", "enable vsync on every Nth frame, negative for apdative", Cvar::ARCHIVE, 0, -5, 5 );
 
-static Cvar::Cvar<std::string> r_glForceDriver(
-	"r_glForceDriver", "treat the OpenGL driver type as: 'icd' 'standalone' or 'opengl3'", Cvar::NONE, "");
 static Cvar::Cvar<std::string> r_glForceHardware(
 	"r_glForceHardware", "treat the GPU type as: 'r300' or 'generic'", Cvar::NONE, "");
 
@@ -134,10 +132,6 @@ static Cvar::Cvar<bool> workaround_glDriver_amd_adrenalin_disableBindlessTexture
 static Cvar::Cvar<bool> workaround_glDriver_amd_oglp_disableBindlessTexture(
 	"workaround.glDriver.amd.oglp.disableBindlessTexture",
 	"Disable ARB_bindless_texture on AMD OGLP driver",
-	Cvar::NONE, true );
-static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv300_disableRgba16Blend(
-	"workaround.glDriver.mesa.ati.rv300.disableRgba16Blend",
-	"Disable misdetected RGBA16 on Mesa driver on RV300 hardware",
 	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv300_useFloatVertex(
 	"workaround.glDriver.mesa.ati.rv300.useFloatVertex",
@@ -1381,7 +1375,19 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 		}
 	}
 
-	if ( requestedConfiguration.profile == glProfile::CORE )
+	{
+		int GLmajor, GLminor;
+		if ( 2 != sscanf( ( const char * ) glGetString( GL_VERSION ), "%d.%d", &GLmajor, &GLminor ) )
+		{
+			Sys::Error( "Indecipherable GL_VERSION" );
+		}
+
+		glConfig2.glMajor = GLmajor;
+		glConfig2.glMinor = GLminor;
+	}
+
+	// CONTEXT_FLAGS and forward compatibility were added in OpenGL 3.0
+	if ( glConfig2.glMajor >= 3 )
 	{
 		// Check if context is forward compatible.
 		int contextFlags;
@@ -1391,24 +1397,16 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 
 		if ( glConfig2.glForwardCompatibleContext )
 		{
-			logger.Debug( "Provided OpenGL core context is forward compatible." );
+			logger.Debug( "Provided OpenGL context is forward compatible." );
 		}
 		else
 		{
-			logger.Debug( "Provided OpenGL core context is not forward compatible." );
+			logger.Debug( "Provided OpenGL context is not forward compatible." );
 		}
 	}
 	else
 	{
 		glConfig2.glForwardCompatibleContext = false;
-	}
-
-	{
-		int GLmajor, GLminor;
-		sscanf( ( const char * ) glGetString( GL_VERSION ), "%d.%d", &GLmajor, &GLminor );
-
-		glConfig2.glMajor = GLmajor;
-		glConfig2.glMinor = GLminor;
 	}
 
 	// Get our config strings.
@@ -1465,17 +1463,6 @@ static rserr_t GLimp_CheckOpenGLVersion( const glConfiguration &requestedConfigu
 
 		// Missing shader support, there is no OpenGL 1.x renderer anymore.
 		return rserr_t::RSERR_OLD_GL;
-	}
-
-	if ( glConfig2.glMajor < 3 || ( glConfig2.glMajor == 3 && glConfig2.glMinor < 2 ) )
-	{
-		// Shaders are supported, but not all OpenGL 3.x features
-		logger.Notice("Using GL3 Renderer in OpenGL 2.x mode..." );
-	}
-	else
-	{
-		logger.Notice("Using GL3 Renderer in OpenGL 3.x mode..." );
-		glConfig.driverType = glDriverType_t::GLDRV_OPENGL3;
 	}
 
 	return rserr_t::RSERR_OK;
@@ -1716,6 +1703,20 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 {
 	int numDisplays;
 
+#if !defined(_WIN32) && !defined(__APPLE__)
+	/* Let X11 and Wayland desktops (Linux, FreeBSD…) associate the game
+	window with the XDG .desktop file, with the proper name and icon.
+	The .desktop file should have PRODUCT_APPID as base name or set the
+	StartupWMClass variable to PRODUCT_APPID. */
+
+	// SDL2.
+	Sys::SetEnv( "SDL_VIDEO_X11_WMCLASS", PRODUCT_APPID );
+	Sys::SetEnv( "SDL_VIDEO_WAYLAND_WMCLASS", PRODUCT_APPID );
+
+	// SDL3.
+	Sys::SetEnv( "SDL_HINT_APP_ID", PRODUCT_APPID );
+#endif
+
 	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
 	{
 		const char *driverName;
@@ -1768,8 +1769,8 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 	rserr_t err = GLimp_SetMode(mode, fullscreen, bordered);
 
 	const char* glRequirements =
-		"You need a graphics card with drivers supporting at least\n"
-		"OpenGL 3.2 or OpenGL 2.1 with EXT_framebuffer_object.";
+		"You need a graphics card with drivers supporting at least OpenGL 3.2\n"
+		"or OpenGL 2.1 with EXT_framebuffer_object and ARB_vertex_array_object.";
 
 	switch ( err )
 	{
@@ -2108,75 +2109,6 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.0
 	glConfig2.textureFloatAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_float, r_ext_texture_float.Get() );
 
-	glConfig2.internalFormatQuery2Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_internalformat_query2, r_arb_internalformat_query2.Get() );
-
-	if ( glConfig2.internalFormatQuery2Available )
-	{
-		GLint64 param;
-		glGetInternalformati64v( GL_TEXTURE_2D, GL_RGBA16, GL_FRAMEBUFFER_BLEND, 1, &param );
-
-		if ( param == GL_FULL_SUPPORT || param == GL_TRUE )
-		{
-			/* There is a discrepancy between OpenGL specification and OpenGL reference pages.
-
-			The OpenGL 4.3 Core specification says the query should return either GL_FULL_SUPPORT,
-			GL_CAVEAT_SUPPORT, or GL_NONE:
-
-			- https://registry.khronos.org/OpenGL/specs/gl/glspec43.core.pdf#page=517
-
-			The ARB_internalformat_query2 document says the same:
-
-			- https://registry.khronos.org/OpenGL/extensions/ARB/ARB_internalformat_query2.txt
-
-			The OpenGL wiki page for glGetInternalformat says the same:
-
-			- https://www.khronos.org/opengl/wiki/GLAPI/glGetInternalformat
-
-			But the glGetInternalformat reference page says the query should return GL_TRUE
-			or GL_FALSE:
-
-			- https://registry.khronos.org/OpenGL-Refpages/gl4/html/glGetInternalformat.xhtml
-
-			The meaning of GL_CAVEAT_SUPPORT as a return of a GL_FRAMEBUFFER_BLEND query is
-			unknown. See this thread for details:
-
-			- https://github.com/KhronosGroup/OpenGL-Refpages/issues/157
-
-			Because of this discrepancy in documentation, drivers may have implemented
-			either GL_FULL_SUPPORT or GL_TRUE as a return for feature availability. */
-			glConfig2.textureRGBA16BlendAvailable = 1;
-		}
-		else if ( param == GL_CAVEAT_SUPPORT || param == GL_NONE )
-		{
-			/* Older Mesa versions were mistakenly reporting full support for every driver on
-			every hardware. A return that is not GL_FULL_SUPPORT and not GL_TRUE is the only
-			value we can trust. See those threads for details:
-
-			- https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/30612
-			- https://gitlab.freedesktop.org/mesa/mesa/-/issues/11669#note_2521403
-
-			GL_FALSE has same value as GL_NONE. */
-			glConfig2.textureRGBA16BlendAvailable = 0;
-		}
-	}
-	else
-	{
-		/* Assume this is an old driver without the query extension but the RGBA16 blending is
-		available, as the feature is much older than the extension to check for it, the feature
-		is very likely supported. */
-		glConfig2.textureRGBA16BlendAvailable = -1;
-	}
-
-	/* Workaround for drivers not implementing the feature query or wrongly reporting the feature
-	to be supported, for various reasons. */
-	if ( workaround_glDriver_mesa_ati_rv300_disableRgba16Blend.Get() )
-	{
-		if ( glConfig2.textureRGBA16BlendAvailable != 0 && glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
-		{
-			glConfig2.textureRGBA16BlendAvailable = 0;
-		}
-	}
-
 	bool gpuShader4Enabled = r_ext_gpu_shader4.Get();
 
 	if ( gpuShader4Enabled
@@ -2261,9 +2193,10 @@ static void GLimp_InitExtensions()
 
 	// made required in OpenGL 1.3
 	glConfig.textureCompression = textureCompression_t::TC_NONE;
+
 	/* ExtFlag_REQUIRED could be turned into ExtFlag_NONE if s3tc-to-rgba is implemented.
 	See https://github.com/DaemonEngine/Daemon/pull/738 */
-	if( LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_texture_compression_s3tc ) )
+	if ( LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_texture_compression_s3tc ) )
 	{
 		glConfig.textureCompression = textureCompression_t::TC_S3TC;
 	}
@@ -2282,6 +2215,14 @@ static void GLimp_InitExtensions()
 		// Bound texture anisotropy.
 		glConfig2.textureAnisotropy = std::max( std::min( r_ext_texture_filter_anisotropic.Get(), glConfig2.maxTextureAnisotropy ), 1.0f );
 	}
+
+	// VAO and VBO
+
+	// made required in OpenGL 3.0
+	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_vertex_array_object );
+
+	// made required in OpenGL 2.1
+	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_vertex_buffer_object );
 
 	/* We call RV300 the first generation of R300 cards, to make a difference
 	with RV400 and RV500 cards that are also supported by the Mesa r300 driver.
@@ -2346,7 +2287,6 @@ static void GLimp_InitExtensions()
 			}
 		}
 
-		// VAO and VBO
 		// made required in OpenGL 3.0
 		glConfig2.halfFloatVertexAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_vertex, halfFloatVertexEnabled );
 
@@ -2355,6 +2295,8 @@ static void GLimp_InitExtensions()
 			logger.Notice( "Missing half-float vertex, using float vertex instead." );
 		}
 	}
+
+	// FBO
 
 	if ( !workaround_glExtension_missingArbFbo_useExtFbo.Get() )
 	{
@@ -2388,7 +2330,6 @@ static void GLimp_InitExtensions()
 		glFboSetExt();
 	}
 
-	// FBO
 	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig2.maxRenderbufferSize );
 	glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &glConfig2.maxColorAttachments );
 
@@ -2654,19 +2595,6 @@ static const int R_MODE_FALLBACK = 3; // 640 * 480
 
 /* Support code for GLimp_Init */
 
-static void reportDriverType( bool force )
-{
-	static const char *const drivers[] = {
-		"integrated", "stand-alone", "OpenGL 3+", "Mesa"
-	};
-	if (glConfig.driverType > glDriverType_t::GLDRV_UNKNOWN && (unsigned) glConfig.driverType < ARRAY_LEN( drivers ) )
-	{
-		logger.Notice("%s graphics driver class '%s'",
-		           force ? "User has forced" : "Detected",
-		           drivers[Util::ordinal(glConfig.driverType)] );
-	}
-}
-
 static void reportHardwareType( bool force )
 {
 	static const char *const hardware[] = {
@@ -2690,7 +2618,7 @@ of OpenGL
 */
 bool GLimp_Init()
 {
-	glConfig.driverType = glDriverType_t::GLDRV_ICD;
+	glConfig.driverType = glDriverType_t::GLDRV_OPENGL3;
 
 	r_sdlDriver = Cvar_Get( "r_sdlDriver", "", CVAR_ROM );
 	r_allowResize = Cvar_Get( "r_allowResize", "0", CVAR_LATCH );
@@ -2699,7 +2627,6 @@ bool GLimp_Init()
 
 	Cvar::Latch( workaround_glDriver_amd_adrenalin_disableBindlessTexture );
 	Cvar::Latch( workaround_glDriver_amd_oglp_disableBindlessTexture );
-	Cvar::Latch( workaround_glDriver_mesa_ati_rv300_disableRgba16Blend );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv300_useFloatVertex );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv600_disableHyperZ );
 	Cvar::Latch( workaround_glDriver_mesa_broadcom_vc4_useFloatVertex );
@@ -2819,10 +2746,11 @@ bool GLimp_Init()
 
 	glConfig2.glExtensionsString = std::string();
 
-	if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
+	if ( glConfig2.glMajor >= 3 )
 	{
 		GLint numExts, i;
 
+		// NUM_EXTENSIONS and glGetStringi( GL_EXTENSIONS, i ) were added in OpenGL 3.0
 		glGetIntegerv( GL_NUM_EXTENSIONS, &numExts );
 
 		logger.Debug( "Found %d OpenGL extensions.", numExts );
@@ -2860,6 +2788,7 @@ bool GLimp_Init()
 	}
 	else
 	{
+		// glGetString( GL_EXTENSIONS ) was deprecated in OpenGL 3.0
 		char* extensions_string = ( char * ) glGetString( GL_EXTENSIONS );
 
 		if ( extensions_string == nullptr )
@@ -2880,33 +2809,17 @@ bool GLimp_Init()
 		}
 	}
 
-	if ( glConfig2.hardwareVendor == glHardwareVendor_t::ATI
-		&& glConfig.driverType != glDriverType_t::GLDRV_OPENGL3 )
+	if ( glConfig2.hardwareVendor == glHardwareVendor_t::ATI &&
+	     std::make_pair( glConfig2.glMajor, glConfig2.glMinor ) < std::make_pair( 3, 2 ) )
 	{
 		glConfig.hardwareType = glHardwareType_t::GLHW_R300;
 	}
 
-	reportDriverType( false );
 	reportHardwareType( false );
 
 	{ // allow overriding where the user really does know better
-		Cvar::Latch( r_glForceDriver );
 		Cvar::Latch( r_glForceHardware );
-		glDriverType_t   driverType   = glDriverType_t::GLDRV_UNKNOWN;
 		glHardwareType_t hardwareType = glHardwareType_t::GLHW_UNKNOWN;
-
-		if      ( Str::IsIEqual( r_glForceDriver.Get(), "icd" ) )
-		{
-			driverType = glDriverType_t::GLDRV_ICD;
-		}
-		else if ( Str::IsIEqual( r_glForceDriver.Get(), "standalone" ) )
-		{
-			driverType = glDriverType_t::GLDRV_STANDALONE;
-		}
-		else if ( Str::IsIEqual( r_glForceDriver.Get(), "opengl3" ) )
-		{
-			driverType = glDriverType_t::GLDRV_OPENGL3;
-		}
 
 		if      ( Str::IsIEqual( r_glForceHardware.Get(), "generic" ) )
 		{
@@ -2915,12 +2828,6 @@ bool GLimp_Init()
 		else if ( Str::IsIEqual( r_glForceHardware.Get(), "r300" ) )
 		{
 			hardwareType = glHardwareType_t::GLHW_R300;
-		}
-
-		if ( driverType != glDriverType_t::GLDRV_UNKNOWN )
-		{
-			glConfig.driverType = driverType;
-			reportDriverType( true );
 		}
 
 		if ( hardwareType != glHardwareType_t::GLHW_UNKNOWN )

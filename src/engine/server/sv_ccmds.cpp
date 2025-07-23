@@ -51,7 +51,7 @@ class MapCmd: public Cmd::StaticCmd {
         }
 
         void Run(const Cmd::Args& args) const override {
-            if (args.Argc() < 2) {
+            if (args.Argc() < 2 || args.Argv(1).empty()) {
                 PrintUsage(args, "<mapname> (layoutname)", "loads a new map");
                 return;
             }
@@ -64,6 +64,12 @@ class MapCmd: public Cmd::StaticCmd {
             }
 
             const std::string& mapName = args.Argv(1);
+
+            if (mapName.find_first_of("/\\") != mapName.npos) {
+                Print("Map name '%s' must not contain directory separators", mapName);
+                return;
+            }
+
             // For non-legacy paks, a map named "foo" must be in the pak "map-foo"
             std::string pakName;
 

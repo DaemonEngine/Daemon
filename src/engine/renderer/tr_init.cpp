@@ -967,10 +967,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d", glConfig2.glMajor, glConfig2.glMinor, glConfig2.glRequestedMajor, glConfig2.glRequestedMinor );
 		}
 
-		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
+		if ( std::make_pair( glConfig2.glMajor, glConfig2.glMinor ) >= std::make_pair( 3, 2 ) )
 		{
-			Log::Notice("%sUsing OpenGL 3.x context.", Color::ToString( Color::Green ) );
-
 			/* See https://www.khronos.org/opengl/wiki/OpenGL_Context
 			for information about core, compatibility and forward context. */
 
@@ -982,19 +980,15 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			{
 				Log::Notice("%sUsing an OpenGL compatibility profile.", Color::ToString( Color::Red ) );
 			}
+		}
 
-			if ( glConfig2.glForwardCompatibleContext )
-			{
-				Log::Notice("OpenGL 3.x context is forward compatible.");
-			}
-			else
-			{
-				Log::Notice("OpenGL 3.x context is not forward compatible.");
-			}
+		if ( glConfig2.glForwardCompatibleContext )
+		{
+			Log::Notice("OpenGL context is forward compatible.");
 		}
 		else
 		{
-			Log::Notice("%sUsing OpenGL 2.x context.", Color::ToString( Color::Red ) );
+			Log::Notice("OpenGL context is not forward compatible.");
 		}
 
 		if ( glConfig2.glEnabledExtensionsString.length() != 0 )
@@ -1044,20 +1038,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		else
 		{
 			Log::Notice("%sMissing GPU vertex skinning, models are not hardware-accelerated.", Color::ToString( Color::Red ) );
-		}
-
-		switch ( glConfig2.textureRGBA16BlendAvailable )
-		{
-			case 1:
-				Log::Notice( "%sUsing GL_RGBA16 with GL_FRAMEBUFFER_BLEND.", Color::ToString( Color::Green ) );
-				break;
-			case -1:
-				Log::Notice( "%sUsing GL_RGBA16 with GL_FRAMEBUFFER_BLEND (assumed to be available).", Color::ToString( Color::Yellow ) );
-				break;
-			default:
-			case 0:
-				Log::Notice( "%sMissing GL_RGBA16 with GL_FRAMEBUFFER_BLEND.", Color::ToString( Color::Red ) );
-				break;
 		}
 
 		if ( glConfig.smpActive )

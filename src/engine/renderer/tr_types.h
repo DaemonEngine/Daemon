@@ -83,12 +83,25 @@ using bool8_t = uint8_t;
 #define GL_INDEX_TYPE GL_UNSIGNED_INT
 using glIndex_t = unsigned int;
 
+// "[implicit only]" means the flag only has effect if there is no shader text and the
+// shader was auto-generated from an image.
 enum RegisterShaderFlags_t {
+	// nothing
 	RSF_DEFAULT = BIT( 0 ),
+
+	// [implicit only] alter filter and wrap type
 	RSF_2D = BIT( 1 ),
+
+	// load images without mipmaps
 	RSF_NOMIP = BIT( 2 ),
+
+	// mip images to the screen size when they are larger than the screen
 	RSF_FITSCREEN = BIT( 3 ),
-	RSF_FORCE_LIGHTMAP = BIT( 5 ), // Used to make particles/trails work with the lightGrid in GLSL
+
+	// used to make particles/trails work with the lightGrid in GLSL
+	RSF_FORCE_LIGHTMAP = BIT( 5 ),
+
+	// when the shader is used on an entity sprite, face view direction instead of viewer
 	RSF_SPRITE = BIT( 6 ),
 };
 
@@ -238,20 +251,13 @@ enum class textureCompression_t
   TC_EXT_COMP_S3TC
 };
 
-// Keep the list in sdl_glimp.c:reportDriverType in sync with this
+// TODO(0.56): remove.
 enum class glDriverType_t
 {
   GLDRV_UNKNOWN = -1,
-  GLDRV_ICD, // driver is integrated with window system
-  // WARNING: there are tests that check for
-  // > GLDRV_ICD for minidriverness, so this
-  // should always be the lowest value in this
-  // enum set
-  GLDRV_STANDALONE, // driver is a non-3Dfx standalone driver
-
-// XreaL BEGIN
-  GLDRV_OPENGL3, // new driver system
-// XreaL END
+  GLDRV_ICD,
+  GLDRV_STANDALONE,
+  GLDRV_OPENGL3,
 };
 
 // Keep the list in sdl_glimp.c:reportHardwareType in sync with this

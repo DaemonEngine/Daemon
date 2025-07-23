@@ -446,6 +446,8 @@ enum class ssaoMode {
 		BIND_LIGHTMAP,
 		BIND_DELUXEMAP,
 		BIND_GLOWMAP,
+		BIND_LIGHTGRID1,
+		BIND_LIGHTGRID2,
 		BIND_ENVIRONMENTMAP0,
 		BIND_ENVIRONMENTMAP1,
 		BIND_LIGHTTILES,
@@ -469,7 +471,6 @@ enum class ssaoMode {
 	  IF_DEPTH32 = BIT( 11 ),
 	  IF_PACKED_DEPTH24_STENCIL8 = BIT( 12 ),
 	  IF_LIGHTMAP = BIT( 13 ),
-	  IF_RGBA16 = BIT( 14 ),
 	  IF_RGBE = BIT( 15 ),
 	  IF_ALPHATEST = BIT( 16 ), // FIXME: this is unused
 	  IF_ALPHA = BIT( 17 ),
@@ -521,11 +522,19 @@ enum class ssaoMode {
 		wrapType_t wrapType;
 		int minDimension = 0;
 		int maxDimension = 0;
+
+		bool operator==(const imageParams_t &o) const
+		{
+			return o.bits == bits && o.filterType == filterType && o.wrapType == wrapType
+				&& o.minDimension == minDimension && o.maxDimension == maxDimension;
+		}
 	};
 
 	struct image_t
 	{
 		char name[ MAX_QPATH ];
+
+		imageParams_t initialParams; // may not match final values
 
 		GLenum         type;
 		GLuint         texnum; // gl texture binding
@@ -1040,6 +1049,10 @@ enum class ssaoMode {
 	struct Material;
 	struct MaterialSurface;
 
+	// [implicit only] enable lightmapping, front-side culling, disable (non-BSP) vertex colors, disable blending
+	// TODO(0.56): move to the public RegisterShaderFlags_t interface
+#define RSF_3D ( BIT( 30 ) )
+
 	using stageRenderer_t = void(*)(shaderStage_t *);
 	using stageShaderBuildMarker_t = void(*)(const shaderStage_t*);
 	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
@@ -1194,17 +1207,10 @@ enum class ssaoMode {
 		float  depthForOpaque;
 	};
 
-	enum class shaderType_t
-	{
-	  SHADER_2D, // surface material: shader is for 2D rendering (like GUI elements)
-	  SHADER_3D_DYNAMIC, // surface material: shader is for cGen diffuseLighting lighting
-	  SHADER_3D_STATIC, // surface material: pre-lit triangle models
-	};
-
 	struct shader_t
 	{
 		char         name[ MAX_QPATH ]; // game path, including extension
-		shaderType_t type;
+		int registerFlags; // RSF_
 
 		int          index; // this shader == tr.shaders[index]
 		int          sortedIndex; // this shader == tr.sortedShaders[sortedIndex]
@@ -3094,7 +3100,7 @@ inline bool checkGLErrors()
 	qhandle_t RE_RegisterShader( const char *name, int flags );
 	qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image );
 
-	shader_t  *R_FindShader( const char *name, shaderType_t type, int flags );
+	shader_t  *R_FindShader( const char *name, int flags );
 	shader_t  *R_GetShaderByHandle( qhandle_t hShader );
 	shader_t  *R_FindShaderByName( const char *name );
 	const char *RE_GetShaderNameFromHandle( qhandle_t shader );

@@ -829,7 +829,7 @@ static shader_t* ShaderForShaderNum( int shaderNum ) {
 
 	dshader_t* dsh = &s_worldData.shaders[shaderNum];
 
-	shader_t* shader = R_FindShader( dsh->shader, shaderType_t::SHADER_3D_STATIC, RSF_DEFAULT );
+	shader_t* shader = R_FindShader( dsh->shader, RSF_3D );
 
 	// If the shader had errors, just use default shader
 	if ( shader->defaultShader ) {
@@ -3271,7 +3271,9 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		}
 
 		// get information from the shader for fog parameters
-		shader = R_FindShader( fogs->shader, shaderType_t::SHADER_3D_DYNAMIC, RSF_DEFAULT );
+		// it says RSF_3D but if there is no shader text found it should probably just error instead
+		// of trying to create an implicit shader from an image...
+		shader = R_FindShader( fogs->shader, RSF_3D );
 
 		out->fogParms = shader->fogParms;
 
