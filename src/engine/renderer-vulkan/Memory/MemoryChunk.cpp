@@ -43,6 +43,7 @@ MemoryChunkSystem::MemoryChunkSystem():
 
 	for ( MemoryArea* area = memoryAreas; area < memoryAreas + MAX_MEMORY_AREAS; area++ ) {
 		area->memory = ( byte* ) Alloc64( area->config.chunks * area->config.chunkSize );
+		memset( area->memory, 0, area->config.chunks * area->config.chunkSize );
 
 		area->chunkLocks = ( AlignedAtomicUint64* ) Alloc64( area->config.chunkAreas * sizeof( AlignedAtomicUint64 ) );
 		memset( area->chunkLocks, 0, area->config.chunkAreas * sizeof( AlignedAtomicUint64 ) );

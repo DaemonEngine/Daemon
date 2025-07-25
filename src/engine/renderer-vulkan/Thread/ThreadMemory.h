@@ -47,10 +47,22 @@ using byte = uint8_t;
 struct AllocationRecord {
 	static constexpr uint64_t HEADER_MAGIC = 0xACC0500D66666666;
 
+	std::string Format() const {
+		if ( guardValue == HEADER_MAGIC ) {
+			return Str::Format( "guard value: %u, size: %u, alignment: %u, chunkID: %u, source: %s",
+				guardValue, size, alignment, chunkID,
+				source );
+		}
+		
+		return Str::Format( "guard value: %u (should be: %u), size: %u, alignment: %u, chunkID: %u, source: %s",
+			guardValue, HEADER_MAGIC, size, alignment, chunkID,
+			source );
+	}
+
 	uint64_t guardValue = HEADER_MAGIC;
 	uint64_t size;
 	uint32_t alignment;
-	uint32_t chunkID; // 4 bits - level, 28 bits - chunk
+	uint32_t chunkID; // 4 bits - level, 27 bits - chunk, 1 bit - allocated
 	char source[104];
 };
 
@@ -62,10 +74,12 @@ struct MemoryChunkRecord {
 
 struct ChunkAllocator {
 	DynamicArray<uint64_t> availableChunks;
+	DynamicArray<uint64_t> allocatedChunks;
 	DynamicArray<MemoryChunkRecord> chunks;
 };
 
-struct ThreadMemory {
+class ThreadMemory {
+	public:
 	uint32_t id;
 	ChunkAllocator chunkAllocators[MAX_MEMORY_AREAS];
 
@@ -75,6 +89,11 @@ struct ThreadMemory {
 
 	byte* AllocAligned( const uint64_t size, const uint64_t alignment );
 	void Free( byte* memory );
+
+	void FreeAllChunks();
+
+	private:
+	void PrintChunkInfo( MemoryChunkRecord* memoryChunk );
 };
 
 extern thread_local ThreadMemory TLM;

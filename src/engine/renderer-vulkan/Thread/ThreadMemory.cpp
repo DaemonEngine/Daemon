@@ -37,15 +37,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 
-ThreadMemory::~ThreadMemory() {
+#include "../SrcDebug/Tag.h"
 
+ThreadMemory::~ThreadMemory() {
+	for ( ChunkAllocator& allocator : chunkAllocators ) {
+		for ( uint32_t i = 0; i < allocator.availableChunks.elements; i++ ) {
+			uint64_t chunkArea = allocator.availableChunks[i];
+
+			while ( chunkArea ) {
+				uint32_t chunk = FindLSB( chunkArea );
+				Log::WarnTagT( "Unreturned memory chunk:" );
+
+				PrintChunkInfo( &allocator.chunks[i * 64 + chunk] );
+
+				UnSetBit( &chunkArea, chunk );
+			}
+		}
+	}
 }
 
 void ThreadMemory::Init() {
 	for ( ChunkAllocator& allocator : chunkAllocators ) {
+		allocator.allocatedChunks.Resize( memoryChunkSystem.config.areas->chunkAreas );
 		allocator.availableChunks.Resize( memoryChunkSystem.config.areas->chunkAreas );
 		allocator.chunks.Resize( memoryChunkSystem.config.areas->chunks );
 
+		allocator.allocatedChunks.Zero();
 		allocator.availableChunks.Zero();
 		allocator.chunks.Zero();
 	}
@@ -67,7 +84,7 @@ byte* ThreadMemory::AllocAligned( const uint64_t size, const uint64_t alignment 
 	memoryChunkSystem.SizeToLevel( paddedSize, &level, &count );
 
 	MemoryChunkRecord* found = nullptr;
-	uint32_t chunkID = level;
+	uint32_t chunkID = level | ( 1ull << 31 );
 
 	for ( uint64_t& chunkArea : chunkAllocators[level].availableChunks ) {
 		uint64_t area = chunkArea;
@@ -102,6 +119,8 @@ byte* ThreadMemory::AllocAligned( const uint64_t size, const uint64_t alignment 
 		chunkAllocators[chunk.area].chunks[chunk.chunkArea * 64 + chunk.chunk].chunk = chunk;
 		chunkAllocators[chunk.area].chunks[chunk.chunkArea * 64 + chunk.chunk].offset = 0;
 
+		SetBit( &chunkAllocators[chunk.area].allocatedChunks[chunk.chunkArea], chunk.chunk );
+
 		found = &chunkAllocators[chunk.area].chunks[chunk.chunkArea * 64 + chunk.chunk];
 		chunkID |= ( chunk.chunkArea * 64 + chunk.chunk ) << 4;
 	}
@@ -120,13 +139,13 @@ void ThreadMemory::Free( byte* memory ) {
 	AllocationRecord* record = ( AllocationRecord* ) ( memory - sizeof( AllocationRecord ) );
 
 	if ( record->guardValue != AllocationRecord::HEADER_MAGIC ) {
-		Sys::Drop( "Memory chunk corrupted: guard value: %u (should be: %u), size: %u, alignment: %u, chunkID: %u, source: %s",
-			record->guardValue, AllocationRecord::HEADER_MAGIC, record->size, record->alignment, record->chunkID,
-			record->source );
+		Sys::Drop( "Memory chunk corrupted: %s", record->Format() );
 	}
 
 	ChunkAllocator& allocator = chunkAllocators[record->chunkID & 0xF];
 	uint32_t chunkID = record->chunkID >> 4;
+
+	UnSetBit( &record->chunkID, 31 );
 
 	uint32_t area = chunkID / 64;
 	uint32_t chunk = chunkID - area;
@@ -137,6 +156,55 @@ void ThreadMemory::Free( byte* memory ) {
 	}
 
 	SetBit( &allocator.availableChunks[area], chunk );
+}
+
+void ThreadMemory::FreeAllChunks() {
+	for ( ChunkAllocator& allocator : chunkAllocators ) {
+		for ( uint32_t i = 0; i < allocator.allocatedChunks.elements; i++ ) {
+			uint64_t& allocatedChunk = allocator.allocatedChunks[i];
+
+			while ( allocatedChunk ) {
+				uint32_t chunk = FindLSB( allocatedChunk );
+				MemoryChunkRecord* record = &allocator.chunks[i * 64 + chunk];
+
+				if ( record->allocs ) {
+					Log::WarnTagT( "Non-freed allocations in memory chunk:" );
+					PrintChunkInfo( record );
+				}
+
+				memoryChunkSystem.Free( &record->chunk );
+
+				UnSetBit( &allocatedChunk, chunk );
+				UnSetBit( &allocator.availableChunks[i], chunk );
+			}
+		}
+	}
+}
+
+void ThreadMemory::PrintChunkInfo( MemoryChunkRecord* memoryChunk ) {
+	Log::NoticeTagT( "Chunk: size: %u, offset: %u, active allocations: %u",
+		memoryChunk->chunk.size, memoryChunk->offset, memoryChunk->allocs );
+
+	uint64_t offset = 0;
+	AllocationRecord* record = ( AllocationRecord* ) memoryChunk->chunk.memory;
+
+	uint32_t allocs = 0;
+	while ( allocs < memoryChunk->allocs ) {
+		if ( BitSet( record->chunkID, 31 ) ) {
+			Log::NoticeTagT( record->Format() );
+			allocs++;
+		}
+
+		if ( offset + record->size > memoryChunk->chunk.size ) {
+			Log::WarnTagT( "Chunk corrupted, allocation out of bounds (offset: %u, allocation size: %u, chunk size: %u),"
+				" aborting chunk info print",
+				offset, record->size, memoryChunk->chunk.size );
+			return;
+		}
+
+		offset += record->size;
+		record = ( AllocationRecord* ) ( memoryChunk->chunk.memory + offset );
+	}
 }
 
 thread_local ThreadMemory TLM;
