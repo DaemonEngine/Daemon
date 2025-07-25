@@ -134,6 +134,10 @@ class DynamicArray :
 		Resize( highestUsed + 1 );
 	}
 
+	void Zero() {
+		memset( memory, 0, size );
+	}
+
 	const T& operator[]( const uint64_t index ) const {
 		ASSERT_LT( index, elements );
 		return memory[index];
@@ -150,7 +154,7 @@ class DynamicArray :
 	}
 
 	constexpr IteratorSeq<T> end() {
-		return IteratorSeq<T>{ &memory[size] };
+		return IteratorSeq<T>{ &memory[elements] };
 	}
 };
 
