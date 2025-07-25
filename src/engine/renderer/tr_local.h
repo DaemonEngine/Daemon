@@ -2534,14 +2534,12 @@ enum class ssaoMode {
 		image_t    *defaultImage;
 		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
 		image_t    *fogImage;
-		image_t    *quadraticImage;
 		image_t    *whiteImage; // full of 0xff
 		image_t    *blackImage; // full of 0x0
 		image_t    *redImage;
 		image_t    *greenImage;
 		image_t    *blueImage;
 		image_t    *flatImage; // use this as default normalmap
-		image_t    *randomNormalsImage;
 		image_t    *blackCubeImage;
 		image_t    *whiteCubeImage;
 
