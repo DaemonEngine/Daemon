@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 std::string Tagged( const std::string& message, const bool useThreadID,
 	const std::source_location& loc ) {
-	const std::string threadID = useThreadID ? Str::Format( "Thread %s", TLM.id ) : "";
+	const std::string threadID = useThreadID ? Str::Format( "[%u] ", TLM.id ) : "";
 
 	switch ( r_vkLogExtendedFunctionNames.Get() ) {
 		case LogExtendedFunctionMode::GLOBAL_NAME:
