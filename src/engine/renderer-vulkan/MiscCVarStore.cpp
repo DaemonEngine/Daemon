@@ -53,3 +53,5 @@ Cvar::Cvar<bool> r_vkLogShowThreadID( "r_vkLogShowThreadID", "Add thread ID to l
 
 // TODO: Move this to some Vulkan file later
 Cvar::Cvar<int> r_rendererApi( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 1 );
+
+Cvar::Cvar<std::string> r_vkVersion( "r_vkVersion", "Daemon-vulkan version", Cvar::ROM, "0.0.0" );

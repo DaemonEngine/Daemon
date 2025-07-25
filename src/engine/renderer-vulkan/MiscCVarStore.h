@@ -34,3 +34,5 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // MiscCVarStore.h
 
 extern Cvar::Cvar<int> r_rendererAPI;
+
+extern Cvar::Cvar<std::string> r_vkVersion;
