@@ -52,7 +52,7 @@ Flush the buffered polygons and prepare to receive more with the same parameters
 void Tess_EndBegin()
 {
 	Tess_End();
-	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.lightShader, tess.skipTangents,
+	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.skipTangents,
 	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
 }
 
@@ -113,7 +113,7 @@ void Tess_CheckOverflow( int verts, int indexes )
 		Sys::Drop( "Tess_CheckOverflow: indexes > max (%d > %d)", indexes, SHADER_MAX_INDEXES );
 	}
 
-	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.lightShader, tess.skipTangents,
+	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.skipTangents,
 	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
 }
 
@@ -533,7 +533,7 @@ void Tess_InstantScreenSpaceQuad() {
 
 	tr.skipVBO = true;
 
-	Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
+	Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
 	rb_surfaceTable[Util::ordinal( *( tr.genericTriangle->surface ) )]( tr.genericTriangle->surface );
 	Tess_DrawElements();
 
@@ -548,7 +548,7 @@ void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, const float x, const
 {
 	GLIMP_LOGCOMMENT( "--- Tess_InstantQuad ---" );
 
-	Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
+	Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
 
 	matrix_t modelViewMatrix;
 	MatrixCopy( matrixIdentity, modelViewMatrix );

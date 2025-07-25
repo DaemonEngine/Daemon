@@ -3199,7 +3199,6 @@ void GLimp_LogComment_( std::string comment );
 		stageVars_t svars;
 
 		shader_t    *surfaceShader;
-		shader_t    *lightShader;
 
 		// some drawing parameters from drawSurf_t
 		int16_t     lightmapNum;
@@ -3258,7 +3257,7 @@ void GLimp_LogComment_( std::string comment );
 
 // *INDENT-OFF*
 	void Tess_Begin( void ( *stageIteratorFunc )(),
-	                 shader_t *surfaceShader, shader_t *lightShader,
+	                 shader_t *surfaceShader,
 	                 bool skipTangents,
 	                 int lightmapNum,
 	                 int fogNum,
