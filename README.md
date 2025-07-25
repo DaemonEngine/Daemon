@@ -1,8 +1,8 @@
-# Dæmon
+# Dæmon-vulkan
 
-Dæmon is the standalone engine that powers the multiplayer first person shooter [Unvanquished](https://unvanquished.net).
+Dæmon-vulkan is the multithreaded, Vulkan version of [Daemon](https://github.com/DaemonEngine/Daemon).
 
-[![GitHub tag](https://img.shields.io/github/tag/DaemonEngine/Daemon.svg)](https://github.com/DaemonEngine/Daemon/tags)
+[![GitHub tag](https://img.shields.io/github/tag/DaemonEngine/Daemon.svg)](https://github.com/DaemonEngine/Daemon-vulkan/tags)
 
 [![IRC](https://img.shields.io/badge/irc-%23unvanquished--dev-9cf.svg)](https://web.libera.chat/#unvanquished-dev)
 
@@ -12,19 +12,21 @@ Dæmon is the standalone engine that powers the multiplayer first person shooter
 
 ℹ️ We provide ready-to-use downloads for the Unvanquished game on the Unvanquished [download page](https://unvanquished.net/download/), builds of the Dæmon engine are included.
 
+<code style="color : red">!!! Daemon-vulkan builds are currently not included, you have to build it yourself !!!</code>
+
 ℹ️ The repository of the source code for the game logic of Unvanquished can be found [there](https://github.com/Unvanquished/Unvanquished).
 
 ## Workspace requirements
 
-To fetch and build Dæmon, you'll need:
+To fetch and build Dæmon-vulkan, you'll need:
 `git`,
 `cmake`,
-and a C++14 compiler.
+and a C++23 compiler.
 
 The following are actively supported:
-`gcc` ≥ 9,
-`clang` ≥ 11,
-Visual Studio/MSVC (at least Visual Studio 2019).
+`gcc` ≥ 14,
+`clang` ≥ 19,
+Visual Studio/MSVC (at least Visual Studio 2022 17.4).
 
 ## Dependencies
 
@@ -57,10 +59,10 @@ Required packages for 32-bit: `mingw-w64-i686-gcc`, `mingw-w64-i686-cmake`, `mak
 
 ## Downloading the sources for the game engine
 
-Daemon requires several sub-repositories to be fetched before compilation. If you have not yet cloned this repository:
+Daemon-vulkan requires several sub-repositories to be fetched before compilation. If you have not yet cloned this repository:
 
 ```sh
-git clone --recurse-submodules https://github.com/DaemonEngine/Daemon.git
+git clone --recurse-submodules https://github.com/DaemonEngine/Daemon-vulkan.git
 ```
 
 If you have already cloned:
@@ -88,6 +90,9 @@ cd Daemon/
   2. Choose your compiler.
   3. Open `Daemon.sln` and compile.
 
+### NatVis Support
+  NatVis files are contained in `/src/engine/renderer-vulkan/VSSupport/`. You can use them to get the custom visualisation for Daemon-vulkan containers in VS/VS Code. You may need to add them to the project (in Visual Studio right-click on the project -> Existing Item... -> Select the .natvis files).
+
 ### Linux, macOS, MSYS2
 
 Produced files will be stored in a new directory named `build`.
@@ -108,14 +113,14 @@ cmake --build build -- -j4
 
 ## Running a game
 
-ℹ️ On Windows you'll have to use `daemon.exe` and `daemonded.exe` instead of `./daemon` and `./daemonded`, everything else will be the same.
+ℹ️ On Windows you'll have to use `daemon-vulkan.exe` and `daemonded.exe` instead of `./daemon-vulkan` and `./daemonded`, everything else will be the same.
 
 To run a game you would need a `pkg/` folder full of `.dpk` files provided by the Dæmon-based game you want to run. This `pkg/` folder has to be stored next to the `daemon` binary.
 
 You then run the game this way:
 
 ```
-./daemon
+./daemon-vulkan
 ```
 
 If you want to run a dedicated server, you may want to use the non-graphical `daemonded` server binary and start a map this way:

@@ -5,3 +5,5 @@
 external_deps/cygtar.py	eol=lf
 *.vcxproj				eol=crlf
 *.vcxproj.filter		eol=crlf
+
+README.md merge=ours
