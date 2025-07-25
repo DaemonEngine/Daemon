@@ -39,8 +39,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <thread>
 
+#include "../Memory/DynamicArray.h"
+#include "../Memory/MemoryChunk.h"
+
+using byte = uint8_t;
+
+struct AllocationRecord {
+	static constexpr uint64_t HEADER_MAGIC = 0xACC0500D66666666;
+
+	uint64_t guardValue = HEADER_MAGIC;
+	uint64_t size;
+	uint32_t alignment;
+	uint32_t chunkID; // 4 bits - level, 28 bits - chunk
+	char source[104];
+};
+
+struct MemoryChunkRecord {
+	MemoryChunk chunk;
+	uint64_t offset;
+	uint32_t allocs;
+};
+
+struct ChunkAllocator {
+	DynamicArray<uint64_t> availableChunks;
+	DynamicArray<MemoryChunkRecord> chunks;
+};
+
 struct ThreadMemory {
 	uint32_t id;
+	ChunkAllocator chunkAllocators[MAX_MEMORY_AREAS];
+
+	~ThreadMemory();
+
+	void Init();
+
+	byte* AllocAligned( const uint64_t size, const uint64_t alignment );
+	void Free( byte* memory );
 };
 
 extern thread_local ThreadMemory TLM;

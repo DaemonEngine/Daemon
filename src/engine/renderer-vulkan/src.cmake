@@ -3,6 +3,8 @@ set(MATHLIST
 )
 
 set(MEMORYLIST
+    ${ENGINE_DIR}/renderer-vulkan/Memory/Allocator.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Memory/Allocator.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/Array.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/DynamicArray.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/Memory.cpp
@@ -26,6 +28,7 @@ set(TASKLIST
 
 set(UTILSLIST
     ${ENGINE_DIR}/renderer-vulkan/SrcDebug/LogExtend.h
+    ${ENGINE_DIR}/renderer-vulkan/SrcDebug/Tag.cpp
     ${ENGINE_DIR}/renderer-vulkan/SrcDebug/Tag.h
 )
 

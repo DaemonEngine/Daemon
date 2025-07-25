@@ -66,6 +66,8 @@ void Thread::Run() {
 	idle.Clear();
 	execing.Clear();
 
+	TLM.Init();
+
 	total.Start();
 
 	struct TaskTime {

@@ -48,9 +48,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Memory.h"
 
 struct MemoryChunk {
-	uint32_t area;
+	uint8_t area;
+	uint8_t chunk;
 	uint32_t chunkArea;
-	uint32_t chunk;
+	uint32_t size;
 	byte* memory;
 };
 
@@ -90,10 +91,10 @@ class MemoryChunkSystem :
 	MemoryChunk Alloc( uint64_t size );
 	void Free( MemoryChunk* memoryChunk );
 
-	private:
 	void SizeToLevel( const uint64_t size, uint32_t* level, uint32_t* count );
 
-	bool LockArea( MemoryArea* memoryArea, uint32_t* chunkArea, uint32_t* chunk );
+	private:
+	bool LockArea( MemoryArea* memoryArea, uint32_t* chunkArea, uint8_t* chunk );
 };
 
 void UpdateMemoryChunkSystemConfig();

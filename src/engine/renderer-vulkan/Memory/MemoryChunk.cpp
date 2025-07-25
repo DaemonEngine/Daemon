@@ -37,7 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 MemoryChunkSystem memoryChunkSystem;
 
-MemoryChunkSystem::MemoryChunkSystem() {
+MemoryChunkSystem::MemoryChunkSystem():
+	Tag( "MemoryChunkSystem" ) {
 	UpdateMemoryChunkSystemConfig();
 
 	for ( MemoryArea* area = memoryAreas; area < memoryAreas + MAX_MEMORY_AREAS; area++ ) {
@@ -84,7 +85,8 @@ MemoryChunk MemoryChunkSystem::Alloc( uint64_t size ) {
 	}
 
 	out.area = level;
-	out.memory = memoryAreas[level].memory + out.chunkArea * 64ull * memoryAreas[level].config.chunkSize;
+	out.size = memoryAreas[level].config.chunkSize;
+	out.memory = memoryAreas[level].memory + ( out.chunkArea * 64ull + out.chunk ) * memoryAreas[level].config.chunkSize;
 
 	return out;
 }
@@ -114,7 +116,7 @@ void MemoryChunkSystem::SizeToLevel( const uint64_t size, uint32_t* level, uint3
 	Sys::Drop( "Couldn't find memory area with large enough chunkSize, requested: %u bytes", size );
 }
 
-bool MemoryChunkSystem::LockArea( MemoryArea* memoryArea, uint32_t* chunkArea, uint32_t* chunk ) {
+bool MemoryChunkSystem::LockArea( MemoryArea* memoryArea, uint32_t* chunkArea, uint8_t* chunk ) {
 	uint64_t expectedLocks;
 	uint64_t desiredLocks;
 	uint32_t area;
@@ -174,11 +176,11 @@ bool MemoryChunkSystem::LockArea( MemoryArea* memoryArea, uint32_t* chunkArea, u
 
 void UpdateMemoryChunkSystemConfig() {
 	// TODO: Add cvars for this
-	memoryChunkSystem.config.areas[0].chunkSize = 16 * 1024;
+	memoryChunkSystem.config.areas[0].chunkSize = 16 * 1024ull;
 	memoryChunkSystem.config.areas[0].chunks = 640;
-	memoryChunkSystem.config.areas[1].chunkSize = 1024 * 1024;
+	memoryChunkSystem.config.areas[1].chunkSize = 1024 * 1024ull;
 	memoryChunkSystem.config.areas[1].chunks = 640;
-	memoryChunkSystem.config.areas[2].chunkSize = 64 * 1024 * 1024;
+	memoryChunkSystem.config.areas[2].chunkSize = 64 * 1024ull * 1024;
 	memoryChunkSystem.config.areas[2].chunks = 64;
 
 	for ( MemoryAreaConfig& area : memoryChunkSystem.config.areas ) {
