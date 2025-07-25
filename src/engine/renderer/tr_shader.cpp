@@ -5765,23 +5765,6 @@ static shader_t *FinishShader()
 	{
 		shaderStage_t *pStage = &stages[ stage ];
 
-		if ( !shader.isSky )
-		{
-			switch ( pStage->type )
-			{
-				case stageType_t::ST_NORMALMAP:
-				case stageType_t::ST_STYLELIGHTMAP:
-				case stageType_t::ST_STYLECOLORMAP:
-				case stageType_t::ST_LIGHTMAP:
-				case stageType_t::ST_DIFFUSEMAP:
-				case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-					shader.interactLight = true;
-					break;
-				default:
-					break;
-			}
-		}
-
 		ValidateStage( pStage );
 
 		if ( !pStage->active )

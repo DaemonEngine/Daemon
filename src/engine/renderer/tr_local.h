@@ -1260,8 +1260,6 @@ enum class ssaoMode {
 		filterType_t   filterType; // for console fonts, 2D elements, etc.
 		wrapType_t     wrapType;
 
-		bool        interactLight; // this shader can interact with light shaders
-
 		// For RT_SPRITE, face opposing the view direction rather than the viewer
 		bool entitySpriteFaceViewDirection;
 
@@ -2582,9 +2580,6 @@ enum class ssaoMode {
 		shader_t *defaultShader;
 		shader_t *fogEqualShader;
 		shader_t *fogLEShader;
-		shader_t *defaultPointLightShader;
-		shader_t *defaultProjectedLightShader;
-		shader_t *defaultDynamicLightShader;
 
 		std::vector<image_t *> lightmaps;
 		std::vector<image_t *> deluxemaps;
