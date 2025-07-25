@@ -1404,17 +1404,13 @@ void Render_portal( shaderStage_t *pStage )
 
 void Render_heatHaze( shaderStage_t *pStage )
 {
-	uint32_t      stateBits;
 	float         deformMagnitude;
 
 	GLIMP_LOGCOMMENT( "--- Render_heatHaze ---" );
 
-	// remove alpha test
-	stateBits = pStage->stateBits;
-	stateBits &= ~GLS_ATEST_BITS;
-	stateBits &= ~GLS_DEPTHMASK_TRUE;
+	ASSERT( !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) );
 
-	GL_State( stateBits );
+	GL_State( pStage->stateBits );
 
 	// choose right shader program ----------------------------------
 	ProcessShaderHeatHaze( pStage );
