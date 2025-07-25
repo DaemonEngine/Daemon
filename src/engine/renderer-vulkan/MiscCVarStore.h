@@ -31,25 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MiscCVarStore.cpp
+// MiscCVarStore.h
 
-#include "SrcDebug/LogExtend.h"
-#include "SrcDebug/Tag.h"
-
-Cvar::Cvar<bool> r_vkLogExtend( "r_vkLogExtend", "Print src location in all logs", Cvar::NONE, false );
-
-Cvar::Cvar<bool> r_vkLogExtendWarn( "r_vkLogExtendWarn", "Print src location in warn logs", Cvar::NONE, false );
-Cvar::Cvar<bool> r_vkLogExtendNotice( "r_vkLogExtendNotice", "Print src location in notice logs", Cvar::NONE, false );
-Cvar::Cvar<bool> r_vkLogExtendVerbose( "r_vkLogExtendVerbose", "Print src location in verbose logs", Cvar::NONE, false );
-Cvar::Cvar<bool> r_vkLogExtendDebug( "r_vkLogExtendDebug", "Print src location in debug logs", Cvar::NONE, false );
-
-Cvar::Range<Cvar::Cvar<int>> r_vkLogExtendedFunctionNames( "r_vkLogExtendedFunctionNames",
-	"Extended log function format: 0 - only name/only struct or class name (for struct/class functions),"
-	" 1 - only name, 2 - name + template specialisation, 3 - all",
-	Cvar::NONE,
-	LogExtendedFunctionMode::NAME, LogExtendedFunctionMode::GLOBAL_NAME, LogExtendedFunctionMode::FULL );
-
-Cvar::Cvar<bool> r_vkLogShowThreadID( "r_vkLogShowThreadID", "Add thread ID to logs", Cvar::NONE, false );
-
-// TODO: Move this to some Vulkan file later
-Cvar::Cvar<int> r_rendererApi( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 1 );
+extern Cvar::Cvar<int> r_rendererAPI;

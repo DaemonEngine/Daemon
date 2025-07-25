@@ -329,12 +329,6 @@ enum class ssaoMode {
 	  RSPEEDS_NEAR_FAR,
 	};
 
-enum class rendererApi_t
-{
-	OPENGL,
-	VULKAN,
-};
-
 	enum class glDebugModes_t
 	{
 		GLDEBUG_NONE,
@@ -2703,7 +2697,7 @@ enum class rendererApi_t
 //
 // cvars
 //
-	extern Cvar::Range<Cvar::Cvar<int>> r_rendererAPI;
+	extern Cvar::Cvar<int> r_rendererAPI;
 
 	extern cvar_t *r_glMajorVersion; // override GL version autodetect (for testing)
 	extern cvar_t *r_glMinorVersion;
