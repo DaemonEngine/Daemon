@@ -2474,45 +2474,6 @@ static void R_CreateDefaultImage()
 	tr.defaultImage = R_CreateImage( "_default", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
 }
 
-static void R_CreateRandomNormalsImage()
-{
-	int  x, y;
-	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
-	// the default image will be a box, to allow you to see the mapping coordinates
-	memset(data, 32, sizeof(data));
-
-	byte *ptr = &data[0][0][0];
-	byte *dataPtr = &data[0][0][0];
-
-	for ( y = 0; y < DEFAULT_SIZE; y++ )
-	{
-		for ( x = 0; x < DEFAULT_SIZE; x++ )
-		{
-			vec3_t n;
-			float  r, angle;
-
-			r = random();
-			angle = 2.0f * M_PI * r; // / 360.0f;
-
-			VectorSet( n, cosf( angle ), sinf( angle ), r );
-			VectorNormalize( n );
-
-			ptr[ 0 ] = ( byte )( 128 + 127 * n[ 0 ] );
-			ptr[ 1 ] = ( byte )( 128 + 127 * n[ 1 ] );
-			ptr[ 2 ] = ( byte )( 128 + 127 * n[ 2 ] );
-			ptr[ 3 ] = 255;
-			ptr += 4;
-		}
-	}
-
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_DEFAULT;
-	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
-
-	tr.randomNormalsImage = R_CreateImage( "_randomNormals", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
-}
-
 static void R_CreateContrastRenderFBOImage()
 {
 	if ( !glConfig2.bloom)
@@ -2749,12 +2710,10 @@ R_CreateBuiltinImages
 */
 void R_CreateBuiltinImages()
 {
-	int   x, y;
+	int   x;
 	byte  data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
 	byte  *dataPtr = &data[0][0][0];
 	byte  *out;
-	float s, value;
-	byte  intensity;
 
 	R_CreateDefaultImage();
 
@@ -2819,30 +2778,6 @@ void R_CreateBuiltinImages()
 		image = R_CreateImage( "_cinematic", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 	}
 
-	out = &data[ 0 ][ 0 ][ 0 ];
-
-	for ( y = 0; y < DEFAULT_SIZE; y++ )
-	{
-		for ( x = 0; x < DEFAULT_SIZE; x++, out += 4 )
-		{
-			s = ( ( ( float ) x + 0.5f ) * ( 2.0f / DEFAULT_SIZE ) - 1.0f );
-
-			s = Q_fabs( s ) - ( 1.0f / DEFAULT_SIZE );
-
-			value = 1.0f - ( s * 2.0f ) + ( s * s );
-
-			intensity = ClampByte( Q_ftol( value * 255.0f ) );
-
-			out[ 0 ] = intensity;
-			out[ 1 ] = intensity;
-			out[ 2 ] = intensity;
-			out[ 3 ] = intensity;
-		}
-	}
-
-	tr.quadraticImage = R_CreateImage( "_quadratic", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
-
-	R_CreateRandomNormalsImage();
 	R_CreateFogImage();
 	R_CreateContrastRenderFBOImage();
 	R_CreateBloomRenderFBOImages();
