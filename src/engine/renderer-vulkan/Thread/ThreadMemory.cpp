@@ -125,7 +125,12 @@ byte* ThreadMemory::AllocAligned( const uint64_t size, const uint64_t alignment 
 		chunkID |= ( chunk.chunkArea * 64 + chunk.chunk ) << 4;
 	}
 
+	std::string source = FormatStackTrace( std::stacktrace::current(), true, true );
 	AllocationRecord alloc{ .size = dataSize, .alignment = ( uint32_t ) alignment, .chunkID = chunkID };
+
+	Q_strncpyz( alloc.source, source.size() < 104 ? source.c_str() : source.c_str() + ( source.size() - 103 ), 103 );
+	alloc.source[103] = '\0';
+
 	*( ( AllocationRecord* ) found->chunk.memory + found->offset ) = alloc;
 
 	byte* ret = found->chunk.memory + found->offset + sizeof( AllocationRecord );

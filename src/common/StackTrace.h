@@ -45,11 +45,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     #include <stacktrace>
 
-    inline std::string FormatStackTrace( const std::stacktrace& stackTrace ) {
+    inline std::string FormatStackTrace( const std::stacktrace& stackTrace,
+        const bool skipCurrent = false, const bool compact = false ) {
         std::string out;
-    
+        
+        bool skipped = !skipCurrent;
+        bool addLineEnd = false;
         for ( const std::stacktrace_entry& entry : stackTrace ) {
-            out += Str::Format( "%s:%u: %s\n", entry.source_file(), entry.source_line(), entry.description() );
+            if ( !skipped ) {
+                skipped = true;
+                continue;
+            }
+
+            std::string file = entry.source_file();
+            if ( compact ) {
+                const size_t pos = std::min(
+                    file.find( "src/engine/renderer-vulkan" ),
+                    file.find( "src\\engine\\renderer-vulkan" )
+                );
+
+                if ( pos == std::string::npos ) {
+                    continue;
+                }
+
+                file = file.substr( pos + 27 );
+            }
+
+            if( compact ) {
+                out += Str::Format( addLineEnd ? "\n%s:%u" : "%s:%u", file, entry.source_line() );
+            } else {
+                out += Str::Format( addLineEnd ? "\n%s:%u: %s" : "%s:%u: %s", file, entry.source_line(), entry.description() );
+            }
+            addLineEnd = true;
         }
 
         return out;
