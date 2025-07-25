@@ -2550,7 +2550,8 @@ static void GLimp_InitExtensions()
 		&& glConfig2.shaderDrawParametersAvailable
 		&& glConfig2.shaderImageLoadStoreAvailable
 		&& glConfig2.shadingLanguage420PackAvailable
-		&& glConfig2.SSBOAvailable;
+		&& glConfig2.SSBOAvailable
+		&& glConfig2.uniformBufferObjectAvailable;
 
 	// This requires GLEW 2.2+, so skip if it's a lower version
 #if defined(GLEW_KHR_shader_subgroup)
