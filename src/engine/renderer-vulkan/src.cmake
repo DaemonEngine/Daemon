@@ -16,6 +16,12 @@ set(MEMORYLIST
     ${ENGINE_DIR}/renderer-vulkan/Memory/RingBuffer.h
 )
 
+set(SYSLIST
+    ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.h
+    ${ENGINE_DIR}/renderer-vulkan/Sys/MemoryInfo.h
+)
+
 set(TASKLIST
     ${ENGINE_DIR}/renderer-vulkan/Thread/Task.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/TaskList.cpp
@@ -35,6 +41,7 @@ set(UTILSLIST
 set(RENDERERLIST
     ${MATHLIST}
     ${MEMORYLIST}
+    ${SYSLIST}
     ${TASKLIST}
     ${UTILSLIST}
     ${ENGINE_DIR}/renderer-vulkan/MiscCVarStore.cpp
