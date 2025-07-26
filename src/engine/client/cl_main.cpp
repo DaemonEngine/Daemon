@@ -2110,7 +2110,7 @@ bool CL_InitRenderer()
 	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
 
 	// load character sets
-	cls.charSetShader = re.RegisterShader( "gfx/2d/bigchars", RSF_DEFAULT );
+	cls.charSetShader = re.RegisterShader( "gfx/2d/bigchars", RSF_2D );
 	cls.useLegacyConsoleFont = cls.useLegacyConsoleFace = true;
 
 	// Register console font specified by cl_consoleFont, if any
