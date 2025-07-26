@@ -31,51 +31,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Task.h
+// SyncTask.h
 
-#ifndef TASK_H
-#define TASK_H
+#ifndef SYNCTASK_H
+#define SYNCTASK_H
 
-#include "../Sync/Fence.h"
+#include "Task.h"
 
-struct Task {
-	using TaskFunction = void( * )( void* );
+void SyncTask( Task&& task );
+void SyncTask( Task* task );
 
-	TaskFunction Execute;
-	void* data;
-
-	// bool useTaskFence = false;
-	// Fence taskFence;
-
-	bool active = false;
-
-	Fence complete;
-
-	bool shutdownTask = false;
-
-	Task( void* func ) :
-		Execute( ( TaskFunction ) func ) {
-	}
-
-	Task( void* func, FenceMain& fence ) :
-		Execute( ( TaskFunction ) func ),
-		complete( fence ) {
-	}
-
-	Task( void* func, void* newData ) :
-		Execute( ( TaskFunction ) func ),
-		data( newData ) {
-	}
-
-	Task( void* func, void* newData, FenceMain& fence ) :
-		Execute( ( TaskFunction ) func ),
-		data( newData ),
-		complete( fence ) {
-	}
-
-	/* bool Available() const {
-		return !useTaskFence || taskFence.Signalled();
-	} */
-};
-
-#endif // TASK_H
+#endif // SYNCTASK_H

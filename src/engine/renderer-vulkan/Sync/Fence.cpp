@@ -31,51 +31,52 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Task.h
+// Fence.cpp
 
-#ifndef TASK_H
-#define TASK_H
+#include "Fence.h"
 
-#include "../Sync/Fence.h"
+void FenceMain::Signal() {
+	value++;
+	value.notify_all();
+}
 
-struct Task {
-	using TaskFunction = void( * )( void* );
+void FenceMain::Wait( uint64_t expectedValue, const std::memory_order order ) {
+	value.wait( expectedValue, order );
+}
 
-	TaskFunction Execute;
-	void* data;
+Fence::Fence() :
+	value( nullptr ) {
+}
 
-	// bool useTaskFence = false;
-	// Fence taskFence;
+Fence::Fence( const Fence& other ) :
+	value( other.value ) {
+}
 
-	bool active = false;
+Fence::Fence( Fence&& other ) :
+	value( other.value ) {
+}
 
-	Fence complete;
+Fence::Fence( FenceMain& other ) :
+	value( &other.value ) {
+}
 
-	bool shutdownTask = false;
+void Fence::operator=( const Fence& other ) {
+	value = other.value;
+}
 
-	Task( void* func ) :
-		Execute( ( TaskFunction ) func ) {
+void Fence::Signal() {
+	if ( !value ) {
+		return;
 	}
 
-	Task( void* func, FenceMain& fence ) :
-		Execute( ( TaskFunction ) func ),
-		complete( fence ) {
+	( *value )++;
+	value->notify_all();
+}
+
+void Fence::Wait( uint64_t expectedValue, const std::memory_order order ) {
+	if ( !value ) {
+		return;
 	}
 
-	Task( void* func, void* newData ) :
-		Execute( ( TaskFunction ) func ),
-		data( newData ) {
-	}
-
-	Task( void* func, void* newData, FenceMain& fence ) :
-		Execute( ( TaskFunction ) func ),
-		data( newData ),
-		complete( fence ) {
-	}
-
-	/* bool Available() const {
-		return !useTaskFence || taskFence.Signalled();
-	} */
-};
-
-#endif // TASK_H
+	value->wait( expectedValue, order );
+}

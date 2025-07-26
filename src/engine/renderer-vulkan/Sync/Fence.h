@@ -31,51 +31,41 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Task.h
+// Fence.h
 
-#ifndef TASK_H
-#define TASK_H
+#ifndef FENCE_H
+#define FENCE_H
 
-#include "../Sync/Fence.h"
+#include <atomic>
 
-struct Task {
-	using TaskFunction = void( * )( void* );
+struct FenceMain {
+	std::atomic<uint64_t> value;
 
-	TaskFunction Execute;
-	void* data;
+	void Signal();
 
-	// bool useTaskFence = false;
-	// Fence taskFence;
+	void Wait( uint64_t expectedValue, const std::memory_order order = std::memory_order_relaxed );
 
-	bool active = false;
+	FenceMain() = default;
+	FenceMain( const FenceMain& other ) = delete;
+	FenceMain( FenceMain&& other ) = delete;
 
-	Fence complete;
-
-	bool shutdownTask = false;
-
-	Task( void* func ) :
-		Execute( ( TaskFunction ) func ) {
-	}
-
-	Task( void* func, FenceMain& fence ) :
-		Execute( ( TaskFunction ) func ),
-		complete( fence ) {
-	}
-
-	Task( void* func, void* newData ) :
-		Execute( ( TaskFunction ) func ),
-		data( newData ) {
-	}
-
-	Task( void* func, void* newData, FenceMain& fence ) :
-		Execute( ( TaskFunction ) func ),
-		data( newData ),
-		complete( fence ) {
-	}
-
-	/* bool Available() const {
-		return !useTaskFence || taskFence.Signalled();
-	} */
+	void operator=( const FenceMain& other ) = delete;
 };
 
-#endif // TASK_H
+struct Fence {
+	std::atomic<uint64_t>* value;
+
+	void Signal();
+
+	void Wait( uint64_t expectedValue, const std::memory_order order = std::memory_order_relaxed );
+
+	Fence();
+	Fence( const Fence& other );
+	Fence( Fence&& other );
+
+	Fence( FenceMain& other );
+
+	void operator=( const Fence& other );
+};
+
+#endif // FENCE_H

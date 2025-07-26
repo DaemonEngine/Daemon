@@ -109,6 +109,7 @@ void Thread::Run() {
 		execing.Start();
 		task->Execute( task->data );
 		task->active = false;
+		task->complete.Signal();
 		execing.Stop();
 		t.Stop();
 
@@ -116,6 +117,8 @@ void Thread::Run() {
 		taskTimes[task->Execute].time += t.Time();
 
 		task = nullptr;
+
+		TLM.FreeAllChunks();
 	}
 
 	total.Stop();

@@ -16,6 +16,11 @@ set(MEMORYLIST
     ${ENGINE_DIR}/renderer-vulkan/Memory/RingBuffer.h
 )
 
+set(SYNCLIST
+    ${ENGINE_DIR}/renderer-vulkan/Sync/Fence.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Sync/Fence.h
+)
+
 set(SYSLIST
     ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.cpp
     ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.h
@@ -23,6 +28,8 @@ set(SYSLIST
 )
 
 set(TASKLIST
+    ${ENGINE_DIR}/renderer-vulkan/Thread/SyncTask.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Thread/SyncTask.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/Task.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/TaskList.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/TaskList.h
@@ -41,6 +48,7 @@ set(UTILSLIST
 set(RENDERERLIST
     ${MATHLIST}
     ${MEMORYLIST}
+    ${SYNCLIST}
     ${SYSLIST}
     ${TASKLIST}
     ${UTILSLIST}
