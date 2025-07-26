@@ -5148,6 +5148,7 @@ static void FinishStages()
 		{
 			case stageType_t::ST_HEATHAZEMAP:
 				stage->active = r_heatHaze->integer;
+				stage->stateBits &= ~( GLS_ATEST_BITS | GLS_DEPTHMASK_TRUE );
 				break;
 
 			case stageType_t::ST_LIQUIDMAP:
