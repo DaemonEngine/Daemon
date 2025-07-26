@@ -36,11 +36,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef REFAPI_H
 #define REFAPI_H
 
+// HACK: Avoid redefinition from tr_public includes in client.h
+#ifndef __TR_PUBLIC_H
+#define __TR_PUBLIC_H
+
+#ifndef __TR_TYPES_H
+#define __TR_TYPES_H
+
 #include "common/Common.h"
 
 #define REF_API_VERSION 10
 
 using bool8_t = uint8_t;
+using byte = uint8_t;
+
+enum RegisterShaderFlags_t {
+	RSF_DEFAULT = BIT( 0 ),
+	RSF_2D = BIT( 1 ),
+	RSF_NOMIP = BIT( 2 ),
+	RSF_FITSCREEN = BIT( 3 ),
+	RSF_LIGHT_ATTENUATION = BIT( 4 ),
+	RSF_NOLIGHTSCALE = BIT( 5 ), // TODO(0.56): delete, does nothing
+	RSF_SPRITE = BIT( 6 ),
+};
+
+#define MAX_MAP_AREA_BYTES 32 // bit vector of area visibility
 
 enum class textureCompression_t {
 	TC_NONE,
@@ -362,5 +382,10 @@ struct refimport_t
 	void ( *IN_Shutdown )();
 	void ( *IN_Restart )();
 };
+
+extern Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen;
+
+#endif // __TR_TYPES_H
+#endif // __TR_PUBLIC_H
 
 #endif // REFAPI_H
