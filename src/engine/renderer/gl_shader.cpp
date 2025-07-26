@@ -759,6 +759,11 @@ static std::string GenEngineConstants() {
 		AddConst( str, "r_RimExponent", r_rimExponent->value );
 	}
 
+	if ( r_accurateSRGB.Get() )
+	{
+		AddDefine( str, "r_accurateSRGB", 1 );
+	}
+
 	if ( r_showLightTiles->integer )
 	{
 		AddDefine( str, "r_showLightTiles", 1 );
@@ -2801,6 +2806,7 @@ GLShader_cameraEffects::GLShader_cameraEffects() :
 	u_CurrentMap( this ),
 	u_GlobalLightFactor( this ),
 	u_ColorModulate( this ),
+	u_SRGB( this ),
 	u_Tonemap( this ),
 	u_TonemapParms( this ),
 	u_TonemapExposure( this ),

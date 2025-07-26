@@ -249,6 +249,8 @@ public:
 			{ wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP, "a0clmp" },
 		};
 
+		const char* colorspaces[] = { "linear", "sRGB" };
+
 		const char *yesno[] = { "no", "yes" };
 		const char *filter = args.Argc() > 1 ? args.Argv( 1 ).c_str() : nullptr;
 
@@ -260,6 +262,7 @@ public:
 		std::string mm = "mm";
 		std::string type = "type";
 		std::string format = "format";
+		std::string colorspace = "space";
 		std::string twrap = "wrap.t";
 		std::string swrap = "wrap.s";
 		std::string name = "name";
@@ -272,6 +275,7 @@ public:
 		size_t mmLen = 3;
 		size_t typeLen = 4;
 		size_t formatLen = 4;
+		size_t colorspaceLen = std::string("linear").length();
 		size_t twrapLen = 4;
 		size_t swrapLen = 4;
 
@@ -283,6 +287,7 @@ public:
 		mmLen = std::max( mmLen, mm.length() );
 		typeLen = std::max( typeLen, type.length() );
 		formatLen = std::max( formatLen, format.length() );
+		colorspaceLen = std::max( colorspaceLen, colorspace.length() );
 		twrapLen = std::max( twrapLen, twrap.length() );
 		swrapLen = std::max( swrapLen, swrap.length() );
 
@@ -318,6 +323,7 @@ public:
 		lineStream << std::setw(mmLen) << mm << separator;
 		lineStream << std::setw(typeLen) << type << separator;
 		lineStream << std::setw(formatLen) << format << separator;
+		lineStream << std::setw(colorspaceLen) << colorspace << separator;
 		lineStream << std::setw(twrapLen) << twrap << separator;
 		lineStream << std::setw(swrapLen) << swrap << separator;
 		lineStream << name;
@@ -425,6 +431,8 @@ public:
 				}
 			}
 
+			colorspace = colorspaces[ bool( image->bits & IF_SRGB ) ];
+
 			if ( !wrapTypeName.count( image->wrapType.t ) )
 			{
 				Log::Debug( "Undocumented wrapType.t %i for image %s",
@@ -464,6 +472,7 @@ public:
 			lineStream << std::setw(mmLen) << mm << separator;
 			lineStream << std::setw(typeLen) << type << separator;
 			lineStream << std::setw(formatLen) << format << separator;
+			lineStream << std::setw(colorspaceLen) << colorspace << separator;
 			lineStream << std::setw(twrapLen) << twrap << separator;
 			lineStream << std::setw(swrapLen) << swrap << separator;
 			lineStream << name;
@@ -842,6 +851,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	GLenum     target;
 	GLenum     format = GL_RGBA;
 	GLenum     internalFormat = GL_RGB;
+	bool isSRGB = image->bits & IF_SRGB;
 
 	static const vec4_t oneClampBorder = { 1, 1, 1, 1 };
 	static const vec4_t zeroClampBorder = { 0, 0, 0, 1 };
@@ -1068,9 +1078,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		mipLayers = numLayers;
 
 		for( i = 0; i < numMips; i++ ) {
-			glTexImage3D( GL_TEXTURE_3D, i, internalFormat,
-				      scaledWidth, scaledHeight, mipLayers,
-				      0, format, GL_UNSIGNED_BYTE, nullptr );
+			GL_TexImage3D( GL_TEXTURE_3D, i, internalFormat, scaledWidth, scaledHeight, mipLayers, 0, format, GL_UNSIGNED_BYTE, nullptr, isSRGB );
 
 			if( mipWidth  > 1 ) mipWidth  >>= 1;
 			if( mipHeight > 1 ) mipHeight >>= 1;
@@ -1136,18 +1144,17 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 				}
 				break;
 			case GL_TEXTURE_CUBE_MAP:
-				glTexImage2D( target + i, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE,
-				              scaledBuffer );
+				GL_TexImage2D( target + i, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, scaledBuffer, isSRGB );
 				break;
 
 			default:
 				if ( image->bits & IF_PACKED_DEPTH24_STENCIL8 )
 				{
-					glTexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_INT_24_8, nullptr );
+					GL_TexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_INT_24_8, nullptr, isSRGB );
 				}
 				else
 				{
-					glTexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, scaledBuffer );
+					GL_TexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, scaledBuffer, isSRGB );
 				}
 
 				break;
@@ -1186,16 +1193,14 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 				switch ( image->type )
 				{
 				case GL_TEXTURE_3D:
-					glCompressedTexSubImage3D( GL_TEXTURE_3D, i, 0, 0, j,
-								   scaledWidth, scaledHeight, 1,
-								   internalFormat, mipSize, data );
+					GL_CompressedTexSubImage3D( GL_TEXTURE_3D, i, 0, 0, j, scaledWidth, scaledHeight, 1, internalFormat, mipSize, data, isSRGB );
 					break;
 				case GL_TEXTURE_CUBE_MAP:
-					glCompressedTexImage2D( target + j, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data );
+					GL_CompressedTexImage2D( target + j, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data, isSRGB );
 					break;
 
 				default:
-					glCompressedTexImage2D( target, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data );
+					GL_CompressedTexImage2D( target, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data, isSRGB );
 					break;
 				}
 
@@ -1445,7 +1450,10 @@ R_CreateImage
 */
 image_t *R_CreateImage( const char *name, const byte **pic, int width, int height, int numMips, const imageParams_t &imageParams )
 {
-	Log::Debug( "Creating image %s (%d×%d, %d mips)", name, width, height, numMips );
+	const char* colorspaces[] = { "linear", "sRGB" };
+	const char* colorspace = colorspaces[ bool( imageParams.bits & IF_SRGB ) ];
+
+	Log::Debug( "Creating image %s (%d×%d, %s, %d mips)", name, width, height, colorspace, numMips );
 
 	image_t *image;
 
@@ -1503,7 +1511,7 @@ image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height
 	image->uploadHeight = height;
 	image->internalFormat = GL_RGBA;
 
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic );
+	GL_TexImage2D( GL_TEXTURE_2D, 0, image->internalFormat, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic, false );
 
 	GL_CheckErrors();
 
