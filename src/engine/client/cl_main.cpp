@@ -2144,7 +2144,6 @@ bool CL_InitRenderer()
 	}
 
 	cls.whiteShader = re.RegisterShader( "white", RSF_NOMIP );
-	cls.consoleShader = re.RegisterShader( "console", RSF_DEFAULT );
 
 	g_console_field_width = cls.glconfig.vidWidth / SMALLCHAR_WIDTH - 2;
 	g_consoleField.SetWidth(g_console_field_width);
