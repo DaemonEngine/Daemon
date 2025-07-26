@@ -6411,6 +6411,21 @@ public:
 				continue;
 			}
 
+			auto PrintStage = [&]( const std::string & stageNum )
+			{
+				lineStream.clear();
+				lineStream.str("");
+
+				lineStream << std::left;
+				lineStream << std::setw(numLen) << i << separator;
+				lineStream << std::setw(regFlagsLen) << regFlags << separator;
+				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
+				lineStream << std::setw(stageTypeLen) << stageType << separator;
+				lineStream << stageNum << ":" << shaderName;
+
+				Print( lineStream.str() );
+			};
+
 			regFlags = {
 				shader->registerFlags & RSF_2D ? '2' : '_',
 				shader->registerFlags & RSF_NOMIP ? 'N' : '_',
@@ -6421,6 +6436,7 @@ public:
 
 			if ( !shaderSortName.count( (shaderSort_t) shader->sort ) )
 			{
+				shaderSort.clear();
 				Log::Debug( "Undocumented shader sort %f for shader %s",
 					shader->sort, shader->name );
 			}
@@ -6434,16 +6450,8 @@ public:
 
 			if ( shader->stages == shader->lastStage )
 			{
-				lineStream.clear();
-				lineStream.str("");
-
-				lineStream << std::left;
-				lineStream << std::setw(numLen) << i << separator;
-				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
-				lineStream << std::setw(stageTypeLen) << stageType << separator;
-				lineStream << "-:" << shaderName;
-
-				Print( lineStream.str() );
+				stageType = "n/a";
+				PrintStage( "-" );
 				continue;
 			}
 
@@ -6457,6 +6465,7 @@ public:
 
 				if ( !stageTypeName.count( stage->type ) )
 				{
+					stageType.clear();
 					Log::Debug( "Undocumented stage type %i for shader stage %s:%d",
 						Util::ordinal( stage->type ), shader->name, j );
 				}
@@ -6465,17 +6474,7 @@ public:
 					stageType = stageTypeName.at( stage->type );
 				}
 
-				lineStream.clear();
-				lineStream.str("");
-
-				lineStream << std::left;
-				lineStream << std::setw(numLen) << i << separator;
-				lineStream << std::setw(regFlagsLen) << regFlags << separator;
-				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
-				lineStream << std::setw(stageTypeLen) << stageType << separator;
-				lineStream << j << ":" << shaderName;
-
-				Print( lineStream.str() );
+				PrintStage( std::to_string( j ) );
 			}
 		}
 
