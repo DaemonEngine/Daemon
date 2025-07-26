@@ -1253,8 +1253,6 @@ enum class ssaoMode {
 		filterType_t   filterType; // for console fonts, 2D elements, etc.
 		wrapType_t     wrapType;
 
-		bool        interactLight; // this shader can interact with light shaders
-
 		// For RT_SPRITE, face opposing the view direction rather than the viewer
 		bool entitySpriteFaceViewDirection;
 
@@ -2536,14 +2534,12 @@ enum class ssaoMode {
 		image_t    *defaultImage;
 		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
 		image_t    *fogImage;
-		image_t    *quadraticImage;
 		image_t    *whiteImage; // full of 0xff
 		image_t    *blackImage; // full of 0x0
 		image_t    *redImage;
 		image_t    *greenImage;
 		image_t    *blueImage;
 		image_t    *flatImage; // use this as default normalmap
-		image_t    *randomNormalsImage;
 		image_t    *blackCubeImage;
 		image_t    *whiteCubeImage;
 
@@ -2576,9 +2572,6 @@ enum class ssaoMode {
 		shader_t *defaultShader;
 		shader_t *fogEqualShader;
 		shader_t *fogLEShader;
-		shader_t *defaultPointLightShader;
-		shader_t *defaultProjectedLightShader;
-		shader_t *defaultDynamicLightShader;
 
 		std::vector<image_t *> lightmaps;
 		std::vector<image_t *> deluxemaps;
@@ -3193,7 +3186,6 @@ void GLimp_LogComment_( std::string comment );
 		stageVars_t svars;
 
 		shader_t    *surfaceShader;
-		shader_t    *lightShader;
 
 		// some drawing parameters from drawSurf_t
 		int16_t     lightmapNum;
@@ -3252,7 +3244,7 @@ void GLimp_LogComment_( std::string comment );
 
 // *INDENT-OFF*
 	void Tess_Begin( void ( *stageIteratorFunc )(),
-	                 shader_t *surfaceShader, shader_t *lightShader,
+	                 shader_t *surfaceShader,
 	                 bool skipTangents,
 	                 int lightmapNum,
 	                 int fogNum,

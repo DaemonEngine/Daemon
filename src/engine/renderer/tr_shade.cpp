@@ -690,7 +690,7 @@ to overflow.
 */
 // *INDENT-OFF*
 void Tess_Begin( void ( *stageIteratorFunc )(),
-                 shader_t *surfaceShader, shader_t *lightShader,
+                 shader_t *surfaceShader,
                  bool skipTangents,
                  int lightmapNum,
                  int fogNum,
@@ -709,7 +709,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	tess.stageIteratorFunc = stageIteratorFunc;
 
 	tess.surfaceShader = surfaceShader;
-	tess.lightShader = lightShader;
 
 	tess.skipTangents = skipTangents;
 	tess.lightmapNum = lightmapNum;
@@ -745,9 +744,9 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 		Sys::Error( "tess.stageIteratorFunc == NULL" );
 	}
 
-	GLIMP_LOGCOMMENT( "--- Tess_Begin( surfaceShader = %s, lightShader = %s, "
+	GLIMP_LOGCOMMENT( "--- Tess_Begin( surfaceShader = %s, "
 		"skipTangents = %i, lightmapNum = %i, fogNum = %i) ---",
-		tess.surfaceShader->name, tess.lightShader ? tess.lightShader->name : nullptr,
+		tess.surfaceShader->name,
 		tess.skipTangents, tess.lightmapNum, tess.fogNum );
 }
 
