@@ -54,8 +54,7 @@ Optional:
 
 MSYS2 is the recommended way to build using MinGW on a Windows host.
 
-Required packages for 64-bit: `mingw-w64-x86_64-gcc`, `mingw-w64-x86_64-cmake`, `make`  
-Required packages for 32-bit: `mingw-w64-i686-gcc`, `mingw-w64-i686-cmake`, `make`
+Required packages: `mingw-w64-x86_64-gcc`, `mingw-w64-x86_64-cmake`, `make`
 
 ## Downloading the sources for the game engine
 
@@ -103,8 +102,6 @@ cmake --build build -- -j4
 ```
 
 ### Linux cross-compile to Windows
-
-💡️ For a 32-bit build use the `cross-toolchain-mingw32.cmake` toolchain file instead.
 
 ```sh
 cmake -H. -Bbuild -DCMAKE_TOOLCHAIN_FILE=cmake/cross-toolchain-mingw64.cmake

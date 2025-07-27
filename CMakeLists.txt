@@ -428,7 +428,7 @@ if (DEPS_DIR)
         set(OLD_VERSION "NOTFOUND")
         set(cacheVariableValue "${${cacheVariableName}}")
 
-        if (cacheVariableValue MATCHES "/(linux64|macosx64|mingw32|mingw64|msvc32|msvc64)-([0-9]+)/")
+        if (cacheVariableValue MATCHES "/(linux64|macosx64|mingw64|msvc64)-([0-9]+)/")
             if (NOT ${CMAKE_MATCH_2} EQUAL ${DEPS_VERSION})
                 set(OLD_VERSION ${CMAKE_MATCH_2})
             endif()
