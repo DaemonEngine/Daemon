@@ -2070,7 +2070,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 				break;
 			}
 			default:
-				break;
+				ASSERT_UNREACHABLE();
 		}
 
 		if ( material.shaderBinder == BindShaderLightMapping ) {
