@@ -37,6 +37,39 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 MemoryChunkSystem memoryChunkSystem;
 
+/* MemoryChunkSystem should be used for allocating memory wherever possible.
+The system has multiple memory areas: each area consists of a number of memory chunks.
+The memory for each memory area is allocated all at once, so they're contiguous. The chunks within a memory area are arranged into
+chunk areas with 64 chunks each. This allows using a single uint64 for each chunk area to keep track of the ones that are allocated.
+
+Chunks are allocated in a lock-free manner into TLMs/SM.
+TLM is thread-local, so its contents should only be used within the same thread (all TLM chunks are freed at the end of Thread::Run()).
+
+The amount of chunks is largely static, so most of the time memory allocation is just gonna be a fast lookup, + a few atomics if
+the thread/SM needs a new chunk. Chunk allocation from the MemoryChunkSystem is usually on the order of 100-300ns,
+even if there are a lot of threads doing that, at least on systems with CAS.
+
+TLM has its own allocators which mirror the memory structure of MemoryChunkSystem memory areas.
+This also allows using fast bit-finding functions to find allocations.
+
+Chunk allocation is generally handled by TLM/SM, so containers or other custom allocators only need to call TLM.AllocAligned( size ).
+
+********************* | ********************* | ... | *********************
+*    MemoryArea0    * | *    MemoryArea1    * | ... | *    MemoryAreaN    *
+* chunk0|...|chunkM * | * chunk0|...|chunkM * | ... | * chunk0|...|chunkM *
+********************* | ********************* | ... | *********************
+          ^
+          |
+		  v
+*********************   *****************   ***************************
+*  ChunkAllocatorJ  *<--* TLM (threadI) *<->*  AllocAligned( size )   *
+* chunk0|...|chunkM *   *****************   * Selects ChunkAllocatorJ *
+*********************                       * Keeping track of allocs *
+                                            * is done here            *
+											* The return is byte*     *
+											***************************
+*/
+
 MemoryChunkSystem::MemoryChunkSystem():
 	Tag( "MemoryChunkSystem" ) {
 	UpdateMemoryChunkSystemConfig();
