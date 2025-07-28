@@ -115,13 +115,13 @@ byte* ThreadMemory::AllocAligned( const uint64_t size, const uint64_t alignment 
 	if ( !found ) {
 		MemoryChunk chunk = memoryChunkSystem.Alloc( paddedSize );
 
-		SetBit( &chunkAllocators[chunk.area].availableChunks[chunk.chunkArea], chunk.chunk );
-		chunkAllocators[chunk.area].chunks[chunk.chunkArea * 64 + chunk.chunk].chunk = chunk;
-		chunkAllocators[chunk.area].chunks[chunk.chunkArea * 64 + chunk.chunk].offset = 0;
+		SetBit( &chunkAllocators[chunk.level].availableChunks[chunk.chunkArea], chunk.chunk );
+		chunkAllocators[chunk.level].chunks[chunk.chunkArea * 64 + chunk.chunk].chunk = chunk;
+		chunkAllocators[chunk.level].chunks[chunk.chunkArea * 64 + chunk.chunk].offset = 0;
 
-		SetBit( &chunkAllocators[chunk.area].allocatedChunks[chunk.chunkArea], chunk.chunk );
+		SetBit( &chunkAllocators[chunk.level].allocatedChunks[chunk.chunkArea], chunk.chunk );
 
-		found = &chunkAllocators[chunk.area].chunks[chunk.chunkArea * 64 + chunk.chunk];
+		found = &chunkAllocators[chunk.level].chunks[chunk.chunkArea * 64 + chunk.chunk];
 		chunkID |= ( chunk.chunkArea * 64 + chunk.chunk ) << 4;
 	}
 

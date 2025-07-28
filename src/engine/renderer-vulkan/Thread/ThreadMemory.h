@@ -73,8 +73,8 @@ struct MemoryChunkRecord {
 };
 
 struct ChunkAllocator {
-	DynamicArray<uint64_t> availableChunks;
 	DynamicArray<uint64_t> allocatedChunks;
+	DynamicArray<uint64_t> availableChunks;
 	DynamicArray<MemoryChunkRecord> chunks;
 };
 

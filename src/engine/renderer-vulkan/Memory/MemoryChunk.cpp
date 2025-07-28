@@ -75,7 +75,7 @@ MemoryChunk MemoryChunkSystem::Alloc( uint64_t size ) {
 	}
 
 	uint32_t initialLevel = level;
-	while ( !LockArea( &memoryAreas[level], &out.chunkArea, &out.chunk ) ) {
+	while ( !LockArea( level, &out.chunkArea, &out.chunk ) ) {
 		if ( level == 0 ) {
 			Log::WarnTagT( "No memory chunks available, yielding" );
 			std::this_thread::yield();
@@ -85,7 +85,7 @@ MemoryChunk MemoryChunkSystem::Alloc( uint64_t size ) {
 		}
 	}
 
-	out.area = level;
+	out.level = level;
 	out.size = memoryAreas[level].config.chunkSize;
 	out.memory = memoryAreas[level].memory + ( out.chunkArea * 64ull + out.chunk ) * memoryAreas[level].config.chunkSize;
 
@@ -93,9 +93,9 @@ MemoryChunk MemoryChunkSystem::Alloc( uint64_t size ) {
 }
 
 void MemoryChunkSystem::Free( MemoryChunk* memoryChunk ) {
-	Log::DebugTagT( "Freeing area %u chunk %u:%u", memoryChunk->area, memoryChunk->chunkArea, memoryChunk->chunk );
+	Log::DebugTagT( "Freeing chunk %u[%u:%u]", memoryChunk->level, memoryChunk->chunkArea, memoryChunk->chunk );
 
-	memoryAreas[memoryChunk->area].chunkLocks[memoryChunk->chunkArea].value -= 1ull << memoryChunk->chunk;
+	memoryAreas[memoryChunk->level].chunkLocks[memoryChunk->chunkArea].value -= 1ull << memoryChunk->chunk;
 }
 
 void MemoryChunkSystem::SizeToLevel( const uint64_t size, uint32_t* level, uint32_t* count ) {
@@ -106,7 +106,7 @@ void MemoryChunkSystem::SizeToLevel( const uint64_t size, uint32_t* level, uint3
 			return;
 		}
 
-		// TODO: Allow contiguous memory chunks ranges?
+		// TODO: Allow contiguous memory chunk ranges?
 		/* if ( i == 2 || size >= memoryAreasSizes[i + 1] * 32 ) {
 			*level = i;
 			*count = ( size + memoryAreasSizes[i] - 1 ) / memoryAreasSizes[i];
@@ -117,20 +117,21 @@ void MemoryChunkSystem::SizeToLevel( const uint64_t size, uint32_t* level, uint3
 	Sys::Drop( "Couldn't find memory area with large enough chunkSize, requested: %u bytes", size );
 }
 
-bool MemoryChunkSystem::LockArea( MemoryArea* memoryArea, uint32_t* chunkArea, uint8_t* chunk ) {
+bool MemoryChunkSystem::LockArea( const uint32_t level, uint32_t* chunkArea, uint8_t* chunk ) {
 	uint64_t expectedLocks;
 	uint64_t desiredLocks;
-	uint32_t area;
+	uint32_t foundChunk;
 
 	uint32_t loopCount = 0;
 
 	uint32_t i = 0;
-	uint32_t current = 0;
+	uint32_t area = 0;
+	MemoryArea& memoryArea = memoryAreas[level];
 
 	Timer t;
 	do {
 		while ( true ) {
-			if ( i == memoryArea->config.chunkAreas ) {
+			if ( i == memoryArea.config.chunkAreas ) {
 				std::this_thread::yield();
 				return false;
 				/* i = 0;
@@ -138,39 +139,39 @@ bool MemoryChunkSystem::LockArea( MemoryArea* memoryArea, uint32_t* chunkArea, u
 			}
 
 			loopCount++;
-			expectedLocks = memoryArea->chunkLocks[i].value.load();
+			expectedLocks = memoryArea.chunkLocks[i].value.load();
 
 			if ( expectedLocks == UINT64_MAX ) {
 				i++;
 				continue;
 			}
 
-			area = FindLZeroBit( expectedLocks );
+			foundChunk = FindLZeroBit( expectedLocks );
 
-			Log::DebugTagT( "Trying chunk %u", area );
+			Log::DebugTagT( "Trying chunk %u:%u", i, foundChunk );
 
-			if ( i * 64 + area >= memoryArea->config.chunks ) {
-				Log::DebugTagT( "Failed: chunk %u out of range", area );
+			if ( i * 64 + foundChunk >= memoryArea.config.chunks ) {
+				Log::DebugTagT( "Failed: chunk %u:%u out of range", i, foundChunk );
 				return false;
 			}
 
-			desiredLocks = SetBit( expectedLocks, area );
+			desiredLocks = SetBit( expectedLocks, foundChunk );
 
-			current = i;
+			area = i;
 			i++;
 
 			break;
 		}
 	} while (
-		!memoryArea->chunkLocks[current].value.compare_exchange_strong( expectedLocks, desiredLocks, std::memory_order_relaxed )
+		!memoryArea.chunkLocks[area].value.compare_exchange_strong( expectedLocks, desiredLocks, std::memory_order_relaxed )
 	);
 
-	Log::DebugTagT( "Locked area %u:%u in %s, loop: %u",
-		current, area, Timer::FormatTime( t.Time() ),
+	Log::DebugTagT( "Locked area %u[%u:%u] in %s, loop: %u",
+		level, area, foundChunk, Timer::FormatTime( t.Time() ),
 		loopCount );
 
-	*chunkArea = current;
-	*chunk = area;
+	*chunkArea = area;
+	*chunk = foundChunk;
 
 	return true;
 }
