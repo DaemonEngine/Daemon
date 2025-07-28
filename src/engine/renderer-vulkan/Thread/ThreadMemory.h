@@ -62,7 +62,7 @@ struct AllocationRecord {
 	uint64_t guardValue = HEADER_MAGIC;
 	uint64_t size;
 	uint32_t alignment;
-	uint32_t chunkID; // 4 bits - level, 27 bits - chunk, 1 bit - allocated
+	uint32_t chunkID; // LSB->MSB: 4 bits - level, 27 bits - chunk, 1 bit - allocated
 	char source[104];
 };
 
