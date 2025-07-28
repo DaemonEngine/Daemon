@@ -49,6 +49,8 @@ The amount of chunks is largely static, so most of the time memory allocation is
 the thread/SM needs a new chunk. Chunk allocation from the MemoryChunkSystem is usually on the order of 100-300ns,
 even if there are a lot of threads doing that, at least on systems with CAS.
 
+Chunks are identified as `level[chunkArea:chunk]`: level is the MemoryArea, chunkArea is 64-chunk area within it, chunk is 0-63.
+
 TLM has its own allocators which mirror the memory structure of MemoryChunkSystem memory areas.
 This also allows using fast bit-finding functions to find allocations.
 
