@@ -44,6 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Math/Bit.h"
 #include "../Shared/Timer.h"
 #include "../SrcDebug/Tag.h"
+#include "../Sys/MemoryInfo.h"
 
 #include "Memory.h"
 
@@ -56,7 +57,7 @@ struct MemoryChunk {
 };
 
 struct AlignedAtomicUint64 {
-	alignas( 64 ) std::atomic<uint64_t> value;
+	ALIGN_CACHE std::atomic<uint64_t> value;
 };
 
 struct MemoryAreaConfig {

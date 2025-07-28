@@ -41,6 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Shared/Timer.h"
 #include "../SrcDebug/Tag.h"
 
+#include "../Sys/MemoryInfo.h"
+
 template<typename T>
 class RingBuffer :
 	public Tag {
@@ -193,9 +195,9 @@ class AtomicRingBuffer :
 	private:
 	uint64_t size;
 	uint64_t mask;
-	alignas( 64 ) uint64_t elementCount;
-	alignas( 64 ) std::atomic<uint64_t> pointer;
-	alignas( 64 ) std::atomic<uint64_t> current;
+	ALIGN_CACHE uint64_t elementCount;
+	ALIGN_CACHE std::atomic<uint64_t> pointer;
+	ALIGN_CACHE std::atomic<uint64_t> current;
 };
 
 #endif // RINGBUFFER_H

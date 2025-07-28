@@ -40,5 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <new>
 
 constexpr uint64_t CACHE_LINE_SIZE = std::hardware_destructive_interference_size;
+#define ALIGN_CACHE alignas( CACHE_LINE_SIZE )
 
 #endif // MEMORY_INFO_H
