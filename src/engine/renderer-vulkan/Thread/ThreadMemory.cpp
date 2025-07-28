@@ -115,14 +115,17 @@ byte* ThreadMemory::AllocAligned( const uint64_t size, const uint64_t alignment 
 	if ( !found ) {
 		MemoryChunk chunk = memoryChunkSystem.Alloc( paddedSize );
 
-		SetBit( &chunkAllocators[chunk.level].availableChunks[chunk.chunkArea], chunk.chunk );
-		chunkAllocators[chunk.level].chunks[chunk.chunkArea * 64 + chunk.chunk].chunk = chunk;
-		chunkAllocators[chunk.level].chunks[chunk.chunkArea * 64 + chunk.chunk].offset = 0;
+		ChunkAllocator& allocator = chunkAllocators[chunk.level];
+		const uint32_t id = chunk.chunkArea * 64 + chunk.chunk;
 
-		SetBit( &chunkAllocators[chunk.level].allocatedChunks[chunk.chunkArea], chunk.chunk );
+		SetBit( &allocator.availableChunks[chunk.chunkArea], chunk.chunk );
+		allocator.chunks[id].chunk = chunk;
+		allocator.chunks[id].offset = 0;
 
-		found = &chunkAllocators[chunk.level].chunks[chunk.chunkArea * 64 + chunk.chunk];
-		chunkID |= ( chunk.chunkArea * 64 + chunk.chunk ) << 4;
+		SetBit( &allocator.allocatedChunks[chunk.chunkArea], chunk.chunk );
+
+		found = &allocator.chunks[id];
+		chunkID |= id << 4;
 	}
 
 	std::string source = FormatStackTrace( std::stacktrace::current(), true, true );
