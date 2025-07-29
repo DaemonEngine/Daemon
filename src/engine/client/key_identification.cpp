@@ -36,8 +36,8 @@ Maryland 20850 USA.
 
 #include "key_identification.h"
 
-#include <SDL_scancode.h>
-#include <SDL_keyboard.h>
+#include <SDL3/SDL_scancode.h>
+#include <SDL3/SDL_keyboard.h>
 
 namespace Keyboard {
 
@@ -129,7 +129,7 @@ static int ParseCharacter(Str::StringRef s)
 // for the key on a QWERTY layout, if possible.
 static Key KeyFromUnprefixedCharacter(int ch)
 {
-    SDL_Scancode sc = SDL_GetScancodeFromKey(static_cast<SDL_Keycode>(ch));
+    SDL_Scancode sc = SDL_GetScancodeFromKey(static_cast<SDL_Keycode>(ch), nullptr);
     if (sc != SDL_SCANCODE_UNKNOWN) {
         return Key::FromScancode(sc);
     }
@@ -215,7 +215,7 @@ std::string KeyToString(Key key)
 }
 
 int GetCharForScancode(int scancode) {
-    int keycode = static_cast<int>(SDL_GetKeyFromScancode(Util::enum_cast<SDL_Scancode>(scancode)));
+    int keycode = static_cast<int>(SDL_GetKeyFromScancode(Util::enum_cast<SDL_Scancode>(scancode), NULL, false));
     // The keycode is a "large" number for keys such as Shift
     if (MIN_PRINTABLE_ASCII <= keycode && keycode <= UNICODE_MAX_CODE_POINT) {
         return keycode;

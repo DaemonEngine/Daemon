@@ -44,7 +44,12 @@ Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen( "r_fullscreen", "use full-screen 
 
 cvar_t* r_allowResize;
 
-struct SDL_Window* window;
+// struct SDL_Window* window;
+
+#include "Surface/Surface.h"
+
+Surface mainSurface;
+SDL_Window* window;
 
 namespace TempAPI {
 	void Shutdown( bool destroyWindow ) {
@@ -56,6 +61,10 @@ namespace TempAPI {
 
 		glconfig->vidWidth = 1920;
 		glconfig->vidHeight = 1080;
+
+		window = mainSurface.window;
+
+		IN_Init( window );
 		return true;
 	}
 
