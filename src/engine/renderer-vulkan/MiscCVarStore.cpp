@@ -36,6 +36,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SrcDebug/LogExtend.h"
 #include "SrcDebug/Tag.h"
 
+#include "Thread/TaskList.h"
+#include "Sys/CPUInfo.h"
+
+#include "MiscCVarStore.h"
+
 Cvar::Cvar<bool> r_vkLogExtend( "r_vkLogExtend", "Print src location in all logs", Cvar::NONE, false );
 
 Cvar::Cvar<bool> r_vkLogExtendWarn( "r_vkLogExtendWarn", "Print src location in warn logs", Cvar::NONE, false );
@@ -50,6 +55,16 @@ Cvar::Range<Cvar::Cvar<int>> r_vkLogExtendedFunctionNames( "r_vkLogExtendedFunct
 	LogExtendedFunctionMode::NAME, LogExtendedFunctionMode::GLOBAL_NAME, LogExtendedFunctionMode::FULL );
 
 Cvar::Cvar<bool> r_vkLogShowThreadID( "r_vkLogShowThreadID", "Add thread ID to logs", Cvar::NONE, false );
+
+Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount( "r_vkThreadCount", "The amount of threads Daemon-vulkan will use"
+	" (0: set to the amount of logical CPU cores)", Cvar::NONE, 0,
+	[]( int value ) {
+		if( value == 0 ) {
+			value = CPU_CORES;
+		}
+
+		taskList.AdjustThreadCount( value );
+	}, 0, TaskList::MAX_THREADS );
 
 // TODO: Move this to some Vulkan file later
 Cvar::Cvar<int> r_rendererApi( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 1 );

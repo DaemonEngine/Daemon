@@ -61,6 +61,8 @@ class TaskList :
 	public:
 	friend class Thread;
 
+	static const uint32_t MAX_THREADS = 256;
+
 	TaskList();
 	~TaskList();
 
@@ -79,7 +81,6 @@ class TaskList :
 	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory" };
 	TaskRing taskRing;
 
-	static const uint32_t MAX_THREADS = 256;
 	uint32_t currentMaxThreads = 0;
 	Thread threads[MAX_THREADS];
 

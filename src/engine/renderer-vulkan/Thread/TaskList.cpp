@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TaskList.h"
 
 #include "../Math/Bit.h"
+#include "../Sys/CPUInfo.h"
+#include "../MiscCVarStore.h"
 
 TaskList taskList;
 
@@ -47,8 +49,15 @@ TaskList::~TaskList() {
 }
 
 void TaskList::AdjustThreadCount( uint32_t newMaxThreads ) {
-	if ( newMaxThreads >= MAX_THREADS ) {
-		newMaxThreads = MAX_THREADS - 1;
+	if ( newMaxThreads > MAX_THREADS ) {
+		Log::WarnTag( "Maximum thread count exceeded: %u > %u, setting to %u",
+			newMaxThreads, MAX_THREADS, MAX_THREADS );
+		newMaxThreads = MAX_THREADS;
+	}
+
+	if ( newMaxThreads == 0 ) {
+		Log::WarnTag( "Thread count can't be 0" );
+		return;
 	}
 
 	if ( newMaxThreads > currentMaxThreads ) {
@@ -57,12 +66,18 @@ void TaskList::AdjustThreadCount( uint32_t newMaxThreads ) {
 		}
 
 		currentMaxThreads = newMaxThreads;
+	} else if ( newMaxThreads < currentMaxThreads ) {
+		for ( uint32_t i = newMaxThreads; i < currentMaxThreads; i++ ) {
+			threads[i].exiting = true;
+		}
 	}
 }
 
 void TaskList::Init() {
 	tasks.Alloc( 2048 );
-	AdjustThreadCount( std::thread::hardware_concurrency() );
+	int threads = r_vkThreadCount.Get();
+	threads = threads ? threads : CPU_CORES;
+	AdjustThreadCount( threads );
 }
 
 void TaskList::Shutdown() {
