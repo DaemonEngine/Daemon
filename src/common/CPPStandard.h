@@ -55,7 +55,7 @@ enum CPPStandard_ {
   #define CPP_14_FEATURES
   #define CPP_17_FEATURES
   #define CPP_20_FEATURES
-#elif __cplusplus == 202302L || __cplusplus == 202400L
+#elif __cplusplus >= 202302L
   const CPPStandard_ CPPStandard = CPP23;
   #define CPP_14_FEATURES
   #define CPP_17_FEATURES
