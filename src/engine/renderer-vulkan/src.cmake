@@ -17,6 +17,7 @@ set(MEMORYLIST
 )
 
 set(SYNCLIST
+    ${ENGINE_DIR}/renderer-vulkan/Sync/AlignedAtomic.h
     ${ENGINE_DIR}/renderer-vulkan/Sync/Fence.cpp
     ${ENGINE_DIR}/renderer-vulkan/Sync/Fence.h
 )
