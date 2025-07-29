@@ -131,13 +131,13 @@ struct Tag {
 };
 
 #define WarnTag( format, ... ) Warn( Tagged( format, r_vkLogShowThreadID.Get() ), __VA_ARGS__ )
-#define NoticeTag( format, ... ) Warn( Tagged( format, r_vkLogShowThreadID.Get() ), __VA_ARGS__ )
-#define VerboseTag( format, ... ) Warn( Tagged( format, r_vkLogShowThreadID.Get() ), __VA_ARGS__ )
-#define DebugTag( format, ... ) Warn( Tagged( format, r_vkLogShowThreadID.Get() ), __VA_ARGS__ )
+#define NoticeTag( format, ... ) Notice( Tagged( format, r_vkLogShowThreadID.Get() ), __VA_ARGS__ )
+#define VerboseTag( format, ... ) Verbose( Tagged( format, r_vkLogShowThreadID.Get() ), __VA_ARGS__ )
+#define DebugTag( format, ... ) Debug( Tagged( format, r_vkLogShowThreadID.Get() ), __VA_ARGS__ )
 
 #define WarnTagT( format, ... ) Warn( Tagged( format, true ), __VA_ARGS__ )
-#define NoticeTagT( format, ... ) Warn( Tagged( format, true ), __VA_ARGS__ )
-#define VerboseTagT( format, ... ) Warn( Tagged( format, true ), __VA_ARGS__ )
-#define DebugTagT( format, ... ) Warn( Tagged( format, true ), __VA_ARGS__ )
+#define NoticeTagT( format, ... ) Notice( Tagged( format, true ), __VA_ARGS__ )
+#define VerboseTagT( format, ... ) Verbose( Tagged( format, true ), __VA_ARGS__ )
+#define DebugTagT( format, ... ) Debug( Tagged( format, true ), __VA_ARGS__ )
 
 #endif // TAG_H
