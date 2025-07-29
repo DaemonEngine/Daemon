@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CPPStandard.h"
 
+#include "engine/qcommon/q_shared.h"
+
 #if defined( CPP_17_FEATURES )
     #include <source_location>
 #endif
@@ -236,8 +238,18 @@ namespace Log {
     #if defined( CPP_17_FEATURES )
         inline std::string AddSrcLocation( const std::string& message, const std::source_location& srcLocation, const bool extend ) {
             if ( logExtendAll.Get() || extend ) {
+                const char* start = Q_stristr( srcLocation.file_name(), "/src/" );
+
+                if( !start ) {
+                    start = Q_stristr( srcLocation.file_name(), "\\src\\" );
+                }
+
+                if ( !start ) {
+                    start = srcLocation.file_name();
+                }
+
                 return message + Str::Format( " ^F(file: %s, line: %u:%u, func: %s)",
-                    srcLocation.file_name(), srcLocation.line(), srcLocation.column(), srcLocation.function_name() );
+                    start, srcLocation.line(), srcLocation.column(), srcLocation.function_name() );
             }
 
             return message;

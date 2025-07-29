@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Log {
     Cvar::Cvar<bool> logExtendAll(
-        "logs.writeSrcLocation.all", "Always print source code location for logs", Cvar::NONE, true );
+        "logs.writeSrcLocation.all", "Always print source code location for logs", Cvar::NONE, false );
     Cvar::Cvar<bool> logExtendWarn(
         "logs.writeSrcLocation.warn", "Print source code location for Warn logs", Cvar::NONE, false );
     Cvar::Cvar<bool> logExtendNotice(
