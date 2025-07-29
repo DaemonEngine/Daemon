@@ -92,6 +92,16 @@ class RingBuffer :
 		return memory[pointer];
 	}
 
+	const T& operator[]( const uint64_t index ) const {
+		ASSERT_LT( index, elementCount );
+		return memory[index];
+	}
+
+	T& operator[]( const uint64_t index ) {
+		ASSERT_LT( index, elementCount );
+		return memory[index];
+	}
+
 	private:
 	T* memory;
 	uint64_t size;
@@ -190,6 +200,16 @@ class AtomicRingBuffer :
 		Log::DebugTag( Timer::FormatTime( t.Time() ) );
 
 		return &memory[expected];
+	}
+
+	const T& operator[]( const uint64_t index ) const {
+		ASSERT_LT( index, elementCount );
+		return memory[index];
+	}
+
+	T& operator[]( const uint64_t index ) {
+		ASSERT_LT( index, elementCount );
+		return memory[index];
 	}
 
 	private:
