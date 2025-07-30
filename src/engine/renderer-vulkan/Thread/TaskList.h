@@ -72,6 +72,11 @@ struct TaskRing {
 using TaskInit = std::initializer_list<TaskProxy>;
 #define AddTasks( ... ) AddTasksExt( { __VA_ARGS__ } )
 
+template<typename T>
+concept IsTask = requires ( T value ) {
+	{ std::is_convertible<T, Task>::value || std::is_convertible<T, TaskProxy>::value };
+};
+
 class TaskList :
 	public Tag {
 	public:
@@ -86,7 +91,9 @@ class TaskList :
 	void Shutdown();
 	void FinishShutdown();
 
-	void AddTask( Task& task, const TaskProxy* start, const TaskProxy* end );
+	template<IsTask T>
+	void AddTask( Task& task, const T* start, const T* end );
+
 	void AddTask( Task& task, std::initializer_list<Task> dependencies = {} );
 	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
 	Task* FetchTask( Thread* thread, const bool longestTask );
@@ -127,7 +134,8 @@ class TaskList :
 
 	uint16_t AddToTaskRing( TaskRing& taskRing, Task& task );
 
-	bool ResolveDependencies( Task& task, const TaskProxy* start, const TaskProxy* end );
+	template<IsTask T>
+	bool ResolveDependencies( Task& task, const T* start, const T* end );
 	bool ResolveDependencies( Task& task, std::initializer_list<Task>& dependencies );
 
 	void MoveToTaskRing( TaskRing& taskRing, Task& task );

@@ -76,6 +76,14 @@ struct Task {
 	void operator=( const Task& other );
 
 	Task( const Task& other );
+
+	const Task& operator*() {
+		return *this;
+	}
+
+	const Task* operator->() const {
+		return this;
+	}
 };
 
 struct TaskProxy {
@@ -83,6 +91,10 @@ struct TaskProxy {
 
 	TaskProxy( Task& newTask ) :
 		task( newTask ) {
+	}
+
+	Task* operator->() const {
+		return &task;
 	}
 };
 
