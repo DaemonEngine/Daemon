@@ -127,6 +127,10 @@ void TaskRing::RemoveTask( const uint8_t queue, const uint8_t id ) {
 	UnlockQueue( queue );
 }
 
+bool TaskList::AddedToTaskRing( const uint16_t id ) {
+	return BitSet( id, TASK_SHIFT_ALLOCATED );
+}
+
 TaskRing& TaskList::IDToTaskRing( const uint16_t id ) {
 	return TaskRingIDToTaskRing( ( TaskRingID ) ( id & TASK_RING_MASK ) );
 }
@@ -168,7 +172,7 @@ uint16_t TaskList::AddToTaskRing( TaskRing& taskRing, Task& task ) {
 	SetBit( &taskRing.queues[queue].availableTasks, taskSlot );
 	taskRing.queues[queue].tasks[taskSlot] = task.bufferID;
 
-	taskRing.UnlockQueue( queue );
+	// taskRing.UnlockQueue( queue );
 
 	return taskRing.id | ( queue << TASK_SHIFT_QUEUE ) | ( taskSlot << TASK_SHIFT_ID ) | ( 1 << TASK_SHIFT_ALLOCATED );
 }
@@ -177,6 +181,8 @@ void TaskList::MoveToTaskRing( TaskRing& taskRing, Task& task ) {
 	IDToTaskRing( task.id ).RemoveTask( IDToTaskQueue( task.id ), IDToTaskID( task.id ) );
 
 	AddToTaskRing( taskRing, task );
+
+	taskRing.UnlockQueue( IDToTaskQueue( task.id ) );
 }
 
 void TaskList::FinishDependency( const uint16_t bufferID ) {
@@ -189,19 +195,19 @@ void TaskList::FinishDependency( const uint16_t bufferID ) {
 	}
 }
 
-bool TaskList::ResolveDependencies( Task& task, std::initializer_list<Task>& dependencies ) {
+bool TaskList::ResolveDependencies( Task& task, const TaskProxy* start, const TaskProxy* end ) {
 	uint32_t counter = 0;
-	for ( const Task& dep : dependencies ) {
-		Task& dependency = tasks[dep.bufferID];
+	for ( const TaskProxy* dep = start; dep < end; dep++ ) {
+		if ( !BitSet( dep->task.id, TASK_SHIFT_ALLOCATED ) ) {
+			Sys::Drop( "Tried to add task with an unallocated dependency" );
+		}
+
+		Task& dependency = tasks[dep->task.bufferID];
 
 		const bool locked = dependency.forwardTaskLock.Lock();
 
 		if ( !locked ) {
 			continue;
-		}
-
-		if ( !( ( task.id >> TASK_SHIFT_ALLOCATED ) & 1 ) ) {
-			Sys::Drop( "Tried to add task with an unallocated dependency" );
 		}
 
 		uint32_t id = dependency.forwardTaskCounter.fetch_add( 1 );
@@ -215,9 +221,69 @@ bool TaskList::ResolveDependencies( Task& task, std::initializer_list<Task>& dep
 		counter++;
 	}
 
-	task.dependencyCounter = counter;
+	task.dependencyCounter += counter;
 
 	return counter;
+}
+
+bool TaskList::ResolveDependencies( Task& task, std::initializer_list<Task>& dependencies ) {
+	uint32_t counter = 0;
+	for ( const Task& dep : dependencies ) {
+		if ( !BitSet( dep.id, TASK_SHIFT_ALLOCATED ) ) {
+			Sys::Drop( "Tried to add task with an unallocated dependency" );
+		}
+
+		Task& dependency = tasks[dep.bufferID];
+
+		const bool locked = dependency.forwardTaskLock.Lock();
+
+		if ( !locked ) {
+			continue;
+		}
+
+		uint32_t id = dependency.forwardTaskCounter.fetch_add( 1 );
+
+		ASSERT_LE( id, Task::MAX_FORWARD_TASKS );
+
+		dependency.forwardTasks[id] = task.bufferID;
+
+		dependency.forwardTaskLock.Unlock();
+
+		counter++;
+	}
+
+	task.dependencyCounter += counter;
+
+	return counter;
+}
+
+void TaskList::AddTask( Task& task, const TaskProxy* start, const TaskProxy* end ) {
+	if ( exiting && !task.shutdownTask ) {
+		return;
+	}
+
+	Task* taskMemory = tasks.GetNextElementMemory();
+	taskMemory->active = true;
+	task.active = true;
+
+	task.bufferID = taskMemory - tasks.memory;
+
+	TaskRing* taskRing;
+	if ( ResolveDependencies( task, start, end ) ) {
+		task.id = AddToTaskRing( forwardTaskRing, task );
+		taskRing = &forwardTaskRing;
+	} else {
+		task.id = AddToTaskRing( mainTaskRing, task );
+		taskRing = &mainTaskRing;
+	}
+
+	SetBit( &task.id, TASK_SHIFT_ALLOCATED );
+
+	task.dependencyCounter--;
+
+	*taskMemory = task;
+
+	taskRing->UnlockQueue( IDToTaskQueue( task.id ) );
 }
 
 void TaskList::AddTask( Task& task, std::initializer_list<Task> dependencies ) {
@@ -226,20 +292,38 @@ void TaskList::AddTask( Task& task, std::initializer_list<Task> dependencies ) {
 	}
 
 	Task* taskMemory = tasks.GetNextElementMemory();
+	taskMemory->active = true;
 	task.active = true;
 
-	const uint16_t taskMemoryID = taskMemory - tasks.memory;
-	task.bufferID = taskMemoryID;
+	task.bufferID = taskMemory - tasks.memory;
 
+	TaskRing* taskRing;
 	if ( ResolveDependencies( task, dependencies ) ) {
 		task.id = AddToTaskRing( forwardTaskRing, task );
+		taskRing = &forwardTaskRing;
 	} else {
 		task.id = AddToTaskRing( mainTaskRing, task );
+		taskRing = &mainTaskRing;
 	}
+
+	SetBit( &task.id, TASK_SHIFT_ALLOCATED );
 
 	task.dependencyCounter--;
 
 	*taskMemory = task;
+
+	taskRing->UnlockQueue( IDToTaskQueue( task.id ) );
+}
+
+void TaskList::AddTasksExt( std::initializer_list<TaskInit> dependencies ) {
+	for ( const TaskInit& taskInit : dependencies ) {
+		for ( const TaskProxy* task = &taskInit.begin()[1]; task < taskInit.end(); task++ ) {
+			if ( !AddedToTaskRing( task->task.id ) ) {
+				AddTask( task->task );
+			}
+		}
+		AddTask( taskInit.begin()[0].task, &taskInit.begin()[1], taskInit.end() );
+	}
 }
 
 Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {

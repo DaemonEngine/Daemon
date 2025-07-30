@@ -59,7 +59,7 @@ struct Task {
 	ALIGN_CACHE std::atomic<uint32_t> dependencyCounter = 1;
 	std::atomic<uint32_t> forwardTaskCounter = 0;
 
-	uint16_t id; // LSB->MSB: 2 bits - taskRing, 6 bits - queue, 6 bits - queue slot, 1 bit - added to taskList
+	uint16_t id = 0; // LSB->MSB: 2 bits - taskRing, 6 bits - queue, 6 bits - queue slot, 1 bit - added to taskList
 	uint16_t bufferID; // Task RingBuffer id
 	AccessLock forwardTaskLock;
 
@@ -76,6 +76,14 @@ struct Task {
 	void operator=( const Task& other );
 
 	Task( const Task& other );
+};
+
+struct TaskProxy {
+	Task& task;
+
+	TaskProxy( Task& newTask ) :
+		task( newTask ) {
+	}
 };
 
 #endif // TASK_H

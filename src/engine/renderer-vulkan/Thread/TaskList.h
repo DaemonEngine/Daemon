@@ -69,6 +69,9 @@ struct TaskRing {
 	void RemoveTask( const uint8_t queue, const uint8_t id );
 };
 
+using TaskInit = std::initializer_list<TaskProxy>;
+#define AddTasks( ... ) AddTasksExt( { __VA_ARGS__ } )
+
 class TaskList :
 	public Tag {
 	public:
@@ -83,7 +86,9 @@ class TaskList :
 	void Shutdown();
 	void FinishShutdown();
 
+	void AddTask( Task& task, const TaskProxy* start, const TaskProxy* end );
 	void AddTask( Task& task, std::initializer_list<Task> dependencies = {} );
+	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
 	Task* FetchTask( Thread* thread, const bool longestTask );
 
 	void FinishDependency( const uint16_t bufferID );
@@ -99,6 +104,7 @@ class TaskList :
 	static constexpr uint16_t TASK_RING_MASK = 3;
 	static constexpr uint16_t TASK_QUEUE_MASK = 63;
 	static constexpr uint16_t TASK_ID_MASK = 63;
+	static constexpr uint16_t TASK_ALLOCATED_MASK = 1;
 
 	static constexpr uint16_t TASK_SHIFT_QUEUE = 2;
 	static constexpr uint16_t TASK_SHIFT_ID = 8;
@@ -113,6 +119,7 @@ class TaskList :
 
 	std::atomic_bool exiting = false;
 
+	bool AddedToTaskRing( const uint16_t id );
 	TaskRing& IDToTaskRing( const uint16_t id );
 	uint8_t IDToTaskQueue( const uint16_t id );
 	uint16_t IDToTaskID( const uint16_t id );
@@ -120,6 +127,7 @@ class TaskList :
 
 	uint16_t AddToTaskRing( TaskRing& taskRing, Task& task );
 
+	bool ResolveDependencies( Task& task, const TaskProxy* start, const TaskProxy* end );
 	bool ResolveDependencies( Task& task, std::initializer_list<Task>& dependencies );
 
 	void MoveToTaskRing( TaskRing& taskRing, Task& task );
