@@ -132,10 +132,6 @@ TaskRing& TaskList::IDToTaskRing( const uint16_t id ) {
 }
 
 uint8_t TaskList::IDToTaskQueue( const uint16_t id ) {
-	if ( !( ( id >> TASK_SHIFT_ALLOCATED ) & 1 ) ) {
-		Sys::Drop( "Tried to add task with an unallocated dependency" );
-	}
-
 	return ( id >> TASK_SHIFT_QUEUE ) & TASK_QUEUE_MASK;
 }
 
@@ -202,6 +198,10 @@ bool TaskList::ResolveDependencies( Task& task, std::initializer_list<Task>& dep
 
 		if ( !locked ) {
 			continue;
+		}
+
+		if ( !( ( task.id >> TASK_SHIFT_ALLOCATED ) & 1 ) ) {
+			Sys::Drop( "Tried to add task with an unallocated dependency" );
 		}
 
 		uint32_t id = dependency.forwardTaskCounter.fetch_add( 1 );
