@@ -54,6 +54,12 @@ struct TaskRing {
 	std::atomic<uint64_t> queueLocks = 0;
 	uint64_t queuesWithTasks = 0;
 	TaskQueue queues[64];
+
+	const uint32_t id;
+
+	TaskRing( const uint32_t newID ) :
+		id( newID ) {
+	}
 };
 
 class TaskList :
@@ -66,25 +72,53 @@ class TaskList :
 	TaskList();
 	~TaskList();
 
-	uint8_t LockQueue( Task* task );
-	void UnlockQueue( const uint8_t queue );
-	void AddTask( Task task );
-	Task* FetchTask( Thread* thread, const bool longestTask );
-
-	void AdjustThreadCount( const uint32_t newMaxThreads );
-
 	void Init();
 	void Shutdown();
 	void FinishShutdown();
 
+	void AddTask( Task& task, std::initializer_list<Task> dependencies = {} );
+	Task* FetchTask( Thread* thread, const bool longestTask );
+
+	void FinishDependency( const uint16_t bufferID );
+
+	void AdjustThreadCount( const uint32_t newMaxThreads );
+
 	private:
+	enum TaskRingID {
+		MAIN = 0,
+		FORWARD = 1
+	};
+
+	static constexpr uint16_t TASK_RING_MASK = 3;
+	static constexpr uint16_t TASK_QUEUE_MASK = 63;
+	static constexpr uint16_t TASK_ID_MASK = 63;
+
+	static constexpr uint16_t TASK_SHIFT_QUEUE = 2;
+	static constexpr uint16_t TASK_SHIFT_ID = 8;
+	static constexpr uint16_t TASK_SHIFT_ALLOCATED = 14;
+
 	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory" };
-	TaskRing taskRing;
+	TaskRing mainTaskRing{ MAIN };
+	TaskRing forwardTaskRing{ FORWARD };
 
 	uint32_t currentMaxThreads = 0;
 	Thread threads[MAX_THREADS];
 
 	std::atomic_bool exiting = false;
+
+	uint8_t IDToTaskQueue( const uint16_t id );
+	uint16_t IDToTaskID( const uint16_t id );
+	constexpr TaskRing& TaskRingIDToTaskRing( const TaskRingID taskRingID );
+
+	uint8_t LockQueueForTask( TaskRing& taskRing, Task* task );
+
+	void LockQueue( TaskRing& taskRing, const uint8_t queue );
+	void UnlockQueue( TaskRing& taskRing, const uint8_t queue );
+	uint16_t AddToTaskRing( TaskRing& taskRing, Task& task );
+
+	bool ResolveDependencies( Task& task, std::initializer_list<Task>& dependencies );
+
+	void MoveToTaskRing( TaskRing& taskRing, Task& task );
 };
 
 extern TaskList taskList;

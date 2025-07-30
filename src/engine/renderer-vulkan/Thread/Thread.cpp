@@ -110,6 +110,13 @@ void Thread::Run() {
 		task->Execute( task->data );
 		task->active = false;
 		task->complete.Signal();
+
+		task->forwardTaskLock.Finish();
+		const uint32_t forwardTasks = task->forwardTaskCounter.load();
+		for ( uint32_t i = 0; i < forwardTasks; i++ ) {
+			taskList.FinishDependency( task->forwardTasks[i] );
+		}
+
 		execing.Stop();
 		t.Stop();
 

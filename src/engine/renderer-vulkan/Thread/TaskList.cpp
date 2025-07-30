@@ -75,6 +75,7 @@ void TaskList::AdjustThreadCount( uint32_t newMaxThreads ) {
 
 void TaskList::Init() {
 	tasks.Alloc( 2048 );
+
 	int threads = r_vkThreadCount.Get();
 	threads = threads ? threads : CPU_CORES;
 	AdjustThreadCount( threads );
@@ -90,7 +91,30 @@ void TaskList::FinishShutdown() {
 	}
 }
 
-uint8_t TaskList::LockQueue( Task* task ) {
+uint8_t TaskList::IDToTaskQueue( const uint16_t id ) {
+	if ( !( ( id >> TASK_SHIFT_ALLOCATED ) & 1 ) ) {
+		Sys::Drop( "Tried to add task with an unallocated dependency" );
+	}
+
+	return ( id >> TASK_SHIFT_QUEUE ) & TASK_QUEUE_MASK;
+}
+
+uint16_t TaskList::IDToTaskID( const uint16_t id ) {
+	return ( id >> TASK_SHIFT_ID ) & TASK_ID_MASK;
+}
+
+constexpr TaskRing& TaskList::TaskRingIDToTaskRing( const TaskRingID taskRingID ) {
+	switch ( taskRingID ) {
+		case MAIN:
+			return mainTaskRing;
+		case FORWARD:
+			return forwardTaskRing;
+		default:
+			ASSERT_UNREACHABLE();
+	}
+}
+
+uint8_t TaskList::LockQueueForTask( TaskRing& taskRing, Task* task ) {
 	Q_UNUSED( task );
 
 	uint64_t expected = taskRing.queueLocks.load();
@@ -105,25 +129,24 @@ uint8_t TaskList::LockQueue( Task* task ) {
 	return queue;
 }
 
-void TaskList::UnlockQueue( const uint8_t queue ) {
+void TaskList::LockQueue( TaskRing& taskRing, const uint8_t queue ) {
+	uint64_t expected = taskRing.queueLocks.load();
+	uint64_t desired;
+	do {
+		desired = SetBit( expected, queue );
+	} while ( !taskRing.queueLocks.compare_exchange_weak( expected, desired, std::memory_order_relaxed ) );
+}
+
+void TaskList::UnlockQueue( TaskRing& taskRing, const uint8_t queue ) {
 	taskRing.queueLocks -= 1ull << queue;
 }
 
-void TaskList::AddTask( Task task ) {
-	if ( exiting && !task.shutdownTask ) {
-		return;
-	}
-
-	Task* taskMemory = tasks.GetNextElementMemory();
-	task.active = true;
-	*taskMemory = task;
-
-
+uint16_t TaskList::AddToTaskRing( TaskRing& taskRing, Task& task ) {
 	uint8_t queue;
 	while ( true ) {
-		queue = LockQueue( &task );
+		queue = LockQueueForTask( taskRing, &task );
 		if ( taskRing.queues[queue].availableTasks == UINT64_MAX ) {
-			UnlockQueue( queue );
+			UnlockQueue( taskRing, queue );
 		} else {
 			break;
 		}
@@ -134,9 +157,85 @@ void TaskList::AddTask( Task task ) {
 	uint32_t taskSlot = FindLZeroBit( taskRing.queues[queue].availableTasks );
 
 	SetBit( &taskRing.queues[queue].availableTasks, taskSlot );
-	taskRing.queues[queue].tasks[taskSlot] = taskMemory - tasks.memory;
+	taskRing.queues[queue].tasks[taskSlot] = task.bufferID;
 
-	UnlockQueue( queue );
+	UnlockQueue( taskRing, queue );
+
+	return taskRing.id | ( queue << TASK_SHIFT_QUEUE ) | ( taskSlot << TASK_SHIFT_ID ) | ( 1 << TASK_SHIFT_ALLOCATED );
+}
+
+void TaskList::MoveToTaskRing( TaskRing& taskRing, Task& task ) {
+	const uint8_t currentQueue = IDToTaskQueue( task.id );
+	
+	LockQueue( taskRing, currentQueue );
+	UnSetBit( &taskRing.queues[currentQueue].availableTasks, IDToTaskID( task.id ) );
+	taskRing.queues[currentQueue].tasks[IDToTaskID( task.id )] = 0;
+	UnlockQueue( taskRing, currentQueue );
+
+	AddToTaskRing( taskRing, task );
+}
+
+void TaskList::FinishDependency( const uint16_t bufferID ) {
+	Task& task = tasks.memory[bufferID];
+
+	const uint32_t counter = task.dependencyCounter--;
+
+	if ( !counter ) {
+		MoveToTaskRing( mainTaskRing, task );
+	}
+}
+
+bool TaskList::ResolveDependencies( Task& task, std::initializer_list<Task>& dependencies ) {
+	uint32_t counter = 0;
+	for ( const Task& dep : dependencies ) {
+		Task& dependency = tasks[dep.bufferID];
+
+		const bool locked = dependency.forwardTaskLock.Lock();
+
+		if ( !locked ) {
+			continue;
+		}
+
+		uint32_t id = dependency.forwardTaskCounter.fetch_add( 1 );
+
+		ASSERT_LE( id, Task::MAX_FORWARD_TASKS );
+
+		dependency.forwardTasks[id] = task.bufferID;
+
+		dependency.forwardTaskLock.Unlock();
+
+		counter++;
+	}
+
+	task.dependencyCounter = counter;
+
+	return counter;
+}
+
+void TaskList::AddTask( Task& task, std::initializer_list<Task> dependencies ) {
+	if ( exiting && !task.shutdownTask ) {
+		return;
+	}
+
+	Task* taskMemory = tasks.GetNextElementMemory();
+	task.active = true;
+
+	const uint16_t taskMemoryID = taskMemory - tasks.memory;
+	task.bufferID = taskMemoryID;
+
+	*taskMemory = task;
+
+	uint16_t id;
+	if ( ResolveDependencies( task, dependencies ) ) {
+		id = AddToTaskRing( forwardTaskRing, task );
+	} else {
+		id = AddToTaskRing( mainTaskRing, task );
+	}
+
+	taskMemory->id = id;
+	task.id = id;
+
+	taskMemory->dependencyCounter--;
 }
 
 Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
@@ -150,13 +249,13 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 	uint64_t mask = 0;
 	while ( true ) {
 
-		uint64_t expected = taskRing.queueLocks.load();
+		uint64_t expected = mainTaskRing.queueLocks.load();
 		uint64_t desired;
 
 		while ( true ) {
 			if ( expected == UINT64_MAX ) {
 				std::this_thread::yield();
-				expected = taskRing.queueLocks.load();
+				expected = mainTaskRing.queueLocks.load();
 				continue;
 			}
 
@@ -169,17 +268,17 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 
 			desired = SetBit( expected, queue );
 
-			if ( !taskRing.queueLocks.compare_exchange_strong( expected, desired ) ) {
+			if ( !mainTaskRing.queueLocks.compare_exchange_strong( expected, desired ) ) {
 				continue;
 			}
 
 			break;
 		}
 
-		task = FindLSB( taskRing.queues[queue].availableTasks );
+		task = FindLSB( mainTaskRing.queues[queue].availableTasks );
 
 		if ( task == 64 ) {
-			taskRing.queueLocks -= 1ull << queue;
+			mainTaskRing.queueLocks -= 1ull << queue;
 			SetBit( &mask, queue );
 			continue;
 		}
@@ -187,13 +286,13 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 		break;
 	}
 
-	UnSetBit( &taskRing.queues[queue].availableTasks, task );
+	UnSetBit( &mainTaskRing.queues[queue].availableTasks, task );
 
-	uint16_t globalTaskID = taskRing.queues[queue].tasks[task];
+	uint16_t globalTaskID = mainTaskRing.queues[queue].tasks[task];
 
-	taskRing.queues[queue].tasks[task] = 0;
+	mainTaskRing.queues[queue].tasks[task] = 0;
 
-	UnlockQueue( queue );
+	UnlockQueue( mainTaskRing, queue );
 
 	return tasks.memory + globalTaskID;
 }

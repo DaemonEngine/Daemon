@@ -1,3 +1,4 @@
+#include "Task.h"
 /*
 ===========================================================================
 
@@ -31,51 +32,54 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Task.h
+// Task.cpp
 
-#ifndef TASK_H
-#define TASK_H
+#include "../Math/Bit.h"
 
-#include <atomic>
+#include "Task.h"
 
-#include "../Sys/MemoryInfo.h"
-#include "../Sync/Fence.h"
-#include "../Sync/AccessLock.h"
+Task::Task() :
+	id( SetBit( 0u, 15 ) ) {
+}
 
-struct Task {
-	using TaskFunction = void( * )( void* );
+Task::Task( void* func ) :
+	Execute( ( TaskFunction ) func ) {
+}
 
-	TaskFunction Execute;
-	void* data;
+Task::Task( void* func, FenceMain& fence ) :
+	Execute( ( TaskFunction ) func ),
+	complete( fence ) {
+}
 
-	Fence complete;
+Task::Task( void* func, void* newData ) :
+	Execute( ( TaskFunction ) func ),
+	data( newData ) {
+}
 
-	bool active = false;
-	bool shutdownTask = false;
+Task::Task( void* func, void* newData, FenceMain& fence ) :
+	Execute( ( TaskFunction ) func ),
+	data( newData ),
+	complete( fence ) {
+}
 
-	static constexpr uint32_t MAX_FORWARD_TASKS = 18;
-	uint16_t forwardTasks[MAX_FORWARD_TASKS] { 0 };
+Task::Task( const Task& other ) {
+	*this = other;
+}
 
-	ALIGN_CACHE std::atomic<uint32_t> dependencyCounter = 1;
-	std::atomic<uint32_t> forwardTaskCounter = 0;
+void Task::operator=( const Task& other ) {
+	Execute = other.Execute;
+	data = other.data;
 
-	uint16_t id; // LSB->MSB: 2 bits - taskRing, 6 bits - queue, 6 bits - queue slot, 1 bit - added to taskList
-	uint16_t bufferID; // Task RingBuffer id
-	AccessLock forwardTaskLock;
+	dependencyCounter = other.dependencyCounter.load();
+	forwardTaskCounter = other.forwardTaskCounter.load();
 
-	// bool useTaskFence = false;
-	// Fence taskFence;
+	id = other.id;
+	bufferID = other.bufferID;
 
-	Task();
+	complete = other.complete;
+	active = other.active;
+	shutdownTask = other.shutdownTask;
 
-	Task( void* func );
-	Task( void* func, FenceMain& fence );
-	Task( void* func, void* newData );
-	Task( void* func, void* newData, FenceMain& fence );
-
-	void operator=( const Task& other );
-
-	Task( const Task& other );
-};
-
-#endif // TASK_H
+	forwardTaskLock = other.forwardTaskLock;
+	memcpy( forwardTasks, other.forwardTasks, MAX_FORWARD_TASKS * sizeof( uint16_t ) );
+}
