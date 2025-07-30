@@ -60,6 +60,13 @@ struct TaskRing {
 	TaskRing( const uint32_t newID ) :
 		id( newID ) {
 	}
+
+	uint8_t LockQueueForTask( Task* task );
+
+	void LockQueue( const uint8_t queue );
+	void UnlockQueue( const uint8_t queue );
+
+	void RemoveTask( const uint8_t queue, const uint8_t id );
 };
 
 class TaskList :
@@ -106,14 +113,11 @@ class TaskList :
 
 	std::atomic_bool exiting = false;
 
+	TaskRing& IDToTaskRing( const uint16_t id );
 	uint8_t IDToTaskQueue( const uint16_t id );
 	uint16_t IDToTaskID( const uint16_t id );
 	constexpr TaskRing& TaskRingIDToTaskRing( const TaskRingID taskRingID );
 
-	uint8_t LockQueueForTask( TaskRing& taskRing, Task* task );
-
-	void LockQueue( TaskRing& taskRing, const uint8_t queue );
-	void UnlockQueue( TaskRing& taskRing, const uint8_t queue );
 	uint16_t AddToTaskRing( TaskRing& taskRing, Task& task );
 
 	bool ResolveDependencies( Task& task, std::initializer_list<Task>& dependencies );
