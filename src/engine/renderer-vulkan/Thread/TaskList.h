@@ -144,7 +144,7 @@ class TaskList :
 	uint16_t IDToTaskID( const uint16_t id );
 	constexpr TaskRing& TaskRingIDToTaskRing( const TaskRingID taskRingID );
 
-	uint16_t AddToTaskRing( TaskRing& taskRing, Task& task );
+	uint16_t AddToTaskRing( TaskRing& taskRing, Task& task, const bool unlockQueueAfterAdd = true );
 
 	template<IsTask T>
 	bool ResolveDependencies( Task& task, TaskInitList<T>& dependencies );

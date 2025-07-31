@@ -154,7 +154,11 @@ constexpr TaskRing& TaskList::TaskRingIDToTaskRing( const TaskRingID taskRingID 
 	}
 }
 
-uint16_t TaskList::AddToTaskRing( TaskRing& taskRing, Task& task ) {
+/* If unlockQueueAfterAdd is true, the queue this task was added to will bbe locked automatically
+before this function returns
+Otherwise you must use taskRing.UnlockQueue( IDToTaskQueue( task.id ) ) to unlock the queue after using this function!
+This is required to avoid race conditions because some of the code calling AddToTaskRing() further modifies the task */
+uint16_t TaskList::AddToTaskRing( TaskRing& taskRing, Task& task, const bool unlockQueueAfterAdd = true ) {
 	uint8_t queue;
 	while ( true ) {
 		queue = taskRing.LockQueueForTask( &task );
@@ -172,7 +176,9 @@ uint16_t TaskList::AddToTaskRing( TaskRing& taskRing, Task& task ) {
 	SetBit( &taskRing.queues[queue].availableTasks, taskSlot );
 	taskRing.queues[queue].tasks[taskSlot] = task.bufferID;
 
-	// taskRing.UnlockQueue( queue );
+	if ( unlockQueueAfterAdd ) {
+		taskRing.UnlockQueue( IDToTaskQueue( task.id ) );
+	}
 
 	return taskRing.id | ( queue << TASK_SHIFT_QUEUE ) | ( taskSlot << TASK_SHIFT_ID ) | ( 1 << TASK_SHIFT_ALLOCATED );
 }
@@ -181,8 +187,6 @@ void TaskList::MoveToTaskRing( TaskRing& taskRing, Task& task ) {
 	IDToTaskRing( task.id ).RemoveTask( IDToTaskQueue( task.id ), IDToTaskID( task.id ) );
 
 	AddToTaskRing( taskRing, task );
-
-	taskRing.UnlockQueue( IDToTaskQueue( task.id ) );
 }
 
 void TaskList::FinishDependency( const uint16_t bufferID ) {
@@ -241,10 +245,10 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 
 	TaskRing* taskRing;
 	if ( ResolveDependencies( task, dependencies ) ) {
-		task.id = AddToTaskRing( forwardTaskRing, task );
+		task.id = AddToTaskRing( forwardTaskRing, task, false );
 		taskRing = &forwardTaskRing;
 	} else {
-		task.id = AddToTaskRing( mainTaskRing, task );
+		task.id = AddToTaskRing( mainTaskRing, task, false );
 		taskRing = &mainTaskRing;
 	}
 
