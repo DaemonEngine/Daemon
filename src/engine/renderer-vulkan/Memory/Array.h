@@ -45,6 +45,9 @@ struct Array {
 	const uint64_t size = newSize;
     T memory[newSize];
 
+	constexpr Array() {
+	}
+
 	constexpr Array( std::initializer_list<T> args ) {
 		for ( uint64_t i = 0; i < args.size(); i++ ) {
 			memory[i] = args.begin()[i];
