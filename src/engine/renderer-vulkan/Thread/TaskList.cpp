@@ -196,9 +196,9 @@ void TaskList::FinishDependency( const uint16_t bufferID ) {
 }
 
 template<IsTask T>
-bool TaskList::ResolveDependencies( Task& task, const T* start, const T* end ) {
+bool TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) {
 	uint32_t counter = 0;
-	for ( const T* dep = start; dep < end; dep++ ) {
+	for ( const T* dep = dependencies.start; dep < dependencies.end; dep++ ) {
 		if ( !BitSet( ( *dep )->id, TASK_SHIFT_ALLOCATED ) ) {
 			Sys::Drop( "Tried to add task with an unallocated dependency" );
 		}
@@ -228,7 +228,7 @@ bool TaskList::ResolveDependencies( Task& task, const T* start, const T* end ) {
 }
 
 template<IsTask T>
-void TaskList::AddTask( Task& task, const T* start, const T* end ) {
+void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 	if ( exiting && !task.shutdownTask ) {
 		return;
 	}
@@ -240,7 +240,7 @@ void TaskList::AddTask( Task& task, const T* start, const T* end ) {
 	task.bufferID = taskMemory - tasks.memory;
 
 	TaskRing* taskRing;
-	if ( ResolveDependencies( task, start, end ) ) {
+	if ( ResolveDependencies( task, dependencies ) ) {
 		task.id = AddToTaskRing( forwardTaskRing, task );
 		taskRing = &forwardTaskRing;
 	} else {
@@ -258,7 +258,7 @@ void TaskList::AddTask( Task& task, const T* start, const T* end ) {
 }
 
 void TaskList::AddTask( Task& task, std::initializer_list<Task> dependencies ) {
-	AddTask( task, dependencies.begin(), dependencies.end() );
+	AddTask( task, TaskInitList{ dependencies.begin(), dependencies.end() } );
 }
 
 void TaskList::AddTasksExt( std::initializer_list<TaskInit> dependencies ) {
@@ -268,7 +268,7 @@ void TaskList::AddTasksExt( std::initializer_list<TaskInit> dependencies ) {
 				AddTask( task->task );
 			}
 		}
-		AddTask( taskInit.begin()[0].task, &taskInit.begin()[1], taskInit.end() );
+		AddTask( taskInit.begin()[0].task, TaskInitList{ &taskInit.begin()[1], taskInit.end() } );
 	}
 }
 

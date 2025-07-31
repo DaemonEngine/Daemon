@@ -77,6 +77,18 @@ concept IsTask = requires ( T value ) {
 	{ std::is_convertible<T, Task>::value || std::is_convertible<T, TaskProxy>::value };
 };
 
+// Use this for task dependencies because it allows natvis visualisation
+template<IsTask T>
+struct TaskInitList {
+	const T* start;
+	const T* end;
+
+	TaskInitList( const T* newStart, const T* newEnd ) :
+		start( newStart ),
+		end( newEnd ) {
+	}
+};
+
 class TaskList :
 	public Tag {
 	public:
@@ -92,7 +104,7 @@ class TaskList :
 	void FinishShutdown();
 
 	template<IsTask T>
-	void AddTask( Task& task, const T* start, const T* end );
+	void AddTask( Task& task, TaskInitList<T>&& dependencies );
 
 	void AddTask( Task& task, std::initializer_list<Task> dependencies = {} );
 	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
@@ -135,7 +147,7 @@ class TaskList :
 	uint16_t AddToTaskRing( TaskRing& taskRing, Task& task );
 
 	template<IsTask T>
-	bool ResolveDependencies( Task& task, const T* start, const T* end );
+	bool ResolveDependencies( Task& task, TaskInitList<T>& dependencies );
 	bool ResolveDependencies( Task& task, std::initializer_list<Task>& dependencies );
 
 	void MoveToTaskRing( TaskRing& taskRing, Task& task );

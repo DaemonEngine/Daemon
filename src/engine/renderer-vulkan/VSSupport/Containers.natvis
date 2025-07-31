@@ -28,4 +28,16 @@
 			</ArrayItems>
 		</Expand>
 	</Type>
+
+	<Type Name="TaskInitList&lt;*&gt;">
+		<DisplayString>{{ size={end - start} }}</DisplayString>
+		<Expand>
+			<Item Name="[start]">start</Item>
+			<Item Name="[end]">end</Item>
+			<ArrayItems>
+				<Size>end - start</Size>
+				<ValuePointer>start</ValuePointer>
+			</ArrayItems>
+		</Expand>
+	</Type>
 </AutoVisualizer>
