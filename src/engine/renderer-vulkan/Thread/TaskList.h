@@ -67,6 +67,8 @@ struct TaskRing {
 	void UnlockQueue( const uint8_t queue );
 
 	void RemoveTask( const uint8_t queue, const uint8_t id );
+
+	uint16_t AddToTaskRing( Task& task, const bool unlockQueueAfterAdd = true );
 };
 
 using TaskInit = std::initializer_list<TaskProxy>;
@@ -96,25 +98,6 @@ class TaskList :
 
 	static const uint32_t MAX_THREADS = 256;
 
-	TaskList();
-	~TaskList();
-
-	void Init();
-	void Shutdown();
-	void FinishShutdown();
-
-	template<IsTask T>
-	void AddTask( Task& task, TaskInitList<T>&& dependencies );
-
-	void AddTask( Task& task, std::initializer_list<Task> dependencies = {} );
-	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
-	Task* FetchTask( Thread* thread, const bool longestTask );
-
-	void FinishDependency( const uint16_t bufferID );
-
-	void AdjustThreadCount( const uint32_t newMaxThreads );
-
-	private:
 	enum TaskRingID {
 		MAIN = 0,
 		FORWARD = 1
@@ -129,6 +112,30 @@ class TaskList :
 	static constexpr uint16_t TASK_SHIFT_ID = 8;
 	static constexpr uint16_t TASK_SHIFT_ALLOCATED = 14;
 
+	TaskList();
+	~TaskList();
+
+	void Init();
+	void Shutdown();
+	void FinishShutdown();
+
+	bool AddedToTaskRing( const uint16_t id );
+	TaskRing& IDToTaskRing( const uint16_t id );
+	uint8_t IDToTaskQueue( const uint16_t id );
+	uint16_t IDToTaskID( const uint16_t id );
+
+	template<IsTask T>
+	void AddTask( Task& task, TaskInitList<T>&& dependencies );
+
+	void AddTask( Task& task, std::initializer_list<Task> dependencies = {} );
+	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
+	Task* FetchTask( Thread* thread, const bool longestTask );
+
+	void FinishDependency( const uint16_t bufferID );
+
+	void AdjustThreadCount( const uint32_t newMaxThreads );
+
+	private:
 	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory" };
 	TaskRing mainTaskRing{ MAIN };
 	TaskRing forwardTaskRing{ FORWARD };
@@ -138,17 +145,10 @@ class TaskList :
 
 	std::atomic_bool exiting = false;
 
-	bool AddedToTaskRing( const uint16_t id );
-	TaskRing& IDToTaskRing( const uint16_t id );
-	uint8_t IDToTaskQueue( const uint16_t id );
-	uint16_t IDToTaskID( const uint16_t id );
 	constexpr TaskRing& TaskRingIDToTaskRing( const TaskRingID taskRingID );
-
-	uint16_t AddToTaskRing( TaskRing& taskRing, Task& task, const bool unlockQueueAfterAdd = true );
 
 	template<IsTask T>
 	bool ResolveDependencies( Task& task, TaskInitList<T>& dependencies );
-	bool ResolveDependencies( Task& task, std::initializer_list<Task>& dependencies );
 
 	void MoveToTaskRing( TaskRing& taskRing, Task& task );
 };

@@ -158,12 +158,12 @@ constexpr TaskRing& TaskList::TaskRingIDToTaskRing( const TaskRingID taskRingID 
 before this function returns
 Otherwise you must use taskRing.UnlockQueue( IDToTaskQueue( task.id ) ) to unlock the queue after using this function!
 This is required to avoid race conditions because some of the code calling AddToTaskRing() further modifies the task */
-uint16_t TaskList::AddToTaskRing( TaskRing& taskRing, Task& task, const bool unlockQueueAfterAdd = true ) {
+uint16_t TaskRing::AddToTaskRing( Task& task, const bool unlockQueueAfterAdd ) {
 	uint8_t queue;
 	while ( true ) {
-		queue = taskRing.LockQueueForTask( &task );
-		if ( taskRing.queues[queue].availableTasks == UINT64_MAX ) {
-			taskRing.UnlockQueue( queue );
+		queue = LockQueueForTask( &task );
+		if ( queues[queue].availableTasks == UINT64_MAX ) {
+			UnlockQueue( queue );
 		} else {
 			break;
 		}
@@ -171,22 +171,24 @@ uint16_t TaskList::AddToTaskRing( TaskRing& taskRing, Task& task, const bool unl
 		std::this_thread::yield();
 	}
 
-	uint32_t taskSlot = FindLZeroBit( taskRing.queues[queue].availableTasks );
+	uint32_t taskSlot = FindLZeroBit( queues[queue].availableTasks );
 
-	SetBit( &taskRing.queues[queue].availableTasks, taskSlot );
-	taskRing.queues[queue].tasks[taskSlot] = task.bufferID;
+	SetBit( &queues[queue].availableTasks, taskSlot );
+	queues[queue].tasks[taskSlot] = task.bufferID;
 
 	if ( unlockQueueAfterAdd ) {
-		taskRing.UnlockQueue( IDToTaskQueue( task.id ) );
+		UnlockQueue( taskList.IDToTaskQueue( task.id ) );
 	}
 
-	return taskRing.id | ( queue << TASK_SHIFT_QUEUE ) | ( taskSlot << TASK_SHIFT_ID ) | ( 1 << TASK_SHIFT_ALLOCATED );
+	return id | ( queue << TaskList::TASK_SHIFT_QUEUE )
+	          | ( taskSlot << TaskList::TASK_SHIFT_ID )
+	          | ( 1 << TaskList::TASK_SHIFT_ALLOCATED );
 }
 
 void TaskList::MoveToTaskRing( TaskRing& taskRing, Task& task ) {
 	IDToTaskRing( task.id ).RemoveTask( IDToTaskQueue( task.id ), IDToTaskID( task.id ) );
 
-	AddToTaskRing( taskRing, task );
+	taskRing.AddToTaskRing( task );
 }
 
 void TaskList::FinishDependency( const uint16_t bufferID ) {
@@ -245,10 +247,10 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 
 	TaskRing* taskRing;
 	if ( ResolveDependencies( task, dependencies ) ) {
-		task.id = AddToTaskRing( forwardTaskRing, task, false );
+		task.id = forwardTaskRing.AddToTaskRing( task, false );
 		taskRing = &forwardTaskRing;
 	} else {
-		task.id = AddToTaskRing( mainTaskRing, task, false );
+		task.id = mainTaskRing.AddToTaskRing( task, false );
 		taskRing = &mainTaskRing;
 	}
 
