@@ -2924,7 +2924,6 @@ inline bool checkGLErrors()
 
 	void GL_State( uint32_t stateVector );
 	void GL_VertexAttribsState( uint32_t stateBits, const bool settingUpVAO = false );
-	void GL_VertexAttribPointers( uint32_t attribBits, const bool settingUpVAO );
 	void GL_Cull( cullType_t cullType );
 void GL_TexImage2D( GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB );
 void GL_TexImage3D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB );
