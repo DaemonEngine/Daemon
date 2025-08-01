@@ -287,7 +287,7 @@ namespace Resource {
         auto it = resources.begin();
 
         while (it != resources.end()) {
-            if (not it->second->keep and it->second.unique()) {
+            if (not it->second->keep and it->second.use_count() == 1) {
                 it->second->Cleanup();
                 it = resources.erase(it);
             } else {
