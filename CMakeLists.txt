@@ -489,6 +489,34 @@ if (DEPS_DIR)
         if (NOT EXTRACT_RESULT EQUAL 0)
             message(FATAL_ERROR "Could not extract ${BASENAME}${DEPS_EXT}")
         endif()
+
+        set(REMOTE "https://dl.unvanquished.net/deps/windows-amd64-msvc_10-vulkan.tar.xz")
+        message(STATUS "Downloading dependencies from '${REMOTE}'")
+        file(DOWNLOAD2 ${REMOTE} ${OBJ_DIR}/${BASENAME}${DEPS_EXT}
+            SHOW_PROGRESS
+            STATUS DOWNLOAD_RESULT
+            LOG DOWNLOAD_LOG
+        )
+        list(GET DOWNLOAD_RESULT 0 DOWNLOAD_STATUS)
+        list(GET DOWNLOAD_RESULT 1 DOWNLOAD_STRING)
+        if (NOT DOWNLOAD_STATUS EQUAL 0)
+            message(FATAL_ERROR "Error downloading '${REMOTE}':
+                Status code: ${DOWNLOAD_STATUS}
+                Error string: ${DOWNLOAD_STRING}
+                Download log: ${DOWNLOAD_LOG}"
+            )
+        endif()
+        message(STATUS "Download completed successfully")
+
+        # Extract the downloaded archive
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} -E tar xJf ${OBJ_DIR}/${BASENAME}${DEPS_EXT}
+            WORKING_DIRECTORY ${EXTERNAL_DEPS_DIR}
+            RESULT_VARIABLE EXTRACT_RESULT
+        )
+        if (NOT EXTRACT_RESULT EQUAL 0)
+            message(FATAL_ERROR "Could not extract ${BASENAME}${DEPS_EXT}")
+        endif()
     endif()
 
     # Add to paths
