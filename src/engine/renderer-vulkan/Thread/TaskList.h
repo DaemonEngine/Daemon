@@ -96,7 +96,7 @@ class TaskList :
 	public:
 	friend class Thread;
 
-	static const uint32_t MAX_THREADS = 256;
+	static constexpr uint32_t MAX_THREADS = 256;
 
 	enum TaskRingID {
 		MAIN = 0,
