@@ -615,12 +615,12 @@ void GL_State( uint32_t stateBits )
 	glState.glStateBits ^= diff;
 }
 
-void GL_VertexAttribsState( uint32_t stateBits )
+void GL_VertexAttribsState( uint32_t stateBits, const bool settingUpVAO )
 {
 	uint32_t diff;
 	uint32_t i;
 
-	if ( !tess.settingUpVAO && glState.currentVBO && !glState.currentVBO->dynamicVAO ) {
+	if ( !settingUpVAO && glState.currentVBO && !glState.currentVBO->dynamicVAO ) {
 		glState.currentVBO->VAO.Bind();
 		return;
 	}
@@ -630,9 +630,9 @@ void GL_VertexAttribsState( uint32_t stateBits )
 		stateBits |= ATTR_BONE_FACTORS;
 	}
 
-	GL_VertexAttribPointers( stateBits );
+	GL_VertexAttribPointers( stateBits, settingUpVAO );
 
-	if ( !tess.settingUpVAO && backEnd.currentVAO != backEnd.defaultVAO ) {
+	if ( !settingUpVAO && backEnd.currentVAO != backEnd.defaultVAO ) {
 		return;
 	}
 
@@ -673,8 +673,7 @@ void GL_VertexAttribsState( uint32_t stateBits )
 	}
 }
 
-void GL_VertexAttribPointers( uint32_t attribBits )
-{
+void GL_VertexAttribPointers( uint32_t attribBits, const bool settingUpVAO ) {
 	uint32_t i;
 
 	if ( !glState.currentVBO )
@@ -702,7 +701,7 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 		if ( ( attribBits & bit ) != 0 &&
 		     ( !( glState.vertexAttribPointersSet & bit ) ||
 		       tess.vboVertexAnimation ||
-		       glState.currentVBO == tess.vbo || tess.settingUpVAO || glState.currentVBO->dynamicVAO ) )
+		       glState.currentVBO == tess.vbo || settingUpVAO || glState.currentVBO->dynamicVAO ) )
 		{
 			const vboAttributeLayout_t *layout = &glState.currentVBO->attribs[ i ];
 
