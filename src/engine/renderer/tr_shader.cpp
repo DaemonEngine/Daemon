@@ -2009,6 +2009,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	filterType_t filterType;
 	char         buffer[ 1024 ] = "";
 	bool     loadMap = false;
+	bool blendRegimeMatch = true;
 
 	while ( true )
 	{
@@ -2844,6 +2845,23 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				continue;
 			}
 		}
+		// disable the stage if the renderer's blending mode does not match the specified mode
+		else if ( !Q_stricmp( token, "ifBlendRegime" ) )
+		{
+			token = COM_ParseExt2( text, false );
+			if ( !Q_stricmp( token, "naive" ) )
+			{
+				blendRegimeMatch = !tr.worldLinearizeTexture;
+			}
+			else if ( !Q_stricmp( token, "linear" ) )
+			{
+				blendRegimeMatch = tr.worldLinearizeTexture;
+			}
+			else
+			{
+				Log::Warn( "unknown parameter'%s' for ifBlendRegime in shader '%s'", token, shader.name );
+			}
+		}
 		// alpha <arithmetic expression>
 		else if ( !Q_stricmp( token, "alpha" ) )
 		{
@@ -3220,6 +3238,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			SkipRestOfLine( text );
 			continue;
 		}
+	}
+
+	if ( !blendRegimeMatch )
+	{
+		return true; // parsing succeeded, but not active
 	}
 
 	// parsing succeeded
