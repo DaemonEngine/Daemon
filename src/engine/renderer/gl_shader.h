@@ -3073,6 +3073,18 @@ public:
 	}
 };
 
+class u_SRGB :
+	GLUniform1Bool {
+	public:
+	u_SRGB( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_SRGB", true ) {
+	}
+
+	void SetUniform_SRGB( bool tonemap ) {
+		this->SetValue( tonemap );
+	}
+};
+
 class u_Tonemap :
 	GLUniform1Bool {
 	public:
@@ -3579,6 +3591,7 @@ class GLShader_cameraEffects :
 	public u_CurrentMap,
 	public u_GlobalLightFactor,
 	public u_ColorModulate,
+	public u_SRGB,
 	public u_Tonemap,
 	public u_TonemapParms,
 	public u_TonemapExposure,

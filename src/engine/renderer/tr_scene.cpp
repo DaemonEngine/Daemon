@@ -321,6 +321,12 @@ void RE_AddDynamicLightToScene( const vec3_t org, float radius, float r, float g
 	light->color[ 0 ] = r;
 	light->color[ 1 ] = g;
 	light->color[ 2 ] = b;
+
+	// Linearize dynamic lights.
+	if ( tr.worldLinearizeTexture )
+	{
+		convertFromSRGB( light->color );
+	}
 }
 
 static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {
