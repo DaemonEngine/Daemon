@@ -6238,6 +6238,11 @@ shader_t       *R_FindShader( const char *name, int flags )
 	// going to have to upload an image
 	R_SyncRenderThread();
 
+	if ( !( flags & RSF_2D ) && !tr.worldMapLoaded )
+	{
+		Log::Warn( "non-2D shader '%s' registered before map colorspace is known, assuming naive blending", name );
+	}
+
 	ClearGlobalShader();
 
 	Q_strncpyz( shader.name, strippedName, sizeof( shader.name ) );
