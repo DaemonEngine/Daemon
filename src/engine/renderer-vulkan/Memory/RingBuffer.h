@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../SrcDebug/Tag.h"
 
 #include "../Sys/MemoryInfo.h"
+#include "../Math/Bit.h"
 
 template<typename T>
 class RingBuffer :
@@ -129,7 +130,7 @@ class AtomicRingBuffer :
 	void Alloc( const uint64_t newElementCount ) {
 		elementCount = newElementCount;
 		size = ( elementCount * sizeof( T ) + 63 ) & ~64;
-		mask = UINT64_MAX >> __lzcnt64( elementCount - 1 );
+		mask = UINT64_MAX >> FindLSB( elementCount - 1 );
 		memory = ( T* ) Alloc64( size );
 
 		memset( memory, 0, size );
