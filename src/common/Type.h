@@ -34,6 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 template<typename T>
-inline constexpr bool IsPod = std::is_standard_layout<T>::value && std::is_trivially_copyable<T>::value && std::is_trivially_default_constructible<T>::value;
+constexpr bool IsPod = std::is_standard_layout<T>::value && std::is_trivially_copyable<T>::value && std::is_trivially_default_constructible<T>::value;
 
 #endif // COMMON_TYPE_H_
