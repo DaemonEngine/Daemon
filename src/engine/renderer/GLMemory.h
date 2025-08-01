@@ -178,6 +178,7 @@ class GLBuffer {
 
 	void DelBuffer() {
 		glDeleteBuffers( 1, &id );
+		id = 0;
 		mapped = false;
 	}
 
@@ -310,6 +311,8 @@ class GLStagingBuffer {
 	void QueueStagingCopy( GLBuffer* dst, const GLsizeiptr dstOffset );
 	void FlushStagingCopyQueue();
 	void FlushAll();
+
+	bool Active() const;
 
 	void InitGLBuffer();
 	void FreeGLBuffer();
