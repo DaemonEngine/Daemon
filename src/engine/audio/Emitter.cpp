@@ -132,7 +132,7 @@ namespace Audio {
             emitter->Update();
 
             // No sound is using this emitter, destroy it
-            if (emitter.unique()) {
+            if (emitter.use_count()) {
                 emitter = nullptr;
             }
         }
@@ -141,7 +141,7 @@ namespace Audio {
             (*it)->Update();
 
             // No sound is using this emitter, destroy it
-            if ((*it).unique()) {
+            if ((*it).use_count()) {
                 it = posEmitters.erase(it);
             } else {
                 it ++;
