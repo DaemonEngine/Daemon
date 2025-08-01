@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* lighttile_fp.glsl */
 
+#define DEPTHTILE2_GLSL
+
 IN(smooth) vec2 vPosition;
 
 struct Light {
@@ -96,6 +98,8 @@ vec3 ProjToView( vec2 inp ) {
 }
 
 void main() {
+	#insert material_fp
+
 	vec2 minmax = texture2D( u_DepthTile2, 0.5 * vPosition + 0.5 ).xy;
 
 	float minx = vPosition.x - r_tileStep.x;
