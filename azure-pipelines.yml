@@ -70,14 +70,16 @@ jobs:
         GCC:
           BUILD_TYPE: Release
           C_COMPILER: gcc
-          CXX_COMPILER: g++-14
+          CXX_COMPILER: g++
+          CXX: g++-14
           EXTRA_PACKAGES:
           EXTRA_INSTALLS:
           TOOLCHAIN_FILE:
         Clang:
           BUILD_TYPE: Release
           C_COMPILER: clang
-          CXX_COMPILER: clang++-19
+          CXX_COMPILER: clang++
+          CXX: clang++-19
           EXTRA_PACKAGES:
           EXTRA_INSTALLS:
           TOOLCHAIN_FILE:
