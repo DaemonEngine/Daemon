@@ -316,7 +316,7 @@ struct clientStatic_t
 	// rendering info
 	WindowConfig windowConfig;
 	qhandle_t   charSetShader;
-	qhandle_t   whiteShader;
+	qhandle_t   whiteShader; // used for console drawing
 	bool    useLegacyConsoleFont;
 	bool    useLegacyConsoleFace;
 	fontInfo_t *consoleFont;
