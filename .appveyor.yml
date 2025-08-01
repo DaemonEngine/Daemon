@@ -50,12 +50,13 @@ build_script:
 
       set CFLAGS=/Wv:19.34
 
-      set CXXFLAGS=/Wv:19.34
+      set CXXFLAGS=/Wv:19.34 /Zc:__cplusplus
 
       cmake
       -Wdev -Wdeprecated
       -G"%generator%" -A"%platform%"
       -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1
+      -DUSE_VULKAN=1
       -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1
       -S. -Bbuild
 
