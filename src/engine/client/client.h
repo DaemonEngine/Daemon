@@ -307,7 +307,6 @@ struct clientStatic_t
 	glconfig2_t glconfig2;
 	qhandle_t   charSetShader;
 	qhandle_t   whiteShader;
-	qhandle_t   consoleShader;
 	bool    useLegacyConsoleFont;
 	bool    useLegacyConsoleFace;
 	fontInfo_t *consoleFont;

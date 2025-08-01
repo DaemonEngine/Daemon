@@ -102,6 +102,8 @@ static Cvar::Cvar<bool> r_arb_shading_language_420pack( "r_arb_shading_language_
 	"Use GL_ARB_shading_language_420pack if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_sync( "r_arb_sync",
 	"Use GL_ARB_sync if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_texture_barrier( "r_arb_texture_barrier",
+	"Use GL_ARB_texture_barrier if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_texture_gather( "r_arb_texture_gather",
 	"Use GL_ARB_texture_gather if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_uniform_buffer_object( "r_arb_uniform_buffer_object",
@@ -2366,6 +2368,9 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.2
 	glConfig2.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync.Get() );
 
+	// made required in OpenGL 4.5
+	glConfig2.textureBarrierAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_barrier, r_arb_texture_barrier.Get() );
+
 	// made required in OpenGL 4.3
 	glConfig2.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader.Get() );
 
@@ -2545,7 +2550,8 @@ static void GLimp_InitExtensions()
 		&& glConfig2.shaderDrawParametersAvailable
 		&& glConfig2.shaderImageLoadStoreAvailable
 		&& glConfig2.shadingLanguage420PackAvailable
-		&& glConfig2.SSBOAvailable;
+		&& glConfig2.SSBOAvailable
+		&& glConfig2.uniformBufferObjectAvailable;
 
 	// This requires GLEW 2.2+, so skip if it's a lower version
 #if defined(GLEW_KHR_shader_subgroup)

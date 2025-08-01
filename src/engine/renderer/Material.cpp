@@ -1900,7 +1900,7 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 			}
 
 			tr.drawingSky = true;
-			Tess_Begin( Tess_StageIteratorSky, skyShader, nullptr, false, -1, 0, false );
+			Tess_Begin( Tess_StageIteratorSky, skyShader, false, -1, 0, false );
 			Tess_End();
 		}
 	}

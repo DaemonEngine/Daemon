@@ -2444,9 +2444,9 @@ static void R_CreateFogImage()
 R_CreateDefaultImage
 ==================
 */
-static const int DEFAULT_SIZE = 128;
 static void R_CreateDefaultImage()
 {
+	constexpr int DEFAULT_SIZE = 128;
 	int  x;
 	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
 	byte *dataPtr = &data[0][0][0];
@@ -2472,45 +2472,6 @@ static void R_CreateDefaultImage()
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
 	tr.defaultImage = R_CreateImage( "_default", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
-}
-
-static void R_CreateRandomNormalsImage()
-{
-	int  x, y;
-	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
-	// the default image will be a box, to allow you to see the mapping coordinates
-	memset(data, 32, sizeof(data));
-
-	byte *ptr = &data[0][0][0];
-	byte *dataPtr = &data[0][0][0];
-
-	for ( y = 0; y < DEFAULT_SIZE; y++ )
-	{
-		for ( x = 0; x < DEFAULT_SIZE; x++ )
-		{
-			vec3_t n;
-			float  r, angle;
-
-			r = random();
-			angle = 2.0f * M_PI * r; // / 360.0f;
-
-			VectorSet( n, cosf( angle ), sinf( angle ), r );
-			VectorNormalize( n );
-
-			ptr[ 0 ] = ( byte )( 128 + 127 * n[ 0 ] );
-			ptr[ 1 ] = ( byte )( 128 + 127 * n[ 1 ] );
-			ptr[ 2 ] = ( byte )( 128 + 127 * n[ 2 ] );
-			ptr[ 3 ] = 255;
-			ptr += 4;
-		}
-	}
-
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_DEFAULT;
-	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
-
-	tr.randomNormalsImage = R_CreateImage( "_randomNormals", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
 }
 
 static void R_CreateContrastRenderFBOImage()
@@ -2749,12 +2710,11 @@ R_CreateBuiltinImages
 */
 void R_CreateBuiltinImages()
 {
-	int   x, y;
-	byte  data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
-	byte  *dataPtr = &data[0][0][0];
+	constexpr int DIMENSION = 8;
+	int   x;
+	byte  data[ DIMENSION * DIMENSION * 4 ];
+	byte  *dataPtr = data;
 	byte  *out;
-	float s, value;
-	byte  intensity;
 
 	R_CreateDefaultImage();
 
@@ -2766,41 +2726,41 @@ void R_CreateBuiltinImages()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
-	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
+	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
 	// we use a solid black image instead of disabling texturing
 	memset( data, 0, sizeof( data ) );
-	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
+	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
 	// red
-	for ( x = DEFAULT_SIZE * DEFAULT_SIZE, out = &data[0][0][0]; x; --x, out += 4 )
+	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
 	{
 		out[ 1 ] = out[ 2 ] = 0;
 		out[ 0 ] = out[ 3 ] = 255;
 	}
 
-	tr.redImage = R_CreateImage( "_red", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
+	tr.redImage = R_CreateImage( "_red", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
 	// green
-	for ( x = DEFAULT_SIZE * DEFAULT_SIZE, out = &data[0][0][0]; x; --x, out += 4 )
+	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
 	{
 		out[ 0 ] = out[ 2 ] = 0;
 		out[ 1 ] = out[ 3 ] = 255;
 	}
 
-	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
+	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
 	// blue
-	for ( x = DEFAULT_SIZE * DEFAULT_SIZE, out = &data[0][0][0]; x; --x, out += 4 )
+	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
 	{
 		out[ 0 ] = out[ 1 ] = 0;
 		out[ 2 ] = out[ 3 ] = 255;
 	}
 
-	tr.blueImage = R_CreateImage( "_blue", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
+	tr.blueImage = R_CreateImage( "_blue", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
 	// generate a default normalmap with a fully opaque heightmap (no displacement)
-	for ( x = DEFAULT_SIZE * DEFAULT_SIZE, out = &data[0][0][0]; x; --x, out += 4 )
+	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
 	{
 		out[ 0 ] = out[ 1 ] = 128;
 		out[ 2 ] = 255;
@@ -2809,7 +2769,7 @@ void R_CreateBuiltinImages()
 
 	imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
 
-	tr.flatImage = R_CreateImage( "_flat", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
+	tr.flatImage = R_CreateImage( "_flat", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
 	imageParams.bits = IF_NOPICMIP;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
@@ -2819,30 +2779,6 @@ void R_CreateBuiltinImages()
 		image = R_CreateImage( "_cinematic", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 	}
 
-	out = &data[ 0 ][ 0 ][ 0 ];
-
-	for ( y = 0; y < DEFAULT_SIZE; y++ )
-	{
-		for ( x = 0; x < DEFAULT_SIZE; x++, out += 4 )
-		{
-			s = ( ( ( float ) x + 0.5f ) * ( 2.0f / DEFAULT_SIZE ) - 1.0f );
-
-			s = Q_fabs( s ) - ( 1.0f / DEFAULT_SIZE );
-
-			value = 1.0f - ( s * 2.0f ) + ( s * s );
-
-			intensity = ClampByte( Q_ftol( value * 255.0f ) );
-
-			out[ 0 ] = intensity;
-			out[ 1 ] = intensity;
-			out[ 2 ] = intensity;
-			out[ 3 ] = intensity;
-		}
-	}
-
-	tr.quadraticImage = R_CreateImage( "_quadratic", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
-
-	R_CreateRandomNormalsImage();
 	R_CreateFogImage();
 	R_CreateContrastRenderFBOImage();
 	R_CreateBloomRenderFBOImages();

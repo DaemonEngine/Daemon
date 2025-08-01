@@ -550,6 +550,11 @@ void Tess_DrawElements()
 		backEnd.pc.c_indexes += tess.numIndexes;
 		backEnd.pc.c_vertexes += tess.numVertexes;
 	}
+
+	if ( glState.glStateBits & GLS_DEPTHMASK_TRUE )
+	{
+		backEnd.dirtyDepthBuffer = true;
+	}
 }
 
 /*
@@ -685,7 +690,7 @@ to overflow.
 */
 // *INDENT-OFF*
 void Tess_Begin( void ( *stageIteratorFunc )(),
-                 shader_t *surfaceShader, shader_t *lightShader,
+                 shader_t *surfaceShader,
                  bool skipTangents,
                  int lightmapNum,
                  int fogNum,
@@ -704,7 +709,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	tess.stageIteratorFunc = stageIteratorFunc;
 
 	tess.surfaceShader = surfaceShader;
-	tess.lightShader = lightShader;
 
 	tess.skipTangents = skipTangents;
 	tess.lightmapNum = lightmapNum;
@@ -740,9 +744,9 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 		Sys::Error( "tess.stageIteratorFunc == NULL" );
 	}
 
-	GLIMP_LOGCOMMENT( "--- Tess_Begin( surfaceShader = %s, lightShader = %s, "
+	GLIMP_LOGCOMMENT( "--- Tess_Begin( surfaceShader = %s, "
 		"skipTangents = %i, lightmapNum = %i, fogNum = %i) ---",
-		tess.surfaceShader->name, tess.lightShader ? tess.lightShader->name : nullptr,
+		tess.surfaceShader->name,
 		tess.skipTangents, tess.lightmapNum, tess.fogNum );
 }
 
@@ -862,6 +866,14 @@ void Render_generic3D( shaderStage_t *pStage )
 
 	bool hasDepthFade = pStage->hasDepthFade;
 	bool needDepthMap = pStage->hasDepthFade;
+
+	if ( needDepthMap && backEnd.dirtyDepthBuffer && glConfig2.textureBarrierAvailable )
+	{
+		// Flush depth buffer to make sure it is available for reading in the depth fade
+		// GLSL - prevents https://github.com/DaemonEngine/Daemon/issues/1676
+		glTextureBarrier();
+		backEnd.dirtyDepthBuffer = false;
+	}
 
 	// choose right shader program ----------------------------------
 	ProcessShaderGeneric3D( pStage );
@@ -1391,17 +1403,13 @@ void Render_portal( shaderStage_t *pStage )
 
 void Render_heatHaze( shaderStage_t *pStage )
 {
-	uint32_t      stateBits;
 	float         deformMagnitude;
 
 	GLIMP_LOGCOMMENT( "--- Render_heatHaze ---" );
 
-	// remove alpha test
-	stateBits = pStage->stateBits;
-	stateBits &= ~GLS_ATEST_BITS;
-	stateBits &= ~GLS_DEPTHMASK_TRUE;
+	ASSERT( !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) );
 
-	GL_State( stateBits );
+	GL_State( pStage->stateBits );
 
 	// choose right shader program ----------------------------------
 	ProcessShaderHeatHaze( pStage );

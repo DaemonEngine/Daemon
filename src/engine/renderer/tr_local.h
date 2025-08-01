@@ -24,7 +24,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef TR_LOCAL_H
 #define TR_LOCAL_H
 
+#ifndef GLEW_NO_GLU
 #define GLEW_NO_GLU
+#endif
 #include <GL/glew.h>
 
 #include "common/FileSystem.h"
@@ -686,6 +688,7 @@ enum class ssaoMode {
 
 //===============================================================================
 
+	// Sorts commented "keyword only" will never be used unless the shader text has a `sort` keyword specifying it.
 	enum class shaderSort_t
 	{
 	  SS_BAD,
@@ -700,30 +703,22 @@ enum class ssaoMode {
 	  SS_ENVIRONMENT_NOFOG, // Tr3B: moved skybox here so we can fog post process all SS_OPAQUE materials
 
 	  SS_DECAL, // scorch marks, etc.
-	  SS_SEE_THROUGH, // ladders, grates, grills that may have small blended edges
-	  // in addition to alpha test
-	  SS_BANNER,
-
+	  SS_SEE_THROUGH, // ladders, grates, grills that may have small blended edges in addition to alpha test
+	  SS_BANNER, // keyword only
 	  SS_FOG,
 
-	  SS_UNDERWATER, // for items that should be drawn in front of the water plane
-	  SS_WATER,
+	  SS_UNDERWATER, // keyword only
+	  SS_FAR, // keyword only
+	  SS_MEDIUM, // keyword only
+	  SS_CLOSE, // keyword only
 
-	  SS_FAR,
-	  SS_MEDIUM,
-	  SS_CLOSE,
+	  // Must have value 15 because binary.shader contains numerical sort values between 15 and 16
+	  SS_BLEND0 = 15, // regular transparency and filters
 
-	  SS_BLEND0, // regular transparency and filters
-	  SS_BLEND1, // generally only used for additive type effects
-	  SS_BLEND2,
-	  SS_BLEND3,
-
-	  SS_BLEND6,
-
-	  SS_ALMOST_NEAREST, // gun smoke puffs
-
-	  SS_NEAREST, // blood blobs
-	  SS_POST_PROCESS,
+	  SS_BLEND1, // Keyword only. Generally only used for additive type effects
+	  SS_ALMOST_NEAREST, // keyword only
+	  SS_NEAREST, // keyword only
+	  SS_POST_PROCESS, // keyword only
 
 	  SS_NUM_SORTS
 	};
@@ -1255,8 +1250,6 @@ enum class ssaoMode {
 		int        imageMaxDimension;   // for images that must not be loaded with larger size
 		filterType_t   filterType; // for console fonts, 2D elements, etc.
 		wrapType_t     wrapType;
-
-		bool        interactLight; // this shader can interact with light shaders
 
 		// For RT_SPRITE, face opposing the view direction rather than the viewer
 		bool entitySpriteFaceViewDirection;
@@ -2293,6 +2286,7 @@ enum class ssaoMode {
 		bool          isHyperspace;
 		trRefEntity_t     *currentEntity;
 		bool          skyRenderedThisView; // flag for drawing sun
+		bool dirtyDepthBuffer;
 		bool postDepthLightTileRendered = false;
 
 		bool          projection2D; // if true, drawstretchpic doesn't need to change modes
@@ -2540,14 +2534,12 @@ enum class ssaoMode {
 		image_t    *defaultImage;
 		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
 		image_t    *fogImage;
-		image_t    *quadraticImage;
 		image_t    *whiteImage; // full of 0xff
 		image_t    *blackImage; // full of 0x0
 		image_t    *redImage;
 		image_t    *greenImage;
 		image_t    *blueImage;
 		image_t    *flatImage; // use this as default normalmap
-		image_t    *randomNormalsImage;
 		image_t    *blackCubeImage;
 		image_t    *whiteCubeImage;
 
@@ -2580,9 +2572,6 @@ enum class ssaoMode {
 		shader_t *defaultShader;
 		shader_t *fogEqualShader;
 		shader_t *fogLEShader;
-		shader_t *defaultPointLightShader;
-		shader_t *defaultProjectedLightShader;
-		shader_t *defaultDynamicLightShader;
 
 		std::vector<image_t *> lightmaps;
 		std::vector<image_t *> deluxemaps;
@@ -3196,7 +3185,6 @@ void GLimp_LogComment_( std::string comment );
 		stageVars_t svars;
 
 		shader_t    *surfaceShader;
-		shader_t    *lightShader;
 
 		// some drawing parameters from drawSurf_t
 		int16_t     lightmapNum;
@@ -3255,7 +3243,7 @@ void GLimp_LogComment_( std::string comment );
 
 // *INDENT-OFF*
 	void Tess_Begin( void ( *stageIteratorFunc )(),
-	                 shader_t *surfaceShader, shader_t *lightShader,
+	                 shader_t *surfaceShader,
 	                 bool skipTangents,
 	                 int lightmapNum,
 	                 int fogNum,

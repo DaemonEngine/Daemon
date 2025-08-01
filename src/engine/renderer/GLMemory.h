@@ -37,7 +37,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GLMEMORY_H
 
 #include "common/Common.h"
-#include "GL/glew.h"
+
+#ifndef GLEW_NO_GLU
+#define GLEW_NO_GLU
+#endif
+#include <GL/glew.h>
+
 #include "tr_local.h"
 #include "BufferBind.h"
 

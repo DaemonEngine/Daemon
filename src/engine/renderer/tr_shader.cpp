@@ -5148,6 +5148,7 @@ static void FinishStages()
 		{
 			case stageType_t::ST_HEATHAZEMAP:
 				stage->active = r_heatHaze->integer;
+				stage->stateBits &= ~( GLS_ATEST_BITS | GLS_DEPTHMASK_TRUE );
 				break;
 
 			case stageType_t::ST_LIQUIDMAP:
@@ -5773,23 +5774,6 @@ static shader_t *FinishShader()
 	{
 		shaderStage_t *pStage = &stages[ stage ];
 
-		if ( !shader.isSky )
-		{
-			switch ( pStage->type )
-			{
-				case stageType_t::ST_NORMALMAP:
-				case stageType_t::ST_STYLELIGHTMAP:
-				case stageType_t::ST_STYLECOLORMAP:
-				case stageType_t::ST_LIGHTMAP:
-				case stageType_t::ST_DIFFUSEMAP:
-				case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-					shader.interactLight = true;
-					break;
-				default:
-					break;
-			}
-		}
-
 		ValidateStage( pStage );
 
 		if ( !pStage->active )
@@ -6346,15 +6330,11 @@ public:
 			{ shaderSort_t::SS_BANNER, "BANNER" },
 			{ shaderSort_t::SS_FOG, "FOG" },
 			{ shaderSort_t::SS_UNDERWATER, "UNDERWATER" },
-			{ shaderSort_t::SS_WATER, "WATER" },
 			{ shaderSort_t::SS_FAR, "FAR" },
 			{ shaderSort_t::SS_MEDIUM, "MEDIUM" },
 			{ shaderSort_t::SS_CLOSE, "CLOSE" },
 			{ shaderSort_t::SS_BLEND0, "BLEND0" },
 			{ shaderSort_t::SS_BLEND1, "BLEND1" },
-			{ shaderSort_t::SS_BLEND2, "BLEND2" },
-			{ shaderSort_t::SS_BLEND3, "BLEND3" },
-			{ shaderSort_t::SS_BLEND6, "BLEND6" },
 			{ shaderSort_t::SS_ALMOST_NEAREST, "ALMOST_NEAREST" },
 			{ shaderSort_t::SS_NEAREST, "NEAREST" },
 			{ shaderSort_t::SS_POST_PROCESS, "POST_PROCESS" },
@@ -6444,6 +6424,21 @@ public:
 				continue;
 			}
 
+			auto PrintStage = [&]( const std::string & stageNum )
+			{
+				lineStream.clear();
+				lineStream.str("");
+
+				lineStream << std::left;
+				lineStream << std::setw(numLen) << i << separator;
+				lineStream << std::setw(regFlagsLen) << regFlags << separator;
+				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
+				lineStream << std::setw(stageTypeLen) << stageType << separator;
+				lineStream << stageNum << ":" << shaderName;
+
+				Print( lineStream.str() );
+			};
+
 			regFlags = {
 				shader->registerFlags & RSF_2D ? '2' : '_',
 				shader->registerFlags & RSF_NOMIP ? 'N' : '_',
@@ -6455,6 +6450,7 @@ public:
 
 			if ( !shaderSortName.count( (shaderSort_t) shader->sort ) )
 			{
+				shaderSort.clear();
 				Log::Debug( "Undocumented shader sort %f for shader %s",
 					shader->sort, shader->name );
 			}
@@ -6468,16 +6464,8 @@ public:
 
 			if ( shader->stages == shader->lastStage )
 			{
-				lineStream.clear();
-				lineStream.str("");
-
-				lineStream << std::left;
-				lineStream << std::setw(numLen) << i << separator;
-				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
-				lineStream << std::setw(stageTypeLen) << stageType << separator;
-				lineStream << "-:" << shaderName;
-
-				Print( lineStream.str() );
+				stageType = "n/a";
+				PrintStage( "-" );
 				continue;
 			}
 
@@ -6491,6 +6479,7 @@ public:
 
 				if ( !stageTypeName.count( stage->type ) )
 				{
+					stageType.clear();
 					Log::Debug( "Undocumented stage type %i for shader stage %s:%d",
 						Util::ordinal( stage->type ), shader->name, j );
 				}
@@ -6499,17 +6488,7 @@ public:
 					stageType = stageTypeName.at( stage->type );
 				}
 
-				lineStream.clear();
-				lineStream.str("");
-
-				lineStream << std::left;
-				lineStream << std::setw(numLen) << i << separator;
-				lineStream << std::setw(regFlagsLen) << regFlags << separator;
-				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
-				lineStream << std::setw(stageTypeLen) << stageType << separator;
-				lineStream << j << ":" << shaderName;
-
-				Print( lineStream.str() );
+				PrintStage( std::to_string( j ) );
 			}
 		}
 

@@ -8,15 +8,6 @@ white
 	}
 }
 
-console
-{
-	nopicmip
-	nomipmaps
-	{
-		map $blackimage
-	}
-}
-
 // console font fallback
 gfx/2d/bigchars
 {
