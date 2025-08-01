@@ -24,7 +24,7 @@ pr:
 jobs:
   - job: Mac
     pool:
-      vmImage: 'macOS-14'
+      vmImage: 'macOS-latest'
     steps:
     - bash: |
         set -e
@@ -53,7 +53,7 @@ jobs:
     - bash: |
         set -e
         cmake --version
-        cmake -Wdev -Wdeprecated -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DCMAKE_BUILD_TYPE=Release -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1 -H. -Bbuild
+        cmake -Wdev -Wdeprecated -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DUSE_VULKAN=1 -DCMAKE_BUILD_TYPE=Release -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1 -H. -Bbuild
         cmake --build build -- -j`sysctl -n hw.logicalcpu`
       displayName: 'Build'
     - bash: |
@@ -64,13 +64,14 @@ jobs:
 
   - job: Linux
     pool:
-      vmImage: 'ubuntu-22.04'
+      vmImage: 'ubuntu-24.04'
     strategy:
       matrix:
         GCC:
           BUILD_TYPE: Release
           C_COMPILER: gcc
           CXX_COMPILER: g++
+          CXX: g++-14
           EXTRA_PACKAGES:
           EXTRA_INSTALLS:
           TOOLCHAIN_FILE:
@@ -78,13 +79,14 @@ jobs:
           BUILD_TYPE: Release
           C_COMPILER: clang
           CXX_COMPILER: clang++
+          CXX: clang++-19
           EXTRA_PACKAGES:
           EXTRA_INSTALLS:
           TOOLCHAIN_FILE:
         Mingw:
           BUILD_TYPE: Debug
           C_COMPILER: x86_64-w64-mingw32-gcc
-          CXX_COMPILER: x86_64-w64-mingw32-g++
+          CXX_COMPILER: x86_64-w64-mingw32-g++-14
           EXTRA_PACKAGES: gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
           EXTRA_INSTALLS: sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix ; sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
           TOOLCHAIN_FILE: cmake/cross-toolchain-mingw64.cmake
@@ -123,7 +125,7 @@ jobs:
     - bash: |
         set -e
         cmake --version
-        cmake -G "Ninja" -Wdev -Wdeprecated -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN_FILE) -DCMAKE_C_COMPILER=$(C_COMPILER) -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1 -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -H. -Bbuild
+        cmake -G "Ninja" -Wdev -Wdeprecated -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN_FILE) -DCMAKE_C_COMPILER=$(C_COMPILER) -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DUSE_VULKAN=1 -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1 -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -H. -Bbuild
         cmake --build build -- -j`nproc`
       displayName: 'Build'
     - bash: |

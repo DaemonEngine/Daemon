@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required (VERSION 3.12)
+cmake_minimum_required (VERSION 3.28)
 
 # Choose Python versions by location instead of getting whatever is in PYTHON_EXECUTABLE
 # Can be removed once we require CMake 3.15
@@ -115,6 +115,10 @@ if(NOT DAEMON_EXTERNAL_APP)
 
     if (BUILD_CLIENT OR BUILD_TTY_CLIENT)
         option(USE_MUMBLE "Build Daemon with mumblelink sumpport" ON)
+    endif()
+
+    if (BUILD_CLIENT)
+        option(USE_VULKAN "Use Vulkan rendering API instead of OpenGL." OFF)
     endif()
 
     option(USE_SMP "Compile with support for running the renderer in a separate thread" ON)
@@ -424,13 +428,21 @@ if (DEPS_DIR)
         set(OLD_VERSION "NOTFOUND")
         set(cacheVariableValue "${${cacheVariableName}}")
 
-        if (cacheVariableValue MATCHES "/(linux64|macosx64|mingw32|mingw64|msvc32|msvc64)-([0-9]+)/")
+        if( USE_VULKAN )
+            set( SUPPORTED_DEPS_PLATFORMS "/(linux64|macosx64|mingw64|msvc64)-([0-9]+)/" )
+            set( SUPPORTED_DEPS_PLATFORMS2 "/(linux|windows|macos)-amd64-(default|mingw|msvc)_([0-9]+)/" )
+        else()
+            set( SUPPORTED_DEPS_PLATFORMS "/(linux64|macosx64|mingw32|mingw64|msvc32|msvc64)-([0-9]+)/" )
+            set( SUPPORTED_DEPS_PLATFORMS2 "/(linux|windows|macos)-(i686|amd64)-(default|mingw|msvc)_([0-9]+)/" )
+        endif()
+
+        if (cacheVariableValue MATCHES ${SUPPORTED_DEPS_PLATFORMS})
             if (NOT ${CMAKE_MATCH_2} EQUAL ${DEPS_VERSION})
                 set(OLD_VERSION ${CMAKE_MATCH_2})
             endif()
         endif()
 
-        if (cacheVariableValue MATCHES "/(linux|windows|macos)-(i686|amd64)-(default|mingw|msvc)_([0-9]+)/")
+        if (cacheVariableValue MATCHES ${SUPPORTED_DEPS_PLATFORMS2})
             if (NOT ${CMAKE_MATCH_4} EQUAL ${DEPS_VERSION})
                 set(OLD_VERSION ${CMAKE_MATCH_4})
             endif()
@@ -562,6 +574,20 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     endif()
 endif()
 
+if (USE_VULKAN)
+    add_definitions("-DDAEMON_RENDERER_VULKAN=1")
+else()
+    add_definitions("-DDAEMON_RENDERER_OPENGL=1")
+endif()
+
+# Required for <stacktrace> on Clang/GCC
+if ( DAEMON_CXX_COMPILER_GCC_COMPATIBILITY OR DAEMON_CXX_COMPILER_Clang_COMPATIBILITY )
+    set( CPP23SupportLibrary "-lstdc++exp" )
+else()
+    set( CPP23SupportLibrary "" )
+endif()
+
+# TODO: Split OpenGL and Vulkan library configuration.
 # Look for OpenGL here before we potentially switch to looking for static libs.
 if (BUILD_CLIENT)
     if (LINUX OR FREEBSD)
@@ -705,30 +731,12 @@ endif()
 
 # SDL, required for all targets on win32 because of iconv and SDL_SetHint(SDL_TIMER_RESOLUTION, 0)
 if (BUILD_CLIENT OR WIN32)
-    find_package(SDL2 CONFIG)
-
-    if (SDL2_SDL2main_FOUND)
-        mark_as_advanced(SDL2_DIR)
-    else()
-        # We cannot use REQUIRED because it would look
-        # for OldSDL2_FOUND instead of SDL2_FOUND.
-        find_package(OldSDL2)
-
-        if (NOT SDL2_FOUND)
-            message(FATAL_ERROR "Could NOT find SDL2")
-        endif()
-
-        include_directories(${SDL2_INCLUDE_DIR})
-
-        mark_as_advanced(SDL2MAIN_LIBRARY SDL2_LIBRARY SDL2_INCLUDE_DIR)
-    endif ()
+    find_package(SDL3 REQUIRED CONFIG)
 
     if (WIN32)
-        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE}
-            $<$<TARGET_EXISTS:SDL2::SDL2main>:SDL2::SDL2main> SDL2::SDL2)
+        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} SDL3::SDL3)
     else()
-        set(LIBS_CLIENT ${LIBS_CLIENT}
-            $<$<TARGET_EXISTS:SDL2::SDL2main>:SDL2::SDL2main> SDL2::SDL2)
+        set(LIBS_CLIENT ${LIBS_CLIENT} SDL3::SDL3)
     endif()
 endif()
 
@@ -853,7 +861,7 @@ endif()
 ################################################################################
 macro(AddApplicationInternal Target Executable)
     add_executable(${Target} ${Sources})
-    target_link_libraries(${Target} ${A_Target}-objects)
+    target_link_libraries(${Target} ${A_Target}-objects ${CPP23SupportLibrary})
 
     if (DEPS_DIR)
         add_dependencies(${Target} runtime_deps)
@@ -878,16 +886,22 @@ endmacro()
 
 function(AddApplication)
     set(oneValueArgs Target ExecutableName)
-    set(multiValueArgs ApplicationMain Definitions Flags Files Libs Tests)
+    set(multiValueArgs ApplicationMain Definitions Flags CompileFeatures Files Libs Tests)
     cmake_parse_arguments(A "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     # Reuse object files between the real application and the test one
     add_library(${A_Target}-objects OBJECT EXCLUDE_FROM_ALL ${A_Files} ${PCH_FILE})
-    target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE})
+    target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE} ${CPP23SupportLibrary})
+
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
+
     set_target_properties(${A_Target}-objects PROPERTIES FOLDER "engine/objects")
+    
+    if( DEFINED A_CompileFeatures AND NOT $A_CompileFeatures STREQUAL "" )
+        target_compile_features( ${A_Target}-objects PRIVATE ${A_CompileFeatures} )
+    endif()
 
     set(Sources WIN32 ${A_ApplicationMain})
     AddApplicationInternal(${A_Target} ${A_ExecutableName})
@@ -900,7 +914,7 @@ function(AddApplication)
         # -Wl,--whole-archive -l<library path> -Wl,--no-whole-archive
         set(Sources ${A_ApplicationMain} ${A_Tests})
         AddApplicationInternal(test-${A_Target} test-${A_Target})
-        target_link_libraries(test-${A_Target} GTest::gmock)
+        target_link_libraries(test-${A_Target} ${CPP23SupportLibrary} GTest::gmock)
     endif()
 
     ADD_PRECOMPILED_HEADER(${A_Target}-objects)
@@ -910,11 +924,16 @@ daemon_write_buildinfo("Engine")
 
 if (NOT NACL)
     add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${BUILDINFOLIST} ${COMMONLIST} ${ENGINELIST})
-    target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE})
+    target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE} ${CPP23SupportLibrary})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_DEFINITIONS BUILD_ENGINE)
     set_property(TARGET engine-lib APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_OPTIONS ${WARNINGS})
     set_target_properties(engine-lib PROPERTIES FOLDER "engine/objects")
+
+    if( USE_VULKAN )
+        target_compile_features( engine-lib PRIVATE "cxx_std_23" )
+    endif()
+
     ADD_PRECOMPILED_HEADER(engine-lib)
 
     if (BUILD_DUMMY_APP)
@@ -937,12 +956,22 @@ if (BUILD_CLIENT)
     if (USE_SMP)
         list(APPEND Definitions USE_SMP)
     endif()
+
+    if (USE_VULKAN)
+        set(CLIENT_EXECUTABLE_NAME daemon-vulkan)
+        set(COMPILE_FEATURES "cxx_std_23")
+    else()
+        set(CLIENT_EXECUTABLE_NAME daemon)
+        set(COMPILE_FEATURES)
+    endif()
+
     AddApplication(
         Target client
-        ExecutableName daemon
+        ExecutableName ${CLIENT_EXECUTABLE_NAME}
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions ${Definitions}
         Flags ${WARNINGS}
+        CompileFeatures ${COMPILE_FEATURES}
         Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
         Libs ${LIBS_CLIENT} ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
         Tests ${ENGINETESTLIST}
@@ -1072,7 +1101,7 @@ if (DEPS_DIR AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMM
 
     # Windows requires some libraries from external_deps
     if (WIN32)
-        file(GLOB RUNTIME_LIBS ${DEPS_DIR}/bin/*.dll ${DEPS_DIR}/SDL2/lib/*/SDL2.dll)
+        file(GLOB RUNTIME_LIBS ${DEPS_DIR}/bin/*.dll ${DEPS_DIR}/SDL3/lib/*/SDL3.dll)
         foreach(RUNTIME_LIB ${RUNTIME_LIBS})
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different

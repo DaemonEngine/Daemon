@@ -2710,6 +2710,8 @@ enum
 //
 // cvars
 //
+	extern Cvar::Cvar<int> r_rendererAPI;
+
 	extern cvar_t *r_glMajorVersion; // override GL version autodetect (for testing)
 	extern cvar_t *r_glMinorVersion;
 	extern cvar_t *r_glProfile;

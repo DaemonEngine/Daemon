@@ -207,10 +207,16 @@ namespace Path {
 } // namespace Path
 
 // Iterator which iterates over all files in a directory
-template<typename State> class DirectoryIterator: public std::iterator<std::input_iterator_tag, std::string> {
+template<typename State> class DirectoryIterator {
 	// State interface:
 	// bool Advance(std::error_code& err);
 	// std::string current;
+	using iterator_category = std::input_iterator_tag;
+	using value_type = std::string;
+	using difference_type = void;
+	using pointer = void;
+	using reference = void;
+
 public:
 	DirectoryIterator()
 		: state(nullptr) {}
