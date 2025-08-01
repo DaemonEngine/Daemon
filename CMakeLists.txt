@@ -492,7 +492,7 @@ if (DEPS_DIR)
 
         set(REMOTE "https://dl.unvanquished.net/deps/windows-amd64-msvc_10-vulkan.tar.xz")
         message(STATUS "Downloading dependencies from '${REMOTE}'")
-        file(DOWNLOAD2 ${REMOTE} ${OBJ_DIR}/${BASENAME}${DEPS_EXT}
+        file(DOWNLOAD ${REMOTE} ${OBJ_DIR}/${BASENAME}${DEPS_EXT}
             SHOW_PROGRESS
             STATUS DOWNLOAD_RESULT
             LOG DOWNLOAD_LOG
