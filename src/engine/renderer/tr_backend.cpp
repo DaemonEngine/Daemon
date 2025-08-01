@@ -615,6 +615,61 @@ void GL_State( uint32_t stateBits )
 	glState.glStateBits ^= diff;
 }
 
+static void GL_VertexAttribPointers( uint32_t attribBits, const bool settingUpVAO ) {
+	uint32_t i;
+
+	if ( !glState.currentVBO )
+	{
+		Sys::Error( "GL_VertexAttribPointers: no VBO bound" );
+	}
+
+	GLIMP_LOGCOMMENT( "--- GL_VertexAttribPointers( %s ) ---", glState.currentVBO->name );
+
+	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	{
+		attribBits |= ATTR_BONE_FACTORS;
+	}
+
+	for ( i = 0; i < ATTR_INDEX_MAX; i++ )
+	{
+		uint32_t bit = BIT( i );
+		uint32_t frame = 0;
+		uintptr_t base = 0;
+
+		if( glState.currentVBO == tess.vbo ) {
+			base = tess.vertexBase * sizeof( shaderVertex_t );
+		}
+
+		if ( ( attribBits & bit ) != 0 &&
+		     ( !( glState.vertexAttribPointersSet & bit ) ||
+		       tess.vboVertexAnimation ||
+		       glState.currentVBO == tess.vbo || settingUpVAO || glState.currentVBO->dynamicVAO ) )
+		{
+			const vboAttributeLayout_t *layout = &glState.currentVBO->attribs[ i ];
+
+			GLIMP_LOGCOMMENT( "glVertexAttribPointer( %s )", attributeNames[ i ] );
+
+			if ( ( ATTR_INTERP_BITS & bit ) && glState.vertexAttribsInterpolation > 0 )
+			{
+				frame = glState.vertexAttribsNewFrame;
+			}
+			else
+			{
+				frame = glState.vertexAttribsOldFrame;
+			}
+
+			if ( !( glState.currentVBO->attribBits & bit ) )
+			{
+				Log::Warn( "GL_VertexAttribPointers: %s does not have %s",
+				           glState.currentVBO->name, attributeNames[ i ] );
+			}
+
+			glVertexAttribPointer( i, layout->numComponents, layout->componentType, layout->normalize, layout->stride, BUFFER_OFFSET( layout->ofs + ( frame * layout->frameOffset + base ) ) );
+			glState.vertexAttribPointersSet |= bit;
+		}
+	}
+}
+
 void GL_VertexAttribsState( uint32_t stateBits, const bool settingUpVAO )
 {
 	uint32_t diff;
@@ -670,61 +725,6 @@ void GL_VertexAttribsState( uint32_t stateBits, const bool settingUpVAO )
 
 	if ( backEnd.currentVAO == backEnd.defaultVAO ) {
 		glState.vertexAttribsState = stateBits;
-	}
-}
-
-void GL_VertexAttribPointers( uint32_t attribBits, const bool settingUpVAO ) {
-	uint32_t i;
-
-	if ( !glState.currentVBO )
-	{
-		Sys::Error( "GL_VertexAttribPointers: no VBO bound" );
-	}
-
-	GLIMP_LOGCOMMENT( "--- GL_VertexAttribPointers( %s ) ---", glState.currentVBO->name );
-
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
-	{
-		attribBits |= ATTR_BONE_FACTORS;
-	}
-
-	for ( i = 0; i < ATTR_INDEX_MAX; i++ )
-	{
-		uint32_t bit = BIT( i );
-		uint32_t frame = 0;
-		uintptr_t base = 0;
-
-		if( glState.currentVBO == tess.vbo ) {
-			base = tess.vertexBase * sizeof( shaderVertex_t );
-		}
-
-		if ( ( attribBits & bit ) != 0 &&
-		     ( !( glState.vertexAttribPointersSet & bit ) ||
-		       tess.vboVertexAnimation ||
-		       glState.currentVBO == tess.vbo || settingUpVAO || glState.currentVBO->dynamicVAO ) )
-		{
-			const vboAttributeLayout_t *layout = &glState.currentVBO->attribs[ i ];
-
-			GLIMP_LOGCOMMENT( "glVertexAttribPointer( %s )", attributeNames[ i ] );
-
-			if ( ( ATTR_INTERP_BITS & bit ) && glState.vertexAttribsInterpolation > 0 )
-			{
-				frame = glState.vertexAttribsNewFrame;
-			}
-			else
-			{
-				frame = glState.vertexAttribsOldFrame;
-			}
-
-			if ( !( glState.currentVBO->attribBits & bit ) )
-			{
-				Log::Warn( "GL_VertexAttribPointers: %s does not have %s",
-				           glState.currentVBO->name, attributeNames[ i ] );
-			}
-
-			glVertexAttribPointer( i, layout->numComponents, layout->componentType, layout->normalize, layout->stride, BUFFER_OFFSET( layout->ofs + ( frame * layout->frameOffset + base ) ) );
-			glState.vertexAttribPointersSet |= bit;
-		}
 	}
 }
 
