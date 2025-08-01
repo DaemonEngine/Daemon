@@ -42,26 +42,6 @@ Task::Task() :
 	id( SetBit( 0u, 15 ) ) {
 }
 
-Task::Task( void* func ) :
-	Execute( ( TaskFunction ) func ) {
-}
-
-Task::Task( void* func, FenceMain& fence ) :
-	Execute( ( TaskFunction ) func ),
-	complete( fence ) {
-}
-
-Task::Task( void* func, void* newData ) :
-	Execute( ( TaskFunction ) func ),
-	data( newData ) {
-}
-
-Task::Task( void* func, void* newData, FenceMain& fence ) :
-	Execute( ( TaskFunction ) func ),
-	data( newData ),
-	complete( fence ) {
-}
-
 Task::Task( const Task& other ) {
 	*this = other;
 }

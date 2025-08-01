@@ -68,10 +68,30 @@ struct Task {
 
 	Task();
 
-	Task( void* func );
-	Task( void* func, FenceMain& fence );
-	Task( void* func, void* newData );
-	Task( void* func, void* newData, FenceMain& fence );
+	// We have to use templates here because clang fails to cast function pointers to void*
+	template<typename FuncType>
+	Task( FuncType func ) :
+		Execute( ( TaskFunction ) func ) {
+	}
+
+	template<typename FuncType>
+	Task( FuncType func, FenceMain& fence ) :
+		Execute( ( TaskFunction ) func ),
+		complete( fence ) {
+	}
+
+	template<typename FuncType>
+	Task( FuncType func, void* newData ) :
+		Execute( ( TaskFunction ) func ),
+		data( newData ) {
+	}
+
+	template<typename FuncType>
+	Task( FuncType func, void* newData, FenceMain& fence ) :
+		Execute( ( TaskFunction ) func ),
+		data( newData ),
+		complete( fence ) {
+	}
 
 	void operator=( const Task& other );
 
