@@ -372,10 +372,11 @@ namespace Log {
             defaultLogger.DebugExt( srcLocation, format, std::forward<Args>( args ) ... );
         }
 
-        #define Warn( format, ... ) WarnExt( std::source_location::current(), format, __VA_ARGS__ )
-        #define Notice( format, ... ) NoticeExt( std::source_location::current(), format, __VA_ARGS__ )
-        #define Verbose( format, ... ) VerboseExt( std::source_location::current(), format, __VA_ARGS__ )
-        #define Debug( format, ... ) DebugExt( std::source_location::current(), format, __VA_ARGS__ )
+        // Use ##__VA_ARGS__ instead of __VA_ARGS__ because args may be empty. __VA_OPT__( , ) currently doesn't seem to work on MSVC
+        #define Warn( format, ... ) WarnExt( std::source_location::current(), format, ##__VA_ARGS__ )
+        #define Notice( format, ... ) NoticeExt( std::source_location::current(), format, ##__VA_ARGS__ )
+        #define Verbose( format, ... ) VerboseExt( std::source_location::current(), format, ##__VA_ARGS__ )
+        #define Debug( format, ... ) DebugExt( std::source_location::current(), format, ##__VA_ARGS__ )
     #else
         template<typename ... Args>
         void WarnExt( Str::StringRef format, Args&& ... args ) {
