@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "renderer/tr_local.h"
 #include "renderer/DetectGLVendors.h"
+#include "renderer/GLUtils.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4125) // "decimal digit terminates octal escape sequence"

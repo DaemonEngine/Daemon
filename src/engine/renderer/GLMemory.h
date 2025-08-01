@@ -45,6 +45,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tr_local.h"
 #include "BufferBind.h"
+#include "GLUtils.h"
+#include "VertexSpecification.h"
 
 class GLBuffer {
 	public:

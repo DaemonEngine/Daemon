@@ -99,6 +99,7 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/GeometryOptimiser.h
     ${ENGINE_DIR}/renderer/GLMemory.cpp
     ${ENGINE_DIR}/renderer/GLMemory.h
+    ${ENGINE_DIR}/renderer/GLUtils.h
     ${ENGINE_DIR}/renderer/InternalImage.cpp
     ${ENGINE_DIR}/renderer/InternalImage.h
     ${ENGINE_DIR}/renderer/Material.cpp
@@ -137,6 +138,8 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/tr_surface.cpp
     ${ENGINE_DIR}/renderer/tr_types.h
     ${ENGINE_DIR}/renderer/tr_vbo.cpp
+    ${ENGINE_DIR}/renderer/VBO.h
+    ${ENGINE_DIR}/renderer/VertexSpecification.h
     ${ENGINE_DIR}/renderer/tr_video.cpp
     ${ENGINE_DIR}/renderer/tr_world.cpp
     ${ENGINE_DIR}/sys/sdl_glimp.cpp
