@@ -53,7 +53,7 @@ build_script:
 
       set CFLAGS=/Wv:19.29.30037
 
-      set CXXFLAGS=/Wv:19.29.30037
+      set CXXFLAGS=/Wv:19.29.30037 /Zc:__cplusplus
 
       cmake
       -Wdev -Wdeprecated
