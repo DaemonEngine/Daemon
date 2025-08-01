@@ -572,6 +572,13 @@ else()
     add_definitions("-DDAEMON_RENDERER_OPENGL=1")
 endif()
 
+# Required for <stacktrace> on Clang/GCC
+if ( DAEMON_CXX_COMPILER_GCC_COMPATIBILITY OR DAEMON_CXX_COMPILER_Clang_COMPATIBILITY )
+    set( CPP23SupportLibrary "-lstdc++exp" )
+else()
+    set( CPP23SupportLibrary "" )
+endif()
+
 # TODO: Split OpenGL and Vulkan library configuration.
 # Look for OpenGL here before we potentially switch to looking for static libs.
 if (BUILD_CLIENT)
@@ -846,7 +853,7 @@ endif()
 ################################################################################
 macro(AddApplicationInternal Target Executable)
     add_executable(${Target} ${Sources})
-    target_link_libraries(${Target} ${A_Target}-objects)
+    target_link_libraries(${Target} ${A_Target}-objects ${CPP23SupportLibrary})
 
     if (DEPS_DIR)
         add_dependencies(${Target} runtime_deps)
@@ -876,7 +883,7 @@ function(AddApplication)
 
     # Reuse object files between the real application and the test one
     add_library(${A_Target}-objects OBJECT EXCLUDE_FROM_ALL ${A_Files} ${PCH_FILE})
-    target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE})
+    target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE} ${CPP23SupportLibrary})
 
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
@@ -899,7 +906,7 @@ function(AddApplication)
         # -Wl,--whole-archive -l<library path> -Wl,--no-whole-archive
         set(Sources ${A_ApplicationMain} ${A_Tests})
         AddApplicationInternal(test-${A_Target} test-${A_Target})
-        target_link_libraries(test-${A_Target} GTest::gmock)
+        target_link_libraries(test-${A_Target} ${CPP23SupportLibrary} GTest::gmock)
     endif()
 
     ADD_PRECOMPILED_HEADER(${A_Target}-objects)
@@ -909,7 +916,7 @@ daemon_write_buildinfo("Engine")
 
 if (NOT NACL)
     add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${BUILDINFOLIST} ${COMMONLIST} ${ENGINELIST})
-    target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE} -lstdc++exp)
+    target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE} ${CPP23SupportLibrary})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_DEFINITIONS BUILD_ENGINE)
     set_property(TARGET engine-lib APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_OPTIONS ${WARNINGS})
