@@ -39,7 +39,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <new>
 
-constexpr uint64_t CACHE_LINE_SIZE = std::hardware_destructive_interference_size;
+// Clang only got std::hardware_destructive_interference_size in clang 19, but our CI uses clang 18
+#if !defined(__clang__)
+	constexpr uint64_t CACHE_LINE_SIZE = std::hardware_destructive_interference_size;
+#else
+	constexpr uint64_t CACHE_LINE_SIZE = 64;
+#endif
+
 #define ALIGN_CACHE alignas( CACHE_LINE_SIZE )
 
 #endif // MEMORY_INFO_H
