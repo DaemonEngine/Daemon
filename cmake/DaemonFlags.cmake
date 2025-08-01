@@ -255,7 +255,12 @@ else()
 		endif()
 	endif()
 
-	if (USE_RECOMMENDED_CXX_STANDARD)
+	if(USE_VULKAN)
+		try_cxx_flag(GNUXX23 "-std=gnu++23")
+		if (NOT FLAG_GNUXX23)
+			message(FATAL_ERROR "GNU++23 is not supported by the compiler")
+		endif()
+	elseif (USE_RECOMMENDED_CXX_STANDARD)
 		# PNaCl only defines isascii if __STRICT_ANSI__ is not defined,
 		# always prefer GNU dialect.
 		try_cxx_flag(GNUXX14 "-std=gnu++14")
