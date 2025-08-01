@@ -2252,7 +2252,7 @@ class u_ColorGlobal_Uint :
 	GLUniform1ui {
 	public:
 	u_ColorGlobal_Uint( GLShader* shader ) :
-		GLUniform1ui( shader, "u_ColorGlobal", MATERIAL_OR_PUSH ) {
+		GLUniform1ui( shader, "u_ColorGlobal", PUSH ) {
 	}
 
 	void SetUniform_ColorGlobal_Uint( const Color::Color& color ) {
