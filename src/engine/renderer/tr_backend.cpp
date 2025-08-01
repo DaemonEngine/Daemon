@@ -707,6 +707,99 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 	}
 }
 
+static GLint GL_ToSRGB( GLint internalFormat, bool isSRGB )
+{
+	if ( !isSRGB )
+	{
+		return internalFormat;
+	}
+
+	auto convert = []( GLint format )
+	{
+		switch ( format )
+		{
+#if 0 // Not used in the code base.
+			/* EXT_texture_sRGB_R8 extension.
+			See: https://github.com/KhronosGroup/OpenGL-Registry/blob/main/extensions/EXT/EXT_texture_sRGB_R8.txt */
+			case GL_RED:
+				return GL_SR8_EXT;
+#endif
+			case GL_RGB:
+				return GL_SRGB;
+			case GL_RGBA:
+				return GL_SRGB_ALPHA;
+			case GL_RGB8:
+				return GL_SRGB8;
+			case GL_RGBA8:
+				return GL_SRGB8_ALPHA8;
+#if 0 // Internal formats, should not be used directly.
+			case GL_COMPRESSED_RGB:
+			 	return GL_COMPRESSED_SRGB;
+			case GL_COMPRESSED_RGBA:
+				return GL_COMPRESSED_SRGB_ALPHA;
+#endif
+			case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+				return GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
+			case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+				return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
+			case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+				return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
+			case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+				return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+#if 0 // Not used in the codebase,
+			/* Core 4.2, ARB_texture_compression_bptc extension.
+			See: https://github.com/KhronosGroup/OpenGL-Registry/blob/main/extensions/ARB/ARB_texture_compression_bptc.txt */
+			case GL_COMPRESSED_RGBA_BPTC_UNORM:
+				return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
+#endif
+			default:
+				return format;
+		}
+	};
+
+	GLint finalFormat = convert( internalFormat );
+
+	if ( finalFormat == internalFormat )
+	{
+		Log::Warn( "Missing sRGB conversion for GL format: %0#x", internalFormat );
+	}
+	else
+	{
+		Log::Debug( "Using sRGB GL format: %0#x", finalFormat );
+	}
+
+	return finalFormat;
+}
+
+void GL_TexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB )
+{
+	GLint finalFormat = GL_ToSRGB( internalFormat, isSRGB );
+
+	glTexImage2D( target, level, finalFormat, width, height, border, format, type, data );
+
+}
+
+void GL_TexImage3D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB )
+{
+	GLint finalFormat = GL_ToSRGB( internalFormat, isSRGB );
+
+	glTexImage3D( target, level, finalFormat, width, height, depth, border, format, type, data );
+}
+
+void GL_CompressedTexImage2D( GLenum target, GLint level, GLenum internalFormat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data, bool isSRGB )
+{
+	GLint finalFormat = GL_ToSRGB( internalFormat, isSRGB );
+
+	glCompressedTexImage2D( target, level, finalFormat, width, height, border, imageSize, data );
+}
+
+void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLint yOffset, GLint zOffset, GLsizei width, GLsizei height, GLsizei depth, GLenum internalFormat, GLsizei size, const void *data, bool isSRGB )
+{
+	GLint finalFormat = GL_ToSRGB( internalFormat, isSRGB );
+
+	glCompressedTexSubImage3D( target, level, xOffset, yOffset, zOffset, width, height, depth, finalFormat, size, data );
+}
+
 /*
 ================
 RB_Hyperspace
@@ -896,7 +989,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 				Tess_End();
 			}
 
-			Tess_Begin( Tess_StageIteratorColor, shader, nullptr, false, lightmapNum, fogNum, bspSurface );
+			Tess_Begin( Tess_StageIteratorColor, shader, false, lightmapNum, fogNum, bspSurface );
 
 			oldShader = shader;
 			oldLightmapNum = lightmapNum;
@@ -1160,7 +1253,7 @@ void RB_RenderPostDepthLightTile()
 	GL_Scissor( 0, 0, w, h );
 	gl_depthtile2Shader->BindProgram( 0 );
 
-	gl_depthtile2Shader->SetUniform_DepthMapBindless(
+	gl_depthtile2Shader->SetUniform_DepthTile1Bindless(
 		GL_BindToTMU( 0, tr.depthtile1RenderImage )
 	);
 
@@ -1180,7 +1273,7 @@ void RB_RenderPostDepthLightTile()
 
 	gl_lighttileShader->SetUniformBlock_Lights( tr.dlightUBO );
 
-	gl_lighttileShader->SetUniform_DepthMapBindless(
+	gl_lighttileShader->SetUniform_DepthTile2Bindless(
 		GL_BindToTMU( 1, tr.depthtile2RenderImage ) 
 	);
 
@@ -1535,6 +1628,8 @@ void RB_CameraPostFX() {
 
 	gl_cameraEffectsShader->SetUniform_InverseGamma( 1.0 / r_gamma->value );
 
+	gl_cameraEffectsShader->SetUniform_SRGB( tr.worldLinearizeTexture );
+
 	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig2.textureFloatAvailable;
 	if ( tonemap ) {
 		vec4_t tonemapParms { r_toneMappingContrast.Get(), r_toneMappingHighlightsCompressionSpeed.Get() };
@@ -1623,7 +1718,7 @@ static void RB_RenderDebugUtils()
 			GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
 			gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+			Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
 
 			if ( r_showEntityBounds.Get() == 2)
 			{
@@ -1739,7 +1834,7 @@ static void RB_RenderDebugUtils()
 				static vec3_t worldOrigins[ MAX_BONES ];
 
 				GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
-				Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+				Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
 
 				for ( j = 0; j < skel->numBones; j++ )
 				{
@@ -1843,7 +1938,7 @@ static void RB_RenderDebugUtils()
 								}
 
 								Tess_End();
-								Tess_Begin( Tess_StageIteratorDebug, shader, nullptr, true, -1, 0 );
+								Tess_Begin( Tess_StageIteratorDebug, shader, true, -1, 0 );
 								gl_genericShader->SetUniform_ColorMapBindless(
 									GL_BindToTMU( 0, shader->stages[ 0 ].bundle[ TB_COLORMAP ].image[ 0 ] )
 								);
@@ -1906,7 +2001,7 @@ static void RB_RenderDebugUtils()
 
 				cubemapProbe_t* cubeProbe = &tr.cubeProbes[tr.cubeProbeGrid( x, y, z )];
 
-				Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+				Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
 
 				gl_reflectionShader->SetUniform_CameraPosition( position );
 
@@ -1922,7 +2017,7 @@ static void RB_RenderDebugUtils()
 		} else {
 			for ( const cubemapProbe_t& cubeProbe : tr.cubeProbes ) {
 
-				Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+				Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
 
 				gl_reflectionShader->SetUniform_CameraPosition( cubeProbe.origin );
 
@@ -1975,7 +2070,7 @@ static void RB_RenderDebugUtils()
 			vec3_t gridPoints[2];
 			R_GetNearestCubeMaps( backEnd.viewParms.orientation.origin, probes, trilerp, 2, gridPoints );
 
-			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+			Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
 
 			vec3_t position;
 			if ( r_showCubeProbes.Get() == Util::ordinal( showCubeProbesMode::GRID ) ) {
@@ -2048,7 +2143,7 @@ static void RB_RenderDebugUtils()
 		);
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
-		Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+		Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
 		GL_CheckErrors();
 
 		for ( z = 0; z < tr.world->lightGridBounds[ 2 ]; z++ ) {
@@ -2235,7 +2330,7 @@ static void RB_RenderDebugUtils()
 					R_CalcFrustumNearCorners( splitFrustum, nearCorners );
 					R_CalcFrustumFarCorners( splitFrustum, farCorners );
 
-					Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+					Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
 
 					// draw outer surfaces
 					for ( j = 0; j < 4; j++ )
@@ -2332,7 +2427,7 @@ static void RB_RenderDebugUtils()
 					GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
 				}
 
-				Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+				Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
 				Tess_AddCube( vec3_origin, node->mins, node->maxs, Color::White );
 				Tess_End();
 
@@ -2587,6 +2682,9 @@ static void RB_RenderView( bool depthPass )
 	// draw everything that is translucent
 	if ( glConfig2.usingMaterialSystem ) {
 		materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, backEnd.viewParms.viewID );
+
+		// HACK: assume surfaces with depth fade don't use the material system
+		backEnd.dirtyDepthBuffer = true;
 	}
 	RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, DRAWSURFACES_ALL );
 
@@ -2665,12 +2763,24 @@ void RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool 
 	GL_Bind( tr.cinematicImage[ client ] );
 
 	// if the scratchImage isn't in the format we want, specify it as a new texture
+	/* HACK: This also detects we start playing a video to set the appropriate colorspace
+	because this assumes a video cannot have a 1×1 size (the RoQ format expects the size
+	to be a multiples of 4). */
 	if ( cols != tr.cinematicImage[ client ]->width || rows != tr.cinematicImage[ client ]->height )
 	{
 		tr.cinematicImage[ client ]->width = tr.cinematicImage[ client ]->uploadWidth = cols;
 		tr.cinematicImage[ client ]->height = tr.cinematicImage[ client ]->uploadHeight = rows;
 
-		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB8, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
+		bool isSRGB = tr.worldLinearizeTexture;
+
+		// Makes sure listImages lists the colorspace properly.
+		if ( isSRGB )
+		{
+			tr.cinematicImage[ client ]->bits |= IF_SRGB;
+		}
+		// No need to delete the bit otherwise because R_InitImages() is called at every map load.
+
+		GL_TexImage2D( GL_TEXTURE_2D, 0, GL_RGB8, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data, isSRGB );
 
 		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -2792,11 +2902,11 @@ const RenderCommand *StretchPicCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorColor, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
 	}
 
 	if( !tess.indexes ) {
-		Tess_Begin( Tess_StageIteratorColor, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( 4, 6 );
@@ -2878,7 +2988,7 @@ const RenderCommand *Poly2dCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorColor, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( numverts, ( numverts - 2 ) * 3 );
@@ -2900,7 +3010,10 @@ const RenderCommand *Poly2dCommand::ExecuteSelf( ) const
 		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = verts[ i ].st[ 0 ];
 		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = verts[ i ].st[ 1 ];
 
-		tess.verts[ tess.numVertexes ].color = Color::Adapt( verts[ i ].modulate );
+		Color::Color32Bit color = Color::Adapt( verts[ i ].modulate );
+		color = tr.convertColorFromSRGB( color );
+		tess.verts[ tess.numVertexes ].color = color;
+
 		tess.numVertexes++;
 	}
 
@@ -2929,11 +3042,11 @@ const RenderCommand *Poly2dIndexedCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorColor, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
 	}
 
 	if( !tess.verts ) {
-		Tess_Begin( Tess_StageIteratorColor, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( numverts, numIndexes );
@@ -2957,7 +3070,10 @@ const RenderCommand *Poly2dIndexedCommand::ExecuteSelf( ) const
 		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = verts[ i ].st[ 0 ];
 		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = verts[ i ].st[ 1 ];
 
-		tess.verts[ tess.numVertexes ].color = Color::Adapt( verts[ i ].modulate );
+		Color::Color32Bit color = Color::Adapt( verts[ i ].modulate );
+		color = tr.convertColorFromSRGB( color );
+		tess.verts[ tess.numVertexes ].color = color;
+
 		tess.numVertexes++;
 	}
 
@@ -3022,11 +3138,11 @@ const RenderCommand *RotatedPicCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorColor, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
 	}
 
 	if( !tess.indexes ) {
-		Tess_Begin( Tess_StageIteratorColor, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( 4, 6 );
@@ -3111,11 +3227,11 @@ const RenderCommand *GradientPicCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorColor, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
 	}
 
 	if( !tess.indexes ) {
-		Tess_Begin( Tess_StageIteratorColor, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( 4, 6 );
@@ -3256,6 +3372,8 @@ const RenderCommand *ClearBufferCommand::ExecuteSelf( ) const
 	// 2D images again
 	backEnd.projection2D = false;
 
+	backEnd.dirtyDepthBuffer = false;
+
 	// set the modelview matrix for the viewer
 	SetViewportAndScissor();
 
@@ -3314,7 +3432,7 @@ const RenderCommand *PreparePortalCommand::ExecuteSelf( ) const
 	GL_State( GLS_COLORMASK_BITS );
 	glState.glStateBitsMask = GLS_COLORMASK_BITS;
 
-	Tess_Begin( Tess_StageIteratorPortal, shader, nullptr, false, -1, 0 );
+	Tess_Begin( Tess_StageIteratorPortal, shader, false, -1, 0 );
 	rb_surfaceTable[Util::ordinal(*(surface->surface))](surface->surface );
 	Tess_End();
 
@@ -3329,7 +3447,7 @@ const RenderCommand *PreparePortalCommand::ExecuteSelf( ) const
 	GL_State( GLS_DEPTHMASK_TRUE | GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS);
 	glState.glStateBitsMask = GLS_DEPTHMASK_TRUE | GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS;
 
-	Tess_Begin( Tess_StageIteratorPortal, shader, nullptr, false, -1, 0 );
+	Tess_Begin( Tess_StageIteratorPortal, shader, false, -1, 0 );
 	rb_surfaceTable[Util::ordinal(*(surface->surface))](surface->surface );
 	Tess_End();
 
@@ -3380,7 +3498,7 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
 	Tess_Begin( Tess_StageIteratorColor, shader,
-		nullptr, false, surface->lightmapNum(), surface->fog, surface->bspSurface );
+		false, surface->lightmapNum(), surface->fog, surface->bspSurface );
 	rb_surfaceTable[Util::ordinal( *( surface->surface ) )]( surface->surface );
 	Tess_End();
 
@@ -3389,7 +3507,7 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	GL_State( GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS);
 	glState.glStateBitsMask = GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS;
 
-	Tess_Begin( Tess_StageIteratorPortal, shader, nullptr, false, -1, 0 );
+	Tess_Begin( Tess_StageIteratorPortal, shader, false, -1, 0 );
 	rb_surfaceTable[Util::ordinal(*(surface->surface))](surface->surface );
 	Tess_End();
 

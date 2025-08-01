@@ -31,6 +31,22 @@ uniform sampler3D u_ColorMap3D;
 uniform vec4      u_ColorModulate;
 uniform float     u_GlobalLightFactor; // 1 / tr.identityLight
 uniform float     u_InverseGamma;
+uniform bool u_SRGB;
+
+void convertToSRGB(inout vec3 color) {
+	#if defined(r_accurateSRGB)
+		float threshold = 0.0031308f;
+
+		bvec3 cutoff = lessThan(color, vec3(threshold));
+		vec3 low = vec3(12.92f) * color;
+		vec3 high = vec3(1.055f) * pow(color, vec3(1.0f / 2.4f)) - vec3(0.055f);
+
+		color = mix(high, low, cutoff);
+	#else
+		float inverse = 0.4545454f; // 1 / 2.2
+		color = pow(color, vec3(inverse));
+	#endif
+}
 
 // Tone mapping is not available when high-precision float framebuffer isn't enabled or supported.
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
@@ -58,6 +74,11 @@ void main()
 
 	vec4 color = texture2D(u_CurrentMap, st);
 	color *= u_GlobalLightFactor;
+
+	if ( u_SRGB )
+	{
+		convertToSRGB( color.rgb );
+	}
 
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
 	if( u_Tonemap ) {

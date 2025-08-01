@@ -172,7 +172,11 @@ if (curl_easy_setopt(request_, option, value) != CURLE_OK) { \
 		SETOPT( CURLOPT_USERAGENT, Str::Format( "%s %s", PRODUCT_NAME "/" PRODUCT_VERSION, curl_version() ).c_str() )
 		SETOPT( CURLOPT_REFERER, Str::Format("%s%s", URI_SCHEME, Cvar::GetValue("cl_currentServerIP")).c_str() )
 		SETOPT( CURLOPT_URL, url.c_str() )
+#if CURL_AT_LEAST_VERSION(7, 85, 0)
+		SETOPT( CURLOPT_PROTOCOLS_STR, "http" )
+#else
 		SETOPT( CURLOPT_PROTOCOLS, long(CURLPROTO_HTTP) )
+#endif
 		SETOPT( CURLOPT_WRITEFUNCTION, curl_write_callback(LibcurlWriteCallback) )
 		SETOPT( CURLOPT_WRITEDATA, static_cast<void*>(this) )
 		SETOPT( CURLOPT_FAILONERROR, 1L )

@@ -190,10 +190,10 @@ void GLSL_InitWorldShaders() {
 
 	// Material system shaders that are always loaded if material system is available
 	if ( glConfig2.usingMaterialSystem ) {
-		gl_shaderManager.LoadShader( gl_cullShader );
-
 		gl_cullShader->MarkProgramForBuilding( 0 );
 	}
+
+	gl_shaderManager.InitWorldShaders();
 }
 
 static void GLSL_InitGPUShadersOrError()
@@ -224,6 +224,9 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.LoadShader( gl_lightMappingShaderMaterial );
 
 		gl_shaderManager.LoadShader( gl_clearSurfacesShader );
+		/* Load gl_cullShader so we can post-process it correctly for push buffer,
+		it will only actually be built in GLSL_InitWorldShaders() */
+		gl_shaderManager.LoadShader( gl_cullShader );
 		gl_shaderManager.LoadShader( gl_processSurfacesShader );
 		gl_shaderManager.LoadShader( gl_depthReductionShader );
 
@@ -320,7 +323,6 @@ static void GLSL_InitGPUShadersOrError()
 
 		gl_contrastShader->MarkProgramForBuilding( 0 );
 	}
-
 	
 	// portal process effect
 	gl_shaderManager.LoadShader( gl_portalShader );
@@ -370,6 +372,8 @@ static void GLSL_InitGPUShadersOrError()
 
 		gl_fxaaShader->MarkProgramForBuilding( 0 );
 	}
+
+	gl_shaderManager.InitShaders();
 
 	if ( r_lazyShaders.Get() == 0 )
 	{
@@ -546,6 +550,11 @@ void Tess_DrawElements()
 		backEnd.pc.c_indexes += tess.numIndexes;
 		backEnd.pc.c_vertexes += tess.numVertexes;
 	}
+
+	if ( glState.glStateBits & GLS_DEPTHMASK_TRUE )
+	{
+		backEnd.dirtyDepthBuffer = true;
+	}
 }
 
 /*
@@ -681,7 +690,7 @@ to overflow.
 */
 // *INDENT-OFF*
 void Tess_Begin( void ( *stageIteratorFunc )(),
-                 shader_t *surfaceShader, shader_t *lightShader,
+                 shader_t *surfaceShader,
                  bool skipTangents,
                  int lightmapNum,
                  int fogNum,
@@ -700,7 +709,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	tess.stageIteratorFunc = stageIteratorFunc;
 
 	tess.surfaceShader = surfaceShader;
-	tess.lightShader = lightShader;
 
 	tess.skipTangents = skipTangents;
 	tess.lightmapNum = lightmapNum;
@@ -736,9 +744,9 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 		Sys::Error( "tess.stageIteratorFunc == NULL" );
 	}
 
-	GLIMP_LOGCOMMENT( "--- Tess_Begin( surfaceShader = %s, lightShader = %s, "
+	GLIMP_LOGCOMMENT( "--- Tess_Begin( surfaceShader = %s, "
 		"skipTangents = %i, lightmapNum = %i, fogNum = %i) ---",
-		tess.surfaceShader->name, tess.lightShader ? tess.lightShader->name : nullptr,
+		tess.surfaceShader->name,
 		tess.skipTangents, tess.lightmapNum, tess.fogNum );
 }
 
@@ -858,6 +866,14 @@ void Render_generic3D( shaderStage_t *pStage )
 
 	bool hasDepthFade = pStage->hasDepthFade;
 	bool needDepthMap = pStage->hasDepthFade;
+
+	if ( needDepthMap && backEnd.dirtyDepthBuffer && glConfig2.textureBarrierAvailable )
+	{
+		// Flush depth buffer to make sure it is available for reading in the depth fade
+		// GLSL - prevents https://github.com/DaemonEngine/Daemon/issues/1676
+		glTextureBarrier();
+		backEnd.dirtyDepthBuffer = false;
+	}
 
 	// choose right shader program ----------------------------------
 	ProcessShaderGeneric3D( pStage );
@@ -1184,7 +1200,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 			GL_BindToTMU( BIND_LIGHTMAP, lightmap )
 		);
 	} else {
-		gl_lightMappingShader->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTMAP, lightmap ) );
+		gl_lightMappingShader->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTGRID1, lightmap ) );
 	}
 
 	// bind u_DeluxeMap
@@ -1193,7 +1209,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 			GL_BindToTMU( BIND_DELUXEMAP, deluxemap )
 		);
 	} else {
-		gl_lightMappingShader->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_DELUXEMAP, deluxemap ) );
+		gl_lightMappingShader->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_LIGHTGRID2, deluxemap ) );
 	}
 
 	// bind u_GlowMap
@@ -1387,17 +1403,13 @@ void Render_portal( shaderStage_t *pStage )
 
 void Render_heatHaze( shaderStage_t *pStage )
 {
-	uint32_t      stateBits;
 	float         deformMagnitude;
 
 	GLIMP_LOGCOMMENT( "--- Render_heatHaze ---" );
 
-	// remove alpha test
-	stateBits = pStage->stateBits;
-	stateBits &= ~GLS_ATEST_BITS;
-	stateBits &= ~GLS_DEPTHMASK_TRUE;
+	ASSERT( !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) );
 
-	GL_State( stateBits );
+	GL_State( pStage->stateBits );
 
 	// choose right shader program ----------------------------------
 	ProcessShaderHeatHaze( pStage );
@@ -1662,6 +1674,9 @@ Tess_ComputeColor
 */
 void Tess_ComputeColor( shaderStage_t *pStage )
 {
+	/* Expression-based color computations are doing colorspace conversions
+	in RB_EvalExpression() directly. */
+
 	float rgb;
 	float red;
 	float green;
@@ -1697,6 +1712,8 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 		case colorGen_t::CGEN_CONST:
 			{
 				tess.svars.color = pStage->constantColor;
+				tess.svars.color.Clamp();
+				tess.svars.color = tr.convertColorFromSRGB( tess.svars.color );
 				break;
 			}
 
@@ -1706,6 +1723,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 				{
 					tess.svars.color = backEnd.currentEntity->e.shaderRGBA;
 					tess.svars.color.Clamp();
+					tess.svars.color = tr.convertColorFromSRGB( tess.svars.color );
 				}
 				else
 				{
@@ -1721,6 +1739,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 				{
 					tess.svars.color = backEnd.currentEntity->e.shaderRGBA;
 					tess.svars.color.Clamp();
+					tess.svars.color = tr.convertColorFromSRGB( tess.svars.color );
 				}
 				else
 				{
@@ -1751,15 +1770,15 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 					glow = RB_EvalWaveForm( wf );
 				}
 
-				glow = Math::Clamp( glow, 0.0f, 1.0f );
-
 				tess.svars.color = Color::White * glow;
+				tess.svars.color.Clamp();
+				tess.svars.color = tr.convertColorFromSRGB( tess.svars.color );
 				break;
 			}
 
 		case colorGen_t::CGEN_CUSTOM_RGB:
 			{
-				rgb = Math::Clamp( RB_EvalExpression( &pStage->rgbExp, 1.0 ), 0.0f, 1.0f );
+				rgb = RB_EvalExpression( &pStage->rgbExp, 1.0 );
 
 				tess.svars.color = Color::White * rgb;
 				break;
@@ -1769,18 +1788,15 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 			{
 				if ( backEnd.currentEntity )
 				{
-					red =
-					  Math::Clamp( RB_EvalExpression( &pStage->redExp, backEnd.currentEntity->e.shaderRGBA.Red() * ( 1.0 / 255.0 ) ), 0.0f, 1.0f );
-					green =
-					  Math::Clamp( RB_EvalExpression( &pStage->greenExp, backEnd.currentEntity->e.shaderRGBA.Green() * ( 1.0 / 255.0 ) ), 0.0f, 1.0f );
-					blue =
-					  Math::Clamp( RB_EvalExpression( &pStage->blueExp, backEnd.currentEntity->e.shaderRGBA.Blue() * ( 1.0 / 255.0 ) ), 0.0f, 1.0f );
+					red = RB_EvalExpression( &pStage->redExp, backEnd.currentEntity->e.shaderRGBA.Red() * ( 1.0 / 255.0 ) );
+					green = RB_EvalExpression( &pStage->greenExp, backEnd.currentEntity->e.shaderRGBA.Green() * ( 1.0 / 255.0 ) );
+					blue = RB_EvalExpression( &pStage->blueExp, backEnd.currentEntity->e.shaderRGBA.Blue() * ( 1.0 / 255.0 ) );
 				}
 				else
 				{
-					red = Math::Clamp( RB_EvalExpression( &pStage->redExp, 1.0 ), 0.0f, 1.0f );
-					green = Math::Clamp( RB_EvalExpression( &pStage->greenExp, 1.0 ), 0.0f, 1.0f );
-					blue = Math::Clamp( RB_EvalExpression( &pStage->blueExp, 1.0 ), 0.0f, 1.0f );
+					red = RB_EvalExpression( &pStage->redExp, 1.0 );
+					green = RB_EvalExpression( &pStage->greenExp, 1.0 );
+					blue = RB_EvalExpression( &pStage->blueExp, 1.0 );
 				}
 
 				tess.svars.color.SetRed( red );
@@ -1859,7 +1875,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 
 		case alphaGen_t::AGEN_CUSTOM:
 			{
-				alpha = Math::Clamp( RB_EvalExpression( &pStage->alphaExp, 1.0 ), 0.0f, 1.0f );
+				alpha = RB_EvalExpression( &pStage->alphaExp, 1.0 );
 
 				tess.svars.color.SetAlpha( alpha );
 				break;

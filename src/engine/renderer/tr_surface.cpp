@@ -52,7 +52,7 @@ Flush the buffered polygons and prepare to receive more with the same parameters
 void Tess_EndBegin()
 {
 	Tess_End();
-	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.lightShader, tess.skipTangents,
+	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.skipTangents,
 	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
 }
 
@@ -113,7 +113,7 @@ void Tess_CheckOverflow( int verts, int indexes )
 		Sys::Drop( "Tess_CheckOverflow: indexes > max (%d > %d)", indexes, SHADER_MAX_INDEXES );
 	}
 
-	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.lightShader, tess.skipTangents,
+	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.skipTangents,
 	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
 }
 
@@ -533,7 +533,7 @@ void Tess_InstantScreenSpaceQuad() {
 
 	tr.skipVBO = true;
 
-	Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
+	Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
 	rb_surfaceTable[Util::ordinal( *( tr.genericTriangle->surface ) )]( tr.genericTriangle->surface );
 	Tess_DrawElements();
 
@@ -548,7 +548,7 @@ void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, const float x, const
 {
 	GLIMP_LOGCOMMENT( "--- Tess_InstantQuad ---" );
 
-	Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
+	Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
 
 	matrix_t modelViewMatrix;
 	MatrixCopy( matrixIdentity, modelViewMatrix );
@@ -630,8 +630,9 @@ static void Tess_SurfaceSprite()
 	if ( backEnd.viewParms.isMirror )
 		VectorSubtract( vec3_origin, left, left );
 
-	Tess_AddQuadStamp( backEnd.currentEntity->e.origin, left, up,
-		backEnd.currentEntity->e.shaderRGBA );
+	Color::Color32Bit color = backEnd.currentEntity->e.shaderRGBA;
+	color = tr.convertColorFromSRGB( color );
+	Tess_AddQuadStamp( backEnd.currentEntity->e.origin, left, up, color );
 }
 
 /*
@@ -660,7 +661,10 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 		{
 			VectorCopy(p->verts[i].xyz, tess.verts[tess.numVertexes + i].xyz);
 
-			tess.verts[tess.numVertexes + i].color = Color::Adapt(p->verts[i].modulate);
+			Color::Color32Bit color = Color::Adapt( p->verts[ i ].modulate );
+			color = tr.convertColorFromSRGB( color );
+			tess.verts[tess.numVertexes + i].color = color;
+
 			tess.verts[tess.numVertexes + i].texCoords[0] = p->verts[i].st[0];
 			tess.verts[tess.numVertexes + i].texCoords[1] = p->verts[i].st[1];
 		}
@@ -728,7 +732,11 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 				normals[i], qtangents);
 
 			VectorCopy(p->verts[i].xyz, tess.verts[tess.numVertexes + i].xyz);
-			tess.verts[tess.numVertexes + i].color = Color::Adapt(p->verts[i].modulate);
+
+			Color::Color32Bit color =  Color::Adapt( p->verts[ i ].modulate );
+			color = tr.convertColorFromSRGB( color );
+			tess.verts[tess.numVertexes + i].color = color;
+
 			Vector4Copy(qtangents, tess.verts[tess.numVertexes + i].qtangents);
 			tess.verts[tess.numVertexes + i].texCoords[0] = p->verts[i].st[0];
 			tess.verts[tess.numVertexes + i].texCoords[1] = p->verts[i].st[1];

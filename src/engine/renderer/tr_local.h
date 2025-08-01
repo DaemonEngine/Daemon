@@ -24,7 +24,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef TR_LOCAL_H
 #define TR_LOCAL_H
 
+#ifndef GLEW_NO_GLU
 #define GLEW_NO_GLU
+#endif
 #include <GL/glew.h>
 
 #include "common/FileSystem.h"
@@ -448,6 +450,8 @@ enum class ssaoMode {
 		BIND_LIGHTMAP,
 		BIND_DELUXEMAP,
 		BIND_GLOWMAP,
+		BIND_LIGHTGRID1,
+		BIND_LIGHTGRID2,
 		BIND_ENVIRONMENTMAP0,
 		BIND_ENVIRONMENTMAP1,
 		BIND_LIGHTTILES,
@@ -471,10 +475,10 @@ enum class ssaoMode {
 	  IF_DEPTH32 = BIT( 11 ),
 	  IF_PACKED_DEPTH24_STENCIL8 = BIT( 12 ),
 	  IF_LIGHTMAP = BIT( 13 ),
-	  IF_RGBA16 = BIT( 14 ),
 	  IF_RGBE = BIT( 15 ),
 	  IF_ALPHATEST = BIT( 16 ), // FIXME: this is unused
 	  IF_ALPHA = BIT( 17 ),
+	  IF_SRGB = BIT( 18 ),
 	  IF_BC1 = BIT( 19 ),
 	  IF_BC2 = BIT( 20 ),
 	  IF_BC3 = BIT( 21 ),
@@ -523,11 +527,19 @@ enum class ssaoMode {
 		wrapType_t wrapType;
 		int minDimension = 0;
 		int maxDimension = 0;
+
+		bool operator==(const imageParams_t &o) const
+		{
+			return o.bits == bits && o.filterType == filterType && o.wrapType == wrapType
+				&& o.minDimension == minDimension && o.maxDimension == maxDimension;
+		}
 	};
 
 	struct image_t
 	{
 		char name[ MAX_QPATH ];
+
+		imageParams_t initialParams; // may not match final values
 
 		GLenum         type;
 		GLuint         texnum; // gl texture binding
@@ -679,6 +691,7 @@ enum class ssaoMode {
 
 //===============================================================================
 
+	// Sorts commented "keyword only" will never be used unless the shader text has a `sort` keyword specifying it.
 	enum class shaderSort_t
 	{
 	  SS_BAD,
@@ -693,30 +706,22 @@ enum class ssaoMode {
 	  SS_ENVIRONMENT_NOFOG, // Tr3B: moved skybox here so we can fog post process all SS_OPAQUE materials
 
 	  SS_DECAL, // scorch marks, etc.
-	  SS_SEE_THROUGH, // ladders, grates, grills that may have small blended edges
-	  // in addition to alpha test
-	  SS_BANNER,
-
+	  SS_SEE_THROUGH, // ladders, grates, grills that may have small blended edges in addition to alpha test
+	  SS_BANNER, // keyword only
 	  SS_FOG,
 
-	  SS_UNDERWATER, // for items that should be drawn in front of the water plane
-	  SS_WATER,
+	  SS_UNDERWATER, // keyword only
+	  SS_FAR, // keyword only
+	  SS_MEDIUM, // keyword only
+	  SS_CLOSE, // keyword only
 
-	  SS_FAR,
-	  SS_MEDIUM,
-	  SS_CLOSE,
+	  // Must have value 15 because binary.shader contains numerical sort values between 15 and 16
+	  SS_BLEND0 = 15, // regular transparency and filters
 
-	  SS_BLEND0, // regular transparency and filters
-	  SS_BLEND1, // generally only used for additive type effects
-	  SS_BLEND2,
-	  SS_BLEND3,
-
-	  SS_BLEND6,
-
-	  SS_ALMOST_NEAREST, // gun smoke puffs
-
-	  SS_NEAREST, // blood blobs
-	  SS_POST_PROCESS,
+	  SS_BLEND1, // Keyword only. Generally only used for additive type effects
+	  SS_ALMOST_NEAREST, // keyword only
+	  SS_NEAREST, // keyword only
+	  SS_POST_PROCESS, // keyword only
 
 	  SS_NUM_SORTS
 	};
@@ -854,11 +859,20 @@ enum class ssaoMode {
 		float    value;
 	};
 
+
+enum
+{
+	EXP_NONE,
+	EXP_CLAMP = BIT( 0 ),
+	EXP_SRGB = BIT( 1 ),
+};
+
 #define MAX_EXPRESSION_OPS 32
 	struct expression_t
 	{
 		expOperation_t ops[ MAX_EXPRESSION_OPS ];
 		size_t numOps;
+		int bits;
 
 		bool operator==( const expression_t& other ) {
 			if ( numOps != other.numOps ) {
@@ -1042,6 +1056,10 @@ enum class ssaoMode {
 	struct Material;
 	struct MaterialSurface;
 
+	// [implicit only] enable lightmapping, front-side culling, disable (non-BSP) vertex colors, disable blending
+	// TODO(0.56): move to the public RegisterShaderFlags_t interface
+#define RSF_3D ( BIT( 30 ) )
+
 	using stageRenderer_t = void(*)(shaderStage_t *);
 	using stageShaderBuildMarker_t = void(*)(const shaderStage_t*);
 	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
@@ -1196,17 +1214,10 @@ enum class ssaoMode {
 		float  depthForOpaque;
 	};
 
-	enum class shaderType_t
-	{
-	  SHADER_2D, // surface material: shader is for 2D rendering (like GUI elements)
-	  SHADER_3D_DYNAMIC, // surface material: shader is for cGen diffuseLighting lighting
-	  SHADER_3D_STATIC, // surface material: pre-lit triangle models
-	};
-
 	struct shader_t
 	{
 		char         name[ MAX_QPATH ]; // game path, including extension
-		shaderType_t type;
+		int registerFlags; // RSF_
 
 		int          index; // this shader == tr.shaders[index]
 		int          sortedIndex; // this shader == tr.sortedShaders[sortedIndex]
@@ -1251,8 +1262,6 @@ enum class ssaoMode {
 		int        imageMaxDimension;   // for images that must not be loaded with larger size
 		filterType_t   filterType; // for console fonts, 2D elements, etc.
 		wrapType_t     wrapType;
-
-		bool        interactLight; // this shader can interact with light shaders
 
 		// For RT_SPRITE, face opposing the view direction rather than the viewer
 		bool entitySpriteFaceViewDirection;
@@ -2287,6 +2296,7 @@ enum class ssaoMode {
 		bool          isHyperspace;
 		trRefEntity_t     *currentEntity;
 		bool          skyRenderedThisView; // flag for drawing sun
+		bool dirtyDepthBuffer;
 		bool postDepthLightTileRendered = false;
 
 		bool          projection2D; // if true, drawstretchpic doesn't need to change modes
@@ -2483,6 +2493,9 @@ enum class ssaoMode {
 		int       h;
 	};
 
+	using floatProcessor_t = float(*)(float);
+	using colorProcessor_t = Color::Color(*)(Color::Color);
+
 	/*
 	** trGlobals_t
 	**
@@ -2513,6 +2526,11 @@ enum class ssaoMode {
 		bool   worldLightMapping;
 		bool   worldDeluxeMapping;
 		bool   worldHDR_RGBE;
+		bool worldLinearizeTexture;
+		bool worldLinearizeLightMap;
+
+		floatProcessor_t convertFloatFromSRGB;
+		colorProcessor_t convertColorFromSRGB;
 
 		lightMode_t lightMode;
 		lightMode_t worldLight;
@@ -2534,14 +2552,12 @@ enum class ssaoMode {
 		image_t    *defaultImage;
 		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
 		image_t    *fogImage;
-		image_t    *quadraticImage;
 		image_t    *whiteImage; // full of 0xff
 		image_t    *blackImage; // full of 0x0
 		image_t    *redImage;
 		image_t    *greenImage;
 		image_t    *blueImage;
 		image_t    *flatImage; // use this as default normalmap
-		image_t    *randomNormalsImage;
 		image_t    *blackCubeImage;
 		image_t    *whiteCubeImage;
 
@@ -2574,9 +2590,6 @@ enum class ssaoMode {
 		shader_t *defaultShader;
 		shader_t *fogEqualShader;
 		shader_t *fogLEShader;
-		shader_t *defaultPointLightShader;
-		shader_t *defaultProjectedLightShader;
-		shader_t *defaultDynamicLightShader;
 
 		std::vector<image_t *> lightmaps;
 		std::vector<image_t *> deluxemaps;
@@ -2805,6 +2818,7 @@ enum class ssaoMode {
 	extern cvar_t *r_rimExponent;
 
 	extern Cvar::Cvar<bool> r_highPrecisionRendering;
+	extern Cvar::Cvar<bool> r_accurateSRGB;
 
 	extern Cvar::Range<Cvar::Cvar<int>> r_shadows;
 
@@ -3022,6 +3036,10 @@ inline bool checkGLErrors()
 	void GL_VertexAttribsState( uint32_t stateBits );
 	void GL_VertexAttribPointers( uint32_t attribBits );
 	void GL_Cull( cullType_t cullType );
+void GL_TexImage2D( GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB );
+void GL_TexImage3D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB );
+void GL_CompressedTexImage2D( GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data, bool isSRGB );
+void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLint yOffset, GLint zOffset, GLsizei width, GLsizei height, GLsizei depth, GLenum internalFormat, GLsizei size, const void *data, bool isSRGB );
 	void R_ShutdownBackend();
 
 	/*
@@ -3097,7 +3115,7 @@ inline bool checkGLErrors()
 	qhandle_t RE_RegisterShader( const char *name, int flags );
 	qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image );
 
-	shader_t  *R_FindShader( const char *name, shaderType_t type, int flags );
+	shader_t  *R_FindShader( const char *name, int flags );
 	shader_t  *R_GetShaderByHandle( qhandle_t hShader );
 	shader_t  *R_FindShaderByName( const char *name );
 	const char *RE_GetShaderNameFromHandle( qhandle_t shader );
@@ -3193,7 +3211,6 @@ void GLimp_LogComment_( std::string comment );
 		stageVars_t svars;
 
 		shader_t    *surfaceShader;
-		shader_t    *lightShader;
 
 		// some drawing parameters from drawSurf_t
 		int16_t     lightmapNum;
@@ -3252,7 +3269,7 @@ void GLimp_LogComment_( std::string comment );
 
 // *INDENT-OFF*
 	void Tess_Begin( void ( *stageIteratorFunc )(),
-	                 shader_t *surfaceShader, shader_t *lightShader,
+	                 shader_t *surfaceShader,
 	                 bool skipTangents,
 	                 int lightmapNum,
 	                 int fogNum,

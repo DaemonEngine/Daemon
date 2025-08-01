@@ -103,6 +103,8 @@ private:
 
 	GLuint std430Size = 0;
 	uint32_t padding = 0;
+
+	const bool worldShader;
 protected:
 	int _activeMacros = 0;
 	ShaderProgramDescriptor* currentProgram;
@@ -131,19 +133,21 @@ protected:
 		fragmentShaderName( newFragmentShaderName ),
 		hasVertexShader( true ),
 		hasFragmentShader( true ),
-		hasComputeShader( false ) {
+		hasComputeShader( false ),
+		worldShader( false ) {
 	}
 
 	GLShader( const std::string& name,
 		const bool useMaterialSystem,
-		const std::string newComputeShaderName ) :
+		const std::string newComputeShaderName, const bool newWorldShader = false ) :
 		_name( name ),
 		_vertexAttribsRequired( 0 ),
 		_useMaterialSystem( useMaterialSystem ),
 		computeShaderName( newComputeShaderName ),
 		hasVertexShader( false ),
 		hasFragmentShader( false ),
-		hasComputeShader( true ) {
+		hasComputeShader( true ),
+		worldShader( newWorldShader ) {
 	}
 
 public:
@@ -318,6 +322,7 @@ class GLUniform {
 
 	const bool _global; // This uniform won't go into the materials UBO if true
 	const int _components;
+	const bool _isTexture;
 
 	protected:
 	GLShader* _shader;
@@ -325,13 +330,15 @@ class GLUniform {
 	size_t _locationIndex;
 
 	GLUniform( GLShader* shader, const char* name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
-		const bool global, const int components = 0 ) :
+		const bool global, const int components = 0,
+		const bool isTexture = false ) :
 		_name( name ),
 		_type( type ),
 		_std430Size( std430Size ),
 		_std430Alignment( std430Alignment ),
 		_global( global ),
 		_components( components ),
+		_isTexture( isTexture ),
 		_shader( shader ) {
 		_shader->RegisterUniform( this );
 	}
@@ -387,17 +394,32 @@ public:
 	void GenerateWorldHeaders();
 
 	template<class T>
-	void LoadShader( T *& shader ) {
-		if( !deformShaderCount ) {
+	void LoadShader( T*& shader ) {
+		if ( !deformShaderCount ) {
 			Q_UNUSED( GetDeformShaderIndex( nullptr, 0 ) );
 			initTime = 0;
 			initCount = 0;
 		}
 
 		shader = new T();
-		InitShader( shader );
 		_shaders.emplace_back( shader );
 		_shaderBuildQueue.push( shader );
+	}
+
+	void InitShaders() {
+		for ( const std::unique_ptr<GLShader>& shader : _shaders ) {
+			if ( !shader.get()->worldShader ) {
+				InitShader( shader.get() );
+			}
+		}
+	}
+
+	void InitWorldShaders() {
+		for ( const std::unique_ptr<GLShader>& shader : _shaders ) {
+			if ( shader.get()->worldShader ) {
+				InitShader( shader.get() );
+			}
+		}
 	}
 
 	int GetDeformShaderIndex( deformStage_t *deforms, int numDeforms );
@@ -439,14 +461,21 @@ private:
 		ShaderProgramDescriptor* out );
 	void SaveShaderBinary( ShaderProgramDescriptor* descriptor );
 
+	void GenerateUniformStructDefinesText( const std::vector<GLUniform*>& uniforms, const uint32_t padding,
+		const uint32_t paddingCount, const std::string& definesName,
+		std::string& uniformStruct, std::string& uniformDefines );
+	std::string RemoveUniformsFromShaderText( const std::string& shaderText, const std::vector<GLUniform*>& uniforms );
 	std::string ShaderPostProcess( GLShader *shader, const std::string& shaderText, const uint32_t offset );
 	std::string BuildDeformShaderText( const std::string& steps );
 	std::string ProcessInserts( const std::string& shaderText ) const;
+
 	void LinkProgram( GLuint program ) const;
 	void BindAttribLocations( GLuint program ) const;
 	void PrintShaderSource( Str::StringRef programName, GLuint object, std::vector<InfoLogEntry>& infoLogLines ) const;
+
 	std::vector<InfoLogEntry> ParseInfoLog( const std::string& infoLog ) const;
 	std::string GetInfoLog( GLuint object ) const;
+
 	std::string BuildShaderText( const std::string& mainShaderText, const std::vector<GLHeader*>& headers, const std::string& macros );
 	ShaderDescriptor* FindShader( const std::string& name, const std::string& mainText,
 		const GLenum type, const std::vector<GLHeader*>& headers,
@@ -459,7 +488,7 @@ class GLUniformSampler : protected GLUniform {
 	protected:
 	GLUniformSampler( GLShader* shader, const char* name, const char* type ) :
 		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? 2 : 1,
-		                               glConfig2.bindlessTexturesAvailable ? 2 : 1, true ) {
+		                               glConfig2.bindlessTexturesAvailable ? 2 : 1, true, 0, true ) {
 	}
 
 	inline GLint GetLocation() {
@@ -1821,6 +1850,30 @@ class u_FogMap :
 	}
 };
 
+class u_DepthTile1 :
+	GLUniformSampler2D {
+	public:
+	u_DepthTile1( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_DepthTile1" ) {
+	}
+
+	void SetUniform_DepthTile1Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+};
+
+class u_DepthTile2 :
+	GLUniformSampler2D {
+	public:
+	u_DepthTile2( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_DepthTile2" ) {
+	}
+
+	void SetUniform_DepthTile2Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+};
+
 class u_LightTiles :
 	GLUniformSampler3D {
 	public:
@@ -3020,6 +3073,18 @@ public:
 	}
 };
 
+class u_SRGB :
+	GLUniform1Bool {
+	public:
+	u_SRGB( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_SRGB", true ) {
+	}
+
+	void SetUniform_SRGB( bool tonemap ) {
+		this->SetValue( tonemap );
+	}
+};
+
 class u_Tonemap :
 	GLUniform1Bool {
 	public:
@@ -3526,6 +3591,7 @@ class GLShader_cameraEffects :
 	public u_CurrentMap,
 	public u_GlobalLightFactor,
 	public u_ColorModulate,
+	public u_SRGB,
 	public u_Tonemap,
 	public u_TonemapParms,
 	public u_TonemapExposure,
@@ -3655,7 +3721,7 @@ public:
 
 class GLShader_depthtile2 :
 	public GLShader,
-	public u_DepthMap {
+	public u_DepthTile1 {
 public:
 	GLShader_depthtile2();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
@@ -3663,7 +3729,7 @@ public:
 
 class GLShader_lighttile :
 	public GLShader,
-	public u_DepthMap,
+	public u_DepthTile2,
 	public u_Lights,
 	public u_numLights,
 	public u_lightLayer,
@@ -3708,6 +3774,7 @@ class GLShader_depthReduction :
 	public GLShader,
 	public u_ViewWidth,
 	public u_ViewHeight,
+	public u_DepthMap,
 	public u_InitialDepthLevel {
 	public:
 	GLShader_depthReduction();

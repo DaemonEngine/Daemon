@@ -38,6 +38,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Compiler.h"
 #include "Math.h"
 
+inline float convertFromSRGB( float f, bool accurate = true )
+{
+	if ( accurate )
+	{
+		return f <= 0.04045f ? f * (1.0f / 12.92f) : pow((f + 0.055f) * (1.0f / 1.055f), 2.4f);
+	}
+
+	return pow( f, 2.2f );
+}
+
+inline void convertFromSRGB( float* v, bool accurate = true )
+{
+	v[ 0 ] = convertFromSRGB( v[ 0 ], accurate );
+	v[ 1 ] = convertFromSRGB( v[ 1 ], accurate );
+	v[ 2 ] = convertFromSRGB( v[ 2 ], accurate );
+}
+
+inline void convertFromSRGB( byte* bytes, bool accurate = true )
+{
+	vec3_t v;
+	VectorScale( bytes, 1.0f / 255.0f, v );
+	convertFromSRGB( v, accurate );
+	VectorScale( v, 255.0f, bytes );
+}
+
 namespace Color {
 
 /*
@@ -254,6 +279,22 @@ public:
 	CONSTEXPR_FUNCTION_RELAXED void SetAlpha( component_type v ) NOEXCEPT
 	{
 		data_[ 3 ] = v;
+	}
+
+	static component_type ConvertFromSRGB( component_type v, bool accurate = true ) NOEXCEPT
+	{
+		float f = float( v ) / float( component_max );
+		f = convertFromSRGB( f, accurate );
+		return component_type( f * float( component_max ) );
+	}
+
+	BasicColor ConvertFromSRGB( bool accurate = true ) const NOEXCEPT
+	{
+		return BasicColor(
+			ConvertFromSRGB( Red(), accurate ),
+			ConvertFromSRGB( Green(), accurate ),
+			ConvertFromSRGB( Blue(), accurate ),
+			Alpha() );
 	}
 
 	CONSTEXPR_FUNCTION_RELAXED BasicColor& operator*=( float factor ) NOEXCEPT

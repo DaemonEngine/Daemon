@@ -27,6 +27,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <iomanip>
 #include "Material.h"
 
+static Cvar::Cvar<bool> r_allowImageParamMismatch(
+	"r_allowImageParamMismatch", "reuse images when requested with different parameters",
+	Cvar::NONE, false);
+
 int                  gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int                  gl_filter_max = GL_LINEAR;
 
@@ -245,6 +249,8 @@ public:
 			{ wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP, "a0clmp" },
 		};
 
+		const char* colorspaces[] = { "linear", "sRGB" };
+
 		const char *yesno[] = { "no", "yes" };
 		const char *filter = args.Argc() > 1 ? args.Argv( 1 ).c_str() : nullptr;
 
@@ -256,6 +262,7 @@ public:
 		std::string mm = "mm";
 		std::string type = "type";
 		std::string format = "format";
+		std::string colorspace = "space";
 		std::string twrap = "wrap.t";
 		std::string swrap = "wrap.s";
 		std::string name = "name";
@@ -268,6 +275,7 @@ public:
 		size_t mmLen = 3;
 		size_t typeLen = 4;
 		size_t formatLen = 4;
+		size_t colorspaceLen = std::string("linear").length();
 		size_t twrapLen = 4;
 		size_t swrapLen = 4;
 
@@ -279,6 +287,7 @@ public:
 		mmLen = std::max( mmLen, mm.length() );
 		typeLen = std::max( typeLen, type.length() );
 		formatLen = std::max( formatLen, format.length() );
+		colorspaceLen = std::max( colorspaceLen, colorspace.length() );
 		twrapLen = std::max( twrapLen, twrap.length() );
 		swrapLen = std::max( swrapLen, swrap.length() );
 
@@ -314,6 +323,7 @@ public:
 		lineStream << std::setw(mmLen) << mm << separator;
 		lineStream << std::setw(typeLen) << type << separator;
 		lineStream << std::setw(formatLen) << format << separator;
+		lineStream << std::setw(colorspaceLen) << colorspace << separator;
 		lineStream << std::setw(twrapLen) << twrap << separator;
 		lineStream << std::setw(swrapLen) << swrap << separator;
 		lineStream << name;
@@ -421,6 +431,8 @@ public:
 				}
 			}
 
+			colorspace = colorspaces[ bool( image->bits & IF_SRGB ) ];
+
 			if ( !wrapTypeName.count( image->wrapType.t ) )
 			{
 				Log::Debug( "Undocumented wrapType.t %i for image %s",
@@ -460,6 +472,7 @@ public:
 			lineStream << std::setw(mmLen) << mm << separator;
 			lineStream << std::setw(typeLen) << type << separator;
 			lineStream << std::setw(formatLen) << format << separator;
+			lineStream << std::setw(colorspaceLen) << colorspace << separator;
 			lineStream << std::setw(twrapLen) << twrap << separator;
 			lineStream << std::setw(swrapLen) << swrap << separator;
 			lineStream << name;
@@ -838,6 +851,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	GLenum     target;
 	GLenum     format = GL_RGBA;
 	GLenum     internalFormat = GL_RGB;
+	bool isSRGB = image->bits & IF_SRGB;
 
 	static const vec4_t oneClampBorder = { 1, 1, 1, 1 };
 	static const vec4_t zeroClampBorder = { 0, 0, 0, 1 };
@@ -918,18 +932,6 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	{
 		format = GL_DEPTH_STENCIL;
 		internalFormat = GL_DEPTH24_STENCIL8;
-	}
-	else if ( image->bits & IF_RGBA16 )
-	{
-		if ( !glConfig2.textureRGBA16BlendAvailable )
-		{
-			Log::Warn("RGBA16 image '%s' cannot be blended", image->name );
-			internalFormat = GL_RGBA8;
-		}
-		else
-		{
-			internalFormat = GL_RGBA16;
-		}
 	}
 	else if ( image->bits & ( IF_RGBA16F | IF_RGBA32F | IF_TWOCOMP16F | IF_TWOCOMP32F | IF_ONECOMP16F | IF_ONECOMP32F ) )
 	{
@@ -1076,9 +1078,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		mipLayers = numLayers;
 
 		for( i = 0; i < numMips; i++ ) {
-			glTexImage3D( GL_TEXTURE_3D, i, internalFormat,
-				      scaledWidth, scaledHeight, mipLayers,
-				      0, format, GL_UNSIGNED_BYTE, nullptr );
+			GL_TexImage3D( GL_TEXTURE_3D, i, internalFormat, scaledWidth, scaledHeight, mipLayers, 0, format, GL_UNSIGNED_BYTE, nullptr, isSRGB );
 
 			if( mipWidth  > 1 ) mipWidth  >>= 1;
 			if( mipHeight > 1 ) mipHeight >>= 1;
@@ -1144,18 +1144,17 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 				}
 				break;
 			case GL_TEXTURE_CUBE_MAP:
-				glTexImage2D( target + i, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE,
-				              scaledBuffer );
+				GL_TexImage2D( target + i, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, scaledBuffer, isSRGB );
 				break;
 
 			default:
 				if ( image->bits & IF_PACKED_DEPTH24_STENCIL8 )
 				{
-					glTexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_INT_24_8, nullptr );
+					GL_TexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_INT_24_8, nullptr, isSRGB );
 				}
 				else
 				{
-					glTexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, scaledBuffer );
+					GL_TexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, scaledBuffer, isSRGB );
 				}
 
 				break;
@@ -1194,16 +1193,14 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 				switch ( image->type )
 				{
 				case GL_TEXTURE_3D:
-					glCompressedTexSubImage3D( GL_TEXTURE_3D, i, 0, 0, j,
-								   scaledWidth, scaledHeight, 1,
-								   internalFormat, mipSize, data );
+					GL_CompressedTexSubImage3D( GL_TEXTURE_3D, i, 0, 0, j, scaledWidth, scaledHeight, 1, internalFormat, mipSize, data, isSRGB );
 					break;
 				case GL_TEXTURE_CUBE_MAP:
-					glCompressedTexImage2D( target + j, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data );
+					GL_CompressedTexImage2D( target + j, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data, isSRGB );
 					break;
 
 				default:
-					glCompressedTexImage2D( target, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data );
+					GL_CompressedTexImage2D( target, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data, isSRGB );
 					break;
 				}
 
@@ -1453,7 +1450,10 @@ R_CreateImage
 */
 image_t *R_CreateImage( const char *name, const byte **pic, int width, int height, int numMips, const imageParams_t &imageParams )
 {
-	Log::Debug( "Creating image %s (%d×%d, %d mips)", name, width, height, numMips );
+	const char* colorspaces[] = { "linear", "sRGB" };
+	const char* colorspace = colorspaces[ bool( imageParams.bits & IF_SRGB ) ];
+
+	Log::Debug( "Creating image %s (%d×%d, %s, %d mips)", name, width, height, colorspace, numMips );
 
 	image_t *image;
 
@@ -1511,7 +1511,7 @@ image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height
 	image->uploadHeight = height;
 	image->internalFormat = GL_RGBA;
 
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic );
+	GL_TexImage2D( GL_TEXTURE_2D, 0, image->internalFormat, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic, false );
 
 	GL_CheckErrors();
 
@@ -1813,25 +1813,31 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 	{
 		if ( !Q_strnicmp( imageName, image->name, sizeof( image->name ) ) )
 		{
-			// The white image can be used with any set of parms, but other mismatches are errors.
-			if ( Q_stricmp( imageName, "_white" ) )
+			if ( imageParams == image->initialParams || r_allowImageParamMismatch.Get() )
 			{
-				unsigned int diff = imageParams.bits ^ image->bits;
-
-				if ( diff & IF_NOPICMIP )
-				{
-					Log::Warn("reused image '%s' with mixed allowPicmip parm for shader", imageName );
-				}
-
-				if ( image->wrapType != imageParams.wrapType )
-				{
-					Log::Warn("reused image '%s' with mixed glWrapType parm for shader", imageName);
-				}
+				return image;
 			}
 
-			return image;
+			// Built-in images can't be reloaded with different parameters, so return them as-is.
+			// For most of the usable ones e.g. _white, parameters wouldn't make a difference anyway.
+			// HACK: detect built-in images by naming convention, though nothing stops users from using such names
+			if ( image->name[ 0 ] == '_' && !strchr( image->name, '/' ) )
+			{
+				return image;
+			}
+
+			Log::Verbose( "image params mismatch for %s: 0x%X %d %d/%d %d %d vs. 0x%X %d %d/%d %d %d",
+				imageName,
+				image->initialParams.bits, Util::ordinal( image->initialParams.filterType ),
+				Util::ordinal( image->initialParams.wrapType.s ), Util::ordinal( image->initialParams.wrapType.t ),
+				image->initialParams.minDimension, image->initialParams.maxDimension,
+				imageParams.bits, Util::ordinal( imageParams.filterType ),
+				Util::ordinal( imageParams.wrapType.s ), Util::ordinal( imageParams.wrapType.t ),
+				imageParams.minDimension, imageParams.maxDimension );
 		}
 	}
+
+	const imageParams_t initialParams = imageParams;
 
 	// Load and create the image.
 	int width = 0, height = 0, numLayers = 0, numMips = 0;
@@ -1859,6 +1865,7 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 	}
 
 	image_t *image = R_CreateImage( imageName, (const byte **)pic, width, height, numMips, imageParams );
+	image->initialParams = initialParams;
 
 	Z_Free( *pic );
 
@@ -2445,9 +2452,9 @@ static void R_CreateFogImage()
 R_CreateDefaultImage
 ==================
 */
-static const int DEFAULT_SIZE = 128;
 static void R_CreateDefaultImage()
 {
+	constexpr int DEFAULT_SIZE = 128;
 	int  x;
 	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
 	byte *dataPtr = &data[0][0][0];
@@ -2473,45 +2480,6 @@ static void R_CreateDefaultImage()
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
 	tr.defaultImage = R_CreateImage( "_default", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
-}
-
-static void R_CreateRandomNormalsImage()
-{
-	int  x, y;
-	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
-	// the default image will be a box, to allow you to see the mapping coordinates
-	memset(data, 32, sizeof(data));
-
-	byte *ptr = &data[0][0][0];
-	byte *dataPtr = &data[0][0][0];
-
-	for ( y = 0; y < DEFAULT_SIZE; y++ )
-	{
-		for ( x = 0; x < DEFAULT_SIZE; x++ )
-		{
-			vec3_t n;
-			float  r, angle;
-
-			r = random();
-			angle = 2.0f * M_PI * r; // / 360.0f;
-
-			VectorSet( n, cosf( angle ), sinf( angle ), r );
-			VectorNormalize( n );
-
-			ptr[ 0 ] = ( byte )( 128 + 127 * n[ 0 ] );
-			ptr[ 1 ] = ( byte )( 128 + 127 * n[ 1 ] );
-			ptr[ 2 ] = ( byte )( 128 + 127 * n[ 2 ] );
-			ptr[ 3 ] = 255;
-			ptr += 4;
-		}
-	}
-
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_DEFAULT;
-	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
-
-	tr.randomNormalsImage = R_CreateImage( "_randomNormals", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
 }
 
 static void R_CreateContrastRenderFBOImage()
@@ -2750,12 +2718,11 @@ R_CreateBuiltinImages
 */
 void R_CreateBuiltinImages()
 {
-	int   x, y;
-	byte  data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
-	byte  *dataPtr = &data[0][0][0];
+	constexpr int DIMENSION = 8;
+	int   x;
+	byte  data[ DIMENSION * DIMENSION * 4 ];
+	byte  *dataPtr = data;
 	byte  *out;
-	float s, value;
-	byte  intensity;
 
 	R_CreateDefaultImage();
 
@@ -2767,41 +2734,41 @@ void R_CreateBuiltinImages()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
-	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
+	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
 	// we use a solid black image instead of disabling texturing
 	memset( data, 0, sizeof( data ) );
-	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
+	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
 	// red
-	for ( x = DEFAULT_SIZE * DEFAULT_SIZE, out = &data[0][0][0]; x; --x, out += 4 )
+	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
 	{
 		out[ 1 ] = out[ 2 ] = 0;
 		out[ 0 ] = out[ 3 ] = 255;
 	}
 
-	tr.redImage = R_CreateImage( "_red", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
+	tr.redImage = R_CreateImage( "_red", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
 	// green
-	for ( x = DEFAULT_SIZE * DEFAULT_SIZE, out = &data[0][0][0]; x; --x, out += 4 )
+	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
 	{
 		out[ 0 ] = out[ 2 ] = 0;
 		out[ 1 ] = out[ 3 ] = 255;
 	}
 
-	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
+	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
 	// blue
-	for ( x = DEFAULT_SIZE * DEFAULT_SIZE, out = &data[0][0][0]; x; --x, out += 4 )
+	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
 	{
 		out[ 0 ] = out[ 1 ] = 0;
 		out[ 2 ] = out[ 3 ] = 255;
 	}
 
-	tr.blueImage = R_CreateImage( "_blue", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
+	tr.blueImage = R_CreateImage( "_blue", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
 	// generate a default normalmap with a fully opaque heightmap (no displacement)
-	for ( x = DEFAULT_SIZE * DEFAULT_SIZE, out = &data[0][0][0]; x; --x, out += 4 )
+	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
 	{
 		out[ 0 ] = out[ 1 ] = 128;
 		out[ 2 ] = 255;
@@ -2810,7 +2777,7 @@ void R_CreateBuiltinImages()
 
 	imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
 
-	tr.flatImage = R_CreateImage( "_flat", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
+	tr.flatImage = R_CreateImage( "_flat", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
 	imageParams.bits = IF_NOPICMIP;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
@@ -2820,30 +2787,6 @@ void R_CreateBuiltinImages()
 		image = R_CreateImage( "_cinematic", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 	}
 
-	out = &data[ 0 ][ 0 ][ 0 ];
-
-	for ( y = 0; y < DEFAULT_SIZE; y++ )
-	{
-		for ( x = 0; x < DEFAULT_SIZE; x++, out += 4 )
-		{
-			s = ( ( ( float ) x + 0.5f ) * ( 2.0f / DEFAULT_SIZE ) - 1.0f );
-
-			s = Q_fabs( s ) - ( 1.0f / DEFAULT_SIZE );
-
-			value = 1.0f - ( s * 2.0f ) + ( s * s );
-
-			intensity = ClampByte( Q_ftol( value * 255.0f ) );
-
-			out[ 0 ] = intensity;
-			out[ 1 ] = intensity;
-			out[ 2 ] = intensity;
-			out[ 3 ] = intensity;
-		}
-	}
-
-	tr.quadraticImage = R_CreateImage( "_quadratic", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
-
-	R_CreateRandomNormalsImage();
 	R_CreateFogImage();
 	R_CreateContrastRenderFBOImage();
 	R_CreateBloomRenderFBOImages();
