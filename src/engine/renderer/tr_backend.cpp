@@ -2796,10 +2796,10 @@ static void SetFrameUniforms() {
 
 	uint32_t* data = pushBuffer.MapGlobalUniformData( GLUniform::FRAME );
 
-	globalUBOProxy->SetUniform_blurVec( backEnd.refdef.blurVec );
-	globalUBOProxy->SetUniform_numLights( backEnd.refdef.numLights );
+	globalUBOProxy->SetUniform_blurVec( tr.refdef.blurVec );
+	globalUBOProxy->SetUniform_numLights( tr.refdef.numLights );
 
-	globalUBOProxy->SetUniform_ColorModulate( backEnd.viewParms.gradingWeights );
+	globalUBOProxy->SetUniform_ColorModulate( tr.viewParms.gradingWeights );
 	globalUBOProxy->SetUniform_InverseGamma( 1.0f / r_gamma->value );
 
 	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig2.textureFloatAvailable;
