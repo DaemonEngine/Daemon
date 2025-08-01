@@ -41,6 +41,7 @@ set(COMMONLIST
     ${COMMON_DIR}/String.h
     ${COMMON_DIR}/System.cpp
     ${COMMON_DIR}/System.h
+    ${COMMON_DIR}/Type.h
     ${COMMON_DIR}/Util.cpp
     ${COMMON_DIR}/Util.h
     ${COMMON_DIR}/cm/cm_load.cpp
