@@ -117,6 +117,10 @@ void GLStagingBuffer::FlushAll() {
 	FlushStagingCopyQueue();
 }
 
+bool GLStagingBuffer::Active() const {
+	return buffer.id;
+}
+
 void GLStagingBuffer::InitGLBuffer() {
 	buffer.GenBuffer();
 

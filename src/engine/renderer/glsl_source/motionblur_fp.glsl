@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* motionblur_fp.glsl */
 
+#define DEPTHMAP_GLSL
+
 uniform sampler2D	u_ColorMap;
 uniform sampler2D	u_DepthMap;
 
@@ -35,6 +37,8 @@ out vec4 outputColor;
 
 void	main()
 {
+	#insert material_fp
+
 	vec4 color = vec4( 0.0 );
 
 	// calculate the screen texcoord in the 0.0 to 1.0 range
