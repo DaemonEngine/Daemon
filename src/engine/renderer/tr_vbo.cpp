@@ -453,9 +453,7 @@ void SetupVAOBuffers( VBO_t* VBO, const IBO_t* IBO, const uint32_t stateBits,
 
 	R_BindVBO( VBO );
 
-	tess.settingUpVAO = true;
-	GL_VertexAttribsState( stateBits );
-	tess.settingUpVAO = false;
+	GL_VertexAttribsState( stateBits, true );
 
 	if ( IBO ) {
 		VAO->SetIndexBuffer( IBO->indexesVBO );
