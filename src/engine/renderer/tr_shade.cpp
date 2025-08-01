@@ -1668,7 +1668,7 @@ void Render_fog( shaderStage_t* pStage )
 
 	// bind u_ColorMap
 	gl_fogQuake3Shader->SetUniform_FogMapBindless(
-		GL_BindToTMU( 0, tr.fogImage ) 
+		GL_BindToTMU( 0, tr.fogImage )
 	);
 
 	gl_fogQuake3Shader->SetRequiredVertexPointers();

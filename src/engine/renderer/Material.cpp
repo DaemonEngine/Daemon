@@ -1495,9 +1495,24 @@ void MaterialSystem::UpdateDynamicSurfaces() {
 	GL_CheckErrors();
 }
 
+void MaterialSystem::SetConstUniforms() {
+	globalUBOProxy->SetUniform_SurfaceDescriptorsCount( surfaceDescriptorsCount );
+	uint32_t globalWorkGroupX = surfaceDescriptorsCount % MAX_COMMAND_COUNTERS == 0 ?
+		surfaceDescriptorsCount / MAX_COMMAND_COUNTERS : surfaceDescriptorsCount / MAX_COMMAND_COUNTERS + 1;
+
+	globalUBOProxy->SetUniform_FirstPortalGroup( globalWorkGroupX );
+	globalUBOProxy->SetUniform_TotalPortals( totalPortals );
+}
+
+void MaterialSystem::SetFrameUniforms() {
+	globalUBOProxy->SetUniform_Frame( nextFrame );
+
+	globalUBOProxy->SetUniform_UseFrustumCulling( r_gpuFrustumCulling.Get() );
+	globalUBOProxy->SetUniform_UseOcclusionCulling( r_gpuOcclusionCulling.Get() );
+}
+
 void MaterialSystem::UpdateFrameData() {
 	gl_clearSurfacesShader->BindProgram( 0 );
-	gl_clearSurfacesShader->SetUniform_Frame( nextFrame );
 	gl_clearSurfacesShader->DispatchCompute( MAX_VIEWS, 1, 1 );
 
 	GL_CheckErrors();
@@ -1582,15 +1597,9 @@ void MaterialSystem::CullSurfaces() {
 		uint32_t globalWorkGroupX = surfaceDescriptorsCount % MAX_COMMAND_COUNTERS == 0 ?
 			surfaceDescriptorsCount / MAX_COMMAND_COUNTERS : surfaceDescriptorsCount / MAX_COMMAND_COUNTERS + 1;
 		GL_Bind( depthImage );
-		gl_cullShader->SetUniform_Frame( nextFrame );
 		gl_cullShader->SetUniform_ViewID( view );
-		gl_cullShader->SetUniform_SurfaceDescriptorsCount( surfaceDescriptorsCount );
-		gl_cullShader->SetUniform_UseFrustumCulling( r_gpuFrustumCulling.Get() );
-		gl_cullShader->SetUniform_UseOcclusionCulling( r_gpuOcclusionCulling.Get() );
 		gl_cullShader->SetUniform_CameraPosition( origin );
 		gl_cullShader->SetUniform_ModelViewMatrix( viewMatrix );
-		gl_cullShader->SetUniform_FirstPortalGroup( globalWorkGroupX );
-		gl_cullShader->SetUniform_TotalPortals( totalPortals );
 		gl_cullShader->SetUniform_ViewWidth( depthImage->width );
 		gl_cullShader->SetUniform_ViewHeight( depthImage->height );
 		gl_cullShader->SetUniform_SurfaceCommandsOffset( surfaceCommandsCount * ( MAX_VIEWS * nextFrame + view ) );
@@ -1622,7 +1631,6 @@ void MaterialSystem::CullSurfaces() {
 		gl_cullShader->DispatchCompute( globalWorkGroupX, 1, 1 );
 
 		gl_processSurfacesShader->BindProgram( 0 );
-		gl_processSurfacesShader->SetUniform_Frame( nextFrame );
 		gl_processSurfacesShader->SetUniform_ViewID( view );
 		gl_processSurfacesShader->SetUniform_SurfaceCommandsOffset( surfaceCommandsCount * ( MAX_VIEWS * nextFrame + view ) );
 

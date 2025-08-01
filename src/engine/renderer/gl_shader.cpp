@@ -1346,6 +1346,12 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 			ShaderDescriptor* desc = FindShader( shader->_name, shaderType.mainText, shaderType.GLType, shaderType.headers,
 				uniqueMacros, compileMacros, true );
 
+			if ( desc && glConfig2.pushBufferAvailable ) {
+				desc->shaderSource = RemoveUniformsFromShaderText( desc->shaderSource, shader->_pushUniforms );
+
+				desc->shaderSource.insert( shaderType.offset, globalUniformBlock );
+			}
+
 			if ( desc && glConfig2.usingMaterialSystem && shader->_useMaterialSystem ) {
 				desc->shaderSource = ShaderPostProcess( shader, desc->shaderSource, shaderType.offset );
 			}
@@ -1601,7 +1607,7 @@ void GLShaderManager::PostProcessGlobalUniforms() {
 	GLuint padding;
 	std::vector<GLUniform*>* uniforms = &( ( GLShader* ) globalUBOProxy )->_uniforms;
 	std::vector<GLUniform*> constUniforms =
-		ProcessUniforms( GLUniform::CONST, GLUniform::CONST, false, *uniforms, size, padding );
+		ProcessUniforms( GLUniform::CONST, GLUniform::CONST, !glConfig2.usingBindlessTextures, *uniforms, size, padding );
 
 	GenerateUniformStructDefinesText( constUniforms, padding, 0, "globalUniforms", uniformStruct, uniformDefines );
 
@@ -1610,7 +1616,7 @@ void GLShaderManager::PostProcessGlobalUniforms() {
 	pushBuffer.constUniformsSize = size + padding;
 
 	std::vector<GLUniform*> frameUniforms =
-		ProcessUniforms( GLUniform::FRAME, GLUniform::FRAME, false, *uniforms, size, padding );
+		ProcessUniforms( GLUniform::FRAME, GLUniform::FRAME, !glConfig2.usingBindlessTextures, *uniforms, size, padding );
 	
 	GenerateUniformStructDefinesText( frameUniforms, padding, paddingCount, "globalUniforms", uniformStruct, uniformDefines );
 
@@ -2246,7 +2252,7 @@ void GLShader::PostProcessUniforms() {
 	if ( glConfig2.pushBufferAvailable && !pushSkip ) {
 		GLuint unused;
 		_pushUniforms = gl_shaderManager.ProcessUniforms( GLUniform::CONST, GLUniform::FRAME,
-			false, _uniforms, unused, unused );
+			!glConfig2.usingBindlessTextures, _uniforms, unused, unused );
 	}
 }
 
