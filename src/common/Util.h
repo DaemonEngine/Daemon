@@ -151,8 +151,6 @@ public:
 	uninitialized& operator=(const uninitialized&) = delete;
 	uninitialized& operator=(uninitialized&&) = delete;
 
-	alignas( T ) uint8_t data[sizeof( T )];
-
 	template<typename... Args> void construct(Args&&... args)
 	{
 		new(&data) T(std::forward<Args>(args)...);
@@ -173,6 +171,9 @@ public:
 	{
 		return *reinterpret_cast<const T*>(&data);
 	}
+
+private:
+	alignas( T ) uint8_t data[sizeof( T )];
 };
 
 // std::make_unique is not available until C++14.
