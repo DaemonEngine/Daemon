@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+	<Type Name="AtomicRingBuffer&lt;*&gt;">
+		<DisplayString>{{ elementCount={elementCount} }}</DisplayString>
+		<Expand>
+			<Item Name="[size]">size,d</Item>
+			<Item Name="[elementCount]">elementCount,d</Item>
+			<Item Name="[mask]">mask,d</Item>
+			<Item Name="[pointer]">pointer,d</Item>
+			<Item Name="[current]">current,d</Item>
+			<ArrayItems>
+				<Size>elementCount</Size>
+				<ValuePointer>memory</ValuePointer>
+			</ArrayItems>
+		</Expand>
+	</Type>
+
+	<Type Name="DynamicArray&lt;*&gt;">
+		<DisplayString>{{ elementCount={elements}, highestUsed={highestUsed} }}</DisplayString>
+		<Expand>
+			<Item Name="[size]">size,d</Item>
+			<Item Name="[elementCount]">elements,d</Item>
+			<Item Name="[memory]">memory</Item>
+			<ArrayItems>
+				<Size>elements</Size>
+				<ValuePointer>memory</ValuePointer>
+			</ArrayItems>
+		</Expand>
+	</Type>
+
+	<Type Name="TaskInitList&lt;*&gt;">
+		<DisplayString>{{ size={end - start} }}</DisplayString>
+		<Expand>
+			<Item Name="[start]">start</Item>
+			<Item Name="[end]">end</Item>
+			<ArrayItems>
+				<Size>end - start</Size>
+				<ValuePointer>start</ValuePointer>
+			</ArrayItems>
+		</Expand>
+	</Type>
+</AutoVisualizer>

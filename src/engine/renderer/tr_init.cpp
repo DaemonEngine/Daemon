@@ -45,6 +45,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	static void GfxInfo_f();
 
+#if !defined(DAEMON_RENDERER_OPENGL)
+	#error Undefined renderer API.
+#endif
+
+Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 0 );
+
 	cvar_t      *r_glMajorVersion;
 	cvar_t      *r_glMinorVersion;
 	cvar_t      *r_glProfile;
