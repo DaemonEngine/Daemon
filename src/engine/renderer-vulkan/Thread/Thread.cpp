@@ -112,7 +112,7 @@ void Thread::Run() {
 		task->complete.Signal();
 
 		task->forwardTaskLock.Finish();
-		const uint32_t forwardTasks = task->forwardTaskCounter.load();
+		const uint32_t forwardTasks = task->forwardTaskCounter.load( std::memory_order_relaxed );
 		for ( uint32_t i = 0; i < forwardTasks; i++ ) {
 			taskList.FinishDependency( task->forwardTasks[i] );
 		}

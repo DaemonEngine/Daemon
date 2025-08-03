@@ -36,29 +36,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AccessLock.h"
 
 bool AccessLock::Lock() {
-	uint32_t expected;
+	uint32_t expected = value.load( std::memory_order_relaxed );
 	uint32_t desired;
 	do {
-		expected = value.load();
-		
 		if( !expected ) {
 			return false;
 		}
+
 		desired = expected + 1;
-	} while( !value.compare_exchange_strong( expected, desired, std::memory_order_relaxed ) );
+	} while( !value.compare_exchange_strong( expected, desired, std::memory_order_acq_rel ) );
 
 	return true;
 }
 
 void AccessLock::Unlock() {
-	value--;
+	value.fetch_sub( 1, std::memory_order_release );
 }
 
 void AccessLock::Finish() {
-	value--;
-	while( value.load() );
+	value.fetch_sub( 1, std::memory_order_release );
+	while( value.load( std::memory_order_acquire ) );
 }
 
 void AccessLock::operator=( const AccessLock& other ) {
-	value = other.value.load();
+	value = other.value.load( std::memory_order_acquire );
 }

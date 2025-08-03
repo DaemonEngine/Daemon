@@ -50,8 +50,8 @@ void Task::operator=( const Task& other ) {
 	Execute = other.Execute;
 	data = other.data;
 
-	dependencyCounter = other.dependencyCounter.load();
-	forwardTaskCounter = other.forwardTaskCounter.load();
+	dependencyCounter = other.dependencyCounter.load( std::memory_order_relaxed );
+	forwardTaskCounter = other.forwardTaskCounter.load( std::memory_order_relaxed );
 
 	id = other.id;
 	bufferID = other.bufferID;
