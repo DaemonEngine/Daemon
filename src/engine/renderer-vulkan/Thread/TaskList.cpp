@@ -97,7 +97,7 @@ void TaskList::FinishShutdown() {
 uint8_t TaskRing::LockQueueForTask( Task* task ) {
 	Q_UNUSED( task );
 
-	uint64_t expected = queueLocks.load();
+	uint64_t expected = queueLocks.load( std::memory_order_acquire );
 	uint64_t desired;
 	uint8_t queue;
 	do {
@@ -110,7 +110,7 @@ uint8_t TaskRing::LockQueueForTask( Task* task ) {
 }
 
 void TaskRing::LockQueue( const uint8_t queue ) {
-	uint64_t expected = queueLocks.load();
+	uint64_t expected = queueLocks.load( std::memory_order_acquire );
 	uint64_t desired;
 	do {
 		desired = SetBit( expected, queue );
@@ -314,7 +314,7 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 
 			desired = SetBit( expected, queue );
 
-			if ( !mainTaskRing.queueLocks.compare_exchange_strong( expected, desired ) ) {
+			if ( !mainTaskRing.queueLocks.compare_exchange_strong( expected, desired, std::memory_order_relaxed ) ) {
 				continue;
 			}
 
