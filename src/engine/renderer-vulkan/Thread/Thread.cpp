@@ -143,7 +143,7 @@ void Thread::Exit() {
 
 	Log::NoticeTag( "id: %u", id );
 
-	Log::NoticeTag( "id: %u: total: %s, fetching: %s, execing: %s, idle: %s\n", id, Timer::FormatTime( total.Time() ),
-		Timer::FormatTime( fetching.Time() ), Timer::FormatTime( execing.Time() ),
-		Timer::FormatTime( idle.Time() ) );
+	Log::NoticeTag( "id: %u: total: %s, fetching: %s, execing: %s, idle: %s\n", id, total.FormatTime( Timer::ms ),
+		fetching.FormatTime( Timer::ms ), execing.FormatTime( Timer::ms ),
+		idle.FormatTime( Timer::ms ) );
 }
