@@ -262,6 +262,10 @@ inline const bool BitSet( const uint32_t value, const uint32_t bit ) {
 	return value & ( 1u << bit );
 }
 
+inline const bool BitSet( const uint64_t value, const uint32_t bit ) {
+	return value & ( 1ull << bit );
+}
+
 inline uint32_t FindLZeroBit( uint64_t value ) {
 	return FindLSB( ~value );
 }
