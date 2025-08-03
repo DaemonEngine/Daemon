@@ -61,16 +61,20 @@ Timer::~Timer() {
 	}
 }
 
-std::string Timer::FormatTime( uint64_t time ) {
+std::string Timer::FormatTime( uint64_t time, const TimeUnit maxTimeUnit ) {
 	const char* suf[] = { "ns", "us", "ms", "s" };
 
 	int s = 0;
 	// Formats as xxxx[suffix] as it's more informative than xxx[suffix]
-	for ( s = 0; s < 4 && time >= 10000; s++ ) {
+	for ( s = 0; s < maxTimeUnit && time >= 10000; s++ ) {
 		time = time / 1000;
 	}
 
 	return Str::Format( "%u%s", time, suf[s] );
+}
+
+std::string Timer::FormatTime( const TimeUnit maxTimeUnit ) {
+	return FormatTime( Time(), maxTimeUnit );
 }
 
 uint64_t Timer::Time() const {

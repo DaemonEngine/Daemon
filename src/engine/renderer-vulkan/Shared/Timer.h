@@ -41,11 +41,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Timer {
 	public:
+	enum TimeUnit {
+		ns,
+		us,
+		ms,
+		s
+	};
+
 	Timer( uint64_t* newTimeVar );
 	Timer( const bool start = true, uint64_t* newTimeVar = nullptr );
 	~Timer();
 
-	static std::string FormatTime( uint64_t time );
+	static std::string FormatTime( uint64_t time, const TimeUnit maxTimeUnit = s );
+	std::string FormatTime( const TimeUnit maxTimeUnit = s );
 
 	uint64_t Time() const;
 	void Start();
