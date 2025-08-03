@@ -130,7 +130,7 @@ class AtomicRingBuffer :
 	void Alloc( const uint64_t newElementCount ) {
 		elementCount = newElementCount;
 		size = ( elementCount * sizeof( T ) + 63 ) & ~64;
-		mask = UINT64_MAX >> FindLSB( elementCount - 1 );
+		mask = elementCount - 1;
 		memory = ( T* ) Alloc64( size );
 
 		memset( memory, 0, size );
