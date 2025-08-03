@@ -58,7 +58,9 @@ std::string Tagged( const std::string& message, const bool useThreadID,
 Allows either specifying a custom name for an object, or otherwise automatically using the class name */
 std::string Tag::Tagged( const std::string& message, const bool useThreadID,
 	const std::source_location& loc ) {
-	const std::string threadID = useThreadID ? Str::Format( "Thread %u:", TLM.id ) : "";
+	const std::string threadID = useThreadID ?
+		( TLM.id == ThreadMemory::MAIN_ID ? "main" : Str::Format( "Thread %u:", TLM.id ) )
+		: "";
 
 	switch ( r_vkLogExtendedFunctionNames.Get() ) {
 		case LogExtendedFunctionMode::GLOBAL_NAME:

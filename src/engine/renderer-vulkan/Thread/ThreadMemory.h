@@ -80,7 +80,9 @@ struct ChunkAllocator {
 
 class ThreadMemory {
 	public:
-	uint32_t id;
+	static constexpr uint32_t MAIN_ID = UINT32_MAX;
+	uint32_t id = MAIN_ID;
+
 	ChunkAllocator chunkAllocators[MAX_MEMORY_AREAS];
 
 	GlobalTimer fetchOuterTimer;
