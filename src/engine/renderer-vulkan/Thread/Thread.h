@@ -67,10 +67,11 @@ class Thread :
 	bool running = true;
 	bool exiting = false;
 
-	Timer total;
-	Timer fetching;
-	Timer idle;
-	Timer execing;
+	GlobalTimer total;
+	GlobalTimer fetching;
+	GlobalTimer idle;
+	GlobalTimer execing;
+	GlobalTimer dependencyTimer;
 
 	uint64_t fetchQueueLock;
 	uint64_t fetchOuter;

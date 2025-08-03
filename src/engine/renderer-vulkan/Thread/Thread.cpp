@@ -112,14 +112,16 @@ void Thread::Run() {
 		task->Execute( task->data );
 		task->active = false;
 		task->complete.Signal();
+		execing.Stop();
 
+		dependencyTimer.Start();
 		task->forwardTaskLock.Finish();
 		const uint32_t forwardTasks = task->forwardTaskCounter.load( std::memory_order_relaxed );
 		for ( uint32_t i = 0; i < forwardTasks; i++ ) {
 			taskList.FinishDependency( task->forwardTasks[i] );
 		}
+		dependencyTimer.Stop();
 
-		execing.Stop();
 		t.Stop();
 
 		taskTimes[task->Execute].count++;
@@ -144,10 +146,10 @@ void Thread::Exit() {
 
 	osThread.join();
 
-	Log::NoticeTag( "id: %u", id );
+	Log::NoticeTag( "\nid: %u", id );
 
-	Log::NoticeTag( "id: %u: total: %s, fetching: %s, execing: %s, idle: %s\n", id, total.FormatTime( Timer::ms ),
-		fetching.FormatTime( Timer::ms ), execing.FormatTime( Timer::ms ),
+	Log::NoticeTag( "id: %u: total: %s, fetching: %s, execing: %s, dependency: %s, idle: %s", id, total.FormatTime( Timer::ms ),
+		fetching.FormatTime( Timer::ms ), execing.FormatTime( Timer::ms ), dependencyTimer.FormatTime( Timer::ms ),
 		idle.FormatTime( Timer::ms ) );
 
 	Log::NoticeTag( "id: %u: fetch: queueLock: %s, outer: %s", id, Timer::FormatTime( fetchQueueLock, Timer::ms ),
