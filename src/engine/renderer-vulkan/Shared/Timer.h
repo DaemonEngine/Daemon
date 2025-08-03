@@ -71,6 +71,8 @@ class Timer {
 
 class GlobalTimer :
 	public Timer {
+	public:
+
 	GlobalTimer( uint64_t* newTimeVar = nullptr );
 };
 
