@@ -24,7 +24,7 @@ pr:
 jobs:
   - job: Mac
     pool:
-      vmImage: 'macOS-14'
+      vmImage: 'macOS-15'
     steps:
     - bash: |
         set -e
