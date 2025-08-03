@@ -62,7 +62,11 @@ constexpr bool defaultPedanticShutdown = true;
 #else
 constexpr bool defaultPedanticShutdown = false;
 #endif
+#if defined( DAEMON_RENDERER_VULKAN )
+static Cvar::Cvar<bool> pedanticShutdown( "common.pedanticShutdown", "Daemon-vulkan always does proper shutdown", Cvar::ROM, true );
+#else
 static Cvar::Cvar<bool> pedanticShutdown("common.pedanticShutdown", "run useless shutdown procedures before exit", Cvar::NONE, defaultPedanticShutdown);
+#endif
 #endif // BUILD_ENGINE
 
 #if defined(BUILD_ENGINE) && defined(_WIN32)
