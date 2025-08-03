@@ -88,6 +88,9 @@ class ThreadMemory {
 	GlobalTimer fetchOuterTimer;
 	GlobalTimer fetchQueueLockTimer;
 
+	GlobalTimer addTimer;
+	GlobalTimer syncTimer;
+
 	~ThreadMemory();
 
 	void Init();

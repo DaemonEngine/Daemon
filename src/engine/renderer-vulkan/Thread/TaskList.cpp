@@ -196,9 +196,12 @@ uint16_t TaskRing::AddToTaskRing( Task& task, const bool unlockQueueAfterAdd ) {
 }
 
 void TaskList::MoveToTaskRing( TaskRing& taskRing, Task& task ) {
-	IDToTaskRing( task.id ).RemoveTask( IDToTaskQueue( task.id ), IDToTaskID( task.id ) );
+	TLM.addTimer.Start();
 
+	IDToTaskRing( task.id ).RemoveTask( IDToTaskQueue( task.id ), IDToTaskID( task.id ) );
 	taskRing.AddToTaskRing( task );
+
+	TLM.addTimer.Stop();
 }
 
 void TaskList::FinishDependency( const uint16_t bufferID ) {
@@ -249,6 +252,8 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 		return;
 	}
 
+	TLM.addTimer.Start();
+
 	Task* taskMemory = tasks.GetNextElementMemory();
 	taskMemory->active = true;
 	task.active = true;
@@ -271,6 +276,8 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 	*taskMemory = task;
 
 	taskRing->UnlockQueue( IDToTaskQueue( task.id ) );
+
+	TLM.addTimer.Stop();
 }
 
 void TaskList::AddTask( Task& task, std::initializer_list<Task> dependencies ) {

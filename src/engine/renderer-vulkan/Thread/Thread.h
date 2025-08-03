@@ -75,6 +75,9 @@ class Thread :
 
 	uint64_t fetchQueueLock;
 	uint64_t fetchOuter;
+
+	uint64_t taskAdd;
+	uint64_t taskSync;
 };
 
 #endif // THREAD_H

@@ -34,16 +34,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // SyncTask.cpp
 
 #include "TaskList.h"
+#include "ThreadMemory.h"
 
 #include "SyncTask.h"
 
 void SyncTask( Task&& task ) {
+	TLM.syncTimer.Start();
+
 	FenceMain syncFence;
 	task.complete = syncFence;
 
 	taskList.AddTask( task );
 
 	syncFence.Wait( 0 );
+
+	TLM.syncTimer.Stop();
 };
 
 void SyncTask( Task* task ) {

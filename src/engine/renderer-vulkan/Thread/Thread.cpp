@@ -137,6 +137,9 @@ void Thread::Run() {
 	fetchQueueLock = TLM.fetchQueueLockTimer.Time();
 	fetchOuter = TLM.fetchOuterTimer.Time();
 
+	taskAdd = TLM.addTimer.Time();
+	taskSync = TLM.syncTimer.Time();
+
 	total.Stop();
 }
 
@@ -152,6 +155,7 @@ void Thread::Exit() {
 		fetching.FormatTime( Timer::ms ), execing.FormatTime( Timer::ms ), dependencyTimer.FormatTime( Timer::ms ),
 		idle.FormatTime( Timer::ms ) );
 
-	Log::NoticeTag( "id: %u: fetch: queueLock: %s, outer: %s", id, Timer::FormatTime( fetchQueueLock, Timer::ms ),
-		Timer::FormatTime( fetchOuter, Timer::ms ) );
+	Log::NoticeTag( "id: %u: fetch: queueLock: %s, outer: %s, add: %s, sync: %s", id,
+		Timer::FormatTime( fetchQueueLock, Timer::ms ), Timer::FormatTime( fetchOuter, Timer::ms ),
+		Timer::FormatTime( taskAdd, Timer::ms ), Timer::FormatTime( taskSync, Timer::ms ) );
 }
