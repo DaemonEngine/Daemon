@@ -132,6 +132,9 @@ void Thread::Run() {
 		exiting = taskList.ThreadFinished( true );
 	}
 
+	fetchQueueLock = TLM.fetchQueueLockTimer.Time();
+	fetchOuter = TLM.fetchOuterTimer.Time();
+
 	total.Stop();
 }
 
@@ -146,4 +149,7 @@ void Thread::Exit() {
 	Log::NoticeTag( "id: %u: total: %s, fetching: %s, execing: %s, idle: %s\n", id, total.FormatTime( Timer::ms ),
 		fetching.FormatTime( Timer::ms ), execing.FormatTime( Timer::ms ),
 		idle.FormatTime( Timer::ms ) );
+
+	Log::NoticeTag( "id: %u: fetch: queueLock: %s, outer: %s", id, Timer::FormatTime( fetchQueueLock, Timer::ms ),
+		Timer::FormatTime( fetchOuter, Timer::ms ) );
 }

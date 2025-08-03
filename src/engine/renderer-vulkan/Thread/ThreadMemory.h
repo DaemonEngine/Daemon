@@ -83,6 +83,9 @@ class ThreadMemory {
 	uint32_t id;
 	ChunkAllocator chunkAllocators[MAX_MEMORY_AREAS];
 
+	GlobalTimer fetchOuterTimer;
+	GlobalTimer fetchQueueLockTimer;
+
 	~ThreadMemory();
 
 	void Init();

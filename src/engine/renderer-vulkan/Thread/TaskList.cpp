@@ -39,6 +39,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Sys/CPUInfo.h"
 #include "../MiscCVarStore.h"
 
+#include "ThreadMemory.h"
+
 TaskList taskList;
 
 TaskList::TaskList() {
@@ -293,11 +295,13 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 	uint32_t task;
 
 	uint64_t mask = 0;
-	while ( true ) {
 
+	TLM.fetchOuterTimer.Start();
+	while ( true ) {
 		uint64_t expected = mainTaskRing.queueLocks.load();
 		uint64_t desired;
 
+		TLM.fetchQueueLockTimer.Start();
 		while ( true ) {
 			if ( expected == UINT64_MAX ) {
 				std::this_thread::yield();
@@ -309,6 +313,9 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 			queue = longestTask ? FindMZeroBit( queueLocks ) : FindLZeroBit( queueLocks );
 
 			if ( queue == 64 ) {
+
+				TLM.fetchQueueLockTimer.Stop();
+				TLM.fetchOuterTimer.Stop();
 				return nullptr;
 			}
 
@@ -320,6 +327,7 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 
 			break;
 		}
+		TLM.fetchQueueLockTimer.Stop();
 
 		task = FindLSB( mainTaskRing.queues[queue].availableTasks );
 
@@ -342,6 +350,8 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 	executingThreads.fetch_add( 1, std::memory_order_relaxed );
 
 	mainTaskRing.UnlockQueue( queue );
+
+	TLM.fetchOuterTimer.Stop();
 
 	return tasks.memory + globalTaskID;
 }

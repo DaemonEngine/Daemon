@@ -71,6 +71,9 @@ class Thread :
 	Timer fetching;
 	Timer idle;
 	Timer execing;
+
+	uint64_t fetchQueueLock;
+	uint64_t fetchOuter;
 };
 
 #endif // THREAD_H
