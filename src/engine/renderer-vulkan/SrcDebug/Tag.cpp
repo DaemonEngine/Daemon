@@ -58,17 +58,17 @@ std::string Tagged( const std::string& message, const bool useThreadID,
 Allows either specifying a custom name for an object, or otherwise automatically using the class name */
 std::string Tag::Tagged( const std::string& message, const bool useThreadID,
 	const std::source_location& loc ) {
-	const std::string threadID = useThreadID ? Str::Format( "Thread %s", TLM.id ) : "";
+	const std::string threadID = useThreadID ? Str::Format( "Thread %u:", TLM.id ) : "";
 
 	switch ( r_vkLogExtendedFunctionNames.Get() ) {
 		case LogExtendedFunctionMode::GLOBAL_NAME:
-			return Str::Format( "%s:%s: %s", threadID, name, message );
+			return Str::Format( "%s%s: %s", threadID, name, message );
 		case LogExtendedFunctionMode::NAME:
-			return Str::Format( "%s:%s:%s(): %s", threadID, name, FunctionName( loc.function_name() ), message );
+			return Str::Format( "%s%s:%s(): %s", threadID, name, FunctionName( loc.function_name() ), message );
 		case LogExtendedFunctionMode::TEMPLATE:
-			return Str::Format( "%s:%s:%s(): %s", threadID, name, FunctionNameTemplate( loc.function_name() ), message );
+			return Str::Format( "%s%s:%s(): %s", threadID, name, FunctionNameTemplate( loc.function_name() ), message );
 		case LogExtendedFunctionMode::FULL:
-			return Str::Format( "%s:%s(): %s", threadID, loc.function_name(), message );
+			return Str::Format( "%s%s(): %s", threadID, loc.function_name(), message );
 		default:
 			ASSERT_UNREACHABLE();
 	}
