@@ -53,6 +53,7 @@ struct TaskQueue {
 struct TaskRing {
 	std::atomic<uint64_t> queueLocks = 0;
 	uint64_t queuesWithTasks = 0;
+	ALIGN_CACHE std::atomic<uint32_t> taskCount = 0;
 	TaskQueue queues[64];
 
 	const uint32_t id;
@@ -112,6 +113,8 @@ class TaskList :
 	static constexpr uint16_t TASK_SHIFT_ID = 8;
 	static constexpr uint16_t TASK_SHIFT_ALLOCATED = 14;
 
+	FenceMain exitFence;
+
 	TaskList();
 	~TaskList();
 
@@ -131,6 +134,8 @@ class TaskList :
 	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
 	Task* FetchTask( Thread* thread, const bool longestTask );
 
+	bool ThreadFinished( const bool hadTask );
+
 	void FinishDependency( const uint16_t bufferID );
 
 	void AdjustThreadCount( const uint32_t newMaxThreads );
@@ -143,7 +148,8 @@ class TaskList :
 	uint32_t currentMaxThreads = 0;
 	Thread threads[MAX_THREADS];
 
-	std::atomic_bool exiting = false;
+	ALIGN_CACHE std::atomic<uint32_t> executingThreads = 1;
+	ALIGN_CACHE std::atomic<bool> exiting = false;
 
 	constexpr TaskRing& TaskRingIDToTaskRing( const TaskRingID taskRingID );
 

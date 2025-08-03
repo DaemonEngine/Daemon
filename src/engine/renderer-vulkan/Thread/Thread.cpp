@@ -100,6 +100,8 @@ void Thread::Run() {
 			std::this_thread::yield();
 			idle.Stop();
 			Log::DebugTag( "id: %u, yielding", id );
+
+			exiting = taskList.ThreadFinished( false );
 			continue;
 		}
 
@@ -126,6 +128,8 @@ void Thread::Run() {
 		task = nullptr;
 
 		TLM.FreeAllChunks();
+
+		exiting = taskList.ThreadFinished( true );
 	}
 
 	total.Stop();
@@ -137,9 +141,9 @@ void Thread::Exit() {
 
 	osThread.join();
 
-	Log::DebugTag( "id: %u", id );
+	Log::NoticeTag( "id: %u", id );
 
-	Log::DebugTag( "id: %u: total: %s, fetching: %s, execing: %s, idle: %s\n", id, Timer::FormatTime( total.Time() ),
+	Log::NoticeTag( "id: %u: total: %s, fetching: %s, execing: %s, idle: %s\n", id, Timer::FormatTime( total.Time() ),
 		Timer::FormatTime( fetching.Time() ), Timer::FormatTime( execing.Time() ),
 		Timer::FormatTime( idle.Time() ) );
 }

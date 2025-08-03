@@ -54,6 +54,10 @@ SDL_Window* window;
 namespace TempAPI {
 	void Shutdown( bool destroyWindow ) {
 		Q_UNUSED( destroyWindow );
+
+		taskList.Shutdown();
+		taskList.exitFence.Wait( 0 );
+		taskList.FinishShutdown();
 	}
 
 	bool BeginRegistration( glconfig_t* glconfig, glconfig2_t* ) {

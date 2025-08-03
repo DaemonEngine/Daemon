@@ -70,6 +70,8 @@ void TaskList::AdjustThreadCount( uint32_t newMaxThreads ) {
 		for ( uint32_t i = newMaxThreads; i < currentMaxThreads; i++ ) {
 			threads[i].exiting = true;
 		}
+
+		currentMaxThreads = newMaxThreads;
 	}
 }
 
@@ -82,7 +84,8 @@ void TaskList::Init() {
 }
 
 void TaskList::Shutdown() {
-	exiting = true;
+	executingThreads.fetch_sub( 1, std::memory_order_relaxed );
+	exiting.store( true, std::memory_order_relaxed );
 }
 
 void TaskList::FinishShutdown() {
@@ -123,6 +126,8 @@ void TaskRing::RemoveTask( const uint8_t queue, const uint8_t id ) {
 
 	UnSetBit( &queues[queue].availableTasks, id );
 	queues[queue].tasks[id] = 0;
+
+	taskCount.fetch_sub( 1, std::memory_order_relaxed );
 
 	UnlockQueue( queue );
 }
@@ -181,6 +186,8 @@ uint16_t TaskRing::AddToTaskRing( Task& task, const bool unlockQueueAfterAdd ) {
 		UnlockQueue( queue );
 	}
 
+	taskCount.fetch_add( 1, std::memory_order_relaxed );
+
 	return id | ( queue << TaskList::TASK_SHIFT_QUEUE )
 	          | ( taskSlot << TaskList::TASK_SHIFT_ID )
 	          | ( 1 << TaskList::TASK_SHIFT_ALLOCATED );
@@ -236,7 +243,7 @@ bool TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) 
 
 template<IsTask T>
 void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
-	if ( exiting && !task.shutdownTask ) {
+	if ( exiting.load( std::memory_order_relaxed ) && !task.shutdownTask ) {
 		return;
 	}
 
@@ -282,8 +289,6 @@ void TaskList::AddTasksExt( std::initializer_list<TaskInit> dependencies ) {
 Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 	Log::DebugTag( "Thread %u fetching", thread->id );
 
-	thread->exiting = exiting;
-
 	uint8_t queue;
 	uint32_t task;
 
@@ -319,7 +324,7 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 		task = FindLSB( mainTaskRing.queues[queue].availableTasks );
 
 		if ( task == 64 ) {
-			mainTaskRing.queueLocks -= 1ull << queue;
+			mainTaskRing.UnlockQueue( queue );
 			SetBit( &mask, queue );
 			continue;
 		}
@@ -333,7 +338,24 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 
 	mainTaskRing.queues[queue].tasks[task] = 0;
 
+	mainTaskRing.taskCount.fetch_sub( 1, std::memory_order_relaxed );
+	executingThreads.fetch_add( 1, std::memory_order_relaxed );
+
 	mainTaskRing.UnlockQueue( queue );
 
 	return tasks.memory + globalTaskID;
+}
+
+bool TaskList::ThreadFinished( const bool hadTask ) {
+	const uint32_t threadCount = executingThreads.fetch_sub( hadTask, std::memory_order_relaxed ) - hadTask;
+
+	if ( !threadCount ) {
+		if ( !mainTaskRing.taskCount.load( std::memory_order_acquire ) ) {
+			exitFence.Signal();
+
+			return true;
+		}
+	}
+
+	return false;
 }
