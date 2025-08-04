@@ -278,10 +278,10 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 
 	TaskRing* taskRing;
 	if ( ResolveDependencies( *taskMemory, dependencies ) ) {
-		task.id = forwardTaskRing.AddToTaskRing( task, false );
+		task.id = forwardTaskRing.AddToTaskRing( *taskMemory, false );
 		taskRing = &forwardTaskRing;
 	} else {
-		task.id = mainTaskRing.AddToTaskRing( task, false );
+		task.id = mainTaskRing.AddToTaskRing( *taskMemory, false );
 		taskRing = &mainTaskRing;
 	}
 
