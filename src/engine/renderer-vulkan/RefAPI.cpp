@@ -40,6 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Thread/TaskList.h"
 
+#include "Thread/ThreadMemory.h"
+
 Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen( "r_fullscreen", "use full-screen window", CVAR_ARCHIVE, true );
 
 cvar_t* r_allowResize;
@@ -61,6 +63,7 @@ namespace TempAPI {
 	}
 
 	bool BeginRegistration( glconfig_t* glconfig, glconfig2_t* ) {
+		TLM.main = true;
 		taskList.Init();
 
 		glconfig->vidWidth = 1920;

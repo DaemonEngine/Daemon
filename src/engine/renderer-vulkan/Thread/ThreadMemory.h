@@ -81,7 +81,9 @@ struct ChunkAllocator {
 class ThreadMemory {
 	public:
 	static constexpr uint32_t MAIN_ID = UINT32_MAX;
-	uint32_t id = MAIN_ID;
+	uint32_t id;
+
+	bool main = false;
 
 	ChunkAllocator chunkAllocators[MAX_MEMORY_AREAS];
 
