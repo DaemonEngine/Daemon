@@ -52,6 +52,12 @@ static void EnableAvailableFeatures()
 			glConfig2.realtimeLighting = false;
 		}
 
+		if ( !glConfig2.textureFloatAvailable )
+		{
+			Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_texture_float is not available." );
+			glConfig2.realtimeLighting = false;
+		}
+
 		if ( glConfig2.max3DTextureSize == 0 )
 		{
 			Log::Warn( "Tiled dynamic light renderer disabled because of missing 3D texture support." );
