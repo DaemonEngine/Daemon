@@ -47,7 +47,6 @@ TaskList::TaskList() {
 }
 
 TaskList::~TaskList() {
-	Shutdown();
 }
 
 void TaskList::AdjustThreadCount( uint32_t newMaxThreads ) {
@@ -169,7 +168,7 @@ constexpr TaskRing& TaskList::TaskRingIDToTaskRing( const TaskRingID taskRingID 
 		case MAIN:
 			return mainTaskRing;
 		case FORWARD:
-			return forwardTaskRing;
+			return mainTaskRing; // forwardTaskRing;
 		default:
 			ASSERT_UNREACHABLE();
 	}
@@ -212,7 +211,6 @@ uint16_t TaskRing::AddToTaskRing( Task& task, const bool unlockQueueAfterAdd ) {
 void TaskList::MoveToTaskRing( TaskRing& taskRing, Task& task ) {
 	TLM.addTimer.Start();
 
-	IDToTaskRing( task.id ).RemoveTask( IDToTaskQueue( task.id ), IDToTaskID( task.id ) );
 	taskRing.AddToTaskRing( task );
 
 	TLM.addTimer.Stop();
@@ -229,7 +227,7 @@ void TaskList::FinishDependency( const uint16_t bufferID ) {
 }
 
 template<IsTask T>
-bool TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) {
+void TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) {
 	uint32_t counter = 0;
 	for ( const T* dep = dependencies.start; dep < dependencies.end; dep++ ) {
 		if ( !BitSet( ( *dep )->id, TASK_SHIFT_ALLOCATED ) ) {
@@ -256,8 +254,6 @@ bool TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) 
 	}
 
 	task.dependencyCounter.fetch_add( counter, std::memory_order_relaxed );
-
-	return counter;
 }
 
 template<IsTask T>
@@ -276,14 +272,7 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 
 	*taskMemory = task;
 
-	TaskRing* taskRing;
-	if ( ResolveDependencies( *taskMemory, dependencies ) ) {
-		task.id = forwardTaskRing.AddToTaskRing( *taskMemory, false );
-		taskRing = &forwardTaskRing;
-	} else {
-		task.id = mainTaskRing.AddToTaskRing( *taskMemory, false );
-		taskRing = &mainTaskRing;
-	}
+	ResolveDependencies( *taskMemory, dependencies );
 
 	SetBit( &task.id, TASK_SHIFT_ALLOCATED );
 
@@ -291,12 +280,9 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 
 	const uint32_t counter = taskMemory->dependencyCounter.fetch_sub( 1, std::memory_order_relaxed ) - 1;
 
-	if ( !counter && taskRing == &forwardTaskRing ) {
-		forwardTaskRing.RemoveTask( IDToTaskQueue( task.id ), IDToTaskID( task.id ), true );
-		taskRing->AddToTaskRing( task );
+	if ( !counter ) {
+		mainTaskRing.AddToTaskRing( *taskMemory );
 	}
-
-	taskRing->UnlockQueue( IDToTaskQueue( task.id ) );
 
 	TLM.addTimer.Stop();	
 }
@@ -361,6 +347,7 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 
 			break;
 		}
+
 		TLM.fetchQueueLockTimer.Stop();
 
 		task = FindLSB( mainTaskRing.queues[queue].availableTasks );

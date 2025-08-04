@@ -143,7 +143,6 @@ class TaskList :
 	private:
 	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory" };
 	TaskRing mainTaskRing{ MAIN };
-	TaskRing forwardTaskRing{ FORWARD };
 
 	uint32_t currentMaxThreads = 0;
 	Thread threads[MAX_THREADS];
@@ -154,7 +153,7 @@ class TaskList :
 	constexpr TaskRing& TaskRingIDToTaskRing( const TaskRingID taskRingID );
 
 	template<IsTask T>
-	bool ResolveDependencies( Task& task, TaskInitList<T>& dependencies );
+	void ResolveDependencies( Task& task, TaskInitList<T>& dependencies );
 
 	void MoveToTaskRing( TaskRing& taskRing, Task& task );
 };
