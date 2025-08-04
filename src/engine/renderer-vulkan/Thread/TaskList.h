@@ -67,7 +67,7 @@ struct TaskRing {
 	void LockQueue( const uint8_t queue );
 	void UnlockQueue( const uint8_t queue );
 
-	void RemoveTask( const uint8_t queue, const uint8_t id );
+	void RemoveTask( const uint8_t queue, const uint8_t taskID );
 
 	uint16_t AddToTaskRing( Task& task, const bool unlockQueueAfterAdd = true );
 };

@@ -123,11 +123,11 @@ void TaskRing::UnlockQueue( const uint8_t queue ) {
 	queueLocks -= SetBit( 0ull, queue );
 }
 
-void TaskRing::RemoveTask( const uint8_t queue, const uint8_t id ) {
+void TaskRing::RemoveTask( const uint8_t queue, const uint8_t taskID ) {
 	LockQueue( queue );
 
-	UnSetBit( &queues[queue].availableTasks, id );
-	queues[queue].tasks[id] = 0;
+	UnSetBit( &queues[queue].availableTasks, taskID );
+	queues[queue].tasks[taskID] = 0;
 
 	taskCount.fetch_sub( 1, std::memory_order_relaxed );
 
