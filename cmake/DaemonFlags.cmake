@@ -267,6 +267,11 @@ else()
 		endif()
 	endif()
 
+	if (DAEMON_CXX_COMPILER_AppleClang)
+		# For some reasons the macOS Azure CI breaks without that.
+		set_c_cxx_flag("-Wno-c++14-extensions")
+	endif()
+
 	if (NACL AND USE_NACL_SAIGO AND SAIGO_ARCH STREQUAL "arm")
 		# This should be set for every build type because build type flags
 		# are set after the other custom flags and then have the last word.
