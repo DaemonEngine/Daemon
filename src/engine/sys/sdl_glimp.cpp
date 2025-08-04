@@ -2032,16 +2032,6 @@ static void GLimp_InitExtensions()
 		glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
 	}
 
-	// Shader limits.
-	// From GL_ARB_vertex_shader.
-	glGetIntegerv( GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, &glConfig2.maxVertexUniforms );
-	// From GL_ARB_vertex_program.
-	glGetIntegerv( GL_MAX_VERTEX_ATTRIBS_ARB, &glConfig2.maxVertexAttribs );
-
-	int reservedComponents = 36 * 10; // approximation how many uniforms we have besides the bone matrices
-	glConfig2.maxVertexSkinningBones = Math::Clamp( ( glConfig2.maxVertexUniforms - reservedComponents ) / 16, 0, MAX_BONES );
-	glConfig2.vboVertexSkinningAvailable = r_vboVertexSkinning->integer && ( ( glConfig2.maxVertexSkinningBones >= 12 ) ? true : false );
-
 	/* On OpenGL Core profile the ARB_fragment_program extension doesn't exist and the related getter functions
 	return 0. We can assume OpenGL 3 Core hardware is featureful enough to not care about those limits. */
 	if ( !glConfig2.glCoreProfile )
@@ -2364,12 +2354,6 @@ static void GLimp_InitExtensions()
 	// made required since OpenGL 3.1
 	glConfig2.uniformBufferObjectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_uniform_buffer_object, r_arb_uniform_buffer_object.Get() );
 
-	// Shader limits.
-	if ( glConfig2.uniformBufferObjectAvailable )
-	{
-		glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &glConfig2.maxUniformBlockSize );
-	}
-
 	// made required in OpenGL 3.0
 	glConfig2.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range.Get() );
 
@@ -2601,6 +2585,24 @@ static void GLimp_InitExtensions()
 			"Update GLEW to 2.2+ to be able to use this extension" );
 	}
 #endif
+
+	// Shader limits.
+
+	// From GL_ARB_vertex_shader.
+	glGetIntegerv( GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, &glConfig2.maxVertexUniforms );
+
+	// From GL_ARB_vertex_program.
+	glGetIntegerv( GL_MAX_VERTEX_ATTRIBS_ARB, &glConfig2.maxVertexAttribs );
+
+	// From GL_ARB_uniform_buffer_object.
+	if ( glConfig2.uniformBufferObjectAvailable )
+	{
+		glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &glConfig2.maxUniformBlockSize );
+	}
+
+	int reservedComponents = 36 * 10; // approximation how many uniforms we have besides the bone matrices
+	glConfig2.maxVertexSkinningBones = Math::Clamp( ( glConfig2.maxVertexUniforms - reservedComponents ) / 16, 0, MAX_BONES );
+	glConfig2.vboVertexSkinningAvailable = r_vboVertexSkinning->integer && ( ( glConfig2.maxVertexSkinningBones >= 12 ) ? true : false );
 
 	GL_CheckErrors();
 }
