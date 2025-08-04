@@ -86,11 +86,21 @@ void TaskList::Init() {
 }
 
 void TaskList::Shutdown() {
+	if ( exiting.load( std::memory_order_relaxed ) ) {
+		Log::WarnTag( "Shutdown() has already been called!" );
+		return;
+	}
+
 	executingThreads.fetch_sub( 1, std::memory_order_relaxed );
 	exiting.store( true, std::memory_order_relaxed );
 }
 
 void TaskList::FinishShutdown() {
+	if ( !TLM.main ) {
+		Log::WarnTag( "FinishShutdown() can only be called from the main thread!" );
+		return;
+	}
+
 	for ( Thread* thread = threads; thread < threads + currentMaxThreads; thread++ ) {
 		thread->Exit();
 	}
