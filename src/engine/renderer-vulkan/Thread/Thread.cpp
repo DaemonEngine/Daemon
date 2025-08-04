@@ -70,13 +70,6 @@ void Thread::Run() {
 
 	total.Start();
 
-	struct TaskTime {
-		uint64_t count = 0;
-		uint64_t time = 0;
-	};
-
-	std::unordered_map<Task::TaskFunction, TaskTime> taskTimes;
-
 	while ( !exiting ) {
 		if ( !running ) {
 			std::this_thread::yield();
@@ -124,8 +117,8 @@ void Thread::Run() {
 
 		t.Stop();
 
-		taskTimes[task->Execute].count++;
-		taskTimes[task->Execute].time += t.Time();
+		TLM.taskTimes[task->Execute].count++;
+		TLM.taskTimes[task->Execute].time += t.Time();
 
 		task = nullptr;
 
@@ -139,6 +132,8 @@ void Thread::Run() {
 
 	taskAdd = TLM.addTimer.Time();
 	taskSync = TLM.syncTimer.Time();
+
+	taskTimes = TLM.taskTimes;
 
 	total.Stop();
 }
@@ -158,4 +153,10 @@ void Thread::Exit() {
 	Log::NoticeTag( "id: %u: fetch: queueLock: %s, outer: %s, add: %s, sync: %s", id,
 		Timer::FormatTime( fetchQueueLock, Timer::ms ), Timer::FormatTime( fetchOuter, Timer::ms ),
 		Timer::FormatTime( taskAdd, Timer::ms ), Timer::FormatTime( taskSync, Timer::ms ) );
+
+	for ( const std::pair<Task::TaskFunction, TaskTime>& taskTime : taskTimes ) {
+		Log::NoticeTag( "task: avg: %s, count: %u, time: %u",
+			Timer::FormatTime( taskTime.second.time / taskTime.second.count, Timer::us ),
+			taskTime.second.count, taskTime.second.time );
+	}
 }

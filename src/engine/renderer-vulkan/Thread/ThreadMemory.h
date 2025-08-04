@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Memory/DynamicArray.h"
 #include "../Memory/MemoryChunk.h"
+#include "Task.h"
 
 using byte = uint8_t;
 
@@ -78,6 +79,11 @@ struct ChunkAllocator {
 	DynamicArray<MemoryChunkRecord> chunks;
 };
 
+struct TaskTime {
+	uint64_t count = 0;
+	uint64_t time = 0;
+};
+
 class ThreadMemory {
 	public:
 	static constexpr uint32_t MAIN_ID = UINT32_MAX;
@@ -86,6 +92,8 @@ class ThreadMemory {
 	bool main = false;
 
 	ChunkAllocator chunkAllocators[MAX_MEMORY_AREAS];
+
+	std::unordered_map<Task::TaskFunction, TaskTime> taskTimes;
 
 	GlobalTimer fetchOuterTimer;
 	GlobalTimer fetchQueueLockTimer;

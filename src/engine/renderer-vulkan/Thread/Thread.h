@@ -44,6 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Shared/Timer.h"
 #include "../SrcDebug/Tag.h"
 
+struct TaskTime;
+
 class Thread :
 	public Tag {
 	public:
@@ -78,6 +80,8 @@ class Thread :
 
 	uint64_t taskAdd;
 	uint64_t taskSync;
+
+	std::unordered_map<Task::TaskFunction, TaskTime> taskTimes;
 };
 
 #endif // THREAD_H
