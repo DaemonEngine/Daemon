@@ -123,15 +123,19 @@ void TaskRing::UnlockQueue( const uint8_t queue ) {
 	queueLocks -= SetBit( 0ull, queue );
 }
 
-void TaskRing::RemoveTask( const uint8_t queue, const uint8_t taskID ) {
-	LockQueue( queue );
+void TaskRing::RemoveTask( const uint8_t queue, const uint8_t taskID, const bool queueLocked ) {
+	if ( !queueLocked ) {
+		LockQueue( queue );
+	}
 
 	UnSetBit( &queues[queue].availableTasks, taskID );
 	queues[queue].tasks[taskID] = 0;
 
 	taskCount.fetch_sub( 1, std::memory_order_relaxed );
 
-	UnlockQueue( queue );
+	if ( !queueLocked ) {
+		UnlockQueue( queue );
+	}
 }
 
 bool TaskList::AddedToTaskRing( const uint16_t id ) {
@@ -241,7 +245,7 @@ bool TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) 
 		counter++;
 	}
 
-	task.dependencyCounter += counter;
+	task.dependencyCounter.fetch_add( counter, std::memory_order_relaxed );
 
 	return counter;
 }
@@ -260,8 +264,10 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 
 	task.bufferID = taskMemory - tasks.memory;
 
+	*taskMemory = task;
+
 	TaskRing* taskRing;
-	if ( ResolveDependencies( task, dependencies ) ) {
+	if ( ResolveDependencies( *taskMemory, dependencies ) ) {
 		task.id = forwardTaskRing.AddToTaskRing( task, false );
 		taskRing = &forwardTaskRing;
 	} else {
@@ -271,13 +277,18 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 
 	SetBit( &task.id, TASK_SHIFT_ALLOCATED );
 
-	task.dependencyCounter--;
+	taskMemory->id = task.id;
 
-	*taskMemory = task;
+	const uint32_t counter = taskMemory->dependencyCounter.fetch_sub( 1, std::memory_order_relaxed ) - 1;
+
+	if ( !counter && taskRing == &forwardTaskRing ) {
+		forwardTaskRing.RemoveTask( IDToTaskQueue( task.id ), IDToTaskID( task.id ), true );
+		taskRing->AddToTaskRing( task );
+	}
 
 	taskRing->UnlockQueue( IDToTaskQueue( task.id ) );
 
-	TLM.addTimer.Stop();
+	TLM.addTimer.Stop();	
 }
 
 void TaskList::AddTask( Task& task, std::initializer_list<Task> dependencies ) {
@@ -304,6 +315,12 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 	uint64_t mask = 0;
 
 	TLM.fetchOuterTimer.Start();
+
+	if ( !mainTaskRing.taskCount.load( std::memory_order_relaxed ) ) {
+		TLM.fetchOuterTimer.Stop();
+		return nullptr;
+	}
+
 	while ( true ) {
 		uint64_t expected = mainTaskRing.queueLocks.load();
 		uint64_t desired;
