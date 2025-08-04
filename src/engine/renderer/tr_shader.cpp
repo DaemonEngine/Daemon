@@ -4415,6 +4415,11 @@ static bool ParseShader( const char *_text )
 				return false;
 			}
 
+			if ( tr.worldLinearizeTexture )
+			{
+				convertFromSRGB( shader.fogParms.color );
+			}
+
 			token = COM_ParseExt2( text, false );
 
 			if ( !token[ 0 ] )
