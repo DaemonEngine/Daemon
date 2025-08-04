@@ -168,7 +168,7 @@ class AtomicRingBuffer :
 	}
 
 	T* GetNextElementMemory() {
-		uint64_t element = pointer.fetch_add( 1 );
+		uint64_t element = pointer.fetch_add( 1, std::memory_order_relaxed );
 		element &= mask;
 
 		while ( memory[element].active ) {
@@ -182,7 +182,7 @@ class AtomicRingBuffer :
 	}
 
 	T* GetCurrentElement() {
-		uint64_t expected = current.load();
+		uint64_t expected = current.load( std::memory_order_acquire );
 		uint64_t desired;
 
 		Timer t;
