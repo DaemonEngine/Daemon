@@ -658,10 +658,6 @@ static std::string GenComputeHeader() {
 		AddDefine( str, "BIND_DEBUG", BufferBind::DEBUG );
 	}
 
-	if ( glConfig2.usingBindlessTextures ) {
-		str += "layout(bindless_image) uniform;\n";
-	}
-
 	return str;
 }
 
