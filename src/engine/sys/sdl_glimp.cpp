@@ -2032,9 +2032,10 @@ static void GLimp_InitExtensions()
 		glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
 	}
 
-	// Shader limits
-	glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &glConfig2.maxUniformBlockSize );
+	// Shader limits.
+	// From GL_ARB_vertex_shader.
 	glGetIntegerv( GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, &glConfig2.maxVertexUniforms );
+	// From GL_ARB_vertex_program.
 	glGetIntegerv( GL_MAX_VERTEX_ATTRIBS_ARB, &glConfig2.maxVertexAttribs );
 
 	int reservedComponents = 36 * 10; // approximation how many uniforms we have besides the bone matrices
@@ -2362,6 +2363,12 @@ static void GLimp_InitExtensions()
 
 	// made required since OpenGL 3.1
 	glConfig2.uniformBufferObjectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_uniform_buffer_object, r_arb_uniform_buffer_object.Get() );
+
+	// Shader limits.
+	if ( glConfig2.uniformBufferObjectAvailable )
+	{
+		glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &glConfig2.maxUniformBlockSize );
+	}
 
 	// made required in OpenGL 3.0
 	glConfig2.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range.Get() );
