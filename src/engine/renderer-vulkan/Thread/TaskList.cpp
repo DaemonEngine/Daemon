@@ -228,7 +228,6 @@ void TaskList::FinishDependency( const uint16_t bufferID ) {
 
 template<IsTask T>
 void TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) {
-	uint32_t counter = 0;
 	for ( const T* dep = dependencies.start; dep < dependencies.end; dep++ ) {
 		if ( !BitSet( ( *dep )->id, TASK_SHIFT_ALLOCATED ) ) {
 			Sys::Drop( "Tried to add task with an unallocated dependency" );
@@ -248,12 +247,10 @@ void TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) 
 
 		dependency.forwardTasks[id] = task.bufferID;
 
+		task.dependencyCounter.fetch_add( 1, std::memory_order_relaxed );
+
 		dependency.forwardTaskLock.Unlock();
-
-		counter++;
 	}
-
-	task.dependencyCounter.fetch_add( counter, std::memory_order_relaxed );
 }
 
 template<IsTask T>
