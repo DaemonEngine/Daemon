@@ -1535,6 +1535,13 @@ void RB_RenderSSAO()
 
 	GLIMP_LOGCOMMENT( "--- RB_RenderSSAO ---" );
 
+	// Assume depth is dirty since we just rendered depth pass and everything opaque
+	if ( glConfig2.textureBarrierAvailable )
+	{
+		glTextureBarrier();
+		backEnd.dirtyDepthBuffer = false;
+	}
+
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
