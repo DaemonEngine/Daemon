@@ -69,7 +69,7 @@ struct TaskRing {
 
 	void RemoveTask( const uint8_t queue, const uint8_t taskID, const bool queueLocked = false );
 
-	uint16_t AddToTaskRing( Task& task, const bool unlockQueueAfterAdd = true );
+	void AddToTaskRing( Task& task, const bool unlockQueueAfterAdd = true );
 };
 
 using TaskInit = std::initializer_list<TaskProxy>;
@@ -104,14 +104,16 @@ class TaskList :
 		FORWARD = 1
 	};
 
-	static constexpr uint16_t TASK_RING_MASK = 3;
+	static constexpr uint16_t TASK_RING_MASK = 1;
 	static constexpr uint16_t TASK_QUEUE_MASK = 63;
 	static constexpr uint16_t TASK_ID_MASK = 63;
-	static constexpr uint16_t TASK_ALLOCATED_MASK = 1;
 
-	static constexpr uint16_t TASK_SHIFT_QUEUE = 2;
-	static constexpr uint16_t TASK_SHIFT_ID = 8;
-	static constexpr uint16_t TASK_SHIFT_ALLOCATED = 14;
+	static constexpr uint16_t TASK_SHIFT_QUEUE = 0;
+	static constexpr uint16_t TASK_SHIFT_ID = 6;
+	static constexpr uint16_t TASK_SHIFT_ALLOCATED = 12;
+	static constexpr uint16_t TASK_SHIFT_HAS_UNTRACKED_DEPS = 13;
+	static constexpr uint16_t TASK_SHIFT_TRACKED_DEPENDENCY = 14;
+	static constexpr uint16_t TASK_SHIFT_UPDATED_DEPENDENCY = 15;
 
 	FenceMain exitFence;
 
@@ -123,14 +125,15 @@ class TaskList :
 	void FinishShutdown();
 
 	bool AddedToTaskRing( const uint16_t id );
-	TaskRing& IDToTaskRing( const uint16_t id );
+	bool AddedToTaskMemory( const uint16_t id );
+	bool HasUntrackedDeps( const uint16_t id );
+	bool IsTrackedDependency( const uint16_t id );
+	bool IsUpdatedDependency( const uint16_t id );
+
 	uint8_t IDToTaskQueue( const uint16_t id );
 	uint16_t IDToTaskID( const uint16_t id );
 
-	template<IsTask T>
-	void AddTask( Task& task, TaskInitList<T>&& dependencies );
-
-	void AddTask( Task& task, std::initializer_list<Task> dependencies = {} );
+	void AddTask( Task& task, std::initializer_list<TaskProxy> dependencies = {} );
 	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
 	Task* FetchTask( Thread* thread, const bool longestTask );
 
@@ -150,10 +153,19 @@ class TaskList :
 	ALIGN_CACHE std::atomic<uint32_t> executingThreads = 1;
 	ALIGN_CACHE std::atomic<bool> exiting = false;
 
-	constexpr TaskRing& TaskRingIDToTaskRing( const TaskRingID taskRingID );
+	Task* GetTaskMemory( Task& task );
 
 	template<IsTask T>
 	void ResolveDependencies( Task& task, TaskInitList<T>& dependencies );
+
+	template<IsTask T>
+	void AddTask( Task& task, TaskInitList<T>&& dependencies );
+
+	template<IsTask T>
+	void MarkDependencies( Task& task, TaskInitList<T>&& dependencies );
+
+	template<IsTask T>
+	void UnMarkDependencies( TaskInitList<T>&& dependencies );
 
 	void MoveToTaskRing( TaskRing& taskRing, Task& task );
 };

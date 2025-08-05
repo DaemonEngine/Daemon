@@ -151,8 +151,20 @@ bool TaskList::AddedToTaskRing( const uint16_t id ) {
 	return BitSet( id, TASK_SHIFT_ALLOCATED );
 }
 
-TaskRing& TaskList::IDToTaskRing( const uint16_t id ) {
-	return TaskRingIDToTaskRing( ( TaskRingID ) ( id & TASK_RING_MASK ) );
+bool TaskList::AddedToTaskMemory( const uint16_t id ) {
+	return id != Task::UNALLOCATED;
+}
+
+bool TaskList::HasUntrackedDeps( const uint16_t id ) {
+	return BitSet( id, TASK_SHIFT_HAS_UNTRACKED_DEPS );
+}
+
+bool TaskList::IsTrackedDependency( const uint16_t id ) {
+	return BitSet( id, TASK_SHIFT_TRACKED_DEPENDENCY );
+}
+
+bool TaskList::IsUpdatedDependency( const uint16_t id ) {
+	return BitSet( id, TASK_SHIFT_UPDATED_DEPENDENCY );
 }
 
 uint8_t TaskList::IDToTaskQueue( const uint16_t id ) {
@@ -163,22 +175,11 @@ uint16_t TaskList::IDToTaskID( const uint16_t id ) {
 	return ( id >> TASK_SHIFT_ID ) & TASK_ID_MASK;
 }
 
-constexpr TaskRing& TaskList::TaskRingIDToTaskRing( const TaskRingID taskRingID ) {
-	switch ( taskRingID ) {
-		case MAIN:
-			return mainTaskRing;
-		case FORWARD:
-			return mainTaskRing; // forwardTaskRing;
-		default:
-			ASSERT_UNREACHABLE();
-	}
-}
-
 /* If unlockQueueAfterAdd is true, the queue this task was added to will bbe locked automatically
 before this function returns
 Otherwise you must use taskRing.UnlockQueue( IDToTaskQueue( task.id ) ) to unlock the queue after using this function!
 This is required to avoid race conditions because some of the code calling AddToTaskRing() further modifies the task */
-uint16_t TaskRing::AddToTaskRing( Task& task, const bool unlockQueueAfterAdd ) {
+void TaskRing::AddToTaskRing( Task& task, const bool unlockQueueAfterAdd ) {
 	uint8_t queue;
 	while ( true ) {
 		queue = LockQueueForTask( &task );
@@ -202,10 +203,6 @@ uint16_t TaskRing::AddToTaskRing( Task& task, const bool unlockQueueAfterAdd ) {
 	}
 
 	taskCount.fetch_add( 1, std::memory_order_relaxed );
-
-	return id | ( queue << TaskList::TASK_SHIFT_QUEUE )
-	          | ( taskSlot << TaskList::TASK_SHIFT_ID )
-	          | ( 1 << TaskList::TASK_SHIFT_ALLOCATED );
 }
 
 void TaskList::MoveToTaskRing( TaskRing& taskRing, Task& task ) {
@@ -229,8 +226,12 @@ void TaskList::FinishDependency( const uint16_t bufferID ) {
 template<IsTask T>
 void TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) {
 	for ( const T* dep = dependencies.start; dep < dependencies.end; dep++ ) {
-		if ( !BitSet( ( *dep )->id, TASK_SHIFT_ALLOCATED ) ) {
+		if ( !AddedToTaskMemory( ( *dep )->bufferID ) ) {
 			Sys::Drop( "Tried to add task with an unallocated dependency" );
+		}
+
+		if ( IsTrackedDependency( ( *dep )->id ) ) {
+			continue;
 		}
 
 		Task& dependency = tasks[( *dep )->bufferID];
@@ -253,6 +254,23 @@ void TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) 
 	}
 }
 
+Task* TaskList::GetTaskMemory( Task& task ) {
+	if ( AddedToTaskMemory( task.bufferID ) ) {
+		return &tasks[task.bufferID];
+	}
+
+	Task* taskMemory = tasks.GetNextElementMemory();
+
+	taskMemory->active = true;
+	task.active = true;
+
+	task.bufferID = taskMemory - tasks.memory;
+
+	*taskMemory = task;
+
+	return taskMemory;
+}
+
 template<IsTask T>
 void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 	if ( exiting.load( std::memory_order_relaxed ) && !task.shutdownTask ) {
@@ -261,41 +279,104 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 
 	TLM.addTimer.Start();
 
-	Task* taskMemory = tasks.GetNextElementMemory();
-	taskMemory->active = true;
-	task.active = true;
-
-	task.bufferID = taskMemory - tasks.memory;
-
-	*taskMemory = task;
-
-	ResolveDependencies( *taskMemory, dependencies );
+	Task* taskMemory = GetTaskMemory( task );
 
 	SetBit( &task.id, TASK_SHIFT_ALLOCATED );
 
 	taskMemory->id = task.id;
 
-	const uint32_t counter = taskMemory->dependencyCounter.fetch_sub( 1, std::memory_order_relaxed ) - 1;
+	if ( HasUntrackedDeps( task.id ) ) {
+		ResolveDependencies( *taskMemory, dependencies );
 
-	if ( !counter ) {
+		const uint32_t counter = taskMemory->dependencyCounter.fetch_sub( 1, std::memory_order_relaxed ) - 1;
+
+		if ( !counter ) {
+			mainTaskRing.AddToTaskRing( *taskMemory );
+		}
+	} else if ( !( dependencies.end - dependencies.start ) ) {
 		mainTaskRing.AddToTaskRing( *taskMemory );
 	}
 
-	TLM.addTimer.Stop();	
+	TLM.addTimer.Stop();
 }
 
-void TaskList::AddTask( Task& task, std::initializer_list<Task> dependencies ) {
-	AddTask( task, TaskInitList{ dependencies.begin(), dependencies.end() } );
+template<IsTask T>
+void TaskList::MarkDependencies( Task& task, TaskInitList<T>&& dependencies ) {
+	Task* mainTask = GetTaskMemory( task );
+	uint32_t dependencyCounter = 0;
+
+	for ( const T* dep = dependencies.start; dep < dependencies.end; dep++ ) {
+		if ( !AddedToTaskRing( ( *dep )->id ) ) {
+			Task* taskMemory = GetTaskMemory( ( *dep ).GetTask() );
+
+			taskMemory->forwardTasks[taskMemory->forwardTaskCounterFast] = mainTask->bufferID;
+			taskMemory->forwardTaskCounterFast++;
+
+			SetBit( &( *dep )->id, TASK_SHIFT_TRACKED_DEPENDENCY );
+
+			dependencyCounter++;
+		}
+	}
+
+	if ( dependencyCounter != ( dependencies.end - dependencies.start ) ) {
+		SetBit( &task.id, TASK_SHIFT_HAS_UNTRACKED_DEPS );
+
+		mainTask->dependencyCounter += dependencyCounter;
+	} else {
+		mainTask->dependencyCounter += dependencyCounter - 1;
+	}
+}
+
+template<IsTask T>
+void TaskList::UnMarkDependencies( TaskInitList<T>&& dependencies ) {
+	for ( const T* dep = dependencies.start; dep < dependencies.end; dep++ ) {
+		UnSetBit( &( *dep )->id, TASK_SHIFT_TRACKED_DEPENDENCY );
+		UnSetBit( &( *dep )->id, TASK_SHIFT_UPDATED_DEPENDENCY );
+	}
+}
+
+void TaskList::AddTask( Task& task, std::initializer_list<TaskProxy> dependencies ) {
+	MarkDependencies( task, TaskInitList { dependencies.begin(), dependencies.end() } );
+
+	AddTask( task, TaskInitList { dependencies.begin(), dependencies.end() } );
+
+	UnMarkDependencies( TaskInitList{ dependencies.begin(), dependencies.end() } );
 }
 
 void TaskList::AddTasksExt( std::initializer_list<TaskInit> dependencies ) {
+	// TODO: Currently this is an O( 4 * n ) loop. The tasks form a DAG, which we can instead flatten in O( n ), then loop in O( n )
+	for ( const TaskInit& taskInit : dependencies ) {
+		MarkDependencies( taskInit.begin()[0].task, TaskInitList { &taskInit.begin()[1], taskInit.end() } );
+	}
+
+	/* Tracked dependencies are those that we allocated in the AtomicRingBuffer during this function call.
+	This allows us to skip a bunch of atomics, but we have to update the forwardTaskCounters
+	*before* we add any of the tasks to the task ring.
+	Otherwise we could end up updating it after other threads have already finished all of the dependencies.
+	Flattening the DAG would get rid of the need to do this because we'd just add tasks starting from the end of the graph */
+	for ( const TaskInit& taskInit : dependencies ) {
+		for ( const TaskProxy* task = &taskInit.begin()[1]; task < taskInit.end(); task++ ) {
+			if ( IsTrackedDependency( task->task.id ) && !IsUpdatedDependency( task->task.id ) ) {
+				Task* taskMemory = GetTaskMemory( task->task );
+				taskMemory->forwardTaskCounter = taskMemory->forwardTaskCounterFast;
+
+				SetBit( &task->task.id, TASK_SHIFT_UPDATED_DEPENDENCY );
+			}
+		}
+	}
+
 	for ( const TaskInit& taskInit : dependencies ) {
 		for ( const TaskProxy* task = &taskInit.begin()[1]; task < taskInit.end(); task++ ) {
 			if ( !AddedToTaskRing( task->task.id ) ) {
 				AddTask( task->task );
 			}
 		}
+
 		AddTask( taskInit.begin()[0].task, TaskInitList{ &taskInit.begin()[1], taskInit.end() } );
+	}
+
+	for ( const TaskInit& taskInit : dependencies ) {
+		UnMarkDependencies( TaskInitList{ &taskInit.begin()[1], taskInit.end() } );
 	}
 }
 

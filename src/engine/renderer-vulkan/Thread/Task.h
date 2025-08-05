@@ -58,9 +58,12 @@ struct Task {
 
 	ALIGN_CACHE std::atomic<uint32_t> dependencyCounter = 1;
 	std::atomic<uint32_t> forwardTaskCounter = 0;
+	uint32_t forwardTaskCounterFast = 0;
 
-	uint16_t id = 0; // LSB->MSB: 2 bits - taskRing, 6 bits - queue, 6 bits - queue slot, 1 bit - added to taskList
-	uint16_t bufferID; // Task RingBuffer id
+	uint16_t id = 0; // LSB->MSB: 6 bits - queue, 6 bits - queue slot, 4 bits - task memory/dependency tracking in TaskList
+
+	static constexpr uint32_t UNALLOCATED = UINT16_MAX;
+	uint16_t bufferID = UNALLOCATED; // Task RingBuffer id
 	AccessLock forwardTaskLock;
 
 	// bool useTaskFence = false;
@@ -104,6 +107,10 @@ struct Task {
 	const Task* operator->() const {
 		return this;
 	}
+
+	constexpr Task& GetTask() {
+		return *this;
+	}
 };
 
 struct TaskProxy {
@@ -115,6 +122,10 @@ struct TaskProxy {
 
 	Task* operator->() const {
 		return &task;
+	}
+
+	constexpr Task& GetTask() const {
+		return task;
 	}
 };
 
