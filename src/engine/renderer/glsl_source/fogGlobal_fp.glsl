@@ -24,8 +24,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #insert common
 
-uniform sampler2D	u_ColorMap; // fog texture
-uniform sampler2D	u_DepthMap;
+#define DEPTHMAP_GLSL
+#define FOGMAP_GLSL
+
+uniform sampler2D u_FogMap;
+uniform sampler2D u_DepthMap;
 
 uniform colorPack u_Color;
 
@@ -40,6 +43,8 @@ out vec4 outputColor;
 
 void	main()
 {
+	#insert material_fp
+
 	// calculate the screen texcoord in the 0.0 to 1.0 range
 	vec2 st = gl_FragCoord.st / r_FBufSize;
 
@@ -53,7 +58,7 @@ void	main()
 	// st.s = vertexDistanceToCamera;
 	st.t = 1.0;
 
-	vec4 color = texture2D(u_ColorMap, st);
+	vec4 color = texture2D( u_FogMap, st );
 
 	outputColor = UnpackColor( u_Color ) * color;
 }
