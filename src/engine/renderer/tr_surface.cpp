@@ -531,13 +531,21 @@ void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const
 void Tess_InstantScreenSpaceQuad() {
 	GLIMP_LOGCOMMENT( "--- Tess_InstantScreenSpaceQuad ---" );
 
-	tr.skipVBO = true;
-
-	Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
-	rb_surfaceTable[Util::ordinal( *( tr.genericTriangle->surface ) )]( tr.genericTriangle->surface );
-	Tess_DrawElements();
-
-	tr.skipVBO = false;
+	if ( glConfig2.gpuShader4Available )
+	{
+		tr.skipVBO = true;
+		Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
+		rb_surfaceTable[Util::ordinal( *( tr.genericTriangle->surface ) )]( tr.genericTriangle->surface );
+		Tess_DrawElements();
+		tr.skipVBO = false;
+	}
+	else
+	{
+		Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
+		rb_surfaceTable[Util::ordinal( *( tr.genericQuad->surface ) )]( tr.genericQuad->surface );
+		GL_VertexAttribsState( ATTR_POSITION );
+		Tess_DrawElements();
+	}
 
 	GL_CheckErrors();
 
