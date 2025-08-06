@@ -555,23 +555,15 @@ void R_BindNullIBO()
 
 static void R_InitGenericVBOs() {
 	// Min and max coordinates of the quad
-	static const vec3_t min = { 0.0f, 0.0f, 0.0f };
+	static const vec3_t min = { -1.0f, -1.0f, 0.0f };
 	static const vec3_t max = { 1.0f, 1.0f, 0.0f };
 	{
 		/*
 			Quad is a static mesh with 4 vertices and 2 triangles
 
-			 z
-			 ^
-			 |     1------2
-			 |   y |      |
-			 |  /  |      |
-			 | /   |      |
-			 |/    0------3
-			 0---------->x
 			   Verts:
-			   0: 0.0 0.0 0.0
-			   1: 0.0 1.0 0.0
+			   0: -1.0 0.0 0.0
+			   1: -1.0 1.0 0.0
 			   2: 1.0 1.0 0.0
 			   3: 1.0 0.0 0.0
 			   Surfs:
