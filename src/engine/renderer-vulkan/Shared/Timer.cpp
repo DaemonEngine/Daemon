@@ -110,10 +110,8 @@ void Timer::Clear() {
 
 uint64_t Timer::Restart() {
 	Stop();
-
 	const uint64_t diff = runTime;
-	runTime = 0;
-	running = true;
+	Start();
 
 	return diff;
 }
