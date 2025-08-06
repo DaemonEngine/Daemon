@@ -2405,26 +2405,28 @@ static void R_CreateFogImage()
 {
 	// Fog image is always created because disabling fog is cheat.
 
-	int   x, y;
-	byte  *data, *ptr;
-	float d;
-	float borderColor[ 4 ];
+	constexpr size_t FOG_S = 256;
+	constexpr size_t FOG_T = 32;
+	constexpr channels = 4;
 
-	constexpr int FOG_S = 256;
-	constexpr int FOG_T = 32;
-
-	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
+	byte *dataNaive, *ptrNaive;
+	byte *dataLinear, *ptrLinear;
+	ptrNaive = dataNaive = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * channels );
+	ptrLinear = dataLinear = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * channels );
 
 	// S is distance, T is depth
-	for ( y = 0; y < FOG_T; y++ )
+	for ( int y = 0; y < FOG_T; y++ )
 	{
-		for ( x = 0; x < FOG_S; x++ )
+		for ( int x = 0; x < FOG_S; x++ )
 		{
-			d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
+			float d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
 
-			ptr[ 0 ] = ptr[ 1 ] = ptr[ 2 ] = 255;
-			ptr[ 3 ] = 255 * d;
-			ptr += 4;
+			ptrNaive[ 0 ] = ptrNaive[ 1 ] = ptrNaive[ 2 ] = 255;
+			ptrLinear[ 0 ] = ptrLinear[ 1 ] = ptrLinear[ 2 ] = 255;
+			ptrNaive[ 3 ] = 255 * d;
+			ptrLinear[ 3 ] = 255 * convertFromSRGB( d );
+			ptrNaive += channels;
+			ptrLinear += channels;
 		}
 	}
 
@@ -2436,13 +2438,18 @@ static void R_CreateFogImage()
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.fogImage = R_CreateImage( "_fog", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
-	ri.Hunk_FreeTempMemory( data );
+	tr.fogImageNaive = R_CreateImage( "_fogNaive", ( const byte ** ) &dataNaive, FOG_S, FOG_T, 1, imageParams );
+	tr.fogImageLinear = R_CreateImage( "_fogLinear", ( const byte ** ) &dataLinear, FOG_S, FOG_T, 1, imageParams );
 
-	borderColor[ 0 ] = 1.0;
-	borderColor[ 1 ] = 1.0;
-	borderColor[ 2 ] = 1.0;
-	borderColor[ 3 ] = 1;
+	ri.Hunk_FreeTempMemory( dataNaive );
+	ri.Hunk_FreeTempMemory( dataLinear );
+
+	/* Just to be safe and not leave a null pointer in the wild.
+	This is modified when a map is loaded. */
+	tr.fogImage = tr.fogImageNaive;
+
+	vec4_t borderColor;
+	Vector4Set( borderColor, 1.0f, 1.0f, 1.0f, 1.0f );
 
 	glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor );
 }
