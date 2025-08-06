@@ -2404,27 +2404,23 @@ R_CreateFogImage
 static void R_CreateFogImage()
 {
 	// Fog image is always created because disabling fog is cheat.
+	constexpr size_t FOG_S = 256;
+	constexpr size_t FOG_T = 32;
+	constexpr size_t channels = 4;
 
-	int   x, y;
-	byte  *data, *ptr;
-	float d;
-	float borderColor[ 4 ];
-
-	constexpr int FOG_S = 256;
-	constexpr int FOG_T = 32;
-
-	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
+	byte *data, *ptr;
+	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * channels );
 
 	// S is distance, T is depth
-	for ( y = 0; y < FOG_T; y++ )
+	for ( size_t y = 0; y < FOG_T; y++ )
 	{
-		for ( x = 0; x < FOG_S; x++ )
+		for ( size_t x = 0; x < FOG_S; x++ )
 		{
-			d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
+			float d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
 
 			ptr[ 0 ] = ptr[ 1 ] = ptr[ 2 ] = 255;
 			ptr[ 3 ] = 255 * d;
-			ptr += 4;
+			ptr += channels;
 		}
 	}
 
@@ -2439,10 +2435,8 @@ static void R_CreateFogImage()
 	tr.fogImage = R_CreateImage( "_fog", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
 	ri.Hunk_FreeTempMemory( data );
 
-	borderColor[ 0 ] = 1.0;
-	borderColor[ 1 ] = 1.0;
-	borderColor[ 2 ] = 1.0;
-	borderColor[ 3 ] = 1;
+ 	vec4_t borderColor;
+ 	Vector4Set( borderColor, 1.0f, 1.0f, 1.0f, 1.0f );
 
 	glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor );
 }
