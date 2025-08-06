@@ -164,6 +164,7 @@ public:
 			 internal component resolutions of its own choosing, referred to as the effective internal format."
 			 Use 4 bytes as an estimate: */
 			{ GL_RGBA, { "RGBA", 4 } },
+			{ GL_RED, { "RED", 1 } },
 
 			{ GL_RGB8, { "RGB8", 3 } },
 			{ GL_RGBA8, { "RGBA8", 4 } },
@@ -932,6 +933,18 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	{
 		format = GL_DEPTH_STENCIL;
 		internalFormat = GL_DEPTH24_STENCIL8;
+	}
+	else if ( image->bits & IF_RED )
+	{
+		if ( isSRGB && !glConfig.textureSrgbR8Available )
+		{
+			Log::Warn("red image '%s' cannot be loaded as sRGB", image->name );
+			internalFormat = GL_RGB8;
+		}
+		else
+		{
+			internalFormat = GL_RED;
+		}
 	}
 	else if ( image->bits & ( IF_RGBA16F | IF_RGBA32F | IF_TWOCOMP16F | IF_TWOCOMP32F | IF_ONECOMP16F | IF_ONECOMP32F ) )
 	{
