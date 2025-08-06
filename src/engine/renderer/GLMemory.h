@@ -275,11 +275,6 @@ class GLVAO {
 		glVertexArrayElementBuffer( id, buffer.id );
 	}
 
-	// For compatibility with IBO_t
-	void SetIndexBuffer( const GLuint bufferID ) {
-		glVertexArrayElementBuffer( id, bufferID );
-	}
-
 	void GenVAO() {
 		glGenVertexArrays( 1, &id );
 	}
