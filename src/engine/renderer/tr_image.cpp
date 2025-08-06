@@ -176,6 +176,7 @@ public:
 			{ GL_RGBA32UI, { "RGBA32UI", 16 } },
 			{ GL_ALPHA16F_ARB, { "A16F", 2 } },
 			{ GL_ALPHA32F_ARB, { "A32F", 4 } },
+			{ GL_RED, { "R8", 1 } },
 			{ GL_R16F, { "R16F", 2 } },
 			{ GL_R32F, { "R32F", 4 } },
 			{ GL_LUMINANCE_ALPHA16F_ARB, { "LA16F", 4 } },
@@ -932,6 +933,18 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	{
 		format = GL_DEPTH_STENCIL;
 		internalFormat = GL_DEPTH24_STENCIL8;
+	}
+	else if ( image->bits & IF_RED )
+	{
+		if( isSRGB && !glConfig2.textureSrgbR8Available )
+		{
+			Log::Warn("red image '%s' cannot be loaded as sRGB", image->name );
+			internalFormat = GL_RGBA8;
+		}
+		else
+		{
+			internalFormat = GL_RED;
+		}
 	}
 	else if ( image->bits & ( IF_RGBA16F | IF_RGBA32F | IF_TWOCOMP16F | IF_TWOCOMP32F | IF_ONECOMP16F | IF_ONECOMP32F ) )
 	{
@@ -2432,6 +2445,11 @@ static void R_CreateFogImage()
 	imageParams.bits = IF_NOPICMIP;
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+
+	if ( glConfig2.textureSrgbR8Available )
+	{
+		imageParams.bits |= IF_RED;
+	}
 
 	tr.fogImageNaive = R_CreateImage( "_fogNaive", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
 
