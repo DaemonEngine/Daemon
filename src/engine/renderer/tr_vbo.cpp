@@ -456,7 +456,7 @@ void SetupVAOBuffers( VBO_t* VBO, const IBO_t* IBO, const uint32_t stateBits,
 	GL_VertexAttribsState( stateBits, true );
 
 	if ( IBO ) {
-		VAO->SetIndexBuffer( IBO->indexesVBO );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, IBO->indexesVBO );
 	}
 
 	GL_BindVAO( backEnd.defaultVAO );
