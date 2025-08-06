@@ -3954,6 +3954,8 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 			tr.convertColorFromSRGB = convertColorFromSRGB_cheap;
 		}
 	}
+
+	tr.fogImage =  tr.worldLinearizeTexture ? tr.fogImageLinear : tr.fogImageNaive;
 }
 
 /*

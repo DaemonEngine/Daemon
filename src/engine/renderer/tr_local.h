@@ -2449,7 +2449,9 @@ enum
 
 		image_t    *defaultImage;
 		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
-		image_t    *fogImage;
+		image_t    *fogImage; // Will be set to either fogImageNaive or fogImageSrgb.
+		image_t    *fogImageNaive;
+		image_t    *fogImageLinear;
 		image_t    *whiteImage; // full of 0xff
 		image_t    *blackImage; // full of 0x0
 		image_t    *redImage;
