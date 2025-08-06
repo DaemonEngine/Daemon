@@ -2407,26 +2407,21 @@ static void R_CreateFogImage()
 
 	constexpr size_t FOG_S = 256;
 	constexpr size_t FOG_T = 32;
-	constexpr channels = 4;
+	constexpr size_t channels = 4;
 
-	byte *dataNaive, *ptrNaive;
-	byte *dataLinear, *ptrLinear;
-	ptrNaive = dataNaive = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * channels );
-	ptrLinear = dataLinear = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * channels );
+	byte *data, *ptr;
+	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * channels );
 
 	// S is distance, T is depth
-	for ( int y = 0; y < FOG_T; y++ )
+	for ( size_t y = 0; y < FOG_T; y++ )
 	{
-		for ( int x = 0; x < FOG_S; x++ )
+		for ( size_t x = 0; x < FOG_S; x++ )
 		{
 			float d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
 
-			ptrNaive[ 0 ] = ptrNaive[ 1 ] = ptrNaive[ 2 ] = 255;
-			ptrLinear[ 0 ] = ptrLinear[ 1 ] = ptrLinear[ 2 ] = 255;
-			ptrNaive[ 3 ] = 255 * d;
-			ptrLinear[ 3 ] = 255 * convertFromSRGB( d );
-			ptrNaive += channels;
-			ptrLinear += channels;
+			ptr[ 0 ] = 255 * d;
+			ptr[ 1 ] = ptr[ 2 ] = ptr[ 3 ] = 255;
+			ptr += channels;
 		}
 	}
 
@@ -2438,11 +2433,12 @@ static void R_CreateFogImage()
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.fogImageNaive = R_CreateImage( "_fogNaive", ( const byte ** ) &dataNaive, FOG_S, FOG_T, 1, imageParams );
-	tr.fogImageLinear = R_CreateImage( "_fogLinear", ( const byte ** ) &dataLinear, FOG_S, FOG_T, 1, imageParams );
+	tr.fogImageNaive = R_CreateImage( "_fogNaive", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
 
-	ri.Hunk_FreeTempMemory( dataNaive );
-	ri.Hunk_FreeTempMemory( dataLinear );
+	imageParams.bits |= IF_SRGB;
+	tr.fogImageLinear = R_CreateImage( "_fogLinear", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
+
+	ri.Hunk_FreeTempMemory( data );
 
 	/* Just to be safe and not leave a null pointer in the wild.
 	This is modified when a map is loaded. */

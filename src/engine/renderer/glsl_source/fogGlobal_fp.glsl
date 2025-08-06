@@ -53,7 +53,7 @@ void	main()
 	// st.s = vertexDistanceToCamera;
 	st.t = 1.0;
 
-	vec4 color = texture2D(u_ColorMap, st);
+	vec4 color = vec4( vec3( 1.0 ), texture2D( u_ColorMap, st ).r );
 
 	outputColor = UnpackColor( u_Color ) * color;
 }
