@@ -3277,6 +3277,13 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	// compute state bits
 	stage->stateBits = colorMaskBits | depthMaskBits | blendSrcBits | blendDstBits | atestBits | depthFuncBits | polyModeBits;
 
+	// Do not load heatHaze maps when r_heatHaze is disabled.
+	if ( stage->type == stageType_t::ST_HEATHAZEMAP && !r_heatHaze->integer )
+	{
+		stage->active = false;
+		return true;
+	}
+
 	// load image
 	if ( loadMap && !LoadMap( stage, buffer, stage->type ) )
 	{
@@ -5181,7 +5188,6 @@ static void FinishStages()
 		switch ( stage->type )
 		{
 			case stageType_t::ST_HEATHAZEMAP:
-				stage->active = r_heatHaze->integer;
 				stage->stateBits &= ~( GLS_ATEST_BITS | GLS_DEPTHMASK_TRUE );
 				break;
 
