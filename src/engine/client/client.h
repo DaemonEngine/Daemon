@@ -315,7 +315,7 @@ struct clientStatic_t
 	glconfig_t  glconfig;
 	glconfig2_t glconfig2;
 	qhandle_t   charSetShader;
-	qhandle_t   whiteShader;
+	qhandle_t   whiteShader; // used for console drawing
 	bool    useLegacyConsoleFont;
 	bool    useLegacyConsoleFace;
 	fontInfo_t *consoleFont;
