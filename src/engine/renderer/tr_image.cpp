@@ -164,6 +164,7 @@ public:
 			 internal component resolutions of its own choosing, referred to as the effective internal format."
 			 Use 4 bytes as an estimate: */
 			{ GL_RGBA, { "RGBA", 4 } },
+			{ GL_RED, { "RED", 1 } },
 
 			{ GL_RGB8, { "RGB8", 3 } },
 			{ GL_RGBA8, { "RGBA8", 4 } },
@@ -176,10 +177,12 @@ public:
 			{ GL_RGBA32UI, { "RGBA32UI", 16 } },
 			{ GL_ALPHA16F_ARB, { "A16F", 2 } },
 			{ GL_ALPHA32F_ARB, { "A32F", 4 } },
+			{ GL_R8, { "R8", 1 } },
 			{ GL_R16F, { "R16F", 2 } },
 			{ GL_R32F, { "R32F", 4 } },
 			{ GL_LUMINANCE_ALPHA16F_ARB, { "LA16F", 4 } },
 			{ GL_LUMINANCE_ALPHA32F_ARB, { "LA32F", 8 } },
+			{ GL_RG8, { "RG8", 2 } },
 			{ GL_RG16F, { "RG16F", 4 } },
 			{ GL_RG32F, { "RG32F", 8 } },
 
@@ -1086,8 +1089,85 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 					break;
 				}
 			}
+		}
 
-			internalFormat = hasAlpha ? GL_RGBA8 : GL_RGB8;
+		if ( internalFormat == GL_RGB8 )
+		{
+			/* Scan the texture for green and blue channels' max values
+			and verify if the green and blue channels are being used or not. */
+
+			bool hasGreen = false;
+			bool hasBlue = false;
+
+			c = image->width * image->height;
+
+			for ( int l = 0; l < numLayers; l++ )
+			{
+				scan = dataArray[ l ];
+
+				for ( i = 0; i < c * 4; i += 4 )
+				{
+					if ( scan[ i + 2 ] != 0 )
+					{
+						// We need GL_RGB8.
+						hasBlue = true;
+						break;
+					}
+
+					if ( scan[ i + 1 ] != 0 )
+					{
+						hasGreen = true;
+
+						if ( !glConfig.textureRGAvailable )
+						{
+							// We can't store RG so we can stop there and use GL_RGB8.
+							break;
+						}
+						// Else continue to make sure there is no blue at all.
+					}
+
+					// Else use GL_RED or GL_R8.
+				}
+
+				if ( hasBlue || ( hasGreen && !glConfig.textureRGAvailable ) )
+				{
+					break;
+				}
+			}
+
+			if ( hasBlue )
+			{
+				// Keep GL_RGB8.
+			}
+			else if ( hasGreen )
+			{
+				if ( !glConfig.textureRGAvailable )
+				{
+					// Keep GL_RGB8.
+				}
+				else
+				{
+					if ( isSRGB && !glConfig.textureSrgbRG8Available )
+					{
+						// Keep GL_RGB8.
+					}
+					else
+					{
+						internalFormat = GL_RG8;
+					}
+				}
+			}
+			else
+			{
+				if ( isSRGB && !glConfig.textureSrgbR8Available )
+				{
+					// Keep GL_RGB8.
+				}
+				else
+				{
+					internalFormat = glConfig.textureRGAvailable ? GL_R8 : GL_RED;
+				}
+			}
 		}
 	}
 
