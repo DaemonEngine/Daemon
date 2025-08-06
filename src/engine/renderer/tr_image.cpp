@@ -2418,8 +2418,8 @@ static void R_CreateFogImage()
 		{
 			float d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
 
-			ptr[ 0 ] = ptr[ 1 ] = ptr[ 2 ] = 255;
-			ptr[ 3 ] = 255 * d;
+			ptr[ 0 ] = 255 * d;
+			ptr[ 1 ] = ptr[ 2 ] = ptr[ 3 ] = 255;
 			ptr += channels;
 		}
 	}
