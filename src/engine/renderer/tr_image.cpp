@@ -2442,18 +2442,15 @@ static void R_CreateFogImage()
 	// the border color at the edges.  OpenGL 1.2 has clamp-to-edge, which does
 	// what we want.
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_RED;
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	if ( glConfig2.textureSrgbR8Available )
-	{
-		imageParams.bits |= IF_RED;
-	}
-
 	tr.fogImageNaive = R_CreateImage( "_fogNaive", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
 
-	imageParams.bits |= IF_SRGB;
+	imageParams.bits = IF_NOPICMIP | IF_SRGB;
+	imageParams.bits |= glConfig2.textureSrgbR8Available ? IF_RED : 0;
+
 	tr.fogImageLinear = R_CreateImage( "_fogLinear", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
 
 	ri.Hunk_FreeTempMemory( data );
