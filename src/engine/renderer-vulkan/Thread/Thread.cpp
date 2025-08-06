@@ -62,7 +62,6 @@ void Thread::Run() {
 	static const uint64_t RUNTIME_GATHER_PERIOD = 1000000000;
 
 	total.Clear();
-	fetching.Clear();
 	idle.Clear();
 	execing.Clear();
 
@@ -84,9 +83,15 @@ void Thread::Run() {
 
 		ASSERT_EQ( task, nullptr );
 
-		fetching.Start();
+		Timer fetching;
 		task = taskList.FetchTask( this, true );
 		fetching.Stop();
+
+		if ( task ) {
+			fetchTask += fetching.Time();
+		} else {
+			fetchIdle += fetching.Time();
+		}
 
 		if ( !task ) {
 			idle.Start();
@@ -146,8 +151,9 @@ void Thread::Exit() {
 
 	Log::NoticeTag( "\nid: %u", id );
 
-	Log::NoticeTag( "id: %u: total: %s, fetching: %s, execing: %s, dependency: %s, idle: %s", id, total.FormatTime( Timer::ms ),
-		fetching.FormatTime( Timer::ms ), execing.FormatTime( Timer::ms ), dependencyTimer.FormatTime( Timer::ms ),
+	Log::NoticeTag( "id: %u: total: %s, fetching (task/idle): %s/%s, execing: %s, dependency: %s, idle: %s",
+		id, total.FormatTime( Timer::ms ), Timer::FormatTime( fetchTask, Timer::ms ), Timer::FormatTime( fetchIdle, Timer::ms ),
+		execing.FormatTime( Timer::ms ), dependencyTimer.FormatTime( Timer::ms ),
 		idle.FormatTime( Timer::ms ) );
 
 	Log::NoticeTag( "id: %u: fetch: queueLock: %s, outer: %s, add: %s, sync: %s", id,

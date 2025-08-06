@@ -70,7 +70,8 @@ class Thread :
 	bool exiting = false;
 
 	GlobalTimer total;
-	GlobalTimer fetching;
+	uint64_t fetchTask = 0;
+	uint64_t fetchIdle = 0;
 	GlobalTimer idle;
 	GlobalTimer execing;
 	GlobalTimer dependencyTimer;
