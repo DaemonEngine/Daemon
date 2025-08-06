@@ -531,13 +531,21 @@ void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const
 void Tess_InstantScreenSpaceQuad() {
 	GLIMP_LOGCOMMENT( "--- Tess_InstantScreenSpaceQuad ---" );
 
-	tr.skipVBO = true;
-
-	Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
-	rb_surfaceTable[Util::ordinal( *( tr.genericTriangle->surface ) )]( tr.genericTriangle->surface );
-	Tess_DrawElements();
-
-	tr.skipVBO = false;
+	if ( glConfig2.gpuShader4Available )
+	{
+		tr.skipVBO = true;
+		Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
+		rb_surfaceTable[Util::ordinal( *( tr.genericTriangle->surface ) )]( tr.genericTriangle->surface );
+		Tess_DrawElements();
+		tr.skipVBO = false;
+	}
+	else
+	{
+		Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
+		rb_surfaceTable[Util::ordinal( *( tr.genericQuad->surface ) )]( tr.genericQuad->surface );
+		GL_VertexAttribsState( ATTR_POSITION );
+		Tess_DrawElements();
+	}
 
 	GL_CheckErrors();
 
@@ -550,12 +558,15 @@ void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, const float x, const
 
 	Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
 
+	/* We don't use x, y, width, height directly to make it compatible
+	with R_InitGenericVBOs() in tr_vbo.cpp.
+	See: https://github.com/DaemonEngine/Daemon/pull/1739 */
 	matrix_t modelViewMatrix;
 	MatrixCopy( matrixIdentity, modelViewMatrix );
-	modelViewMatrix[12] = x;
-	modelViewMatrix[13] = y;
-	modelViewMatrix[0] = width;
-	modelViewMatrix[5] = height;
+	modelViewMatrix[12] = 0.5f * width + x;
+	modelViewMatrix[13] = 0.5f * height + y;
+	modelViewMatrix[0] = 0.5f * width;
+	modelViewMatrix[5] = 0.5f * height;
 	GL_LoadModelViewMatrix( modelViewMatrix );
 	shader.SetUniform_ModelViewProjectionMatrix(
 		glState.modelViewProjectionMatrix[ glState.stackIndex ] );
