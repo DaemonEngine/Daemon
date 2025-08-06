@@ -476,6 +476,7 @@ enum class ssaoMode {
 	  IF_DEPTH32 = BIT( 11 ),
 	  IF_PACKED_DEPTH24_STENCIL8 = BIT( 12 ),
 	  IF_LIGHTMAP = BIT( 13 ),
+	  IF_RED = BIT( 14 ),
 	  IF_RGBE = BIT( 15 ),
 	  IF_ALPHATEST = BIT( 16 ), // FIXME: this is unused
 	  IF_ALPHA = BIT( 17 ),
