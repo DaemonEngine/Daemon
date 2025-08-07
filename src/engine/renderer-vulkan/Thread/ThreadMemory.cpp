@@ -33,11 +33,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // ThreadMemory.cpp
 
-#include "ThreadMemory.h"
-
 #include "common/Common.h"
 
 #include "../SrcDebug/Tag.h"
+
+#include "ThreadMemory.h"
 
 ThreadMemory::~ThreadMemory() {
 	for ( ChunkAllocator& allocator : chunkAllocators ) {

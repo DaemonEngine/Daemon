@@ -47,8 +47,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../SrcDebug/Tag.h"
 #include "../Sync/AlignedAtomic.h"
 
-#include "Memory.h"
-
 struct MemoryChunk {
 	uint8 level;
 	uint8 chunk;

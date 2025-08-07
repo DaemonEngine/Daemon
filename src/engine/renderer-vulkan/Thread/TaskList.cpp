@@ -33,14 +33,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // TaskList.cpp
 
-#include "TaskList.h"
-
 #include "../Math/Bit.h"
 #include "../Sys/CPUInfo.h"
 #include "../MiscCVarStore.h"
 
 #include "ThreadMemory.h"
 #include "GlobalMemory.h"
+
+#include "TaskList.h"
 
 TaskList taskList;
 
@@ -556,7 +556,7 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 		return nullptr;
 	}
 
-	threadQueue.tasks[current] = UINT16_MAX;
+	threadQueue.tasks[current] = ThreadQueue::TASK_NONE;
 	threadQueue.current = ( current + 1 ) % ThreadQueue::MAX_TASKS;
 
 	executingThreads.fetch_add( 1, std::memory_order_relaxed );

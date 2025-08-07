@@ -44,8 +44,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Task.h"
 #include "Thread.h"
 
-#include "ThreadMemory.h"
-
 #include "../Memory/RingBuffer.h"
 
 struct TaskQueue {

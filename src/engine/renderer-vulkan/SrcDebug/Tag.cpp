@@ -33,9 +33,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Tag.cpp
 
-#include "Tag.h"
-
 #include "../Thread/ThreadMemory.h"
+
+#include "Tag.h"
 
 std::string Tagged( const std::string& message, const bool useThreadID,
 	const std::source_location& loc ) {

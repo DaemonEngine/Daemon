@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef BIT_H
 #define BIT_H
 
+#include <intrin.h>
+
 #include "NumberTypes.h"
 
 #if defined(DAEMON_USE_COMPILER_INTRINSICS) && defined(__GNUC__)

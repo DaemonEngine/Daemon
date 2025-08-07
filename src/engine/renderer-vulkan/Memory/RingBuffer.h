@@ -41,7 +41,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Shared/Timer.h"
 #include "../SrcDebug/Tag.h"
 
-#include "../Sys/MemoryInfo.h"
 #include "../Math/Bit.h"
 
 #include "Memory.h"

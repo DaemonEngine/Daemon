@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // MemoryChunk.cpp
 
+#include "Memory.h"
+
 #include "MemoryChunk.h"
 
 MemoryChunkSystem memoryChunkSystem;

@@ -33,14 +33,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Thread.cpp
 
-#include <thread>
 #include <iostream>
 #include <unordered_map>
 
-#include "Thread.h"
 #include "ThreadMemory.h"
 #include "GlobalMemory.h"
 #include "TaskList.h"
+
+#include "Thread.h"
 
 Thread::Thread() {
 }
@@ -185,7 +185,6 @@ void Thread::Run() {
 }
 
 void Thread::Exit() {
-	// running = false;
 	exiting = true;
 
 	osThread.join();

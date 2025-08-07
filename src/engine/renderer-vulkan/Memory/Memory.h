@@ -40,8 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
-using byte = uint8_t;
-
 MALLOC_LIKE void* AllocAligned( const uint64 size, const uint64 alignment );
 void FreeAligned( void* memory );
 
