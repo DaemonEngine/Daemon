@@ -753,7 +753,7 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 
 	GLIMP_LOGCOMMENT( "--- Tess_Begin( surfaceShader = %s, "
 		"skipTangents = %i, lightmapNum = %i, fogNum = %i) ---",
-		tess.surfaceShader->name,
+		tess.surfaceShader ? tess.surfaceShader->name : "NULL",
 		tess.skipTangents, tess.lightmapNum, tess.fogNum );
 }
 
