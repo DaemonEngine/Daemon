@@ -458,7 +458,7 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 bool TaskList::ThreadFinished( const bool hadTask ) {
 	const uint32_t threadCount = executingThreads.fetch_sub( hadTask, std::memory_order_relaxed ) - hadTask;
 
-	if ( !threadCount ) {
+	if ( exiting.load( std::memory_order_relaxed ) && !threadCount ) {
 		if ( !mainTaskRing.taskCount.load( std::memory_order_acquire ) ) {
 			exitFence.Signal();
 

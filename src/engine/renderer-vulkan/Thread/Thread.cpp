@@ -49,7 +49,6 @@ Thread::~Thread() {
 
 void Thread::Start( const uint32_t newID ) {
 	id = newID;
-	TLM.id = id;
 
 	runTime = 0;
 	osThread = std::thread( &Thread::Run, this );
@@ -66,6 +65,7 @@ void Thread::Run() {
 	execing.Clear();
 
 	TLM.Init();
+	TLM.id = id;
 
 	total.Start();
 
