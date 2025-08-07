@@ -1212,10 +1212,22 @@ void RB_RunVisTests( )
 
 static void RenderDepthTiles()
 {
-	// 1st step
 	GL_State( GLS_DEPTHTEST_DISABLE );
 	GL_Cull( CT_TWO_SIDED );
 
+	if ( !r_depthShaders.Get() )
+	{
+		// put max range so depth-based planes will always pass in lighttile
+		// setting to 99999 worked on my machines but is technically not allowed by the spec
+		// ARB_color_buffer_float lets you set values outside of [0, 1] but we use
+		// a different extension ARB_texture_float to get float color buffer
+		R_BindFBO( tr.depthtile2FBO );
+		glClearColor( /*max*/ 99999.f, /*min*/ 0.0f, 0.0f, 0.0f );
+		glClear( GL_COLOR_BUFFER_BIT );
+		return;
+	}
+
+	// 1st step
 	R_BindFBO( tr.depthtile1FBO );
 	GL_Viewport( 0, 0, tr.depthtile1FBO->width, tr.depthtile1FBO->height );
 	GL_Scissor( 0, 0, tr.depthtile1FBO->width, tr.depthtile1FBO->height );
