@@ -42,6 +42,8 @@ std::string Tagged( const std::string& message, const bool useThreadID,
 	const std::string threadID = useThreadID ? Str::Format( "[%u] ", TLM.id ) : "";
 
 	switch ( r_vkLogExtendedFunctionNames.Get() ) {
+		case LogExtendedFunctionMode::NONE:
+			return message;
 		case LogExtendedFunctionMode::GLOBAL_NAME:
 		case LogExtendedFunctionMode::NAME:
 			return Str::Format( "%s:%s(): %s", threadID, FunctionName( loc.function_name() ), message );
@@ -63,6 +65,8 @@ std::string Tag::Tagged( const std::string& message, const bool useThreadID,
 		: "";
 
 	switch ( r_vkLogExtendedFunctionNames.Get() ) {
+		case LogExtendedFunctionMode::NONE:
+			return message;
 		case LogExtendedFunctionMode::GLOBAL_NAME:
 			return Str::Format( "%s%s: %s", threadID, name, message );
 		case LogExtendedFunctionMode::NAME:

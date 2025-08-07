@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace LogExtendedFunctionMode {
 	enum {
+		NONE,
 		GLOBAL_NAME,
 		NAME,
 		TEMPLATE,

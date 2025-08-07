@@ -49,10 +49,10 @@ Cvar::Cvar<bool> r_vkLogExtendVerbose( "r_vkLogExtendVerbose", "Print src locati
 Cvar::Cvar<bool> r_vkLogExtendDebug( "r_vkLogExtendDebug", "Print src location in debug logs", Cvar::NONE, false );
 
 Cvar::Range<Cvar::Cvar<int>> r_vkLogExtendedFunctionNames( "r_vkLogExtendedFunctionNames",
-	"Extended log function format: 0 - only name/only struct or class name (for struct/class functions),"
-	" 1 - only name, 2 - name + template specialisation, 3 - all",
+	"Extended log function format: 0 - none, 1 - only name/only struct or class name (for struct/class functions),"
+	" 2 - only name, 3 - name + template specialisation, 4 - all",
 	Cvar::NONE,
-	LogExtendedFunctionMode::NAME, LogExtendedFunctionMode::GLOBAL_NAME, LogExtendedFunctionMode::FULL );
+	LogExtendedFunctionMode::NAME, LogExtendedFunctionMode::NONE, LogExtendedFunctionMode::FULL );
 
 Cvar::Cvar<bool> r_vkLogShowThreadID( "r_vkLogShowThreadID", "Add thread ID to logs", Cvar::NONE, false );
 
