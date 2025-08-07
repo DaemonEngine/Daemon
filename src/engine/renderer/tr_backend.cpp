@@ -1210,38 +1210,18 @@ void RB_RunVisTests( )
 	}
 }
 
-void RB_RenderPostDepthLightTile()
+static void RenderDepthTiles()
 {
-	if ( !glConfig2.realtimeLighting )
-	{
-		return;
-	}
-
-	if ( !backEnd.refdef.numLights ) {
-		return;
-	}
-
-	vec3_t zParams;
-	int w, h;
-
-	if ( ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
-	{
-		return;
-	}
-
-	GLIMP_LOGCOMMENT( "--- RB_RenderPostDepthLightTile ---" );
-
 	// 1st step
 	GL_State( GLS_DEPTHTEST_DISABLE );
 	GL_Cull( CT_TWO_SIDED );
 
 	R_BindFBO( tr.depthtile1FBO );
-	w = (glConfig.vidWidth + TILE_SIZE_STEP1 - 1) >> TILE_SHIFT_STEP1;
-	h = (glConfig.vidHeight + TILE_SIZE_STEP1 - 1) >> TILE_SHIFT_STEP1;
-	GL_Viewport( 0, 0, w, h );
-	GL_Scissor( 0, 0, w, h );
+	GL_Viewport( 0, 0, tr.depthtile1FBO->width, tr.depthtile1FBO->height );
+	GL_Scissor( 0, 0, tr.depthtile1FBO->width, tr.depthtile1FBO->height );
 	gl_depthtile1Shader->BindProgram( 0 );
 
+	vec3_t zParams;
 	zParams[ 0 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_x * 0.5f) ) / glConfig.vidWidth;
 	zParams[ 1 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_y * 0.5f) ) / glConfig.vidHeight;
 	zParams[ 2 ] = backEnd.viewParms.zFar;
@@ -1268,10 +1248,8 @@ void RB_RenderPostDepthLightTile()
 	// 2nd step
 	R_BindFBO( tr.depthtile2FBO );
 
-	w = (glConfig.vidWidth + TILE_SIZE - 1) >> TILE_SHIFT;
-	h = (glConfig.vidHeight + TILE_SIZE - 1) >> TILE_SHIFT;
-	GL_Viewport( 0, 0, w, h );
-	GL_Scissor( 0, 0, w, h );
+	GL_Viewport( 0, 0, tr.depthtile2FBO->width, tr.depthtile2FBO->height );
+	GL_Scissor( 0, 0, tr.depthtile2FBO->width, tr.depthtile2FBO->height );
 	gl_depthtile2Shader->BindProgram( 0 );
 
 	gl_depthtile2Shader->SetUniform_DepthTile1Bindless(
@@ -1279,6 +1257,27 @@ void RB_RenderPostDepthLightTile()
 	);
 
 	Tess_InstantScreenSpaceQuad();
+}
+
+void RB_RenderPostDepthLightTile()
+{
+	if ( !glConfig2.realtimeLighting )
+	{
+		return;
+	}
+
+	if ( !backEnd.refdef.numLights ) {
+		return;
+	}
+
+	if ( ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
+	{
+		return;
+	}
+
+	GLIMP_LOGCOMMENT( "--- RB_RenderPostDepthLightTile ---" );
+
+	RenderDepthTiles();
 
 	vec3_t projToViewParams;
 	projToViewParams[0] = tanf(DEG2RAD(backEnd.refdef.fov_x * 0.5f)) * backEnd.viewParms.zFar;
