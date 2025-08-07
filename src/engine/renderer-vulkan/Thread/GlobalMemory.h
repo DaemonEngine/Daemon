@@ -36,17 +36,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GLOBAL_MEMORY_H
 #define GLOBAL_MEMORY_H
 
-#include <cstdint>
 #include <unordered_map>
 #include <atomic>
 
+#include "../Math/NumberTypes.h"
+
 #include "Task.h"
 
-using byte = uint8_t;
-
 struct GlobalTaskTime {
-	std::atomic<uint64_t> count = 0;
-	std::atomic<uint64_t> time = 0;
+	std::atomic<uint64> count = 0;
+	std::atomic<uint64> time = 0;
 };
 
 class GlobalMemory {

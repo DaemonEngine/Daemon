@@ -39,16 +39,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Timer.h"
 
-static uint64_t TimeNanoseconds() {
+static uint64 TimeNanoseconds() {
 	return std::chrono::duration_cast< std::chrono::nanoseconds >( Sys::SteadyClock::now().time_since_epoch() ).count();
 }
 
-Timer::Timer( uint64_t* newTimeVar ) :
+Timer::Timer( uint64* newTimeVar ) :
 	timeVar( newTimeVar ) {
 }
 
 // If newTimeVar is specified, it will be set to the Timer's runTime when the destructor is called
-Timer::Timer( const bool start, uint64_t* newTimeVar ) :
+Timer::Timer( const bool start, uint64* newTimeVar ) :
 	timeVar( newTimeVar ) {
 	if ( start ) {
 		Start();
@@ -61,7 +61,7 @@ Timer::~Timer() {
 	}
 }
 
-std::string Timer::FormatTime( uint64_t time, const TimeUnit maxTimeUnit ) {
+std::string Timer::FormatTime( uint64 time, const TimeUnit maxTimeUnit ) {
 	const char* suf[] = { "ns", "us", "ms", "s" };
 
 	int s = 0;
@@ -77,7 +77,7 @@ std::string Timer::FormatTime( const TimeUnit maxTimeUnit ) {
 	return FormatTime( Time(), maxTimeUnit );
 }
 
-uint64_t Timer::Time() const {
+uint64 Timer::Time() const {
 	if ( running ) {
 		return TimeNanoseconds() - time + runTime;
 	}
@@ -108,14 +108,14 @@ void Timer::Clear() {
 	running = false;
 }
 
-uint64_t Timer::Restart() {
+uint64 Timer::Restart() {
 	Stop();
-	const uint64_t diff = runTime;
+	const uint64 diff = runTime;
 	Start();
 
 	return diff;
 }
 
-GlobalTimer::GlobalTimer( uint64_t* newTimeVar ) :
+GlobalTimer::GlobalTimer( uint64* newTimeVar ) :
 	Timer( false, newTimeVar ) {
 }

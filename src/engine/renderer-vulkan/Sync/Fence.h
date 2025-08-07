@@ -38,12 +38,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <atomic>
 
+#include "../Math/NumberTypes.h"
+
 struct FenceMain {
-	std::atomic<uint64_t> value;
+	std::atomic<uint64> value;
 
 	void Signal();
 
-	void Wait( uint64_t expectedValue, const std::memory_order order = std::memory_order_relaxed );
+	void Wait( uint64 expectedValue, const std::memory_order order = std::memory_order_relaxed );
 
 	FenceMain() = default;
 	FenceMain( const FenceMain& other ) = delete;
@@ -53,11 +55,11 @@ struct FenceMain {
 };
 
 struct Fence {
-	std::atomic<uint64_t>* value;
+	std::atomic<uint64>* value;
 
 	void Signal();
 
-	void Wait( uint64_t expectedValue, const std::memory_order order = std::memory_order_relaxed );
+	void Wait( uint64 expectedValue, const std::memory_order order = std::memory_order_relaxed );
 
 	Fence();
 	Fence( const Fence& other );

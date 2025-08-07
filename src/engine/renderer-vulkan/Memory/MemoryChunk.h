@@ -36,10 +36,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef MEMORY_CHUNK_H
 #define MEMORY_CHUNK_H
 
-#include <cstdint>
 #include <atomic>
 #include <iostream>
 #include <thread>
+
+#include "../Math/NumberTypes.h"
 
 #include "../Math/Bit.h"
 #include "../Shared/Timer.h"
@@ -49,17 +50,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Memory.h"
 
 struct MemoryChunk {
-	uint8_t level;
-	uint8_t chunk;
-	uint32_t chunkArea;
-	uint32_t size;
+	uint8 level;
+	uint8 chunk;
+	uint32 chunkArea;
+	uint32 size;
 	byte* memory;
 };
 
 struct MemoryAreaConfig {
-	uint64_t chunkSize;
-	uint32_t chunks;
-	uint32_t chunkAreas;
+	uint64 chunkSize;
+	uint32 chunks;
+	uint32 chunkAreas;
 };
 
 struct MemoryArea {
@@ -69,7 +70,7 @@ struct MemoryArea {
 	AlignedAtomicUint64* chunkLocks; // 1 - locked
 };
 
-constexpr uint32_t MAX_MEMORY_AREAS = 3;
+constexpr uint32 MAX_MEMORY_AREAS = 3;
 
 struct MemoryChunkConfig {
 	MemoryAreaConfig areas[MAX_MEMORY_AREAS];
@@ -85,13 +86,13 @@ class MemoryChunkSystem :
 	MemoryChunkSystem();
 	~MemoryChunkSystem();
 
-	MemoryChunk Alloc( uint64_t size );
+	MemoryChunk Alloc( uint64 size );
 	void Free( MemoryChunk* memoryChunk );
 
-	void SizeToLevel( const uint64_t size, uint32_t* level, uint32_t* count );
+	void SizeToLevel( const uint64 size, uint32* level, uint32* count );
 
 	private:
-	bool LockArea( const uint32_t level, uint32_t* chunkArea, uint8_t* chunk );
+	bool LockArea( const uint32 level, uint32* chunkArea, uint8* chunk );
 };
 
 void UpdateMemoryChunkSystemConfig();

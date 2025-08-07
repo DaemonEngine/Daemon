@@ -36,8 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AccessLock.h"
 
 bool AccessLock::Lock() {
-	uint32_t expected = value.load( std::memory_order_relaxed );
-	uint32_t desired;
+	uint32 expected = value.load( std::memory_order_relaxed );
+	uint32 desired;
 	do {
 		if( !expected ) {
 			return false;

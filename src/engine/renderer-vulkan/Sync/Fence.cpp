@@ -40,7 +40,7 @@ void FenceMain::Signal() {
 	value.notify_all();
 }
 
-void FenceMain::Wait( uint64_t expectedValue, const std::memory_order order ) {
+void FenceMain::Wait( uint64 expectedValue, const std::memory_order order ) {
 	value.wait( expectedValue, order );
 }
 
@@ -73,7 +73,7 @@ void Fence::Signal() {
 	value->notify_all();
 }
 
-void Fence::Wait( uint64_t expectedValue, const std::memory_order order ) {
+void Fence::Wait( uint64 expectedValue, const std::memory_order order ) {
 	if ( !value ) {
 		return;
 	}

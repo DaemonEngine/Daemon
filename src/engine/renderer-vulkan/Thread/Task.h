@@ -38,6 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <atomic>
 
+#include "../Math/NumberTypes.h"
+
 #include "../Sys/MemoryInfo.h"
 #include "../Sync/Fence.h"
 #include "../Sync/AccessLock.h"
@@ -53,17 +55,17 @@ struct Task {
 	bool active = false;
 	bool shutdownTask = false;
 
-	static constexpr uint32_t MAX_FORWARD_TASKS = 18;
-	uint16_t forwardTasks[MAX_FORWARD_TASKS] { 0 };
+	static constexpr uint32 MAX_FORWARD_TASKS = 18;
+	uint16 forwardTasks[MAX_FORWARD_TASKS] { 0 };
 
-	ALIGN_CACHE std::atomic<uint32_t> dependencyCounter = 1;
-	std::atomic<uint32_t> forwardTaskCounter = 0;
-	uint32_t forwardTaskCounterFast = 0;
+	ALIGN_CACHE std::atomic<uint32> dependencyCounter = 1;
+	std::atomic<uint32> forwardTaskCounter = 0;
+	uint32 forwardTaskCounterFast = 0;
 
-	uint16_t id = 0; // LSB->MSB: 6 bits - queue, 6 bits - queue slot, 4 bits - task memory/dependency tracking in TaskList
+	uint16 id = 0; // LSB->MSB: 6 bits - queue, 6 bits - queue slot, 4 bits - task memory/dependency tracking in TaskList
 
-	static constexpr uint32_t UNALLOCATED = UINT16_MAX;
-	uint16_t bufferID = UNALLOCATED; // Task RingBuffer id
+	static constexpr uint32 UNALLOCATED = UINT16_MAX;
+	uint16 bufferID = UNALLOCATED; // Task RingBuffer id
 	AccessLock forwardTaskLock;
 
 	// bool useTaskFence = false;

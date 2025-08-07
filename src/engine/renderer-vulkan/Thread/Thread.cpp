@@ -48,7 +48,7 @@ Thread::Thread() {
 Thread::~Thread() {
 }
 
-void Thread::Start( const uint32_t newID ) {
+void Thread::Start( const uint32 newID ) {
 	id = newID;
 
 	runTime = 0;
@@ -129,8 +129,8 @@ void Thread::Run() {
 
 		dependencyTimer.Start();
 		task->forwardTaskLock.Finish();
-		const uint32_t forwardTasks = task->forwardTaskCounter.load( std::memory_order_relaxed );
-		for ( uint32_t i = 0; i < forwardTasks; i++ ) {
+		const uint32 forwardTasks = task->forwardTaskCounter.load( std::memory_order_relaxed );
+		for ( uint32 i = 0; i < forwardTasks; i++ ) {
 			taskList.FinishDependency( task->forwardTasks[i] );
 		}
 		dependencyTimer.Stop();

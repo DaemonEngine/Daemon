@@ -37,7 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define THREAD_H
 
 #include <thread>
-#include <cstdint>
+
+#include "../Math/NumberTypes.h"
 
 #include "Task.h"
 
@@ -52,7 +53,7 @@ class Thread :
 	Thread();
 	~Thread();
 
-	void Start( const uint32_t newID );
+	void Start( const uint32 newID );
 	void Run();
 	void Exit();
 
@@ -61,8 +62,8 @@ class Thread :
 
 	std::thread osThread;
 
-	uint32_t id;
-	uint64_t runTime;
+	uint32 id;
+	uint64 runTime;
 
 	Task* task;
 
@@ -72,24 +73,24 @@ class Thread :
 	GlobalTimer total;
 	GlobalTimer actual;
 	GlobalTimer fetchIdleTimer;
-	uint64_t fetchTask = 0;
-	uint64_t fetchIdle = 0;
+	uint64 fetchTask = 0;
+	uint64 fetchIdle = 0;
 	GlobalTimer idle;
 	GlobalTimer execing;
 	GlobalTimer dependencyTimer;
 
-	uint64_t fetchQueueLock;
-	uint64_t fetchOuter;
+	uint64 fetchQueueLock;
+	uint64 fetchOuter;
 
-	uint64_t addQueueWait;
+	uint64 addQueueWait;
 
-	uint64_t taskAdd;
-	uint64_t taskSync;
+	uint64 taskAdd;
+	uint64 taskSync;
 
-	uint64_t taskFetchNone = 0;
-	uint64_t taskFetchActual = 0;
+	uint64 taskFetchNone = 0;
+	uint64 taskFetchActual = 0;
 
-	uint64_t exitTime;
+	uint64 exitTime;
 
 	std::unordered_map<Task::TaskFunction, TaskTime> taskTimes;
 };

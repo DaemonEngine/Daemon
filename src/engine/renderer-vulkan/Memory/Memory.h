@@ -38,12 +38,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 
+#include "../Math/NumberTypes.h"
+
 using byte = uint8_t;
 
-MALLOC_LIKE void* AllocAligned( const uint64_t size, const uint64_t alignment );
+MALLOC_LIKE void* AllocAligned( const uint64 size, const uint64 alignment );
 void FreeAligned( void* memory );
 
-inline void* Alloc64( const uint64_t size ) {
+inline void* Alloc64( const uint64 size ) {
 	return AllocAligned( size, 64 );
 }
 

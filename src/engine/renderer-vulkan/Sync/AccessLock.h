@@ -38,8 +38,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <atomic>
 
+#include "../Math/NumberTypes.h"
+
 struct AccessLock {
-	std::atomic<uint32_t> value = 1;
+	std::atomic<uint32> value = 1;
 
 	bool Lock();
 	void Unlock();

@@ -36,29 +36,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef ARRAY_H
 #define ARRAY_H
 
-#include <cstdint>
+#include "../Math/NumberTypes.h"
 
 #include "IteratorSeq.h"
 
-template<typename T, uint64_t newSize>
+template<typename T, uint64 newSize>
 struct Array {
-	const uint64_t size = newSize;
+	const uint64 size = newSize;
     T memory[newSize];
 
 	constexpr Array() {
 	}
 
 	constexpr Array( std::initializer_list<T> args ) {
-		for ( uint64_t i = 0; i < args.size(); i++ ) {
+		for ( uint64 i = 0; i < args.size(); i++ ) {
 			memory[i] = args.begin()[i];
 		}
 	}
 
-	constexpr uint64_t Size() {
+	constexpr uint64 Size() {
 		return newSize;
 	}
 
-	constexpr T& operator[]( const uint64_t index ) {
+	constexpr T& operator[]( const uint64 index ) {
 		return memory[index];
 	}
 

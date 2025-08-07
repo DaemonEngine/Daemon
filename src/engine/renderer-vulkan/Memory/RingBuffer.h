@@ -36,13 +36,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef RINGBUFFER_H
 #define RINGBUFFER_H
 
-#include "Memory.h"
+#include "../Math/NumberTypes.h"
 
 #include "../Shared/Timer.h"
 #include "../SrcDebug/Tag.h"
 
 #include "../Sys/MemoryInfo.h"
 #include "../Math/Bit.h"
+
+#include "Memory.h"
 
 template<typename T>
 class RingBuffer :
@@ -56,7 +58,7 @@ class RingBuffer :
 		Tag( name ) {
 	}
 
-	void Alloc( const uint64_t newElementCount ) {
+	void Alloc( const uint64 newElementCount ) {
 		elementCount = newElementCount;
 		size = ( elementCount * sizeof( T ) + 63 ) & ~63;
 		memory = ( T* ) Alloc64( size );
@@ -64,13 +66,13 @@ class RingBuffer :
 		pointer = 0;
 	}
 
-	void Resize( const uint64_t newElementCount ) {
+	void Resize( const uint64 newElementCount ) {
 		if ( newElementCount < elementCount ) {
 			Log::WarnTag( "newElementCount < elementCount (%u < %u)", newElementCount, elementCount );
 			return;
 		}
 
-		const uint64_t tempSize = ( newElementCount * sizeof( T ) + 63 ) & ~64;
+		const uint64 tempSize = ( newElementCount * sizeof( T ) + 63 ) & ~64;
 		T* tempMemory = ( T* ) Alloc64( tempSize );
 
 		memcpy( tempMemory, memory, size );
@@ -93,21 +95,21 @@ class RingBuffer :
 		return memory[pointer];
 	}
 
-	const T& operator[]( const uint64_t index ) const {
+	const T& operator[]( const uint64 index ) const {
 		ASSERT_LT( index, elementCount );
 		return memory[index];
 	}
 
-	T& operator[]( const uint64_t index ) {
+	T& operator[]( const uint64 index ) {
 		ASSERT_LT( index, elementCount );
 		return memory[index];
 	}
 
 	private:
 	T* memory;
-	uint64_t size;
-	uint64_t elementCount;
-	uint64_t pointer;
+	uint64 size;
+	uint64 elementCount;
+	uint64 pointer;
 };
 
 template<typename T>
@@ -127,7 +129,7 @@ class AtomicRingBuffer :
 		Tag( name ) {
 	}
 
-	void Alloc( const uint64_t newElementCount ) {
+	void Alloc( const uint64 newElementCount ) {
 		elementCount = newElementCount;
 		size = ( elementCount * sizeof( T ) + 63 ) & ~64;
 		mask = elementCount - 1;
@@ -142,14 +144,14 @@ class AtomicRingBuffer :
 		getTimer.Clear();
 	}
 
-	void Resize( const uint64_t newElementCount ) {
+	void Resize( const uint64 newElementCount ) {
 		if ( newElementCount < elementCount ) {
 			Log::WarnTag( "newElementCount < elementCount (%u < %u)",
 				newElementCount, elementCount );
 			return;
 		}
 
-		const uint64_t tempSize = ( newElementCount * sizeof( T ) + 63 ) & ~64;
+		const uint64 tempSize = ( newElementCount * sizeof( T ) + 63 ) & ~64;
 		T* tempMemory = ( T* ) Alloc64( tempSize );
 
 		memcpy( tempMemory, memory, size );
@@ -168,7 +170,7 @@ class AtomicRingBuffer :
 	}
 
 	T* GetNextElementMemory() {
-		uint64_t element = pointer.fetch_add( 1, std::memory_order_relaxed );
+		uint64 element = pointer.fetch_add( 1, std::memory_order_relaxed );
 		element &= mask;
 
 		while ( memory[element].active ) {
@@ -182,8 +184,8 @@ class AtomicRingBuffer :
 	}
 
 	T* GetCurrentElement() {
-		uint64_t expected = current.load( std::memory_order_acquire );
-		uint64_t desired;
+		uint64 expected = current.load( std::memory_order_acquire );
+		uint64 desired;
 
 		Timer t;
 		do {
@@ -203,22 +205,22 @@ class AtomicRingBuffer :
 		return &memory[expected];
 	}
 
-	const T& operator[]( const uint64_t index ) const {
+	const T& operator[]( const uint64 index ) const {
 		ASSERT_LT( index, elementCount );
 		return memory[index];
 	}
 
-	T& operator[]( const uint64_t index ) {
+	T& operator[]( const uint64 index ) {
 		ASSERT_LT( index, elementCount );
 		return memory[index];
 	}
 
 	private:
-	uint64_t size;
-	uint64_t mask;
-	ALIGN_CACHE uint64_t elementCount;
-	ALIGN_CACHE std::atomic<uint64_t> pointer;
-	ALIGN_CACHE std::atomic<uint64_t> current;
+	uint64 size;
+	uint64 mask;
+	ALIGN_CACHE uint64 elementCount;
+	ALIGN_CACHE std::atomic<uint64> pointer;
+	ALIGN_CACHE std::atomic<uint64> current;
 };
 
 #endif // RINGBUFFER_H

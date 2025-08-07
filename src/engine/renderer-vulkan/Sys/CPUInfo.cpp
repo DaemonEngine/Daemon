@@ -37,4 +37,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CPUInfo.h"
 
-uint32_t CPU_CORES = std::thread::hardware_concurrency();
+uint32 CPU_CORES = std::thread::hardware_concurrency();

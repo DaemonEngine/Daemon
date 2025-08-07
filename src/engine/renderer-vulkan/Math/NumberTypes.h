@@ -31,47 +31,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// AlignedAtomic.h
+// NumberTypes.h
 
-#ifndef ALIGNED_ATOMIC_H
-#define ALIGNED_ATOMIC_H
+#ifndef NUMBER_TYPES_H
+#define NUMBER_TYPES_H
 
-#include <atomic>
+#include <cstdint>
 
-#include "../Math/NumberTypes.h"
+using int8 = int8_t;
+using int16 = int16_t;
+using int32 = int32_t;
+using int64 = int64_t;
 
-#include "../Sys/MemoryInfo.h"
+using uint8 = uint8_t;
+using uint16 = uint16_t;
+using uint32 = uint32_t;
+using uint64 = uint64_t;
 
-struct AlignedAtomicUint32 {
-	ALIGN_CACHE std::atomic<uint32> value;
+using byte = uint8_t;
+using uint = uint32_t;
 
-	void operator=( const uint32 newValue ) {
-		value = newValue;
-	}
-
-	void operator++() {
-		value++;
-	}
-
-	void operator--() {
-		value--;
-	}
-};
-
-struct AlignedAtomicUint64 {
-	ALIGN_CACHE std::atomic<uint64> value;
-
-	void operator=( const uint64 newValue ) {
-		value = newValue;
-	}
-
-	void operator++() {
-		value++;
-	}
-
-	void operator--() {
-		value--;
-	}
-};
-
-#endif // ALIGNED_ATOMIC_H
+#endif // NUMBER_TYPES_H

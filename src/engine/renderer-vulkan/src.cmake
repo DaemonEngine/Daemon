@@ -1,5 +1,6 @@
 set(MATHLIST
     ${ENGINE_DIR}/renderer-vulkan/Math/Bit.h
+    ${ENGINE_DIR}/renderer-vulkan/Math/NumberTypes.h
 )
 
 set(MEMORYLIST

@@ -36,8 +36,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef DYNAMIC_ARRAY_H
 #define DYNAMIC_ARRAY_H
 
-#include <cstdint>
 #include <type_traits>
+
+#include "../Math/NumberTypes.h"
 
 #include "Memory.h"
 #include "IteratorSeq.h"
@@ -48,9 +49,9 @@ class DynamicArray :
 	public Tag {
 
 	public:
-	uint64_t elements = 0;
-	uint64_t size = 0;
-	uint64_t highestUsed = 0;
+	uint64 elements = 0;
+	uint64 size = 0;
+	uint64 highestUsed = 0;
 	T* memory;
 
 	DynamicArray() {
@@ -64,7 +65,7 @@ class DynamicArray :
 		Resize( args.size() );
 		highestUsed = elements;
 
-		for ( uint64_t i = 0; i < args.size(); i++ ) {
+		for ( uint64 i = 0; i < args.size(); i++ ) {
 			memory[i] = args.begin()[i];
 		}
 	}
@@ -74,7 +75,7 @@ class DynamicArray :
 		Resize( args.size() );
 		highestUsed = elements;
 
-		for ( uint64_t i = 0; i < args.size(); i++ ) {
+		for ( uint64 i = 0; i < args.size(); i++ ) {
 			memory[i] = args.begin()[i];
 		}
 	}
@@ -83,10 +84,10 @@ class DynamicArray :
 		Resize( 0 );
 	}
 
-	void Resize( const uint64_t newElements ) {
+	void Resize( const uint64 newElements ) {
 		ASSERT_GE( newElements, 0 );
 
-		const uint64_t newSize = newElements * sizeof( T );
+		const uint64 newSize = newElements * sizeof( T );
 
 		if ( newElements == elements ) {
 			return;
@@ -138,12 +139,12 @@ class DynamicArray :
 		memset( memory, 0, size );
 	}
 
-	const T& operator[]( const uint64_t index ) const {
+	const T& operator[]( const uint64 index ) const {
 		ASSERT_LT( index, elements );
 		return memory[index];
 	}
 
-	T& operator[]( const uint64_t index ) {
+	T& operator[]( const uint64 index ) {
 		ASSERT_LT( index, elements );
 		highestUsed = std::max( index, highestUsed );
 		return memory[index];

@@ -61,5 +61,5 @@ void Task::operator=( const Task& other ) {
 	shutdownTask = other.shutdownTask;
 
 	forwardTaskLock = other.forwardTaskLock;
-	memcpy( forwardTasks, other.forwardTasks, MAX_FORWARD_TASKS * sizeof( uint16_t ) );
+	memcpy( forwardTasks, other.forwardTasks, MAX_FORWARD_TASKS * sizeof( uint16 ) );
 }

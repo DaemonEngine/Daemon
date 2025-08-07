@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef CPU_INFO_H
 #define CPU_INFO_H
 
-#include <cstdint>
+#include "../Math/NumberTypes.h"
 
 extern uint32_t CPU_CORES;
 

@@ -92,9 +92,9 @@ MemoryChunkSystem::~MemoryChunkSystem() {
 	}
 }
 
-MemoryChunk MemoryChunkSystem::Alloc( uint64_t size ) {
-	uint32_t level;
-	uint32_t count;
+MemoryChunk MemoryChunkSystem::Alloc( uint64 size ) {
+	uint32 level;
+	uint32 count;
 
 	SizeToLevel( size, &level, &count );
 
@@ -109,7 +109,7 @@ MemoryChunk MemoryChunkSystem::Alloc( uint64_t size ) {
 			size, count, memoryAreas[level].config.chunkSize );
 	}
 
-	uint32_t initialLevel = level;
+	uint32 initialLevel = level;
 	while ( !LockArea( level, &out.chunkArea, &out.chunk ) ) {
 		if ( level == 0 ) {
 			Log::WarnTagT( "No memory chunks available, yielding" );
@@ -133,8 +133,8 @@ void MemoryChunkSystem::Free( MemoryChunk* memoryChunk ) {
 	memoryAreas[memoryChunk->level].chunkLocks[memoryChunk->chunkArea].value -= 1ull << memoryChunk->chunk;
 }
 
-void MemoryChunkSystem::SizeToLevel( const uint64_t size, uint32_t* level, uint32_t* count ) {
-	for ( uint32_t i = 0; i < MAX_MEMORY_AREAS; i++ ) {
+void MemoryChunkSystem::SizeToLevel( const uint64 size, uint32* level, uint32* count ) {
+	for ( uint32 i = 0; i < MAX_MEMORY_AREAS; i++ ) {
 		if ( memoryAreas[i].config.chunkSize >= size ) {
 			*level = i;
 			*count = 1;
@@ -152,15 +152,15 @@ void MemoryChunkSystem::SizeToLevel( const uint64_t size, uint32_t* level, uint3
 	Sys::Drop( "Couldn't find memory area with large enough chunkSize, requested: %u bytes", size );
 }
 
-bool MemoryChunkSystem::LockArea( const uint32_t level, uint32_t* chunkArea, uint8_t* chunk ) {
-	uint64_t expectedLocks;
-	uint64_t desiredLocks;
-	uint32_t foundChunk;
+bool MemoryChunkSystem::LockArea( const uint32 level, uint32* chunkArea, uint8* chunk ) {
+	uint64 expectedLocks;
+	uint64 desiredLocks;
+	uint32 foundChunk;
 
-	uint32_t loopCount = 0;
+	uint32 loopCount = 0;
 
-	uint32_t i = 0;
-	uint32_t area = 0;
+	uint32 i = 0;
+	uint32 area = 0;
 	MemoryArea& memoryArea = memoryAreas[level];
 
 	Timer t;
@@ -224,7 +224,7 @@ void UpdateMemoryChunkSystemConfig() {
 		area.chunkAreas = ( area.chunks + 63 ) / 64;
 	}
 
-	for ( uint32_t i = 0; i < MAX_MEMORY_AREAS; i++ ) {
+	for ( uint32 i = 0; i < MAX_MEMORY_AREAS; i++ ) {
 		memoryChunkSystem.memoryAreas[i].config = memoryChunkSystem.config.areas[i];
 	}
 }

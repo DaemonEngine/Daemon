@@ -36,9 +36,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef TASKLIST_H
 #define TASKLIST_H
 
-#include <stdint.h>
 #include <atomic>
 #include <mutex>
+
+#include "../Math/NumberTypes.h"
 
 #include "Task.h"
 #include "Thread.h"
@@ -48,28 +49,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Memory/RingBuffer.h"
 
 struct TaskQueue {
-	uint64_t availableTasks = 0;
-	uint16_t tasks[64];
+	uint64 availableTasks = 0;
+	uint16 tasks[64];
 };
 
 struct TaskRing {
-	std::atomic<uint64_t> queueLocks = 0;
-	uint64_t queuesWithTasks = 0;
-	ALIGN_CACHE std::atomic<uint32_t> taskCount = 0;
+	std::atomic<uint64> queueLocks = 0;
+	uint64 queuesWithTasks = 0;
+	ALIGN_CACHE std::atomic<uint32> taskCount = 0;
 	TaskQueue queues[64];
 
-	const uint32_t id;
+	const uint32 id;
 
-	TaskRing( const uint32_t newID ) :
+	TaskRing( const uint32 newID ) :
 		id( newID ) {
 	}
 
-	uint8_t LockQueueForTask( Task* task );
+	uint8 LockQueueForTask( Task* task );
 
-	void LockQueue( const uint8_t queue );
-	void UnlockQueue( const uint8_t queue );
+	void LockQueue( const uint8 queue );
+	void UnlockQueue( const uint8 queue );
 
-	void RemoveTask( const uint8_t queue, const uint8_t taskID, const bool queueLocked = false );
+	void RemoveTask( const uint8 queue, const uint8 taskID, const bool queueLocked = false );
 
 	void AddToTaskRing( Task& task, const bool unlockQueueAfterAdd = true );
 };
@@ -99,23 +100,23 @@ class TaskList :
 	public:
 	friend class Thread;
 
-	static constexpr uint32_t MAX_THREADS = 256;
+	static constexpr uint32 MAX_THREADS = 256;
 
 	enum TaskRingID {
 		MAIN = 0,
 		FORWARD = 1
 	};
 
-	static constexpr uint16_t TASK_RING_MASK = 1;
-	static constexpr uint16_t TASK_QUEUE_MASK = 63;
-	static constexpr uint16_t TASK_ID_MASK = 63;
+	static constexpr uint16 TASK_RING_MASK = 1;
+	static constexpr uint16 TASK_QUEUE_MASK = 63;
+	static constexpr uint16 TASK_ID_MASK = 63;
 
-	static constexpr uint16_t TASK_SHIFT_QUEUE = 0;
-	static constexpr uint16_t TASK_SHIFT_ID = 6;
-	static constexpr uint16_t TASK_SHIFT_ALLOCATED = 12;
-	static constexpr uint16_t TASK_SHIFT_HAS_UNTRACKED_DEPS = 13;
-	static constexpr uint16_t TASK_SHIFT_TRACKED_DEPENDENCY = 14;
-	static constexpr uint16_t TASK_SHIFT_UPDATED_DEPENDENCY = 15;
+	static constexpr uint16 TASK_SHIFT_QUEUE = 0;
+	static constexpr uint16 TASK_SHIFT_ID = 6;
+	static constexpr uint16 TASK_SHIFT_ALLOCATED = 12;
+	static constexpr uint16 TASK_SHIFT_HAS_UNTRACKED_DEPS = 13;
+	static constexpr uint16 TASK_SHIFT_TRACKED_DEPENDENCY = 14;
+	static constexpr uint16 TASK_SHIFT_UPDATED_DEPENDENCY = 15;
 
 	FenceMain exitFence;
 
@@ -126,14 +127,14 @@ class TaskList :
 	void Shutdown();
 	void FinishShutdown();
 
-	bool AddedToTaskRing( const uint16_t id );
-	bool AddedToTaskMemory( const uint16_t id );
-	bool HasUntrackedDeps( const uint16_t id );
-	bool IsTrackedDependency( const uint16_t id );
-	bool IsUpdatedDependency( const uint16_t id );
+	bool AddedToTaskRing( const uint16 id );
+	bool AddedToTaskMemory( const uint16 id );
+	bool HasUntrackedDeps( const uint16 id );
+	bool IsTrackedDependency( const uint16 id );
+	bool IsUpdatedDependency( const uint16 id );
 
-	uint8_t IDToTaskQueue( const uint16_t id );
-	uint16_t IDToTaskID( const uint16_t id );
+	uint8 IDToTaskQueue( const uint16 id );
+	uint16 IDToTaskID( const uint16 id );
 
 	void AddTask( Task& task, std::initializer_list<TaskProxy> dependencies = {} );
 	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
@@ -141,19 +142,19 @@ class TaskList :
 
 	bool ThreadFinished( const bool hadTask );
 
-	void FinishDependency( const uint16_t bufferID );
+	void FinishDependency( const uint16 bufferID );
 
-	void AdjustThreadCount( const uint32_t newMaxThreads );
+	void AdjustThreadCount( const uint32 newMaxThreads );
 
 	private:
 	struct ThreadExecutionNode {
-		uint8_t nextThreadExecutionNode;
+		uint8 nextThreadExecutionNode;
 	};
 
 	struct ThreadQueue {
-		std::atomic<uint64_t> pointer = 0;
-		uint8_t current = 0;
-		uint16_t tasks[63]{ UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
+		std::atomic<uint64> pointer = 0;
+		uint8 current = 0;
+		uint16 tasks[63]{ UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
 			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
 			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
 			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
@@ -162,10 +163,10 @@ class TaskList :
 			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
 			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX };
 
-		void AddTask( const uint16_t bufferID ) {
+		void AddTask( const uint16 bufferID ) {
 			TLM.addQueueWaitTimer.Start();
 
-			uint64_t id = pointer.fetch_add( 1, std::memory_order_relaxed );
+			uint64 id = pointer.fetch_add( 1, std::memory_order_relaxed );
 			id %= 63;
 			while ( tasks[id] != UINT16_MAX );
 
@@ -178,14 +179,14 @@ class TaskList :
 	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory" };
 	TaskRing mainTaskRing{ MAIN };
 
-	uint32_t currentMaxThreads = 0;
+	uint32 currentMaxThreads = 0;
 	Thread threads[MAX_THREADS];
 
-	std::atomic<uint32_t> threadExecutionNodes[MAX_THREADS];
+	std::atomic<uint32> threadExecutionNodes[MAX_THREADS];
 	ThreadQueue threadQueues[MAX_THREADS];
-	std::atomic<uint32_t> currentThreadExecutionNode = UINT32_MAX;
+	std::atomic<uint32> currentThreadExecutionNode = UINT32_MAX;
 
-	ALIGN_CACHE std::atomic<uint32_t> executingThreads = 1;
+	ALIGN_CACHE std::atomic<uint32> executingThreads = 1;
 	ALIGN_CACHE std::atomic<bool> exiting = false;
 
 	void AddToThreadQueue( Task& task );

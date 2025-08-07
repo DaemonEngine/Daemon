@@ -36,8 +36,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef TIMER_H
 #define TIMER_H
 
-#include <stdint.h>
 #include <string>
+
+#include "../Math/NumberTypes.h"
 
 class Timer {
 	public:
@@ -48,32 +49,32 @@ class Timer {
 		s
 	};
 
-	Timer( uint64_t* newTimeVar );
-	Timer( const bool start = true, uint64_t* newTimeVar = nullptr );
+	Timer( uint64* newTimeVar );
+	Timer( const bool start = true, uint64* newTimeVar = nullptr );
 	~Timer();
 
-	static std::string FormatTime( uint64_t time, const TimeUnit maxTimeUnit = s );
+	static std::string FormatTime( uint64 time, const TimeUnit maxTimeUnit = s );
 	std::string FormatTime( const TimeUnit maxTimeUnit = s );
 
-	uint64_t Time() const;
+	uint64 Time() const;
 	void Start();
 	void Stop();
 	void Clear();
-	uint64_t Restart();
+	uint64 Restart();
 
 	private:
-	uint64_t* timeVar;
+	uint64* timeVar;
 
 	bool running = false;
-	uint64_t time;
-	uint64_t runTime = 0;
+	uint64 time;
+	uint64 runTime = 0;
 };
 
 class GlobalTimer :
 	public Timer {
 	public:
 
-	GlobalTimer( uint64_t* newTimeVar = nullptr );
+	GlobalTimer( uint64* newTimeVar = nullptr );
 };
 
 #endif // TIMER_H
