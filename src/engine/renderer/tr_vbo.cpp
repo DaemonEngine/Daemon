@@ -475,6 +475,8 @@ void R_BindVBO( VBO_t *vbo )
 		} else {
 			Sys::Drop( "R_BindNullVBO: NULL vbo" );
 		}
+
+		return;
 	}
 
 	GLIMP_LOGCOMMENT( "--- R_BindVBO( %s ) ---", vbo->name );
