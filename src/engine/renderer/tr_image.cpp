@@ -2588,7 +2588,7 @@ static void R_CreateDepthRenderImage()
 		imageParams.wrapType = wrapTypeEnum_t::WT_ONE_CLAMP;
 
 		imageParams.bits = IF_NOPICMIP;
-		imageParams.bits |= r_highPrecisionRendering.Get() ? IF_RGBA32F : IF_RGBA16F;
+		imageParams.bits |= r_highPrecisionRendering.Get() ? IF_TWOCOMP32F : IF_TWOCOMP16F;
 
 		tr.depthtile1RenderImage = R_CreateImage( "_depthtile1Render", nullptr, w, h, 1, imageParams );
 
