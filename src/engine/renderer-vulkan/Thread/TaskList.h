@@ -95,6 +95,25 @@ struct TaskInitList {
 	}
 };
 
+struct ThreadQueue {
+	std::atomic<uint64> pointer = 0;
+	uint8 current = 0;
+
+	static constexpr uint16 TASK_NONE = UINT16_MAX;
+	static constexpr uint32 MAX_TASKS = 59;
+
+	uint16 tasks[MAX_TASKS] { TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
+		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
+		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
+		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
+		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
+		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
+		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
+		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE };
+
+	void AddTask( const uint16 bufferID );
+};
+
 class TaskList :
 	public Tag {
 	public:
@@ -149,31 +168,6 @@ class TaskList :
 	private:
 	struct ThreadExecutionNode {
 		uint8 nextThreadExecutionNode;
-	};
-
-	struct ThreadQueue {
-		std::atomic<uint64> pointer = 0;
-		uint8 current = 0;
-		uint16 tasks[63]{ UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
-			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
-			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
-			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
-			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
-			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
-			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
-			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX };
-
-		void AddTask( const uint16 bufferID ) {
-			TLM.addQueueWaitTimer.Start();
-
-			uint64 id = pointer.fetch_add( 1, std::memory_order_relaxed );
-			id %= 63;
-			while ( tasks[id] != UINT16_MAX );
-
-			tasks[id] = bufferID;
-
-			TLM.addQueueWaitTimer.Stop();
-		}
 	};
 
 	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory" };

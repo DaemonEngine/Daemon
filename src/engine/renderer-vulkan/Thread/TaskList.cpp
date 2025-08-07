@@ -272,6 +272,18 @@ void TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) 
 	}
 }
 
+void ThreadQueue::AddTask( const uint16 bufferID ) {
+	TLM.addQueueWaitTimer.Start();
+
+	uint64 id = pointer.fetch_add( 1, std::memory_order_relaxed );
+	id %= MAX_TASKS;
+	while ( tasks[id] != TASK_NONE );
+
+	tasks[id] = bufferID;
+
+	TLM.addQueueWaitTimer.Stop();
+}
+
 void TaskList::AddToThreadQueue( Task& task ) {
 	while ( !SM.taskTimesLock.Lock() );
 	TaskTime taskTime;
@@ -539,13 +551,13 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 	ThreadQueue& threadQueue = threadQueues[TLM.id];
 	uint8 current = threadQueue.current;
 	uint16 id = threadQueue.tasks[current];
-	if ( id == UINT16_MAX ) {
+	if ( id == ThreadQueue::TASK_NONE ) {
 		currentThreadExecutionNode.store( TLM.id, std::memory_order_relaxed );
 		return nullptr;
 	}
 
 	threadQueue.tasks[current] = UINT16_MAX;
-	threadQueue.current = ( current + 1 ) % 63;
+	threadQueue.current = ( current + 1 ) % ThreadQueue::MAX_TASKS;
 
 	executingThreads.fetch_add( 1, std::memory_order_relaxed );
 
