@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Thread.h"
 #include "ThreadMemory.h"
+#include "GlobalMemory.h"
 #include "TaskList.h"
 
 Thread::Thread() {
@@ -69,6 +70,10 @@ void Thread::Run() {
 
 	total.Start();
 
+	// bool requiresSMTaskTimeLock = false;
+
+	bool fetched = false;
+
 	while ( !exiting ) {
 		if ( !running ) {
 			std::this_thread::yield();
@@ -89,8 +94,16 @@ void Thread::Run() {
 
 		if ( task ) {
 			fetchTask += fetching.Time();
+			fetched = true;
+			taskFetchActual++;
 		} else {
 			fetchIdle += fetching.Time();
+			taskFetchNone++;
+		}
+
+		if ( fetched ) {
+			actual.Start();
+			fetchIdleTimer.Start();
 		}
 
 		if ( !task ) {
@@ -102,6 +115,8 @@ void Thread::Run() {
 			exiting = taskList.ThreadFinished( false );
 			continue;
 		}
+
+		fetchIdleTimer.Stop();
 
 		Log::DebugTag( "id: %u, execing", id );
 
@@ -122,8 +137,28 @@ void Thread::Run() {
 
 		t.Stop();
 
-		TLM.taskTimes[task->Execute].count++;
-		TLM.taskTimes[task->Execute].time += t.Time();
+		TaskTime& taskTime = TLM.taskTimes[task->Execute];
+		taskTime.count++;
+		taskTime.time += t.Time();
+
+		if ( !taskTime.syncedWithSM ) {
+			SM.taskTimesLock.Finish();
+
+			GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
+			SMTaskTime.count = taskTime.count;
+			SMTaskTime.time = taskTime.time;
+			taskTime.syncedWithSM = true;
+
+			SM.taskTimesLock.Reset();
+		} else {
+			while( !SM.taskTimesLock.Lock() );
+
+			GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
+			SMTaskTime.count.fetch_add( taskTime.count, std::memory_order_relaxed );
+			SMTaskTime.time.fetch_add( taskTime.time, std::memory_order_relaxed );
+
+			SM.taskTimesLock.Unlock();
+		}
 
 		task = nullptr;
 
@@ -135,34 +170,46 @@ void Thread::Run() {
 	fetchQueueLock = TLM.fetchQueueLockTimer.Time();
 	fetchOuter = TLM.fetchOuterTimer.Time();
 
+	addQueueWait = TLM.addQueueWaitTimer.Time();
+
 	taskAdd = TLM.addTimer.Time();
 	taskSync = TLM.syncTimer.Time();
 
 	taskTimes = TLM.taskTimes;
 
+	exitTime = TLM.exitTimer.Time();
+
+	actual.Stop();
+
 	total.Stop();
 }
 
 void Thread::Exit() {
-	running = false;
+	// running = false;
 	exiting = true;
 
 	osThread.join();
 
 	Log::NoticeTag( "\nid: %u", id );
 
-	Log::NoticeTag( "id: %u: total: %s, fetching (task/idle): %s/%s, execing: %s, dependency: %s, idle: %s",
-		id, total.FormatTime( Timer::ms ), Timer::FormatTime( fetchTask, Timer::ms ), Timer::FormatTime( fetchIdle, Timer::ms ),
+	Log::NoticeTag( "id: %u: total: %s, actual: %s, exit: %s, fetching (task/idle): %s/%s, execing: %s, dependency: %s, idle: %s",
+		id, total.FormatTime( Timer::ms ), actual.FormatTime( Timer::ms ), Timer::FormatTime( exitTime, Timer::ms ),
+		Timer::FormatTime( fetchTask, Timer::ms ), Timer::FormatTime( fetchIdle, Timer::ms ),
 		execing.FormatTime( Timer::ms ), dependencyTimer.FormatTime( Timer::ms ),
 		idle.FormatTime( Timer::ms ) );
 
-	Log::NoticeTag( "id: %u: fetch: queueLock: %s, outer: %s, add: %s, sync: %s", id,
+	Log::NoticeTag( "id: %u, fetchIdleTimer: %s, taskFetch (none/actual): %u/%u",
+		id, fetchIdleTimer.FormatTime( Timer::ms ),
+		taskFetchNone, taskFetchActual );
+
+	Log::NoticeTag( "id: %u: fetch: queueLock: %s, outer: %s, add: %s, addQueueWait: %s, sync: %s", id,
 		Timer::FormatTime( fetchQueueLock, Timer::ms ), Timer::FormatTime( fetchOuter, Timer::ms ),
+		Timer::FormatTime( addQueueWait, Timer::ms ),
 		Timer::FormatTime( taskAdd, Timer::ms ), Timer::FormatTime( taskSync, Timer::ms ) );
 
 	for ( const std::pair<Task::TaskFunction, TaskTime>& taskTime : taskTimes ) {
 		Log::NoticeTag( "task: avg: %s, count: %u, time: %u",
-			Timer::FormatTime( taskTime.second.time / taskTime.second.count, Timer::us ),
-			taskTime.second.count, taskTime.second.time );
+			Timer::FormatTime( taskTime.second.time / std::max( 1ull, taskTime.second.count ), Timer::us ),
+			taskTime.second.count, Timer::FormatTime( taskTime.second.time, Timer::us ) );
 	}
 }

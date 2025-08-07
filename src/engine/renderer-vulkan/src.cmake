@@ -30,6 +30,8 @@ set(SYSLIST
 )
 
 set(TASKLIST
+    ${ENGINE_DIR}/renderer-vulkan/Thread/GlobalMemory.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Thread/GlobalMemory.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/SyncTask.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/SyncTask.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/Task.cpp

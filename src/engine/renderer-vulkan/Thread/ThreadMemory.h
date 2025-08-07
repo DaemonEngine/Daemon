@@ -82,6 +82,7 @@ struct ChunkAllocator {
 struct TaskTime {
 	uint64_t count = 0;
 	uint64_t time = 0;
+	bool syncedWithSM = false;
 };
 
 class ThreadMemory {
@@ -94,12 +95,19 @@ class ThreadMemory {
 	ChunkAllocator chunkAllocators[MAX_MEMORY_AREAS];
 
 	std::unordered_map<Task::TaskFunction, TaskTime> taskTimes;
+	uint64_t unknownTaskCount = 0;
+
+	uint32_t idleThreads[256]{ 0 };
 
 	GlobalTimer fetchOuterTimer;
 	GlobalTimer fetchQueueLockTimer;
 
+	GlobalTimer addQueueWaitTimer;
+
 	GlobalTimer addTimer;
 	GlobalTimer syncTimer;
+
+	GlobalTimer exitTimer;
 
 	~ThreadMemory();
 

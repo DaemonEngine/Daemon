@@ -43,6 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Task.h"
 #include "Thread.h"
 
+#include "ThreadMemory.h"
+
 #include "../Memory/RingBuffer.h"
 
 struct TaskQueue {
@@ -144,14 +146,49 @@ class TaskList :
 	void AdjustThreadCount( const uint32_t newMaxThreads );
 
 	private:
+	struct ThreadExecutionNode {
+		uint8_t nextThreadExecutionNode;
+	};
+
+	struct ThreadQueue {
+		std::atomic<uint64_t> pointer = 0;
+		uint8_t current = 0;
+		uint16_t tasks[63]{ UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
+			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
+			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
+			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
+			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
+			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
+			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX,
+			UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX, UINT16_MAX };
+
+		void AddTask( const uint16_t bufferID ) {
+			TLM.addQueueWaitTimer.Start();
+
+			uint64_t id = pointer.fetch_add( 1, std::memory_order_relaxed );
+			id %= 63;
+			while ( tasks[id] != UINT16_MAX );
+
+			tasks[id] = bufferID;
+
+			TLM.addQueueWaitTimer.Stop();
+		}
+	};
+
 	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory" };
 	TaskRing mainTaskRing{ MAIN };
 
 	uint32_t currentMaxThreads = 0;
 	Thread threads[MAX_THREADS];
 
+	std::atomic<uint32_t> threadExecutionNodes[MAX_THREADS];
+	ThreadQueue threadQueues[MAX_THREADS];
+	std::atomic<uint32_t> currentThreadExecutionNode = UINT32_MAX;
+
 	ALIGN_CACHE std::atomic<uint32_t> executingThreads = 1;
 	ALIGN_CACHE std::atomic<bool> exiting = false;
+
+	void AddToThreadQueue( Task& task );
 
 	Task* GetTaskMemory( Task& task );
 

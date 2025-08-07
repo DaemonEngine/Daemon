@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../MiscCVarStore.h"
 
 #include "ThreadMemory.h"
+#include "GlobalMemory.h"
 
 TaskList taskList;
 
@@ -105,6 +106,19 @@ void TaskList::FinishShutdown() {
 	for ( Thread* thread = threads; thread < threads + currentMaxThreads; thread++ ) {
 		thread->Exit();
 	}
+
+	Log::NoticeTag( "\nmain: add: %s, addQueueWait: %s, sync: %s, unknownTaskCount: %u",
+		TLM.addTimer.FormatTime( Timer::ms ), TLM.addQueueWaitTimer.FormatTime( Timer::ms ),
+		TLM.syncTimer.FormatTime( Timer::ms ),
+		TLM.unknownTaskCount );
+
+	std::string debugOut;
+	debugOut.reserve( 3 * currentMaxThreads );
+	for ( uint32_t i = 0; i < currentMaxThreads; i++ ) {
+		debugOut += Str::Format( "%u ", TLM.idleThreads[i] );
+	}
+	
+	Log::NoticeTag( debugOut );
 }
 
 uint8_t TaskRing::LockQueueForTask( Task* task ) {
@@ -211,6 +225,8 @@ void TaskList::MoveToTaskRing( TaskRing& taskRing, Task& task ) {
 	TLM.addTimer.Start();
 
 	taskRing.AddToTaskRing( task );
+	Q_UNUSED( taskRing );
+	// AddToThreadQueue( task );
 
 	TLM.addTimer.Stop();
 }
@@ -256,6 +272,65 @@ void TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) 
 	}
 }
 
+void TaskList::AddToThreadQueue( Task& task ) {
+	// TaskTime& taskTime = TLM.taskTimes[task.Execute];
+	while ( !SM.taskTimesLock.Lock() );
+	TaskTime taskTime;
+
+	if ( SM.taskTimes.contains( task.Execute ) ) {
+		GlobalTaskTime& SMTaskTime = SM.taskTimes[task.Execute];
+		taskTime.count = SMTaskTime.count.load( std::memory_order_relaxed );
+		taskTime.time = SMTaskTime.time.load( std::memory_order_relaxed );
+	} else {
+		TLM.unknownTaskCount++;
+	}
+
+	SM.taskTimesLock.Unlock();
+	uint32_t projectedTime = taskTime.time / std::max( taskTime.count, 1ull ) / 1000;
+
+	if ( TLM.main ) {
+		Log::Debug( "" );
+	}
+
+	uint32_t node = currentThreadExecutionNode.load( std::memory_order_relaxed );
+	if ( node == UINT32_MAX ) {
+		node = 0;
+	} else {
+		currentThreadExecutionNode.compare_exchange_strong( node, UINT32_MAX, std::memory_order_relaxed );
+		TLM.idleThreads[node]++;
+		threadQueues[node].AddTask( task.bufferID );
+		return;
+	}
+
+	for ( ; node < currentMaxThreads; node++ ) {
+		uint32_t baseThreadTime = threadExecutionNodes[node].fetch_add( projectedTime, std::memory_order_relaxed );
+		uint32_t nextNodeTime = threadExecutionNodes[node + 1].load( std::memory_order_relaxed );
+
+		if ( node == currentMaxThreads - 1
+			|| baseThreadTime + projectedTime <= nextNodeTime ) {
+			threadQueues[node].AddTask( task.bufferID );
+			return;
+		}
+
+		if ( baseThreadTime + projectedTime > nextNodeTime ) {
+			threadExecutionNodes[node].fetch_sub( projectedTime, std::memory_order_relaxed );
+			continue;
+		}
+
+		do {
+			baseThreadTime = threadExecutionNodes[node].load( std::memory_order_relaxed );
+			nextNodeTime = threadExecutionNodes[node + 1].load( std::memory_order_relaxed );
+		} while ( baseThreadTime - projectedTime > nextNodeTime );
+
+		if ( baseThreadTime <= nextNodeTime ) {
+			threadQueues[node].AddTask( task.bufferID );
+			return;
+		}
+
+		threadExecutionNodes[node].fetch_sub( projectedTime, std::memory_order_relaxed );
+	}
+}
+
 Task* TaskList::GetTaskMemory( Task& task ) {
 	if ( AddedToTaskMemory( task.bufferID ) ) {
 		return &tasks[task.bufferID];
@@ -294,9 +369,11 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 
 		if ( !counter ) {
 			mainTaskRing.AddToTaskRing( *taskMemory );
+			// AddToThreadQueue( *taskMemory );
 		}
 	} else if ( !( dependencies.end - dependencies.start ) ) {
 		mainTaskRing.AddToTaskRing( *taskMemory );
+		// AddToThreadQueue( *taskMemory );
 	}
 
 	TLM.addTimer.Stop();
@@ -383,7 +460,9 @@ void TaskList::AddTasksExt( std::initializer_list<TaskInit> dependencies ) {
 }
 
 Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
-	Log::DebugTag( "Thread %u fetching", thread->id );
+	// Log::DebugTag( "Thread %u fetching", thread->id );
+
+	Q_UNUSED( thread );
 
 	uint8_t queue;
 	uint32_t task;
@@ -455,12 +534,42 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 	TLM.fetchOuterTimer.Stop();
 
 	return tasks.memory + globalTaskID;
+
+	/* Q_UNUSED( longestTask );
+	Q_UNUSED( thread );
+
+	ThreadQueue& threadQueue = threadQueues[TLM.id];
+	// uint64_t current = threadQueue.current.fetch_add( 1, std::memory_order_relaxed );
+	uint8_t current = threadQueue.current;
+	// current %= 63;
+	uint16_t id = threadQueue.tasks[current];
+	if ( id == UINT16_MAX ) {
+		currentThreadExecutionNode.store( TLM.id, std::memory_order_relaxed );
+		for ( int i = 0; i < 63; i++ ) {
+			if ( threadQueue.tasks[i] != UINT16_MAX ) {
+				// Log::Debug( "" );
+			}
+		}
+		return nullptr;
+	}
+
+	threadQueue.tasks[current] = UINT16_MAX;
+	threadQueue.current = ( current + 1 ) % 63;
+
+	executingThreads.fetch_add( 1, std::memory_order_relaxed );
+
+	return &tasks[id]; */
 }
 
 bool TaskList::ThreadFinished( const bool hadTask ) {
 	const uint32_t threadCount = executingThreads.fetch_sub( hadTask, std::memory_order_relaxed ) - hadTask;
+	const bool exit = exiting.load( std::memory_order_relaxed );
 
-	if ( exiting.load( std::memory_order_relaxed ) && !threadCount ) {
+	if ( exit ) {
+		TLM.exitTimer.Start();
+	}
+
+	if ( exit && !threadCount ) {
 		if ( !mainTaskRing.taskCount.load( std::memory_order_acquire ) ) {
 			exitFence.Signal();
 

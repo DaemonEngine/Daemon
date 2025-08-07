@@ -31,67 +31,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Thread.h
+// GlobalMemory.h
 
-#ifndef THREAD_H
-#define THREAD_H
+#ifndef GLOBAL_MEMORY_H
+#define GLOBAL_MEMORY_H
 
-#include <thread>
 #include <cstdint>
+#include <unordered_map>
+#include <atomic>
 
 #include "Task.h"
 
-#include "../Shared/Timer.h"
-#include "../SrcDebug/Tag.h"
+using byte = uint8_t;
 
-struct TaskTime;
-
-class Thread :
-	public Tag {
-	public:
-	Thread();
-	~Thread();
-
-	void Start( const uint32_t newID );
-	void Run();
-	void Exit();
-
-	private:
-	friend class TaskList;
-
-	std::thread osThread;
-
-	uint32_t id;
-	uint64_t runTime;
-
-	Task* task;
-
-	bool running = true;
-	bool exiting = false;
-
-	GlobalTimer total;
-	GlobalTimer actual;
-	GlobalTimer fetchIdleTimer;
-	uint64_t fetchTask = 0;
-	uint64_t fetchIdle = 0;
-	GlobalTimer idle;
-	GlobalTimer execing;
-	GlobalTimer dependencyTimer;
-
-	uint64_t fetchQueueLock;
-	uint64_t fetchOuter;
-
-	uint64_t addQueueWait;
-
-	uint64_t taskAdd;
-	uint64_t taskSync;
-
-	uint64_t taskFetchNone = 0;
-	uint64_t taskFetchActual = 0;
-
-	uint64_t exitTime;
-
-	std::unordered_map<Task::TaskFunction, TaskTime> taskTimes;
+struct GlobalTaskTime {
+	std::atomic<uint64_t> count = 0;
+	std::atomic<uint64_t> time = 0;
 };
 
-#endif // THREAD_H
+class GlobalMemory {
+	public:
+	std::unordered_map<Task::TaskFunction, GlobalTaskTime> taskTimes;
+	AccessLock taskTimesLock;
+
+	private:
+};
+
+extern GlobalMemory SM;
+
+#endif // GLOBAL_MEMORY_H

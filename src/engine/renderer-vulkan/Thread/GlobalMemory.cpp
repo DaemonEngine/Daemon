@@ -31,67 +31,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Thread.h
+// GlobalMemory.cpp
 
-#ifndef THREAD_H
-#define THREAD_H
+#include "GlobalMemory.h"
 
-#include <thread>
-#include <cstdint>
-
-#include "Task.h"
-
-#include "../Shared/Timer.h"
 #include "../SrcDebug/Tag.h"
 
-struct TaskTime;
-
-class Thread :
-	public Tag {
-	public:
-	Thread();
-	~Thread();
-
-	void Start( const uint32_t newID );
-	void Run();
-	void Exit();
-
-	private:
-	friend class TaskList;
-
-	std::thread osThread;
-
-	uint32_t id;
-	uint64_t runTime;
-
-	Task* task;
-
-	bool running = true;
-	bool exiting = false;
-
-	GlobalTimer total;
-	GlobalTimer actual;
-	GlobalTimer fetchIdleTimer;
-	uint64_t fetchTask = 0;
-	uint64_t fetchIdle = 0;
-	GlobalTimer idle;
-	GlobalTimer execing;
-	GlobalTimer dependencyTimer;
-
-	uint64_t fetchQueueLock;
-	uint64_t fetchOuter;
-
-	uint64_t addQueueWait;
-
-	uint64_t taskAdd;
-	uint64_t taskSync;
-
-	uint64_t taskFetchNone = 0;
-	uint64_t taskFetchActual = 0;
-
-	uint64_t exitTime;
-
-	std::unordered_map<Task::TaskFunction, TaskTime> taskTimes;
-};
-
-#endif // THREAD_H
+GlobalMemory SM;
