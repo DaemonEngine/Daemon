@@ -83,9 +83,8 @@ static Cvar::Cvar<float> r_portalDefaultRange(
 	"r_portalDefaultRange", "Default portal range", Cvar::NONE, 1024);
 
 // This can be turned off to debug problems with depth shaders.
-// Almost everything can be rendered correctly without them, except real-time lights
-// (since light tiles are populated using the depth buffer).
-static Cvar::Cvar<bool> r_depthShaders(
+// Things should generally render identically (albeit slower) without them.
+Cvar::Cvar<bool> r_depthShaders(
 	"r_depthShaders", "use depth pre-pass shaders", Cvar::CHEAT, true);
 
 /*
