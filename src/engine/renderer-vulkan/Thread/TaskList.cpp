@@ -74,6 +74,8 @@ void TaskList::AdjustThreadCount( uint32_t newMaxThreads ) {
 
 		currentMaxThreads = newMaxThreads;
 	}
+
+	Log::NoticeTag( "Changed thread count to %u", currentMaxThreads );
 }
 
 void TaskList::Init() {
