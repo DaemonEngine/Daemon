@@ -58,6 +58,10 @@ void AccessLock::Finish() {
 	while( value.load( std::memory_order_acquire ) );
 }
 
+void AccessLock::Reset() {
+	value.fetch_add( 1, std::memory_order_release );
+}
+
 void AccessLock::operator=( const AccessLock& other ) {
 	value = other.value.load( std::memory_order_acquire );
 }
