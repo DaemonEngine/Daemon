@@ -10,8 +10,9 @@ set(MEMORYLIST
     ${ENGINE_DIR}/renderer-vulkan/Memory/DynamicArray.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/Memory.cpp
     ${ENGINE_DIR}/renderer-vulkan/Memory/Memory.h
-    ${ENGINE_DIR}/renderer-vulkan/Memory/MemoryChunk.cpp
     ${ENGINE_DIR}/renderer-vulkan/Memory/MemoryChunk.h
+    ${ENGINE_DIR}/renderer-vulkan/Memory/MemoryChunkSystem.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Memory/MemoryChunkSystem.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/IteratorSeq.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/RingBuffer.h
 )

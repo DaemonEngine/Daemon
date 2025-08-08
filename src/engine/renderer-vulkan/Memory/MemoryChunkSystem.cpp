@@ -31,11 +31,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MemoryChunk.cpp
+// MemoryChunkSystem.cpp
 
 #include "Memory.h"
 
-#include "MemoryChunk.h"
+#include "MemoryChunkSystem.h"
 
 MemoryChunkSystem memoryChunkSystem;
 

@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
+#include "../Shared/Timer.h"
 #include "../Memory/Allocator.h"
 #include "../Memory/DynamicArray.h"
 #include "../Memory/MemoryChunk.h"

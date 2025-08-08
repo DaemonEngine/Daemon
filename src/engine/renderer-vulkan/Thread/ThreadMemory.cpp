@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/Common.h"
 
 #include "../SrcDebug/Tag.h"
+#include "../Memory/MemoryChunkSystem.h"
 
 #include "ThreadMemory.h"
 

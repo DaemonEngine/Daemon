@@ -31,40 +31,44 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MemoryChunk.h
+// MemoryChunkSystem.h
 
-#ifndef MEMORY_CHUNK_H
-#define MEMORY_CHUNK_H
+#ifndef MEMORY_CHUNK_SYSTEM_H
+#define MEMORY_CHUNK_SYSTEM_H
+
+#include <atomic>
+#include <iostream>
+#include <thread>
 
 #include "../Math/NumberTypes.h"
 
-#include "../Sync/AlignedAtomic.h"
+#include "../Math/Bit.h"
+#include "../Shared/Timer.h"
+#include "../SrcDebug/Tag.h"
 
-struct MemoryChunk {
-	uint8 level;
-	uint8 chunk;
-	uint32 chunkArea;
-	uint32 size;
-	byte* memory;
+#include "MemoryChunk.h"
+
+class MemoryChunkSystem :
+	public Tag {
+	
+	public:
+	MemoryChunkConfig config;
+	MemoryArea memoryAreas[MAX_MEMORY_AREAS];
+
+	MemoryChunkSystem();
+	~MemoryChunkSystem();
+
+	MemoryChunk Alloc( uint64 size );
+	void Free( MemoryChunk* memoryChunk );
+
+	void SizeToLevel( const uint64 size, uint32* level, uint32* count );
+
+	private:
+	bool LockArea( const uint32 level, uint32* chunkArea, uint8* chunk );
 };
 
-struct MemoryAreaConfig {
-	uint64 chunkSize;
-	uint32 chunks;
-	uint32 chunkAreas;
-};
+void UpdateMemoryChunkSystemConfig();
 
-struct MemoryArea {
-	MemoryAreaConfig config;
+extern MemoryChunkSystem memoryChunkSystem;
 
-	byte* memory;
-	AlignedAtomicUint64* chunkLocks; // 1 - locked
-};
-
-constexpr uint32 MAX_MEMORY_AREAS = 3;
-
-struct MemoryChunkConfig {
-	MemoryAreaConfig areas[MAX_MEMORY_AREAS];
-};
-
-#endif // MEMORY_CHUNK_H
+#endif // MEMORY_CHUNK_SYSTEM_H
