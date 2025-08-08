@@ -41,7 +41,11 @@ void convertToSRGB(inout vec3 color) {
 		vec3 low = vec3(12.92f) * color;
 		vec3 high = vec3(1.055f) * pow(color, vec3(1.0f / 2.4f)) - vec3(0.055f);
 
-		color = mix(high, low, cutoff);
+		#if __VERSION__ > 120
+			color = mix(high, low, cutoff);
+		#else
+			color = mix(high, low, vec3(cutoff));
+		#endif
 	#else
 		float inverse = 0.4545454f; // 1 / 2.2
 		color = pow(color, vec3(inverse));
