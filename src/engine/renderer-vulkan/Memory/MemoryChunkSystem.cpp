@@ -154,15 +154,15 @@ void MemoryChunkSystem::SizeToLevel( const uint64 size, uint32* level, uint32* c
 	Sys::Drop( "Couldn't find memory area with large enough chunkSize, requested: %u bytes", size );
 }
 
-bool MemoryChunkSystem::LockArea( const uint32 level, uint32* chunkArea, uint8* chunk ) {
+bool MemoryChunkSystem::LockArea( const uint32 level, uint8* chunkArea, uint8* chunk ) {
 	uint64 expectedLocks;
 	uint64 desiredLocks;
-	uint32 foundChunk;
+	uint8 foundChunk;
 
 	uint32 loopCount = 0;
 
 	uint32 i = 0;
-	uint32 area = 0;
+	uint8 area = 0;
 	MemoryArea& memoryArea = memoryAreas[level];
 
 	Timer t;

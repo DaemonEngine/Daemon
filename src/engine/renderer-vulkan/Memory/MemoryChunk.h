@@ -43,7 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct MemoryChunk {
 	uint8 level;
 	uint8 chunk;
-	uint32 chunkArea;
+	uint8 chunkArea;
 	uint32 size;
 	byte* memory;
 };
@@ -61,7 +61,7 @@ struct MemoryArea {
 	AlignedAtomicUint64* chunkLocks; // 1 - locked
 };
 
-constexpr uint32 MAX_MEMORY_AREAS = 3;
+constexpr uint32 MAX_MEMORY_AREAS = 5;
 
 struct MemoryChunkConfig {
 	MemoryAreaConfig areas[MAX_MEMORY_AREAS];

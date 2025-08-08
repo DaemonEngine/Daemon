@@ -64,7 +64,7 @@ class MemoryChunkSystem :
 	void SizeToLevel( const uint64 size, uint32* level, uint32* count );
 
 	private:
-	bool LockArea( const uint32 level, uint32* chunkArea, uint8* chunk );
+	bool LockArea( const uint32 level, uint8* chunkArea, uint8* chunk );
 };
 
 void UpdateMemoryChunkSystemConfig();
