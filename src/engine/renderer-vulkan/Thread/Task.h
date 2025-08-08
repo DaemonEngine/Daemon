@@ -44,6 +44,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Sync/Fence.h"
 #include "../Sync/AccessLock.h"
 
+template<typename T>
+struct IsPointer_ {
+	static constexpr bool out = false;
+};
+
+template<typename T>
+struct IsPointer_<T*> {
+	static constexpr bool out = true;
+};
+
+template<typename T>
+constexpr bool IsPointer = IsPointer_<T>::out;
+
+template<typename DataType>
+consteval uint16 DataSize( DataType data ) {
+	if constexpr ( IsPointer<DataType> ) {
+		return sizeof( *data );
+	}
+
+	return sizeof( data );
+}
+
 struct Task {
 	using TaskFunction = void( * )( void* );
 
@@ -68,6 +90,8 @@ struct Task {
 	uint16 bufferID = UNALLOCATED; // Task RingBuffer id
 	AccessLock forwardTaskLock;
 
+	uint16 dataSize = 0;
+
 	// bool useTaskFence = false;
 	// Fence taskFence;
 
@@ -85,17 +109,29 @@ struct Task {
 		complete( fence ) {
 	}
 
-	template<typename FuncType>
-	Task( FuncType func, void* newData ) :
+	template<typename FuncType, typename DataType>
+	Task( FuncType func, DataType newData ) :
 		Execute( ( TaskFunction ) func ),
-		data( newData ) {
+		data( ( void* ) newData ) {
+
+		if constexpr ( IsPointer<DataType> ) {
+			dataSize = sizeof( *newData );
+		} else {
+			dataSize = sizeof( newData );
+		}
 	}
 
-	template<typename FuncType>
-	Task( FuncType func, void* newData, FenceMain& fence ) :
+	template<typename FuncType, typename DataType>
+	Task( FuncType func, DataType newData, FenceMain& fence ) :
 		Execute( ( TaskFunction ) func ),
-		data( newData ),
+		data( ( void* ) newData ),
 		complete( fence ) {
+
+		if constexpr ( IsPointer<DataType> ) {
+			dataSize = sizeof( *newData );
+		}
+
+		dataSize = sizeof( newData );
 	}
 
 	void operator=( const Task& other );

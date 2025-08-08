@@ -80,7 +80,8 @@ void TaskList::AdjustThreadCount( uint32 newMaxThreads ) {
 }
 
 void TaskList::Init() {
-	tasks.Alloc( 2048 );
+	tasks.Alloc( MAX_TASKS );
+	tasksData.Alloc( MAX_TASK_DATA );
 
 	int threads = r_vkThreadCount.Get();
 	threads = threads ? threads : CPU_CORES;
@@ -231,6 +232,12 @@ void TaskList::MoveToTaskRing( TaskRing& taskRing, Task& task ) {
 	TLM.addTimer.Stop();
 }
 
+void TaskList::FinishTask( Task* task ) {
+	if ( task->dataSize ) {
+		tasksData.UpdateCurrentElement( ( byte* ) task->data - tasksData.memory );
+	}
+}
+
 void TaskList::FinishDependency( const uint16 bufferID ) {
 	Task& task = tasks[bufferID];
 
@@ -347,6 +354,11 @@ Task* TaskList::GetTaskMemory( Task& task ) {
 	}
 
 	Task* taskMemory = tasks.GetNextElementMemory();
+	if ( task.dataSize ) {
+		byte* data = tasksData.GetNextElementMemory( task.dataSize );
+		memcpy( data, task.data, task.dataSize );
+		task.data = data;
+	}
 
 	taskMemory->active = true;
 	task.active = true;

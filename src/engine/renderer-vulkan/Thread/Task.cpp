@@ -50,16 +50,20 @@ void Task::operator=( const Task& other ) {
 	Execute = other.Execute;
 	data = other.data;
 
+	complete = other.complete;
+
+	active = other.active;
+	shutdownTask = other.shutdownTask;
+
+	memcpy( forwardTasks, other.forwardTasks, MAX_FORWARD_TASKS * sizeof( uint16 ) );
+
 	dependencyCounter = other.dependencyCounter.load( std::memory_order_relaxed );
 	forwardTaskCounter = other.forwardTaskCounter.load( std::memory_order_relaxed );
 
 	id = other.id;
+
 	bufferID = other.bufferID;
-
-	complete = other.complete;
-	active = other.active;
-	shutdownTask = other.shutdownTask;
-
 	forwardTaskLock = other.forwardTaskLock;
-	memcpy( forwardTasks, other.forwardTasks, MAX_FORWARD_TASKS * sizeof( uint16 ) );
+
+	dataSize = other.dataSize;
 }

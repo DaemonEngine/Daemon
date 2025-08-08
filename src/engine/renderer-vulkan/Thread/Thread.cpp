@@ -123,6 +123,7 @@ void Thread::Run() {
 		task->Execute( task->data );
 		task->active = false;
 		task->complete.Signal();
+		taskList.FinishTask( task );
 		executing.Stop();
 
 		dependencyTimer.Start();

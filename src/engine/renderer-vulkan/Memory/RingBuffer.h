@@ -111,7 +111,7 @@ class RingBuffer :
 	uint64 pointer;
 };
 
-template<typename T>
+template<typename T, const bool useTrailingAtomic = false>
 class AtomicRingBuffer :
 	public Tag {
 
@@ -168,40 +168,46 @@ class AtomicRingBuffer :
 		FreeAligned( memory );
 	}
 
-	T* GetNextElementMemory() {
-		uint64 element = pointer.fetch_add( 1, std::memory_order_relaxed );
-		element &= mask;
-
-		while ( memory[element].active ) {
-			std::this_thread::yield();
-			Log::DebugTag( "Yielding" );
+	T* GetNextElementMemory( const uint64 count = 1 ) {
+		if constexpr ( !useTrailingAtomic ) {
+			ASSERT_EQ( count, 1 );
 		}
 
-		memory[element].active = true;
+		uint64 element = pointer.fetch_add( count, std::memory_order_relaxed );
+
+		if constexpr ( useTrailingAtomic ) {
+			uint64 currentElement = current.load( std::memory_order_acquire );
+
+			while ( currentElement > element || element - currentElement >= elementCount ) {
+				std::this_thread::yield();
+				Log::DebugTag( "Yielding" );
+				currentElement = current.load( std::memory_order_acquire );
+			}
+
+			element &= mask;
+		} else {
+			element &= mask;
+			while ( memory[element].active ) {
+				std::this_thread::yield();
+				Log::DebugTag( "Yielding" );
+
+			}
+
+			memory[element].active = true;
+		}
 
 		return &memory[element];
 	}
 
-	T* GetCurrentElement() {
-		uint64 expected = current.load( std::memory_order_acquire );
-		uint64 desired;
+	void UpdateCurrentElement( uint64 newCurrent ) {
+		static_assert( useTrailingAtomic, "UpdateCurrentElement() must only be used with useTrailingAtomic = true!" );
 
-		Timer t;
+		uint64 expected = current.load( std::memory_order_relaxed );
 		do {
-			Log::DebugTag( "Retrying" );
-			if ( memory[expected].active ) {
-				desired = ( expected + 1 ) & mask;
-			} else if ( expected < ( pointer & mask ) ) {
-				desired = expected + 1;
-			} else {
-				Log::DebugTag( "None: %s", Timer::FormatTime( t.Time() ) );
-				return nullptr;
+			if ( expected > newCurrent ) {
+				return;
 			}
-		} while ( !current.compare_exchange_weak( expected, desired, std::memory_order_relaxed ) );
-
-		Log::DebugTag( Timer::FormatTime( t.Time() ) );
-
-		return &memory[expected];
+		} while ( !current.compare_exchange_weak( expected, newCurrent, std::memory_order_relaxed ) );
 	}
 
 	const T& operator[]( const uint64 index ) const {

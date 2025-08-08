@@ -119,6 +119,10 @@ class TaskList :
 
 	static constexpr uint32 MAX_THREADS = 256;
 
+	static constexpr uint32 MAX_TASKS = 2048;
+	static constexpr uint32 MAX_DATA_PER_TASK = 128;
+	static constexpr uint32 MAX_TASK_DATA = MAX_TASKS * MAX_DATA_PER_TASK;
+
 	enum TaskRingID {
 		MAIN = 0,
 		FORWARD = 1
@@ -159,6 +163,7 @@ class TaskList :
 
 	bool ThreadFinished( const bool hadTask );
 
+	void FinishTask( Task* task );
 	void FinishDependency( const uint16 bufferID );
 
 	void AdjustThreadCount( const uint32 newMaxThreads );
@@ -169,6 +174,7 @@ class TaskList :
 	};
 
 	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory" };
+	AtomicRingBuffer<byte, true> tasksData { "GlobalTaskDataMemory" };
 	TaskRing mainTaskRing{ MAIN };
 
 	uint32 currentMaxThreads = 0;
