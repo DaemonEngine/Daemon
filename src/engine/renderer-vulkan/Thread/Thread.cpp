@@ -63,14 +63,12 @@ void Thread::Run() {
 
 	total.Clear();
 	idle.Clear();
-	execing.Clear();
+	executing.Clear();
 
 	TLM.Init();
 	TLM.id = id;
 
 	total.Start();
-
-	// bool requiresSMTaskTimeLock = false;
 
 	bool fetched = false;
 
@@ -118,14 +116,14 @@ void Thread::Run() {
 
 		fetchIdleTimer.Stop();
 
-		Log::DebugTag( "id: %u, execing", id );
+		Log::DebugTag( "id: %u, executing", id );
 
 		Timer t;
-		execing.Start();
+		executing.Start();
 		task->Execute( task->data );
 		task->active = false;
 		task->complete.Signal();
-		execing.Stop();
+		executing.Stop();
 
 		dependencyTimer.Start();
 		task->forwardTaskLock.Finish();
@@ -191,10 +189,10 @@ void Thread::Exit() {
 
 	Log::NoticeTag( "\nid: %u", id );
 
-	Log::NoticeTag( "id: %u: total: %s, actual: %s, exit: %s, fetching (task/idle): %s/%s, execing: %s, dependency: %s, idle: %s",
+	Log::NoticeTag( "id: %u: total: %s, actual: %s, exit: %s, fetching (task/idle): %s/%s, executing: %s, dependency: %s, idle: %s",
 		id, total.FormatTime( Timer::ms ), actual.FormatTime( Timer::ms ), Timer::FormatTime( exitTime, Timer::ms ),
 		Timer::FormatTime( fetchTask, Timer::ms ), Timer::FormatTime( fetchIdle, Timer::ms ),
-		execing.FormatTime( Timer::ms ), dependencyTimer.FormatTime( Timer::ms ),
+		executing.FormatTime( Timer::ms ), dependencyTimer.FormatTime( Timer::ms ),
 		idle.FormatTime( Timer::ms ) );
 
 	Log::NoticeTag( "id: %u, fetchIdleTimer: %s, taskFetch (none/actual): %u/%u",

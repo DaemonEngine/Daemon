@@ -76,7 +76,7 @@ class Thread :
 	uint64 fetchTask = 0;
 	uint64 fetchIdle = 0;
 	GlobalTimer idle;
-	GlobalTimer execing;
+	GlobalTimer executing;
 	GlobalTimer dependencyTimer;
 
 	uint64 fetchQueueLock;
