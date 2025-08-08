@@ -40,8 +40,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
+#include "../Memory/Allocator.h"
 #include "../Memory/DynamicArray.h"
 #include "../Memory/MemoryChunk.h"
+
 #include "Task.h"
 
 struct AllocationRecord {
@@ -84,7 +86,7 @@ struct TaskTime {
 	bool syncedWithSM = false;
 };
 
-class ThreadMemory {
+class ThreadMemory : public Allocator {
 	public:
 	static constexpr uint32 MAIN_ID = UINT32_MAX;
 	uint32 id;
@@ -112,8 +114,8 @@ class ThreadMemory {
 
 	void Init();
 
-	byte* AllocAligned( const uint64 size, const uint64 alignment );
-	void Free( byte* memory );
+	byte* Alloc( const uint64 size, const uint64 alignment ) override;
+	void Free( byte* memory ) override;
 
 	void FreeAllChunks();
 

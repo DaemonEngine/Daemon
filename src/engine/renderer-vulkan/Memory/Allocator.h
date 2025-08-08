@@ -36,12 +36,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef ALLOCATOR_H
 #define ALLOCATOR_H
 
+#include "../Math/NumberTypes.h"
+
 class Allocator {
-	Allocator() = delete;
-	~Allocator() = delete;
+	public:
+	Allocator() = default;
+	~Allocator() = default;
 
-	void AddAllocationRecord() {}
-
+	virtual byte* Alloc( const uint64 /* size */, const uint64 /* alignment */ ) = 0;
+	virtual void Free( byte* /* memory */ ) = 0;
 };
 
 #endif // ALLOCATOR_H

@@ -68,7 +68,7 @@ void ThreadMemory::Init() {
 	}
 }
 
-byte* ThreadMemory::AllocAligned( const uint64 size, const uint64 alignment ) {
+byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {
 	if ( !size ) {
 		return nullptr;
 	}

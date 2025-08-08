@@ -38,3 +38,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../SrcDebug/Tag.h"
 
 GlobalMemory SM;
+
+byte* GlobalMemory::Alloc( const uint64 size, const uint64 alignment ) {
+	Q_UNUSED( size );
+	Q_UNUSED( alignment );
+	return nullptr;
+}
+
+void GlobalMemory::Free( byte* memory ) {
+	Q_UNUSED( memory );
+}

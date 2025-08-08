@@ -41,6 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
+#include "../Memory/Allocator.h"
+
 #include "Task.h"
 
 struct GlobalTaskTime {
@@ -48,10 +50,13 @@ struct GlobalTaskTime {
 	std::atomic<uint64> time = 0;
 };
 
-class GlobalMemory {
+class GlobalMemory : public Allocator {
 	public:
 	std::unordered_map<Task::TaskFunction, GlobalTaskTime> taskTimes;
 	AccessLock taskTimesLock;
+
+	byte* Alloc( const uint64 size, const uint64 alignment );
+	void Free( byte* memory );
 
 	private:
 };

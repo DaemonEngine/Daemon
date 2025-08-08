@@ -66,7 +66,7 @@ Chunk allocation is generally handled by TLM/SM, so containers or other custom a
           |
 		  v
 *********************   *****************   ***************************
-*  ChunkAllocatorJ  *<--* TLM (threadI) *<->*  AllocAligned( size )   *
+*  ChunkAllocatorJ  *<--* TLM (threadI) *<->*     Alloc( size )       *
 * chunk0|...|chunkM *   *****************   * Selects ChunkAllocatorJ *
 *********************                       * Keeping track of allocs *
                                             * is done here            *
