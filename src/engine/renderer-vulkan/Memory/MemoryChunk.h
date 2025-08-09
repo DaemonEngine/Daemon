@@ -61,10 +61,15 @@ struct MemoryArea {
 	AlignedAtomicUint64* chunkLocks; // 1 - locked
 };
 
-constexpr uint32 MAX_MEMORY_AREAS = 5;
+constexpr uint32 MAX_MEMORY_AREAS = 3;
 
 struct MemoryChunkConfig {
 	MemoryAreaConfig areas[MAX_MEMORY_AREAS];
 };
+
+constexpr uint64 memoryChunkConfigRequired[][2] {
+	{ 16 * 1024, 640 }, { 1024 * 1024, 640 }, { 64 * 1024 * 1024, 16 }
+};
+constexpr const char* defaultMemoryChunkConfig = "16:640 1024:640 65536:16";
 
 #endif // MEMORY_CHUNK_H

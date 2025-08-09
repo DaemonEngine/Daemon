@@ -31,19 +31,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MiscCVarStore.h
-
-#ifndef MISC_CVARSTORE_H
-#define MISC_CVARSTORE_H
+// Init.cpp
 
 #include "common/Common.h"
+#include "qcommon/qcommon.h"
 
-extern Cvar::Cvar<int> r_rendererAPI;
+#include "engine/framework/System.h"
 
-extern Cvar::Cvar<std::string> r_vkVersion;
+#include "Thread/ThreadMemory.h"
+#include "Thread/TaskList.h"
+#include "Memory/MemoryChunkSystem.h"
+#include "MiscCVarStore.h"
+#include "RefAPI.h"
 
-extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount;
+void Init() {
+	/* TLM.main = true;
+	taskList.Init();
 
-extern Cvar::Cvar<std::string> r_vkMemoryChunkConfig;
+	glconfig->vidWidth = 1920;
+	glconfig->vidHeight = 1080;
 
-#endif // MISC_CVARSTORE_H
+	r_width.Set( 1920 );
+	r_height.Set( 1080 );
+
+	window = mainSurface.window;
+
+	IN_Init( window ); */
+
+	// memoryChunkSystem.InitConfig( r_vkMemoryChunkConfig.Get().c_str() );
+	std::string cfg = r_vkMemoryChunkConfig.Get();
+	Task task { &InitMemoryChunkSystemConfig, cfg };
+	taskList.AddTask( task );
+}

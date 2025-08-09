@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcommon/qcommon.h"
 
 #include "RefAPI.h"
+#include "Init.h"
 
 #include "Thread/TaskList.h"
 
@@ -65,6 +66,8 @@ namespace TempAPI {
 	bool BeginRegistration( glconfig_t* glconfig, glconfig2_t* ) {
 		TLM.main = true;
 		taskList.Init();
+
+		Init();
 
 		glconfig->vidWidth = 1920;
 		glconfig->vidHeight = 1080;

@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Thread/TaskList.h"
 #include "Sys/CPUInfo.h"
+#include "Memory/MemoryChunk.h"
 
 #include "MiscCVarStore.h"
 
@@ -65,6 +66,10 @@ Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount( "r_vkThreadCount",
 
 		taskList.AdjustThreadCount( value );
 	}, 0, TaskList::MAX_THREADS );
+
+Cvar::Cvar<std::string> r_vkMemoryChunkConfig( "r_vkMemoryChunkConfig",
+	"Configuration for memory chunk system: \"[chunkSize]:[chunkCount] .. [chunkSize]:[chunkCount]\", sizes are in kb."
+	"16:640 1024:640 65536:16 must be reserved for internal use", Cvar::NONE, defaultMemoryChunkConfig );
 
 // TODO: Move this to some Vulkan file later
 Cvar::Cvar<int> r_rendererApi( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 1 );

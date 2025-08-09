@@ -31,19 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MiscCVarStore.h
+// Init.cpp
 
-#ifndef MISC_CVARSTORE_H
-#define MISC_CVARSTORE_H
-
-#include "common/Common.h"
-
-extern Cvar::Cvar<int> r_rendererAPI;
-
-extern Cvar::Cvar<std::string> r_vkVersion;
-
-extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount;
-
-extern Cvar::Cvar<std::string> r_vkMemoryChunkConfig;
-
-#endif // MISC_CVARSTORE_H
+void Init();

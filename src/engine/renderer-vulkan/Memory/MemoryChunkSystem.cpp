@@ -76,7 +76,92 @@ Chunk allocation is generally handled by TLM/SM, so containers or other custom a
 
 MemoryChunkSystem::MemoryChunkSystem():
 	Tag( "MemoryChunkSystem" ) {
-	UpdateMemoryChunkSystemConfig();
+}
+
+MemoryChunkSystem::~MemoryChunkSystem() {
+	for ( MemoryArea* area = memoryAreas; area < memoryAreas + MAX_MEMORY_AREAS; area++ ) {
+		FreeAligned( area->memory );
+		FreeAligned( area->chunkLocks );
+	}
+}
+
+void MemoryChunkSystem::InitConfig( const char* configText ) {
+	const char** text = &configText;
+
+	Log::NoticeTag( "Parsing memoryChunkConfig: %s", configText );
+
+	bool parsed = true;
+	for ( uint32 i = 0; i < MAX_MEMORY_AREAS; i++ ) {
+		const char* token = COM_ParseExt2( text, false );
+		if ( !token || *token == '\0' ) {
+			break;
+		}
+
+		if ( i >= MAX_MEMORY_AREAS ) {
+			parsed = false;
+			break;
+		}
+
+		int out;
+		if ( !Q_strtoi( token, &out ) ) {
+			parsed = false;
+			break;
+		}
+
+		config.areas[i].chunkSize = out * 1024ull;
+
+		COM_ParseExt2( text, false );
+
+		token = COM_ParseExt2( text, false );
+		if ( !Q_strtoi( token, &out ) ) {
+			parsed = false;
+			break;
+		}
+
+		config.areas[i].chunks = out;
+	}
+
+	if( !parsed ) {
+		Log::WarnTag( "Bad memoryChunkConfig: %s, using default (%s)", configText, defaultMemoryChunkConfig );
+		InitConfig( defaultMemoryChunkConfig );
+		return;
+	}
+
+	uint32 notValid = 3;
+	for ( uint32 i = 0; i < MAX_MEMORY_AREAS; i++ ) {
+		MemoryAreaConfig& areaConfig = config.areas[i];
+
+		if ( areaConfig.chunkSize < memoryChunkConfigRequired[i][0] ) {
+			areaConfig.chunkSize = memoryChunkConfigRequired[i][0];
+		}
+
+		if ( areaConfig.chunks < memoryChunkConfigRequired[i][1] ) {
+			areaConfig.chunks = memoryChunkConfigRequired[i][1];
+		}
+
+		notValid = notValid ? notValid - 1 : 0;
+	}
+
+	if ( notValid ) {
+		Log::WarnTag( "Bad memoryChunkConfig: %s, using default (%s)", configText, defaultMemoryChunkConfig );
+		InitConfig( defaultMemoryChunkConfig );
+		return;
+	}
+
+	std::sort( config.areas, config.areas + MAX_MEMORY_AREAS,
+		[]( const MemoryAreaConfig& lhs, const MemoryAreaConfig& rhs ) {
+			return lhs.chunkSize < rhs.chunkSize;
+		} );
+
+	for ( MemoryAreaConfig& area : config.areas ) {
+		area.chunkAreas = ( area.chunks + 63 ) / 64;
+	}
+
+	for ( uint32 i = 0; i < MAX_MEMORY_AREAS; i++ ) {
+		memoryAreas[i].config = config.areas[i];
+	}
+
+	Log::NoticeTag( "Parsed memoryChunkConfig" );
 
 	for ( MemoryArea* area = memoryAreas; area < memoryAreas + MAX_MEMORY_AREAS; area++ ) {
 		area->memory = ( byte* ) Alloc64( area->config.chunks * area->config.chunkSize );
@@ -84,13 +169,6 @@ MemoryChunkSystem::MemoryChunkSystem():
 
 		area->chunkLocks = ( AlignedAtomicUint64* ) Alloc64( area->config.chunkAreas * sizeof( AlignedAtomicUint64 ) );
 		memset( area->chunkLocks, 0, area->config.chunkAreas * sizeof( AlignedAtomicUint64 ) );
-	}
-}
-
-MemoryChunkSystem::~MemoryChunkSystem() {
-	for ( MemoryArea* area = memoryAreas; area < memoryAreas + MAX_MEMORY_AREAS; area++ ) {
-		FreeAligned( area->memory );
-		FreeAligned( area->chunkLocks );
 	}
 }
 
@@ -213,20 +291,6 @@ bool MemoryChunkSystem::LockArea( const uint32 level, uint8* chunkArea, uint8* c
 	return true;
 }
 
-void UpdateMemoryChunkSystemConfig() {
-	// TODO: Add cvars for this
-	memoryChunkSystem.config.areas[0].chunkSize = 16 * 1024ull;
-	memoryChunkSystem.config.areas[0].chunks = 640;
-	memoryChunkSystem.config.areas[1].chunkSize = 1024 * 1024ull;
-	memoryChunkSystem.config.areas[1].chunks = 640;
-	memoryChunkSystem.config.areas[2].chunkSize = 64 * 1024ull * 1024;
-	memoryChunkSystem.config.areas[2].chunks = 64;
-
-	for ( MemoryAreaConfig& area : memoryChunkSystem.config.areas ) {
-		area.chunkAreas = ( area.chunks + 63 ) / 64;
-	}
-
-	for ( uint32 i = 0; i < MAX_MEMORY_AREAS; i++ ) {
-		memoryChunkSystem.memoryAreas[i].config = memoryChunkSystem.config.areas[i];
-	}
+void InitMemoryChunkSystemConfig( std::string* config ) {
+	memoryChunkSystem.InitConfig( config->c_str() );
 }

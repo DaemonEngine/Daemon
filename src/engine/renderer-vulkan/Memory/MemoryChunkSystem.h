@@ -58,6 +58,8 @@ class MemoryChunkSystem :
 	MemoryChunkSystem();
 	~MemoryChunkSystem();
 
+	void InitConfig( const char* configText );
+
 	MemoryChunk Alloc( uint64 size );
 	void Free( MemoryChunk* memoryChunk );
 
@@ -67,7 +69,7 @@ class MemoryChunkSystem :
 	bool LockArea( const uint32 level, uint8* chunkArea, uint8* chunk );
 };
 
-void UpdateMemoryChunkSystemConfig();
+void InitMemoryChunkSystemConfig( std::string* config );
 
 extern MemoryChunkSystem memoryChunkSystem;
 

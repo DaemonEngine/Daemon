@@ -61,6 +61,8 @@ set(RENDERERLIST
     ${UTILSLIST}
     ${ENGINE_DIR}/renderer-vulkan/Surface/Surface.cpp
     ${ENGINE_DIR}/renderer-vulkan/Surface/Surface.h
+    ${ENGINE_DIR}/renderer-vulkan/Init.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Init.h
     ${ENGINE_DIR}/renderer-vulkan/MiscCVarStore.cpp
     ${ENGINE_DIR}/renderer-vulkan/MiscCVarStore.h
     ${ENGINE_DIR}/renderer-vulkan/RefAPI.cpp
