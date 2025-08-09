@@ -34,8 +34,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* screenSpace_vp.glsl */
 
+#if defined(HAVE_EXT_gpu_shader4)
 const vec2 vertices[3] = vec2[3] ( vec2( -1.0f, -1.0f ), vec2( 3.0f, -1.0f ), vec2( -1.0f, 3.0f ) );
 
 void main() {
 	gl_Position = vec4( vertices[gl_VertexID], 0.0f, 1.0f );
 }
+#else
+IN vec3 attr_Position;
+
+void main() {
+	gl_Position = vec4( attr_Position, 1.0f );
+}
+#endif

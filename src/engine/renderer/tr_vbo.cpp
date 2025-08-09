@@ -555,8 +555,12 @@ void R_BindNullIBO()
 
 static void R_InitGenericVBOs() {
 	// Min and max coordinates of the quad
-	static const vec3_t min = { 0.0f, 0.0f, 0.0f };
+
+	static const vec3_t min_new = { 0.0f, 0.0f, 0.0f };
+	static const vec3_t min_old = { -1.0f, -1.f, -1.0f };
+	const float *min = glConfig2.gpuShader4Available ? min_new : min_old;
 	static const vec3_t max = { 1.0f, 1.0f, 0.0f };
+
 	{
 		/*
 			Quad is a static mesh with 4 vertices and 2 triangles
