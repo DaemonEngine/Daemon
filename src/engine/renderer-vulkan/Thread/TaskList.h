@@ -46,33 +46,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Memory/RingBuffer.h"
 
-struct TaskQueue {
-	uint64 availableTasks = 0;
-	uint16 tasks[64];
-};
-
-struct TaskRing {
-	std::atomic<uint64> queueLocks = 0;
-	uint64 queuesWithTasks = 0;
-	ALIGN_CACHE std::atomic<uint32> taskCount = 0;
-	TaskQueue queues[64];
-
-	const uint32 id;
-
-	TaskRing( const uint32 newID ) :
-		id( newID ) {
-	}
-
-	uint8 LockQueueForTask( Task* task );
-
-	void LockQueue( const uint8 queue );
-	void UnlockQueue( const uint8 queue );
-
-	void RemoveTask( const uint8 queue, const uint8 taskID, const bool queueLocked = false );
-
-	void AddToTaskRing( Task& task, const bool unlockQueueAfterAdd = true );
-};
-
 using TaskInit = std::initializer_list<TaskProxy>;
 #define AddTasks( ... ) AddTasksExt( { __VA_ARGS__ } )
 
@@ -123,21 +96,10 @@ class TaskList :
 	static constexpr uint32 MAX_DATA_PER_TASK = 128;
 	static constexpr uint32 MAX_TASK_DATA = MAX_TASKS * MAX_DATA_PER_TASK;
 
-	enum TaskRingID {
-		MAIN = 0,
-		FORWARD = 1
-	};
-
-	static constexpr uint16 TASK_RING_MASK = 1;
-	static constexpr uint16 TASK_QUEUE_MASK = 63;
-	static constexpr uint16 TASK_ID_MASK = 63;
-
-	static constexpr uint16 TASK_SHIFT_QUEUE = 0;
-	static constexpr uint16 TASK_SHIFT_ID = 6;
-	static constexpr uint16 TASK_SHIFT_ALLOCATED = 12;
-	static constexpr uint16 TASK_SHIFT_HAS_UNTRACKED_DEPS = 13;
-	static constexpr uint16 TASK_SHIFT_TRACKED_DEPENDENCY = 14;
-	static constexpr uint16 TASK_SHIFT_UPDATED_DEPENDENCY = 15;
+	static constexpr uint16 TASK_SHIFT_ADDED = 0;
+	static constexpr uint16 TASK_SHIFT_HAS_UNTRACKED_DEPS = 1;
+	static constexpr uint16 TASK_SHIFT_TRACKED_DEPENDENCY = 2;
+	static constexpr uint16 TASK_SHIFT_UPDATED_DEPENDENCY = 3;
 
 	FenceMain exitFence;
 
@@ -148,14 +110,11 @@ class TaskList :
 	void Shutdown();
 	void FinishShutdown();
 
-	bool AddedToTaskRing( const uint16 id );
-	bool AddedToTaskMemory( const uint16 id );
+	bool AddedToTaskList( const uint16 id );
+	bool AddedToTaskMemory( const uint16 bufferID );
 	bool HasUntrackedDeps( const uint16 id );
 	bool IsTrackedDependency( const uint16 id );
 	bool IsUpdatedDependency( const uint16 id );
-
-	uint8 IDToTaskQueue( const uint16 id );
-	uint16 IDToTaskID( const uint16 id );
 
 	void AddTask( Task& task, std::initializer_list<TaskProxy> dependencies = {} );
 	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
@@ -175,7 +134,6 @@ class TaskList :
 
 	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory" };
 	AtomicRingBuffer<byte, true> tasksData { "GlobalTaskDataMemory" };
-	TaskRing mainTaskRing{ MAIN };
 
 	uint32 currentMaxThreads = 0;
 	Thread threads[MAX_THREADS];
@@ -183,6 +141,7 @@ class TaskList :
 	std::atomic<uint32> threadExecutionNodes[MAX_THREADS];
 	ThreadQueue threadQueues[MAX_THREADS];
 	std::atomic<uint32> currentThreadExecutionNode = UINT32_MAX;
+	std::atomic<uint32> taskCount;
 
 	ALIGN_CACHE std::atomic<uint32> executingThreads = 1;
 	ALIGN_CACHE std::atomic<bool> exiting = false;
@@ -202,8 +161,6 @@ class TaskList :
 
 	template<IsTask T>
 	void UnMarkDependencies( TaskInitList<T>&& dependencies );
-
-	void MoveToTaskRing( TaskRing& taskRing, Task& task );
 };
 
 extern TaskList taskList;

@@ -84,7 +84,7 @@ struct Task {
 	std::atomic<uint32> forwardTaskCounter = 0;
 	uint32 forwardTaskCounterFast = 0;
 
-	uint16 id = 0; // LSB->MSB: 6 bits - queue, 6 bits - queue slot, 4 bits - task memory/dependency tracking in TaskList
+	uint8 id = 0; // 4 bits - task memory/dependency tracking in TaskList
 
 	static constexpr uint32 UNALLOCATED = UINT16_MAX;
 	uint16 bufferID = UNALLOCATED; // Task RingBuffer id
