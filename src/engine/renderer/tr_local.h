@@ -2688,6 +2688,7 @@ enum
 	extern Cvar::Modified<Cvar::Cvar<std::string>> r_textureMode;
 	extern cvar_t *r_offsetFactor;
 	extern cvar_t *r_offsetUnits;
+	extern Cvar::Cvar<bool> r_depthShaders;
 
 	extern cvar_t *r_physicalMapping;
 	extern cvar_t *r_specularExponentMin;
