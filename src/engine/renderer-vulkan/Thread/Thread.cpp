@@ -127,7 +127,7 @@ void Thread::Run() {
 		executing.Stop();
 
 		dependencyTimer.Start();
-		task->forwardTaskLock.Finish();
+		task->forwardTaskLock.LockWrite();
 		const uint32 forwardTasks = task->forwardTaskCounter.load( std::memory_order_relaxed );
 		for ( uint32 i = 0; i < forwardTasks; i++ ) {
 			taskList.FinishDependency( task->forwardTasks[i] );
@@ -141,14 +141,14 @@ void Thread::Run() {
 		taskTime.time += t.Time();
 
 		if ( !taskTime.syncedWithSM ) {
-			SM.taskTimesLock.Finish();
+			SM.taskTimesLock.LockWrite();
 
 			GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
 			SMTaskTime.count = taskTime.count;
 			SMTaskTime.time = taskTime.time;
 			taskTime.syncedWithSM = true;
 
-			SM.taskTimesLock.Reset();
+			SM.taskTimesLock.UnlockWrite();
 		} else {
 			while( !SM.taskTimesLock.Lock() );
 

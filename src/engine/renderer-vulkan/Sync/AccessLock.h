@@ -46,8 +46,8 @@ struct AccessLock {
 	bool Lock();
 	void Unlock();
 
-	void Finish();
-	void Reset();
+	void LockWrite();
+	void UnlockWrite();
 
 	void operator=( const AccessLock& other );
 };

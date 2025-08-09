@@ -53,12 +53,19 @@ void AccessLock::Unlock() {
 	value.fetch_sub( 1, std::memory_order_release );
 }
 
-void AccessLock::Finish() {
-	value.fetch_sub( 1, std::memory_order_release );
+void AccessLock::LockWrite() {
+	const uint32 current = value.fetch_sub( 1, std::memory_order_release );
+
+	// TODO: error; only 1 writer is allowed
+	if ( current == 0 ) {
+		UnlockWrite();
+		return;
+	}
+
 	while( value.load( std::memory_order_acquire ) );
 }
 
-void AccessLock::Reset() {
+void AccessLock::UnlockWrite() {
 	value.fetch_add( 1, std::memory_order_release );
 }
 
