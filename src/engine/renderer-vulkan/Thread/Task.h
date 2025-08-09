@@ -111,12 +111,13 @@ struct Task {
 
 	template<typename FuncType, typename DataType>
 	Task( FuncType func, DataType newData ) :
-		Execute( ( TaskFunction ) func ),
-		data( ( void* ) newData ) {
+		Execute( ( TaskFunction ) func ) {
 
 		if constexpr ( IsPointer<DataType> ) {
-			dataSize = sizeof( *newData );
+			data = ( void* ) newData;
+			dataSize = sizeof( void* );
 		} else {
+			data = ( void* ) &newData;
 			dataSize = sizeof( newData );
 		}
 	}
@@ -124,14 +125,15 @@ struct Task {
 	template<typename FuncType, typename DataType>
 	Task( FuncType func, DataType newData, FenceMain& fence ) :
 		Execute( ( TaskFunction ) func ),
-		data( ( void* ) newData ),
 		complete( fence ) {
 
 		if constexpr ( IsPointer<DataType> ) {
-			dataSize = sizeof( *newData );
+			data = ( void* ) newData;
+			dataSize = sizeof( void* );
+		} else {
+			data = ( void* ) &newData;
+			dataSize = sizeof( newData );
 		}
-
-		dataSize = sizeof( newData );
 	}
 
 	void operator=( const Task& other );
