@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Memory.cpp
 
 #include "../SrcDebug/Tag.h"
+#include "../Error.h"
 
 #include "Memory.h"
 
@@ -48,7 +49,7 @@ MALLOC_LIKE void* AllocAligned( const uint64 size, const uint64 alignment ) {
 
 	void* ret = Com_Allocate_Aligned( alignment, paddedSize );
 	if ( !ret ) {
-		Sys::Drop( "AllocAligned: failed: memory allocation returned nullptr (size: %u, alignment: %u)",
+		Err( "AllocAligned: failed: memory allocation returned nullptr (size: %u, alignment: %u)",
 			paddedSize, alignment );
 	}
 

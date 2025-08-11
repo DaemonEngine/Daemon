@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // MemoryChunkSystem.cpp
 
+#include "../Error.h"
+
 #include "Memory.h"
 
 #include "MemoryChunkSystem.h"
@@ -179,13 +181,13 @@ MemoryChunk MemoryChunkSystem::Alloc( uint64 size ) {
 	SizeToLevel( size, &level, &count );
 
 	if ( count > 64 ) {
-		Sys::Drop( "Allocation size too large: %ull", size );
+		Err( "Allocation size too large: %ull", size );
 	}
 
 	MemoryChunk out;
 
 	if ( count > 1 ) {
-		Sys::Drop( "Couldn't find memory chunk large enough to support allocation (%u bytes, requires %u * %u byte chunks)",
+		Err( "Couldn't find memory chunk large enough to support allocation (%u bytes, requires %u * %u byte chunks)",
 			size, count, memoryAreas[level].config.chunkSize );
 	}
 

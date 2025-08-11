@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -31,14 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Error.h
+// MemoryInfo.cpp
 
-#include <string>
+#include "MemoryInfo.h"
 
-#include "common/String.h"
-
-extern std::string error;
-
-void Error( Str::StringRef err );
-
-#define Err( message, ... ) Error( Str::Format( message, ##__VA_ARGS__ ) )

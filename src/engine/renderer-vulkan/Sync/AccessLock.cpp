@@ -56,7 +56,6 @@ void AccessLock::Unlock() {
 bool AccessLock::LockWrite() {
 	const uint32 current = value.fetch_sub( 1, std::memory_order_release );
 
-	// TODO: error; only 1 writer is allowed
 	if ( current == 0 ) {
 		UnlockWrite();
 		return false;

@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#include "common/Common.h"
+#include "common/Compiler.h"
 
 #include "../Math/NumberTypes.h"
 

@@ -156,7 +156,7 @@ void ThreadMemory::Free( byte* memory ) {
 	AllocationRecord* record = ( AllocationRecord* ) ( memory - sizeof( AllocationRecord ) );
 
 	if ( record->guardValue != AllocationRecord::HEADER_MAGIC ) {
-		Sys::Drop( "Memory chunk corrupted: %s", record->Format() );
+		Err( "Memory chunk corrupted: %s", record->Format() );
 	}
 
 	ChunkAllocator& allocator = chunkAllocators[record->chunkID & 0xF];
