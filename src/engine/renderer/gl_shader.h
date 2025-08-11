@@ -83,6 +83,89 @@ struct GLHeader {
 	}
 };
 
+struct ShaderEntry {
+	std::string name;
+	uint32_t macro;
+	GLuint type;
+
+	bool operator==( const ShaderEntry& other ) const {
+		return name == other.name && macro == other.macro && type == other.type;
+	}
+
+	bool operator!=( const ShaderEntry& other ) const {
+		return !( *this == other );
+	}
+};
+
+struct ShaderDescriptor {
+	std::string name;
+
+	std::string macros;
+	uint32_t macro;
+
+	GLenum type;
+	bool main = false;
+
+	GLuint id = 0;
+
+	std::string shaderSource;
+};
+
+static const uint32_t MAX_SHADER_PROGRAM_SHADERS = 16;
+
+struct ShaderProgramDescriptor {
+	GLuint id = 0;
+
+	bool hasMain = false;
+	GLuint type;
+
+	uint32_t macro = 0;
+
+	GLuint shaders[MAX_SHADER_PROGRAM_SHADERS] {};
+	ShaderEntry shaderNames[MAX_SHADER_PROGRAM_SHADERS] {};
+	std::string mainShader;
+	uint32_t shaderCount = 0;
+
+	GLint* uniformLocations;
+	GLuint* uniformBlockIndexes = nullptr;
+	byte* uniformFirewall;
+
+	uint32_t checkSum;
+
+	void AttachShader( ShaderDescriptor* descriptor ) {
+		if ( shaderCount == MAX_SHADER_PROGRAM_SHADERS ) {
+			Log::Warn( "Tried to attach too many shaders to program: skipping shader %s %s", descriptor->name, descriptor->macros );
+			return;
+		}
+
+		if ( !shaderCount ) {
+			type = descriptor->type;
+		} else if ( type != descriptor->type ) {
+			type = 0;
+		}
+
+		if ( descriptor->main ) {
+			if ( hasMain && mainShader != descriptor->name ) {
+				Log::Warn( "More than one shader specified as main, current: %s, new: %s, using current",
+					mainShader, descriptor->name );
+			} else {
+				mainShader = descriptor->name;
+				hasMain = true;
+			}
+		}
+
+		shaders[shaderCount] = descriptor->id;
+
+		shaderNames[shaderCount].name = descriptor->name;
+		shaderNames[shaderCount].macro = descriptor->macro;
+		shaderNames[shaderCount].type = descriptor->type;
+
+		macro |= descriptor->macro;
+
+		shaderCount++;
+	};
+};
+
 class GLShader {
 	friend class GLShaderManager;
 public:
@@ -227,89 +310,6 @@ public:
 	}
 
 	void WriteUniformsToBuffer( uint32_t* buffer );
-};
-
-struct ShaderEntry {
-	std::string name;
-	uint32_t macro;
-	GLuint type;
-
-	bool operator==( const ShaderEntry& other ) const {
-		return name == other.name && macro == other.macro && type == other.type;
-	}
-
-	bool operator!=( const ShaderEntry& other ) const {
-		return !( *this == other );
-	}
-};
-
-struct ShaderDescriptor {
-	std::string name;
-
-	std::string macros;
-	uint32_t macro;
-
-	GLenum type;
-	bool main = false;
-
-	GLuint id = 0;
-
-	std::string shaderSource;
-};
-
-static const uint32_t MAX_SHADER_PROGRAM_SHADERS = 16;
-
-struct ShaderProgramDescriptor {
-	GLuint id = 0;
-
-	bool hasMain = false;
-	GLuint type;
-
-	uint32_t macro = 0;
-
-	GLuint shaders[MAX_SHADER_PROGRAM_SHADERS] {};
-	ShaderEntry shaderNames[MAX_SHADER_PROGRAM_SHADERS] {};
-	std::string mainShader;
-	uint32_t shaderCount = 0;
-
-	GLint* uniformLocations;
-	GLuint* uniformBlockIndexes = nullptr;
-	byte* uniformFirewall;
-
-	uint32_t checkSum;
-
-	void AttachShader( ShaderDescriptor* descriptor ) {
-		if ( shaderCount == MAX_SHADER_PROGRAM_SHADERS ) {
-			Log::Warn( "Tried to attach too many shaders to program: skipping shader %s %s", descriptor->name, descriptor->macros );
-			return;
-		}
-
-		if ( !shaderCount ) {
-			type = descriptor->type;
-		} else if ( type != descriptor->type ) {
-			type = 0;
-		}
-
-		if ( descriptor->main ) {
-			if ( hasMain && mainShader != descriptor->name ) {
-				Log::Warn( "More than one shader specified as main, current: %s, new: %s, using current",
-					mainShader, descriptor->name );
-			} else {
-				mainShader = descriptor->name;
-				hasMain = true;
-			}
-		}
-
-		shaders[shaderCount] = descriptor->id;
-
-		shaderNames[shaderCount].name = descriptor->name;
-		shaderNames[shaderCount].macro = descriptor->macro;
-		shaderNames[shaderCount].type = descriptor->type;
-
-		macro |= descriptor->macro;
-
-		shaderCount++;
-	};
 };
 
 class GLUniform {
