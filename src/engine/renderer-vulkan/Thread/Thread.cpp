@@ -141,7 +141,7 @@ void Thread::Run() {
 		taskTime.time += t.Time();
 
 		if ( !taskTime.syncedWithSM ) {
-			SM.taskTimesLock.LockWrite();
+			while( !SM.taskTimesLock.LockWrite() );
 
 			GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
 			SMTaskTime.count = taskTime.count;
