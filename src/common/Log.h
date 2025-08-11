@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "engine/qcommon/q_shared.h"
 
-#if defined( CPP_17_FEATURES )
+#if defined( CPP_SOURCE_LOCATION )
     #include <source_location>
 #endif
 
@@ -97,7 +97,7 @@ namespace Log {
         public:
             Logger(Str::StringRef name, std::string prefix = "", Level defaultLevel = DEFAULT_FILTER_LEVEL);
 
-            #if defined( CPP_17_FEATURES )
+            #if defined( CPP_SOURCE_LOCATION )
                 template<typename ... Args>
                 void WarnExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args );
 
@@ -158,7 +158,7 @@ namespace Log {
      * cannot be filtered and will clutter the console.
      */
 
-    #if defined( CPP_17_FEATURES )
+    #if defined( CPP_SOURCE_LOCATION )
         template<typename ... Args>
         void Warn( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args );
 
@@ -235,7 +235,7 @@ namespace Log {
 
     // Logger
 
-    #if defined( CPP_17_FEATURES )
+    #if defined( CPP_SOURCE_LOCATION )
         inline std::string AddSrcLocation( const std::string& message, const std::source_location& srcLocation, const bool extend ) {
             if ( logExtendAll.Get() || extend ) {
                 const char* start = Q_stristr( srcLocation.file_name(), "/src/" );
@@ -351,7 +351,7 @@ namespace Log {
     // Quick Logs
     extern Logger defaultLogger;
 
-    #if defined( CPP_17_FEATURES )
+    #if defined( CPP_SOURCE_LOCATION )
         template<typename ... Args>
         void WarnExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args ) {
             defaultLogger.WarnExt( srcLocation, format, std::forward<Args>( args ) ... );

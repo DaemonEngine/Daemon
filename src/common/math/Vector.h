@@ -26,11 +26,12 @@ along with Daemon Source Code.  If not, see <http://www.gnu.org/licenses/>.
 #define COMMON_VECTOR_H_
 
 #include <ostream>
+#include <type_traits>
 
 #include "common/CPPStandard.h"
 
-#if defined( CPP_17_FEATURES )
-	#include <type_traits>
+// HACK: checking for CPP_INVOKE_RESULT doesn't work on MSVC
+#if __cplusplus >= 201703L
 	#define invoke_result std::invoke_result
 #else
 	#define invoke_result std::result_of

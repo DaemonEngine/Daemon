@@ -36,31 +36,55 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef CPPSTANDARD_H
 #define CPPSTANDARD_H
 
-enum CPPStandard_ {
-  CPP14,
-  CPP17,
-  CPP20,
-  CPP23
-};
+#undef CPP_AGGREGATE
+#undef CPP_CONCEPTS
+#undef CPP_CONSTEVAL
+#undef CPP_CONSTEXPR
+#undef CPP_CTAD
+#undef CPP_DESIGNATED_INIT
+#undef CPP_INVOKE_RESULT
+#undef CPP_ATOMIC_WAIT_NOTIFY
+#undef CPP_SOURCE_LOCATION
+#undef CPP_STACKTRACE
 
-#if __cplusplus == 201402L
-  const CPPStandard_ CPPStandard = CPP14;
-  #define CPP_14_FEATURES
-#elif __cplusplus == 201703L
-  const CPPStandard_ CPPStandard = CPP17;
-  #define CPP_14_FEATURES
-  #define CPP_17_FEATURES
-#elif __cplusplus == 202002L
-  const CPPStandard_ CPPStandard = CPP20;
-  #define CPP_14_FEATURES
-  #define CPP_17_FEATURES
-  #define CPP_20_FEATURES
-#elif __cplusplus >= 202302L
-  const CPPStandard_ CPPStandard = CPP23;
-  #define CPP_14_FEATURES
-  #define CPP_17_FEATURES
-  #define CPP_20_FEATURES
-  #define CPP_23_FEATURES
+#if defined( __cpp_aggregate_bases ) && defined ( __cpp_aggregate_nsdmi ) && defined ( __cpp_aggregate_paren_init )
+    #define CPP_AGGREGATE
+#endif
+
+#if __cpp_concepts >= 201907L
+    #define CPP_CONCEPTS
+#endif
+
+#if __cpp_consteval >= 201811L
+    #define CPP_CONSTEVAL
+#endif
+
+#if __cpp_constexpr >= 202110L && __cpp_if_constexpr >= 201606L
+    #define CPP_CONSTEXPR
+#endif
+
+#if __cpp_deduction_guides >= 201907L
+    #define CPP_CTAD
+#endif
+
+#if __cpp_designated_initializers >= 201707L
+    #define CPP_DESIGNATED_INIT
+#endif
+
+#if __cpp_lib_is_invocable >= 201703L
+    #define CPP_INVOKE_RESULT
+#endif
+
+#if __cpp_lib_atomic_wait >= 201907L
+    #define CPP_ATOMIC_WAIT_NOTIFY
+#endif
+
+#if __cpp_lib_source_location >= 201907L
+    #define CPP_SOURCE_LOCATION
+#endif
+
+#if __cpp_lib_stacktrace >= 202011L
+    #define CPP_STACKTRACE
 #endif
 
 #endif // CPPSTANDARD_H

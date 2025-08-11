@@ -41,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Log.h"
 
-#if defined( CPP_23_FEATURES )
+#if defined( CPP_STACKTRACE )
 
     #include <stacktrace>
 
