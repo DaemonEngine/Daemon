@@ -288,11 +288,7 @@ namespace Resource {
         auto it = resources.begin();
 
         while (it != resources.end()) {
-#if defined( CPP_17_FEATURES )
-            if ( not it->second->keep and it->second.use_count() ) {
-#else
-            if (not it->second->keep and it->second.unique()) {
-#endif
+            if (not it->second->keep and it->second.use_count() == 1) {
                 it->second->Cleanup();
                 it = resources.erase(it);
             } else {

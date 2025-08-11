@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // TextureManager.cpp
 
 #include "tr_local.h"
+#include "GLUtils.h"
 
 Texture::Texture() {
 }

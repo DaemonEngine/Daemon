@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 #include "BufferBind.h"
+#include "GLUtils.h"
 #include <stdexcept>
 
 #define USE_UNIFORM_FIREWALL 1

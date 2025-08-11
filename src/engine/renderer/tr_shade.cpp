@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "gl_shader.h"
 #include "Material.h"
 #include "ShadeCommon.h"
+#include "GLUtils.h"
 
 /*
 =================================================================================
@@ -48,6 +49,12 @@ static void EnableAvailableFeatures()
 
 		if ( !glConfig2.textureIntegerAvailable ) {
 			Log::Warn( "Tiled dynamic light renderer disabled because GL_EXT_texture_integer is not available." );
+			glConfig2.realtimeLighting = false;
+		}
+
+		if ( !glConfig2.textureFloatAvailable )
+		{
+			Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_texture_float is not available." );
 			glConfig2.realtimeLighting = false;
 		}
 
@@ -2028,6 +2035,7 @@ void Tess_Clear()
 {
 	tess.vboVertexSkinning = false;
 	tess.vboVertexAnimation = false;
+	GL_BindVAO( backEnd.defaultVAO );
 
 	// clear shader so we can tell we don't have any unclosed surfaces
 	tess.multiDrawPrimitives = 0;

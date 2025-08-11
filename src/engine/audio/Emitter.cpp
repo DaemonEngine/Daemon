@@ -134,11 +134,7 @@ namespace Audio {
             emitter->Update();
 
             // No sound is using this emitter, destroy it
-#if defined( CPP_17_FEATURES )
-            if ( emitter.use_count() ) {
-#else
-            if (emitter.unique()) {
-#endif
+            if (emitter.use_count() == 1) {
                 emitter = nullptr;
             }
         }
@@ -147,11 +143,7 @@ namespace Audio {
             (*it)->Update();
 
             // No sound is using this emitter, destroy it
-#if defined( CPP_17_FEATURES )
-            if ( ( *it ).use_count() ) {
-#else
-            if ((*it).unique()) {
-#endif
+            if ((*it).use_count() == 1) {
                 it = posEmitters.erase(it);
             } else {
                 it ++;
