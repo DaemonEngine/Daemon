@@ -57,15 +57,6 @@ struct IsPointer_<T*> {
 template<typename T>
 constexpr bool IsPointer = IsPointer_<T>::out;
 
-template<typename DataType>
-consteval uint16 DataSize( DataType data ) {
-	if constexpr ( IsPointer<DataType> ) {
-		return sizeof( *data );
-	}
-
-	return sizeof( data );
-}
-
 struct Task {
 	using TaskFunction = void( * )( void* );
 
