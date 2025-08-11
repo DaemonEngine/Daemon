@@ -385,6 +385,9 @@ namespace Constants {
 enum {
 	ESCAPE = '^',
 	NULL_COLOR = '*',
+	// Magic chars to preserve colors between DECOLOR_OFF and DECOLOR_ON when calling StripColors.
+	DECOLOR_OFF = '\16',
+	DECOLOR_ON  = '\17',
 }; // enum
 } // namespace Constants
 
@@ -412,6 +415,7 @@ public:
 		CHARACTER,     // A character
 		ESCAPE,        // Color escape
 		COLOR,         // Color code
+		CONTROL,       // Control character (basically controlling decolor behavior.)
 	};
 
 	/*
