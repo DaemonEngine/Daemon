@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // SyncTask.cpp
 
+#include "Task.h"
 #include "TaskList.h"
 #include "ThreadMemory.h"
 

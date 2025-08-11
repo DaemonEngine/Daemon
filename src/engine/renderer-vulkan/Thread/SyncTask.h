@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SYNCTASK_H
 #define SYNCTASK_H
 
-#include "Task.h"
+struct Task;
 
 void SyncTask( Task&& task );
 void SyncTask( Task* task );
