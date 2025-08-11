@@ -86,7 +86,9 @@ void Thread::Run() {
 
 		ASSERT_EQ( task, nullptr );
 
+		threadCmd.Start();
 		threadCommands.ExecuteThreadCommands();
+		threadCmd.Stop();
 
 		Timer fetching;
 		task = taskList.FetchTask( this, true );
@@ -101,7 +103,7 @@ void Thread::Run() {
 			taskFetchNone++;
 		}
 
-		if ( fetched ) {
+		if ( fetched && TLM.initialised ) {
 			actual.Start();
 			fetchIdleTimer.Start();
 		}
@@ -192,8 +194,10 @@ void Thread::Exit() {
 
 	Log::NoticeTag( "\nid: %u", id );
 
-	Log::NoticeTag( "id: %u: total: %s, actual: %s, exit: %s, fetching (task/idle): %s/%s, executing: %s, dependency: %s, idle: %s",
+	Log::NoticeTag( "id: %u: total: %s, actual: %s, exit: %s,"
+		" threadCmd: %s, fetching (task/idle): %s/%s, executing: %s, dependency: %s, idle: %s",
 		id, total.FormatTime( Timer::ms ), actual.FormatTime( Timer::ms ), Timer::FormatTime( exitTime, Timer::ms ),
+		threadCmd.FormatTime( Timer::ms ),
 		Timer::FormatTime( fetchTask, Timer::ms ), Timer::FormatTime( fetchIdle, Timer::ms ),
 		executing.FormatTime( Timer::ms ), dependencyTimer.FormatTime( Timer::ms ),
 		idle.FormatTime( Timer::ms ) );

@@ -72,6 +72,7 @@ class Thread :
 
 	GlobalTimer total;
 	GlobalTimer actual;
+	GlobalTimer threadCmd;
 	GlobalTimer fetchIdleTimer;
 	uint64 fetchTask = 0;
 	uint64 fetchIdle = 0;
