@@ -404,28 +404,36 @@ static Keyboard::Key IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, bool down )
 static MouseMode mouse_mode = MouseMode::SystemCursor;
 static bool mouse_mode_unset = true;
 
-static bool MouseModeAllowed( MouseMode mode )
+static bool MouseCaptureAllowed()
 {
-	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
-	{
-		return false;
-	}
+	int appState = SDL_GetWindowFlags( window );
+	bool unfocused = !( appState & SDL_WINDOW_INPUT_FOCUS );
+	bool minimized = ( appState & SDL_WINDOW_MINIMIZED );
+	return !unfocused && !minimized;
+}
 
-	switch ( mode )
+static void ForceMouseMode( MouseMode newMode )
+{
+	switch ( newMode )
 	{
-		case MouseMode::Deltas:
-		case MouseMode::CustomCursor:
-		{
-			int appState = SDL_GetWindowFlags( window );
-			bool unfocused = !( appState & SDL_WINDOW_INPUT_FOCUS );
-			bool minimized = ( appState & SDL_WINDOW_MINIMIZED );
-			return !unfocused && !minimized;
-		}
 		case MouseMode::SystemCursor:
-			return true;
+			SDL_ShowCursor( SDL_ENABLE );
+			SDL_SetWindowGrab( window, SDL_FALSE );
+			SDL_SetRelativeMouseMode( SDL_FALSE );
+			return;
+
+		case MouseMode::CustomCursor:
+			SDL_ShowCursor( SDL_DISABLE );
+			SDL_SetWindowGrab( window, SDL_FALSE );
+			SDL_SetRelativeMouseMode( SDL_FALSE );
+			return;
+
+		case MouseMode::Deltas:
+			SDL_ShowCursor( SDL_DISABLE );
+			SDL_SetWindowGrab( window, SDL_TRUE );
+			SDL_SetRelativeMouseMode( SDL_TRUE );
+			return;
 	}
-	mouseLog.Warn( "Invalid mouse mode requested" );
-	return false;
 }
 
 /*
@@ -433,53 +441,65 @@ static bool MouseModeAllowed( MouseMode mode )
  */
 void IN_SetMouseMode(MouseMode newMode)
 {
-	if ( in_nograb->integer && newMode == MouseMode::Deltas )
-	{
-		newMode = MouseMode::SystemCursor;
-	}
-
 	if ( newMode == mouse_mode && !mouse_mode_unset )
 	{
 		mouseLog.Debug( "Mouse mode: already in mode %d", Util::ordinal( mouse_mode ) );
 	}
-	else if ( !MouseModeAllowed( newMode ) )
-	{
-		mouseLog.Debug( "Mouse mode: mode %d not allowed now", Util::ordinal( newMode ) );
-	}
 	else
 	{
-		mouseLog.Verbose( "Mouse mode: changing to %d", Util::ordinal( newMode ) );
+		if ( newMode != mouse_mode || mouse_mode_unset )
+		{
+			if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
+			{
+				mouseLog.Debug( "Mouse mode not available yet: %d", Util::ordinal( mouse_mode ) );
+				mouse_mode_unset = true;
+				return;
+			}
+		}
+
 		mouse_mode_unset = false;
 
-		switch ( newMode )
+		if ( in_nograb->integer && newMode == MouseMode::Deltas )
 		{
-			case MouseMode::SystemCursor:
-				SDL_ShowCursor( SDL_ENABLE );
-				SDL_SetWindowGrab( window, SDL_FALSE );
-				SDL_SetRelativeMouseMode( SDL_FALSE );
-				break;
+			mouseLog.Debug( "Mouse mode: mode %d not allowed now", Util::ordinal( newMode ) );
 
-			case MouseMode::CustomCursor:
-				SDL_ShowCursor( SDL_DISABLE );
-				SDL_SetWindowGrab( window, SDL_FALSE );
-				SDL_SetRelativeMouseMode( SDL_FALSE );
-				break;
+			newMode = MouseMode::SystemCursor;
+		}
+		else if ( newMode == MouseMode::SystemCursor )
+		{
+			mouseLog.Verbose( "Mouse mode: changing to %d", Util::ordinal( newMode ) );
 
-			case MouseMode::Deltas:
-				SDL_ShowCursor( SDL_DISABLE );
-				SDL_SetWindowGrab( window, SDL_TRUE );
-				SDL_SetRelativeMouseMode( SDL_TRUE );
-				break;
+			newMode = MouseMode::SystemCursor;
+		}
+		else
+		{
+			if ( !MouseCaptureAllowed() )
+			{
+				mouseLog.Debug( "Mouse mode: mode %d not allowed now", Util::ordinal( newMode ) );
+
+				newMode = MouseMode::SystemCursor;
+			}
+			else
+			{
+				mouseLog.Verbose( "Mouse mode: changing to %d", Util::ordinal( newMode ) );
+			}
 		}
 
-		/* Only center mouse when leaving the Delta mode. */
-		if ( mouse_mode == MouseMode::Deltas )
+		if ( mouse_mode != newMode )
 		{
-			IN_CenterMouse();
-		}
+			ForceMouseMode( newMode );
 
-		mouse_mode = newMode;
+			/* Only center mouse when leaving or entering the Delta mode. */
+			if ( mouse_mode == MouseMode::Deltas
+				|| newMode == MouseMode::Deltas )
+			{
+				IN_CenterMouse();
+			}
+
+			mouse_mode = newMode;
+		}
 	}
+
 #ifdef __APPLE__
 	// This prevents the system cursor from disappearing in the loading screen
 	SDL_PumpEvents();
