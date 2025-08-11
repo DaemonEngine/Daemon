@@ -871,6 +871,10 @@ macro(AddApplicationInternal Target Executable)
     set_property(TARGET ${Target} APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET ${Target} APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
     set_target_properties(${Target} PROPERTIES OUTPUT_NAME "${Executable}" PREFIX "" FOLDER "engine")
+    
+    if( DEFINED A_CompileFeatures AND NOT $A_CompileFeatures STREQUAL "" )
+        target_compile_features( ${A_Target} PRIVATE ${A_CompileFeatures} )
+    endif()
 
     # Append Windows specific manifests.
     # Adding the .manifest as a source works better for MSVC, but it has no
