@@ -21,12 +21,9 @@ environment:
   matrix:
     # see 96d5c1f3ed77b09c64ce7c3c7cbd37c70456b3db
     # for NMake template
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      generator: Visual Studio 16 2019
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+      generator: Visual Studio 17 2022
       platform: x64
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      generator: Visual Studio 16 2019
-      platform: win32
 
 build:
   parallel: true
@@ -51,14 +48,15 @@ build_script:
       :: /Wv pins warnings to a specific compiler version so that new ones
       :: don't make the build error after Appveyor updates the compiler.
 
-      set CFLAGS=/Wv:19.29.30037
+      set CFLAGS=/Wv:19.34
 
-      set CXXFLAGS=/Wv:19.29.30037
+      set CXXFLAGS=/Wv:19.34
 
       cmake
       -Wdev -Wdeprecated
       -G"%generator%" -A"%platform%"
       -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1
+      -DUSE_CPP23=1
       -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1
       -S. -Bbuild
 

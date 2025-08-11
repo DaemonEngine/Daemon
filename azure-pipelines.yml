@@ -67,13 +67,14 @@ jobs:
 
   - job: Linux
     pool:
-      vmImage: 'ubuntu-22.04'
+      vmImage: 'ubuntu-24.04'
     strategy:
       matrix:
         GCC:
           BUILD_TYPE: Release
           C_COMPILER: gcc
           CXX_COMPILER: g++
+          CXX: g++-14
           EXTRA_PACKAGES:
           EXTRA_INSTALLS:
           TOOLCHAIN_FILE:
@@ -81,13 +82,14 @@ jobs:
           BUILD_TYPE: Release
           C_COMPILER: clang
           CXX_COMPILER: clang++
+          CXX: clang++-19
           EXTRA_PACKAGES:
           EXTRA_INSTALLS:
           TOOLCHAIN_FILE:
         Mingw:
           BUILD_TYPE: Debug
           C_COMPILER: x86_64-w64-mingw32-gcc
-          CXX_COMPILER: x86_64-w64-mingw32-g++
+          CXX_COMPILER: x86_64-w64-mingw32-g++-14
           EXTRA_PACKAGES: gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
           EXTRA_INSTALLS: sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix ; sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
           TOOLCHAIN_FILE: cmake/cross-toolchain-mingw64.cmake
