@@ -36,32 +36,51 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Fence.h"
 
 void FenceMain::Signal() {
-	value++;
-	value.notify_all();
+	const uint64 current = value.fetch_add( 1, std::memory_order_relaxed ) + 1;
+
+	if ( current >= target ) {
+		done.store( true, std::memory_order_relaxed );
+		done.notify_all();
+	}
 }
 
-void FenceMain::Wait( uint64 expectedValue, const std::memory_order order ) {
-	value.wait( expectedValue, order );
+void FenceMain::Wait( const std::memory_order order ) {
+	done.wait( false, order );
+}
+
+Fence FenceMain::Target( const uint64 target ) {
+	Fence fence { *this };
+	fence.target = target;
+	return fence;
 }
 
 Fence::Fence() :
-	value( nullptr ) {
+	value( nullptr ),
+	done( nullptr ) {
 }
 
 Fence::Fence( const Fence& other ) :
-	value( other.value ) {
+	value( other.value ),
+	done( other.done ),
+	target( other.target ) {
 }
 
 Fence::Fence( Fence&& other ) :
-	value( other.value ) {
+	value( other.value ),
+	done( other.done ),
+	target( other.target ) {
 }
 
 Fence::Fence( FenceMain& other ) :
-	value( &other.value ) {
+	value( &other.value ),
+	done( &other.done ),
+	target( other.target ) {
 }
 
 void Fence::operator=( const Fence& other ) {
 	value = other.value;
+	done = other.done;
+	target = other.target;
 }
 
 void Fence::Signal() {
@@ -69,14 +88,18 @@ void Fence::Signal() {
 		return;
 	}
 
-	( *value )++;
-	value->notify_all();
+	const uint64 current = value->fetch_add( 1, std::memory_order_relaxed ) + 1;
+
+	if ( current >= target ) {
+		done->store( true, std::memory_order_relaxed );
+		done->notify_all();
+	}
 }
 
-void Fence::Wait( uint64 expectedValue, const std::memory_order order ) {
+void Fence::Wait( const std::memory_order order ) {
 	if ( !value ) {
 		return;
 	}
 
-	value->wait( expectedValue, order );
+	done->wait( false, order );
 }

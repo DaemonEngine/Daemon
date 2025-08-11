@@ -46,7 +46,7 @@ void SyncTask( Task&& task ) {
 
 	taskList.AddTask( task );
 
-	syncFence.Wait( 0 );
+	syncFence.Wait();
 
 	TLM.syncTimer.Stop();
 };
