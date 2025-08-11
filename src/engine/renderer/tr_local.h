@@ -1727,11 +1727,6 @@ enum
 		fog_t              *fogs;
 
 		int                globalFog; // Arnout: index of global fog
-		vec4_t             globalOriginalFog; // Arnout: to be able to restore original global fog
-		vec4_t             globalTransStartFog; // Arnout: start fog for switch fog transition
-		vec4_t             globalTransEndFog; // Arnout: end fog for switch fog transition
-		int                globalFogTransStartTime;
-		int                globalFogTransEndTime;
 
 		vec3_t             lightGridOrigin;
 		vec3_t             lightGridSize;
@@ -2193,7 +2188,6 @@ enum
 		visTestQueries_t  visTestQueries[ MAX_VISTESTS ];
 		bool          isHyperspace;
 		trRefEntity_t     *currentEntity;
-		bool          skyRenderedThisView; // flag for drawing sun
 		bool dirtyDepthBuffer;
 		bool postDepthLightTileRendered = false;
 
