@@ -169,9 +169,6 @@ void Tess_StageIteratorSky()
 	// back to standard depth range
 	glDepthRange( 0.0, 1.0 );
 
-	// note that sky was drawn so we will draw a sun later
-	backEnd.skyRenderedThisView = true;
-
 	// Restore matrices if we're rendering in a portal
 	if ( backEnd.viewParms.portalLevel > 0 ) {
 		MatrixCopy( currentProjectionMatrix, glState.projectionMatrix[glState.stackIndex] );

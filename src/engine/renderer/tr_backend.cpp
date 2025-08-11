@@ -2660,9 +2660,6 @@ static void RB_RenderView( bool depthPass )
 		backEnd.isHyperspace = false;
 	}
 
-	// we will only draw a sun if there was sky rendered in this view
-	backEnd.skyRenderedThisView = false;
-
 	GL_CheckErrors();
 
 	if( depthPass ) {
