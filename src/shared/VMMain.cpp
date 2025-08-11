@@ -32,6 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CommonProxies.h"
 #include "common/IPC/CommonSyscalls.h"
 
+#include "common/StackTrace.h"
+
 IPC::Channel VM::rootChannel;
 
 #ifdef BUILD_VM_NATIVE_EXE
@@ -121,6 +123,7 @@ void Sys::Error(Str::StringRef message)
 	}
 #endif
 
+	PrintStackTrace();
 	SendErrorMsg(message);
 
 #ifdef BUILD_VM_IN_PROCESS
