@@ -2448,6 +2448,13 @@ static void R_CreateFogImage()
 
 	tr.fogImageNaive = R_CreateImage( "_fogNaive", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
 
+	/* HACK: The previous fog image generator was calibrated for the
+	naive pipeline that was unaware of colorspaces. We need a new fog
+	image generator calibrated for the linear pipeline. It happens that
+	applying an sRGB-to-linear conversion of the alpha channel luckily
+	produces some good-enough results, and since we optimize the alpha
+	channel by storing it in a red-only image, this is very cheap to do.
+	A non-hacky implementation is welcome. */
 	imageParams.bits = IF_NOPICMIP | IF_SRGB;
 	imageParams.bits |= glConfig2.textureSrgbR8Available ? IF_RED : 0;
 
