@@ -255,7 +255,7 @@ else()
 		endif()
 	endif()
 
-	if (USE_RECOMMENDED_CXX_STANDARD)
+	if (USE_RECOMMENDED_CXX_STANDARD AND NOT USE_CPP23)
 		# PNaCl only defines isascii if __STRICT_ANSI__ is not defined,
 		# always prefer GNU dialect.
 		try_cxx_flag(GNUXX14 "-std=gnu++14")
