@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Thread/TaskList.h"
 
 #include "Thread/ThreadMemory.h"
+#include "Thread/ThreadUplink.h"
 
 Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen( "r_fullscreen", "use full-screen window", CVAR_ARCHIVE, true );
 
@@ -100,6 +101,7 @@ namespace TempAPI {
 	}
 
 	void BeginFrame() {
+		threadUplink.ExecuteCommands();
 	}
 
 	void EndFrame( int*, int* ) {

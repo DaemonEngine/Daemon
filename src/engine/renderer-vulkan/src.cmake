@@ -50,6 +50,8 @@ set(TASKLIST
     ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadCommand.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadMemory.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadMemory.h
+    ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadUplink.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadUplink.h
 )
 
 set(UTILSLIST
@@ -67,6 +69,8 @@ set(RENDERERLIST
     ${UTILSLIST}
     ${ENGINE_DIR}/renderer-vulkan/Surface/Surface.cpp
     ${ENGINE_DIR}/renderer-vulkan/Surface/Surface.h
+    ${ENGINE_DIR}/renderer-vulkan/Error.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Error.h
     ${ENGINE_DIR}/renderer-vulkan/Init.cpp
     ${ENGINE_DIR}/renderer-vulkan/Init.h
     ${ENGINE_DIR}/renderer-vulkan/MiscCVarStore.cpp
