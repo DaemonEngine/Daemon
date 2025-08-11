@@ -119,6 +119,8 @@ class TaskList :
 	bool IsTrackedDependency( const uint16 id );
 	bool IsUpdatedDependency( const uint16 id );
 
+	byte* AllocTaskData( const uint16 dataSize );
+
 	void AddTask( Task& task, std::initializer_list<TaskProxy> dependencies = {} );
 	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
 	Task* FetchTask( Thread* thread, const bool longestTask );

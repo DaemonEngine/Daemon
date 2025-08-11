@@ -142,6 +142,10 @@ bool TaskList::IsUpdatedDependency( const uint16 id ) {
 	return BitSet( id, TASK_SHIFT_UPDATED_DEPENDENCY );
 }
 
+byte* TaskList::AllocTaskData( const uint16 dataSize ) {
+	return tasksData.GetNextElementMemory( dataSize );
+}
+
 void TaskList::FinishTask( Task* task ) {
 	if ( task->dataSize ) {
 		tasksData.UpdateCurrentElement( ( byte* ) task->data - tasksData.memory );
@@ -268,11 +272,8 @@ Task* TaskList::GetTaskMemory( Task& task ) {
 	}
 
 	Task* taskMemory = tasks.GetNextElementMemory();
-	if ( task.dataSize ) {
-		byte* data = tasksData.GetNextElementMemory( task.dataSize );
-		memcpy( data, task.data, task.dataSize );
-		task.data = data;
-	}
+	taskMemory->data = task.data;
+	taskMemory->dataSize = task.dataSize;
 
 	taskMemory->active = true;
 	task.active = true;
@@ -306,7 +307,7 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 		if ( !counter ) {
 			AddToThreadQueue( *taskMemory );
 		}
-	} else if ( !( dependencies.end - dependencies.start ) ) {
+	} else if ( dependencies.start == dependencies.end ) {
 		AddToThreadQueue( *taskMemory );
 	}
 

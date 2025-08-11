@@ -40,6 +40,8 @@ set(TASKLIST
     ${ENGINE_DIR}/renderer-vulkan/Thread/SyncTask.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/Task.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/Task.h
+    ${ENGINE_DIR}/renderer-vulkan/Thread/TaskData.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Thread/TaskData.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/TaskList.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/TaskList.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/Thread.cpp

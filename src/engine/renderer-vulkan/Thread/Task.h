@@ -44,6 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Sync/Fence.h"
 #include "../Sync/AccessLock.h"
 
+#include "TaskData.h"
+
 template<typename T>
 struct IsPointer_ {
 	static constexpr bool out = false;
@@ -68,20 +70,21 @@ struct Task {
 	bool active = false;
 	bool shutdownTask = false;
 
-	static constexpr uint32 MAX_FORWARD_TASKS = 18;
-	uint16 forwardTasks[MAX_FORWARD_TASKS] { 0 };
-
 	ALIGN_CACHE std::atomic<uint32> dependencyCounter = 1;
 	std::atomic<uint32> forwardTaskCounter = 0;
 	uint32 forwardTaskCounterFast = 0;
 
 	uint8 id = 0; // 4 bits - task memory/dependency tracking in TaskList
+	const bool dataIsPointer = false;
 
 	static constexpr uint32 UNALLOCATED = UINT16_MAX;
 	uint16 bufferID = UNALLOCATED; // Task RingBuffer id
 	AccessLock forwardTaskLock;
 
 	uint16 dataSize = 0;
+
+	static constexpr uint32 MAX_FORWARD_TASKS = 18;
+	uint16 forwardTasks[MAX_FORWARD_TASKS]{ 0 };
 
 	// bool useTaskFence = false;
 	// Fence taskFence;
@@ -101,29 +104,33 @@ struct Task {
 	}
 
 	template<typename FuncType, typename DataType>
-	Task( FuncType func, DataType newData ) :
-		Execute( ( TaskFunction ) func ) {
+	Task( FuncType func, DataType&& newData ) :
+		Execute( ( TaskFunction ) func ),
+		dataIsPointer( IsPointer<DataType> ) {
 
 		if constexpr ( IsPointer<DataType> ) {
 			data = ( void* ) newData;
 			dataSize = sizeof( void* );
 		} else {
-			data = ( void* ) &newData;
 			dataSize = sizeof( newData );
+			data = AllocTaskData( dataSize );
+			memcpy( data, &newData, dataSize );
 		}
 	}
 
 	template<typename FuncType, typename DataType>
-	Task( FuncType func, DataType newData, FenceMain& fence ) :
+	Task( FuncType func, DataType&& newData, FenceMain& fence ) :
 		Execute( ( TaskFunction ) func ),
+		dataIsPointer( IsPointer<DataType> ),
 		complete( fence ) {
 
 		if constexpr ( IsPointer<DataType> ) {
 			data = ( void* ) newData;
 			dataSize = sizeof( void* );
 		} else {
-			data = ( void* ) &newData;
 			dataSize = sizeof( newData );
+			data = AllocTaskData( dataSize );
+			memcpy( data, &newData, dataSize );
 		}
 	}
 
