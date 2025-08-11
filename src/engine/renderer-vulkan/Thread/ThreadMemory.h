@@ -93,6 +93,7 @@ class ThreadMemory : public Allocator {
 	uint32 id;
 
 	bool main = false;
+	bool initialised = false;
 
 	ChunkAllocator chunkAllocators[MAX_MEMORY_AREAS];
 

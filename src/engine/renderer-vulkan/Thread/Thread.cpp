@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ThreadMemory.h"
 #include "GlobalMemory.h"
 #include "TaskList.h"
+#include "ThreadCommand.h"
 
 #include "Thread.h"
 
@@ -65,7 +66,6 @@ void Thread::Run() {
 	idle.Clear();
 	executing.Clear();
 
-	TLM.Init();
 	TLM.id = id;
 
 	total.Start();
@@ -85,6 +85,8 @@ void Thread::Run() {
 		runTime = runTimeTimer.Time();
 
 		ASSERT_EQ( task, nullptr );
+
+		threadCommands.ExecuteThreadCommands();
 
 		Timer fetching;
 		task = taskList.FetchTask( this, true );

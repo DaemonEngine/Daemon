@@ -58,6 +58,11 @@ ThreadMemory::~ThreadMemory() {
 }
 
 void ThreadMemory::Init() {
+	if ( initialised ) {
+		Log::WarnTagT( "Already initialised, aborting!" );
+		return;
+	}
+
 	for ( ChunkAllocator& allocator : chunkAllocators ) {
 		allocator.allocatedChunks.Resize( memoryChunkSystem.config.areas->chunkAreas );
 		allocator.availableChunks.Resize( memoryChunkSystem.config.areas->chunkAreas );
@@ -67,6 +72,8 @@ void ThreadMemory::Init() {
 		allocator.availableChunks.Zero();
 		allocator.chunks.Zero();
 	}
+
+	initialised = true;
 }
 
 byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {

@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -31,42 +31,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Init.cpp
+// ThreadCommand.h
 
-#include "common/Common.h"
-#include "qcommon/qcommon.h"
+#ifndef THREAD_COMMAND_H
+#define THREAD_COMMAND_H
 
-#include "engine/framework/System.h"
+#include "../Math/NumberTypes.h"
 
-#include "Thread/ThreadMemory.h"
-#include "Thread/TaskList.h"
-#include "Thread/ThreadCommand.h"
-#include "Memory/MemoryChunkSystem.h"
-#include "MiscCVarStore.h"
-#include "RefAPI.h"
+#include "../Sync/SyncPoint.h"
 
-void Init() {
-	/* TLM.main = true;
-	taskList.Init();
+#include "ThreadMemory.h"
 
-	glconfig->vidWidth = 1920;
-	glconfig->vidHeight = 1080;
+class ThreadCommands {
+	public:
+	enum ThreadCommandID {
+		INIT_TLM,
+		MAX_COMMANDS
+	};
 
-	r_width.Set( 1920 );
-	r_height.Set( 1080 );
+	void UpdateThreadCommand( const ThreadCommandID id, const uint64 threadCount, Fence& done );
+	void ExecuteThreadCommands();
 
-	window = mainSurface.window;
+	private:
+	SyncPoint commands[MAX_COMMANDS];
+};
 
-	IN_Init( window ); */
+struct ThreadCommandTask {
+	const int id;
+	Fence done;
+};
 
-	// memoryChunkSystem.InitConfig( r_vkMemoryChunkConfig.Get().c_str() );
-	std::string cfg = r_vkMemoryChunkConfig.Get();
-	Task initMemTask { &InitMemoryChunkSystemConfig, cfg };
+void UpdateThreadCommand( ThreadCommandTask* threadCmd );
 
-	FenceMain initTLMFence;
-	Task initTLMTask { &UpdateThreadCommand, ThreadCommandTask { ThreadCommands::INIT_TLM, initTLMFence } };
+extern ThreadCommands threadCommands;
 
-	taskList.AddTasks( { initMemTask }, { initTLMTask, initMemTask } );
-
-	initTLMFence.Wait();
-}
+#endif // THREAD_COMMAND_H

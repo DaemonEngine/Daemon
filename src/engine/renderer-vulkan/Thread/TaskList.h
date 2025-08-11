@@ -41,10 +41,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
-#include "Task.h"
 #include "Thread.h"
 
 #include "../Memory/RingBuffer.h"
+
+#include "Task.h"
 
 using TaskInit = std::initializer_list<TaskProxy>;
 #define AddTasks( ... ) AddTasksExt( { __VA_ARGS__ } )
@@ -101,6 +102,8 @@ class TaskList :
 	static constexpr uint16 TASK_SHIFT_TRACKED_DEPENDENCY = 2;
 	static constexpr uint16 TASK_SHIFT_UPDATED_DEPENDENCY = 3;
 
+	uint32 currentMaxThreads = 0;
+
 	FenceMain exitFence;
 
 	TaskList();
@@ -135,7 +138,6 @@ class TaskList :
 	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory" };
 	AtomicRingBuffer<byte, true> tasksData { "GlobalTaskDataMemory" };
 
-	uint32 currentMaxThreads = 0;
 	Thread threads[MAX_THREADS];
 
 	std::atomic<uint32> threadExecutionNodes[MAX_THREADS];
