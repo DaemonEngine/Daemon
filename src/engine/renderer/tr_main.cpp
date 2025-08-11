@@ -1723,7 +1723,11 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 		R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
 	}
 
-	if( !shader->noFog && fogNum >= 1 ) {
+	// don't draw the global fog twice on opaque surfaces
+	// allow global fog with the fogLE shader although drawing the global fog with the
+	// volumetric (fogQuake3) shader looks kind of buggy
+	if ( !shader->noFog && fogNum >= 1 &&
+		  ( fogNum != tr.world->globalFog || shader->fogPass == fogPass_t::FP_LE ) ) {
 		R_AddDrawSurf( surface, shader->fogShader, 0, fogNum, bspSurface );
 	}
 }
