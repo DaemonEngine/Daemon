@@ -97,10 +97,12 @@ class ThreadMemory : public Allocator {
 
 	ChunkAllocator chunkAllocators[MAX_MEMORY_AREAS];
 
+	uint32 currentMaxThreads = 0;
+
 	std::unordered_map<Task::TaskFunction, TaskTime> taskTimes;
 	uint64 unknownTaskCount = 0;
 
-	uint32 idleThreads[256]{ 0 };
+	uint32 idleThreads[256] { 0 };
 
 	GlobalTimer fetchOuterTimer;
 	GlobalTimer fetchQueueLockTimer;

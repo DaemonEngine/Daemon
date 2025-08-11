@@ -46,9 +46,11 @@ class ThreadCommands {
 	public:
 	enum ThreadCommandID {
 		INIT_TLM,
+		SYNC_THREAD_COUNT,
 		MAX_COMMANDS
 	};
 
+	void UpdateThreadCommand( const ThreadCommandID id, const uint64 threadCount );
 	void UpdateThreadCommand( const ThreadCommandID id, const uint64 threadCount, Fence& done );
 	void ExecuteThreadCommands();
 

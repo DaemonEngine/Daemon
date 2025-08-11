@@ -102,7 +102,8 @@ class TaskList :
 	static constexpr uint16 TASK_SHIFT_TRACKED_DEPENDENCY = 2;
 	static constexpr uint16 TASK_SHIFT_UPDATED_DEPENDENCY = 3;
 
-	uint32 currentMaxThreads = 0;
+	AccessLock threadCountLock;
+	std::atomic<uint32> currentMaxThreads = 0;
 
 	FenceMain exitFence;
 

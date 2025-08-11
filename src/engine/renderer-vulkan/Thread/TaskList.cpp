@@ -39,6 +39,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ThreadMemory.h"
 #include "GlobalMemory.h"
+#include "ThreadCommand.h"
+#include "ThreadUplink.h"
 
 #include "TaskList.h"
 
@@ -62,21 +64,34 @@ void TaskList::AdjustThreadCount( uint32 newMaxThreads ) {
 		return;
 	}
 
-	if ( newMaxThreads > currentMaxThreads ) {
-		for ( uint32 i = currentMaxThreads; i < newMaxThreads; i++ ) {
+	while ( !threadCountLock.LockWrite() );
+
+	const uint32 currentThreads = currentMaxThreads.load( std::memory_order_relaxed );
+	if ( newMaxThreads > currentThreads ) {
+		threadCommands.UpdateThreadCommand( ThreadCommands::SYNC_THREAD_COUNT, newMaxThreads );
+		for ( uint32 i = currentThreads; i < newMaxThreads; i++ ) {
 			threads[i].Start( i );
 		}
 
-		currentMaxThreads = newMaxThreads;
-	} else if ( newMaxThreads < currentMaxThreads ) {
-		for ( uint32 i = newMaxThreads; i < currentMaxThreads; i++ ) {
+		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
+	} else if ( newMaxThreads < currentThreads ) {
+		threadCommands.UpdateThreadCommand( ThreadCommands::SYNC_THREAD_COUNT, currentThreads );
+		for ( uint32 i = newMaxThreads; i < currentThreads; i++ ) {
 			threads[i].exiting = true;
 		}
 
-		currentMaxThreads = newMaxThreads;
+		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
 	}
 
-	Log::NoticeTag( "Changed thread count to %u", currentMaxThreads );
+	TLM.currentMaxThreads = newMaxThreads;
+
+	if ( !TLM.main ) {
+		threadUplink.AddCommand( ThreadUplink::CMD_SYNC_THREAD_COUNT );
+	}
+
+	Log::NoticeTag( "Changed thread count to %u", currentThreads );
+
+	threadCountLock.UnlockWrite();
 }
 
 void TaskList::Init() {
@@ -104,7 +119,7 @@ void TaskList::FinishShutdown() {
 		return;
 	}
 
-	for ( Thread* thread = threads; thread < threads + currentMaxThreads; thread++ ) {
+	for ( Thread* thread = threads; thread < threads + currentMaxThreads.load( std::memory_order_relaxed ); thread++ ) {
 		thread->Exit();
 	}
 
@@ -114,8 +129,8 @@ void TaskList::FinishShutdown() {
 		TLM.unknownTaskCount );
 
 	std::string debugOut;
-	debugOut.reserve( 3 * currentMaxThreads );
-	for ( uint32 i = 0; i < currentMaxThreads; i++ ) {
+	debugOut.reserve( 3 * currentMaxThreads.load( std::memory_order_relaxed ) );
+	for ( uint32 i = 0; i < currentMaxThreads.load( std::memory_order_relaxed ); i++ ) {
 		debugOut += Str::Format( "%u ", TLM.idleThreads[i] );
 	}
 	
@@ -235,13 +250,13 @@ void TaskList::AddToThreadQueue( Task& task ) {
 		return;
 	}
 
-	for ( node = 0; node < currentMaxThreads; node++ ) {
+	for ( node = 0; node < TLM.currentMaxThreads; node++ ) {
 		uint32 baseThreadTime = threadExecutionNodes[node].fetch_add( projectedTime, std::memory_order_relaxed );
-		uint32 nextNodeTime = node == currentMaxThreads - 1 ?
+		uint32 nextNodeTime = node == TLM.currentMaxThreads - 1 ?
 			UINT32_MAX
 			: threadExecutionNodes[node + 1].load( std::memory_order_relaxed );
 
-		if ( node == currentMaxThreads - 1
+		if ( node == TLM.currentMaxThreads - 1
 			|| baseThreadTime + projectedTime <= nextNodeTime ) {
 			threadQueues[node].AddTask( task.bufferID );
 			return;

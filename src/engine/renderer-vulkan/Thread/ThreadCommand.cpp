@@ -43,6 +43,20 @@ static void InitTLM() {
 	TLM.Init();
 }
 
+static void SyncThreadCount() {
+	TLM.currentMaxThreads = taskList.currentMaxThreads.load( std::memory_order_relaxed );
+}
+
+void ThreadCommands::UpdateThreadCommand( const ThreadCommandID id, const uint64 threadCount ) {
+	switch ( id ) {
+		case SYNC_THREAD_COUNT:
+			commands[id].Sync( &SyncThreadCount, nullptr, threadCount );
+			break;
+		default:
+			break;
+	}
+}
+
 void ThreadCommands::UpdateThreadCommand( const ThreadCommandID id, const uint64 threadCount, Fence& done ) {
 	switch ( id ) {
 		case INIT_TLM:

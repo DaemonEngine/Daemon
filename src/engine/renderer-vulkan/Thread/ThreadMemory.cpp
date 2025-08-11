@@ -60,7 +60,7 @@ ThreadMemory::~ThreadMemory() {
 
 void ThreadMemory::Init() {
 	if ( initialised ) {
-		Log::WarnTagT( "Already initialised, aborting!" );
+		Log::DebugTagT( "TLM already initialised" );
 		return;
 	}
 

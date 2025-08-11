@@ -44,6 +44,7 @@ class ThreadUplink {
 	public:
 	enum ThreadUplinkCommand {
 		CMD_NONE,
+		CMD_SYNC_THREAD_COUNT,
 		CMD_ERROR
 	};
 
