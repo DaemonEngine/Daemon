@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // We currently write GLBinaryHeader to a file and memcpy all over it.
 // Make sure it's a pod, so we don't put a std::string in it or something
 // and try to memcpy over that or binary write an std::string to a file.
-static_assert(std::is_pod<GLBinaryHeader>::value, "Value must be a pod while code in this cpp file reads and writes this object to file as binary.");
+static_assert(IsPod<GLBinaryHeader>, "Value must be a pod while code in this cpp file reads and writes this object to file as binary.");
 
 // set via command line args only since this allows arbitrary code execution
 static Cvar::Cvar<std::string> shaderpath(
