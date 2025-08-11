@@ -289,6 +289,8 @@ try_flag(WARNINGS "/wd4324")  # 'XXX': structure was padded due to alignment spe
 try_flag(WARNINGS "/wd4458")  # declaration of 'XXX' hides class member
 try_flag(WARNINGS "/wd4459")  # declaration of 'XXX' hides global declaration
 try_flag(WARNINGS "/wd4701")  # potentially uninitialized local variable 'XXX' used
+try_flag(WARNINGS "/wd5054")  # operator '+': deprecated between enumerations of different types
+try_flag(WARNINGS "/wd5055")  # operator '==': deprecated between enumerations and floating-point types
 try_flag(WARNINGS "/wd26495") # Variable 'XXX' is uninitialized. Always initialize a member variable.
 
 ################################################################################
@@ -857,7 +859,7 @@ endif()
 ################################################################################
 macro(AddApplicationInternal Target Executable)
     add_executable(${Target} ${Sources})
-    target_link_libraries(${Target} ${A_Target}-objects)
+    target_link_libraries(${Target} ${A_Target}-objects ${CPP23SupportLibrary})
 
     if (DEPS_DIR)
         add_dependencies(${Target} runtime_deps)
@@ -882,15 +884,16 @@ endmacro()
 
 function(AddApplication)
     set(oneValueArgs Target ExecutableName)
-    set(multiValueArgs ApplicationMain Definitions Flags Files Libs Tests)
+    set(multiValueArgs ApplicationMain Definitions Flags CompileFeatures Files Libs Tests)
     cmake_parse_arguments(A "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     # Reuse object files between the real application and the test one
     add_library(${A_Target}-objects OBJECT EXCLUDE_FROM_ALL ${A_Files} ${PCH_FILE})
-    target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE})
+    target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE} ${CPP23SupportLibrary})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
+    
     set_target_properties(${A_Target}-objects PROPERTIES FOLDER "engine/objects")
 
     set(Sources WIN32 ${A_ApplicationMain})
@@ -904,7 +907,7 @@ function(AddApplication)
         # -Wl,--whole-archive -l<library path> -Wl,--no-whole-archive
         set(Sources ${A_ApplicationMain} ${A_Tests})
         AddApplicationInternal(test-${A_Target} test-${A_Target})
-        target_link_libraries(test-${A_Target} GTest::gmock)
+        target_link_libraries(test-${A_Target} ${CPP23SupportLibrary} GTest::gmock)
     endif()
 
     ADD_PRECOMPILED_HEADER(${A_Target}-objects)
@@ -914,7 +917,7 @@ daemon_write_buildinfo("Engine")
 
 if (NOT NACL)
     add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${BUILDINFOLIST} ${COMMONLIST} ${ENGINELIST})
-    target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE})
+    target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE} ${CPP23SupportLibrary})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_DEFINITIONS BUILD_ENGINE)
     set_property(TARGET engine-lib APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_OPTIONS ${WARNINGS})

@@ -135,9 +135,11 @@ function(buildGameModule module_slug)
 		set_target_properties(${module_target} PROPERTIES
 			OUTPUT_NAME "${GAMEMODULE_NAME}"
 			SUFFIX "${PLATFORM_EXE_SUFFIX}")
-	endif()
 
-	target_link_libraries(${module_target} ${GAMEMODULE_LIBS} ${LIBS_BASE})
+		target_link_libraries(${module_target} ${GAMEMODULE_LIBS} ${LIBS_BASE})
+	else()
+		target_link_libraries(${module_target} ${GAMEMODULE_LIBS} ${LIBS_BASE} ${CPP23SupportLibrary})
+	endif()
 
 	ADD_PRECOMPILED_HEADER(${module_target})
 endfunction()
