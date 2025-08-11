@@ -83,7 +83,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #define CPP_SOURCE_LOCATION
 #endif
 
-#if __cpp_lib_stacktrace >= 202011L
+/* Clang/GCC support <stacktrace> with -lstdc++exp/-lstdlibc++_libbacktrace, but they don't define the feature macro,
+so we set a custom macro in build system */
+#if __cpp_lib_stacktrace >= 202011L || defined(DAEMON_CPP23_SUPPORT_LIBRARY_ENABLED)
     #define CPP_STACKTRACE
 #endif
 
