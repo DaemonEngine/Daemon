@@ -44,6 +44,19 @@ namespace Log {
     static Cvar::Range<Cvar::Cvar<int>> suppressionBufSize(
         "logs.suppression.bufferSize", "How many distinct messages to track for log suppression", Cvar::NONE, 50, 1, 1000000);
 
+#ifdef CPP_SOURCE_LOCATION
+    static Cvar::Cvar<bool> logExtendAll(
+        "logs.writeSrcLocation.all", "Always print source code location for logs", Cvar::NONE, false );
+    static Cvar::Cvar<bool> logExtendWarn(
+        "logs.writeSrcLocation.warn", "Print source code location for Warn logs", Cvar::NONE, false );
+    static Cvar::Cvar<bool> logExtendNotice(
+        "logs.writeSrcLocation.notice", "Print source code location for Notice logs", Cvar::NONE, false );
+    static Cvar::Cvar<bool> logExtendVerbose(
+        "logs.writeSrcLocation.verbose", "Print source code location for Verbose logs", Cvar::NONE, false );
+    static Cvar::Cvar<bool> logExtendDebug(
+        "logs.writeSrcLocation.debug", "Print source code location for Debug logs", Cvar::NONE, false );
+#endif
+
     static Target* targets[MAX_TARGET_ID];
 
 

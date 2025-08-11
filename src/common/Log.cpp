@@ -46,10 +46,48 @@ namespace Log {
         }
     }
 
-    void Logger::Dispatch(std::string message, Log::Level level, Str::StringRef format) {
+    template <typename T>
+    static T GetCvarOrDie(Str::StringRef cvar) {
+        T value;
+        std::string valueString = Cvar::GetValue(cvar);
+        if (!Cvar::ParseCvarValue(valueString, value)) {
+            Sys::Error("Failed to deserialize cvar %s with value: %s", cvar, valueString);
+        }
+        return value;
+    }
+
+    static void AddSrcLocation( FormatStringT format, std::string& message, Level level ) {
+#ifdef CPP_SOURCE_LOCATION
+        if (!GetCvarOrDie<bool>("logs.writeSrcLocation.all")) {
+            switch (level) {
+                case Level::DEBUG:
+                    if (!GetCvarOrDie<bool>("logs.writeSrcLocation.debug")) return;
+                    break;
+                case Level::VERBOSE:
+                    if (!GetCvarOrDie<bool>("logs.writeSrcLocation.verbose")) return;
+                    break;
+                case Level::NOTICE:
+                    if (!GetCvarOrDie<bool>("logs.writeSrcLocation.notice")) return;
+                    break;
+                case Level::WARNING:
+                    if (!GetCvarOrDie<bool>("logs.writeSrcLocation.warn")) return;
+                    break;
+           }
+        }
+        message += Str::Format( " ^F(file: %s, line: %u:%u, func: %s)",
+            format.loc.file_name(), format.loc.line(), format.loc.column(), format.loc.function_name() );
+#else
+       Q_UNUSED(format);
+       Q_UNUSED(message);
+       Q_UNUSED(level);
+#endif
+    }
+
+    void Logger::Dispatch(std::string message, Log::Level level, FormatStringT format) {
         if (enableSuppression) {
             Log::DispatchWithSuppression(std::move(message), level, format);
         } else {
+            AddSrcLocation(format, message, level);
             Log::DispatchByLevel(std::move(message), level);
         }
     }
@@ -126,15 +164,6 @@ namespace Log {
         }
     }
 
-    template <typename T>
-    static T GetCvarOrDie(Str::StringRef cvar) {
-        T value;
-        std::string valueString = Cvar::GetValue(cvar);
-        if (!Cvar::ParseCvarValue(valueString, value)) {
-            Sys::Error("Failed to deserialize cvar %s with value: %s", cvar, valueString);
-        }
-        return value;
-    }
     namespace {
         // Log-spam suppression: if more than MAX_OCCURRENCES log messages with the same format string
         // are sent in less than INTERVAL_MS milliseconds, they will stop being printed.
@@ -187,17 +216,20 @@ namespace Log {
         };
     } // namespace
 
-    void DispatchWithSuppression(std::string message, Log::Level level, Str::StringRef format) {
+    // TODO: when C++20 is required use the source_location as the suppression key
+    void DispatchWithSuppression(std::string message, Log::Level level, FormatStringT format) {
         static LogSpamSuppressor suppressor;
         if (level == Level::DEBUG || !GetCvarOrDie<bool>("logs.suppression.enabled")) {
+            AddSrcLocation(format, message, level);
             DispatchByLevel(std::move(message), level);
             return;
         }
-        switch (suppressor.UpdateAndEvaluate(format)) {
+        switch (suppressor.UpdateAndEvaluate(format.format)) {
         case LogSpamSuppressor::LAST_CHANCE:
             message += " [further messages like this will be suppressed]";
             DAEMON_FALLTHROUGH;
         case LogSpamSuppressor::OK:
+            AddSrcLocation(format, message, level);
             DispatchByLevel(std::move(message), level);
             break;
         case LogSpamSuppressor::KNOWN_SPAM:

@@ -31,6 +31,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_LOG_H_
 #define COMMON_LOG_H_
 
+#include "CPPStandard.h"
+
+#include "engine/qcommon/q_shared.h"
+
+#if defined( CPP_SOURCE_LOCATION )
+    #include <source_location>
+#endif
+
 namespace Log {
 
     /*
@@ -50,6 +58,21 @@ namespace Log {
 
     // The default filtering level
     const Level DEFAULT_FILTER_LEVEL = Level::WARNING;
+
+    struct FormatStringT {
+       Str::StringRef format;
+
+#ifdef CPP_SOURCE_LOCATION
+       std::source_location loc;
+
+       template<typename StringT>
+       FormatStringT(StringT format, std::source_location loc = std::source_location::current())
+          : format(format), loc(loc) {}
+#else
+       template<typename StringT>
+       FormatStringT(StringT format) : format(format) {}
+#endif
+    };
 
     /*
      * Loggers are used to group logs by subsystems and allow logs
@@ -84,16 +107,16 @@ namespace Log {
             Logger(Str::StringRef name, std::string prefix = "", Level defaultLevel = DEFAULT_FILTER_LEVEL);
 
             template<typename ... Args>
-            void Warn(Str::StringRef format, Args&& ... args);
+            void Warn( FormatStringT format, Args&& ... args );
 
             template<typename ... Args>
-            void Notice(Str::StringRef format, Args&& ... args);
+            void Notice( FormatStringT format, Args&& ... args );
 
             template<typename ... Args>
-            void Verbose(Str::StringRef format, Args&& ... args);
+            void Verbose( FormatStringT format, Args&& ... args );
 
             template<typename ... Args>
-            void Debug(Str::StringRef format, Args&& ... args);
+            void Debug( FormatStringT format, Args&& ... args );
 
             template<typename F>
             void DoWarnCode(F&& code);
@@ -110,7 +133,7 @@ namespace Log {
             Logger WithoutSuppression();
 
         private:
-            void Dispatch(std::string message, Log::Level level, Str::StringRef format);
+            void Dispatch(std::string message, Log::Level level, FormatStringT format);
 
             std::string Prefix(std::string message) const;
 
@@ -131,16 +154,16 @@ namespace Log {
      */
 
     template<typename ... Args>
-    void Warn(Str::StringRef format, Args&& ... args);
+    void Warn( FormatStringT format, Args&& ... args );
 
     template<typename ... Args>
-    void Notice(Str::StringRef format, Args&& ... args);
+    void Notice( FormatStringT format, Args&& ... args );
 
     template<typename ... Args>
-    void Verbose(Str::StringRef format, Args&& ... args);
+    void Verbose( FormatStringT format, Args&& ... args );
 
     template<typename ... Args>
-    void Debug(Str::StringRef format, Args&& ... args);
+    void Debug( FormatStringT format, Args&& ... args );
 
     /*
      * For messages which are not true log messages, but rather are produced by
@@ -183,7 +206,7 @@ namespace Log {
 
     // Forwards to DispatchByLevel if the log message is determined to be non-spammy.
     // The format string is used to classify whether it is the same message repeated excessively.
-    void DispatchWithSuppression(std::string message, Log::Level level, Str::StringRef format);
+    void DispatchWithSuppression(std::string message, Log::Level level, FormatStringT format);
 
     // Engine calls available everywhere
 
@@ -194,30 +217,30 @@ namespace Log {
     // Logger
 
     template<typename ... Args>
-    void Logger::Warn(Str::StringRef format, Args&& ... args) {
-        if (filterLevel->Get() <= Level::WARNING) {
-            this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::WARNING, format);
+    void Logger::Warn( FormatStringT format, Args&& ... args ) {
+        if ( filterLevel->Get() <= Level::WARNING ) {
+            this->Dispatch( Prefix( Str::Format( format.format, std::forward<Args>( args ) ... ) ), Level::WARNING, format );
         }
     }
 
     template<typename ... Args>
-    void Logger::Notice(Str::StringRef format, Args&& ... args) {
-        if (filterLevel->Get() <= Level::NOTICE) {
-            this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::NOTICE, format);
+    void Logger::Notice( FormatStringT format, Args&& ... args ) {
+        if ( filterLevel->Get() <= Level::NOTICE ) {
+            this->Dispatch( Prefix( Str::Format( format.format, std::forward<Args>( args ) ... ) ), Level::NOTICE, format );
         }
     }
 
     template<typename ... Args>
-    void Logger::Verbose(Str::StringRef format, Args&& ... args) {
-        if (filterLevel->Get() <= Level::VERBOSE) {
-            this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::VERBOSE, format);
+    void Logger::Verbose( FormatStringT format, Args&& ... args ) {
+        if ( filterLevel->Get() <= Level::VERBOSE ) {
+            this->Dispatch( Prefix( Str::Format( format.format, std::forward<Args>( args ) ... ) ), Level::VERBOSE, format );
         }
     }
 
     template<typename ... Args>
-    void Logger::Debug(Str::StringRef format, Args&& ... args) {
-        if (filterLevel->Get() <= Level::DEBUG) {
-            this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::DEBUG, format);
+    void Logger::Debug( FormatStringT format, Args&& ... args ) {
+        if ( filterLevel->Get() <= Level::DEBUG ) {
+            this->Dispatch( Prefix( Str::Format( format.format, std::forward<Args>( args ) ... ) ), Level::DEBUG, format );
         }
     }
 
@@ -253,23 +276,23 @@ namespace Log {
     extern Logger defaultLogger;
 
     template<typename ... Args>
-    void Warn(Str::StringRef format, Args&& ... args) {
-        defaultLogger.Warn(format, std::forward<Args>(args) ...);
+    void Warn( FormatStringT format, Args&& ... args ) {
+        defaultLogger.Warn( format, std::forward<Args>( args ) ... );
     }
 
     template<typename ... Args>
-    void Notice(Str::StringRef format, Args&& ... args) {
-        defaultLogger.Notice(format, std::forward<Args>(args) ...);
+    void Notice( FormatStringT format, Args&& ... args ) {
+        defaultLogger.Notice( format, std::forward<Args>( args ) ... );
     }
 
     template<typename ... Args>
-    void Verbose(Str::StringRef format, Args&& ... args) {
-        defaultLogger.Verbose(format, std::forward<Args>(args) ...);
+    void Verbose( FormatStringT format, Args&& ... args ) {
+        defaultLogger.Verbose( format, std::forward<Args>( args ) ... );
     }
 
     template<typename ... Args>
-    void Debug(Str::StringRef format, Args&& ... args) {
-        defaultLogger.Debug(format, std::forward<Args>(args) ...);
+    void Debug( FormatStringT format, Args&& ... args ) {
+        defaultLogger.Debug( format, std::forward<Args>( args ) ... );
     }
 }
 
