@@ -105,12 +105,10 @@ NORETURN void Drop(Str::StringRef errorMessage);
 // Variadic wrappers for Error and Drop
 template<typename ... Args> NORETURN void Error(Str::StringRef format, Args&& ... args)
 {
-	PrintStackTrace();
 	Error(Str::Format(format, std::forward<Args>(args)...));
 }
 template<typename ... Args> NORETURN void Drop(Str::StringRef format, Args&& ... args)
 {
-	PrintStackTrace();
 	Drop(Str::Format(format, std::forward<Args>(args)...));
 }
 

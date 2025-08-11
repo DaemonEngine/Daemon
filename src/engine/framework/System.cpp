@@ -557,6 +557,8 @@ void Error(Str::StringRef message)
 		_exit(-1);
 
 	Log::Warn(message);
+	PrintStackTrace();
+
 	Shutdown(true, message);
 
 	OSExit(1);
@@ -1008,6 +1010,7 @@ ALIGN_STACK_FOR_MINGW int main(int argc, char** argv)
 			} catch (Sys::DropErr& err) {
 				if (err.is_error()) {
 					Log::Warn(err.what());
+					PrintStackTrace();
 				} else {
 					Log::Notice(err.what());
 				}
