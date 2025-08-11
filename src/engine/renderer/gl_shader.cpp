@@ -417,7 +417,7 @@ static const std::vector<addedExtension_t> fragmentVertexAddedExtensions = {
 	{ glConfig2.gpuShader4Available, 130, "EXT_gpu_shader4" },
 	{ glConfig2.gpuShader5Available, 400, "ARB_gpu_shader5" },
 	{ glConfig2.shadingLanguage420PackAvailable, 420, "ARB_shading_language_420pack" },
-	{ glConfig2.textureFloatAvailable, 130, "ARB_texture_float" },
+	{ glConfig2.textureFloatAvailable, 0, "ARB_texture_float" },
 	{ glConfig2.textureGatherAvailable, 400, "ARB_texture_gather" },
 	{ glConfig2.textureIntegerAvailable, 0, "EXT_texture_integer" },
 	{ glConfig2.textureRGAvailable, 0, "ARB_texture_rg" },
