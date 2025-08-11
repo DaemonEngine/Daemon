@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "framework/CommandSystem.h"
 #include "GeometryCache.h"
 #include "GeometryOptimiser.h"
+#include "ShadeCommon.h"
 
 /*
 ========================================================
@@ -926,7 +927,7 @@ void ValidateVertex( srfVert_t* vertex, int vertexID, shader_t* shader ) {
 			/* Bad lightmap uv's on surfaces that don't use lightmapping seems to be very common in q3map2,
 			so don't spam the log with them. We still need to fix such values though */
 			for ( const shaderStage_t* pStage = shader->stages; pStage < shader->lastStage; pStage++ ) {
-				if ( pStage->colorRenderer == &Render_lightMapping ) {
+				if ( pStage->colorRenderer == &Render_lightMapping && !hasExplicitelyDisabledLightMap( shader ) ) {
 					Log::Warn( "BSP: Bad lightmap in vertex %i: %s, %s; setting to 0.0f", vertexID,
 						VertexToString( vertex ), shader->name );
 					break;
