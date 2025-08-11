@@ -53,6 +53,70 @@ endif()
 option(USE_RECOMMENDED_CXX_STANDARD "Use recommended C++ standard" ON)
 mark_as_advanced(USE_RECOMMENDED_CXX_STANDARD)
 
+option(USE_CPP23 "Use C++23 standard where possible" OFF)
+
+# Required for <stacktrace> on Clang/GCC
+if(USE_CPP23)
+    if (DAEMON_CXX_COMPILER_Clang_COMPATIBILITY OR DAEMON_CXX_COMPILER_GCC_COMPATIBILITY)
+		if ((DAEMON_CXX_COMPILER_Clang_VERSION VERSION_GREATER_EQUAL 19.1.0) OR (DAEMON_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 13.3))
+			set(CPP23SupportLibraryTryExp TRUE)
+		endif()
+
+		if ((DAEMON_CXX_COMPILER_Clang_VERSION VERSION_GREATER_EQUAL 17.0.1) OR (DAEMON_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 12.1))
+			set(CPP23SupportLibraryTryBacktrace TRUE)
+		endif()
+
+        if (CPP23SupportLibraryTryExp)
+            set(CPP23SupportLibrary "-lstdc++exp")
+			set(CPP23SupportLibraryCompatibleCompiler TRUE)
+
+			find_library(HAVE_CPP23SupportLibrary "libstdc++exp")
+        endif()
+        
+        if (CPP23SupportLibraryTryBacktrace AND (HAVE_CPP23SupportLibrary-NOTFOUND OR NOT CPP23SupportLibraryTryExp))
+            if (CPP23SupportLibraryCompatibleCompiler)
+				set(CPP23SupportLibraryOldLibrary TRUE)
+			endif()
+
+			set(CPP23SupportLibrary "-lstdc++_libbacktrace")
+			set(CPP23SupportLibraryCompatibleCompiler TRUE)
+			
+			find_library(HAVE_CPP23SupportLibrary "libstdc++_libbacktrace")
+        endif()
+
+		if (HAVE_CPP23SupportLibrary-NOTFOUND)
+			if (NOT CPP23SupportLibraryCompatibleCompiler)
+				message(WARNING "Not using <stacktrace>: the compiler is too old (requires clang >= 17.0.1 or GCC >= 12.1)")
+			else()
+				message(WARNING "Not using <stacktrace>: libstdc++exp or libstdc++_backtrace is required, but wasn't found in system paths")
+			endif()
+
+			set(CPP23SupportLibrary "")
+		elseif (CXX_FLAGS MATCHES ".*\\-stdlib\\=libc\\+\\+*")
+			message(WARNING "Not using <stacktrace>: only -stdlib=libstdc++ is supported")
+			
+			set(CPP23SupportLibrary "")
+		else()
+    		add_definitions(-DDAEMON_CPP23_SUPPORT_LIBRARY_ENABLED=1)
+			# FIXME: Doesn't work?
+			add_compile_options("-fmacro-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/src=.")
+			
+			if (CPP23SupportLibraryOldLibrary)
+				message(STATUS "Using <stacktrace>: found ${CPP23SupportLibrary} (recommended to use libc++exp on this compiler version instead, but it wasn't found)")
+			else()
+				message(STATUS "Using <stacktrace>: found ${CPP23SupportLibrary}")
+			endif()
+		endif()
+    elseif (MSVC)
+		# FIXME: Doesn't work in sgame/cgame?
+		string(REPLACE "/" "\\" backslashed_dir ${CMAKE_CURRENT_SOURCE_DIR}/src)
+		add_compile_options("/d1trimfile:${backslashed_dir}")
+		
+		string(REPLACE "/" "\\" backslashed_dir ${CMAKE_CURRENT_SOURCE_DIR}/daemon/src)
+		add_compile_options("/d1trimfile:${backslashed_dir}")
+	endif()
+endif()
+
 # Set flag without checking, optional argument specifies build type
 macro(set_c_flag FLAG)
     if (${ARGC} GREATER 1)
@@ -255,7 +319,19 @@ else()
 		endif()
 	endif()
 
-	if (USE_RECOMMENDED_CXX_STANDARD)
+	if (USE_CPP23)
+		if (MSVC)
+			add_compile_options("/std:c++23preview")
+		else()
+			try_cxx_flag(GNUXX23 "-std=gnu++23")
+
+			if (NOT FLAG_GNUXX23)
+				message(WARNING "Requested C++23 is not supported, falling back to C++14")
+			endif()
+		endif()
+	endif()
+	
+	if (NOT USE_CPP23 AND (NOT FLAG_GNUXX23 OR USE_RECOMMENDED_CXX_STANDARD))
 		# PNaCl only defines isascii if __STRICT_ANSI__ is not defined,
 		# always prefer GNU dialect.
 		try_cxx_flag(GNUXX14 "-std=gnu++14")
