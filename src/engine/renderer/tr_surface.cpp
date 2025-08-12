@@ -586,12 +586,13 @@ static void Tess_SurfaceSprite()
 
 	radius = backEnd.currentEntity->e.radius;
 
-	if ( tess.surfaceShader->autoSpriteMode != 0 )
+	if ( tess.surfaceShader->autoSpriteMode != 0 && !tess.surfaceShader->autoSpriteWarned )
 	{
 		// This function does similarly to autosprite mode 1. Autospriting it again would be a
 		// waste and would probably lose the rotation angle
 		Log::Warn( "RT_SPRITE entity should NOT configure its shader (%s) as autosprite",
 		           tess.surfaceShader->name );
+		tess.surfaceShader->autoSpriteWarned = true;
 	}
 
 	VectorSubtract( backEnd.currentEntity->e.origin, backEnd.viewParms.orientation.origin, delta );

@@ -1164,6 +1164,7 @@ enum
 		bool entitySpriteFaceViewDirection;
 
 		int		autoSpriteMode;
+		bool autoSpriteWarned = false;
 
 		uint8_t         numDeforms;
 		deformStage_t   deforms[ MAX_SHADER_DEFORMS ];
