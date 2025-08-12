@@ -46,9 +46,9 @@ namespace Audio {
 
     bool Sample::Load() {
         audioLogs.Debug("Loading Sample '%s'", GetName());
-	    auto audioData = LoadSoundCodec(GetName());
+	    AudioData audioData = LoadSoundCodec(GetName());
 
-	    if (audioData.size == 0) {
+	    if ( !audioData.rawSamples.size() ) {
 		    audioLogs.Debug("Couldn't load sound %s, it's empty!", GetName());
             return false;
         }

@@ -383,8 +383,10 @@ namespace Audio {
 
         streams[streamNum]->SetGain(volume);
 
-	    AudioData audioData(rate, width, channels, (width * numSamples * channels),
-	                        reinterpret_cast<const char*>(data));
+        AudioData audioData { rate, width, channels };
+        audioData.rawSamples.resize( width * numSamples * channels );
+        memcpy( audioData.rawSamples.data(), data, width * numSamples * channels * sizeof( char ) );
+
 	    AL::Buffer buffer;
 
 	    int feedError = buffer.Feed(audioData);
@@ -506,9 +508,10 @@ namespace Audio {
         int numSamples = AvailableCaptureSamples();
 
         if (numSamples > 0) {
-            uint16_t* buffer = new uint16_t[numSamples];
+            uint16_t* buffer = ( uint16_t* ) Hunk_AllocateTempMemory( numSamples * sizeof( uint16_t ) );
             GetCapturedData(numSamples, buffer);
             StreamData(N_STREAMS - 1, buffer, numSamples, 16000, 2, 1, 1.0, -1);
+            Hunk_FreeTempMemory( buffer );
         }
     }
 

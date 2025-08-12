@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AUDIO_DATA_H
 #define AUDIO_DATA_H
 #include <memory>
+#include <vector>
 
 namespace Audio {
 
@@ -39,23 +40,18 @@ struct AudioData {
 	    : sampleRate{0}
 	    , byteDepth{0}
 	    , numberOfChannels{0}
-	    , size{0}
-	    , rawSamples{nullptr}
 	{}
 
-	AudioData(int sampleRate, int byteDepth, int numberOfChannels, int size, const char* rawSamples)
+	AudioData(int sampleRate, int byteDepth, int numberOfChannels )
 	    : sampleRate{sampleRate}
 	    , byteDepth{byteDepth}
 	    , numberOfChannels{numberOfChannels}
-	    , size{size}
-	    , rawSamples{rawSamples}
 	{}
 
 	AudioData(AudioData&& that)
 	    : sampleRate{that.sampleRate}
 	    , byteDepth{that.byteDepth}
 	    , numberOfChannels{that.numberOfChannels}
-	    , size{that.size}
 	    , rawSamples{std::move(that.rawSamples)}
 	{}
 
@@ -64,8 +60,7 @@ struct AudioData {
 	const int sampleRate;
 	const int byteDepth;
 	const int numberOfChannels;
-	const int size;
-	std::unique_ptr<const char[]> rawSamples;
+	std::vector<char> rawSamples;
 };
 } // namespace Audio
 #endif
