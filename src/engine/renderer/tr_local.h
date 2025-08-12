@@ -37,6 +37,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_public.h"
 #include "iqm.h"
 #include "TextureManager.h"
+#include "VBO.h"
 
 #define DYN_BUFFER_SIZE ( 4 * 1024 * 1024 )
 #define DYN_BUFFER_SEGMENTS 4
@@ -581,110 +582,6 @@ enum class ssaoMode {
 
 		int      width;
 		int      height;
-	};
-
-	enum
-	{
-		ATTR_INDEX_POSITION = 0,
-		ATTR_INDEX_TEXCOORD, // TODO split into 2-element texcoords and 4-element tex + lm coords
-		ATTR_INDEX_QTANGENT,
-		ATTR_INDEX_COLOR,
-
-		// GPU vertex skinning
-		ATTR_INDEX_BONE_FACTORS,
-
-		// GPU vertex animations
-		ATTR_INDEX_POSITION2,
-		ATTR_INDEX_QTANGENT2,
-		ATTR_INDEX_MAX
-	};
-
-	// must match order of ATTR_INDEX enums
-	static const char *const attributeNames[] =
-	{
-		"attr_Position",
-		"attr_TexCoord0",
-		"attr_QTangent",
-		"attr_Color",
-		"attr_BoneFactors",
-		"attr_Position2",
-		"attr_QTangent2"
-	};
-
-	enum
-	{
-	  ATTR_POSITION       = BIT( ATTR_INDEX_POSITION ),
-	  ATTR_TEXCOORD       = BIT( ATTR_INDEX_TEXCOORD ),
-	  ATTR_QTANGENT       = BIT( ATTR_INDEX_QTANGENT ),
-	  ATTR_COLOR          = BIT( ATTR_INDEX_COLOR ),
-
-	  ATTR_BONE_FACTORS   = BIT( ATTR_INDEX_BONE_FACTORS ),
-
-	  // for .md3 interpolation
-	  ATTR_POSITION2      = BIT( ATTR_INDEX_POSITION2 ),
-	  ATTR_QTANGENT2      = BIT( ATTR_INDEX_QTANGENT2 ),
-
-	  ATTR_INTERP_BITS = ATTR_POSITION2 | ATTR_QTANGENT2,
-	};
-
-	struct vboAttributeLayout_t
-	{
-		GLint   numComponents; // how many components in a single attribute for a single vertex
-		GLenum  componentType; // the input type for a single component
-		GLboolean normalize; // convert signed integers to the floating point range [-1, 1], and unsigned integers to the range [0, 1]
-		GLsizei stride;
-		GLsizei ofs;
-		GLsizei frameOffset; // for vertex animation, real offset computed as ofs + frame * frameOffset
-	};
-
-	enum class vboLayout_t
-	{
-		VBO_LAYOUT_CUSTOM,
-		VBO_LAYOUT_STATIC,
-	};
-
-	enum
-	{
-		ATTR_OPTION_NORMALIZE = BIT( 0 ),
-		ATTR_OPTION_HAS_FRAMES = BIT( 1 ),
-	};
-
-	struct vertexAttributeSpec_t
-	{
-		int attrIndex;
-		GLenum componentInputType;
-		GLenum componentStorageType;
-		const void *begin;
-		uint32_t numComponents;
-		uint32_t stride;
-		int attrOptions;
-	};
-
-	struct VBO_t
-	{
-		char     name[ 96 ]; // only for debugging with /listVBOs
-
-		uint32_t vertexesVBO;
-
-		uint32_t vertexesSize; // total amount of memory data allocated for this vbo
-
-		uint32_t vertexesNum;
-		uint32_t framesNum; // number of frames for vertex animation
-
-		std::array<vboAttributeLayout_t, ATTR_INDEX_MAX> attribs; // info for buffer manipulation
-
-		vboLayout_t layout;
-		uint32_t attribBits; // Which attributes it has. Mostly for detecting errors
-		GLenum      usage;
-	};
-
-	struct IBO_t
-	{
-		char     name[ 96 ]; // only for debugging with /listVBOs
-
-		uint32_t indexesVBO;
-		uint32_t indexesSize; // amount of memory data allocated for all triangles in bytes
-		uint32_t indexesNum;
 	};
 
 //===============================================================================
@@ -2303,7 +2200,8 @@ enum
 		Color::Color32Bit color2D;
 		trRefEntity_t     entity2D; // currentEntity will point at this when doing 2D rendering
 		int               currentMainFBO;
-		GLuint            currentVAO;
+		GLuint currentVAO;
+		GLuint defaultVAO;
 	};
 
 	struct visTest_t
@@ -2702,8 +2600,6 @@ enum
 
 	extern backEndState_t backEnd;
 	extern trGlobals_t    tr;
-	extern glconfig_t     glConfig; // outside of TR since it shouldn't be cleared during ref re-init
-	extern glconfig2_t    glConfig2;
 
 	extern glstate_t      glState; // outside of TR since it shouldn't be cleared during ref re-init
 
@@ -3025,13 +2921,8 @@ inline bool checkGLErrors()
 	void GL_Viewport( GLint x, GLint y, GLsizei width, GLsizei height );
 	void GL_PolygonOffset( float factor, float units );
 
-	void GL_CheckErrors_( const char *filename, int line );
-
-#define GL_CheckErrors() do { if (!glConfig.smpActive) GL_CheckErrors_(__FILE__, __LINE__); } while (false)
-
 	void GL_State( uint32_t stateVector );
-	void GL_VertexAttribsState( uint32_t stateBits );
-	void GL_VertexAttribPointers( uint32_t attribBits );
+	void GL_VertexAttribsState( uint32_t stateBits, const bool settingUpVAO = false );
 	void GL_Cull( cullType_t cullType );
 void GL_TexImage2D( GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB );
 void GL_TexImage3D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB );
@@ -3415,33 +3306,6 @@ void GLimp_LogComment_( std::string comment );
 
 	void     R_InitFBOs();
 	void     R_ShutdownFBOs();
-
-	/*
-	============================================================
-
-	VERTEX BUFFER OBJECTS, tr_vbo.c
-
-	============================================================
-	*/
-	uint32_t R_ComponentSize( GLenum type );
-	void R_CopyVertexAttribute( const vboAttributeLayout_t& attrib, const vertexAttributeSpec_t& spec,
-		uint32_t count, byte* interleavedData );
-
-	VBO_t *R_CreateStaticVBO(
-		Str::StringRef name, const vertexAttributeSpec_t *attrBegin, const vertexAttributeSpec_t *attrEnd,
-		uint32_t numVerts, uint32_t numFrames = 0 );
-
-	IBO_t *R_CreateStaticIBO( const char *name, glIndex_t *indexes, int numIndexes );
-	IBO_t *R_CreateStaticIBO2( const char *name, int numTriangles, glIndex_t *indexes );
-
-	void  R_BindVBO( VBO_t *vbo );
-	void  R_BindNullVBO();
-
-	void  R_BindIBO( IBO_t *ibo );
-	void  R_BindNullIBO();
-
-	void  R_InitVBOs();
-	void  R_ShutdownVBOs();
 
 	/*
 	============================================================

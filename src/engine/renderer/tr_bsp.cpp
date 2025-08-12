@@ -851,6 +851,11 @@ static void FinishSkybox() {
 							  3, 4, 7,  3, 0, 4 }; // Back
 
 	surface->ibo = R_CreateStaticIBO( "skybox_IBO", indexes, surface->numTriangles * 3 );
+
+	SetupVAOBuffers( surface->vbo, surface->ibo,
+		ATTR_POSITION,
+		&surface->vbo->VAO );
+
 	skybox->surface = ( surfaceType_t* ) surface;
 
 	tr.skybox = skybox;
@@ -2768,7 +2773,12 @@ static void R_CreateWorldVBO() {
 
 	s_worldData.vbo = R_CreateStaticVBO(
 		"staticWorld_VBO", std::begin( attrs ), std::end( attrs ), numVerts );
-	s_worldData.ibo = R_CreateStaticIBO2( "staticWorld_IBO", numTriangles, vboIdxs );
+	s_worldData.ibo = R_CreateStaticIBO( "staticWorld_IBO", vboIdxs, numTriangles * 3 );
+
+	SetupVAOBuffers( s_worldData.vbo, s_worldData.ibo,
+		ATTR_POSITION | ATTR_COLOR
+		| ATTR_QTANGENT | ATTR_TEXCOORD,
+		&s_worldData.vbo->VAO );
 
 	ri.Hunk_FreeTempMemory( vboIdxs );
 	ri.Hunk_FreeTempMemory( vboVerts );

@@ -173,7 +173,7 @@ public:
 	}
 
 private:
-	typename std::aligned_storage<sizeof(T), std::alignment_of<T>::value>::type data;
+	alignas( T ) uint8_t data[sizeof( T )];
 };
 
 // std::make_unique is not available until C++14.

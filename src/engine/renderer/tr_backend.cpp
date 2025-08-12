@@ -144,6 +144,13 @@ void GL_BindNullProgram()
 	}
 }
 
+void GL_BindVAO( const GLuint id ) {
+	if ( backEnd.currentVAO != id ) {
+		glBindVertexArray( id );
+		backEnd.currentVAO = id;
+	}
+}
+
 void GL_SelectTexture( int unit )
 {
 	if ( glState.currenttmu == unit )
@@ -608,51 +615,7 @@ void GL_State( uint32_t stateBits )
 	glState.glStateBits ^= diff;
 }
 
-void GL_VertexAttribsState( uint32_t stateBits )
-{
-	uint32_t diff;
-	uint32_t i;
-
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
-	{
-		stateBits |= ATTR_BONE_FACTORS;
-	}
-
-	GL_VertexAttribPointers( stateBits );
-
-	diff = stateBits ^ glState.vertexAttribsState;
-
-	if ( !diff )
-	{
-		return;
-	}
-
-	for ( i = 0; i < ATTR_INDEX_MAX; i++ )
-	{
-		uint32_t bit = BIT( i );
-
-		if ( ( diff & bit ) )
-		{
-			if ( ( stateBits & bit ) )
-			{
-				GLIMP_LOGCOMMENT( "glEnableVertexAttribArray( %s )", attributeNames[ i ] );
-
-				glEnableVertexAttribArray( i );
-			}
-			else
-			{
-				GLIMP_LOGCOMMENT( "glDisableVertexAttribArray( %s )", attributeNames[ i ] );
-
-				glDisableVertexAttribArray( i );
-			}
-		}
-	}
-
-	glState.vertexAttribsState = stateBits;
-}
-
-void GL_VertexAttribPointers( uint32_t attribBits )
-{
+static void GL_VertexAttribPointers( uint32_t attribBits, const bool settingUpVAO ) {
 	uint32_t i;
 
 	if ( !glState.currentVBO )
@@ -680,7 +643,7 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 		if ( ( attribBits & bit ) != 0 &&
 		     ( !( glState.vertexAttribPointersSet & bit ) ||
 		       tess.vboVertexAnimation ||
-		       glState.currentVBO == tess.vbo ) )
+		       glState.currentVBO == tess.vbo || settingUpVAO || glState.currentVBO->dynamicVAO ) )
 		{
 			const vboAttributeLayout_t *layout = &glState.currentVBO->attribs[ i ];
 
@@ -704,6 +667,64 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 			glVertexAttribPointer( i, layout->numComponents, layout->componentType, layout->normalize, layout->stride, BUFFER_OFFSET( layout->ofs + ( frame * layout->frameOffset + base ) ) );
 			glState.vertexAttribPointersSet |= bit;
 		}
+	}
+}
+
+void GL_VertexAttribsState( uint32_t stateBits, const bool settingUpVAO )
+{
+	uint32_t diff;
+	uint32_t i;
+
+	if ( !settingUpVAO && glState.currentVBO && !glState.currentVBO->dynamicVAO ) {
+		glState.currentVBO->VAO.Bind();
+		return;
+	}
+
+	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	{
+		stateBits |= ATTR_BONE_FACTORS;
+	}
+
+	GL_VertexAttribPointers( stateBits, settingUpVAO );
+
+	if ( !settingUpVAO && backEnd.currentVAO != backEnd.defaultVAO ) {
+		return;
+	}
+
+	diff = stateBits;
+
+	if ( backEnd.currentVAO == backEnd.defaultVAO ) {
+		diff ^= glState.vertexAttribsState;
+	}
+
+	if ( !diff )
+	{
+		return;
+	}
+
+	for ( i = 0; i < ATTR_INDEX_MAX; i++ )
+	{
+		uint32_t bit = BIT( i );
+
+		if ( ( diff & bit ) )
+		{
+			if ( ( stateBits & bit ) )
+			{
+				GLIMP_LOGCOMMENT( "glEnableVertexAttribArray( %s )", attributeNames[ i ] );
+
+				glEnableVertexAttribArray( i );
+			}
+			else
+			{
+				GLIMP_LOGCOMMENT( "glDisableVertexAttribArray( %s )", attributeNames[ i ] );
+
+				glDisableVertexAttribArray( i );
+			}
+		}
+	}
+
+	if ( backEnd.currentVAO == backEnd.defaultVAO ) {
+		glState.vertexAttribsState = stateBits;
 	}
 }
 
@@ -1513,6 +1534,13 @@ void RB_RenderSSAO()
 	}
 
 	GLIMP_LOGCOMMENT( "--- RB_RenderSSAO ---" );
+
+	// Assume depth is dirty since we just rendered depth pass and everything opaque
+	if ( glConfig2.textureBarrierAvailable )
+	{
+		glTextureBarrier();
+		backEnd.dirtyDepthBuffer = false;
+	}
 
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO );
 	GL_Cull( cullType_t::CT_TWO_SIDED );

@@ -39,6 +39,7 @@ set(COMMONLIST
     ${COMMON_DIR}/String.h
     ${COMMON_DIR}/System.cpp
     ${COMMON_DIR}/System.h
+    ${COMMON_DIR}/Type.h
     ${COMMON_DIR}/Util.cpp
     ${COMMON_DIR}/Util.h
     ${COMMON_DIR}/cm/cm_load.cpp
@@ -99,6 +100,7 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/GeometryOptimiser.h
     ${ENGINE_DIR}/renderer/GLMemory.cpp
     ${ENGINE_DIR}/renderer/GLMemory.h
+    ${ENGINE_DIR}/renderer/GLUtils.h
     ${ENGINE_DIR}/renderer/InternalImage.cpp
     ${ENGINE_DIR}/renderer/InternalImage.h
     ${ENGINE_DIR}/renderer/Material.cpp
@@ -137,6 +139,8 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/tr_surface.cpp
     ${ENGINE_DIR}/renderer/tr_types.h
     ${ENGINE_DIR}/renderer/tr_vbo.cpp
+    ${ENGINE_DIR}/renderer/VBO.h
+    ${ENGINE_DIR}/renderer/VertexSpecification.h
     ${ENGINE_DIR}/renderer/tr_video.cpp
     ${ENGINE_DIR}/renderer/tr_world.cpp
     ${ENGINE_DIR}/sys/sdl_glimp.cpp

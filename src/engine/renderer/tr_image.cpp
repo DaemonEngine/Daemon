@@ -2569,12 +2569,12 @@ static void R_CreateCurrentRenderImage()
 
 static void R_CreateDepthRenderImage()
 {
-	ASSERT( glConfig2.textureFloatAvailable );
-
 	if ( !glConfig2.realtimeLighting )
 	{
 		return;
 	}
+
+	ASSERT( glConfig2.textureFloatAvailable );
 
 	{
 		int width = glConfig.vidWidth;

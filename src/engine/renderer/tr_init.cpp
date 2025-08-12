@@ -373,8 +373,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		}
 
 		if ( glConfig2.glCoreProfile ) {
-			glGenVertexArrays( 1, &backEnd.currentVAO );
-			glBindVertexArray( backEnd.currentVAO );
+			glGenVertexArrays( 1, &backEnd.defaultVAO );
+			GL_BindVAO( backEnd.defaultVAO );
 		}
 
 		GL_CheckErrors();
@@ -1471,7 +1471,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			GLSL_ShutdownGPUShaders();
 			if( glConfig2.glCoreProfile ) {
 				glBindVertexArray( 0 );
-				glDeleteVertexArrays( 1, &backEnd.currentVAO );
+				glDeleteVertexArrays( 1, &backEnd.defaultVAO );
 			}
 
 			GLimp_Shutdown();

@@ -222,13 +222,13 @@ namespace Audio {
         for (auto &loop : entityLoops) {
             loop.addedThisFrame = false;
             // if we are the unique owner of a loop pointer, then it means it was stopped, free it.
-            if (loop.sound.unique()) {
+            if (loop.sound.use_count() == 1) {
                 loop = {false, nullptr, -1, -1};
             }
         }
 
         for (auto &stream : streams) {
-            if (stream and stream.unique()) {
+            if (stream and stream.use_count() == 1) {
                 stream = nullptr;
             }
         }

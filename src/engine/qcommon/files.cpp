@@ -267,6 +267,7 @@ int FS_FCloseFile(fileHandle_t handle)
 	handleTable[handle].isOpen = false;
 	if (handleTable[handle].isPakFile) {
 		handleTable[handle].fileData.clear();
+		handleTable[handle].fileData.shrink_to_fit();
 		return 0;
 	} else {
 		try {

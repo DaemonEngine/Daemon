@@ -43,8 +43,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <GL/glew.h>
 
-#include "tr_local.h"
 #include "BufferBind.h"
+#include "GLUtils.h"
+#include "VertexSpecification.h"
 
 class GLBuffer {
 	public:
@@ -222,14 +223,14 @@ class GLVAO {
 	vboAttributeLayout_t attrs[ATTR_INDEX_MAX];
 	uint32_t enabledAttrs;
 
-	GLVAO( const GLuint newVBOBindingPoint ) :
+	GLVAO( const GLuint newVBOBindingPoint = 0 ) :
 		VBOBindingPoint( newVBOBindingPoint ) {
 	}
 
 	~GLVAO() = default;
 
 	void Bind() {
-		glBindVertexArray( id );
+		GL_BindVAO( id );
 	}
 
 	void SetAttrs( const vertexAttributeSpec_t* attrBegin, const vertexAttributeSpec_t* attrEnd ) {
@@ -284,7 +285,7 @@ class GLVAO {
 
 	private:
 	GLuint id;
-	const GLuint VBOBindingPoint;
+	GLuint VBOBindingPoint;
 	GLuint stride;
 };
 
