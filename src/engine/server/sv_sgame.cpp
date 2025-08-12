@@ -520,13 +520,6 @@ void GameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& chan
 		});
 		break;
 
-	case G_GET_ENTITY_TOKEN:
-		IPC::HandleMsg<SgGetEntityTokenMsg>(channel, std::move(reader), [this](bool& boolRes, std::string& res) {
-			res = COM_Parse(&sv.entityParsePoint);
-			boolRes = sv.entityParsePoint or res.size() > 0;
-		});
-		break;
-
 	case G_RSA_GENMSG:
 		IPC::HandleMsg<RSAGenMsgMsg>(channel, std::move(reader), [this](std::string pubkey, int& res, std::string& cleartext, std::string& encrypted) {
 			char cleartextBuffer[RSA_STRING_LENGTH];
