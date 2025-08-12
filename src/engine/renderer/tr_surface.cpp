@@ -577,6 +577,8 @@ Tess_SurfaceSprite
 */
 static const float NORMAL_EPSILON = 0.0001;
 
+static bool multipleAutoSpriteWarned[MAX_GAME_SHADERS] {};
+
 static void Tess_SurfaceSprite()
 {
 	vec3_t delta, left, up;
@@ -586,12 +588,13 @@ static void Tess_SurfaceSprite()
 
 	radius = backEnd.currentEntity->e.radius;
 
-	if ( tess.surfaceShader->autoSpriteMode != 0 )
+	if ( tess.surfaceShader->autoSpriteMode != 0 && !multipleAutoSpriteWarned[backEnd.currentEntity->e.skinNum] )
 	{
 		// This function does similarly to autosprite mode 1. Autospriting it again would be a
 		// waste and would probably lose the rotation angle
-		Log::Warn( "RT_SPRITE entity should NOT configure its shader (%s) as autosprite",
-		           tess.surfaceShader->name );
+		Log::Warn( "RT_SPRITE entity should NOT configure its shader (%s) as autosprite, shader index: %i",
+		           tess.surfaceShader->name, backEnd.currentEntity->e.skinNum );
+		multipleAutoSpriteWarned[backEnd.currentEntity->e.skinNum] = true;
 	}
 
 	VectorSubtract( backEnd.currentEntity->e.origin, backEnd.viewParms.orientation.origin, delta );
