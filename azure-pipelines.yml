@@ -56,7 +56,7 @@ jobs:
         cmake --version
         export CFLAGS='-Wno-c++14-extensions'
         export CXXFLAGS='-Wno-c++14-extensions'
-        cmake -Wdev -Wdeprecated -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DCMAKE_BUILD_TYPE=Release -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1 -H. -Bbuild
+        cmake -Wdev -Wdeprecated -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DUSE_CPP23=0 -DCMAKE_BUILD_TYPE=Release -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1 -H. -Bbuild
         cmake --build build -- -j`sysctl -n hw.logicalcpu`
       displayName: 'Build'
     - bash: |
@@ -74,7 +74,6 @@ jobs:
           BUILD_TYPE: Release
           C_COMPILER: gcc
           CXX_COMPILER: g++
-          CXX: g++-14
           EXTRA_PACKAGES:
           EXTRA_INSTALLS:
           TOOLCHAIN_FILE:
