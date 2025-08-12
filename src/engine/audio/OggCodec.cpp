@@ -151,20 +151,43 @@ AudioData LoadOggCodec(std::string filename)
 	int sampleRate = oggInfo->rate;
 	int numberOfChannels = oggInfo->channels;
 
-	char buffer[4096];
+	/* The largest ogg file we have so far is res-soundtrack/sound/ui/heartbeat.ogg
+	It uncompress to ~30mb. Use 64mb here just in case */
+	static constexpr uint32_t MAX_USED_FILE_SIZE = 64 * 1024 * 1024;
+	static constexpr uint32_t MAX_READ_SIZE      =  1 * 1024 * 1024;
+
+	static char buffer[MAX_USED_FILE_SIZE];
+	uint32_t bufferPointer = 0;
+	uint32_t rawSamplesPointer = 0;
+
 	int bytesRead = 0;
 	int bitStream = 0;
 
-	std::vector<char> samples;
+	AudioData out { sampleRate, sampleWidth, numberOfChannels };
 
-	while ((bytesRead = ov_read(vorbisFile.get(), buffer, 4096, 0, sampleWidth, 1, &bitStream)) > 0) {
-		std::copy_n(buffer, bytesRead, std::back_inserter(samples));
+	while ((bytesRead = ov_read(vorbisFile.get(), buffer + bufferPointer, MAX_READ_SIZE, 0, sampleWidth, 1, &bitStream)) > 0) {
+		bufferPointer += bytesRead;
+
+		if ( MAX_USED_FILE_SIZE - bufferPointer <= MAX_READ_SIZE ) {
+			out.rawSamples.resize( out.rawSamples.capacity() + bufferPointer );
+			std::copy_n( buffer, bufferPointer, out.rawSamples.data() );
+
+			rawSamplesPointer += bufferPointer;
+			bufferPointer = 0;
+		}
 	}
+
+	if ( bufferPointer ) {
+		out.rawSamples.resize( out.rawSamples.capacity() + bufferPointer );
+		std::copy_n( buffer, bufferPointer, out.rawSamples.data() );
+		rawSamplesPointer += bufferPointer;
+	}
+
+	out.size = rawSamplesPointer;
+
 	ov_clear(vorbisFile.get());
 
-	char* rawSamples = new char[samples.size()];
-	std::copy_n(samples.data(), samples.size(), rawSamples);
-	return AudioData(sampleRate, sampleWidth, numberOfChannels, samples.size(), rawSamples);
+	return out;
 }
 
 } //namespace Audio

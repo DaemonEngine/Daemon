@@ -383,8 +383,10 @@ namespace Audio {
 
         streams[streamNum]->SetGain(volume);
 
-	    AudioData audioData(rate, width, channels, (width * numSamples * channels),
-	                        reinterpret_cast<const char*>(data));
+        AudioData audioData { rate, width, channels, width * numSamples * channels };
+        audioData.rawSamples.reserve( audioData.size );
+        memcpy( audioData.rawSamples.data(), data, audioData.size * sizeof( char ) );
+
 	    AL::Buffer buffer;
 
 	    int feedError = buffer.Feed(audioData);
