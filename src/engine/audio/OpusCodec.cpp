@@ -145,25 +145,43 @@ AudioData LoadOpusCodec(std::string filename)
 	int sampleRate = 48000;
 	int numberOfChannels = opusInfo->channel_count;
 
-	// The buffer is big enough to hold 120ms worth of samples per channel
-	opus_int16* buffer = new opus_int16[numberOfChannels * 5760];
+	/* The largest opus file we have so far is sound/thunder/weather.opus
+	It uncompress to ~13mb. Use 64mb here just in case */
+	static constexpr uint32_t MAX_USED_FILE_SIZE = 64 * 1024 * 1024;
+	static constexpr uint32_t MAX_READ_SIZE      =  1 * 1024 * 1024;
+
+	char* buffer = ( char* ) Hunk_AllocateTempMemory( MAX_USED_FILE_SIZE );
+	uint32_t bufferPointer = 0;
+	uint32_t rawSamplesPointer = 0;
+
 	int samplesPerChannelRead = 0;
 
-	std::vector<opus_int16> samples;
+	AudioData out { sampleRate, sampleWidth, numberOfChannels };
 
-	while ((samplesPerChannelRead =
-	            op_read(opusFile, buffer, sampleWidth * numberOfChannels * 5760, nullptr)) > 0) {
-		std::copy_n(buffer, samplesPerChannelRead * numberOfChannels, std::back_inserter(samples));
+	while ( ( samplesPerChannelRead =
+				op_read( opusFile, ( opus_int16* ) ( buffer + bufferPointer ), MAX_READ_SIZE, nullptr )
+			) > 0 ) {
+		bufferPointer += samplesPerChannelRead * numberOfChannels * sizeof( opus_int16 );
+
+		if ( MAX_USED_FILE_SIZE - bufferPointer < MAX_READ_SIZE ) {
+			out.rawSamples.resize( out.rawSamples.size() + bufferPointer );
+			std::copy_n( buffer, bufferPointer, out.rawSamples.data() + rawSamplesPointer );
+
+			rawSamplesPointer += bufferPointer;
+			bufferPointer = 0;
+		}
 	}
 
-	delete[] buffer;
+	if ( bufferPointer ) {
+		out.rawSamples.resize( out.rawSamples.size() + bufferPointer );
+		std::copy_n( buffer, bufferPointer, out.rawSamples.data() + rawSamplesPointer );
+	}
+
+	Hunk_FreeTempMemory( buffer );
+
 	op_free(opusFile);
 
-	char* rawSamples = new char[sampleWidth * samples.size()];
-	std::copy_n(reinterpret_cast<char*>(samples.data()), sampleWidth * samples.size(), rawSamples);
-
-	return AudioData(sampleRate, sampleWidth, numberOfChannels, samples.size() * sampleWidth,
-	                 rawSamples);
+	return out;
 }
 
 } //namespace Audio
