@@ -488,8 +488,8 @@ private:
 class GLUniformSampler : protected GLUniform {
 	protected:
 	GLUniformSampler( GLShader* shader, const char* name, const char* type ) :
-		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? 2 : 1,
-		                               glConfig2.bindlessTexturesAvailable ? 2 : 1, true, 0, true ) {
+		GLUniform( shader, name, type, glConfig.bindlessTexturesAvailable ? 2 : 1,
+		                               glConfig.bindlessTexturesAvailable ? 2 : 1, true, 0, true ) {
 	}
 
 	inline GLint GetLocation() {
@@ -514,13 +514,13 @@ class GLUniformSampler : protected GLUniform {
 	void SetValueBindless( GLint64 value ) {
 		currentValueBindless = value;
 
-		if ( glConfig2.usingBindlessTextures && ( !_shader->UseMaterialSystem() || _global ) ) {
+		if ( glConfig.usingBindlessTextures && ( !_shader->UseMaterialSystem() || _global ) ) {
 			glUniformHandleui64ARB( GetLocation(), currentValueBindless );
 		}
 	}
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		if ( glConfig2.usingBindlessTextures ) {
+		if ( glConfig.usingBindlessTextures ) {
 			memcpy( buffer, &currentValueBindless, sizeof( GLuint64 ) );
 		} else {
 			memcpy( buffer, &currentValue, sizeof( GLint ) );
@@ -1149,7 +1149,7 @@ public:
 	}
 
 	void SetBuffer( GLuint buffer ) {
-		if ( glConfig2.shadingLanguage420PackAvailable ) {
+		if ( glConfig.shadingLanguage420PackAvailable ) {
 			return;
 		}
 
@@ -2195,7 +2195,7 @@ public:
 
 template<typename Shader> void SetUniform_Color( Shader* shader, const Color::Color& color )
 {
-	if( glConfig2.gpuShader4Available )
+	if( glConfig.gpuShader4Available )
 	{
 		shader->SetUniform_Color_Uint( color );
 	}
@@ -2234,7 +2234,7 @@ class u_ColorGlobal_Uint :
 
 template<typename Shader> void SetUniform_ColorGlobal( Shader* shader, const Color::Color& color )
 {
-	if( glConfig2.gpuShader4Available )
+	if( glConfig.gpuShader4Available )
 	{
 		shader->SetUniform_ColorGlobal_Uint( color );
 	}
@@ -2915,7 +2915,7 @@ template<typename Shader> void SetUniform_ColorModulateColorGen(
 		const bool vertexOverbright = false,
 		const bool useMapLightFactor = false )
 {
-	if( glConfig2.gpuShader4Available )
+	if( glConfig.gpuShader4Available )
 	{
 		shader->SetUniform_ColorModulateColorGen_Uint( colorGen, alphaGen, vertexOverbright, useMapLightFactor );
 	}

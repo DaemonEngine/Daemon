@@ -114,7 +114,7 @@ int R_GetImageCustomScalingStep( const image_t *image, const imageParams_t &imag
 	// Scale down the image size according to the screen size.
 	if ( image->bits & IF_FITSCREEN )
 	{
-		int largerSide = std::max( glConfig.vidWidth, glConfig.vidHeight );
+		int largerSide = std::max( windowConfig.vidWidth, windowConfig.vidHeight );
 
 		if ( scaledDimension > largerSide )
 		{

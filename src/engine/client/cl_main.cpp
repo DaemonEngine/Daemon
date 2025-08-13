@@ -2100,7 +2100,7 @@ bool CL_InitRenderer()
 	fileHandle_t f;
 
 	// this sets up the renderer and calls R_Init
-	if ( !re.BeginRegistration( &cls.glconfig, &cls.glconfig2 ) )
+	if ( !re.BeginRegistration( &cls.windowConfig ) )
 	{
 		return false;
 	}
@@ -2126,7 +2126,7 @@ bool CL_InitRenderer()
 			else
 			{
 				// This gets 12px on 1920×1080 screen, which is libRocket default for 1em
-				int fontScale = std::min(cls.glconfig.vidWidth, cls.glconfig.vidHeight) / 90;
+				int fontScale = std::min(cls.windowConfig.vidWidth, cls.windowConfig.vidHeight) / 90;
 
 				// fontScale / 12px gets 1px on 1920×1080 screen
 				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, cl_consoleFontSize->integer * fontScale / 12 );
@@ -2145,7 +2145,7 @@ bool CL_InitRenderer()
 
 	cls.whiteShader = re.RegisterShader( "white", RSF_NOMIP );
 
-	g_console_field_width = cls.glconfig.vidWidth / SMALLCHAR_WIDTH - 2;
+	g_console_field_width = cls.windowConfig.vidWidth / SMALLCHAR_WIDTH - 2;
 	g_consoleField.SetWidth(g_console_field_width);
 
 	return true;

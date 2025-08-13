@@ -630,8 +630,8 @@ static int GLimp_CompareModes( const void *a, const void *b )
 	float       aspectB = ( float ) modeB->w / ( float ) modeB->h;
 	int         areaA = modeA->w * modeA->h;
 	int         areaB = modeB->w * modeB->h;
-	float       aspectDiffA = fabsf( aspectA - glConfig.displayAspect );
-	float       aspectDiffB = fabsf( aspectB - glConfig.displayAspect );
+	float       aspectDiffA = fabsf( aspectA - windowConfig.displayAspect );
+	float       aspectDiffB = fabsf( aspectB - windowConfig.displayAspect );
 	float       aspectDiffsDiff = aspectDiffA - aspectDiffB;
 
 	if ( aspectDiffsDiff > ASPECT_EPSILON )
@@ -864,7 +864,7 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 		y = SDL_WINDOWPOS_UNDEFINED_DISPLAY( r_displayIndex->integer );
 	}
 
-	window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y, glConfig.vidWidth, glConfig.vidHeight, flags );
+	window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y, windowConfig.vidWidth, windowConfig.vidHeight, flags );
 
 	if ( window )
 	{
@@ -879,7 +879,7 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 	else
 	{
 		logger.Warn( "SDL %d×%d %s%swindow not created",
-			glConfig.vidWidth, glConfig.vidHeight,
+			windowConfig.vidWidth, windowConfig.vidHeight,
 			windowType ? windowType : "",
 			windowType ? " ": "" );
 		logger.Warn("SDL_CreateWindow failed: %s", SDL_GetError() );
@@ -966,12 +966,12 @@ static bool GLimp_RecreateWindowWhenChange( const bool fullscreen, const bool bo
 		/* We don't care if comparing default values
 		is wrong when the window isn't created yet as
 		the first thing we do is to overwrite them. */
-		|| glConfig.vidWidth != currentWidth
-		|| glConfig.vidHeight != currentHeight
+		|| windowConfig.vidWidth != currentWidth
+		|| windowConfig.vidHeight != currentHeight
 		|| configuration != currentConfiguration )
 	{
-		currentWidth = glConfig.vidWidth;
-		currentHeight = glConfig.vidHeight;
+		currentWidth = windowConfig.vidWidth;
+		currentHeight = windowConfig.vidHeight;
 		currentConfiguration = configuration;
 
 		GLimp_DestroyWindowIfExists();
@@ -1028,43 +1028,43 @@ static rserr_t GLimp_SetModeAndResolution( const int mode )
 
 	if ( SDL_GetDesktopDisplayMode( r_displayIndex->integer, &desktopMode ) == 0 )
 	{
-		glConfig.displayAspect = ( float ) desktopMode.w / ( float ) desktopMode.h;
-		logger.Notice( "Display aspect: %.3f", glConfig.displayAspect );
+		windowConfig.displayAspect = ( float ) desktopMode.w / ( float ) desktopMode.h;
+		logger.Notice( "Display aspect: %.3f", windowConfig.displayAspect );
 	}
 	else
 	{
 		memset( &desktopMode, 0, sizeof( SDL_DisplayMode ) );
-		glConfig.displayAspect = 1.333f;
-		logger.Warn("Cannot determine display aspect, assuming %.3f: %s", glConfig.displayAspect, SDL_GetError() );
+		windowConfig.displayAspect = 1.333f;
+		logger.Warn("Cannot determine display aspect, assuming %.3f: %s", windowConfig.displayAspect, SDL_GetError() );
 	}
 
-	glConfig.displayWidth = desktopMode.w;
-	glConfig.displayHeight = desktopMode.h;
+	windowConfig.displayWidth = desktopMode.w;
+	windowConfig.displayHeight = desktopMode.h;
 
 	if ( mode == -2 )
 	{
 		// use desktop video resolution
 		if ( desktopMode.h > 0 )
 		{
-			glConfig.vidWidth = desktopMode.w;
-			glConfig.vidHeight = desktopMode.h;
+			windowConfig.vidWidth = desktopMode.w;
+			windowConfig.vidHeight = desktopMode.h;
 		}
 		else
 		{
-			glConfig.vidWidth = 640;
-			glConfig.vidHeight = 480;
-			logger.Warn("Cannot determine display resolution, assuming %dx%d", glConfig.vidWidth, glConfig.vidHeight );
+			windowConfig.vidWidth = 640;
+			windowConfig.vidHeight = 480;
+			logger.Warn("Cannot determine display resolution, assuming %dx%d", windowConfig.vidWidth, windowConfig.vidHeight );
 		}
 
-		logger.Notice("Display resolution: %dx%d", glConfig.vidWidth, glConfig.vidHeight);
+		logger.Notice("Display resolution: %dx%d", windowConfig.vidWidth, windowConfig.vidHeight);
 	}
-	else if ( !R_GetModeInfo( &glConfig.vidWidth, &glConfig.vidHeight, mode ) )
+	else if ( !R_GetModeInfo( &windowConfig.vidWidth, &windowConfig.vidHeight, mode ) )
 	{
 		logger.Notice("Invalid mode %d", mode );
 		return rserr_t::RSERR_INVALID_MODE;
 	}
 
-	logger.Notice("...setting mode %d: %d×%d", mode, glConfig.vidWidth, glConfig.vidHeight );
+	logger.Notice("...setting mode %d: %d×%d", mode, windowConfig.vidWidth, windowConfig.vidHeight );
 
 	return rserr_t::RSERR_OK;
 }
@@ -1310,11 +1310,11 @@ static bool CreateWindowAndContext(
 
 static void GLimp_RegisterConfiguration( const glConfiguration& highestConfiguration, const glConfiguration &requestedConfiguration )
 {
-	glConfig2.glHighestMajor = highestConfiguration.major;
-	glConfig2.glHighestMinor = highestConfiguration.minor;
+	glConfig.glHighestMajor = highestConfiguration.major;
+	glConfig.glHighestMinor = highestConfiguration.minor;
 
-	glConfig2.glRequestedMajor = requestedConfiguration.major;
-	glConfig2.glRequestedMinor = requestedConfiguration.minor;
+	glConfig.glRequestedMajor = requestedConfiguration.major;
+	glConfig.glRequestedMinor = requestedConfiguration.minor;
 
 	SetSwapInterval( r_swapInterval.Get() );
 	r_swapInterval.GetModifiedValue(); // clear modified flag
@@ -1336,14 +1336,14 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 
 		if ( glGetError() != GL_NO_ERROR )
 		{
-			glConfig2.glCoreProfile = false;
+			glConfig.glCoreProfile = false;
 		}
 		else
 		{
-			glConfig2.glCoreProfile = ( profileBit == GL_CONTEXT_CORE_PROFILE_BIT );
+			glConfig.glCoreProfile = ( profileBit == GL_CONTEXT_CORE_PROFILE_BIT );
 		}
 
-		glProfile providedProfile = glConfig2.glCoreProfile ? glProfile::CORE : glProfile::COMPATIBILITY ;
+		glProfile providedProfile = glConfig.glCoreProfile ? glProfile::CORE : glProfile::COMPATIBILITY ;
 		const char *providedProfileName = GLimp_getProfileName( providedProfile );
 
 		if ( providedProfile != requestedConfiguration.profile )
@@ -1385,20 +1385,20 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 			Sys::Error( "Indecipherable GL_VERSION" );
 		}
 
-		glConfig2.glMajor = GLmajor;
-		glConfig2.glMinor = GLminor;
+		glConfig.glMajor = GLmajor;
+		glConfig.glMinor = GLminor;
 	}
 
 	// CONTEXT_FLAGS and forward compatibility were added in OpenGL 3.0
-	if ( glConfig2.glMajor >= 3 )
+	if ( glConfig.glMajor >= 3 )
 	{
 		// Check if context is forward compatible.
 		int contextFlags;
 		glGetIntegerv( GL_CONTEXT_FLAGS, &contextFlags );
 
-		glConfig2.glForwardCompatibleContext = contextFlags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT;
+		glConfig.glForwardCompatibleContext = contextFlags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT;
 
-		if ( glConfig2.glForwardCompatibleContext )
+		if ( glConfig.glForwardCompatibleContext )
 		{
 			logger.Debug( "Provided OpenGL context is forward compatible." );
 		}
@@ -1409,7 +1409,7 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 	}
 	else
 	{
-		glConfig2.glForwardCompatibleContext = false;
+		glConfig.glForwardCompatibleContext = false;
 	}
 
 	// Get our config strings.
@@ -1444,23 +1444,23 @@ static void GLimp_DrawWindow()
 
 static rserr_t GLimp_CheckOpenGLVersion( const glConfiguration &requestedConfiguration )
 {
-	if ( glConfig2.glMajor != requestedConfiguration.major
-		|| glConfig2.glMinor != requestedConfiguration.minor )
+	if ( glConfig.glMajor != requestedConfiguration.major
+		|| glConfig.glMinor != requestedConfiguration.minor )
 	{
 		logger.Warn( "Provided OpenGL %d.%d is not the same as requested %d.%d version",
-			glConfig2.glMajor,
-			glConfig2.glMinor,
+			glConfig.glMajor,
+			glConfig.glMinor,
 			requestedConfiguration.major,
 			requestedConfiguration.minor );
 	}
 	else
 	{
 		logger.Debug( "Provided OpenGL %d.%d version.",
-			glConfig2.glMajor,
-			glConfig2.glMinor );
+			glConfig.glMajor,
+			glConfig.glMinor );
 	}
 
-	if ( glConfig2.glMajor < 2 || ( glConfig2.glMajor == 2 && glConfig2.glMinor < 1 ) )
+	if ( glConfig.glMajor < 2 || ( glConfig.glMajor == 2 && glConfig.glMinor < 1 ) )
 	{
 		GLimp_DestroyWindowIfExists();
 
@@ -1508,8 +1508,8 @@ static bool IsSdlVideoRestartNeeded()
 			return false;
 		}
 
-		if ( glConfig2.driverVendor == glDriverVendor_t::MESA
-			&& glConfig2.hardwareVendor == glHardwareVendor_t::ATI )
+		if ( glConfig.driverVendor == glDriverVendor_t::MESA
+			&& glConfig.hardwareVendor == glHardwareVendor_t::ATI )
 		{
 			bool foundRv600 = false;
 
@@ -1586,8 +1586,8 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 	// HACK: We want to set the current value, not the latched value
 	Cvar::ClearFlags("r_customwidth", CVAR_LATCH);
 	Cvar::ClearFlags("r_customheight", CVAR_LATCH);
-	Cvar_Set( "r_customwidth", va("%d", glConfig.vidWidth ) );
-	Cvar_Set( "r_customheight", va("%d", glConfig.vidHeight ) );
+	Cvar_Set( "r_customwidth", va("%d", windowConfig.vidWidth ) );
+	Cvar_Set( "r_customheight", va("%d", windowConfig.vidHeight ) );
 	Cvar::AddFlags("r_customwidth", CVAR_LATCH);
 	Cvar::AddFlags("r_customheight", CVAR_LATCH);
 
@@ -1610,8 +1610,8 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 			if ( err == rserr_t::RSERR_OLD_GL )
 			{
 				// Used by error message.
-				glConfig2.glMajor = bestValidatedConfiguration.major;
-				glConfig2.glMinor = bestValidatedConfiguration.minor;
+				glConfig.glMajor = bestValidatedConfiguration.major;
+				glConfig.glMinor = bestValidatedConfiguration.minor;
 			}
 
 			GLimp_DestroyWindowIfExists();
@@ -1796,7 +1796,7 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 			break;
 
 		case rserr_t::RSERR_OLD_GL:
-			Sys::Error( "OpenGL %d.%d is too old.\n\n%s", glConfig2.glMajor, glConfig2.glMinor, glRequirements );
+			Sys::Error( "OpenGL %d.%d is too old.\n\n%s", glConfig.glMajor, glConfig.glMinor, glRequirements );
 
 			// Sys:Error calls OSExit() so the break and the return is unreachable.
 			break;
@@ -1925,7 +1925,7 @@ enum {
 
 static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true )
 {
-	if ( hasExt || ( flags & ExtFlag_CORE && glConfig2.glCoreProfile) )
+	if ( hasExt || ( flags & ExtFlag_CORE && glConfig.glCoreProfile) )
 	{
 		if ( test )
 		{
@@ -1938,13 +1938,13 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 				logger.WithoutSuppression().Notice( "...using optional extension GL_%s.", name );
 			}
 
-			if ( glConfig2.glEnabledExtensionsString.length() != 0 )
+			if ( glConfig.glEnabledExtensionsString.length() != 0 )
 			{
-				glConfig2.glEnabledExtensionsString += " ";
+				glConfig.glEnabledExtensionsString += " ";
 			}
 
-			glConfig2.glEnabledExtensionsString += "GL_";
-			glConfig2.glEnabledExtensionsString += name;
+			glConfig.glEnabledExtensionsString += "GL_";
+			glConfig.glEnabledExtensionsString += name;
 
 			return true;
 		}
@@ -1966,13 +1966,13 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 		{
 			logger.WithoutSuppression().Notice( "...missing optional extension GL_%s.", name );
 
-			if ( glConfig2.glMissingExtensionsString.length() != 0 )
+			if ( glConfig.glMissingExtensionsString.length() != 0 )
 			{
-				glConfig2.glMissingExtensionsString += " ";
+				glConfig.glMissingExtensionsString += " ";
 			}
 
-			glConfig2.glMissingExtensionsString += "GL_";
-			glConfig2.glMissingExtensionsString += name;
+			glConfig.glMissingExtensionsString += "GL_";
+			glConfig.glMissingExtensionsString += name;
 		}
 	}
 	return false;
@@ -2022,8 +2022,8 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_khr_debug );
 	Cvar::Latch( r_khr_shader_subgroup );
 
-	glConfig2.glEnabledExtensionsString = std::string();
-	glConfig2.glMissingExtensionsString = std::string();
+	glConfig.glEnabledExtensionsString = std::string();
+	glConfig.glMissingExtensionsString = std::string();
 
 	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_debug_output,
 		r_khr_debug.Get() && r_glDebugProfile.Get() ) )
@@ -2034,42 +2034,42 @@ static void GLimp_InitExtensions()
 
 	/* On OpenGL Core profile the ARB_fragment_program extension doesn't exist and the related getter functions
 	return 0. We can assume OpenGL 3 Core hardware is featureful enough to not care about those limits. */
-	if ( !glConfig2.glCoreProfile )
+	if ( !glConfig.glCoreProfile )
 	{
 		if ( LOAD_EXTENSION( ExtFlag_REQUIRED, ARB_fragment_program ) )
 		{
-			glGetProgramivARB( GL_FRAGMENT_PROGRAM_ARB, GL_MAX_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB, &glConfig2.maxAluInstructions );
-			glGetProgramivARB( GL_FRAGMENT_PROGRAM_ARB, GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB, &glConfig2.maxTexIndirections );
+			glGetProgramivARB( GL_FRAGMENT_PROGRAM_ARB, GL_MAX_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB, &glConfig.maxAluInstructions );
+			glGetProgramivARB( GL_FRAGMENT_PROGRAM_ARB, GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB, &glConfig.maxTexIndirections );
 		}
 	}
 
 	// GLSL
 
-	Q_strncpyz( glConfig2.shadingLanguageVersionString, ( char * ) glGetString( GL_SHADING_LANGUAGE_VERSION_ARB ),
-				sizeof( glConfig2.shadingLanguageVersionString ) );
+	Q_strncpyz( glConfig.shadingLanguageVersionString, ( char * ) glGetString( GL_SHADING_LANGUAGE_VERSION_ARB ),
+				sizeof( glConfig.shadingLanguageVersionString ) );
 	int majorVersion, minorVersion;
-	if ( sscanf( glConfig2.shadingLanguageVersionString, "%i.%i", &majorVersion, &minorVersion ) != 2 )
+	if ( sscanf( glConfig.shadingLanguageVersionString, "%i.%i", &majorVersion, &minorVersion ) != 2 )
 	{
 		logger.Warn("unrecognized shading language version string format" );
 	}
-	glConfig2.shadingLanguageVersion = majorVersion * 100 + minorVersion;
+	glConfig.shadingLanguageVersion = majorVersion * 100 + minorVersion;
 
-	logger.Notice("...using shading language version %i", glConfig2.shadingLanguageVersion );
+	logger.Notice("...using shading language version %i", glConfig.shadingLanguageVersion );
 
 
 	// OpenGL driver constants.
 
-	glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &glConfig2.maxTextureUnits );
+	glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &glConfig.maxTextureUnits );
 	glGetIntegerv( GL_MAX_TEXTURE_SIZE, &glConfig.maxTextureSize );
-	glGetIntegerv( GL_MAX_3D_TEXTURE_SIZE, &glConfig2.max3DTextureSize );
-	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig2.maxCubeMapTextureSize );
+	glGetIntegerv( GL_MAX_3D_TEXTURE_SIZE, &glConfig.max3DTextureSize );
+	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig.maxCubeMapTextureSize );
 
 	// Stubbed or broken drivers may report garbage.
 
-	if ( glConfig2.maxTextureUnits < 0 )
+	if ( glConfig.maxTextureUnits < 0 )
 	{
-		Log::Warn( "Bad GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS value: %d", glConfig2.maxTextureUnits );
-		glConfig2.maxTextureUnits = 0;
+		Log::Warn( "Bad GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS value: %d", glConfig.maxTextureUnits );
+		glConfig.maxTextureUnits = 0;
 	}
 
 	if ( glConfig.maxTextureSize < 0 )
@@ -2078,36 +2078,36 @@ static void GLimp_InitExtensions()
 		glConfig.maxTextureSize = 0;
 	}
 
-	if ( glConfig2.max3DTextureSize < 0 )
+	if ( glConfig.max3DTextureSize < 0 )
 	{
-		Log::Warn( "Bad GL_MAX_3D_TEXTURE_SIZE value: %d", glConfig2.max3DTextureSize );
-		glConfig2.max3DTextureSize = 0;
+		Log::Warn( "Bad GL_MAX_3D_TEXTURE_SIZE value: %d", glConfig.max3DTextureSize );
+		glConfig.max3DTextureSize = 0;
 	}
 
-	if ( glConfig2.maxCubeMapTextureSize < 0 )
+	if ( glConfig.maxCubeMapTextureSize < 0 )
 	{
-		Log::Warn( "Bad GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB value: %d", glConfig2.maxCubeMapTextureSize );
-		glConfig2.maxCubeMapTextureSize = 0;
+		Log::Warn( "Bad GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB value: %d", glConfig.maxCubeMapTextureSize );
+		glConfig.maxCubeMapTextureSize = 0;
 	}
 
 	logger.Notice( "...using up to %d texture size.", glConfig.maxTextureSize );
-	logger.Notice( "...using up to %d 3D texture size.", glConfig2.max3DTextureSize );
-	logger.Notice( "...using up to %d cube map texture size.", glConfig2.maxCubeMapTextureSize );
-	logger.Notice( "...using up to %d texture units.", glConfig2.maxTextureUnits );
+	logger.Notice( "...using up to %d 3D texture size.", glConfig.max3DTextureSize );
+	logger.Notice( "...using up to %d cube map texture size.", glConfig.maxCubeMapTextureSize );
+	logger.Notice( "...using up to %d texture units.", glConfig.maxTextureUnits );
 
 	// Texture formats and compression.
 
 	// made required in OpenGL 3.0
-	glConfig2.textureHalfFloatAvailable =  LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_pixel, r_arb_half_float_pixel.Get() );
+	glConfig.textureHalfFloatAvailable =  LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_pixel, r_arb_half_float_pixel.Get() );
 
 	// made required in OpenGL 3.0
-	glConfig2.textureFloatAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_float, r_ext_texture_float.Get() );
+	glConfig.textureFloatAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_float, r_ext_texture_float.Get() );
 
 	bool gpuShader4Enabled = r_ext_gpu_shader4.Get();
 
 	if ( gpuShader4Enabled
 		&& SILENTLY_CHECK_EXTENSION( EXT_gpu_shader4 )
-		&& glConfig2.shadingLanguageVersion <= 120
+		&& glConfig.shadingLanguageVersion <= 120
 		&& workaround_glExtension_glsl120_disableGpuShader4.Get() )
 	{
 		// EXT_gpu_shader4 behaves slightly differently when running on GLSL 1.20.
@@ -2117,18 +2117,18 @@ static void GLimp_InitExtensions()
 	}
 
 	// made required in OpenGL 3.0
-	glConfig2.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, gpuShader4Enabled );
+	glConfig.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, gpuShader4Enabled );
 
 	// made required in OpenGL 4.0
-	glConfig2.gpuShader5Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_gpu_shader5, r_arb_gpu_shader5.Get() );
+	glConfig.gpuShader5Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_gpu_shader5, r_arb_gpu_shader5.Get() );
 
 	// made required in OpenGL 3.0
 	// GL_EXT_texture_integer can be used in shaders only if GL_EXT_gpu_shader4 is also available
-	glConfig2.textureIntegerAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_texture_integer, r_ext_texture_integer.Get() )
-	  && glConfig2.gpuShader4Available;
+	glConfig.textureIntegerAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_texture_integer, r_ext_texture_integer.Get() )
+	  && glConfig.gpuShader4Available;
 
 	// made required in OpenGL 3.0
-	glConfig2.textureRGAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_rg, r_ext_texture_rg.Get() );
+	glConfig.textureRGAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_rg, r_ext_texture_rg.Get() );
 
 	{
 		bool textureGatherEnabled = r_arb_texture_gather.Get();
@@ -2154,7 +2154,7 @@ static void GLimp_InitExtensions()
 		need for such extension and the related shader code useless. */
 		if ( workaround_glDriver_nvidia_v340_disableTextureGather.Get() )
 		{
-			if ( glConfig2.driverVendor == glDriverVendor_t::NVIDIA
+			if ( glConfig.driverVendor == glDriverVendor_t::NVIDIA
 				&& Q_stristr( glConfig.version_string, " NVIDIA 340." ) )
 			{
 				// No need for WithoutSuppression for something which can only be printed once per renderer restart.
@@ -2164,11 +2164,11 @@ static void GLimp_InitExtensions()
 		}
 
 		// made required in OpenGL 4.0
-		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, textureGatherEnabled );
+		glConfig.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, textureGatherEnabled );
 	}
 	
 	if ( workaround_glHardware_intel_useFirstProvokinVertex.Get()
-		&& glConfig2.hardwareVendor == glHardwareVendor_t::INTEL )
+		&& glConfig.hardwareVendor == glHardwareVendor_t::INTEL )
 	{
 		if ( LOAD_EXTENSION( ExtFlag_NONE, ARB_provoking_vertex ) )
 		{
@@ -2196,18 +2196,18 @@ static void GLimp_InitExtensions()
 	}
 
 	// made required in OpenGL 3.0
-	glConfig2.textureCompressionRGTCAvailable = LOAD_EXTENSION( ExtFlag_CORE, ARB_texture_compression_rgtc );
+	glConfig.textureCompressionRGTCAvailable = LOAD_EXTENSION( ExtFlag_CORE, ARB_texture_compression_rgtc );
 
 	// Texture - others
-	glConfig2.textureAnisotropyAvailable = false;
-	glConfig2.textureAnisotropy = 0.0f;
+	glConfig.textureAnisotropyAvailable = false;
+	glConfig.textureAnisotropy = 0.0f;
 	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, EXT_texture_filter_anisotropic, r_ext_texture_filter_anisotropic.Get() > 0 ) )
 	{
-		glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig2.maxTextureAnisotropy );
-		glConfig2.textureAnisotropyAvailable = true;
+		glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig.maxTextureAnisotropy );
+		glConfig.textureAnisotropyAvailable = true;
 
 		// Bound texture anisotropy.
-		glConfig2.textureAnisotropy = std::max( std::min( r_ext_texture_filter_anisotropic.Get(), glConfig2.maxTextureAnisotropy ), 1.0f );
+		glConfig.textureAnisotropy = std::max( std::min( r_ext_texture_filter_anisotropic.Get(), glConfig.maxTextureAnisotropy ), 1.0f );
 	}
 
 	// VAO and VBO
@@ -2227,9 +2227,9 @@ static void GLimp_InitExtensions()
 	{
 		bool halfFloatVertexEnabled = r_arb_half_float_vertex.Get();
 
-		if ( halfFloatVertexEnabled && glConfig2.driverVendor == glDriverVendor_t::MESA )
+		if ( halfFloatVertexEnabled && glConfig.driverVendor == glDriverVendor_t::MESA )
 		{
-			if ( glConfig2.hardwareVendor == glHardwareVendor_t::ATI )
+			if ( glConfig.hardwareVendor == glHardwareVendor_t::ATI )
 			{
 				bool foundRv300 = false;
 
@@ -2256,7 +2256,7 @@ static void GLimp_InitExtensions()
 				if ( !foundRv300 )
 				{
 					if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300
-						&& glConfig2.maxAluInstructions == 64 )
+						&& glConfig.maxAluInstructions == 64 )
 					{
 						cardName = "unknown ATI RV3xx";
 						foundRv300 = true;
@@ -2269,7 +2269,7 @@ static void GLimp_InitExtensions()
 					halfFloatVertexEnabled = false;
 				}
 			}
-			else if ( glConfig2.hardwareVendor == glHardwareVendor_t::BROADCOM )
+			else if ( glConfig.hardwareVendor == glHardwareVendor_t::BROADCOM )
 			{
 				bool foundVc4 = Str::IsPrefix( "VC4 ", glConfig.renderer_string );
 
@@ -2282,7 +2282,7 @@ static void GLimp_InitExtensions()
 		}
 
 		// made required in OpenGL 3.0
-		glConfig2.halfFloatVertexAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_vertex, halfFloatVertexEnabled );
+		glConfig.halfFloatVertexAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_vertex, halfFloatVertexEnabled );
 
 		if ( !halfFloatVertexEnabled )
 		{
@@ -2324,15 +2324,15 @@ static void GLimp_InitExtensions()
 		glFboSetExt();
 	}
 
-	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig2.maxRenderbufferSize );
-	glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &glConfig2.maxColorAttachments );
+	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig.maxRenderbufferSize );
+	glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &glConfig.maxColorAttachments );
 
 	// made required in OpenGL 2.0
-	glConfig2.drawBuffersAvailable = false;
+	glConfig.drawBuffersAvailable = false;
 	if ( r_ext_draw_buffers.Get() )
 	{
-		glGetIntegerv( GL_MAX_DRAW_BUFFERS, &glConfig2.maxDrawBuffers );
-		glConfig2.drawBuffersAvailable = true;
+		glGetIntegerv( GL_MAX_DRAW_BUFFERS, &glConfig.maxDrawBuffers );
+		glConfig.drawBuffersAvailable = true;
 	}
 
 	{
@@ -2346,25 +2346,25 @@ static void GLimp_InitExtensions()
 			logger.Notice("...no program binary formats");
 		}
 
-		glConfig2.getProgramBinaryAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_get_program_binary, formats > 0 );
+		glConfig.getProgramBinaryAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_get_program_binary, formats > 0 );
 	}
 
-	glConfig2.bufferStorageAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_buffer_storage, r_arb_buffer_storage.Get() );
+	glConfig.bufferStorageAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_buffer_storage, r_arb_buffer_storage.Get() );
 
 	// made required since OpenGL 3.1
-	glConfig2.uniformBufferObjectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_uniform_buffer_object, r_arb_uniform_buffer_object.Get() );
+	glConfig.uniformBufferObjectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_uniform_buffer_object, r_arb_uniform_buffer_object.Get() );
 
 	// made required in OpenGL 3.0
-	glConfig2.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range.Get() );
+	glConfig.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range.Get() );
 
 	// made required in OpenGL 3.2
-	glConfig2.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync.Get() );
+	glConfig.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync.Get() );
 
 	// made required in OpenGL 4.5
-	glConfig2.textureBarrierAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_barrier, r_arb_texture_barrier.Get() );
+	glConfig.textureBarrierAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_barrier, r_arb_texture_barrier.Get() );
 
 	// made required in OpenGL 4.3
-	glConfig2.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader.Get() );
+	glConfig.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader.Get() );
 
 	{
 		bool bindlessTextureEnabled = r_arb_bindless_texture.Get();
@@ -2379,7 +2379,7 @@ static void GLimp_InitExtensions()
 			- https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/30315
 			- https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/30338
 			- https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/932 */
-			if ( glConfig2.driverVendor == glDriverVendor_t::MESA )
+			if ( glConfig.driverVendor == glDriverVendor_t::MESA )
 			{
 				const char *str1 = "Mesa 24.";
 
@@ -2436,7 +2436,7 @@ static void GLimp_InitExtensions()
 			}
 
 			// AMD proprietary drivers are known to have buggy bindless texture implementation.
-			else if ( glConfig2.hardwareVendor == glHardwareVendor_t::ATI )
+			else if ( glConfig.hardwareVendor == glHardwareVendor_t::ATI )
 			{
 				// AMD proprietary driver for macOS does not implement bindless texture.
 				// Other systems like FreeBSD don't have AMD proprietary drivers.
@@ -2480,14 +2480,14 @@ static void GLimp_InitExtensions()
 		}
 
 		// not required by any OpenGL version
-		glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, bindlessTextureEnabled );
+		glConfig.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, bindlessTextureEnabled );
 	}
 
 	bool shaderDrawParametersEnabled = r_arb_shader_draw_parameters.Get();
 
 	if ( shaderDrawParametersEnabled
 		&& SILENTLY_CHECK_EXTENSION( ARB_shader_draw_parameters )
-		&& glConfig2.shadingLanguageVersion <= 120
+		&& glConfig.shadingLanguageVersion <= 120
 		&& workaround_glExtension_glsl120_disableShaderDrawParameters.Get() )
 	{
 		logger.Warn( "Found ARB_shader_draw_parameters with incompatible GLSL 1.20, disabling ARB_shader_draw_parameters." );
@@ -2495,92 +2495,92 @@ static void GLimp_InitExtensions()
 	}
 
 	// made required in OpenGL 4.6
-	glConfig2.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, shaderDrawParametersEnabled );
+	glConfig.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, shaderDrawParametersEnabled );
 
 	// made required in OpenGL 4.3
-	glConfig2.SSBOAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_storage_buffer_object, r_arb_shader_storage_buffer_object.Get() );
+	glConfig.SSBOAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_storage_buffer_object, r_arb_shader_storage_buffer_object.Get() );
 
 	// made required in OpenGL 4.0
-	glConfig2.multiDrawIndirectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_multi_draw_indirect, r_arb_multi_draw_indirect.Get() );
+	glConfig.multiDrawIndirectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_multi_draw_indirect, r_arb_multi_draw_indirect.Get() );
 
 	// made required in OpenGL 4.2
-	glConfig2.shadingLanguage420PackAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shading_language_420pack, r_arb_shading_language_420pack.Get() );
+	glConfig.shadingLanguage420PackAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shading_language_420pack, r_arb_shading_language_420pack.Get() );
 
 	// made required in OpenGL 4.3
-	glConfig2.explicitUniformLocationAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_explicit_uniform_location, r_arb_explicit_uniform_location.Get() );
+	glConfig.explicitUniformLocationAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_explicit_uniform_location, r_arb_explicit_uniform_location.Get() );
 
 	// made required in OpenGL 4.2
-	glConfig2.shaderImageLoadStoreAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_image_load_store, r_arb_shader_image_load_store.Get() );
+	glConfig.shaderImageLoadStoreAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_image_load_store, r_arb_shader_image_load_store.Get() );
 
 	// made required in OpenGL 4.2
-	glConfig2.shaderAtomicCountersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counters, r_arb_shader_atomic_counters.Get() );
+	glConfig.shaderAtomicCountersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counters, r_arb_shader_atomic_counters.Get() );
 
 	// made required in OpenGL 4.6
-	glConfig2.shaderAtomicCounterOpsAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counter_ops, r_arb_shader_atomic_counter_ops.Get() );
+	glConfig.shaderAtomicCounterOpsAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counter_ops, r_arb_shader_atomic_counter_ops.Get() );
 
 	// made required in OpenGL 4.6
-	glConfig2.indirectParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_indirect_parameters, r_arb_indirect_parameters.Get() );
+	glConfig.indirectParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_indirect_parameters, r_arb_indirect_parameters.Get() );
 
 	// made required in OpenGL 4.5
-	glConfig2.directStateAccessAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_direct_state_access, r_arb_direct_state_access.Get() );
+	glConfig.directStateAccessAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_direct_state_access, r_arb_direct_state_access.Get() );
 
 	// made required in OpenGL 4.3
-	glConfig2.vertexAttribBindingAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_vertex_attrib_binding, r_arb_vertex_attrib_binding.Get() );
+	glConfig.vertexAttribBindingAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_vertex_attrib_binding, r_arb_vertex_attrib_binding.Get() );
 
-	glConfig2.geometryCacheAvailable = glConfig2.vertexAttribBindingAvailable && glConfig2.directStateAccessAvailable;
+	glConfig.geometryCacheAvailable = glConfig.vertexAttribBindingAvailable && glConfig.directStateAccessAvailable;
 
-	glConfig2.materialSystemAvailable =
-		glConfig2.bindlessTexturesAvailable
-		&& glConfig2.computeShaderAvailable
-		&& glConfig2.directStateAccessAvailable
-		&& glConfig2.explicitUniformLocationAvailable
-		&& glConfig2.geometryCacheAvailable
-		&& glConfig2.gpuShader4Available
-		&& glConfig2.indirectParametersAvailable
-		&& glConfig2.multiDrawIndirectAvailable
-		&& glConfig2.shaderAtomicCountersAvailable
-		&& glConfig2.shaderDrawParametersAvailable
-		&& glConfig2.shaderImageLoadStoreAvailable
-		&& glConfig2.shadingLanguage420PackAvailable
-		&& glConfig2.SSBOAvailable
-		&& glConfig2.uniformBufferObjectAvailable;
+	glConfig.materialSystemAvailable =
+		glConfig.bindlessTexturesAvailable
+		&& glConfig.computeShaderAvailable
+		&& glConfig.directStateAccessAvailable
+		&& glConfig.explicitUniformLocationAvailable
+		&& glConfig.geometryCacheAvailable
+		&& glConfig.gpuShader4Available
+		&& glConfig.indirectParametersAvailable
+		&& glConfig.multiDrawIndirectAvailable
+		&& glConfig.shaderAtomicCountersAvailable
+		&& glConfig.shaderDrawParametersAvailable
+		&& glConfig.shaderImageLoadStoreAvailable
+		&& glConfig.shadingLanguage420PackAvailable
+		&& glConfig.SSBOAvailable
+		&& glConfig.uniformBufferObjectAvailable;
 
 	// This requires GLEW 2.2+, so skip if it's a lower version
 #if defined(GLEW_KHR_shader_subgroup)
 	// not required by any OpenGL version
-	glConfig2.shaderSubgroupAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, KHR_shader_subgroup, r_khr_shader_subgroup.Get() );
+	glConfig.shaderSubgroupAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, KHR_shader_subgroup, r_khr_shader_subgroup.Get() );
 
-	if ( glConfig2.shaderSubgroupAvailable ) {
+	if ( glConfig.shaderSubgroupAvailable ) {
 		int subgroupFeatures;
 		glGetIntegerv( GL_SUBGROUP_SUPPORTED_FEATURES_KHR, &subgroupFeatures );
 
-		glConfig2.shaderSubgroupBasicAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_BASIC_BIT_KHR;
-		glConfig2.shaderSubgroupVoteAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_VOTE_BIT_KHR;
-		glConfig2.shaderSubgroupArithmeticAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_ARITHMETIC_BIT_KHR;
-		glConfig2.shaderSubgroupBallotAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_BALLOT_BIT_KHR;
-		glConfig2.shaderSubgroupShuffleAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_SHUFFLE_BIT_KHR;
-		glConfig2.shaderSubgroupShuffleRelativeAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT_KHR;
-		glConfig2.shaderSubgroupQuadAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_QUAD_BIT_KHR;
+		glConfig.shaderSubgroupBasicAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_BASIC_BIT_KHR;
+		glConfig.shaderSubgroupVoteAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_VOTE_BIT_KHR;
+		glConfig.shaderSubgroupArithmeticAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_ARITHMETIC_BIT_KHR;
+		glConfig.shaderSubgroupBallotAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_BALLOT_BIT_KHR;
+		glConfig.shaderSubgroupShuffleAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_SHUFFLE_BIT_KHR;
+		glConfig.shaderSubgroupShuffleRelativeAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT_KHR;
+		glConfig.shaderSubgroupQuadAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_QUAD_BIT_KHR;
 
 		Log::Notice( "Supported subgroup extensions: basic: %s, vote: %s, arithmetic: %s, ballot: %s, shuffle: %s, "
-			"shuffle_relative: %s, quad: %s", glConfig2.shaderSubgroupBasicAvailable,
-			glConfig2.shaderSubgroupVoteAvailable, glConfig2.shaderSubgroupArithmeticAvailable,
-			glConfig2.shaderSubgroupBallotAvailable, glConfig2.shaderSubgroupShuffleAvailable,
-			glConfig2.shaderSubgroupShuffleRelativeAvailable, glConfig2.shaderSubgroupQuadAvailable );
+			"shuffle_relative: %s, quad: %s", glConfig.shaderSubgroupBasicAvailable,
+			glConfig.shaderSubgroupVoteAvailable, glConfig.shaderSubgroupArithmeticAvailable,
+			glConfig.shaderSubgroupBallotAvailable, glConfig.shaderSubgroupShuffleAvailable,
+			glConfig.shaderSubgroupShuffleRelativeAvailable, glConfig.shaderSubgroupQuadAvailable );
 	}
 #else
-	glConfig2.shaderSubgroupAvailable = false;
+	glConfig.shaderSubgroupAvailable = false;
 
-	glConfig2.shaderSubgroupBasicAvailable = false;
-	glConfig2.shaderSubgroupVoteAvailable = false;
-	glConfig2.shaderSubgroupArithmeticAvailable = false;
-	glConfig2.shaderSubgroupBallotAvailable = false;
-	glConfig2.shaderSubgroupShuffleAvailable = false;
-	glConfig2.shaderSubgroupShuffleRelativeAvailable = false;
-	glConfig2.shaderSubgroupQuadAvailable = false;
+	glConfig.shaderSubgroupBasicAvailable = false;
+	glConfig.shaderSubgroupVoteAvailable = false;
+	glConfig.shaderSubgroupArithmeticAvailable = false;
+	glConfig.shaderSubgroupBallotAvailable = false;
+	glConfig.shaderSubgroupShuffleAvailable = false;
+	glConfig.shaderSubgroupShuffleRelativeAvailable = false;
+	glConfig.shaderSubgroupQuadAvailable = false;
 
 	// Currently this functionality is only used by material system shaders
-	if ( glConfig2.materialSystemAvailable ) {
+	if ( glConfig.materialSystemAvailable ) {
 		logger.Notice( "^1Using outdated GLEW version, GL_KHR_shader_subgroup unavailable."
 			"Update GLEW to 2.2+ to be able to use this extension" );
 	}
@@ -2589,20 +2589,20 @@ static void GLimp_InitExtensions()
 	// Shader limits.
 
 	// From GL_ARB_vertex_shader.
-	glGetIntegerv( GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, &glConfig2.maxVertexUniforms );
+	glGetIntegerv( GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, &glConfig.maxVertexUniforms );
 
 	// From GL_ARB_vertex_program.
-	glGetIntegerv( GL_MAX_VERTEX_ATTRIBS_ARB, &glConfig2.maxVertexAttribs );
+	glGetIntegerv( GL_MAX_VERTEX_ATTRIBS_ARB, &glConfig.maxVertexAttribs );
 
 	// From GL_ARB_uniform_buffer_object.
-	if ( glConfig2.uniformBufferObjectAvailable )
+	if ( glConfig.uniformBufferObjectAvailable )
 	{
-		glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &glConfig2.maxUniformBlockSize );
+		glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &glConfig.maxUniformBlockSize );
 	}
 
 	int reservedComponents = 36 * 10; // approximation how many uniforms we have besides the bone matrices
-	glConfig2.maxVertexSkinningBones = Math::Clamp( ( glConfig2.maxVertexUniforms - reservedComponents ) / 16, 0, MAX_BONES );
-	glConfig2.vboVertexSkinningAvailable = r_vboVertexSkinning->integer && ( ( glConfig2.maxVertexSkinningBones >= 12 ) ? true : false );
+	glConfig.maxVertexSkinningBones = Math::Clamp( ( glConfig.maxVertexUniforms - reservedComponents ) / 16, 0, MAX_BONES );
+	glConfig.vboVertexSkinningAvailable = r_vboVertexSkinning->integer && ( ( glConfig.maxVertexSkinningBones >= 12 ) ? true : false );
 
 	GL_CheckErrors();
 }
@@ -2754,15 +2754,15 @@ bool GLimp_Init()
 		glConfig.vendor_string,
 		glConfig.version_string,
 		glConfig.renderer_string,
-		glConfig2.hardwareVendor,
-		glConfig2.driverVendor );
+		glConfig.hardwareVendor,
+		glConfig.driverVendor );
 
-	Log::Debug( "Detected OpenGL hardware vendor: %s", GetGLHardwareVendorName( glConfig2.hardwareVendor ) );
-	Log::Debug( "Detected OpenGL driver vendor: %s", GetGLDriverVendorName( glConfig2.driverVendor ) );
+	Log::Debug( "Detected OpenGL hardware vendor: %s", GetGLHardwareVendorName( glConfig.hardwareVendor ) );
+	Log::Debug( "Detected OpenGL driver vendor: %s", GetGLDriverVendorName( glConfig.driverVendor ) );
 
-	glConfig2.glExtensionsString = std::string();
+	glConfig.glExtensionsString = std::string();
 
-	if ( glConfig2.glMajor >= 3 )
+	if ( glConfig.glMajor >= 3 )
 	{
 		GLint numExts, i;
 
@@ -2800,7 +2800,7 @@ bool GLimp_Init()
 
 		logger.Debug( "OpenGL extensions found: %s", glExtensionsString );
 
-		glConfig2.glExtensionsString = glExtensionsString;
+		glConfig.glExtensionsString = glExtensionsString;
 	}
 	else
 	{
@@ -2821,12 +2821,12 @@ bool GLimp_Init()
 
 			logger.Debug( "OpenGL extensions found: %s", glExtensionsString );
 
-			glConfig2.glExtensionsString = glExtensionsString;
+			glConfig.glExtensionsString = glExtensionsString;
 		}
 	}
 
-	if ( glConfig2.hardwareVendor == glHardwareVendor_t::ATI &&
-	     std::make_pair( glConfig2.glMajor, glConfig2.glMinor ) < std::make_pair( 3, 2 ) )
+	if ( glConfig.hardwareVendor == glHardwareVendor_t::ATI &&
+	     std::make_pair( glConfig.glMajor, glConfig.glMinor ) < std::make_pair( 3, 2 ) )
 	{
 		glConfig.hardwareType = glHardwareType_t::GLHW_R300;
 	}

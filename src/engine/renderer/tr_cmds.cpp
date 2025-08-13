@@ -224,7 +224,7 @@ R_AddSetupLightsCmd
 */
 void R_AddSetupLightsCmd()
 {
-	if ( !glConfig2.realtimeLighting )
+	if ( !glConfig.realtimeLighting )
 	{
 		return;
 	}
@@ -381,7 +381,7 @@ void RE_SetColorGrading( int slot, qhandle_t hShader )
 	shader_t *shader = R_GetShaderByHandle( hShader );
 	image_t *image;
 
-	if ( !glConfig2.colorGrading )
+	if ( !glConfig.colorGrading )
 	{
 		return;
 	}
@@ -636,7 +636,7 @@ void RE_ScissorEnable( bool enable )
 	// scissor disable sets scissor to full screen
 	// scissor enable is a no-op
 	if( !enable ) {
-		RE_ScissorSet( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+		RE_ScissorSet( 0, 0, windowConfig.vidWidth, windowConfig.vidHeight );
 	}
 }
 
