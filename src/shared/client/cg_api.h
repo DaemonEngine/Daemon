@@ -53,8 +53,8 @@ void trap_CM_BatchMarkFragments(
 void            trap_S_StartSound( vec3_t origin, int entityNum, soundChannel_t entchannel, sfxHandle_t sfx );
 void            trap_S_StartLocalSound( sfxHandle_t sfx, soundChannel_t channelNum );
 void            trap_S_ClearLoopingSounds( bool killall );
-void            trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx );
-void            trap_S_AddRealLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx );
+void            trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx,
+                                        bool persistent = false );
 void            trap_S_StopLoopingSound( int entityNum );
 void            trap_S_UpdateEntityPosition( int entityNum, const vec3_t origin );
 void            trap_S_Respatialize( int entityNum, const vec3_t origin, vec3_t axis[ 3 ], int inwater );

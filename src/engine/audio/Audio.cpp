@@ -58,6 +58,7 @@ namespace Audio {
     // in a frame, it means it sould be destroyed.
     struct entityLoop_t {
         bool addedThisFrame;
+        bool persistent;
         std::shared_ptr<LoopingSound> sound;
         sfxHandle_t newSfx;
         sfxHandle_t oldSfx;
@@ -148,7 +149,7 @@ namespace Audio {
         UpdateListenerGain();
 
         for (auto &loop : entityLoops) {
-            loop = {false, nullptr, -1, -1};
+            loop = {false, false, nullptr, -1, -1};
         }
 
         return true;
@@ -164,7 +165,7 @@ namespace Audio {
             if (loop.sound) {
                 loop.sound->Stop();
             }
-            loop = {false, nullptr, -1, -1};
+            loop = {false, false, nullptr, -1, -1};
         }
 
         StopMusic();
@@ -196,17 +197,23 @@ namespace Audio {
         for (int i = 0; i < MAX_GENTITIES; i++) {
             entityLoop_t& loop = entityLoops[i];
             if (loop.sound and not loop.addedThisFrame) {
-                // The loop wasn't added this frame, that means it has to be removed.
-                loop.sound->soundGain = 0;
+                if ( loop.persistent ) {
+                    loop.sound->soundGain = 0;
+                } else {
+                    // The loop wasn't added this frame, that means it has to be removed.
+                    loop.sound->FadeOutAndDie();
+                    loop = { false, false, nullptr, -1, -1 };
+                }
             } else if (loop.oldSfx != loop.newSfx) {
                 // The last sfx added in the frame is not the current one being played
                 // To mimic the previous sound system's behavior we sart playing the new one.
                 loop.sound->FadeOutAndDie();
 
                 int newSfx = loop.newSfx;
-                loop = {false, nullptr, -1, -1};
+                bool persistent = loop.persistent;
+                loop = {false, false, nullptr, -1, -1};
 
-                AddEntityLoopingSound(i, newSfx);
+                AddEntityLoopingSound(i, newSfx, persistent);
             }
         }
 
@@ -221,7 +228,7 @@ namespace Audio {
             loop.addedThisFrame = false;
             // if we are the unique owner of a loop pointer, then it means it was stopped, free it.
             if (loop.sound.use_count() == 1) {
-                loop = {false, nullptr, -1, -1};
+                loop = {false, false, nullptr, -1, -1};
             }
         }
 
@@ -286,7 +293,7 @@ namespace Audio {
         AddSound(GetLocalEmitter(), std::make_shared<OneShotSound>(Sample::FromHandle(sfx)), 1);
     }
 
-    void AddEntityLoopingSound(int entityNum, sfxHandle_t sfx) {
+    void AddEntityLoopingSound(int entityNum, sfxHandle_t sfx, bool persistent) {
         if (not initialized or not Sample::IsValidHandle(sfx) or not IsValidEntity(entityNum)) {
             return;
         }
@@ -300,6 +307,7 @@ namespace Audio {
             AddSound(GetEmitterForEntity(entityNum), loop.sound, 1);
         }
         loop.addedThisFrame = true;
+        loop.persistent = persistent;
 
         // We remember what is the last sfx asked because cgame expects the sfx added last in the frame to be played
         loop.newSfx = sfx;
