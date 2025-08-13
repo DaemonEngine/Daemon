@@ -956,15 +956,7 @@ void CGameVM::CGameStaticInit()
 
 void CGameVM::CGameInit(int serverMessageNum, int clientNum)
 {
-	glconfig_t glConfig;
-	memset( &glConfig, 0, sizeof( glconfig_t ) );
-	glConfig.displayAspect = cls.windowConfig.displayAspect;
-	glConfig.displayWidth = cls.windowConfig.displayWidth;
-	glConfig.displayHeight = cls.windowConfig.displayHeight;
-	glConfig.vidWidth = cls.windowConfig.vidWidth;
-	glConfig.vidHeight = cls.windowConfig.vidHeight;
-
-	this->SendMsg<CGameInitMsg>(serverMessageNum, clientNum, glConfig, cl.gameState);
+	this->SendMsg<CGameInitMsg>(serverMessageNum, clientNum, cls.windowConfig, cl.gameState);
 	NetcodeTable psTable;
 	size_t psSize;
 	this->SendMsg<VM::GetNetcodeTablesMsg>(psTable, psSize);
@@ -1028,15 +1020,7 @@ void CGameVM::CGameTextInputEvent(int c)
 
 void CGameVM::CGameRocketInit()
 {
-	glconfig_t glConfig;
-	memset( &glConfig, 0, sizeof( glconfig_t ) );
-	glConfig.displayAspect = cls.windowConfig.displayAspect;
-	glConfig.displayWidth = cls.windowConfig.displayWidth;
-	glConfig.displayHeight = cls.windowConfig.displayHeight;
-	glConfig.vidWidth = cls.windowConfig.vidWidth;
-	glConfig.vidHeight = cls.windowConfig.vidHeight;
-
-	this->SendMsg<CGameRocketInitMsg>( glConfig );
+	this->SendMsg<CGameRocketInitMsg>( cls.windowConfig );
 }
 
 void CGameVM::CGameRocketFrame()

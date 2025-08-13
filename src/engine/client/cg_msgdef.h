@@ -510,7 +510,7 @@ using CGameStaticInitMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_STATIC_INIT>, int>
 >;
 using CGameInitMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_INIT>, int, int, glconfig_t, GameStateCSs>
+	IPC::Message<IPC::Id<VM::QVM, CG_INIT>, int, int, WindowConfig, GameStateCSs>
 >;
 using CGameShutdownMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_SHUTDOWN>>
@@ -540,7 +540,7 @@ using CGameFocusEventMsg = IPC::SyncMessage<
 
 //TODO Check all rocket calls
 using CGameRocketInitMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_VM_INIT>, glconfig_t>
+	IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_VM_INIT>, WindowConfig>
 >;
 using CGameRocketFrameMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_FRAME>, cgClientState_t>

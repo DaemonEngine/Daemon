@@ -170,12 +170,6 @@ struct GLConfig
 	bool motionBlur;
 };
 
-struct WindowConfig {
-	float displayAspect;
-	int displayWidth, displayHeight; // the entire monitor (the one indicated by displayIndex)
-	int vidWidth, vidHeight; // what the game is using
-};
-
 //
 // these are the functions exported by the refresh module
 //
@@ -192,8 +186,8 @@ struct refexport_t
 	// if necessary.
 	//
 	// BeginRegistration makes any existing media pointers invalid
-	// and returns the current gl configuration, including screen width
-	// and height, which can be used by the client to intelligently
+	// and returns the current window configuration, including screen and display width
+	// and height, and aspect ratio, which can be used by the client to intelligently
 	// size display elements. Returns false if the renderer couldn't
 	// be initialized.
 	bool( *BeginRegistration )( WindowConfig* windowCfg );
