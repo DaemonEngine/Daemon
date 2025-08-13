@@ -737,7 +737,7 @@ static void SetFarClip()
 		vec3_t v;
 		float  distance;
 
-		if ( glConfig2.usingMaterialSystem ) {
+		if ( glConfig.usingMaterialSystem ) {
 			VectorCopy( materialSystem.worldViewBounds[0], tr.viewParms.visBounds[0] );
 			VectorCopy( materialSystem.worldViewBounds[1], tr.viewParms.visBounds[1] );
 		}
@@ -847,7 +847,7 @@ static void R_SetupUnprojection()
 	MatrixInverse( unprojectMatrix );
 
 	MatrixMultiplyTranslation( unprojectMatrix, -1.0, -1.0, -1.0 );
-	MatrixMultiplyScale( unprojectMatrix, 2.0f / glConfig.vidWidth, 2.0f / glConfig.vidHeight, 2.0 );
+	MatrixMultiplyScale( unprojectMatrix, 2.0f / windowConfig.vidWidth, 2.0f / windowConfig.vidHeight, 2.0 );
 }
 
 /*
@@ -1474,7 +1474,7 @@ static void R_SetupPortalFrustum( const viewParms_t& oldParms, const orientation
 	MatrixCopy(oldParms.projectionMatrix, invProjViewPortMatrix);
 	MatrixInverse(invProjViewPortMatrix);
 	MatrixMultiplyTranslation(invProjViewPortMatrix, -1.0, -1.0, -1.0);
-	MatrixMultiplyScale(invProjViewPortMatrix, 2.0f / glConfig.vidWidth, 2.0f / glConfig.vidHeight, 2.0);
+	MatrixMultiplyScale(invProjViewPortMatrix, 2.0f / windowConfig.vidWidth, 2.0f / windowConfig.vidHeight, 2.0);
 
 	frustum_t& frustum = newParms.portalFrustum;
 	MatrixTransformPoint(invProjViewPortMatrix, sbottomleft, bottomleft);
@@ -1746,7 +1746,7 @@ static void R_SortDrawSurfs()
 	int          sort;
 
 	// it is possible for some views to not have any surfaces
-	if ( !glConfig2.usingMaterialSystem && tr.viewParms.numDrawSurfs < 1 )
+	if ( !glConfig.usingMaterialSystem && tr.viewParms.numDrawSurfs < 1 )
 	{
 		// we still need to add it for hyperspace cases
 		R_AddDrawViewCmd( false );
@@ -1793,7 +1793,7 @@ static void R_SortDrawSurfs()
 	// check for any pass through drawing, which
 	// may cause another view to be rendered first
 	// Material system does its own handling of portal surfaces
-	if ( glConfig2.usingMaterialSystem && !r_materialSystemSkip.Get() ) {
+	if ( glConfig.usingMaterialSystem && !r_materialSystemSkip.Get() ) {
 		if ( tr.viewParms.portalLevel == 0 ) {
 			materialSystem.AddPortalSurfaces();
 			currentView = 0;
@@ -2056,7 +2056,7 @@ void R_RenderView( viewParms_t *parms )
 
 	R_SetupFrustum();
 
-	if ( glConfig2.usingMaterialSystem && !r_materialSystemSkip.Get() ) {
+	if ( glConfig.usingMaterialSystem && !r_materialSystemSkip.Get() ) {
 		tr.viewParms.viewID = tr.viewCount;
 		materialSystem.QueueSurfaceCull( tr.viewCount, tr.viewParms.pvsOrigin, (frustum_t*) tr.viewParms.frustum );
 		materialSystem.AddAutospriteSurfaces();

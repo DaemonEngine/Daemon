@@ -1424,12 +1424,12 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 	const char *token = COM_ParseExt2( &buffer_p, false );
 
 	// NOTE: Normal map can ship height map in alpha channel.
-	if ( ( type == stageType_t::ST_NORMALMAP && !glConfig2.normalMapping && !glConfig2.reliefMapping )
-		|| ( type == stageType_t::ST_HEIGHTMAP && !glConfig2.reliefMapping )
-		|| ( type == stageType_t::ST_SPECULARMAP && !glConfig2.specularMapping )
-		|| ( type == stageType_t::ST_PHYSICALMAP && !glConfig2.physicalMapping )
+	if ( ( type == stageType_t::ST_NORMALMAP && !glConfig.normalMapping && !glConfig.reliefMapping )
+		|| ( type == stageType_t::ST_HEIGHTMAP && !glConfig.reliefMapping )
+		|| ( type == stageType_t::ST_SPECULARMAP && !glConfig.specularMapping )
+		|| ( type == stageType_t::ST_PHYSICALMAP && !glConfig.physicalMapping )
 		|| ( type == stageType_t::ST_GLOWMAP && !r_glowMapping->integer )
-		|| ( type == stageType_t::ST_REFLECTIONMAP && !glConfig2.reflectionMappingAvailable ) )
+		|| ( type == stageType_t::ST_REFLECTIONMAP && !glConfig.reflectionMappingAvailable ) )
 	{
 		return true;
 	}
@@ -5198,7 +5198,7 @@ static void FinishStages()
 
 			case stageType_t::ST_REFLECTIONMAP:
 			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-				stage->active = glConfig2.reflectionMappingAvailable;
+				stage->active = glConfig.reflectionMappingAvailable;
 				break;
 
 			case stageType_t::ST_LIGHTMAP:
@@ -5241,22 +5241,22 @@ static void FinishStages()
 		stage->hasHeightMapInNormalMap = stage->hasHeightMapInNormalMap && hasNormalMap;
 
 		// Available features.
-		stage->enableNormalMapping = glConfig2.normalMapping && hasNormalMap;
-		stage->enableDeluxeMapping = glConfig2.deluxeMapping && ( hasNormalMap || hasMaterialMap );
+		stage->enableNormalMapping = glConfig.normalMapping && hasNormalMap;
+		stage->enableDeluxeMapping = glConfig.deluxeMapping && ( hasNormalMap || hasMaterialMap );
 
-		stage->enableReliefMapping = glConfig2.reliefMapping && !shader.disableReliefMapping
+		stage->enableReliefMapping = glConfig.reliefMapping && !shader.disableReliefMapping
 			&& ( hasHeightMap || stage->hasHeightMapInNormalMap );
 
 		stage->enableGlowMapping = r_glowMapping->integer && hasGlowMap;
 
 		if ( stage->collapseType == collapseType_t::COLLAPSE_PBR )
 		{
-			stage->enablePhysicalMapping = glConfig2.physicalMapping && hasMaterialMap;
+			stage->enablePhysicalMapping = glConfig.physicalMapping && hasMaterialMap;
 			stage->enableSpecularMapping = false;
 		}
 		else
 		{
-			stage->enableSpecularMapping = glConfig2.specularMapping && hasMaterialMap;
+			stage->enableSpecularMapping = glConfig.specularMapping && hasMaterialMap;
 			stage->enablePhysicalMapping = false;
 		}
 
@@ -5285,7 +5285,7 @@ static void FinishStages()
 		{
 			// If specular mapping is enabled always use the specular mapping
 			// shader to avoid costly GLSL shader switching.
-			if ( glConfig2.specularMapping )
+			if ( glConfig.specularMapping )
 			{
 				stage->enableSpecularMapping = true;
 				stage->bundle[ TB_MATERIALMAP ].image[ 0 ] = tr.blackImage;
@@ -5868,7 +5868,7 @@ static shader_t *FinishShader()
 		{
 			ret->depthShader = nullptr;
 
-			if ( glConfig2.usingMaterialSystem && !tr.worldLoaded ) {
+			if ( glConfig.usingMaterialSystem && !tr.worldLoaded ) {
 				uint8_t maxStages = ret->lastStage - ret->stages;
 
 				// Add 1 for potential fog stages
@@ -5926,7 +5926,7 @@ static shader_t *FinishShader()
 		ret->depthShader = nullptr;
 	}
 
-	if ( glConfig2.usingMaterialSystem && !tr.worldLoaded ) {
+	if ( glConfig.usingMaterialSystem && !tr.worldLoaded ) {
 		uint8_t maxStages = ret->lastStage - ret->stages;
 
 		// Add 1 for potential depth stages

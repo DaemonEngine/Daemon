@@ -47,8 +47,25 @@ extern Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen;
 // Note: some of these (particularly ones dealing with GL extensions) are only updated on
 // an explicit vid_restart - see GLimp_InitExtensions(). Others are updated on every map change
 // - see EnableAvailableFeatures().
-struct glconfig2_t
+struct GLConfig
 {
+	char renderer_string[MAX_STRING_CHARS];
+	char vendor_string[MAX_STRING_CHARS];
+	char version_string[MAX_STRING_CHARS];
+
+	int maxTextureSize; // queried from GL
+
+	int colorBits;
+
+	glDriverType_t driverType;
+	glHardwareType_t hardwareType;
+
+	textureCompression_t textureCompression;
+
+	int displayIndex;
+
+	bool smpActive; // dual processor
+
 	bool textureCompressionRGTCAvailable;
 
 	int glHighestMajor;
@@ -153,6 +170,12 @@ struct glconfig2_t
 	bool motionBlur;
 };
 
+struct WindowConfig {
+	float displayAspect;
+	int displayWidth, displayHeight; // the entire monitor (the one indicated by displayIndex)
+	int vidWidth, vidHeight; // what the game is using
+};
+
 //
 // these are the functions exported by the refresh module
 //
@@ -173,7 +196,7 @@ struct refexport_t
 	// and height, which can be used by the client to intelligently
 	// size display elements. Returns false if the renderer couldn't
 	// be initialized.
-	bool( *BeginRegistration )( glconfig_t *config, glconfig2_t *glconfig2 );
+	bool( *BeginRegistration )( WindowConfig* windowCfg );
 	qhandle_t ( *RegisterModel )( const char *name );
 	//qhandle_t   (*RegisterModelAllLODs) (const char *name);
 	qhandle_t ( *RegisterSkin )( const char *name );
