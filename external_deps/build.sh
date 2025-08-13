@@ -53,9 +53,7 @@ JPEG_VERSION=3.1.1
 # WebP 1.6.0 introduced AVX2 intrinsics that are not available on
 # the GCC 10 compiler provided by Debian Bullseye.
 WEBP_VERSION=1.5.0
-# OpenAL 1.24.2 and later requires at least CMake 3.26 but Debian Bullseye
-# only provides 3.18 (and even only 3.25 in backports).
-OPENAL_VERSION=1.24.1
+OPENAL_VERSION=1.24.3
 OGG_VERSION=1.3.6
 VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.5.2
