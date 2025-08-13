@@ -120,7 +120,7 @@ jobs:
     - bash: |
         set -e
         sudo apt-get update
-        sudo apt-get -y -q --no-install-recommends install zlib1g-dev libncursesw5-dev libgeoip-dev nettle-dev libgmp-dev libcurl4-gnutls-dev libsdl2-dev libogg-dev libvorbis-dev libopusfile-dev libwebp-dev libjpeg8-dev libpng-dev libfreetype6-dev libglew-dev libopenal-dev liblua5.2-dev ninja-build $(EXTRA_PACKAGES)
+        sudo apt-get -y -q --no-install-recommends install zlib1g-dev libncursesw5-dev libgeoip-dev nettle-dev libgmp-dev libcurl4-gnutls-dev libsdl3-dev libogg-dev libvorbis-dev libopusfile-dev libwebp-dev libjpeg8-dev libpng-dev libfreetype6-dev libglew-dev libopenal-dev liblua5.2-dev ninja-build $(EXTRA_PACKAGES)
         $(EXTRA_INSTALLS)
       displayName: 'Install deps'
     - bash: |
