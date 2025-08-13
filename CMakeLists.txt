@@ -707,6 +707,10 @@ endif()
 if (BUILD_CLIENT OR WIN32)
     find_package(SDL3 REQUIRED CONFIG)
 
+    if( NOT SDL3_FOUND )
+        message( FATAL_ERROR "Couldn't find SDL3" )
+    endif()
+
     if (WIN32)
         set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} SDL3::SDL3)
     else()
