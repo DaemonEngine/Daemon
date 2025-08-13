@@ -38,8 +38,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	}
 #endif
 
-	glconfig_t  glConfig;
-	glconfig2_t glConfig2;
+	WindowConfig windowConfig;
+	GLConfig glConfig;
 
 	glstate_t   glState;
 
@@ -331,15 +331,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		//      - r_(color|depth|stencil)bits
 		//
 
-		if ( glConfig.vidWidth == 0 )
+		if ( windowConfig.vidWidth == 0 )
 		{
 			if ( !GLimp_Init() )
 			{
 				return false;
 			}
 
-			glState.tileStep[ 0 ] = TILE_SIZE * ( 1.0f / glConfig.vidWidth );
-			glState.tileStep[ 1 ] = TILE_SIZE * ( 1.0f / glConfig.vidHeight );
+			glState.tileStep[ 0 ] = TILE_SIZE * ( 1.0f / windowConfig.vidWidth );
+			glState.tileStep[ 1 ] = TILE_SIZE * ( 1.0f / windowConfig.vidHeight );
 
 			GL_CheckErrors();
 
@@ -373,7 +373,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 			GLSL_InitGPUShaders();
 		}
 
-		if ( glConfig2.glCoreProfile ) {
+		if ( glConfig.glCoreProfile ) {
 			glGenVertexArrays( 1, &backEnd.defaultVAO );
 			GL_BindVAO( backEnd.defaultVAO );
 		}
@@ -678,8 +678,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 		cmd->x = 0;
 		cmd->y = 0;
-		cmd->width = glConfig.vidWidth;
-		cmd->height = glConfig.vidHeight;
+		cmd->width = windowConfig.vidWidth;
+		cmd->height = windowConfig.vidHeight;
 		Q_strncpyz(cmd->fileName, path.c_str(), sizeof(cmd->fileName));
 		cmd->format = format;
 
@@ -833,7 +833,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		GL_CheckErrors();
 
-		tr.currenttextures.resize( glConfig2.maxTextureUnits );
+		tr.currenttextures.resize( glConfig.maxTextureUnits );
 
 		GL_TextureMode( r_textureMode.Get().c_str() );
 		r_textureMode.GetModifiedValue();
@@ -910,71 +910,71 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		};
 
 		Log::Notice( "%sOpenGL hardware vendor: %s",
-			Color::ToString( Util::ordinal(glConfig2.hardwareVendor) ? Color::Green : Color::Yellow ),
-			GetGLHardwareVendorName( glConfig2.hardwareVendor ) );
+			Color::ToString( Util::ordinal(glConfig.hardwareVendor) ? Color::Green : Color::Yellow ),
+			GetGLHardwareVendorName( glConfig.hardwareVendor ) );
 
 		Log::Notice( "%sOpenGL driver vendor: %s",
-			Color::ToString( Util::ordinal(glConfig2.driverVendor) ? Color::Green : Color::Yellow ),
-			GetGLDriverVendorName( glConfig2.driverVendor ) );
+			Color::ToString( Util::ordinal(glConfig.driverVendor) ? Color::Green : Color::Yellow ),
+			GetGLDriverVendorName( glConfig.driverVendor ) );
 
 		Log::Notice("GL_VENDOR: %s", glConfig.vendor_string );
 		Log::Notice("GL_RENDERER: %s", glConfig.renderer_string );
 		Log::Notice("GL_VERSION: %s", glConfig.version_string );
-		Log::Debug("GL_EXTENSIONS: %s", glConfig2.glExtensionsString );
+		Log::Debug("GL_EXTENSIONS: %s", glConfig.glExtensionsString );
 
 		Log::Notice("GL_MAX_TEXTURE_SIZE: %d", glConfig.maxTextureSize );
-		Log::Notice("GL_MAX_3D_TEXTURE_SIZE: %d", glConfig2.max3DTextureSize );
-		Log::Notice("GL_MAX_CUBE_MAP_TEXTURE_SIZE: %d", glConfig2.maxCubeMapTextureSize );
-		Log::Notice("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS: %d", glConfig2.maxTextureUnits );
+		Log::Notice("GL_MAX_3D_TEXTURE_SIZE: %d", glConfig.max3DTextureSize );
+		Log::Notice("GL_MAX_CUBE_MAP_TEXTURE_SIZE: %d", glConfig.maxCubeMapTextureSize );
+		Log::Notice("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS: %d", glConfig.maxTextureUnits );
 
-		Log::Notice("GL_SHADING_LANGUAGE_VERSION: %s", glConfig2.shadingLanguageVersionString );
+		Log::Notice("GL_SHADING_LANGUAGE_VERSION: %s", glConfig.shadingLanguageVersionString );
 
-		Log::Notice("GL_MAX_VERTEX_UNIFORM_COMPONENTS %d", glConfig2.maxVertexUniforms );
-		Log::Notice("GL_MAX_VERTEX_ATTRIBS %d", glConfig2.maxVertexAttribs );
+		Log::Notice("GL_MAX_VERTEX_UNIFORM_COMPONENTS %d", glConfig.maxVertexUniforms );
+		Log::Notice("GL_MAX_VERTEX_ATTRIBS %d", glConfig.maxVertexAttribs );
 
-		if ( !glConfig2.glCoreProfile )
+		if ( !glConfig.glCoreProfile )
 		{
-			Log::Notice( "GL_MAX_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB: %d", glConfig2.maxAluInstructions );
-			Log::Notice( "GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB: %d", glConfig2.maxTexIndirections );
+			Log::Notice( "GL_MAX_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB: %d", glConfig.maxAluInstructions );
+			Log::Notice( "GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB: %d", glConfig.maxTexIndirections );
 		}
 
-		if ( glConfig2.drawBuffersAvailable )
+		if ( glConfig.drawBuffersAvailable )
 		{
-			Log::Notice("GL_MAX_DRAW_BUFFERS: %d", glConfig2.maxDrawBuffers );
+			Log::Notice("GL_MAX_DRAW_BUFFERS: %d", glConfig.maxDrawBuffers );
 		}
 
-		if ( glConfig2.textureAnisotropyAvailable )
+		if ( glConfig.textureAnisotropyAvailable )
 		{
-			Log::Notice("GL_TEXTURE_MAX_ANISOTROPY_EXT: %f", glConfig2.maxTextureAnisotropy );
+			Log::Notice("GL_TEXTURE_MAX_ANISOTROPY_EXT: %f", glConfig.maxTextureAnisotropy );
 		}
 
-		Log::Notice("GL_MAX_RENDERBUFFER_SIZE: %d", glConfig2.maxRenderbufferSize );
-		Log::Notice("GL_MAX_COLOR_ATTACHMENTS: %d", glConfig2.maxColorAttachments );
+		Log::Notice("GL_MAX_RENDERBUFFER_SIZE: %d", glConfig.maxRenderbufferSize );
+		Log::Notice("GL_MAX_COLOR_ATTACHMENTS: %d", glConfig.maxColorAttachments );
 
 		Log::Notice("PIXELFORMAT: color(%d-bits)", glConfig.colorBits );
 
 		Log::Notice("MODE: %d, %d x %d %s",
 			r_mode->integer,
-			glConfig.vidWidth, glConfig.vidHeight,
+			windowConfig.vidWidth, windowConfig.vidHeight,
 			fsstrings[ +r_fullscreen.Get() ] );
 
 		if ( !!r_glExtendedValidation->integer )
 		{
 			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d, highest: %d.%d",
-				glConfig2.glMajor, glConfig2.glMinor, glConfig2.glRequestedMajor, glConfig2.glRequestedMinor,
-				glConfig2.glHighestMajor, glConfig2.glHighestMinor );
+				glConfig.glMajor, glConfig.glMinor, glConfig.glRequestedMajor, glConfig.glRequestedMinor,
+				glConfig.glHighestMajor, glConfig.glHighestMinor );
 		}
 		else
 		{
-			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d", glConfig2.glMajor, glConfig2.glMinor, glConfig2.glRequestedMajor, glConfig2.glRequestedMinor );
+			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d", glConfig.glMajor, glConfig.glMinor, glConfig.glRequestedMajor, glConfig.glRequestedMinor );
 		}
 
-		if ( std::make_pair( glConfig2.glMajor, glConfig2.glMinor ) >= std::make_pair( 3, 2 ) )
+		if ( std::make_pair( glConfig.glMajor, glConfig.glMinor ) >= std::make_pair( 3, 2 ) )
 		{
 			/* See https://www.khronos.org/opengl/wiki/OpenGL_Context
 			for information about core, compatibility and forward context. */
 
-			if ( glConfig2.glCoreProfile )
+			if ( glConfig.glCoreProfile )
 			{
 				Log::Notice("%sUsing an OpenGL core profile.", Color::ToString( Color::Green ) );
 			}
@@ -984,7 +984,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			}
 		}
 
-		if ( glConfig2.glForwardCompatibleContext )
+		if ( glConfig.glForwardCompatibleContext )
 		{
 			Log::Notice("OpenGL context is forward compatible.");
 		}
@@ -993,17 +993,17 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("OpenGL context is not forward compatible.");
 		}
 
-		if ( glConfig2.glEnabledExtensionsString.length() != 0 )
+		if ( glConfig.glEnabledExtensionsString.length() != 0 )
 		{
-			Log::Notice("%sUsing OpenGL extensions: %s", Color::ToString( Color::Green ), glConfig2.glEnabledExtensionsString );
+			Log::Notice("%sUsing OpenGL extensions: %s", Color::ToString( Color::Green ), glConfig.glEnabledExtensionsString );
 		}
 
-		if ( glConfig2.glMissingExtensionsString.length() != 0 )
+		if ( glConfig.glMissingExtensionsString.length() != 0 )
 		{
-			Log::Notice("%sMissing OpenGL extensions: %s", Color::ToString( Color::Red ), glConfig2.glMissingExtensionsString );
+			Log::Notice("%sMissing OpenGL extensions: %s", Color::ToString( Color::Red ), glConfig.glMissingExtensionsString );
 		}
 
-		if ( glConfig2.halfFloatVertexAvailable )
+		if ( glConfig.halfFloatVertexAvailable )
 		{
 			Log::Notice("%sUsing half-float vertex format.", Color::ToString( Color::Green ));
 		}
@@ -1022,19 +1022,19 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("%sUsing S3TC (DXTC) texture compression.", Color::ToString( Color::Green ) );
 		}
 
-		if ( glConfig2.vboVertexSkinningAvailable )
+		if ( glConfig.vboVertexSkinningAvailable )
 		{
 			/* Mesa drivers usually support 256 bones, Nvidia proprietary drivers
 			usually support 233 bones, OpenGL 2.1 hardware usually supports no more
 			than 41 bones which may not be enough to use hardware acceleration on
 			models from games like Unvanquished. */
-			if ( glConfig2.maxVertexSkinningBones < 233 )
+			if ( glConfig.maxVertexSkinningBones < 233 )
 			{
-				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, some models may not be hardware accelerated.", Color::ToString( Color::Red ), glConfig2.maxVertexSkinningBones );
+				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, some models may not be hardware accelerated.", Color::ToString( Color::Red ), glConfig.maxVertexSkinningBones );
 			}
 			else
 			{
-				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, models are hardware accelerated.", Color::ToString( Color::Green ), glConfig2.maxVertexSkinningBones );
+				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, models are hardware accelerated.", Color::ToString( Color::Green ), glConfig.maxVertexSkinningBones );
 			}
 		}
 		else
@@ -1096,7 +1096,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 				}
 			}
 
-			if ( glConfig2.usingMaterialSystem ) {
+			if ( glConfig.usingMaterialSystem ) {
 				/* GLSL shaders linked to materials will be invalidated by glsl_restart,
 				so we need to reset them here */
 				materialSystem.GLSLRestart();
@@ -1370,25 +1370,25 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		}
 
 		if ( r_reflectionMapping.Get() ) {
-			glConfig2.reflectionMappingAvailable = true;
+			glConfig.reflectionMappingAvailable = true;
 
 			if ( !r_normalMapping->integer ) {
-				glConfig2.reflectionMappingAvailable = false;
+				glConfig.reflectionMappingAvailable = false;
 				Log::Warn( "Unable to use static reflections without normal mapping, make sure you enable r_normalMapping" );
 			}
 
 			if ( !r_deluxeMapping->integer ) {
-				glConfig2.reflectionMappingAvailable = false;
+				glConfig.reflectionMappingAvailable = false;
 				Log::Warn( "Unable to use static reflections without deluxe mapping, make sure you enable r_deluxeMapping" );
 			}
 
 			if ( !r_specularMapping->integer ) {
-				glConfig2.reflectionMappingAvailable = false;
+				glConfig.reflectionMappingAvailable = false;
 				Log::Warn( "Unable to use static reflections without specular mapping, make sure you enable r_specularMapping" );
 			}
 
 			if ( r_physicalMapping->integer ) {
-				glConfig2.reflectionMappingAvailable = false;
+				glConfig.reflectionMappingAvailable = false;
 				Log::Warn( "Unable to use static reflections with physical mapping, make sure you disable r_physicalMapping" );
 			}
 		}
@@ -1463,7 +1463,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		R_DoneFreeType();
 
-		if ( glConfig2.usingMaterialSystem ) {
+		if ( glConfig.usingMaterialSystem ) {
 			materialSystem.Free();
 		}
 
@@ -1471,7 +1471,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		if ( destroyWindow )
 		{
 			GLSL_ShutdownGPUShaders();
-			if( glConfig2.glCoreProfile ) {
+			if( glConfig.glCoreProfile ) {
 				glBindVertexArray( 0 );
 				glDeleteVertexArrays( 1, &backEnd.defaultVAO );
 			}
@@ -1526,13 +1526,13 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			GLSL_FinishGPUShaders();
 		}
 
-		if ( glConfig2.shadingLanguage420PackAvailable ) {
+		if ( glConfig.shadingLanguage420PackAvailable ) {
 			gl_shaderManager.BindBuffers();
 		}
 
 		/* TODO: Move this into a loading step and don't render it to the screen
 		For now though do it here to avoid the ugly square rendering appearing on top of the loading screen */
-		if ( glConfig2.reflectionMappingAvailable ) {
+		if ( glConfig.reflectionMappingAvailable ) {
 			switch ( r_autoBuildCubeMaps.Get() ) {
 				case Util::ordinal( cubeProbesAutoBuildMode::CACHED ):
 				case Util::ordinal( cubeProbesAutoBuildMode::ALWAYS ):

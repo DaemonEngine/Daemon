@@ -187,8 +187,8 @@ VBO_t *R_CreateDynamicVBO( const char *name, int numVertexes, uint32_t stateBits
 
 	R_BindVBO( vbo );
 
-	if( glConfig2.mapBufferRangeAvailable && glConfig2.bufferStorageAvailable &&
-	    glConfig2.syncAvailable ) {
+	if( glConfig.mapBufferRangeAvailable && glConfig.bufferStorageAvailable &&
+	    glConfig.syncAvailable ) {
 		R_InitRingbuffer( GL_ARRAY_BUFFER, sizeof( shaderVertex_t ), numVertexes, &tess.vertexRB );
 	} else {
 		glBufferData( GL_ARRAY_BUFFER, vbo->vertexesSize, nullptr, vbo->usage );
@@ -316,7 +316,7 @@ VBO_t *R_CreateStaticVBO(
 		ASSERT_NQ( spec->numComponents, 0U );
 		vbo->attribBits |= 1 << spec->attrIndex;
 		attrib.componentType = spec->componentStorageType;
-		if ( attrib.componentType == GL_HALF_FLOAT && !glConfig2.halfFloatVertexAvailable )
+		if ( attrib.componentType == GL_HALF_FLOAT && !glConfig.halfFloatVertexAvailable )
 		{
 			attrib.componentType = GL_FLOAT;
 		}
@@ -354,7 +354,7 @@ VBO_t *R_CreateStaticVBO(
 		}
 	}
 
-	if( glConfig2.bufferStorageAvailable ) {
+	if( glConfig.bufferStorageAvailable ) {
 		glBufferStorage( GL_ARRAY_BUFFER, vbo->vertexesSize, interleavedData, 0 );
 	} else {
 		glBufferData( GL_ARRAY_BUFFER, vbo->vertexesSize, interleavedData, vbo->usage );
@@ -389,8 +389,8 @@ IBO_t *R_CreateDynamicIBO( const char *name, int numIndexes )
 	glGenBuffers( 1, &ibo->indexesVBO );
 
 	R_BindIBO( ibo );
-	if( glConfig2.mapBufferRangeAvailable && glConfig2.bufferStorageAvailable &&
-	    glConfig2.syncAvailable ) {
+	if( glConfig.mapBufferRangeAvailable && glConfig.bufferStorageAvailable &&
+	    glConfig.syncAvailable ) {
 		R_InitRingbuffer( GL_ELEMENT_ARRAY_BUFFER, sizeof( glIndex_t ), numIndexes, &tess.indexRB );
 	} else {
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, ibo->indexesSize, nullptr, GL_DYNAMIC_DRAW );
@@ -432,7 +432,7 @@ IBO_t *R_CreateStaticIBO( const char *name, glIndex_t *indexes, int numIndexes )
 
 	R_BindIBO( ibo );
 
-	if( glConfig2.bufferStorageAvailable ) {
+	if( glConfig.bufferStorageAvailable ) {
 		glBufferStorage( GL_ELEMENT_ARRAY_BUFFER, ibo->indexesSize, indexes, 0 );
 	} else {
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, ibo->indexesSize, indexes, GL_STATIC_DRAW );
@@ -645,7 +645,7 @@ static void R_InitGenericVBOs() {
 
 static void R_InitTileVBO()
 {
-	if ( !glConfig2.realtimeLighting )
+	if ( !glConfig.realtimeLighting )
 	{
 		return;
 	}
@@ -690,12 +690,12 @@ const int indexCapacity = DYN_BUFFER_SIZE / sizeof( glIndex_t );
 
 static void R_InitLightUBO()
 {
-	if ( !glConfig2.realtimeLighting )
+	if ( !glConfig.realtimeLighting )
 	{
 		return;
 	}
 
-	if( glConfig2.uniformBufferObjectAvailable ) {
+	if( glConfig.uniformBufferObjectAvailable ) {
 		glGenBuffers( 1, &tr.dlightUBO );
 		glBindBuffer( GL_UNIFORM_BUFFER, tr.dlightUBO );
 		glBufferData( GL_UNIFORM_BUFFER, MAX_REF_LIGHTS * sizeof( shaderLight_t ), nullptr, GL_DYNAMIC_DRAW );
@@ -719,7 +719,7 @@ void R_InitVBOs()
 	tess.vertsBuffer = ( shaderVertex_t * ) Com_Allocate_Aligned( 64, SHADER_MAX_VERTEXES * sizeof( shaderVertex_t ) );
 	tess.indexesBuffer = ( glIndex_t * ) Com_Allocate_Aligned( 64, SHADER_MAX_INDEXES * sizeof( glIndex_t ) );
 
-	if( glConfig2.mapBufferRangeAvailable ) {
+	if( glConfig.mapBufferRangeAvailable ) {
 		tess.vbo = R_CreateDynamicVBO( "tessVertexArray_VBO", vertexCapacity, attribs, vboLayout_t::VBO_LAYOUT_STATIC );
 
 		tess.ibo = R_CreateDynamicIBO( "tessVertexArray_IBO", indexCapacity );
@@ -748,15 +748,15 @@ void R_InitVBOs()
 
 	R_InitLightUBO();
 
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.InitGLBuffers();
 	}
 
-	if ( glConfig2.usingGeometryCache ) {
+	if ( glConfig.usingGeometryCache ) {
 		geometryCache.InitGLBuffers();
 	}
 
-	if ( glConfig2.directStateAccessAvailable && glConfig2.uniformBufferObjectAvailable ) {
+	if ( glConfig.directStateAccessAvailable && glConfig.uniformBufferObjectAvailable ) {
 		stagingBuffer.InitGLBuffer();
 	}
 
@@ -772,10 +772,10 @@ void R_ShutdownVBOs()
 {
 	Log::Debug("------- R_ShutdownVBOs -------" );
 
-	if( !glConfig2.mapBufferRangeAvailable ) {
+	if( !glConfig.mapBufferRangeAvailable ) {
 		// nothing
-	} else if( glConfig2.bufferStorageAvailable &&
-		glConfig2.syncAvailable ) {
+	} else if( glConfig.bufferStorageAvailable &&
+		glConfig.syncAvailable ) {
 		R_BindVBO( tess.vbo );
 		R_ShutdownRingbuffer( GL_ARRAY_BUFFER, &tess.vertexRB );
 		R_BindIBO( tess.ibo );
@@ -820,20 +820,20 @@ void R_ShutdownVBOs()
 	Com_Free_Aligned( tess.vertsBuffer );
 	Com_Free_Aligned( tess.indexesBuffer );
 
-	if( glConfig2.realtimeLighting ) {
+	if( glConfig.realtimeLighting ) {
 		glDeleteBuffers( 1, &tr.dlightUBO );
 		tr.dlightUBO = 0;
 	}
 
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.FreeGLBuffers();
 	}
 
-	if ( glConfig2.usingGeometryCache ) {
+	if ( glConfig.usingGeometryCache ) {
 		geometryCache.FreeGLBuffers();
 	}
 
-	if ( glConfig2.directStateAccessAvailable && glConfig2.uniformBufferObjectAvailable ) {
+	if ( glConfig.directStateAccessAvailable && glConfig.uniformBufferObjectAvailable ) {
 		stagingBuffer.FreeGLBuffer();
 	}
 
@@ -850,7 +850,7 @@ Must be called before writing to tess.verts or tess.indexes
 ==============
 */
 void Tess_MapVBOs( bool forceCPU ) {
-	if( forceCPU || !glConfig2.mapBufferRangeAvailable ) {
+	if( forceCPU || !glConfig.mapBufferRangeAvailable ) {
 		// use host buffers
 		tess.verts = tess.vertsBuffer;
 		tess.indexes = tess.indexesBuffer;
@@ -861,8 +861,8 @@ void Tess_MapVBOs( bool forceCPU ) {
 	if( tess.verts == nullptr ) {
 		R_BindVBO( tess.vbo );
 
-		if( glConfig2.bufferStorageAvailable &&
-		    glConfig2.syncAvailable ) {
+		if( glConfig.bufferStorageAvailable &&
+		    glConfig.syncAvailable ) {
 			GLsizei segmentEnd = (tess.vertexRB.activeSegment + 1) * tess.vertexRB.segmentElements;
 			if( tess.vertsWritten + SHADER_MAX_VERTEXES > (unsigned) segmentEnd ) {
 				tess.vertsWritten = R_RotateRingbuffer( &tess.vertexRB );
@@ -885,8 +885,8 @@ void Tess_MapVBOs( bool forceCPU ) {
 	if( tess.indexes == nullptr ) {
 		R_BindIBO( tess.ibo );
 
-		if( glConfig2.bufferStorageAvailable &&
-		    glConfig2.syncAvailable ) {
+		if( glConfig.bufferStorageAvailable &&
+		    glConfig.syncAvailable ) {
 			GLsizei segmentEnd = (tess.indexRB.activeSegment + 1) * tess.indexRB.segmentElements;
 			if( tess.indexesWritten + SHADER_MAX_INDEXES > (unsigned) segmentEnd ) {
 				tess.indexesWritten = R_RotateRingbuffer( &tess.indexRB );
@@ -930,13 +930,13 @@ void Tess_UpdateVBOs()
 		GLIMP_LOGCOMMENT( "glBufferSubData( vbo = '%s', numVertexes = %i )",
 			tess.vbo->name, tess.numVertexes );
 
-		if( !glConfig2.mapBufferRangeAvailable ) {
+		if( !glConfig.mapBufferRangeAvailable ) {
 			R_BindVBO( tess.vbo );
 			glBufferSubData( GL_ARRAY_BUFFER, 0, size, tess.verts );
 		} else {
 			R_BindVBO( tess.vbo );
-			if( glConfig2.bufferStorageAvailable &&
-			    glConfig2.syncAvailable ) {
+			if( glConfig.bufferStorageAvailable &&
+			    glConfig.syncAvailable ) {
 				GLsizei offset = tess.vertexBase * sizeof( shaderVertex_t );
 
 				glFlushMappedBufferRange( GL_ARRAY_BUFFER,
@@ -960,15 +960,15 @@ void Tess_UpdateVBOs()
 	{
 		GLsizei size = tess.numIndexes * sizeof( glIndex_t );
 
-		if( !glConfig2.mapBufferRangeAvailable ) {
+		if( !glConfig.mapBufferRangeAvailable ) {
 			R_BindIBO( tess.ibo );
 			glBufferSubData( GL_ELEMENT_ARRAY_BUFFER, 0, size,
 					 tess.indexes );
 		} else {
 			R_BindIBO( tess.ibo );
 
-			if( glConfig2.bufferStorageAvailable &&
-			    glConfig2.syncAvailable ) {
+			if( glConfig.bufferStorageAvailable &&
+			    glConfig.syncAvailable ) {
 				GLsizei offset = tess.indexBase * sizeof( glIndex_t );
 
 				glFlushMappedBufferRange( GL_ELEMENT_ARRAY_BUFFER,

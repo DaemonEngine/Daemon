@@ -287,7 +287,7 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 {
 	refLight_t *light;
 
-	if ( !glConfig2.realtimeLighting || !r_drawDynamicLights.Get() )
+	if ( !glConfig.realtimeLighting || !r_drawDynamicLights.Get() )
 	{
 		return;
 	}
@@ -457,7 +457,7 @@ static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {
 		}
 	}
 
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		// Material system writes culled surfaces for the next frame, so we need to render twice with it to cull correctly
 		R_SyncRenderThread();
 		RE_RenderScene( &refdef );
@@ -591,7 +591,7 @@ void RE_RenderScene( const refdef_t *fd )
 		if( fd->rdflags & RDF_NOCUBEMAP ) {
 			parms.viewportY = tr.refdef.height - ( tr.refdef.y + tr.refdef.height );
 		} else {
-			parms.viewportY = glConfig.vidHeight - ( tr.refdef.y + tr.refdef.height );
+			parms.viewportY = windowConfig.vidHeight - ( tr.refdef.y + tr.refdef.height );
 		}
 	}
 	else
@@ -629,7 +629,7 @@ void RE_RenderScene( const refdef_t *fd )
 	R_AddClearBufferCmd();
 	R_AddSetupLightsCmd();
 
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.StartFrame();
 	}
 
@@ -646,7 +646,7 @@ void RE_RenderScene( const refdef_t *fd )
 
 	tr.frontEndMsec += ri.Milliseconds() - startTime;
 
-	if ( ( r_showCubeProbeFace.Get() >= 0 ) && glConfig2.reflectionMapping
+	if ( ( r_showCubeProbeFace.Get() >= 0 ) && glConfig.reflectionMapping
 		&& !( fd->rdflags & RDF_NOCUBEMAP ) ) {
 		RE_RenderCubeProbeFace( fd );
 	}

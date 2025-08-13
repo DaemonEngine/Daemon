@@ -531,7 +531,7 @@ void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const
 void Tess_InstantScreenSpaceQuad() {
 	GLIMP_LOGCOMMENT( "--- Tess_InstantScreenSpaceQuad ---" );
 
-	if ( glConfig2.gpuShader4Available )
+	if ( glConfig.gpuShader4Available )
 	{
 		tr.skipVBO = true;
 		Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
@@ -1191,7 +1191,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	returns early and then save CPU time.
 
 	This test is false when r_vboModels is disabled, or when
-	glConfig2.vboVertexSkinningAvailable is false because related
+	glConfig.vboVertexSkinningAvailable is false because related
 	OpenGL extensions are unsupported, or the model has too much
 	bones for the hardware, or r_vboVertexSkinning is disabled.
 

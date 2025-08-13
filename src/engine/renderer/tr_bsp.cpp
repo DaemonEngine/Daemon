@@ -2635,7 +2635,7 @@ static void R_CreateWorldVBO() {
 		// HACK: portals: don't use VBO because when adding a portal we have to read back the verts CPU-side
 		// Autosprite: don't use VBO because verts are rewritten each time based on view origin
 		if ( surface->shader->isPortal || surface->shader->autoSpriteMode != 0 ) {
-			if( glConfig2.usingMaterialSystem ) {
+			if( glConfig.usingMaterialSystem ) {
 				materialSystem.autospriteSurfaces.push_back( surface );
 			}
 
@@ -2645,7 +2645,7 @@ static void R_CreateWorldVBO() {
 			continue;
 		}
 
-		if ( glConfig2.usingMaterialSystem && surface->shader->isSky ) {
+		if ( glConfig.usingMaterialSystem && surface->shader->isSky ) {
 			if ( std::find( materialSystem.skyShaders.begin(), materialSystem.skyShaders.end(), surface->shader )
 				== materialSystem.skyShaders.end() ) {
 				materialSystem.skyShaders.emplace_back( surface->shader );
@@ -2713,7 +2713,7 @@ static void R_CreateWorldVBO() {
 			}
 			portal++;
 
-			if( glConfig2.usingMaterialSystem ) {
+			if( glConfig.usingMaterialSystem ) {
 				MaterialSurface srf{};
 
 				srf.shader = surface->shader;
@@ -2761,7 +2761,7 @@ static void R_CreateWorldVBO() {
 	int numIndices;
 	MergeDuplicateVertices( rendererSurfaces, numSurfaces, vboVerts, numVertsInitial, vboIdxs, 3 * numTriangles, numVerts, numIndices );
 
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		OptimiseMapGeometryMaterial( &s_worldData, rendererSurfaces, numSurfaces, vboVerts, numVerts, vboIdxs, numIndices );
 	}
 
@@ -3415,11 +3415,11 @@ R_LoadLightGrid
 */
 void R_LoadLightGrid( lump_t *l )
 {
-	if ( glConfig2.max3DTextureSize == 0 )
+	if ( glConfig.max3DTextureSize == 0 )
 	{
 		Log::Warn( "Grid lighting disabled because of missing 3D texture support." );
 
-		if ( glConfig2.deluxeMapping )
+		if ( glConfig.deluxeMapping )
 		{
 			Log::Warn( "Grid deluxe mapping disabled because of missing 3D texture support." );
 		}
@@ -3827,7 +3827,7 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 		{
 			Log::Debug("map features directional light mapping" );
 			// This will be disabled if the engine fails to load the lightmaps.
-			tr.worldDeluxeMapping = glConfig2.deluxeMapping;
+			tr.worldDeluxeMapping = glConfig.deluxeMapping;
 			continue;
 		}
 
@@ -3850,7 +3850,7 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 			{
 				Log::Debug("map features directional light mapping" );
 				// This will be disabled if the engine fails to load the lightmaps.
-				tr.worldDeluxeMapping = glConfig2.deluxeMapping;
+				tr.worldDeluxeMapping = glConfig.deluxeMapping;
 			}
 
 			bool sRGBtex = false;
@@ -4235,14 +4235,14 @@ void R_BuildCubeMaps()
 		return;
 	}
 
-	if ( !glConfig2.reflectionMappingAvailable ) {
+	if ( !glConfig.reflectionMappingAvailable ) {
 		Log::Notice( "Unable to build reflection cubemaps due to incorrect graphics settings" );
 		return;
 	}
 
 	const int cubeMapSize = r_cubeProbeSize.Get();
-	if ( cubeMapSize > glConfig2.maxCubeMapTextureSize ) {
-		Log::Warn( "Cube probe size exceeds max cubemap texture size (%i/%i)", cubeMapSize, glConfig2.maxCubeMapTextureSize );
+	if ( cubeMapSize > glConfig.maxCubeMapTextureSize ) {
+		Log::Warn( "Cube probe size exceeds max cubemap texture size (%i/%i)", cubeMapSize, glConfig.maxCubeMapTextureSize );
 		return;
 	}
 
@@ -4258,7 +4258,7 @@ void R_BuildCubeMaps()
 	tr.cubeProbes.push_back( defaultCubeProbe );
 
 	if ( r_autoBuildCubeMaps.Get() == Util::ordinal( cubeProbesAutoBuildMode::CACHED ) && R_LoadCubeMaps() ) {
-		glConfig2.reflectionMapping = true;
+		glConfig.reflectionMapping = true;
 		return;
 	}
 
@@ -4467,7 +4467,7 @@ void R_BuildCubeMaps()
 			int msecUnused1;
 			int msecUnused2;
 			// Material system writes culled surfaces for the next frame, so we need to render twice with it to cull correctly
-			if ( glConfig2.usingMaterialSystem ) {
+			if ( glConfig.usingMaterialSystem ) {
 				tr.refdef.pixelTarget = nullptr;
 
 				RE_BeginFrame();
@@ -4544,7 +4544,7 @@ void R_BuildCubeMaps()
 	// turn pixel targets off
 	tr.refdef.pixelTarget = nullptr;
 
-	glConfig2.reflectionMapping = true;
+	glConfig.reflectionMapping = true;
 
 	const int endTime = ri.Milliseconds();
 	Log::Notice( "Cubemap probes pre-rendering time of %d cubes = %5.2f seconds", tr.cubeProbes.size(),
@@ -4612,7 +4612,7 @@ static void SetWorldLight() {
 			tr.modelLight = lightMode_t::GRID;
 		}
 
-		if ( glConfig2.deluxeMapping ) {
+		if ( glConfig.deluxeMapping ) {
 			// Enable deluxe mapping emulation if light direction grid is there.
 			if ( tr.lightGrid2Image ) {
 				// Game model surfaces use grid lighting, they don't have vertex light colors.
@@ -4716,7 +4716,7 @@ void RE_LoadWorldMap( const char *name )
 		( ( int * ) header ) [ j ] = LittleLong( ( ( int * ) header ) [ j ] );
 	}
 
-	if ( glConfig2.reflectionMappingAvailable ) {
+	if ( glConfig.reflectionMappingAvailable ) {
 		// TODO: Take into account potential shader changes
 		headerString = Str::Format( "%i %i %i %i %i", header->lumps[LUMP_PLANES].filelen, header->lumps[LUMP_NODES].filelen,
 			header->lumps[LUMP_LEAFS].filelen, header->lumps[LUMP_BRUSHES].filelen, header->lumps[LUMP_SURFACES].filelen );
@@ -4790,7 +4790,7 @@ void RE_LoadWorldMap( const char *name )
 	tr.loadingMap = "";
 	GLSL_InitWorldShaders();
 
-	if ( glConfig2.reflectionMappingAvailable ) {
+	if ( glConfig.reflectionMappingAvailable ) {
 		tr.cubeProbeSpacing = r_cubeProbeSpacing.Get();
 
 		vec3_t worldSize;
