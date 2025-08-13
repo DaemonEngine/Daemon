@@ -273,30 +273,13 @@ enum class glHardwareType_t
 
 /**
  * Contains variables specific to the OpenGL configuration
- * being run right now.  These are constant once the OpenGL
+ * being run right now. These are constant once the OpenGL
  * subsystem is initialized.
  */
-struct glconfig_t
-{
-	char                 renderer_string[ MAX_STRING_CHARS ];
-	char                 vendor_string[ MAX_STRING_CHARS ];
-	char                 version_string[ MAX_STRING_CHARS ];
-
-	int                  maxTextureSize; // queried from GL
-
-	int colorBits;
-
-	glDriverType_t       driverType;
-	glHardwareType_t     hardwareType;
-
-	textureCompression_t textureCompression;
-
-	int displayIndex;
+struct WindowConfig {
 	float displayAspect;
 	int displayWidth, displayHeight; // the entire monitor (the one indicated by displayIndex)
 	int vidWidth, vidHeight; // what the game is using
-
-	bool8_t smpActive; // dual processor
 };
 
 #pragma pop_macro("bool")
