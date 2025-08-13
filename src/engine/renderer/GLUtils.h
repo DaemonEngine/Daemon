@@ -31,8 +31,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_public.h"
 #include "tr_types.h"
 
-extern glconfig_t glConfig; // outside of TR since it shouldn't be cleared during ref re-init
-extern glconfig2_t glConfig2;
+extern WindowConfig windowConfig; // outside of TR since it shouldn't be cleared during ref re-init
+extern GLConfig glConfig;
 
 void GL_CheckErrors_( const char *filename, int line );
 

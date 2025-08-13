@@ -298,9 +298,9 @@ bool Con_CheckResize()
 
 	bool  ret = true;
 
-	if ( cls.glconfig.vidWidth )
+	if ( cls.windowConfig.vidWidth )
 	{
-		int consoleVidWidth = cls.glconfig.vidWidth - 2 * (consoleState.margin.sides + consoleState.padding.sides );
+		int consoleVidWidth = cls.windowConfig.vidWidth - 2 * (consoleState.margin.sides + consoleState.padding.sides );
 		textWidthInChars = consoleVidWidth / SCR_ConsoleFontUnicharWidth( 'W' );
 	}
 	else
@@ -483,7 +483,7 @@ bool CL_InternalConsolePrint( const char *text )
 	}
 
 	//Video hasn't been initialized
-	if ( ! cls.glconfig.vidWidth ) {
+	if ( ! cls.windowConfig.vidWidth ) {
 		return false;
 	}
 
@@ -586,7 +586,7 @@ Draws the background of the console (on the virtual 640x480 resolution)
 */
 void Con_DrawBackground()
 {
-	const int consoleWidth = cls.glconfig.vidWidth - 2 * consoleState.margin.sides;
+	const int consoleWidth = cls.windowConfig.vidWidth - 2 * consoleState.margin.sides;
 
 	// draw the background
 	Color::Color color (
@@ -617,7 +617,7 @@ void Con_DrawBackground()
 		              consoleState.border.sides, consoleState.height + consoleState.border.bottom, borderColor );
 
 		//right border
-		SCR_FillRect( cls.glconfig.vidWidth - consoleState.margin.sides, consoleState.margin.top - consoleState.border.top,
+		SCR_FillRect( cls.windowConfig.vidWidth - consoleState.margin.sides, consoleState.margin.top - consoleState.border.top,
 		              consoleState.border.sides, consoleState.border.top + consoleState.height, borderColor );
 
 		//bottom border
@@ -670,7 +670,7 @@ void Con_DrawRightFloatingTextLine( const int linePosition, const Color::Color& 
 	                          + charHeight;
 
 	i = strlen( text );
-	currentWidthLocation = cls.glconfig.vidWidth
+	currentWidthLocation = cls.windowConfig.vidWidth
 	                     - SCR_ConsoleFontStringWidth( text, i )
 	                     - consoleState.margin.sides - consoleState.padding.sides;
 
@@ -727,7 +727,7 @@ void Con_DrawConsoleScrollbackIndicator( int lineDrawPosition )
 void Con_DrawConsoleScrollbar()
 {
 	const int	freeConsoleHeight = consoleState.height - consoleState.padding.top - consoleState.padding.bottom;
-	const float scrollBarX = cls.glconfig.vidWidth - consoleState.margin.sides - consoleState.padding.sides - 2 * consoleState.border.sides;
+	const float scrollBarX = cls.windowConfig.vidWidth - consoleState.margin.sides - consoleState.padding.sides - 2 * consoleState.border.sides;
 	const float scrollBarY = consoleState.margin.top + consoleState.border.top + consoleState.padding.top + freeConsoleHeight * 0.10f;
 	const float scrollBarLength = freeConsoleHeight * 0.80f;
 	const float scrollBarWidth = consoleState.border.sides * 2;
@@ -783,7 +783,7 @@ void Con_DrawScrollbackMarkerline( int lineDrawPosition )
 
 	SCR_FillRect(	consoleState.margin.sides + consoleState.border.sides + consoleState.padding.sides/2,
 					lineDrawPosition + SCR_ConsoleFontCharVPadding(),
-					cls.glconfig.vidWidth - 2 * consoleState.margin.sides - 2 * consoleState.border.sides - consoleState.padding.sides/2 - scrollBarImpliedPadding,
+					cls.windowConfig.vidWidth - 2 * consoleState.margin.sides - 2 * consoleState.border.sides - consoleState.padding.sides/2 - scrollBarImpliedPadding,
 					1, color );
 }
 
@@ -933,7 +933,7 @@ void Con_DrawAnimatedConsole()
 	//clip about text and content to the console
 	contentClipping [ 0 ] = consoleState.margin.sides + consoleState.border.sides; //x
 	contentClipping [ 1 ] = consoleState.margin.top + consoleState.border.top; //y
-	contentClipping [ 2 ] = cls.glconfig.vidWidth - consoleState.margin.sides - consoleState.border.sides; //x-end
+	contentClipping [ 2 ] = cls.windowConfig.vidWidth - consoleState.margin.sides - consoleState.border.sides; //x-end
 	contentClipping [ 3 ] = consoleState.margin.top + consoleState.border.top + consoleState.height ; //y-end
 	re.SetClipRegion( contentClipping );
 
@@ -1019,7 +1019,7 @@ void Con_UpdateConsoleState()
 	/*
 	 * calculate current console height
 	 */
-	consoleState.height = con_height->integer * 0.01f * (cls.glconfig.vidHeight
+	consoleState.height = con_height->integer * 0.01f * (cls.windowConfig.vidHeight
 						- consoleState.margin.top - consoleState.margin.bottom
 						- consoleState.border.top - consoleState.border.bottom
 						);
@@ -1038,9 +1038,9 @@ void Con_UpdateConsoleState()
 		consoleState.height *= consoleState.currentAnimationFraction;
 	}
 
-	if ( consoleState.height > cls.glconfig.vidHeight )
+	if ( consoleState.height > cls.windowConfig.vidHeight )
 	{
-		consoleState.height = cls.glconfig.vidHeight;
+		consoleState.height = cls.windowConfig.vidHeight;
 	}
 
 	/*
@@ -1082,7 +1082,7 @@ void Con_RunAnimatedConsole()
 		Con_UpdateConsoleState( ); //recalculate
 	}
 
-	consoleVidWidth = cls.glconfig.vidWidth - 2 * (consoleState.margin.sides + consoleState.padding.sides );
+	consoleVidWidth = cls.windowConfig.vidWidth - 2 * (consoleState.margin.sides + consoleState.padding.sides );
 
 	if( 2 * con_horizontalPadding->value >= consoleVidWidth )
 	{
@@ -1214,7 +1214,7 @@ class GraphicalTarget : public Log::Target {
 			}
 
 			//Video hasn't been initialized
-			if ( ! cls.glconfig.vidWidth ) {
+			if ( ! cls.windowConfig.vidWidth ) {
 				return false;
 			}
 

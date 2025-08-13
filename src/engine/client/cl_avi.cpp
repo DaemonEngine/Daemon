@@ -355,8 +355,8 @@ bool CL_OpenAVIForWriting( const char *fileName )
 
 	afd.frameRate = cl_aviFrameRate->integer;
 	afd.framePeriod = ( int )( 1000000.0f / afd.frameRate );
-	afd.width = cls.glconfig.vidWidth;
-	afd.height = cls.glconfig.vidHeight;
+	afd.width = cls.windowConfig.vidWidth;
+	afd.height = cls.windowConfig.vidHeight;
 
 	if ( cl_aviMotionJpeg->integer )
 	{

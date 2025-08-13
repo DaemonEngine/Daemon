@@ -303,8 +303,8 @@ struct clientStatic_t
 	char     updateInfoString[ MAX_INFO_STRING ];
 
 	// rendering info
-	glconfig_t  glconfig;
-	glconfig2_t glconfig2;
+	WindowConfig windowConfig;
+	GLConfig glConfig;
 	qhandle_t   charSetShader;
 	qhandle_t   whiteShader;
 	bool    useLegacyConsoleFont;

@@ -956,7 +956,7 @@ void CGameVM::CGameStaticInit()
 
 void CGameVM::CGameInit(int serverMessageNum, int clientNum)
 {
-	this->SendMsg<CGameInitMsg>(serverMessageNum, clientNum, cls.glconfig, cl.gameState);
+	this->SendMsg<CGameInitMsg>(serverMessageNum, clientNum, cls.windowConfig, cl.gameState);
 	NetcodeTable psTable;
 	size_t psSize;
 	this->SendMsg<VM::GetNetcodeTablesMsg>(psTable, psSize);
@@ -1020,7 +1020,7 @@ void CGameVM::CGameTextInputEvent(int c)
 
 void CGameVM::CGameRocketInit()
 {
-	this->SendMsg<CGameRocketInitMsg>(cls.glconfig);
+	this->SendMsg<CGameRocketInitMsg>( cls.windowConfig );
 }
 
 void CGameVM::CGameRocketFrame()
