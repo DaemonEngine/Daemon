@@ -194,10 +194,10 @@ namespace Audio {
         }
 
         for (int i = 0; i < MAX_GENTITIES; i++) {
-            auto& loop = entityLoops[i];
+            entityLoop_t& loop = entityLoops[i];
             if (loop.sound and not loop.addedThisFrame) {
                 // The loop wasn't added this frame, that means it has to be removed.
-                loop.sound->SetSoundGain( 0 );
+                loop.sound->soundGain = 0;
             } else if (loop.oldSfx != loop.newSfx) {
                 // The last sfx added in the frame is not the current one being played
                 // To mimic the previous sound system's behavior we sart playing the new one.
@@ -341,7 +341,7 @@ namespace Audio {
 
         StopMusic();
         music = std::make_shared<LoopingSound>(loopingSample, leadingSample);
-        music->SetVolumeModifier(musicVolume);
+        music->volumeModifier = &musicVolume;
         AddSound(GetLocalEmitter(), music, 1);
     }
 
@@ -379,7 +379,7 @@ namespace Audio {
             }
         }
 
-        streams[streamNum]->SetGain(volume);
+        streams[streamNum]->soundGain = volume;
 
         AudioData audioData { rate, width, channels };
         audioData.rawSamples.resize( width * numSamples * channels );

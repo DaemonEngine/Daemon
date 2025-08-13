@@ -85,18 +85,18 @@ namespace Audio {
 
         for (int i = 0; i < nSources; i++) {
             if (sources[i].active) {
-                auto sound = sources[i].usingSound;
+                std::shared_ptr<Sound> sound = sources[i].usingSound;
 
                 // Update and Emitter::UpdateSound can call Sound::Stop
-                if (not sound->IsStopped()) {
+                if ( sound->playing ) {
                     sound->Update();
                 }
 
-                if (not sound->IsStopped()) {
-                    sound->GetEmitter()->UpdateSound(*sound);
+                if ( sound->playing ) {
+                    sound->emitter->UpdateSound(*sound);
                 }
 
-                if (sound->IsStopped()) {
+                if ( !sound->playing ) {
                     sources[i].active = false;
                     sources[i].usingSound = nullptr;
                 }
@@ -126,7 +126,7 @@ namespace Audio {
         if (source) {
             // Make the source forget if it was a "static" or a "streaming" source.
             source->source.ResetBuffer();
-            sound->SetEmitter(emitter);
+            sound->emitter = emitter;
             sound->AcquireSource(source->source);
             source->usingSound = sound;
             source->priority = priority;
@@ -188,40 +188,6 @@ namespace Audio {
         playing = false;
     }
 
-    bool Sound::IsStopped() {
-        return not playing;
-    }
-
-    void Sound::SetPositionalGain(float gain) {
-        positionalGain = gain;
-    }
-
-    void Sound::SetSoundGain(float gain) {
-        soundGain = gain;
-    }
-
-    float Sound::GetCurrentGain() {
-        return currentGain;
-    }
-
-    void Sound::SetVolumeModifier(const Cvar::Range<Cvar::Cvar<float>>& volumeMod)
-    {
-        this->volumeModifier = &volumeMod;
-    }
-
-    float Sound::GetVolumeModifier() const
-    {
-        return volumeModifier->Get();
-    }
-
-    void Sound::SetEmitter(std::shared_ptr<Emitter> emitter) {
-        this->emitter = emitter;
-    }
-
-    std::shared_ptr<Emitter> Sound::GetEmitter() {
-        return emitter;
-    }
-
     void Sound::AcquireSource(AL::Source& source) {
         this->source = &source;
 
@@ -231,19 +197,15 @@ namespace Audio {
         emitter->SetupSound(*this);
     }
 
-    AL::Source& Sound::GetSource() {
-        return *source;
-    }
-
     // Set the gain before the source is started to avoid having a few milliseconds of very loud sound
     void Sound::FinishSetup() {
-        currentGain = positionalGain * soundGain * SliderToAmplitude(GetVolumeModifier());
+        currentGain = positionalGain * soundGain * SliderToAmplitude(volumeModifier->Get());
         source->SetGain(currentGain);
     }
 
     void Sound::Update() {
         // Fade the Gain update to avoid "ticking" sounds when there is a gain discontinuity
-        float targetGain = positionalGain * soundGain * SliderToAmplitude(GetVolumeModifier());
+        float targetGain = positionalGain * soundGain * SliderToAmplitude(volumeModifier->Get());
 
         //TODO make it framerate independent and fade out in about 1/8 seconds ?
         if (currentGain > targetGain) {
@@ -267,15 +229,15 @@ namespace Audio {
 
     void OneShotSound::SetupSource(AL::Source& source) {
         source.SetBuffer(sample->GetBuffer());
-        SetSoundGain(GetVolumeModifier());
+        soundGain = volumeModifier->Get();
     }
 
     void OneShotSound::InternalUpdate() {
-        if (GetSource().IsStopped()) {
+        if ( source->IsStopped() ) {
             Stop();
             return;
         }
-        SetSoundGain(GetVolumeModifier());
+        soundGain = volumeModifier->Get();
     }
 
     // Implementation of LoopingSound
@@ -289,7 +251,7 @@ namespace Audio {
 
     void LoopingSound::FadeOutAndDie() {
         fadingOut = true;
-        SetSoundGain(0.0f);
+        soundGain = 0.0f;
     }
 
     void LoopingSound::SetupSource(AL::Source& source) {
@@ -298,23 +260,23 @@ namespace Audio {
         } else {
             SetupLoopingSound(source);
         }
-        SetSoundGain(GetVolumeModifier());
+        soundGain = volumeModifier->Get();
     }
 
     void LoopingSound::InternalUpdate() {
-        if (fadingOut and GetCurrentGain() == 0.0f) {
+        if (fadingOut and currentGain == 0.0f) {
             Stop();
         }
 
         if (not fadingOut) {
             if (leadingSample) {
-                if (GetSource().IsStopped()) {
-                    SetupLoopingSound(GetSource());
-                    GetSource().Play();
+                if ( source->IsStopped() ) {
+                    SetupLoopingSound( *source );
+                    source->Play();
                     leadingSample = nullptr;
                 }
             }
-            SetSoundGain(GetVolumeModifier());
+            soundGain = volumeModifier->Get();
         }
     }
 
@@ -335,32 +297,25 @@ namespace Audio {
     }
 
     void StreamingSound::InternalUpdate() {
-        AL::Source& source = GetSource();
-
-        while (source.GetNumProcessedBuffers() > 0) {
-            source.PopBuffer();
+        while ( source->GetNumProcessedBuffers() > 0 ) {
+            source->PopBuffer();
         }
 
-        if (source.GetNumQueuedBuffers() == 0) {
+        if ( source->GetNumQueuedBuffers() == 0 ) {
             Stop();
         }
     }
 
     //TODO somehow try to catch back when data is coming faster than we consume (e.g. capture data)
     void StreamingSound::AppendBuffer(AL::Buffer buffer) {
-        if (IsStopped()) {
+        if ( !playing ) {
             return;
         }
 
-        AL::Source& source = GetSource();
-        source.QueueBuffer(std::move(buffer));
+        source->QueueBuffer(std::move(buffer));
 
-        if (source.IsStopped()) {
-            source.Play();
+        if ( source->IsStopped() ) {
+            source->Play();
         }
-    }
-
-    void StreamingSound::SetGain(float gain) {
-        SetSoundGain(gain);
     }
 }
