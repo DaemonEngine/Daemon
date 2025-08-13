@@ -65,7 +65,7 @@ namespace Audio {
     }
 
 
-    void AddEntityLoopingSound(int, sfxHandle_t) {
+    void AddEntityLoopingSound(int, sfxHandle_t, bool) {
     }
 
     void ClearAllLoopingSounds() {
