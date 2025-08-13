@@ -197,9 +197,7 @@ namespace Audio {
             auto& loop = entityLoops[i];
             if (loop.sound and not loop.addedThisFrame) {
                 // The loop wasn't added this frame, that means it has to be removed.
-                loop.sound->FadeOutAndDie();
-                loop = {false, nullptr, -1, -1};
-
+                loop.sound->SetSoundGain( 0 );
             } else if (loop.oldSfx != loop.newSfx) {
                 // The last sfx added in the frame is not the current one being played
                 // To mimic the previous sound system's behavior we sart playing the new one.
