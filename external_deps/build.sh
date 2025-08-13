@@ -18,7 +18,7 @@ ZLIB_BASEURL='https://zlib.net/fossils'
 GMP_BASEURL='https://gmplib.org/download/gmp'
 NETTLE_BASEURL='https://mirror.cyberbits.eu/gnu/nettle'
 CURL_BASEURL='https://curl.se/download'
-SDL2_BASEURL='https://www.libsdl.org/release'
+SDL3_BASEURL='https://www.libsdl.org/release'
 GLEW_BASEURL='https://github.com/nigels-com/glew/releases'
 # Index: https://download.sourceforge.net/libpng/files/libpng16
 PNG_BASEURL='https://sourceforge.net/projects/libpng/files/libpng16'
@@ -46,7 +46,7 @@ ZLIB_VERSION=1.3.1
 GMP_VERSION=6.3.0
 NETTLE_VERSION=3.10.2
 CURL_VERSION=8.15.0
-SDL2_VERSION=2.32.8
+SDL3_VERSION=3.2.20
 GLEW_VERSION=2.2.0
 PNG_VERSION=1.6.50
 JPEG_VERSION=3.1.1
@@ -411,28 +411,28 @@ build_curl() {
 		-DHTTP_ONLY=ON # Implies all CURL_DISABLE_xxx options except HTTP
 }
 
-# Build SDL2
-build_sdl2() {
-	local dir_name="SDL2-${SDL2_VERSION}"
+# Build SDL3
+build_sdl3() {
+	local dir_name="SDL3-${SDL3_VERSION}"
 
 	case "${PLATFORM}" in
 	windows-*-mingw)
-		local archive_name="SDL2-devel-${SDL2_VERSION}-mingw.tar.gz"
+		local archive_name="SDL3-devel-${SDL3_VERSION}-mingw.tar.gz"
 		;;
 	windows-*-msvc)
-		local archive_name="SDL2-devel-${SDL2_VERSION}-VC.zip"
+		local archive_name="SDL3-devel-${SDL3_VERSION}-VC.zip"
 		;;
 	macos-*-*)
-		local archive_name="SDL2-${SDL2_VERSION}.dmg"
+		local archive_name="SDL3-${SDL3_VERSION}.dmg"
 		;;
 	*)
-		local archive_name="SDL2-${SDL2_VERSION}.tar.gz"
+		local archive_name="SDL3-${SDL3_VERSION}.tar.gz"
 		;;
 	esac
 
-	download_extract sdl2 "${archive_name}" \
-		"${SDL2_BASEURL}/${archive_name}" \
-		"https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/${archive_name}"
+	download_extract sdl3 "${archive_name}" \
+		"${SDL3_BASEURL}/${archive_name}" \
+		"https://github.com/libsdl-org/SDL/releases/download/release-${SDL3_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -440,40 +440,42 @@ build_sdl2() {
 	windows-*-mingw)
 		cd "${dir_name}"
 		cp -rv "${HOST}"/* "${PREFIX}/"
+		rm "${PREFIX}/lib/libSDL3_test.a"
+		rm "${PREFIX}/lib/cmake/SDL3/SDL3testTargets"*.cmake
 		;;
 	windows-*-msvc)
 		cd "${dir_name}"
-		mkdir -p "${PREFIX}/SDL2/cmake"
-		cp "cmake/"* "${PREFIX}/SDL2/cmake"
-		mkdir -p "${PREFIX}/SDL2/include"
-		cp "include/"* "${PREFIX}/SDL2/include"
+		mkdir -p "${PREFIX}/SDL3/cmake"
+		cp "cmake/"* "${PREFIX}/SDL3/cmake"
+		mkdir -p "${PREFIX}/SDL3/include/SDL3"
+		cp "include/SDL3/"* "${PREFIX}/SDL3/include/SDL3"
 
 		case "${PLATFORM}" in
 		*-i686-*)
-			local sdl2_lib_dir='lib/x86'
+			local sdl3_lib_dir='lib/x86'
 			;;
 		*-amd64-*)
-			local sdl2_lib_dir='lib/x64'
+			local sdl3_lib_dir='lib/x64'
 			;;
 		*)
-			log ERROR 'Unsupported platform for SDL2'
+			log ERROR 'Unsupported platform for SDL3'
 			;;
 		esac
 
-		mkdir -p "${PREFIX}/SDL2/${sdl2_lib_dir}"
-		cp "${sdl2_lib_dir}/"{SDL2.lib,SDL2main.lib} "${PREFIX}/SDL2/${sdl2_lib_dir}"
-		cp "${sdl2_lib_dir}/"*.dll "${PREFIX}/SDL2/${sdl2_lib_dir}"
+		mkdir -p "${PREFIX}/SDL3/${sdl3_lib_dir}"
+		cp "${sdl3_lib_dir}/SDL3.lib" "${PREFIX}/SDL3/${sdl3_lib_dir}"
+		cp "${sdl3_lib_dir}/"*.dll "${PREFIX}/SDL3/${sdl3_lib_dir}"
 		;;
 	macos-*-*)
-		rm -rf "${PREFIX}/lib/SDL2.framework"
-		cp -R "SDL2.framework" "${PREFIX}/lib"
+		cp -R "SDL3.xcframework/macos-arm64_x86_64/SDL3.framework" "${PREFIX}/lib"
 		;;
 	*)
 		cd "${dir_name}"
 
-		cmake_build
+		cmake_build \
+			-DSDL_TEST_LIBRARY=OFF
 
-		# Workaround for an SDL2 CMake bug, we need to provide
+		# Workaround for an SDL CMake bug, we need to provide
 		# a bin/ directory even when nothing is used from it.
 		mkdir -p "${PREFIX}/bin"
 		# We don't keep empty folders.
@@ -1202,8 +1204,8 @@ build_install() {
 
 	case "${PLATFORM}" in
 	windows-*-*)
-		# CMake looks for libSDL2.a and aborts if missing if this file exists:
-		rm -rf "${PKG_PREFIX}/lib/cmake/SDL2/SDL2staticTargets.cmake"
+		# CMake looks for libSDL3.a and aborts if missing if this file exists:
+		rm -rf "${PKG_PREFIX}/lib/cmake/SDL3/SDL3staticTargets.cmake"
 		;;
 	esac
 
@@ -1381,29 +1383,29 @@ setup_linux-arm64-default() {
 	common_setup linux aarch64-unknown-linux-gnu
 }
 
-base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck genlib'
+base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck genlib'
 all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
 
 base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 
-base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck'
+base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck'
 all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 
-base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
 base_linux_i686_default_packages='naclsdk'
-all_linux_i686_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+all_linux_i686_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
 
 base_linux_amd64_default_packages="${base_linux_i686_default_packages} naclruntime"
 all_linux_amd64_default_packages="${all_linux_i686_default_packages} naclruntime"
 
 base_linux_arm64_default_packages='naclsdk'
-all_linux_arm64_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
 
 base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
 all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
@@ -1431,7 +1433,7 @@ errorHelp() {
 	\tbuild-macos — platforms buildable on macos: ${macos_build_platforms}
 
 	Packages:
-	\tpkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
+	\tpkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
 
 	Virtual packages:
 	\tbase — build packages for pre-built binaries to be downloaded when building the game
