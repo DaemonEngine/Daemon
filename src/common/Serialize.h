@@ -244,6 +244,18 @@ namespace Util {
 		}
 	};
 
+	template<typename T>
+	struct SerializeTraits<const T&, typename std::enable_if<IsPod<const T&> && !std::is_array<const T&>::value>::type> {
+		static void Write( Writer& stream, const T& value ) {
+			stream.WriteData( std::addressof( value ), sizeof( value ) );
+		}
+		static T Read( Reader& stream ) {
+			T value;
+			stream.ReadData( std::addressof( value ), sizeof( value ) );
+			return value;
+		}
+	};
+
 	// bool
 	template<>
 	struct SerializeTraits<bool> {
@@ -269,6 +281,20 @@ namespace Util {
 		{
 			std::array<T, N> value;
 			for (T& x: value)
+				x = stream.Read<T>();
+			return value;
+		}
+	};
+
+	template<typename T, size_t N>
+	struct SerializeTraits<const std::array<T, N>&, typename std::enable_if<!IsPod<T>>::type> {
+		static void Write( Writer& stream, const std::array<T, N>& value ) {
+			for ( const T& x : value )
+				stream.Write<T>( x );
+		}
+		static std::array<T, N> Read( Reader& stream ) {
+			std::array<T, N> value;
+			for ( T& x : value )
 				x = stream.Read<T>();
 			return value;
 		}
