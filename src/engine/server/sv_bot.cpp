@@ -35,6 +35,7 @@ Maryland 20850 USA.
 // sv_bot.c
 
 #include "server.h"
+#include "qcommon/sys.h"
 
 /*
 ==================
@@ -60,7 +61,7 @@ int SV_BotAllocateClient()
 	cl->state = clientState_t::CS_ACTIVE;
 	cl->lastPacketTime = svs.time;
 	cl->netchan.remoteAddress.type = netadrtype_t::NA_BOT;
-	cl->rate = 16384;
+	cl->rate = NETWORK_DEFAULT_RATE;
 
 	return i;
 }
