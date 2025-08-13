@@ -108,11 +108,11 @@ extract() {
 		"${SCRIPT_DIR}/cygtar.py" -xjf "${1}" -C "${2}"
 		;;
 	*.dmg)
-		mkdir -p "${2}-dmg"
-		hdiutil attach -mountpoint "${2}-dmg" "${1}"
-		cp -R "${2}-dmg/"* "${2}/"
-		hdiutil detach "${2}-dmg"
-		rmdir "${2}-dmg"
+		local dmg_temp_dir="$(mktemp -d)"
+		hdiutil attach -mountpoint "${dmg_temp_dir}" "${1}"
+		cp -R "${dmg_temp_dir}/"* "${2}/"
+		hdiutil detach "${dmg_temp_dir}"
+		rmdir "${dmg_temp_dir}"
 		;;
 	*)
 		log ERROR "Unknown archive type for ${1}"
