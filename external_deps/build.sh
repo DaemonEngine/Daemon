@@ -977,6 +977,7 @@ build_install() {
 	mkdir -p "${PKG_PREFIX}/bin"
 	mkdir -p "${PKG_PREFIX}/include"
 	mkdir -p "${PKG_PREFIX}/lib"
+	mkdir -p "${PKG_PREFIX}/lib/cmake"
 
 	# Remove all unneeded files
 	rm -rf "${PKG_PREFIX}/man"
