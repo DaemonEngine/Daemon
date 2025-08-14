@@ -1198,6 +1198,10 @@ build_install() {
 		# Fix import lib paths to use MSVC-style instead of MinGW ones (see 'genlib' target)
 		find "${PKG_PREFIX}/lib/cmake" -name '*.cmake' -execdir sed -i -E 's@[.]dll[.]a\b@.lib@g' {} \;
 		;;
+	linux-*-*)
+		find "${PKG_PREFIX}/lib" -name '*.so' -execdir rm -f -- {} \;
+		find "${PKG_PREFIX}/lib" -name '*.so.*' -execdir rm -f -- {} \;
+		;;
 	esac
 
 	case "${PLATFORM}" in
