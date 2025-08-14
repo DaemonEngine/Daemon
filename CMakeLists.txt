@@ -132,7 +132,7 @@ option(USE_WERROR "Tell the compiler to make the build fail when warnings are pr
 option(USE_PEDANTIC "Tell the compiler to be pedantic" OFF)
 option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" ON)
 
-if (CMAKE_GENERATOR MATCHES "^Ninja")
+if (CMAKE_GENERATOR MATCHES "^Ninja" OR APPLE)
     # It isn't currently supported with Ninja yet:
     #
     # > Note that the IMPLICIT_DEPENDS option is currently supported only for
@@ -143,6 +143,9 @@ if (CMAKE_GENERATOR MATCHES "^Ninja")
     #
     # It would be better to be able to know if IMPLICIT_DEPENDS is supported
     # by the current generator instead of comparing generator name.
+
+	# It is broken on macOS.
+	# See: https://github.com/DaemonEngine/Daemon/issues/1549
     option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" OFF)
 else()
     option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" ON)
