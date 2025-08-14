@@ -35,6 +35,7 @@ set(COMMONLIST
     ${COMMON_DIR}/Optional.h
     ${COMMON_DIR}/Platform.h
     ${COMMON_DIR}/Serialize.h
+    ${COMMON_DIR}/StackTrace.h
     ${COMMON_DIR}/String.cpp
     ${COMMON_DIR}/String.h
     ${COMMON_DIR}/System.cpp
