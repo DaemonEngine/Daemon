@@ -367,6 +367,11 @@ else()
 	set_c_cxx_flag("-g3" RELWITHDEBINFO)
 	set_c_cxx_flag("-g3" DEBUG)
 
+	if (USE_DEBUG_DWARF4)
+		try_c_cxx_flag(DEBUG_DWARF4 "-gdwarf-4" DEBUG)
+		try_c_cxx_flag(DEBUG_DWARF4 "-gdwarf-4" RELWITHDEBINFO)
+	endif()
+
 	if (USE_DEBUG_OPTIMIZE)
 		try_c_cxx_flag(OPTIMIZE_DEBUG "-Og" DEBUG)
 	endif()

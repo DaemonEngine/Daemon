@@ -130,6 +130,7 @@ endif()
 option(USE_HARDENING "Use stack protection and other hardening flags" OFF)
 option(USE_WERROR "Tell the compiler to make the build fail when warnings are present" OFF)
 option(USE_PEDANTIC "Tell the compiler to be pedantic" OFF)
+option(USE_DEBUG_DWARF4 "Use the Dwarf 4 debug symbol format, required by breakpad" ON)
 option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" ON)
 
 if (CMAKE_GENERATOR MATCHES "^Ninja" OR APPLE)
@@ -169,6 +170,7 @@ set(DEFAULT_NACL_VM_INHERITED_OPTIONS
     USE_ARCH_INTRINSICS
     USE_COMPILER_CUSTOMIZATION
     USE_COMPILER_INTRINSICS
+    USE_DEBUG_DWARF4
     USE_DEBUG_OPTIMIZE
     USE_HARDENING
     USE_PEDANTIC
