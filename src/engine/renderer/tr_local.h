@@ -24,9 +24,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef TR_LOCAL_H
 #define TR_LOCAL_H
 
-#ifndef GLEW_NO_GLU
-#define GLEW_NO_GLU
-#endif
 #include <GL/glew.h>
 
 #include "common/FileSystem.h"

@@ -38,9 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 
-#ifndef GLEW_NO_GLU
-#define GLEW_NO_GLU
-#endif
 #include <GL/glew.h>
 
 #include "BufferBind.h"

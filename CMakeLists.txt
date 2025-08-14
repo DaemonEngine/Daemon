@@ -829,6 +829,7 @@ if (BUILD_CLIENT)
     find_package(GLEW REQUIRED)
     include_directories(${GLEW_INCLUDE_DIR})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${GLEW_LIBRARIES})
+    add_definitions(-DGLEW_NO_GLU)
 
     set(backup_find_framework ${CMAKE_FIND_FRAMEWORK})
     set(CMAKE_FIND_FRAMEWORK NEVER) # Mac's system OpenAL doesn't have efx.h
