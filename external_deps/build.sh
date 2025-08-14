@@ -685,6 +685,18 @@ build_openal() {
 	local openal_cmake_args=(-DALSOFT_EXAMPLES=OFF)
 
 	case "${PLATFORM}" in
+	*-i686-*|*-amd64-*)
+		openal_cmake_args+=(-DALSOFT_CPUEXT_SSE=ON -DALSOFT_REQUIRE_SSE=ON)
+		openal_cmake_args+=(-DALSOFT_CPUEXT_SSE2=ON -DALSOFT_REQUIRE_SSE2=ON)
+		openal_cmake_args+=(-DALSOFT_CPUEXT_SSE3=ON -DALSOFT_REQUIRE_SSE3=OFF)
+		openal_cmake_args+=(-DALSOFT_CPUEXT_SSE4_1=ON -DALSOFT_REQUIRE_SSE4_1=OFF)
+		;;
+	*-armhf-*|*-arm64-*)
+		openal_cmake_args+=(-DALSOFT_CPUEXT_NEON=ON -DALSOFT_REQUIRE_NEON=ON)
+		;;
+	esac
+
+	case "${PLATFORM}" in
 	windows-*-*)
 		cd "${dir_name}"
 		cp -r "include/AL" "${PREFIX}/include"
