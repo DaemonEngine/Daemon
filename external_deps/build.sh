@@ -571,6 +571,8 @@ build_jpeg() {
 		;;
 	esac
 
+	local jpeg_cmake_args=(-DREQUIRE_SIMD=ON)
+
 	case "${PLATFORM}" in
 	*-amd64-*)
 		local SYSTEM_PROCESSOR='x86_64'
@@ -584,16 +586,16 @@ build_jpeg() {
 		;;
 	*-arm64-*)
 		local SYSTEM_PROCESSOR='aarch64'
+		jpeg_cmake_args+=(-DNEON_INTRINSICS=ON)
 		;;
 	*-armhf-*)
 		local SYSTEM_PROCESSOR='arm'
+		jpeg_cmake_args+=(-DNEON_INTRINSICS=ON)
 		;;
 	*)
 		log ERROR 'Unsupported platform for JPEG'
 		;;
 	esac
-
-	local jpeg_cmake_args=()
 
 	case "${PLATFORM}" in
 	windows-*-*)
