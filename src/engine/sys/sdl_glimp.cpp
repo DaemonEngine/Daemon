@@ -1883,7 +1883,7 @@ static GLenum debugTypes[] =
 };
 
 #ifdef _WIN32
-#define DEBUG_CALLBACK_CALL APIENTRY
+#define DEBUG_CALLBACK_CALL __stdcall //APIENTRY
 #else
 #define DEBUG_CALLBACK_CALL
 #endif
