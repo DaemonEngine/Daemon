@@ -780,6 +780,18 @@ build_opus() {
 		;;
 	esac
 
+	case "${PLATFORM}" in
+	*-i686-*|*-amd64-*)
+		opus_cmake_args+=(-DOPUS_X86_MAY_HAVE_SSE=OFF -DOPUS_X86_PRESUME_SSE=ON)
+		opus_cmake_args+=(-DOPUS_X86_MAY_HAVE_SSE2=OFF -DOPUS_X86_PRESUME_SSE2=ON)
+		opus_cmake_args+=(-DOPUS_X86_MAY_HAVE_SSE4_1=OFF -DOPUS_X86_PRESUME_SSE4_1=OFF)
+		opus_cmake_args+=(-DOPUS_X86_MAY_HAVE_AVX2=OFF -DOPUS_X86_PRESUME_AVX2=OFF)
+		;;
+	*-armhf-*|*-arm64-*)
+		opus_cmake_args+=(-DOPUS_MAY_HAVE_NEON=OFF -DOPUS_PRESUME_NEON=ON)
+		;;
+	esac
+
 	cd "${dir_name}"
 
 	cmake_build \
