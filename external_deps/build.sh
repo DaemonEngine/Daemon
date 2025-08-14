@@ -703,34 +703,37 @@ build_openal() {
 	esac
 
 	case "${PLATFORM}" in
+	windows-i686-*)
+		local openal_win_dir='Win32'
+		;;
+	windows-amd64-*)
+		local openal_win_dir='Win64'
+		;;
+	macos-*-*)
+		openal_cmake_args+=(-DLIBTYPE=SHARED)
+		;;
+	*)
+		if [ "${LIBS_SHARED}" = 'ON' ]
+		then
+			openal_cmake_args+=(-DLIBTYPE=SHARED)
+		elif [ "${LIBS_STATIC}" = 'ON' ]
+		then
+			openal_cmake_args+=(-DLIBTYPE=STATIC)
+		fi
+		;;
+	esac
+
+	case "${PLATFORM}" in
 	windows-*-*)
 		cd "${dir_name}"
 		cp -r "include/AL" "${PREFIX}/include"
-		case "${PLATFORM}" in
-		*-i686-*)
-			cp "libs/Win32/libOpenAL32.dll.a" "${PREFIX}/lib"
-			cp "bin/Win32/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
-			;;
-		*-amd64-*)
-			cp "libs/Win64/libOpenAL32.dll.a" "${PREFIX}/lib"
-			cp "bin/Win64/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
-			;;
-		esac
-		;;
-	macos-*-*)
-		cd "${dir_name}"
-
-		cmake_build \
-			-DLIBTYPE=SHARED \
-			"${openal_cmake_args[@]}"
-
-		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
+		cp "libs/${openal_win_dir}/libOpenAL32.dll.a" "${PREFIX}/lib"
+		cp "bin/${openal_win_dir}/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
 		;;
 	*)
 		cd "${dir_name}"
 
 		cmake_build \
-			-DLIBTYPE=STATIC \
 			"${openal_cmake_args[@]}"
 		;;
 	esac
