@@ -1298,6 +1298,9 @@ void IN_FrameEnd()
 IN_Init
 ===============
 */
+#ifdef __APPLE__
+extern "C" void DisableAccentMenu();
+#endif
 void IN_Init( void *windowData )
 {
 	int appState;
@@ -1328,6 +1331,13 @@ void IN_Init( void *windowData )
 	Cvar_SetValue( "com_unfocused", !( appState & SDL_WINDOW_INPUT_FOCUS ) );
 	Cvar_SetValue( "com_minimized", ( appState & SDL_WINDOW_MINIMIZED ) );
 	IN_InitJoystick();
+
+#ifdef __APPLE__
+	// We have to act after SDL does. Whoever has the last word wins!
+	// https://github.com/libsdl-org/SDL/commit/caf0348b26d02bc22ba9a0a908c83c43f8e4e6ad
+	DisableAccentMenu();
+#endif
+
 	Log::Debug( "------------------------------------" );
 }
 
