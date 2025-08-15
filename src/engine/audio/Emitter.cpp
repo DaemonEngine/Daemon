@@ -41,8 +41,30 @@ namespace Audio {
     static entityData_t entities[MAX_GENTITIES];
     static int listenerEntity = -1;
 
-    // Keep entity Emitters in an array because there is at most one per entity.
-    static std::shared_ptr<Emitter> entityEmitters[MAX_GENTITIES];
+    struct EntityMultiEmitter {
+        std::shared_ptr<Emitter> emitters[MAX_ENTITY_SOUNDS];
+
+        std::shared_ptr<Emitter>& FindSlot( const int entityNum ) {
+            for ( std::shared_ptr<Emitter>& emitter : emitters ) {
+                if ( !emitter ) {
+                    emitter = std::make_shared<EntityEmitter>( entityNum );
+                    return emitter;
+                }
+            }
+
+            return emitters[0];
+        }
+
+        void Shutdown() {
+            for ( std::shared_ptr<Emitter>& emitter : emitters ) {
+                if ( emitter ) {
+                    emitter = nullptr;
+                }
+            }
+        }
+    };
+
+    static EntityMultiEmitter entityEmitters[MAX_GENTITIES];
 
     // Position Emitters can be reused so we keep the list of all of them
     // this is not very efficient but we cannot have more position emitters
@@ -100,15 +122,13 @@ namespace Audio {
 
         localEmitter = nullptr;
 
-        for (auto &slot : reverbSlots) {
+        for ( ReverbSlot& slot : reverbSlots ) {
             delete slot.effect;
             slot.effect = nullptr;
         }
 
-        for (auto &emitter : entityEmitters) {
-            if ( emitter ) {
-                emitter = nullptr;
-            }
+        for ( EntityMultiEmitter& emitter : entityEmitters ) {
+            emitter.Shutdown();
         }
 
         posEmitters.clear();
@@ -124,16 +144,18 @@ namespace Audio {
         // Both PositionEmitters and EntityEmitters are ref-counted.
         // If we hold the only reference to them then no sound is still using
         // the Emitter that can be destroyed.
-        for (auto &emitter : entityEmitters) {
-            if (not emitter) {
-                continue;
-            }
+        for ( EntityMultiEmitter& multiEmitter : entityEmitters ) {
+            for ( std::shared_ptr<Emitter>& emitter : multiEmitter.emitters ) {
+                if ( not emitter ) {
+                    continue;
+                }
 
-            emitter->Update();
+                emitter->Update();
 
-            // No sound is using this emitter, destroy it
-            if (emitter.use_count() == 1) {
-                emitter = nullptr;
+                // No sound is using this emitter, destroy it
+                if ( emitter.use_count() == 1 ) {
+                    emitter = nullptr;
+                }
             }
         }
 
@@ -165,11 +187,7 @@ namespace Audio {
     }
 
     std::shared_ptr<Emitter> GetEmitterForEntity(int entityNum) {
-        if (not entityEmitters[entityNum]) {
-            entityEmitters[entityNum] = std::make_shared<EntityEmitter>(entityNum);
-        }
-
-        return entityEmitters[entityNum];
+        return entityEmitters[entityNum].FindSlot( entityNum );
     }
 
     std::shared_ptr<Emitter> GetEmitterForPosition(Vec3 position) {
