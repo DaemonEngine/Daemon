@@ -120,6 +120,8 @@ namespace Audio {
 
     static bool initialized = false;
 
+    int playerClientNum;
+
     static AL::Device* device;
     static AL::Context* context;
 
@@ -292,10 +294,12 @@ namespace Audio {
         }
     }
 
-    void BeginRegistration() {
+    void BeginRegistration( const int playerNum ) {
         if (not initialized) {
             return;
         }
+
+        playerClientNum = playerNum;
 
         BeginSampleRegistration();
     }
@@ -317,6 +321,10 @@ namespace Audio {
         EndSampleRegistration();
     }
 
+    static int GetSoundPriorityForEntity( const int entityNum ) {
+        return entityNum < MAX_CLIENTS ? CLIENT : ANY;
+    }
+
     void StartSound(int entityNum, Vec3 origin, sfxHandle_t sfx) {
         if (not initialized or not Sample::IsValidHandle(sfx)) {
             return;
@@ -335,7 +343,7 @@ namespace Audio {
             return;
         }
 
-        AddSound(emitter, std::make_shared<OneShotSound>(Sample::FromHandle(sfx)), 1);
+        AddSound( emitter, std::make_shared<OneShotSound>( Sample::FromHandle( sfx ) ), GetSoundPriorityForEntity( entityNum ) );
     }
 
     void StartLocalSound(sfxHandle_t sfx) {
@@ -343,7 +351,7 @@ namespace Audio {
             return;
         }
 
-        AddSound(GetLocalEmitter(), std::make_shared<OneShotSound>(Sample::FromHandle(sfx)), 1);
+        AddSound( GetLocalEmitter(), std::make_shared<OneShotSound>( Sample::FromHandle( sfx ) ), ANY );
     }
 
     void AddEntityLoopingSound(int entityNum, sfxHandle_t sfx, bool persistent) {
@@ -357,7 +365,7 @@ namespace Audio {
         if (not loop.sound) {
             loop.sound = std::make_shared<LoopingSound>(Sample::FromHandle(sfx));
             loop.oldSfx = sfx;
-            AddSound(GetEmitterForEntity(entityNum), loop.sound, 1);
+            AddSound( GetEmitterForEntity( entityNum ), loop.sound, GetSoundPriorityForEntity( entityNum ) );
         }
 
         loop.addedThisFrame = true;
@@ -402,7 +410,7 @@ namespace Audio {
         StopMusic();
         music = std::make_shared<LoopingSound>(loopingSample, leadingSample);
         music->volumeModifier = &musicVolume;
-        AddSound(GetLocalEmitter(), music, 1);
+        AddSound( GetLocalEmitter(), music, ANY );
     }
 
     void StopMusic() {
@@ -433,9 +441,9 @@ namespace Audio {
         if (not streams[streamNum]) {
             streams[streamNum] = std::make_shared<StreamingSound>();
             if (IsValidEntity(entityNum)) {
-                AddSound(GetEmitterForEntity(entityNum), streams[streamNum], 1);
+                AddSound( GetEmitterForEntity( entityNum ), streams[streamNum], GetSoundPriorityForEntity( entityNum ) );
             } else {
-                AddSound(GetLocalEmitter(), streams[streamNum], 1);
+                AddSound( GetLocalEmitter(), streams[streamNum], ANY );
             }
         }
 

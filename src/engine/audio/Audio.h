@@ -43,7 +43,7 @@ namespace Audio {
     void Shutdown();
     void Update();
 
-    void BeginRegistration();
+    void BeginRegistration( const int playerNum );
     sfxHandle_t RegisterSFX(Str::StringRef filename);
     void EndRegistration();
 

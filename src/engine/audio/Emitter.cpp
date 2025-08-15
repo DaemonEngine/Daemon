@@ -31,14 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AudioPrivate.h"
 
 namespace Audio {
-
-    // Structures to keep the state of entities we were given
-    struct entityData_t {
-        Vec3 position;
-        Vec3 velocity;
-        float occlusion;
-    };
-    static entityData_t entities[MAX_GENTITIES];
+    entityData_t entities[MAX_GENTITIES];
     static int listenerEntity = -1;
 
     struct EntityMultiEmitter {
@@ -311,6 +304,10 @@ namespace Audio {
         Make3D(source, entities[entityNum].position, entities[entityNum].velocity);
     }
 
+    Vec3 EntityEmitter::GetPosition() const {
+        return entities[entityNum].position;
+    }
+
     // Implementation of PositionEmitter
 
     PositionEmitter::PositionEmitter(Vec3 position){
@@ -355,6 +352,10 @@ namespace Audio {
         AL::Source& source = *sound.source;
 
         MakeLocal(source);
+    }
+
+    Vec3 LocalEmitter::GetPosition() const {
+        return Vec3 {};
     }
 
     class TestReverbCmd : public Cmd::StaticCmd {

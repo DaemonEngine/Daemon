@@ -49,8 +49,6 @@ namespace Audio {
     static sourceRecord_t* sources = nullptr;
     static CONSTEXPR int nSources = 128; //TODO see what's the limit for OpenAL soft
 
-    sourceRecord_t* GetSource(int priority);
-
     static bool initialized = false;
 
     void InitSounds() {
@@ -116,34 +114,40 @@ namespace Audio {
         }
     }
 
-    void AddSound(std::shared_ptr<Emitter> emitter, std::shared_ptr<Sound> sound, int priority) {
-        if (not initialized) {
-            return;
+    static Cvar::Range<Cvar::Cvar<int>> a_clientSoundPriorityMaxDistance( "a_clientSoundPriorityMaxDistance",
+        "Sounds emitted by players/bots within this distance (in qu) will have higher priority than other sounds"
+        " (multiplier: a_clientSoundPriorityMultiplier)", Cvar::NONE, 32 * 32, 0, BIT( 16 ) );
+
+    static Cvar::Range<Cvar::Cvar<float>> a_clientSoundPriorityMultiplier( "a_clientSoundPriorityMultiplier",
+        "Sounds emitted by players/bots within a_clientSoundPriorityMaxDistance"
+        " will use this value as their priority multiplier",
+        Cvar::NONE, 2.0f, 0.0f, 1024.0f );
+
+    static float GetAdjustedVolumeForPosition( const Vec3& origin, const Vec3& src, const bool isClient ) {
+        vec3_t v0 { origin.Data()[0], origin.Data()[1], origin.Data()[2] };
+        vec3_t v1 { src.Data()[0], src.Data()[1], src.Data()[2] };
+
+        float totalPriority = VectorDistanceSquared( v0, v1 );
+
+        const float distanceThreshold = a_clientSoundPriorityMaxDistance.Get();
+        if ( isClient && totalPriority < distanceThreshold * distanceThreshold ) {
+            totalPriority *= 1.0f / a_clientSoundPriorityMultiplier.Get();
         }
 
-        sourceRecord_t* source = GetSource(priority);
-
-        if (source) {
-            // Make the source forget if it was a "static" or a "streaming" source.
-            source->source.ResetBuffer();
-            sound->emitter = emitter;
-            sound->AcquireSource(source->source);
-            source->usingSound = sound;
-            source->priority = priority;
-            source->active = true;
-
-            sound->FinishSetup();
-            sound->Play();
-        }
+       return 1.0f / totalPriority;
     }
 
     // Finds a inactive or low-priority source to play a new sound.
-    sourceRecord_t* GetSource(int priority) {
-        //TODO make a better heuristic? (take into account the distance / the volume /... ?)
+    static sourceRecord_t* GetSource( const Vec3& position, int priority, const float currentGain ) {
         int best = -1;
-        int bestPriority = priority;
 
-        // Gets the minimum sound by comparing activity first then priority
+        const Vec3& playerPos = entities[playerClientNum].position;
+
+        // Sound volume is inversely proportional to distance to the source
+        const float adjustedVolume = Q_rsqrt_fast( currentGain )
+            * GetAdjustedVolumeForPosition( playerPos, position, priority == CLIENT );
+
+        // Gets the minimum sound by comparing activity first, then the adjusted volume
         for (int i = 0; i < nSources; i++) {
             sourceRecord_t& source = sources[i];
 
@@ -151,9 +155,14 @@ namespace Audio {
                 return &source;
             }
 
-            if (source.priority < bestPriority || (best < 0 && source.priority <= priority)) {
+            const Vec3& sourcePos = source.usingSound->emitter->GetPosition();
+
+            // Sound volume is inversely proportional to distance to the source
+            const float adjustedSourceVolume = Q_rsqrt_fast( source.usingSound->currentGain )
+                * GetAdjustedVolumeForPosition( playerPos, sourcePos, source.priority == CLIENT );
+
+            if ( adjustedVolume > adjustedSourceVolume ) {
                 best = i;
-                bestPriority = source.priority;
                 continue;
             }
         }
@@ -168,6 +177,30 @@ namespace Audio {
             return &source;
         } else {
             return nullptr;
+        }
+    }
+
+    void AddSound( std::shared_ptr<Emitter> emitter, std::shared_ptr<Sound> sound, int priority ) {
+        if ( not initialized ) {
+            return;
+        }
+
+        const Vec3& position = emitter->GetPosition();
+        const float currentGain = sound->positionalGain * sound->soundGain
+            * SliderToAmplitude( sound->volumeModifier->Get() );
+        sourceRecord_t* source = GetSource( position, priority, currentGain );
+
+        if ( source ) {
+            // Make the source forget if it was a "static" or a "streaming" source.
+            source->source.ResetBuffer();
+            sound->emitter = emitter;
+            sound->AcquireSource( source->source );
+            source->usingSound = sound;
+            source->priority = priority;
+            source->active = true;
+
+            sound->FinishSetup();
+            sound->Play();
         }
     }
 

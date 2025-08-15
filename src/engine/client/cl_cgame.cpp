@@ -1561,8 +1561,8 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 				break;
 
 			case CG_S_BEGINREGISTRATION:
-				HandleMsg<Audio::BeginRegistrationMsg>(std::move(reader), [this] {
-					Audio::BeginRegistration();
+				HandleMsg<Audio::BeginRegistrationMsg>(std::move(reader), [this] ( const int playerNum ) {
+					Audio::BeginRegistration( playerNum );
 				});
 				break;
 
