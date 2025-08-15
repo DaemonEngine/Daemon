@@ -75,12 +75,6 @@ struct server_t
 	bool        configstringsmodified[ MAX_CONFIGSTRINGS ];
 	svEntity_t      svEntities[ MAX_GENTITIES ];
 
-	// this is apparently just a proxy, this pointer
-	// is set to contain the strings that define entities
-	// which must be parsed by sgame for spawning map entities,
-	// notably.
-	const char            *entityParsePoint; // used during game VM init
-
 	// the game virtual machine will update these on init and changes
 	byte *gentities; // points to the sgame's array of gentity_t
 	int            gentitySize; // >= sizeof(sharedEntity_t) - game can have unlimited amount of private data

@@ -275,14 +275,9 @@ Called for both a full init and a restart
 */
 static void SV_InitGameVM()
 {
-	int i;
-
-	// start the entity parsing at the beginning
-	sv.entityParsePoint = CM_EntityString();
-
 	// clear all gentity pointers that might still be set from
 	// a previous level
-	for ( i = 0; i < sv_maxClients.Get(); i++ )
+	for ( int i = 0; i < sv_maxClients.Get(); i++ )
 	{
 		svs.clients[ i ].gentity = nullptr;
 	}
