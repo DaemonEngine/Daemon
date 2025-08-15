@@ -1237,6 +1237,21 @@ build_install() {
 
 	# Remove empty directories
 	find "${PKG_PREFIX}/" -mindepth 1 -type d -empty -delete
+
+	# Check for unwanted embedded paths with a couple of exemptions:
+	# - Opus's release mode assertions - https://github.com/xiph/opus/issues/399
+	# - SDL3 has a small number of renderer backend filenames embedded for some reason
+	local good=true
+	for f in $(find "${PKG_PREFIX}" -type f -not -name '*libopus*' -not -name 'libSDL3.a'); do
+		if grep --with-filename external_deps "${f}"
+		then
+			good=false
+		elif [[ $? != 1 ]]
+		then
+			exit $? # grep errored
+		fi
+	done
+	"${good}" || log ERROR 'Absolute paths found embedded in install. This may be due to builds with debug symbols or config files that need to be fixed.'
 }
 
 # Create a redistributable package for the dependencies
