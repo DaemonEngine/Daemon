@@ -3956,29 +3956,6 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 	}
 }
 
-/*
-=================
-R_GetEntityToken
-=================
-*/
-bool R_GetEntityToken( char *buffer, int size )
-{
-	const char *s;
-
-	s = COM_Parse2( &s_worldData.entityParsePoint );
-	Q_strncpyz( buffer, s, size );
-
-	if ( !s_worldData.entityParsePoint || !s[ 0 ] )
-	{
-		s_worldData.entityParsePoint = s_worldData.entityString;
-		return false;
-	}
-	else
-	{
-		return true;
-	}
-}
-
 static std::string headerString;
 static const std::string gridPath = "reflectionCubemaps";
 static const std::string gridExtension = ".cubemapGrid";

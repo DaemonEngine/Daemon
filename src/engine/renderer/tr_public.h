@@ -228,8 +228,6 @@ struct refexport_t
 
 	void ( *RemapShader )( const char *oldShader, const char *newShader, const char *offsetTime );
 
-	bool( *GetEntityToken )( char *buffer, int size );
-
 	bool( *inPVS )( const vec3_t p1, const vec3_t p2 );
 	bool( *inPVVS )( const vec3_t p1, const vec3_t p2 );
 
