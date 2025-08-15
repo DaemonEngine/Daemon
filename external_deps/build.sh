@@ -505,8 +505,8 @@ build_glew() {
 	# manually re-add the required flags there.
 	case "${PLATFORM}" in
 	windows-*-*)
-		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}"
-		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}"
+		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${STRIP}" LD="${LD}"
+		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${STRIP}" LD="${LD}"
 		mv "${PREFIX}/lib/glew32.dll" "${PREFIX}/bin/"
 		rm "${PREFIX}/lib/libglew32.a"
 		cp lib/libglew32.dll.a "${PREFIX}/lib/"
@@ -517,8 +517,7 @@ build_glew() {
 		install_name_tool -id "@rpath/libGLEW.${GLEW_VERSION}.dylib" "${PREFIX}/lib/libGLEW.${GLEW_VERSION}.dylib"
 		;;
 	linux-*-*)
-		local strip="${HOST/-unknown-/-}-strip"
-		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" STRIP="${strip}"
+		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" STRIP="${STRIP}"
 		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" LIBDIR="${PREFIX}/lib"
 		;;
 	*)
@@ -867,9 +866,8 @@ build_ncurses() {
 	# Brutally disable writing to database
 	cp /dev/null misc/run_tic.in
 	# Configure terminfo search dirs based on the ones used in Debian. By default it will only look in (only) the install directory.
-	local strip="${HOST/-unknown-/-}-strip"
 	configure_build \
-		--with-strip-program="${strip}" \
+		--with-strip-program="${STRIP}" \
 		--without-progs \
 		--enable-widec \
 		--with-terminfo-dirs=/etc/terminfo:/lib/terminfo \
@@ -1187,11 +1185,11 @@ build_install() {
 	# Strip libraries
 	case "${PLATFORM}" in
 	windows-*-mingw)
-		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${HOST}-strip" --strip-unneeded -- {} \;
-		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${HOST}-strip" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${STRIP}" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${STRIP}" --strip-unneeded -- {} \;
 		;;
 	windows-*-msvc)
-		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${HOST}-strip" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${STRIP}" --strip-unneeded -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.a' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.exp' -execdir rm -f -- {} \;
 
@@ -1203,11 +1201,10 @@ build_install() {
 		find "${PKG_PREFIX}/lib" -name '*.so.*' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*_g.a' -execdir rm -f -- {} \;
 
-		local strip="${HOST/-unknown-/-}-strip"
-		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${strip}" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${STRIP}" --strip-unneeded -- {} \;
 		;;
 	macos-*-*)
-		find "${PKG_PREFIX}/lib" -name '*.a' -execdir strip -u {} \;
+		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${STRIP}" -u {} \;
 	esac
 
 	case "${PLATFORM}" in
@@ -1263,7 +1260,7 @@ common_setup() {
 	mkdir -p "${PREFIX}/include"
 	mkdir -p "${PREFIX}/lib"
 
-	export CC CXX LD AR RANLIB PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+	export CC CXX LD AR RANLIB STRIP PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
 }
 
 common_setup_arch() {
@@ -1299,6 +1296,7 @@ common_setup_arch() {
 # the Windows build of Lua is only used in developer gamelogic builds, and Microsoft
 # supports %lld since Visual Studio 2013. Also we don't build Lua anymore.
 common_setup_windows() {
+	STRIP="${HOST}-strip"
 	LD="${HOST}-ld"
 	AR="${HOST}-ar"
 	RANLIB="${HOST}-ranlib"
@@ -1324,6 +1322,7 @@ common_setup_mingw() {
 common_setup_macos() {
 	CC='clang'
 	CXX='clang++'
+	STRIP='strip'
 	CFLAGS+=" -arch ${MACOS_ARCH}"
 	CXXFLAGS+=" -arch ${MACOS_ARCH}"
 	LDFLAGS+=" -arch ${MACOS_ARCH}"
@@ -1333,6 +1332,7 @@ common_setup_macos() {
 common_setup_linux() {
 	CC="${HOST/-unknown-/-}-gcc"
 	CXX="${HOST/-unknown-/-}-g++"
+	STRIP="${HOST/-unknown-/-}-strip"
 	CFLAGS+=' -fPIC'
 	CXXFLAGS+=' -fPIC'
 }
