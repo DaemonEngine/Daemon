@@ -63,7 +63,58 @@ namespace Audio {
         sfxHandle_t newSfx;
         sfxHandle_t oldSfx;
     };
-    static entityLoop_t entityLoops[MAX_GENTITIES];
+
+    struct EntityMultiLoop {
+        entityLoop_t loops[MAX_ENTITY_SOUNDS];
+
+        entityLoop_t& FindSlot( const sfxHandle_t sfx ) {
+            uint32_t bestSlot = 0;
+            float minGain = FLT_MAX;
+
+            for ( entityLoop_t& loop : loops ) {
+                if ( sfx == loop.oldSfx ) {
+                    return loop;
+                }
+
+                if ( !loop.sound ) {
+                    return loop;
+                }
+
+                if ( loop.sound->currentGain < minGain ) {
+                    bestSlot = &loop - loops;
+                    minGain = loop.sound->currentGain;
+                }
+            }
+
+            return loops[bestSlot];
+        }
+
+        void StopAll() {
+            for ( entityLoop_t& loop : loops ) {
+                if ( loop.sound ) {
+                    loop.sound->Stop();
+                }
+
+                loop = { false, false, nullptr, -1, -1 };
+            }
+        }
+
+        void ResetAll() {
+            for ( entityLoop_t& loop : loops ) {
+                loop = { false, false, nullptr, -1, -1 };
+            }
+        }
+
+        void ClearLoopingSounds() {
+            for ( entityLoop_t& loop : loops ) {
+                if ( loop.sound ) {
+                    loop.addedThisFrame = false;
+                }
+            }
+        }
+    };
+
+    static EntityMultiLoop entityLoops[MAX_GENTITIES];
 
     static std::shared_ptr<StreamingSound> streams[N_STREAMS];
 
@@ -148,8 +199,8 @@ namespace Audio {
 
         UpdateListenerGain();
 
-        for (auto &loop : entityLoops) {
-            loop = {false, false, nullptr, -1, -1};
+        for ( EntityMultiLoop& loop : entityLoops ) {
+            loop.ResetAll();
         }
 
         return true;
@@ -161,11 +212,8 @@ namespace Audio {
         }
 
         // Shuts down the wrapper
-        for (auto &loop : entityLoops) {
-            if (loop.sound) {
-                loop.sound->Stop();
-            }
-            loop = {false, false, nullptr, -1, -1};
+        for ( EntityMultiLoop& loop : entityLoops ) {
+            loop.StopAll();
         }
 
         StopMusic();
@@ -194,26 +242,29 @@ namespace Audio {
             return;
         }
 
-        for (int i = 0; i < MAX_GENTITIES; i++) {
-            entityLoop_t& loop = entityLoops[i];
-            if (loop.sound and not loop.addedThisFrame) {
-                if ( loop.persistent ) {
-                    loop.sound->soundGain = 0;
-                } else {
-                    // The loop wasn't added this frame, that means it has to be removed.
+        for ( uint32_t i = 0; i < MAX_GENTITIES; i++ ) {
+            EntityMultiLoop& multiLoop = entityLoops[i];
+
+            for ( entityLoop_t& loop : multiLoop.loops ) {
+                if ( loop.sound and not loop.addedThisFrame ) {
+                    if ( loop.persistent ) {
+                        loop.sound->soundGain = 0;
+                    } else {
+                        // The loop wasn't added this frame, that means it has to be removed.
+                        loop.sound->FadeOutAndDie();
+                        loop = { false, false, nullptr, -1, -1 };
+                    }
+                } else if ( loop.oldSfx != loop.newSfx ) {
+                    // The last sfx added in the frame is not the current one being played
+                    // To mimic the previous sound system's behavior we sart playing the new one.
                     loop.sound->FadeOutAndDie();
+
+                    int newSfx = loop.newSfx;
+                    bool persistent = loop.persistent;
                     loop = { false, false, nullptr, -1, -1 };
+
+                    AddEntityLoopingSound( i, newSfx, persistent );
                 }
-            } else if (loop.oldSfx != loop.newSfx) {
-                // The last sfx added in the frame is not the current one being played
-                // To mimic the previous sound system's behavior we sart playing the new one.
-                loop.sound->FadeOutAndDie();
-
-                int newSfx = loop.newSfx;
-                bool persistent = loop.persistent;
-                loop = {false, false, nullptr, -1, -1};
-
-                AddEntityLoopingSound(i, newSfx, persistent);
             }
         }
 
@@ -224,15 +275,17 @@ namespace Audio {
         UpdateEmitters();
         UpdateSounds();
 
-        for (auto &loop : entityLoops) {
-            loop.addedThisFrame = false;
-            // if we are the unique owner of a loop pointer, then it means it was stopped, free it.
-            if (loop.sound.use_count() == 1) {
-                loop = {false, false, nullptr, -1, -1};
+        for ( EntityMultiLoop& multiLoop : entityLoops ) {
+            for ( entityLoop_t& loop : multiLoop.loops ) {
+                loop.addedThisFrame = false;
+                // if we are the unique owner of a loop pointer, then it means it was stopped, free it.
+                if ( loop.sound.use_count() == 1 ) {
+                    loop = { false, false, nullptr, -1, -1 };
+                }
             }
         }
 
-        for (auto &stream : streams) {
+        for ( std::shared_ptr<StreamingSound> &stream : streams ) {
             if (stream and stream.use_count() == 1) {
                 stream = nullptr;
             }
@@ -298,7 +351,7 @@ namespace Audio {
             return;
         }
 
-        entityLoop_t& loop = entityLoops[entityNum];
+        entityLoop_t& loop = entityLoops[entityNum].FindSlot( sfx );
 
         // If we have no sound we can play the loop directly
         if (not loop.sound) {
@@ -306,6 +359,7 @@ namespace Audio {
             loop.oldSfx = sfx;
             AddSound(GetEmitterForEntity(entityNum), loop.sound, 1);
         }
+
         loop.addedThisFrame = true;
         loop.persistent = persistent;
 
@@ -328,9 +382,7 @@ namespace Audio {
             return;
         }
 
-        if (entityLoops[entityNum].sound) {
-            entityLoops[entityNum].addedThisFrame = false;
-        }
+        entityLoops[entityNum].ClearLoopingSounds();
     }
 
     void StartMusic(Str::StringRef leadingSound, Str::StringRef loopSound) {
