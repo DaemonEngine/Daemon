@@ -570,9 +570,15 @@ endif()
 # Required for <stacktrace> on Clang/GCC
 if( USE_CPP23 )
     if ( DAEMON_CXX_COMPILER_GCC_COMPATIBILITY OR DAEMON_CXX_COMPILER_Clang_COMPATIBILITY )
-        set( CPP23SupportLibrary "-lstdc++exp" )
-    else()
-        set( CPP23SupportLibrary "" )
+        if ( ( DAEMON_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 13.3 ) OR ( DAEMON_CXX_COMPILER_Clang_VERSION VERSION_GREATER_EQUAL 19.1.0 ) )
+            set( CPP23SupportLibrary "-lstdc++exp" )
+        else()
+            set( CPP23SupportLibrary "-lstdc++_libbacktrace" )
+        endif()
+
+        if ( CXX_FLAGS MATCHES "*-stdlib=libc++*" )
+            message( WARNING "<stacktrace> is currently not implemented, StackTrace disabled. Link against libstc++ to use it" )
+        endif()
     endif()
 endif()
 
