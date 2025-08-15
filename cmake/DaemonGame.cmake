@@ -137,7 +137,11 @@ function(buildGameModule module_slug)
 			SUFFIX "${PLATFORM_EXE_SUFFIX}")
 	endif()
 
-	target_link_libraries(${module_target} ${GAMEMODULE_LIBS} ${LIBS_BASE})
+	target_link_libraries(${module_target} ${GAMEMODULE_LIBS} ${LIBS_BASE} ${CPP23SupportLibrary})
+
+    if( USE_CPP23 )
+        target_compile_features( ${module_target} PRIVATE "cxx_std_23" )
+    endif()
 
 	ADD_PRECOMPILED_HEADER(${module_target})
 endfunction()
