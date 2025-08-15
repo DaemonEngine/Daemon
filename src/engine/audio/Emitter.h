@@ -64,11 +64,13 @@ namespace Audio {
             void SetupSound(Sound& sound);
 
             // Called each frame before any UpdateSound is called, used to factor computations
-            void virtual Update() = 0;
+            virtual void Update() = 0;
             // Update the Sound's source's spatialization
             virtual void UpdateSound(Sound& sound) = 0;
             // Setup a source for the spatialization of this Emitter
             virtual void InternalSetupSound(Sound& sound) = 0;
+
+            virtual Vec3 GetPosition() const = 0;
     };
 
     // An Emitter that will follow an entity
@@ -80,6 +82,8 @@ namespace Audio {
             void virtual Update() override;
             virtual void UpdateSound(Sound& sound) override;
             virtual void InternalSetupSound(Sound& sound) override;
+
+            Vec3 GetPosition() const override;
 
         private:
             int entityNum;
@@ -95,7 +99,7 @@ namespace Audio {
             virtual void UpdateSound(Sound& sound) override;
             virtual void InternalSetupSound(Sound& sound) override;
 
-            Vec3 GetPosition() const;
+            Vec3 GetPosition() const override;
 
         private:
             Vec3 position;
@@ -110,6 +114,8 @@ namespace Audio {
             void virtual Update() override;
             virtual void UpdateSound(Sound& sound) override;
             virtual void InternalSetupSound(Sound& sound) override;
+
+            Vec3 GetPosition() const override;
     };
 
 }
