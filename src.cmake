@@ -356,6 +356,10 @@ set(CLIENTLIST
     ${RENDERERLIST}
 )
 
+if (APPLE)
+    set(CLIENTLIST ${CLIENTLIST} ${ENGINE_DIR}/sys/DisableAccentMenu.m)
+endif()
+
 set(CLIENTTESTLIST ${ENGINETESTLIST}
     ${ENGINE_DIR}/renderer/gl_shader_test.cpp
 )
