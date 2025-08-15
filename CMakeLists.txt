@@ -575,10 +575,6 @@ if( USE_CPP23 )
         else()
             set( CPP23SupportLibrary "-lstdc++_libbacktrace" )
         endif()
-
-        if ( CXX_FLAGS MATCHES "*\-stdlib\=libc\+\+*" )
-            message( WARNING "<stacktrace> is currently not implemented, StackTrace disabled. Link against libstc++ to use it" )
-        endif()
     endif()
 endif()
 
