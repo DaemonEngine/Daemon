@@ -50,7 +50,7 @@ namespace Audio {
     void StartSound(int entityNum, Vec3 origin, sfxHandle_t sfx);
     void StartLocalSound(int entityNum);
 
-    void AddEntityLoopingSound(int entityNum, sfxHandle_t sfx);
+    void AddEntityLoopingSound(int entityNum, sfxHandle_t sfx, bool persistent);
     void ClearAllLoopingSounds();
     void ClearLoopingSoundsForEntity(int entityNum);
 
