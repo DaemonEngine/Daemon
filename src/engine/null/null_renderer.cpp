@@ -107,10 +107,6 @@ int R_LerpTag( orientation_t*, const refEntity_t*, const char*, int )
 }
 void R_ModelBounds( qhandle_t, vec3_t, vec3_t ) { }
 void R_RemapShader( const char*, const char*, const char* ) { }
-bool R_GetEntityToken( char*, int )
-{
-	return true;
-}
 bool R_inPVS( const vec3_t, const vec3_t )
 {
 	return false;
@@ -240,7 +236,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.ModelBounds = R_ModelBounds;
 
     re.RemapShader = R_RemapShader;
-    re.GetEntityToken = R_GetEntityToken;
 
     re.inPVS = R_inPVS;
     re.inPVVS = R_inPVVS;

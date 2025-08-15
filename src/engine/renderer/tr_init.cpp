@@ -1621,7 +1621,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.UnregisterFont = RE_UnregisterFont;
 
 		re.RemapShader = R_RemapShader;
-		re.GetEntityToken = R_GetEntityToken;
 		re.inPVS = R_inPVS;
 		re.inPVVS = R_inPVVS;
 		// Q3A END

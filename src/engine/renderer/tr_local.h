@@ -2948,7 +2948,6 @@ void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLin
 	qhandle_t RE_RegisterSkin( const char *name );
 	void      RE_Shutdown( bool destroyWindow );
 
-	bool   R_GetEntityToken( char *buffer, int size );
 	void R_ProcessLightmap( byte *bytes, int width, int height, int bits ); // Arnout
 
 	model_t    *R_AllocModel();
