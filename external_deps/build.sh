@@ -1345,7 +1345,8 @@ setup_windows-amd64-mingw() {
 # Set up environment for 64-bit amd64 macOS
 setup_macos-amd64-default() {
 	MACOS_ARCH=x86_64
-	export MACOSX_DEPLOYMENT_TARGET=10.12 # works with CMake
+	# OpenAL requires 10.15 for std::filesystem
+	export MACOSX_DEPLOYMENT_TARGET=10.15 # works with CMake
 	common_setup macos x86_64-apple-darwin11
 }
 
