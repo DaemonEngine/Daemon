@@ -497,6 +497,27 @@ build_glew() {
 
 	cd "${dir_name}"
 
+	local glew_env=(LDFLAGS.EXTRA="${LDFLAGS}")
+	local glew_options=(GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" STRIP="${STRIP}")
+
+	case "${PLATFORM}" in
+	windows-*-*)
+		glew_env+=(CFLAGS.EXTRA="${CFLAGS}")
+		glew_options+=(SYSTEM="linux-mingw${BITNESS}" LD="${LD}" AR="${AR}" RANLIB="${RANLIB}")
+		;;
+	macos-*-*)
+		glew_env+=(CFLAGS.EXTRA="${CFLAGS} -dynamic -fno-common")
+		glew_options+=(SYSTEM=darwin LD="${CC}")
+		;;
+	linux-*-*)
+		glew_env+=(CFLAGS.EXTRA="${CFLAGS}")
+		glew_options+=(LIBDIR="${PREFIX}/lib" LD="${CC}")
+		;;
+	*)
+		log ERROR 'Unsupported platform for GLEW'
+		;;
+	esac
+
 	# env hack: CFLAGS.EXTRA is populated with some flags, which are sometimess necessary for
 	# compilation, in the makefile with +=. If CFLAGS.EXTRA is set on the command line, those
 	# += will be ignored. But if it is set via the environment, the two sources are actually
@@ -504,24 +525,24 @@ build_glew() {
 	# The hack doesn't work on Mac's ancient Make (the env var has no effect), so we have to
 	# manually re-add the required flags there.
 	case "${PLATFORM}" in
+	macos-*-*)
+		make "${glew_env[@]}" "${glew_options[@]}"
+		make install "${glew_env[@]}" "${glew_options[@]}"
+		;;
+	*)
+		env "${glew_env[@]}" make "${glew_options[@]}"
+		env "${glew_env[@]}" make install "${glew_options[@]}"
+		;;
+	esac
+
+	case "${PLATFORM}" in
 	windows-*-*)
-		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${STRIP}" LD="${LD}"
-		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${STRIP}" LD="${LD}"
 		mv "${PREFIX}/lib/glew32.dll" "${PREFIX}/bin/"
 		rm "${PREFIX}/lib/libglew32.a"
 		cp lib/libglew32.dll.a "${PREFIX}/lib/"
 		;;
 	macos-*-*)
-		make SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS}"
-		make install SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS}"
 		install_name_tool -id "@rpath/libGLEW.${GLEW_VERSION}.dylib" "${PREFIX}/lib/libGLEW.${GLEW_VERSION}.dylib"
-		;;
-	linux-*-*)
-		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" STRIP="${STRIP}"
-		env CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}" make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" LIBDIR="${PREFIX}/lib"
-		;;
-	*)
-		log ERROR 'Unsupported platform for GLEW'
 		;;
 	esac
 }
