@@ -471,7 +471,6 @@ enum class rserr_t
 };
 
 cvar_t                     *r_allowResize; // make window resizable
-cvar_t                     *r_centerWindow;
 cvar_t                     *r_displayIndex;
 cvar_t                     *r_sdlDriver;
 
@@ -885,18 +884,8 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 
 	SDL_free( displayIDs );
 
-	int x, y;
-	if ( r_centerWindow->integer )
-	{
-		// center window on specified display
-		x = SDL_WINDOWPOS_CENTERED_DISPLAY( displayID );
-		y = SDL_WINDOWPOS_CENTERED_DISPLAY( displayID );
-	}
-	else
-	{
-		x = SDL_WINDOWPOS_UNDEFINED_DISPLAY( displayID );
-		y = SDL_WINDOWPOS_UNDEFINED_DISPLAY( displayID );
-	}
+	int x = SDL_WINDOWPOS_CENTERED_DISPLAY( displayID );
+	int y = SDL_WINDOWPOS_CENTERED_DISPLAY( displayID );
 
 	SDL_PropertiesID props = SDL_CreateProperties();
 	SDL_SetStringProperty( props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, CLIENT_WINDOW_TITLE );
@@ -2699,7 +2688,6 @@ bool GLimp_Init()
 
 	r_sdlDriver = Cvar_Get( "r_sdlDriver", "", CVAR_ROM );
 	r_allowResize = Cvar_Get( "r_allowResize", "0", CVAR_LATCH );
-	r_centerWindow = Cvar_Get( "r_centerWindow", "0", 0 );
 	r_displayIndex = Cvar_Get( "r_displayIndex", "0", 0 );
 
 	Cvar::Latch( workaround_glDriver_amd_adrenalin_disableBindlessTexture );
