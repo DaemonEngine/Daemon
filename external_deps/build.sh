@@ -1191,7 +1191,12 @@ build_install() {
 	linux-*-*)
 		find "${PKG_PREFIX}/lib" -name '*.so' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.so.*' -execdir rm -f -- {} \;
+
+		local strip="${HOST/-unknown-/-}-strip"
+		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${strip}" --strip-unneeded -- {} \;
 		;;
+	macos-*-*)
+		find "${PKG_PREFIX}/lib" -name '*.a' -execdir strip -u {} \;
 	esac
 
 	case "${PLATFORM}" in
