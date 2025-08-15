@@ -218,9 +218,9 @@ void trap_S_SetReverb( int slotNum, const char* name, float ratio )
 	cmdBuffer.SendMsg<Audio::SetReverbMsg>(slotNum, name, ratio);
 }
 
-void trap_S_BeginRegistration()
+void trap_S_BeginRegistration( const int playerNum )
 {
-	cmdBuffer.SendMsg<Audio::BeginRegistrationMsg>();
+	cmdBuffer.SendMsg<Audio::BeginRegistrationMsg>( playerNum );
 }
 
 void trap_S_EndRegistration()

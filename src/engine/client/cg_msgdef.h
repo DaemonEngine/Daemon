@@ -291,7 +291,7 @@ namespace Audio {
 	using UpdateEntityVelocityMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYVELOCITY>, int, Vec3>;
 	using UpdateEntityPositionVelocityMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYPOSITIONVELOCITY>, int, Vec3, Vec3>;
 	using SetReverbMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_SETREVERB>, int, std::string, float>;
-	using BeginRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_BEGINREGISTRATION>>;
+	using BeginRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_BEGINREGISTRATION>, int>;
 	using EndRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_ENDREGISTRATION>>;
 }
 
