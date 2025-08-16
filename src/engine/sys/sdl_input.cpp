@@ -456,21 +456,18 @@ void IN_SetMouseMode(MouseMode newMode)
 		{
 			case MouseMode::SystemCursor:
 				SDL_ShowCursor();
-				SDL_SetWindowKeyboardGrab( window, false );
 				SDL_SetWindowMouseGrab( window, false );
 				SDL_SetWindowRelativeMouseMode( window, false );
 				break;
 
 			case MouseMode::CustomCursor:
 				SDL_HideCursor();
-				SDL_SetWindowKeyboardGrab( window, false );
 				SDL_SetWindowMouseGrab( window, false );
 				SDL_SetWindowRelativeMouseMode( window, false );
 				break;
 
 			case MouseMode::Deltas:
 				SDL_HideCursor();
-				SDL_SetWindowKeyboardGrab( window, true );
 				SDL_SetWindowMouseGrab( window, true );
 				SDL_SetWindowRelativeMouseMode( window, true );
 				break;
