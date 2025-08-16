@@ -341,7 +341,7 @@ static void SV_AddEntToSnapshot( svEntity_t *svEnt, sharedEntity_t *gEnt,
 SV_AddEntitiesVisibleFromPoint
 ===============
 */
-static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *frame,
+static void SV_AddEntitiesVisibleFromPoint( client_t* client, vec3_t origin, clientSnapshot_t *frame,
 //                                  snapshotEntityNumbers_t *eNums, bool portal, clientSnapshot_t *oldframe, bool localClient ) {
 //                                  snapshotEntityNumbers_t *eNums, bool portal ) {
     snapshotEntityNumbers_t *eNums /*, bool portal, bool localClient */ )
@@ -379,7 +379,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 
 	if ( playerEnt->r.svFlags & SVF_SELF_PORTAL )
 	{
-		SV_AddEntitiesVisibleFromPoint( playerEnt->s.origin2, frame, eNums );
+		SV_AddEntitiesVisibleFromPoint( client, playerEnt->s.origin2, frame, eNums );
 	}
 
 	for ( e = 0; e < sv.num_entities; e++ )
@@ -458,6 +458,11 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 		// broadcast entities are always sent
 		if ( ent->r.svFlags & SVF_BROADCAST )
 		{
+			SV_AddEntToSnapshot( svEnt, ent, eNums );
+			continue;
+		}
+
+		if ( ( ent->r.svFlags & SVF_BROADCAST_ONCE ) && !client->reliableAcknowledge ) {
 			SV_AddEntToSnapshot( svEnt, ent, eNums );
 			continue;
 		}
@@ -637,7 +642,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 			}
 
 //          SV_AddEntitiesVisibleFromPoint( ent->s.origin2, frame, eNums, true, oldframe, localClient );
-			SV_AddEntitiesVisibleFromPoint( ent->s.origin2, frame, eNums /*, true, localClient */ );
+			SV_AddEntitiesVisibleFromPoint( client, ent->s.origin2, frame, eNums /*, true, localClient */ );
 		}
 
 		continue;
@@ -720,7 +725,7 @@ static void SV_BuildClientSnapshot( client_t *client )
 
 	// add all the entities directly visible to the eye, which
 	// may include portal entities that merge other viewpoints
-	SV_AddEntitiesVisibleFromPoint( org, frame, &entityNumbers /*, false, client->netchan.remoteAddress.type == NA_LOOPBACK */ );
+	SV_AddEntitiesVisibleFromPoint( client, org, frame, &entityNumbers /*, false, client->netchan.remoteAddress.type == NA_LOOPBACK */ );
 
 	// if there were portals visible, there may be out of order entities
 	// in the list which will need to be resorted for the delta compression
