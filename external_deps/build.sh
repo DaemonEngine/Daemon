@@ -478,7 +478,8 @@ build_sdl3() {
 		cd "${dir_name}"
 
 		cmake_build \
-			-DSDL_TEST_LIBRARY=OFF
+			-DSDL_TEST_LIBRARY=OFF \
+			-DSDL_AUDIO=OFF
 
 		# Workaround for an SDL CMake bug, we need to provide
 		# a bin/ directory even when nothing is used from it.
@@ -718,7 +719,7 @@ build_openal() {
 
 	"${download_only}" && return
 
-	local openal_cmake_args=(-DALSOFT_EXAMPLES=OFF)
+	local openal_cmake_args=(-DALSOFT_EXAMPLES=OFF -DALSOFT_BACKEND_SNDIO=OFF)
 
 	case "${PLATFORM}" in
 	*-i686-*|*-amd64-*)
