@@ -734,6 +734,9 @@ build_openal() {
 	windows-amd64-*)
 		local openal_win_dir='Win64'
 		;;
+	macos-*-*)
+		openal_cmake_args+=(-DLIBTYPE=SHARED)
+		;;
 	*)
 		if [ "${LIBS_SHARED}" = 'ON' ]
 		then
