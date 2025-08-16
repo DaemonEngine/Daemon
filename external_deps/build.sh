@@ -239,8 +239,8 @@ cmake_build() {
 	cmake --install build --strip
 }
 
-# Build pkg-config
-# Still needed, at least on macos, for opusfile
+# Build pkg-config, needed for opusfile
+# As a host-mode dependency it must be provided by the system when cross-compiling.
 build_pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
