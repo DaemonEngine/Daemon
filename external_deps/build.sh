@@ -1433,13 +1433,13 @@ all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
-base_linux_i686_default_packages='naclsdk'
+base_linux_i686_default_packages='sdl3 naclsdk'
 all_linux_i686_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
 
 base_linux_amd64_default_packages="${base_linux_i686_default_packages} naclruntime"
 all_linux_amd64_default_packages="${all_linux_i686_default_packages} naclruntime"
 
-base_linux_arm64_default_packages='naclsdk'
+base_linux_arm64_default_packages='sdl3 naclsdk'
 all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
 
 base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
