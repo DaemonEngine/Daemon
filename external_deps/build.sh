@@ -1556,9 +1556,9 @@ fi
 CURL="$(command -v curl)" || log ERROR "Command 'curl' not found"
 
 # Enable parallel build
-export MAKEFLAGS="-j`nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
+export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)"
+export MAKEFLAGS="-j${CMAKE_BUILD_PARALLEL_LEVEL}"
 export SCONSFLAGS="${MAKEFLAGS}"
-export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1)"
 
 # Setup platform
 platform="${1}"; shift
