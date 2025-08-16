@@ -54,29 +54,24 @@ namespace Audio {
     //TODO sound.mute
     class Sound {
         public:
+            float positionalGain;
+            float soundGain;
+            float currentGain;
+
+            bool playing;
+            const Cvar::Range<Cvar::Cvar<float>>* volumeModifier;
+
+            AL::Source* source;
+            std::shared_ptr<Emitter> emitter;
+
             Sound();
             virtual ~Sound();
 
             void Play();
             // Stop the source and marks the sound for deletion.
             void Stop();
-            bool IsStopped();
-
-            // The is attenuated because of its inherent porperties and because of its position.
-            // Each attenuation can be set separately.
-            void SetPositionalGain(float gain);
-            void SetSoundGain(float gain);
-            float GetCurrentGain();
-
-            // sfx vs. music
-            void SetVolumeModifier(const Cvar::Range<Cvar::Cvar<float>>& volumeMod);
-            float GetVolumeModifier() const;
-
-            void SetEmitter(std::shared_ptr<Emitter> emitter);
-            std::shared_ptr<Emitter> GetEmitter();
 
             void AcquireSource(AL::Source& source);
-            AL::Source& GetSource();
 
             // Used to setup a source for a specific kind of sound and to start the sound.
             virtual void SetupSource(AL::Source& source) = 0;
@@ -85,16 +80,6 @@ namespace Audio {
             void Update();
             // Called each frame, after emitters have been updated.
             virtual void InternalUpdate() = 0;
-
-        private:
-            float positionalGain;
-            float soundGain;
-            float currentGain;
-
-            bool playing;
-            std::shared_ptr<Emitter> emitter;
-            const Cvar::Range<Cvar::Cvar<float>>* volumeModifier;
-            AL::Source* source;
     };
 
     // A sound that is played once.
@@ -139,7 +124,6 @@ namespace Audio {
             virtual void InternalUpdate() override;
 
             void AppendBuffer(AL::Buffer buffer);
-            void SetGain(float gain);
     };
 
 }

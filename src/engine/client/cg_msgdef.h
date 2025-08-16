@@ -282,7 +282,7 @@ namespace Audio {
 	using StartSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STARTSOUND>, bool, Vec3, int, int>;
 	using StartLocalSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STARTLOCALSOUND>, int>;
 	using ClearLoopingSoundsMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_CLEARLOOPINGSOUNDS>>;
-	using AddLoopingSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_ADDLOOPINGSOUND>, int, int>;
+	using AddLoopingSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_ADDLOOPINGSOUND>, int, int, bool>;
 	using StopLoopingSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STOPLOOPINGSOUND>, int>;
 	using UpdateEntityPositionMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYPOSITION>, int, Vec3>;
 	using RespatializeMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_RESPATIALIZE>, int, std::array<Vec3, 3>>;
