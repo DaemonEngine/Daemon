@@ -671,7 +671,9 @@ static bool GLimp_DetectAvailableModes()
 
 		if ( !mode->w || !mode->h )
 		{
+			// FIXME is this really a thing? I don't see it in SDL2 or SDL3 documentation
 			logger.Notice("Display supports any resolution" );
+			SDL_free( displayModes );
 			return true;
 		}
 
