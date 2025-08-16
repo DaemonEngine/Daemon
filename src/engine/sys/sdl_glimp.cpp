@@ -1060,7 +1060,14 @@ static rserr_t GLimp_SetModeAndResolution( const int mode )
 		Sys::Error( "SDL_GetDisplays failed: %s\n", SDL_GetError() );
 	}
 
-	SDL_DisplayID displayID = displayIDs[ r_displayIndex->integer ];
+	if ( numDisplays <= 0 )
+	{
+		Sys::Error( "SDL_GetDisplays returned 0 displays" );
+	}
+
+	SDL_DisplayID displayID = displayIDs[ Math::Clamp( r_displayIndex->integer, 0, numDisplays - 1 ) ];
+
+	SDL_free( displayIDs );
 
 	const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode( displayID );
 
