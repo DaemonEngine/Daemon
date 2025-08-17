@@ -282,6 +282,7 @@ try_flag(WARNINGS           "-W${WARNMODE}old-style-cast")
 try_flag(WARNINGS           "-Woverloaded-virtual")
 try_flag(WARNINGS           "-Wstrict-null-sentinel")
 try_flag(WARNINGS           "-W${WARNMODE}sign-compare")
+try_flag(WARNINGS           "-Wno-nonnull")
 
 # MSVC /wd = warning disable
 try_flag(WARNINGS "/wd4127")  # conditional expression is constant
