@@ -282,6 +282,10 @@ try_flag(WARNINGS           "-W${WARNMODE}old-style-cast")
 try_flag(WARNINGS           "-Woverloaded-virtual")
 try_flag(WARNINGS           "-Wstrict-null-sentinel")
 try_flag(WARNINGS           "-W${WARNMODE}sign-compare")
+try_flag(WARNINGS           "-Wno-deprecated-enum-compare")
+try_flag(WARNINGS           "-Wno-deprecated-enum-compare-conditional")
+try_flag(WARNINGS           "-Wno-deprecated-enum-enum-conversion")
+try_flag(WARNINGS           "-Wno-deprecated-enum-float-conversion")
 
 # MSVC /wd = warning disable
 try_flag(WARNINGS "/wd4127")  # conditional expression is constant
