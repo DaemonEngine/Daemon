@@ -1227,6 +1227,12 @@ static void RenderDepthTiles()
 		return;
 	}
 
+	// Assume depth is dirty since we just rendered depth pass
+	if ( glConfig2.textureBarrierAvailable ) {
+		glTextureBarrier();
+		backEnd.dirtyDepthBuffer = false;
+	}
+
 	// 1st step
 	R_BindFBO( tr.depthtile1FBO );
 	GL_Viewport( 0, 0, tr.depthtile1FBO->width, tr.depthtile1FBO->height );
@@ -1396,9 +1402,9 @@ void RB_RenderGlobalFog()
 
 	gl_fogGlobalShader->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
 
-	// bind u_ColorMap
-	gl_fogGlobalShader->SetUniform_ColorMapBindless(
-		GL_BindToTMU( 0, tr.fogImage ) 
+	// bind u_FogMap
+	gl_fogGlobalShader->SetUniform_FogMapBindless(
+		GL_BindToTMU( 0, tr.fogImage )
 	);
 
 	// bind u_DepthMap
@@ -1507,6 +1513,13 @@ void RB_RenderMotionBlur()
 	}
 
 	GLIMP_LOGCOMMENT( "--- RB_RenderMotionBlur ---" );
+
+	/* Assume depth is dirty since we just rendered depth pass and everything opaque,
+	unless we have already rendered post-depth lighttile, which does this as well */
+	if ( glConfig2.textureBarrierAvailable && backEnd.dirtyDepthBuffer ) {
+		glTextureBarrier();
+		backEnd.dirtyDepthBuffer = false;
+	}
 
 	GL_State( GLS_DEPTHTEST_DISABLE );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -2786,6 +2799,44 @@ static void RB_RenderPostProcess()
 	GL_CheckErrors();
 }
 
+static void SetFrameUniforms() {
+	// This can happen with glsl_restart/vid_restart in R_SyncRenderThread()
+	if ( !stagingBuffer.Active() ) {
+		return;
+	}
+
+	GLIMP_LOGCOMMENT( "--- SetFrameUniforms ---" );
+
+	globalUBOProxy->SetUniform_blurVec( tr.refdef.blurVec );
+	globalUBOProxy->SetUniform_numLights( tr.refdef.numLights );
+
+	globalUBOProxy->SetUniform_ColorModulate( tr.viewParms.gradingWeights );
+	globalUBOProxy->SetUniform_InverseGamma( 1.0f / r_gamma->value );
+
+	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig2.textureFloatAvailable;
+	if ( tonemap ) {
+		vec4_t tonemapParms{ r_toneMappingContrast.Get(), r_toneMappingHighlightsCompressionSpeed.Get() };
+		ComputeTonemapParams( tonemapParms[0], tonemapParms[1], r_toneMappingHDRMax.Get(),
+			r_toneMappingDarkAreaPointHDR.Get(), r_toneMappingDarkAreaPointLDR.Get(), tonemapParms[2], tonemapParms[3] );
+		globalUBOProxy->SetUniform_TonemapParms( tonemapParms );
+		globalUBOProxy->SetUniform_TonemapExposure( r_toneMappingExposure.Get() );
+	}
+	globalUBOProxy->SetUniform_Tonemap( tonemap );
+
+	if ( glConfig2.usingMaterialSystem ) {
+		materialSystem.SetFrameUniforms();
+	}
+
+	if ( !globalUBOProxy->uniformsUpdated ) {
+		return;
+	}
+
+	uint32_t* data = pushBuffer.MapGlobalUniformData( GLUniform::FRAME );
+	globalUBOProxy->WriteUniformsToBuffer( data, GLShader::PUSH, GLUniform::FRAME );
+
+	pushBuffer.PushGlobalUniforms();
+}
+
 /*
 ============================================================================
 
@@ -3784,6 +3835,11 @@ void RB_ExecuteRenderCommands( const void *data )
 
 
 	materialSystem.frameStart = true;
+
+	if ( glConfig2.pushBufferAvailable ) {
+		SetFrameUniforms();
+	}
+
 	while ( cmd != nullptr )
 	{
 		cmd = cmd->ExecuteSelf();
