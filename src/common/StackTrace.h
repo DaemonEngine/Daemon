@@ -57,36 +57,10 @@ inline std::string FormatStackTrace( const std::stacktrace& stackTrace,
             continue;
         }
 
-        std::string file = entry.source_file();
-        
-#if defined( _MSC_VER )
-        size_t pos = file.find( "src\\n" );
-#else
-        size_t pos = file.find( "src/" );
-#endif
-
-        if ( pos != std::string::npos ) {
-            file = file.substr( pos + 4 );
-        }
-
-        if ( compact ) {
-#if defined( _MSC_VER )
-            pos = file.find( "engine\\renderer-vulkan" );
-#else
-            pos = file.find( "engine/renderer-vulkan" );
-#endif
-
-            if ( pos == std::string::npos ) {
-                continue;
-            }
-
-            file = file.substr( pos + 23 );
-        }
-
         if( compact ) {
-            out += Str::Format( addLineEnd ? "\n%s:%u" : "%s:%u", file, entry.source_line() );
+            out += Str::Format( addLineEnd ? "\n%s:%u" : "%s:%u", entry.source_file(), entry.source_line());
         } else {
-            out += Str::Format( addLineEnd ? "\n%s:%u: %s" : "%s:%u: %s", file, entry.source_line(), entry.description() );
+            out += Str::Format( addLineEnd ? "\n%s:%u: %s" : "%s:%u: %s", entry.source_file(), entry.source_line(), entry.description());
         }
         addLineEnd = true;
     }
