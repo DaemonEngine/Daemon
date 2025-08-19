@@ -243,6 +243,13 @@ endif()
 if (MSVC)
     set_c_cxx_flag("/MP")
 
+    # There is no flag for standards before C++17
+    if (USE_CPP23 AND USE_RECOMMENDED_CXX_STANDARD)
+        set_cxx_flag("/std:c++23preview")
+    else()
+        message(FATAL_ERROR "WIENIEONOIENOINIEN")
+    endif()
+
     if (USE_FAST_MATH)
         set_c_cxx_flag("/fp:fast")
     else()
@@ -319,26 +326,21 @@ else()
 		endif()
 	endif()
 
-	if (USE_CPP23)
-		if (MSVC)
-			add_compile_options("/std:c++23preview")
-		else()
+	if (USE_RECOMMENDED_CXX_STANDARD)
+		if (USE_CPP23)
 			try_cxx_flag(GNUXX23 "-std=gnu++23")
-
 			if (NOT FLAG_GNUXX23)
-				message(WARNING "Requested C++23 is not supported, falling back to C++14")
+				message(FATAL_ERROR "GNU++23 is not supported by the compiler")
 			endif()
-		endif()
-	endif()
-	
-	if (NOT USE_CPP23 AND (NOT FLAG_GNUXX23 OR USE_RECOMMENDED_CXX_STANDARD))
-		# PNaCl only defines isascii if __STRICT_ANSI__ is not defined,
-		# always prefer GNU dialect.
-		try_cxx_flag(GNUXX14 "-std=gnu++14")
-		if (NOT FLAG_GNUXX14)
-			try_cxx_flag(GNUXX1Y "-std=gnu++1y")
-			if (NOT FLAG_GNUXX1Y)
-				message(FATAL_ERROR "GNU++14 is not supported by the compiler")
+		else()
+			# PNaCl only defines isascii if __STRICT_ANSI__ is not defined,
+			# always prefer GNU dialect.
+			try_cxx_flag(GNUXX14 "-std=gnu++14")
+			if (NOT FLAG_GNUXX14)
+				try_cxx_flag(GNUXX1Y "-std=gnu++1y")
+				if (NOT FLAG_GNUXX1Y)
+					message(FATAL_ERROR "GNU++14 is not supported by the compiler")
+				endif()
 			endif()
 		endif()
 	endif()
