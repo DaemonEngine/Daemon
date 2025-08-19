@@ -98,8 +98,6 @@ if(USE_CPP23)
 			set(CPP23SupportLibrary "")
 		else()
     		add_definitions(-DDAEMON_CPP23_SUPPORT_LIBRARY_ENABLED=1)
-			# FIXME: Doesn't work?
-			add_compile_options("-fmacro-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/src=.")
 			
 			if (CPP23SupportLibraryOldLibrary)
 				message(STATUS "Using <stacktrace>: found ${CPP23SupportLibrary} (recommended to use libc++exp on this compiler version instead, but it wasn't found)")
@@ -107,13 +105,6 @@ if(USE_CPP23)
 				message(STATUS "Using <stacktrace>: found ${CPP23SupportLibrary}")
 			endif()
 		endif()
-    elseif (MSVC)
-		# FIXME: Doesn't work in sgame/cgame?
-		string(REPLACE "/" "\\" backslashed_dir ${CMAKE_CURRENT_SOURCE_DIR}/src)
-		add_compile_options("/d1trimfile:${backslashed_dir}")
-		
-		string(REPLACE "/" "\\" backslashed_dir ${CMAKE_CURRENT_SOURCE_DIR}/daemon/src)
-		add_compile_options("/d1trimfile:${backslashed_dir}")
 	endif()
 endif()
 
@@ -225,6 +216,24 @@ macro(try_exe_linker_flag PROP FLAG)
 		set_exe_linker_flag(${FLAG} ${ARGN})
 	endif()
 endmacro()
+
+# Stripping of absolute paths for __FILE__ / source_location
+# Also do without src/ to get libs/
+set(FILENAME_STRIP_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}")
+if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL DAEMON_DIR)
+    set(FILENAME_STRIP_DIRS ${FILENAME_STRIP_DIRS} "${DAEMON_DIR}/src" "${DAEMON_DIR}")
+endif()
+foreach(strip_dir ${FILENAME_STRIP_DIRS})
+    if (MSVC)
+        string(REPLACE "/" "\\" backslashed_dir ${strip_dir})
+        # set_c_cxx_flag can't be used because macros barf if the input contains backslashes
+        # https://gitlab.kitware.com/cmake/cmake/-/issues/19281
+        set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} "/d1trimfile:${backslashed_dir}")
+        set(CMAKE_CXX_FLAGS ${CMAKE_C_FLAGS} "/d1trimfile:${backslashed_dir}")
+    else()
+        try_c_cxx_flag(PREFIX_MAP "-fmacro-prefix-map=${strip_dir}=.")
+    endif()
+endforeach()
 
 if (BE_VERBOSE)
     set(WARNMODE "no-error=")
