@@ -1227,6 +1227,12 @@ static void RenderDepthTiles()
 		return;
 	}
 
+	// Assume depth is dirty since we just rendered depth pass
+	if ( glConfig2.textureBarrierAvailable ) {
+		glTextureBarrier();
+		backEnd.dirtyDepthBuffer = false;
+	}
+
 	// 1st step
 	R_BindFBO( tr.depthtile1FBO );
 	GL_Viewport( 0, 0, tr.depthtile1FBO->width, tr.depthtile1FBO->height );
@@ -1507,6 +1513,13 @@ void RB_RenderMotionBlur()
 	}
 
 	GLIMP_LOGCOMMENT( "--- RB_RenderMotionBlur ---" );
+
+	/* Assume depth is dirty since we just rendered depth pass and everything opaque,
+	unless we have already rendered post-depth lighttile, which does this as well */
+	if ( glConfig2.textureBarrierAvailable && backEnd.dirtyDepthBuffer ) {
+		glTextureBarrier();
+		backEnd.dirtyDepthBuffer = false;
+	}
 
 	GL_State( GLS_DEPTHTEST_DISABLE );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
