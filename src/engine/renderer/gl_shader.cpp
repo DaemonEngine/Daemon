@@ -2477,9 +2477,6 @@ void GLShader_lightMapping::SetShaderProgramUniforms( ShaderProgramDescriptor *s
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightTiles" ), BIND_LIGHTTILES );
-	if( !glConfig2.uniformBufferObjectAvailable ) {
-		glUniform1i( glGetUniformLocation( shaderProgram->id, "u_Lights" ), BIND_LIGHTS );
-	}
 }
 
 GLShader_lightMappingMaterial::GLShader_lightMappingMaterial() :
@@ -2539,9 +2536,6 @@ void GLShader_lightMappingMaterial::SetShaderProgramUniforms( ShaderProgramDescr
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightTiles" ), BIND_LIGHTTILES );
-	if ( !glConfig2.uniformBufferObjectAvailable ) {
-		glUniform1i( glGetUniformLocation( shaderProgram->id, "u_Lights" ), BIND_LIGHTS );
-	}
 }
 
 GLShader_reflection::GLShader_reflection():
@@ -2989,10 +2983,6 @@ GLShader_lighttile::GLShader_lighttile() :
 void GLShader_lighttile::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
-
-	if( !glConfig2.uniformBufferObjectAvailable ) {
-		glUniform1i( glGetUniformLocation( shaderProgram->id, "u_Lights" ), 1 );
-	}
 }
 
 GLShader_fxaa::GLShader_fxaa() :
