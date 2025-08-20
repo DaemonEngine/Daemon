@@ -226,8 +226,6 @@ void Drop(Str::StringRef message)
 {
 	if (!OnMainThread()) {
 		Sys::Error(message);
-	} else {
-		PrintStackTrace();
 	}
 
 	// Transform into a fatal error if too many errors are generated in quick
@@ -242,6 +240,8 @@ void Drop(Str::StringRef message)
 		errorCount = 0;
 	}
 	lastError = now;
+
+	PrintStackTrace();
 
 	throw DropErr(true, message);
 }
