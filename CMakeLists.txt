@@ -844,6 +844,7 @@ endif()
 
 if (BUILD_TESTS)
     set(BUILD_GMOCK ON)
+    set(GTEST_HAS_ABSL OFF)
     set(INSTALL_GTEST OFF)
     set(gtest_force_shared_crt ON)
     add_subdirectory(${LIB_DIR}/googletest EXCLUDE_FROM_ALL)
