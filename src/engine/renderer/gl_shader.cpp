@@ -2968,10 +2968,6 @@ GLShader_depthReduction::GLShader_depthReduction() :
 	u_InitialDepthLevel( this ) {
 }
 
-void GLShader_depthReduction::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
-}
-
 GLShader_clearSurfaces::GLShader_clearSurfaces() :
 	GLShader( "clearSurfaces",
 		false, "clearSurfaces" ),

@@ -1526,6 +1526,7 @@ void MaterialSystem::DepthReduction() {
 	uint32_t globalWorkgroupX = ( width + 7 ) / 8;
 	uint32_t globalWorkgroupY = ( height + 7 ) / 8;
 
+	// FIXME: u_DepthMap object on the shader is not actually used
 	GL_Bind( tr.currentDepthImage );
 	glBindImageTexture( 2, depthImage->texnum, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F );
 
