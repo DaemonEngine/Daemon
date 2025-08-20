@@ -3769,7 +3769,6 @@ class GLShader_depthReduction :
 	public u_InitialDepthLevel {
 	public:
 	GLShader_depthReduction();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_clearSurfaces :
