@@ -1306,7 +1306,7 @@ void RB_RenderPostDepthLightTile()
 	gl_lighttileShader->SetUniformBlock_Lights( tr.dlightUBO );
 
 	gl_lighttileShader->SetUniform_DepthTile2Bindless(
-		GL_BindToTMU( 1, tr.depthtile2RenderImage ) 
+		GL_BindToTMU( 0, tr.depthtile2RenderImage )
 	);
 
 	R_BindVBO( tr.lighttileVBO );

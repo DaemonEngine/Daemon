@@ -2982,7 +2982,7 @@ GLShader_lighttile::GLShader_lighttile() :
 
 void GLShader_lighttile::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthTile2" ), 0 );
 }
 
 GLShader_fxaa::GLShader_fxaa() :
