@@ -2407,11 +2407,6 @@ GLShader_genericMaterial::GLShader_genericMaterial() :
 	GLCompileMacro_USE_DEPTH_FADE( this ) {
 }
 
-void GLShader_genericMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
-}
-
 GLShader_lightMapping::GLShader_lightMapping() :
 	GLShader( "lightMapping", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR,
 		false, "lightMapping", "lightMapping" ),
@@ -2525,19 +2520,6 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial() :
 	GLCompileMacro_USE_PHYSICAL_MAPPING( this ) {
 }
 
-void GLShader_lightMappingMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DiffuseMap" ), BIND_DIFFUSEMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), BIND_NORMALMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), BIND_HEIGHTMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_MaterialMap" ), BIND_MATERIALMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightMap" ), BIND_LIGHTMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DeluxeMap" ), BIND_DELUXEMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_GlowMap" ), BIND_GLOWMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightTiles" ), BIND_LIGHTTILES );
-}
-
 GLShader_reflection::GLShader_reflection():
 	GLShader( "reflection", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT,
 		false, "reflection_CB", "reflection_CB" ),
@@ -2588,12 +2570,6 @@ GLShader_reflectionMaterial::GLShader_reflectionMaterial() :
 	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
 }
 
-void GLShader_reflectionMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
-}
-
 GLShader_skybox::GLShader_skybox() :
 	GLShader( "skybox", ATTR_POSITION,
 		false, "skybox", "skybox" ),
@@ -2624,11 +2600,6 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial() :
 	u_AlphaThreshold( this ),
 	u_ModelViewProjectionMatrix( this )
 {}
-
-void GLShader_skyboxMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CloudMap" ), 1 );
-}
 
 GLShader_fogQuake3::GLShader_fogQuake3() :
 	GLShader( "fogQuake3", ATTR_POSITION | ATTR_QTANGENT,
@@ -2665,10 +2636,6 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material() :
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),
 	GLDeformStage( this ) {
-}
-
-void GLShader_fogQuake3Material::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_FogMap" ), 0 );
 }
 
 GLShader_fogGlobal::GLShader_fogGlobal() :
@@ -2730,11 +2697,6 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial() :
 {
 }
 
-void GLShader_heatHazeMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 1 );
-}
-
 GLShader_screen::GLShader_screen() :
 	GLShader( "screen", ATTR_POSITION,
 		false, "screen", "screen" ),
@@ -2753,10 +2715,6 @@ GLShader_screenMaterial::GLShader_screenMaterial() :
 		true, "screen", "screen" ),
 	u_CurrentMap( this ),
 	u_ModelViewProjectionMatrix( this ) {
-}
-
-void GLShader_screenMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
 }
 
 GLShader_portal::GLShader_portal() :
@@ -2897,17 +2855,6 @@ GLShader_liquidMaterial::GLShader_liquidMaterial() :
 	GLCompileMacro_USE_GRID_LIGHTING( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
-}
-
-void GLShader_liquidMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_PortalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 2 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 3 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid1" ), 6 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid2" ), 7 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_motionblur::GLShader_motionblur() :

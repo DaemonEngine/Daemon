@@ -3276,7 +3276,6 @@ class GLShader_genericMaterial :
 	public GLCompileMacro_USE_DEPTH_FADE {
 	public:
 	GLShader_genericMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_lightMapping :
@@ -3377,7 +3376,6 @@ class GLShader_lightMappingMaterial :
 	public GLCompileMacro_USE_PHYSICAL_MAPPING {
 	public:
 	GLShader_lightMappingMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_reflection :
@@ -3424,7 +3422,6 @@ class GLShader_reflectionMaterial :
 	public GLCompileMacro_USE_RELIEF_MAPPING {
 	public:
 	GLShader_reflectionMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_skybox :
@@ -3453,7 +3450,6 @@ class GLShader_skyboxMaterial :
 	public u_ModelViewProjectionMatrix {
 	public:
 	GLShader_skyboxMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_fogQuake3 :
@@ -3489,7 +3485,6 @@ class GLShader_fogQuake3Material :
 	public GLDeformStage {
 	public:
 	GLShader_fogQuake3Material();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_fogGlobal :
@@ -3542,7 +3537,6 @@ class GLShader_heatHazeMaterial :
 {
 public:
 	GLShader_heatHazeMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_screen :
@@ -3561,7 +3555,6 @@ class GLShader_screenMaterial :
 	public u_ModelViewProjectionMatrix {
 	public:
 	GLShader_screenMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_portal :
@@ -3682,7 +3675,6 @@ class GLShader_liquidMaterial :
 	public GLCompileMacro_USE_RELIEF_MAPPING {
 	public:
 	GLShader_liquidMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_motionblur :
