@@ -2564,7 +2564,7 @@ GLShader_reflection::GLShader_reflection():
 
 void GLShader_reflection::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMapCube" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 1 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
@@ -2694,7 +2694,6 @@ GLShader_heatHaze::GLShader_heatHaze() :
 		false, "heatHaze", "heatHaze" ),
 	u_CurrentMap( this ),
 	u_NormalMap( this ),
-	u_HeightMap( this ),
 	u_TextureMatrix( this ),
 	u_DeformMagnitude( this ),
 	u_ModelViewProjectionMatrix( this ),
@@ -2713,7 +2712,6 @@ void GLShader_heatHaze::SetShaderProgramUniforms( ShaderProgramDescriptor *shade
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_heatHazeMaterial::GLShader_heatHazeMaterial() :
@@ -2721,7 +2719,6 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial() :
 		true, "heatHaze", "heatHaze" ),
 	u_CurrentMap( this ),
 	u_NormalMap( this ),
-	u_HeightMap( this ),
 	u_TextureMatrix( this ),
 	u_DeformEnable( this ),
 	u_DeformMagnitude( this ),
@@ -2736,7 +2733,6 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial() :
 void GLShader_heatHazeMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_screen::GLShader_screen() :
@@ -2965,7 +2961,7 @@ GLShader_depthtile2::GLShader_depthtile2() :
 
 void GLShader_depthtile2::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthTile1" ), 0 );
 }
 
 GLShader_lighttile::GLShader_lighttile() :
