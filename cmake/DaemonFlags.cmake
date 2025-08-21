@@ -228,10 +228,10 @@ foreach(strip_dir ${FILENAME_STRIP_DIRS})
         string(REPLACE "/" "\\" backslashed_dir ${strip_dir})
         # set_c_cxx_flag can't be used because macros barf if the input contains backslashes
         # https://gitlab.kitware.com/cmake/cmake/-/issues/19281
-        set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} /d1trimfile:${backslashed_dir}")
-        set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /d1trimfile:${backslashed_dir}")
+        set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} /d1trimfile:${backslashed_dir}\\")
+        set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /d1trimfile:${backslashed_dir}\\")
     else()
-        try_c_cxx_flag(PREFIX_MAP "-ffile-prefix-map=${strip_dir}=.")
+        try_c_cxx_flag(PREFIX_MAP "-ffile-prefix-map=${strip_dir}/=")
     endif()
 endforeach()
 
