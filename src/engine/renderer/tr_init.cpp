@@ -1492,8 +1492,22 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	void RE_EndRegistration()
 	{
 		R_SyncRenderThread();
-		if ( r_lazyShaders.Get() == 1 )
-		{
+		if ( r_lazyShaders.Get() == 1 ) {
+			// Particles
+			gl_genericShader->SetVertexSkinning( false );
+			gl_genericShader->SetVertexAnimation( false );
+			gl_genericShader->SetTCGenEnvironment( false );
+			gl_genericShader->SetTCGenLightmap( false );
+			gl_genericShader->SetDepthFade( true );
+			gl_genericShader->MarkProgramForBuilding( 0 );
+
+			// Fog is applied dynamically based on the surface's BBox, so build all of the q3 fog shaders here
+			for ( uint32_t i = 0; i < 3; i++ ) {
+				gl_fogQuake3Shader->SetVertexSkinning( i & 1 );
+				gl_fogQuake3Shader->SetVertexAnimation( i & 2 );
+				gl_fogQuake3Shader->MarkProgramForBuilding( 0 );
+			}
+
 			for ( int i = 0; i < tr.numModels; i++ ) {
 				const model_t* model = tr.models[i];
 				switch ( model->type ) {
