@@ -2529,6 +2529,11 @@ static void GLimp_InitExtensions()
 
 	glConfig2.geometryCacheAvailable = glConfig2.vertexAttribBindingAvailable && glConfig2.directStateAccessAvailable;
 
+	glConfig2.pushBufferAvailable =
+		glConfig2.directStateAccessAvailable
+		&& glConfig2.explicitUniformLocationAvailable
+		&& glConfig2.uniformBufferObjectAvailable;
+
 	glConfig2.materialSystemAvailable =
 		glConfig2.bindlessTexturesAvailable
 		&& glConfig2.computeShaderAvailable
