@@ -37,6 +37,10 @@ static Cvar::Cvar<std::string> shaderpath(
 static Cvar::Cvar<bool> r_glslCache(
 	"r_glslCache", "cache compiled GLSL shader binaries in the homepath", Cvar::NONE, true);
 
+static Cvar::Cvar<bool> r_logUnmarkedGLSLBuilds(
+	"r_logUnmarkedGLSLBuilds", "Log building information for GLSL shaders that are built after the map is loaded",
+	Cvar::NONE, true );
+
 extern std::unordered_map<std::string, std::string> shadermap;
 // shaderKind's value will be determined later based on command line setting or absence of.
 ShaderKind shaderKind = ShaderKind::Unknown;
@@ -1123,7 +1127,7 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 
 	Log::Debug( "Built in: %i ms", Sys::Milliseconds() - start );
 
-	if ( buildOneShader ) {
+	if ( buildOneShader && r_logUnmarkedGLSLBuilds.Get() ) {
 		Log::Notice( "Built a glsl shader program in %i ms (compile: %u in %i ms, link: %u in %i ms;"
 			" cache: loaded %u in %i ms, saved %u in %i ms)",
 			Sys::Milliseconds() - start,
@@ -1174,7 +1178,6 @@ void GLShaderManager::BuildAll( const bool buildOnlyMarked ) {
 		_shaderBuildQueue.pop();
 	}
 
-	// doesn't include deform vertex shaders, those are built elsewhere!
 	Log::Notice( "Built %u glsl shader programs in %i ms (compile: %u in %i ms, link: %u in %i ms, init: %u in %i ms;"
 		" cache: loaded %u in %i ms, saved %u in %i ms)",
 		count, Sys::Milliseconds() - startTime,
