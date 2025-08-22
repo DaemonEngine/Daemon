@@ -255,8 +255,6 @@ if (MSVC)
     # There is no flag for standards before C++17
     if (USE_CPP23 AND USE_RECOMMENDED_CXX_STANDARD)
         set_cxx_flag("/std:c++23preview")
-    else()
-        message(FATAL_ERROR "WIENIEONOIENOINIEN")
     endif()
 
     if (USE_FAST_MATH)
