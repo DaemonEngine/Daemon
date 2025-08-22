@@ -5435,7 +5435,8 @@ static void SetStagesRenderers()
 				break;
 			case stageType_t::ST_FOGMAP:
 				stageRendererOptions = {
-					&Render_fog, &MarkShaderBuildFog,
+					// All q3 fog shaders are built in RE_EndRegistration because they're assigned to surfaces dynamically
+					&Render_fog, &MarkShaderBuildNOP,
 					&UpdateSurfaceDataFog, &BindShaderFog, &ProcessMaterialFog,
 				};
 				break;
