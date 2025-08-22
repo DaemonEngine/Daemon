@@ -572,7 +572,7 @@ void Com_Init()
 #endif
 
 	s = va( "%s %s %s %s", Q3_VERSION, PLATFORM_STRING, DAEMON_ARCH_STRING, __DATE__ );
-	com_version = Cvar_Get( "version", s, CVAR_ROM | CVAR_SERVERINFO );
+	com_version = Cvar_Get( "version", s, CVAR_ROM | CVAR_SERVERINFO | CVAR_USERINFO );
 
 	Cmd_AddCommand( "in_restart", Com_In_Restart_f );
 
