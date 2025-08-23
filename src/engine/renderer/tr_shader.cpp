@@ -6070,6 +6070,8 @@ shader_t       *R_FindShader( const char *name, int flags )
 
 	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
 
+	const shader_t *firstRegistration = nullptr;
+
 	// see if the shader is already loaded
 	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
 	{
@@ -6085,9 +6087,14 @@ shader_t       *R_FindShader( const char *name, int flags )
 				return sh;
 			}
 
-			Log::Verbose( "shader %s registered with varying flags: previously with 0x%X, now with 0x%X",
-			              strippedName, sh->registerFlags, flags );
+			firstRegistration = sh;
 		}
+	}
+
+	if ( firstRegistration != nullptr )
+	{
+		Log::Verbose( "shader %s registered with varying flags: first time with 0x%X, now with 0x%X",
+		              strippedName, firstRegistration->registerFlags, flags );
 	}
 
 	shader.altShader[ 0 ].index = flags; // save for later use (in case of alternative shaders)
