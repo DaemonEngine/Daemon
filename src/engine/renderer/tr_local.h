@@ -1163,6 +1163,8 @@ enum
 		int		autoSpriteMode;
 		bool autoSpriteWarned = false;
 
+		bool shaderRemapWarned;
+
 		uint8_t         numDeforms;
 		deformStage_t   deforms[ MAX_SHADER_DEFORMS ];
 
@@ -3000,7 +3002,6 @@ void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLin
 
 	shader_t  *R_FindShader( const char *name, int flags );
 	shader_t  *R_GetShaderByHandle( qhandle_t hShader );
-	shader_t  *R_FindShaderByName( const char *name );
 	const char *RE_GetShaderNameFromHandle( qhandle_t shader );
 	void      R_InitShaders();
 	void      R_RemapShader( const char *oldShader, const char *newShader, const char *timeOffset );

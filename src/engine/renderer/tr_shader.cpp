@@ -134,51 +134,35 @@ void R_RemapShader( const char *shaderName, const char *newShaderName, const cha
 {
 	char      strippedName[ MAX_QPATH ];
 	int       hash;
-	shader_t  *sh, *sh2;
-	qhandle_t h;
-
-	sh = R_FindShaderByName( shaderName );
-
-	if ( sh == nullptr || sh == tr.defaultShader )
-	{
-		h = RE_RegisterShader( shaderName, RSF_DEFAULT );
-		sh = R_GetShaderByHandle( h );
-	}
-
-	if ( sh == nullptr || sh == tr.defaultShader )
-	{
-		Log::Warn("R_RemapShader: shader %s not found", shaderName );
-		return;
-	}
-
-	sh2 = R_FindShaderByName( newShaderName );
-
-	if ( sh2 == nullptr || sh2 == tr.defaultShader )
-	{
-		h = RE_RegisterShader( newShaderName, RSF_DEFAULT );
-		sh2 = R_GetShaderByHandle( h );
-	}
-
-	if ( sh2 == nullptr || sh2 == tr.defaultShader )
-	{
-		Log::Warn("R_RemapShader: new shader %s not found", newShaderName );
-		return;
-	}
-
-	if ( sh->autoSpriteMode != sh2->autoSpriteMode ) {
-		Log::Warn("R_RemapShader: shaders %s and %s have different autoSprite modes", shaderName, newShaderName );
-		return;
-	}
 
 	// remap all the shaders with the given name
 	// even tho they might have different lightmaps
 	COM_StripExtension3( shaderName, strippedName, sizeof( strippedName ) );
 	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
+	bool found = false;
 
-	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
+	for ( shader_t *sh = shaderHashTable[ hash ]; sh; sh = sh->next )
 	{
 		if ( Q_stricmp( sh->name, strippedName ) == 0 )
 		{
+			found = true;
+			shader_t *sh2 = R_FindShader( newShaderName, sh->registerFlags );
+
+			if ( sh2->defaultShader )
+			{
+				if ( !sh2->shaderRemapWarned )
+				{
+					Log::Warn( "R_RemapShader: new shader %s not found", newShaderName );
+					sh2->shaderRemapWarned = true;
+				}
+				return;
+			}
+
+			if ( sh->autoSpriteMode != sh2->autoSpriteMode ) {
+				Log::Warn( "R_RemapShader: shaders %s and %s have different autoSprite modes", shaderName, newShaderName );
+				return;
+			}
+
 			if ( sh != sh2 )
 			{
 				sh->remappedShader = sh2;
@@ -187,6 +171,17 @@ void R_RemapShader( const char *shaderName, const char *newShaderName, const cha
 			{
 				sh->remappedShader = nullptr;
 			}
+		}
+	}
+
+	if ( !found )
+	{
+		// try registering it to detect typos
+		shader_t *test = R_FindShader( shaderName, RSF_DEFAULT );
+
+		if ( test->defaultShader )
+		{
+			Log::Warn( "R_RemapShader: shader %s not found", shaderName );
 		}
 	}
 }
@@ -5986,43 +5981,6 @@ static const char    *FindShaderInShaderText( const char *shaderName )
 
 	// if the shader is not in the table, it must not exist
 	return nullptr;
-}
-
-/*
-==================
-R_FindShaderByName
-
-Will always return a valid shader, but it might be the
-default shader if the real one can't be found.
-==================
-*/
-shader_t       *R_FindShaderByName( const char *name )
-{
-	char     strippedName[ MAX_QPATH ];
-	int      hash;
-	shader_t *sh;
-
-	if ( ( name == nullptr ) || ( name[ 0 ] == 0 ) )
-	{
-		// bk001205
-		return tr.defaultShader;
-	}
-
-	COM_StripExtension3( name, strippedName, sizeof( strippedName ) );
-
-	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
-
-	// see if the shader is already loaded
-	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
-	{
-		if ( Q_stricmp( sh->name, strippedName ) == 0 )
-		{
-			// match found
-			return sh;
-		}
-	}
-
-	return tr.defaultShader;
 }
 
 static void ClearGlobalShader()
