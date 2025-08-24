@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ThreadCommand.cpp
 
 #include "TaskList.h"
+#include "ThreadMemory.h"
 
 #include "ThreadCommand.h"
 

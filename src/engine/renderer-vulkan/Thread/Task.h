@@ -86,9 +86,6 @@ struct Task {
 	static constexpr uint32 MAX_FORWARD_TASKS = 18;
 	uint16 forwardTasks[MAX_FORWARD_TASKS]{ 0 };
 
-	// bool useTaskFence = false;
-	// Fence taskFence;
-
 	Task();
 
 	// We have to use templates here because clang fails to cast function pointers to void*
