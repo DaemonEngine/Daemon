@@ -1351,10 +1351,6 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		v = _mm_loadl_pi( v, (__m64 *)vec );
 		return v;
 	}
-	ATTRIBUTE_NO_SANITIZE_ADDRESS inline __m128 sseLoadVec3Unsafe( const vec3_t vec ) {
-		// Returns garbage in 4th element
-		return _mm_loadu_ps( vec );
-	}
 	inline void sseStoreVec3( __m128 in, vec3_t out ) {
 		_mm_storel_pi( (__m64 *)out, in );
 		__m128 v = sseSwizzle( in, ZZZZ );
@@ -1368,14 +1364,14 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	inline void TransformPoint(
 			const transform_t *t, const vec3_t in, vec3_t out ) {
 		__m128 ts = t->sseTransScale;
-		__m128 tmp = sseQuatTransform( t->sseRot, sseLoadVec3Unsafe( in ) );
+		__m128 tmp = sseQuatTransform( t->sseRot, sseLoadVec3( in ) );
 		tmp = _mm_mul_ps( tmp, sseSwizzle( ts, WWWW ) );
 		tmp = _mm_add_ps( tmp, ts );
 		sseStoreVec3( tmp, out );
 	}
 	inline void TransformNormalVector(
 			const transform_t *t, const vec3_t in, vec3_t out ) {
-		__m128 v = sseLoadVec3Unsafe( in );
+		__m128 v = sseLoadVec3( in );
 		v = sseQuatTransform( t->sseRot, v );
 		sseStoreVec3( v, out );
 	}

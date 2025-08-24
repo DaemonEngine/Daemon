@@ -120,11 +120,6 @@ void MarkShaderBuildLiquid( const shaderStage_t* pStage ) {
 	gl_liquidShader->MarkProgramForBuilding( pStage->deformIndex );
 }
 
-void MarkShaderBuildFog( const shaderStage_t* pStage ) {
-	ProcessShaderFog( pStage );
-	gl_fogQuake3Shader->MarkProgramForBuilding( 0 );
-}
-
 void MarkShaderBuild( shader_t* shader, const int lightMapNum, const bool bspSurface,
 	const bool vertexSkinning, const bool vertexAnimation ) {
 	tess.surfaceShader = shader;

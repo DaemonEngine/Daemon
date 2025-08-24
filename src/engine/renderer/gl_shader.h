@@ -83,6 +83,89 @@ struct GLHeader {
 	}
 };
 
+struct ShaderEntry {
+	std::string name;
+	uint32_t macro;
+	GLuint type;
+
+	bool operator==( const ShaderEntry& other ) const {
+		return name == other.name && macro == other.macro && type == other.type;
+	}
+
+	bool operator!=( const ShaderEntry& other ) const {
+		return !( *this == other );
+	}
+};
+
+struct ShaderDescriptor {
+	std::string name;
+
+	std::string macros;
+	uint32_t macro;
+
+	GLenum type;
+	bool main = false;
+
+	GLuint id = 0;
+
+	std::string shaderSource;
+};
+
+static const uint32_t MAX_SHADER_PROGRAM_SHADERS = 16;
+
+struct ShaderProgramDescriptor {
+	GLuint id = 0;
+
+	bool hasMain = false;
+	GLuint type;
+
+	uint32_t macro = 0;
+
+	GLuint shaders[MAX_SHADER_PROGRAM_SHADERS] {};
+	ShaderEntry shaderNames[MAX_SHADER_PROGRAM_SHADERS] {};
+	std::string mainShader;
+	uint32_t shaderCount = 0;
+
+	GLint* uniformLocations;
+	GLuint* uniformBlockIndexes = nullptr;
+	byte* uniformFirewall;
+
+	uint32_t checkSum;
+
+	void AttachShader( ShaderDescriptor* descriptor ) {
+		if ( shaderCount == MAX_SHADER_PROGRAM_SHADERS ) {
+			Log::Warn( "Tried to attach too many shaders to program: skipping shader %s %s", descriptor->name, descriptor->macros );
+			return;
+		}
+
+		if ( !shaderCount ) {
+			type = descriptor->type;
+		} else if ( type != descriptor->type ) {
+			type = 0;
+		}
+
+		if ( descriptor->main ) {
+			if ( hasMain && mainShader != descriptor->name ) {
+				Log::Warn( "More than one shader specified as main, current: %s, new: %s, using current",
+					mainShader, descriptor->name );
+			} else {
+				mainShader = descriptor->name;
+				hasMain = true;
+			}
+		}
+
+		shaders[shaderCount] = descriptor->id;
+
+		shaderNames[shaderCount].name = descriptor->name;
+		shaderNames[shaderCount].macro = descriptor->macro;
+		shaderNames[shaderCount].type = descriptor->type;
+
+		macro |= descriptor->macro;
+
+		shaderCount++;
+	};
+};
+
 class GLShader {
 	friend class GLShaderManager;
 public:
@@ -227,89 +310,6 @@ public:
 	}
 
 	void WriteUniformsToBuffer( uint32_t* buffer );
-};
-
-struct ShaderEntry {
-	std::string name;
-	uint32_t macro;
-	GLuint type;
-
-	bool operator==( const ShaderEntry& other ) const {
-		return name == other.name && macro == other.macro && type == other.type;
-	}
-
-	bool operator!=( const ShaderEntry& other ) const {
-		return !( *this == other );
-	}
-};
-
-struct ShaderDescriptor {
-	std::string name;
-
-	std::string macros;
-	uint32_t macro;
-
-	GLenum type;
-	bool main = false;
-
-	GLuint id = 0;
-
-	std::string shaderSource;
-};
-
-static const uint32_t MAX_SHADER_PROGRAM_SHADERS = 16;
-
-struct ShaderProgramDescriptor {
-	GLuint id = 0;
-
-	bool hasMain = false;
-	GLuint type;
-
-	uint32_t macro = 0;
-
-	GLuint shaders[MAX_SHADER_PROGRAM_SHADERS] {};
-	ShaderEntry shaderNames[MAX_SHADER_PROGRAM_SHADERS] {};
-	std::string mainShader;
-	uint32_t shaderCount = 0;
-
-	GLint* uniformLocations;
-	GLuint* uniformBlockIndexes = nullptr;
-	byte* uniformFirewall;
-
-	uint32_t checkSum;
-
-	void AttachShader( ShaderDescriptor* descriptor ) {
-		if ( shaderCount == MAX_SHADER_PROGRAM_SHADERS ) {
-			Log::Warn( "Tried to attach too many shaders to program: skipping shader %s %s", descriptor->name, descriptor->macros );
-			return;
-		}
-
-		if ( !shaderCount ) {
-			type = descriptor->type;
-		} else if ( type != descriptor->type ) {
-			type = 0;
-		}
-
-		if ( descriptor->main ) {
-			if ( hasMain && mainShader != descriptor->name ) {
-				Log::Warn( "More than one shader specified as main, current: %s, new: %s, using current",
-					mainShader, descriptor->name );
-			} else {
-				mainShader = descriptor->name;
-				hasMain = true;
-			}
-		}
-
-		shaders[shaderCount] = descriptor->id;
-
-		shaderNames[shaderCount].name = descriptor->name;
-		shaderNames[shaderCount].macro = descriptor->macro;
-		shaderNames[shaderCount].type = descriptor->type;
-
-		macro |= descriptor->macro;
-
-		shaderCount++;
-	};
 };
 
 class GLUniform {
@@ -488,8 +488,8 @@ private:
 class GLUniformSampler : protected GLUniform {
 	protected:
 	GLUniformSampler( GLShader* shader, const char* name, const char* type ) :
-		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? 2 : 1,
-		                               glConfig2.bindlessTexturesAvailable ? 2 : 1, true, 0, true ) {
+		GLUniform( shader, name, type, glConfig.bindlessTexturesAvailable ? 2 : 1,
+		                               glConfig.bindlessTexturesAvailable ? 2 : 1, true, 0, true ) {
 	}
 
 	inline GLint GetLocation() {
@@ -514,13 +514,13 @@ class GLUniformSampler : protected GLUniform {
 	void SetValueBindless( GLint64 value ) {
 		currentValueBindless = value;
 
-		if ( glConfig2.usingBindlessTextures && ( !_shader->UseMaterialSystem() || _global ) ) {
+		if ( glConfig.usingBindlessTextures && ( !_shader->UseMaterialSystem() || _global ) ) {
 			glUniformHandleui64ARB( GetLocation(), currentValueBindless );
 		}
 	}
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		if ( glConfig2.usingBindlessTextures ) {
+		if ( glConfig.usingBindlessTextures ) {
 			memcpy( buffer, &currentValueBindless, sizeof( GLuint64 ) );
 		} else {
 			memcpy( buffer, &currentValue, sizeof( GLint ) );
@@ -1149,7 +1149,7 @@ public:
 	}
 
 	void SetBuffer( GLuint buffer ) {
-		if ( glConfig2.shadingLanguage420PackAvailable ) {
+		if ( glConfig.shadingLanguage420PackAvailable ) {
 			return;
 		}
 
@@ -2195,7 +2195,7 @@ public:
 
 template<typename Shader> void SetUniform_Color( Shader* shader, const Color::Color& color )
 {
-	if( glConfig2.gpuShader4Available )
+	if( glConfig.gpuShader4Available )
 	{
 		shader->SetUniform_Color_Uint( color );
 	}
@@ -2234,7 +2234,7 @@ class u_ColorGlobal_Uint :
 
 template<typename Shader> void SetUniform_ColorGlobal( Shader* shader, const Color::Color& color )
 {
-	if( glConfig2.gpuShader4Available )
+	if( glConfig.gpuShader4Available )
 	{
 		shader->SetUniform_ColorGlobal_Uint( color );
 	}
@@ -2915,7 +2915,7 @@ template<typename Shader> void SetUniform_ColorModulateColorGen(
 		const bool vertexOverbright = false,
 		const bool useMapLightFactor = false )
 {
-	if( glConfig2.gpuShader4Available )
+	if( glConfig.gpuShader4Available )
 	{
 		shader->SetUniform_ColorModulateColorGen_Uint( colorGen, alphaGen, vertexOverbright, useMapLightFactor );
 	}
@@ -3276,7 +3276,6 @@ class GLShader_genericMaterial :
 	public GLCompileMacro_USE_DEPTH_FADE {
 	public:
 	GLShader_genericMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_lightMapping :
@@ -3377,7 +3376,6 @@ class GLShader_lightMappingMaterial :
 	public GLCompileMacro_USE_PHYSICAL_MAPPING {
 	public:
 	GLShader_lightMappingMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_reflection :
@@ -3424,7 +3422,6 @@ class GLShader_reflectionMaterial :
 	public GLCompileMacro_USE_RELIEF_MAPPING {
 	public:
 	GLShader_reflectionMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_skybox :
@@ -3453,7 +3450,6 @@ class GLShader_skyboxMaterial :
 	public u_ModelViewProjectionMatrix {
 	public:
 	GLShader_skyboxMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_fogQuake3 :
@@ -3489,7 +3485,6 @@ class GLShader_fogQuake3Material :
 	public GLDeformStage {
 	public:
 	GLShader_fogQuake3Material();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_fogGlobal :
@@ -3510,7 +3505,6 @@ class GLShader_heatHaze :
 	public GLShader,
 	public u_CurrentMap,
 	public u_NormalMap,
-	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_DeformMagnitude,
 	public u_ModelViewProjectionMatrix,
@@ -3532,7 +3526,6 @@ class GLShader_heatHazeMaterial :
 	public GLShader,
 	public u_CurrentMap,
 	public u_NormalMap,
-	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_DeformEnable,
 	public u_DeformMagnitude,
@@ -3544,7 +3537,6 @@ class GLShader_heatHazeMaterial :
 {
 public:
 	GLShader_heatHazeMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_screen :
@@ -3563,7 +3555,6 @@ class GLShader_screenMaterial :
 	public u_ModelViewProjectionMatrix {
 	public:
 	GLShader_screenMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_portal :
@@ -3684,7 +3675,6 @@ class GLShader_liquidMaterial :
 	public GLCompileMacro_USE_RELIEF_MAPPING {
 	public:
 	GLShader_liquidMaterial();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_motionblur :
@@ -3779,7 +3769,6 @@ class GLShader_depthReduction :
 	public u_InitialDepthLevel {
 	public:
 	GLShader_depthReduction();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) override;
 };
 
 class GLShader_clearSurfaces :

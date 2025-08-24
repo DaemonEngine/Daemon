@@ -255,15 +255,14 @@ fail:
 /*
 ** RE_BeginRegistration
 */
-bool RE_BeginRegistration( glconfig_t *glconfigOut, glconfig2_t *glconfig2Out )
+bool RE_BeginRegistration( WindowConfig* windowCfg )
 {
 	if ( !R_Init() )
 	{
 		return false;
 	}
 
-	*glconfigOut = glConfig;
-	*glconfig2Out = glConfig2;
+	*windowCfg = windowConfig;
 
 	R_SyncRenderThread();
 

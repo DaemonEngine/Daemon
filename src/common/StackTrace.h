@@ -43,54 +43,40 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined( CPP_STACKTRACE )
 
-    #include <stacktrace>
+#include <stacktrace>
 
-    inline std::string FormatStackTrace( const std::stacktrace& stackTrace,
-        const bool skipCurrent = false, const bool compact = false ) {
-        std::string out;
-        
-        bool skipped = !skipCurrent;
-        bool addLineEnd = false;
-        for ( const std::stacktrace_entry& entry : stackTrace ) {
-            if ( !skipped ) {
-                skipped = true;
-                continue;
-            }
-
-            std::string file = entry.source_file();
-            if ( compact ) {
-                const size_t pos = std::min(
-                    file.find( "src/engine/renderer-vulkan" ),
-                    file.find( "src\\engine\\renderer-vulkan" )
-                );
-
-                if ( pos == std::string::npos ) {
-                    continue;
-                }
-
-                file = file.substr( pos + 27 );
-            }
-
-            if( compact ) {
-                out += Str::Format( addLineEnd ? "\n%s:%u" : "%s:%u", file, entry.source_line() );
-            } else {
-                out += Str::Format( addLineEnd ? "\n%s:%u: %s" : "%s:%u: %s", file, entry.source_line(), entry.description() );
-            }
-            addLineEnd = true;
+inline std::string FormatStackTrace( const std::stacktrace& stackTrace,
+    const bool skipCurrent = false, const bool compact = false ) {
+    std::string out;
+    bool skipped = !skipCurrent;
+    bool addLineEnd = false;
+    
+    for ( const std::stacktrace_entry& entry : stackTrace ) {
+        if ( !skipped ) {
+            skipped = true;
+            continue;
         }
 
-        return out;
+        if( compact ) {
+            out += Str::Format( addLineEnd ? "\n%s:%u" : "%s:%u", entry.source_file(), entry.source_line());
+        } else {
+            out += Str::Format( addLineEnd ? "\n%s:%u: %s" : "%s:%u: %s", entry.source_file(), entry.source_line(), entry.description());
+        }
+        addLineEnd = true;
     }
 
-    inline void PrintStackTrace( const std::stacktrace& stackTrace = std::stacktrace::current() ) {
-        Log::Warn( "\n\n====================\nStackTrace:\n%s\n====================\n\n", FormatStackTrace( stackTrace ) );
-    }
+    return out;
+}
+
+inline void PrintStackTrace( const std::stacktrace& stackTrace = std::stacktrace::current() ) {
+    Log::Warn( "\n\n====================\nStackTrace:\n%s\n====================\n\n", FormatStackTrace( stackTrace ) );
+}
 
 #else
 
-    inline void PrintStackTrace() {
-        Log::Warn( "StackTrace unavailable: CPP23 required" );
-    }
+inline void PrintStackTrace() {
+    Log::Warn( "StackTrace unavailable: CPP23 required" );
+}
 
 #endif
 

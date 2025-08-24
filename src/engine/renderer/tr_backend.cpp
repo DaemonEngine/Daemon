@@ -59,7 +59,7 @@ void GL_Bind( image_t *image )
 		texnum = tr.blackImage->texnum;
 	}
 
-	if ( glConfig2.usingBindlessTextures ) {
+	if ( glConfig.usingBindlessTextures ) {
 		tr.textureManager.BindReservedTexture( image->type, texnum );
 		return;
 	}
@@ -158,7 +158,7 @@ void GL_SelectTexture( int unit )
 		return;
 	}
 
-	if ( unit >= 0 && unit < glConfig2.maxTextureUnits )
+	if ( unit >= 0 && unit < glConfig.maxTextureUnits )
 	{
 		glActiveTexture( GL_TEXTURE0 + unit );
 	}
@@ -178,13 +178,13 @@ GLuint64 GL_BindToTMU( int unit, image_t *image )
 		image = tr.defaultImage;
 	}
 
-	if ( glConfig2.usingBindlessTextures ) {
+	if ( glConfig.usingBindlessTextures ) {
 		return tr.textureManager.BindTexture( 0, image->texture );
 	}
 
 	int texnum = image->texnum;
 
-	if ( unit < 0 || unit >= glConfig2.maxTextureUnits )
+	if ( unit < 0 || unit >= glConfig.maxTextureUnits )
 	{
 		Sys::Drop( "GL_BindToTMU: unit %i is out of range\n", unit );
 	}
@@ -625,7 +625,7 @@ static void GL_VertexAttribPointers( uint32_t attribBits, const bool settingUpVA
 
 	GLIMP_LOGCOMMENT( "--- GL_VertexAttribPointers( %s ) ---", glState.currentVBO->name );
 
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		attribBits |= ATTR_BONE_FACTORS;
 	}
@@ -680,7 +680,7 @@ void GL_VertexAttribsState( uint32_t stateBits, const bool settingUpVAO )
 		return;
 	}
 
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		stateBits |= ATTR_BONE_FACTORS;
 	}
@@ -896,10 +896,10 @@ static void RB_SetGL2D()
 	backEnd.projection2D = true;
 
 	// set 2D virtual screen size
-	GL_Viewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
-	GL_Scissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+	GL_Viewport( 0, 0, windowConfig.vidWidth, windowConfig.vidHeight );
+	GL_Scissor( 0, 0, windowConfig.vidWidth, windowConfig.vidHeight );
 
-	MatrixOrthogonalProjection( proj, 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1 );
+	MatrixOrthogonalProjection( proj, 0, windowConfig.vidWidth, windowConfig.vidHeight, 0, 0, 1 );
 	// zero the z coordinate so it's never near/far clipped
 	proj[ 2 ] = proj[ 6 ] = proj[ 10 ] = proj[ 14 ] = 0;
 
@@ -1210,40 +1210,32 @@ void RB_RunVisTests( )
 	}
 }
 
-void RB_RenderPostDepthLightTile()
+static void RenderDepthTiles()
 {
-	if ( !glConfig2.realtimeLighting )
-	{
-		return;
-	}
-
-	if ( !backEnd.refdef.numLights ) {
-		return;
-	}
-
-	vec3_t zParams;
-	int w, h;
-
-	if ( ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
-	{
-		return;
-	}
-
-	GLIMP_LOGCOMMENT( "--- RB_RenderPostDepthLightTile ---" );
-
-	// 1st step
 	GL_State( GLS_DEPTHTEST_DISABLE );
 	GL_Cull( CT_TWO_SIDED );
 
+	if ( !r_depthShaders.Get() )
+	{
+		// put max range so depth-based planes will always pass in lighttile
+		// setting to 99999 worked on my machines but is technically not allowed by the spec
+		// ARB_color_buffer_float lets you set values outside of [0, 1] but we use
+		// a different extension ARB_texture_float to get float color buffer
+		R_BindFBO( tr.depthtile2FBO );
+		glClearColor( /*max*/ 99999.f, /*min*/ 0.0f, 0.0f, 0.0f );
+		glClear( GL_COLOR_BUFFER_BIT );
+		return;
+	}
+
+	// 1st step
 	R_BindFBO( tr.depthtile1FBO );
-	w = (glConfig.vidWidth + TILE_SIZE_STEP1 - 1) >> TILE_SHIFT_STEP1;
-	h = (glConfig.vidHeight + TILE_SIZE_STEP1 - 1) >> TILE_SHIFT_STEP1;
-	GL_Viewport( 0, 0, w, h );
-	GL_Scissor( 0, 0, w, h );
+	GL_Viewport( 0, 0, tr.depthtile1FBO->width, tr.depthtile1FBO->height );
+	GL_Scissor( 0, 0, tr.depthtile1FBO->width, tr.depthtile1FBO->height );
 	gl_depthtile1Shader->BindProgram( 0 );
 
-	zParams[ 0 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_x * 0.5f) ) / glConfig.vidWidth;
-	zParams[ 1 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_y * 0.5f) ) / glConfig.vidHeight;
+	vec3_t zParams;
+	zParams[ 0 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_x * 0.5f) ) / windowConfig.vidWidth;
+	zParams[ 1 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_y * 0.5f) ) / windowConfig.vidHeight;
 	zParams[ 2 ] = backEnd.viewParms.zFar;
 
 	gl_depthtile1Shader->SetUniform_zFar( zParams );
@@ -1268,10 +1260,8 @@ void RB_RenderPostDepthLightTile()
 	// 2nd step
 	R_BindFBO( tr.depthtile2FBO );
 
-	w = (glConfig.vidWidth + TILE_SIZE - 1) >> TILE_SHIFT;
-	h = (glConfig.vidHeight + TILE_SIZE - 1) >> TILE_SHIFT;
-	GL_Viewport( 0, 0, w, h );
-	GL_Scissor( 0, 0, w, h );
+	GL_Viewport( 0, 0, tr.depthtile2FBO->width, tr.depthtile2FBO->height );
+	GL_Scissor( 0, 0, tr.depthtile2FBO->width, tr.depthtile2FBO->height );
 	gl_depthtile2Shader->BindProgram( 0 );
 
 	gl_depthtile2Shader->SetUniform_DepthTile1Bindless(
@@ -1279,6 +1269,27 @@ void RB_RenderPostDepthLightTile()
 	);
 
 	Tess_InstantScreenSpaceQuad();
+}
+
+void RB_RenderPostDepthLightTile()
+{
+	if ( !glConfig.realtimeLighting )
+	{
+		return;
+	}
+
+	if ( !backEnd.refdef.numLights ) {
+		return;
+	}
+
+	if ( ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
+	{
+		return;
+	}
+
+	GLIMP_LOGCOMMENT( "--- RB_RenderPostDepthLightTile ---" );
+
+	RenderDepthTiles();
 
 	vec3_t projToViewParams;
 	projToViewParams[0] = tanf(DEG2RAD(backEnd.refdef.fov_x * 0.5f)) * backEnd.viewParms.zFar;
@@ -1295,12 +1306,12 @@ void RB_RenderPostDepthLightTile()
 	gl_lighttileShader->SetUniformBlock_Lights( tr.dlightUBO );
 
 	gl_lighttileShader->SetUniform_DepthTile2Bindless(
-		GL_BindToTMU( 1, tr.depthtile2RenderImage ) 
+		GL_BindToTMU( 0, tr.depthtile2RenderImage )
 	);
 
 	R_BindVBO( tr.lighttileVBO );
 
-	for( int layer = 0; layer < glConfig2.realtimeLightLayers; layer++ ) {
+	for( int layer = 0; layer < glConfig.realtimeLightLayers; layer++ ) {
 		R_AttachFBOTexture3D( tr.lighttileRenderImage->texnum, 0, layer );
 		gl_lighttileShader->SetUniform_lightLayer( layer );
 
@@ -1309,7 +1320,7 @@ void RB_RenderPostDepthLightTile()
 		tess.numVertexes = tr.lighttileVBO->vertexesNum;
 
 		GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD );
-		if( !glConfig2.glCoreProfile )
+		if( !glConfig.glCoreProfile )
 			glEnable( GL_POINT_SPRITE );
 		glEnable( GL_PROGRAM_POINT_SIZE );
 
@@ -1317,7 +1328,7 @@ void RB_RenderPostDepthLightTile()
 		Tess_DrawArrays( GL_POINTS );
 
 		glDisable( GL_PROGRAM_POINT_SIZE );
-		if( !glConfig2.glCoreProfile )
+		if( !glConfig.glCoreProfile )
 			glDisable( GL_POINT_SPRITE );
 	}
 
@@ -1403,7 +1414,7 @@ void RB_RenderGlobalFog()
 void RB_RenderBloom()
 {
 	if ( ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOBLOOM ) )
-		|| !glConfig2.bloom || backEnd.viewParms.portalLevel > 0 ) {
+		|| !glConfig.bloom || backEnd.viewParms.portalLevel > 0 ) {
 		return;
 	}
 
@@ -1489,7 +1500,7 @@ void RB_RenderBloom()
 
 void RB_RenderMotionBlur()
 {
-	if ( !glConfig2.motionBlur || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL )
+	if ( !glConfig.motionBlur || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL )
 		|| backEnd.viewParms.portalLevel > 0 )
 	{
 		return;
@@ -1522,7 +1533,7 @@ void RB_RenderMotionBlur()
 
 void RB_RenderSSAO()
 {
-	if ( !glConfig2.ssao )
+	if ( !glConfig.ssao )
 	{
 		return;
 	}
@@ -1536,7 +1547,7 @@ void RB_RenderSSAO()
 	GLIMP_LOGCOMMENT( "--- RB_RenderSSAO ---" );
 
 	// Assume depth is dirty since we just rendered depth pass and everything opaque
-	if ( glConfig2.textureBarrierAvailable )
+	if ( glConfig.textureBarrierAvailable )
 	{
 		glTextureBarrier();
 		backEnd.dirtyDepthBuffer = false;
@@ -1545,7 +1556,7 @@ void RB_RenderSSAO()
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
-	if ( glConfig2.ssao && r_ssao.Get() == Util::ordinal( ssaoMode::SHOW ) ) {
+	if ( glConfig.ssao && r_ssao.Get() == Util::ordinal( ssaoMode::SHOW ) ) {
 		// clear the screen to show only SSAO
 		GL_ClearColor( 1.0, 1.0, 1.0, 1.0 );
 		glClear( GL_COLOR_BUFFER_BIT );
@@ -1554,8 +1565,8 @@ void RB_RenderSSAO()
 	gl_ssaoShader->BindProgram( 0 );
 
 	vec3_t zParams;
-	zParams[ 0 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_x * 0.5f ) ) / glConfig.vidWidth;
-	zParams[ 1 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_y * 0.5f ) ) / glConfig.vidHeight;
+	zParams[ 0 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_x * 0.5f ) ) / windowConfig.vidWidth;
+	zParams[ 1 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_y * 0.5f ) ) / windowConfig.vidHeight;
 	zParams[ 2 ] = backEnd.viewParms.zFar;
 
 	gl_ssaoShader->SetUniform_zFar( zParams );
@@ -1658,7 +1669,7 @@ void RB_CameraPostFX() {
 
 	gl_cameraEffectsShader->SetUniform_SRGB( tr.worldLinearizeTexture );
 
-	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig2.textureFloatAvailable;
+	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig.textureFloatAvailable;
 	if ( tonemap ) {
 		vec4_t tonemapParms { r_toneMappingContrast.Get(), r_toneMappingHighlightsCompressionSpeed.Get() };
 		ComputeTonemapParams( tonemapParms[0], tonemapParms[1], r_toneMappingHDRMax.Get(),
@@ -1675,7 +1686,7 @@ void RB_CameraPostFX() {
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) 
 	);
 
-	if ( glConfig2.colorGrading ) {
+	if ( glConfig.colorGrading ) {
 		gl_cameraEffectsShader->SetUniform_ColorMap3DBindless( GL_BindToTMU( 3, tr.colorGradeImage ) );
 	}
 
@@ -1986,7 +1997,7 @@ static void RB_RenderDebugUtils()
 	}
 
 	// GLSL shader isn't built when reflection mapping is disabled.
-	if ( r_showCubeProbes.Get() && glConfig2.reflectionMapping &&
+	if ( r_showCubeProbes.Get() && glConfig.reflectionMapping &&
 	     !( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOCUBEMAP ) ) )
 	{
 		static const vec3_t mins = { -8, -8, -8 };
@@ -2660,13 +2671,10 @@ static void RB_RenderView( bool depthPass )
 		backEnd.isHyperspace = false;
 	}
 
-	// we will only draw a sun if there was sky rendered in this view
-	backEnd.skyRenderedThisView = false;
-
 	GL_CheckErrors();
 
 	if( depthPass ) {
-		if ( glConfig2.usingMaterialSystem ) {
+		if ( glConfig.usingMaterialSystem ) {
 			materialSystem.RenderMaterials( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH, backEnd.viewParms.viewID );
 		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH, DRAWSURFACES_ALL );
@@ -2683,7 +2691,7 @@ static void RB_RenderView( bool depthPass )
 			tr.refdef.blurVec[2] != 0.0f )
 	{
 		// draw everything that is not the gun
-		if ( glConfig2.usingMaterialSystem ) {
+		if ( glConfig.usingMaterialSystem ) {
 			materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, backEnd.viewParms.viewID );
 		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL_FAR );
@@ -2696,7 +2704,7 @@ static void RB_RenderView( bool depthPass )
 	else
 	{
 		// draw everything that is opaque
-		if ( glConfig2.usingMaterialSystem ) {
+		if ( glConfig.usingMaterialSystem ) {
 			materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, backEnd.viewParms.viewID );
 		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL );
@@ -2708,7 +2716,7 @@ static void RB_RenderView( bool depthPass )
 	RB_RenderGlobalFog();
 
 	// draw everything that is translucent
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, backEnd.viewParms.viewID );
 
 		// HACK: assume surfaces with depth fade don't use the material system
@@ -2753,7 +2761,7 @@ This is done so various debugging facilities will work properly
 */
 static void RB_RenderPostProcess()
 {
-	if ( glConfig2.usingMaterialSystem && !r_materialSystemSkip.Get() ) {
+	if ( glConfig.usingMaterialSystem && !r_materialSystemSkip.Get() ) {
 		// Dispatch the cull compute shaders for queued once we're done with post-processing
 		// We'll only use the results from those shaders in the next frame so we don't block the pipeline
 		materialSystem.CullSurfaces();
@@ -2818,7 +2826,7 @@ void RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool 
 		glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, Color::Black.ToArray() );
 
 		// Getting bindless handle makes the texture immutable, so generate it again because we used glTexParameter*
-		if ( glConfig2.usingBindlessTextures ) {
+		if ( glConfig.usingBindlessTextures ) {
 			tr.cinematicImage[ client ]->texture->GenBindlessHandle();
 		}
 	}
@@ -3320,7 +3328,7 @@ RB_SetupLights
 const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 {
 	int numLights;
-	GLenum bufferTarget = glConfig2.uniformBufferObjectAvailable ? GL_UNIFORM_BUFFER : GL_PIXEL_UNPACK_BUFFER;
+	GLenum bufferTarget = glConfig.uniformBufferObjectAvailable ? GL_UNIFORM_BUFFER : GL_PIXEL_UNPACK_BUFFER;
 
 	GLIMP_LOGCOMMENT( "--- SetupLightsCommand::ExecuteSelf ---" );
 
@@ -3674,8 +3682,8 @@ void RB_ShowImages()
 		   }
 		 */
 
-		w = glConfig.vidWidth / 20;
-		h = glConfig.vidHeight / 15;
+		w = windowConfig.vidWidth / 20;
+		h = windowConfig.vidHeight / 15;
 		x = i % 20 * w;
 		y = i / 20 * h;
 

@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // We currently write GLBinaryHeader to a file and memcpy all over it.
 // Make sure it's a pod, so we don't put a std::string in it or something
 // and try to memcpy over that or binary write an std::string to a file.
-static_assert(std::is_pod<GLBinaryHeader>::value, "Value must be a pod while code in this cpp file reads and writes this object to file as binary.");
+static_assert(IsPod<GLBinaryHeader>, "Value must be a pod while code in this cpp file reads and writes this object to file as binary.");
 
 // set via command line args only since this allows arbitrary code execution
 static Cvar::Cvar<std::string> shaderpath(
@@ -286,7 +286,7 @@ void GLShaderManager::UpdateShaderProgramUniformLocations( GLShader* shader, Sha
 		uniform->UpdateShaderProgramUniformLocation( shaderProgram );
 	}
 
-	if( glConfig2.uniformBufferObjectAvailable && !glConfig2.shadingLanguage420PackAvailable ) {
+	if( glConfig.uniformBufferObjectAvailable && !glConfig.shadingLanguage420PackAvailable ) {
 		// create buffer for storing uniform block indexes
 		shaderProgram->uniformBlockIndexes = ( GLuint* ) Z_Malloc( sizeof( GLuint ) * numUniformBlocks );
 
@@ -414,57 +414,57 @@ struct addedExtension_t {
 
 // Fragment and vertex version declaration.
 static const std::vector<addedExtension_t> fragmentVertexAddedExtensions = {
-	{ glConfig2.gpuShader4Available, 130, "EXT_gpu_shader4" },
-	{ glConfig2.gpuShader5Available, 400, "ARB_gpu_shader5" },
-	{ glConfig2.shadingLanguage420PackAvailable, 420, "ARB_shading_language_420pack" },
-	{ glConfig2.textureFloatAvailable, 130, "ARB_texture_float" },
-	{ glConfig2.textureGatherAvailable, 400, "ARB_texture_gather" },
-	{ glConfig2.textureIntegerAvailable, 0, "EXT_texture_integer" },
-	{ glConfig2.textureRGAvailable, 0, "ARB_texture_rg" },
-	{ glConfig2.uniformBufferObjectAvailable, 140, "ARB_uniform_buffer_object" },
-	{ glConfig2.usingBindlessTextures, -1, "ARB_bindless_texture" },
+	{ glConfig.gpuShader4Available, 130, "EXT_gpu_shader4" },
+	{ glConfig.gpuShader5Available, 400, "ARB_gpu_shader5" },
+	{ glConfig.shadingLanguage420PackAvailable, 420, "ARB_shading_language_420pack" },
+	{ glConfig.textureFloatAvailable, 0, "ARB_texture_float" },
+	{ glConfig.textureGatherAvailable, 400, "ARB_texture_gather" },
+	{ glConfig.textureIntegerAvailable, 0, "EXT_texture_integer" },
+	{ glConfig.textureRGAvailable, 0, "ARB_texture_rg" },
+	{ glConfig.uniformBufferObjectAvailable, 140, "ARB_uniform_buffer_object" },
+	{ glConfig.usingBindlessTextures, -1, "ARB_bindless_texture" },
 	/* ARB_shader_draw_parameters set to -1, because we might get a 4.6 GL context,
 	where the core variables have different names. */
-	{ glConfig2.shaderDrawParametersAvailable, -1, "ARB_shader_draw_parameters" },
-	{ glConfig2.SSBOAvailable, 430, "ARB_shader_storage_buffer_object" },
+	{ glConfig.shaderDrawParametersAvailable, -1, "ARB_shader_draw_parameters" },
+	{ glConfig.SSBOAvailable, 430, "ARB_shader_storage_buffer_object" },
 	/* Even though these are part of the GL_KHR_shader_subgroup extension, we need to enable
 	the individual extensions for each feature.
 	GL_KHR_shader_subgroup itself can't be used in the shader. */
-	{ glConfig2.shaderSubgroupBasicAvailable, -1, "KHR_shader_subgroup_basic" },
-	{ glConfig2.shaderSubgroupVoteAvailable, -1, "KHR_shader_subgroup_vote" },
-	{ glConfig2.shaderSubgroupArithmeticAvailable, -1, "KHR_shader_subgroup_arithmetic" },
-	{ glConfig2.shaderSubgroupBallotAvailable, -1, "KHR_shader_subgroup_ballot" },
-	{ glConfig2.shaderSubgroupShuffleAvailable, -1, "KHR_shader_subgroup_shuffle" },
-	{ glConfig2.shaderSubgroupShuffleRelativeAvailable, -1, "KHR_shader_subgroup_shuffle_relative" },
-	{ glConfig2.shaderSubgroupQuadAvailable, -1, "KHR_shader_subgroup_quad" },
+	{ glConfig.shaderSubgroupBasicAvailable, -1, "KHR_shader_subgroup_basic" },
+	{ glConfig.shaderSubgroupVoteAvailable, -1, "KHR_shader_subgroup_vote" },
+	{ glConfig.shaderSubgroupArithmeticAvailable, -1, "KHR_shader_subgroup_arithmetic" },
+	{ glConfig.shaderSubgroupBallotAvailable, -1, "KHR_shader_subgroup_ballot" },
+	{ glConfig.shaderSubgroupShuffleAvailable, -1, "KHR_shader_subgroup_shuffle" },
+	{ glConfig.shaderSubgroupShuffleRelativeAvailable, -1, "KHR_shader_subgroup_shuffle_relative" },
+	{ glConfig.shaderSubgroupQuadAvailable, -1, "KHR_shader_subgroup_quad" },
 };
 
 // Compute version declaration, this has to be separate from other shader stages,
 // because some things are unique to vertex/fragment or compute shaders.
 static const std::vector<addedExtension_t> computeAddedExtensions = {
-	{ glConfig2.computeShaderAvailable, 430, "ARB_compute_shader" },
-	{ glConfig2.gpuShader4Available, 130, "EXT_gpu_shader4" },
-	{ glConfig2.gpuShader5Available, 400, "ARB_gpu_shader5" },
-	{ glConfig2.uniformBufferObjectAvailable, 140, "ARB_uniform_buffer_object" },
-	{ glConfig2.SSBOAvailable, 430, "ARB_shader_storage_buffer_object" },
-	{ glConfig2.shadingLanguage420PackAvailable, 420, "ARB_shading_language_420pack" },
-	{ glConfig2.explicitUniformLocationAvailable, 430, "ARB_explicit_uniform_location" },
-	{ glConfig2.shaderImageLoadStoreAvailable, 420, "ARB_shader_image_load_store" },
-	{ glConfig2.shaderAtomicCountersAvailable, 420, "ARB_shader_atomic_counters" },
+	{ glConfig.computeShaderAvailable, 430, "ARB_compute_shader" },
+	{ glConfig.gpuShader4Available, 130, "EXT_gpu_shader4" },
+	{ glConfig.gpuShader5Available, 400, "ARB_gpu_shader5" },
+	{ glConfig.uniformBufferObjectAvailable, 140, "ARB_uniform_buffer_object" },
+	{ glConfig.SSBOAvailable, 430, "ARB_shader_storage_buffer_object" },
+	{ glConfig.shadingLanguage420PackAvailable, 420, "ARB_shading_language_420pack" },
+	{ glConfig.explicitUniformLocationAvailable, 430, "ARB_explicit_uniform_location" },
+	{ glConfig.shaderImageLoadStoreAvailable, 420, "ARB_shader_image_load_store" },
+	{ glConfig.shaderAtomicCountersAvailable, 420, "ARB_shader_atomic_counters" },
 	/* ARB_shader_atomic_counter_ops set to -1,
 	because we might get a 4.6 GL context, where the core functions have different names. */
-	{ glConfig2.shaderAtomicCounterOpsAvailable, -1, "ARB_shader_atomic_counter_ops" },
-	{ glConfig2.usingBindlessTextures, -1, "ARB_bindless_texture" },
+	{ glConfig.shaderAtomicCounterOpsAvailable, -1, "ARB_shader_atomic_counter_ops" },
+	{ glConfig.usingBindlessTextures, -1, "ARB_bindless_texture" },
 	/* Even though these are part of the GL_KHR_shader_subgroup extension, we need to enable
 	the individual extensions for each feature.
 	GL_KHR_shader_subgroup itself can't be used in the shader. */
-	{ glConfig2.shaderSubgroupBasicAvailable, -1, "KHR_shader_subgroup_basic" },
-	{ glConfig2.shaderSubgroupVoteAvailable, -1, "KHR_shader_subgroup_vote" },
-	{ glConfig2.shaderSubgroupArithmeticAvailable, -1, "KHR_shader_subgroup_arithmetic" },
-	{ glConfig2.shaderSubgroupBallotAvailable, -1, "KHR_shader_subgroup_ballot" },
-	{ glConfig2.shaderSubgroupShuffleAvailable, -1, "KHR_shader_subgroup_shuffle" },
-	{ glConfig2.shaderSubgroupShuffleRelativeAvailable, -1, "KHR_shader_subgroup_shuffle_relative" },
-	{ glConfig2.shaderSubgroupQuadAvailable, -1, "KHR_shader_subgroup_quad" },
+	{ glConfig.shaderSubgroupBasicAvailable, -1, "KHR_shader_subgroup_basic" },
+	{ glConfig.shaderSubgroupVoteAvailable, -1, "KHR_shader_subgroup_vote" },
+	{ glConfig.shaderSubgroupArithmeticAvailable, -1, "KHR_shader_subgroup_arithmetic" },
+	{ glConfig.shaderSubgroupBallotAvailable, -1, "KHR_shader_subgroup_ballot" },
+	{ glConfig.shaderSubgroupShuffleAvailable, -1, "KHR_shader_subgroup_shuffle" },
+	{ glConfig.shaderSubgroupShuffleRelativeAvailable, -1, "KHR_shader_subgroup_shuffle_relative" },
+	{ glConfig.shaderSubgroupQuadAvailable, -1, "KHR_shader_subgroup_quad" },
 };
 
 static void addExtension( std::string& str, bool available, int minGlslVersion, const std::string& name ) {
@@ -472,7 +472,7 @@ static void addExtension( std::string& str, bool available, int minGlslVersion, 
 		return;
 	}
 
-	if ( ( glConfig2.shadingLanguageVersion < minGlslVersion ) || ( minGlslVersion == -1 ) ) {
+	if ( ( glConfig.shadingLanguageVersion < minGlslVersion ) || ( minGlslVersion == -1 ) ) {
 		str += Str::Format( "#extension GL_%s : require\n", name );
 	}
 
@@ -499,8 +499,8 @@ static void AddConst( std::string& str, const std::string& name, float v1, float
 static std::string GenVersionDeclaration( const std::vector<addedExtension_t> &addedExtensions ) {
 	// Declare version.
 	std::string str = Str::Format( "#version %d %s\n\n",
-		glConfig2.shadingLanguageVersion,
-		glConfig2.shadingLanguageVersion >= 150 ? ( glConfig2.glCoreProfile ? "core" : "compatibility" ) : "" );
+		glConfig.shadingLanguageVersion,
+		glConfig.shadingLanguageVersion >= 150 ? ( glConfig.glCoreProfile ? "core" : "compatibility" ) : "" );
 
 	// Add supported GLSL extensions.
 	for ( const auto& addedExtension : addedExtensions ) {
@@ -522,11 +522,11 @@ static std::string GenCompatHeader() {
 	std::string str;
 
 	// definition of functions missing in early GLSL
-	if( glConfig2.shadingLanguageVersion <= 120 ) {
+	if( glConfig.shadingLanguageVersion <= 120 ) {
 		str += "float smoothstep(float edge0, float edge1, float x) { float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }\n";
 	}
 
-	if ( !glConfig2.gpuShader5Available && glConfig2.gpuShader4Available )
+	if ( !glConfig.gpuShader5Available && glConfig.gpuShader4Available )
 	{
 		str +=
 R"(vec4 unpackUnorm4x8( uint value )
@@ -543,7 +543,7 @@ R"(vec4 unpackUnorm4x8( uint value )
 
 	/* Driver bug: Adrenaline/OGLP drivers fail to recognise the ARB function versions when they return a 4.6 context
 	and the shaders get #version 460 core, so add #define's for them here */
-	if ( glConfig2.driverVendor == glDriverVendor_t::ATI && glConfig2.shaderAtomicCounterOpsAvailable ) {
+	if ( glConfig.driverVendor == glDriverVendor_t::ATI && glConfig.shaderAtomicCounterOpsAvailable ) {
 		str += "#define atomicCounterAddARB atomicCounterAdd\n";
 		str += "#define atomicCounterSubtractARB atomicCounterSubtract\n";
 		str += "#define atomicCounterMinARB atomicCounterMin\n";
@@ -562,7 +562,7 @@ static std::string GenVertexHeader() {
 	std::string str;
 
 	// Vertex shader compatibility defines
-	if( glConfig2.shadingLanguageVersion > 120 ) {
+	if( glConfig.shadingLanguageVersion > 120 ) {
 		str =   "#define IN in\n"
 			"#define OUT(mode) mode out\n"
 			"#define textureCube texture\n"
@@ -574,14 +574,14 @@ static std::string GenVertexHeader() {
 			"#define OUT(mode) varying\n";
 	}
 
-	if ( glConfig2.shaderDrawParametersAvailable ) {
+	if ( glConfig.shaderDrawParametersAvailable ) {
 		str += "OUT(flat) int in_drawID;\n";
 		str += "OUT(flat) int in_baseInstance;\n";
 		str += "#define drawID gl_DrawIDARB\n";
 		str += "#define baseInstance gl_BaseInstanceARB\n\n";
 	}
 
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		AddDefine( str, "BIND_MATERIALS", BufferBind::MATERIALS );
 		AddDefine( str, "BIND_TEX_DATA", BufferBind::TEX_DATA );
 		AddDefine( str, "BIND_TEX_DATA_STORAGE", BufferBind::TEX_DATA_STORAGE );
@@ -595,14 +595,14 @@ static std::string GenFragmentHeader() {
 	std::string str;
 
 	// Fragment shader compatibility defines
-	if( glConfig2.shadingLanguageVersion > 120 ) {
+	if( glConfig.shadingLanguageVersion > 120 ) {
 		str =   "#define IN(mode) mode in\n"
 			"#define DECLARE_OUTPUT(type) out type outputColor;\n"
 			"#define textureCube texture\n"
 			"#define texture2D texture\n"
 			"#define texture2DProj textureProj\n"
 			"#define texture3D texture\n";
-	} else if( glConfig2.gpuShader4Available) {
+	} else if( glConfig.gpuShader4Available) {
 		str =   "#define IN(mode) varying\n"
 			"#define DECLARE_OUTPUT(type) varying out type outputColor;\n";
 	} else {
@@ -611,22 +611,22 @@ static std::string GenFragmentHeader() {
 			"#define DECLARE_OUTPUT(type) /* empty*/\n";
 	}
 
-	if ( glConfig2.usingBindlessTextures ) {
+	if ( glConfig.usingBindlessTextures ) {
 		str += "layout(bindless_sampler) uniform;\n";
 	}
 
-	if ( glConfig2.shaderDrawParametersAvailable ) {
+	if ( glConfig.shaderDrawParametersAvailable ) {
 		str += "IN(flat) int in_drawID;\n";
 		str += "IN(flat) int in_baseInstance;\n";
 		str += "#define drawID in_drawID\n";
 		str += "#define baseInstance in_baseInstance\n\n";
 	}
 
-	if ( glConfig2.shadingLanguage420PackAvailable ) {
+	if ( glConfig.shadingLanguage420PackAvailable ) {
 		AddDefine( str, "BIND_LIGHTS", BufferBind::LIGHTS );
 	}
 
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		AddDefine( str, "BIND_MATERIALS", BufferBind::MATERIALS );
 		AddDefine( str, "BIND_TEX_DATA", BufferBind::TEX_DATA );
 		AddDefine( str, "BIND_TEX_DATA_STORAGE", BufferBind::TEX_DATA_STORAGE );
@@ -640,7 +640,7 @@ static std::string GenComputeHeader() {
 	std::string str;
 
 	// Compute shader compatibility defines
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		AddDefine( str, "MAX_VIEWS", MAX_VIEWS );
 		AddDefine( str, "MAX_FRAMES", MAX_FRAMES );
 		AddDefine( str, "MAX_VIEWFRAMES", MAX_VIEWFRAMES );
@@ -680,14 +680,14 @@ static std::string GenEngineConstants() {
 
 	AddDefine( str, "M_PI", static_cast< float >( M_PI ) );
 	AddDefine( str, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
-	AddDefine( str, "NUM_LIGHT_LAYERS", glConfig2.realtimeLightLayers );
+	AddDefine( str, "NUM_LIGHT_LAYERS", glConfig.realtimeLightLayers );
 	AddDefine( str, "TILE_SIZE", TILE_SIZE );
 
-	AddDefine( str, "r_FBufSize", glConfig.vidWidth, glConfig.vidHeight );
+	AddDefine( str, "r_FBufSize", windowConfig.vidWidth, windowConfig.vidHeight );
 
 	AddDefine( str, "r_tileStep", glState.tileStep[0], glState.tileStep[1] );
 
-	if ( glConfig2.realtimeLighting )
+	if ( glConfig.realtimeLighting )
 	{
 		AddDefine( str, "r_realtimeLighting", 1 );
 	}
@@ -736,10 +736,10 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_profilerRenderSubGroups", 1 );
 	}
 
-	if ( glConfig2.vboVertexSkinningAvailable )
+	if ( glConfig.vboVertexSkinningAvailable )
 	{
 		AddDefine( str, "r_vertexSkinning", 1 );
-		AddConst( str, "MAX_GLSL_BONES", glConfig2.maxVertexSkinningBones );
+		AddConst( str, "MAX_GLSL_BONES", glConfig.maxVertexSkinningBones );
 	}
 	else
 	{
@@ -765,7 +765,7 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showLightTiles", 1 );
 	}
 
-	if ( glConfig2.normalMapping )
+	if ( glConfig.normalMapping )
 	{
 		AddDefine( str, "r_normalMapping", 1 );
 	}
@@ -775,12 +775,12 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_liquidMapping", 1 );
 	}
 
-	if ( glConfig2.specularMapping )
+	if ( glConfig.specularMapping )
 	{
 		AddDefine( str, "r_specularMapping", 1 );
 	}
 
-	if ( glConfig2.physicalMapping )
+	if ( glConfig.physicalMapping )
 	{
 		AddDefine( str, "r_physicalMapping", 1 );
 	}
@@ -790,7 +790,7 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_glowMapping", 1 );
 	}
 
-	if ( glConfig2.colorGrading )
+	if ( glConfig.colorGrading )
 	{
 		AddDefine( str, "r_colorGrading", 1 );
 	}
@@ -870,30 +870,30 @@ static bool IsUnusedPermutation( const char *compileMacros )
 	{
 		if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 )
 		{
-			if ( !glConfig2.deluxeMapping ) return true;
+			if ( !glConfig.deluxeMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_GRID_DELUXE_MAPPING" ) == 0 )
 		{
-			if ( !glConfig2.deluxeMapping ) return true;
+			if ( !glConfig.deluxeMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_PHYSICAL_MAPPING" ) == 0 )
 		{
-			if ( !glConfig2.physicalMapping ) return true;
+			if ( !glConfig.physicalMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_REFLECTIVE_SPECULAR" ) == 0 )
 		{
 			/* FIXME: add to the following test: && r_physicalMapping->integer == 0
 			when reflective specular is implemented for physical mapping too
 			see https://github.com/DaemonEngine/Daemon/issues/355 */
-			if ( !glConfig2.specularMapping ) return true;
+			if ( !glConfig.specularMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_RELIEF_MAPPING" ) == 0 )
 		{
-			if ( !glConfig2.reliefMapping ) return true;
+			if ( !glConfig.reliefMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_HEIGHTMAP_IN_NORMALMAP" ) == 0 )
 		{
-			if ( !glConfig2.reliefMapping && !glConfig2.normalMapping ) return true;
+			if ( !glConfig.reliefMapping && !glConfig.normalMapping ) return true;
 		}
 	}
 
@@ -969,7 +969,7 @@ void GLShaderManager::BuildShaderProgram( ShaderProgramDescriptor* descriptor ) 
 
 	BindAttribLocations( program );
 
-	if ( glConfig2.getProgramBinaryAvailable ) {
+	if ( glConfig.getProgramBinaryAvailable ) {
 		glProgramParameteri( program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE );
 	}
 
@@ -1347,7 +1347,7 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 			ShaderDescriptor* desc = FindShader( shader->_name, shaderType.mainText, shaderType.GLType, shaderType.headers,
 				uniqueMacros, compileMacros, true );
 
-			if ( desc && glConfig2.usingMaterialSystem && shader->_useMaterialSystem ) {
+			if ( desc && glConfig.usingMaterialSystem && shader->_useMaterialSystem ) {
 				desc->shaderSource = ShaderPostProcess( shader, desc->shaderSource, shaderType.offset );
 			}
 
@@ -1369,7 +1369,7 @@ bool GLShaderManager::LoadShaderBinary( const std::vector<ShaderEntry>& shaders,
 	}
 
 	// Don't even try if the necessary functions aren't available
-	if ( !glConfig2.getProgramBinaryAvailable ) {
+	if ( !glConfig.getProgramBinaryAvailable ) {
 		return false;
 	}
 
@@ -1456,7 +1456,7 @@ void GLShaderManager::SaveShaderBinary( ShaderProgramDescriptor* descriptor ) {
 	}
 
 	// Don't even try if the necessary functions aren't available
-	if( !glConfig2.getProgramBinaryAvailable ) {
+	if( !glConfig.getProgramBinaryAvailable ) {
 		return;
 	}
 
@@ -1584,7 +1584,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 		return shaderText;
 	}
 
-	std::string texBuf = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ?
+	std::string texBuf = glConfig.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ?
 		"layout(std140, binding = "
 		+ std::to_string( BufferBind::TEX_DATA )
 		+ ") uniform texDataUBO {\n"
@@ -1767,7 +1767,7 @@ std::vector<GLShaderManager::InfoLogEntry> GLShaderManager::ParseInfoLog( const 
 
 	// Info-log is entirely implementation dependent, so different vendors will report it differently
 	while ( std::getline( infoLogTextStream, line, '\n' ) ) {
-		switch ( glConfig2.driverVendor ) {
+		switch ( glConfig.driverVendor ) {
 			case glDriverVendor_t::NVIDIA:
 			{
 				// Format: <num of attached shader>(<line>): <error>
@@ -1925,7 +1925,7 @@ void GLShaderManager::LinkProgram( GLuint program ) const
 
 #ifdef GL_ARB_get_program_binary
 	// Apparently, this is necessary to get the binary program via glGetProgramBinary
-	if( glConfig2.getProgramBinaryAvailable )
+	if( glConfig.getProgramBinaryAvailable )
 	{
 		glProgramParameteri( program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE );
 	}
@@ -1982,7 +1982,7 @@ bool GLCompileMacro_USE_VERTEX_SKINNING::HasConflictingMacros( size_t permutatio
 
 bool GLCompileMacro_USE_VERTEX_SKINNING::MissesRequiredMacros( size_t /*permutation*/, const std::vector< GLCompileMacro * > &/*macros*/ ) const
 {
-	return !glConfig2.vboVertexSkinningAvailable;
+	return !glConfig.vboVertexSkinningAvailable;
 }
 
 bool GLCompileMacro_USE_VERTEX_ANIMATION::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
@@ -2407,11 +2407,6 @@ GLShader_genericMaterial::GLShader_genericMaterial() :
 	GLCompileMacro_USE_DEPTH_FADE( this ) {
 }
 
-void GLShader_genericMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
-}
-
 GLShader_lightMapping::GLShader_lightMapping() :
 	GLShader( "lightMapping", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR,
 		false, "lightMapping", "lightMapping" ),
@@ -2477,9 +2472,6 @@ void GLShader_lightMapping::SetShaderProgramUniforms( ShaderProgramDescriptor *s
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightTiles" ), BIND_LIGHTTILES );
-	if( !glConfig2.uniformBufferObjectAvailable ) {
-		glUniform1i( glGetUniformLocation( shaderProgram->id, "u_Lights" ), BIND_LIGHTS );
-	}
 }
 
 GLShader_lightMappingMaterial::GLShader_lightMappingMaterial() :
@@ -2528,22 +2520,6 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial() :
 	GLCompileMacro_USE_PHYSICAL_MAPPING( this ) {
 }
 
-void GLShader_lightMappingMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DiffuseMap" ), BIND_DIFFUSEMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), BIND_NORMALMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), BIND_HEIGHTMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_MaterialMap" ), BIND_MATERIALMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightMap" ), BIND_LIGHTMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DeluxeMap" ), BIND_DELUXEMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_GlowMap" ), BIND_GLOWMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightTiles" ), BIND_LIGHTTILES );
-	if ( !glConfig2.uniformBufferObjectAvailable ) {
-		glUniform1i( glGetUniformLocation( shaderProgram->id, "u_Lights" ), BIND_LIGHTS );
-	}
-}
-
 GLShader_reflection::GLShader_reflection():
 	GLShader( "reflection", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT,
 		false, "reflection_CB", "reflection_CB" ),
@@ -2570,7 +2546,7 @@ GLShader_reflection::GLShader_reflection():
 
 void GLShader_reflection::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMapCube" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 1 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
@@ -2592,12 +2568,6 @@ GLShader_reflectionMaterial::GLShader_reflectionMaterial() :
 	GLDeformStage( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
-}
-
-void GLShader_reflectionMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_skybox::GLShader_skybox() :
@@ -2630,11 +2600,6 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial() :
 	u_AlphaThreshold( this ),
 	u_ModelViewProjectionMatrix( this )
 {}
-
-void GLShader_skyboxMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CloudMap" ), 1 );
-}
 
 GLShader_fogQuake3::GLShader_fogQuake3() :
 	GLShader( "fogQuake3", ATTR_POSITION | ATTR_QTANGENT,
@@ -2673,10 +2638,6 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material() :
 	GLDeformStage( this ) {
 }
 
-void GLShader_fogQuake3Material::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_FogMap" ), 0 );
-}
-
 GLShader_fogGlobal::GLShader_fogGlobal() :
 	GLShader( "fogGlobal", ATTR_POSITION,
 		false, "screenSpace", "fogGlobal" ),
@@ -2700,7 +2661,6 @@ GLShader_heatHaze::GLShader_heatHaze() :
 		false, "heatHaze", "heatHaze" ),
 	u_CurrentMap( this ),
 	u_NormalMap( this ),
-	u_HeightMap( this ),
 	u_TextureMatrix( this ),
 	u_DeformMagnitude( this ),
 	u_ModelViewProjectionMatrix( this ),
@@ -2719,7 +2679,6 @@ void GLShader_heatHaze::SetShaderProgramUniforms( ShaderProgramDescriptor *shade
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_heatHazeMaterial::GLShader_heatHazeMaterial() :
@@ -2727,7 +2686,6 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial() :
 		true, "heatHaze", "heatHaze" ),
 	u_CurrentMap( this ),
 	u_NormalMap( this ),
-	u_HeightMap( this ),
 	u_TextureMatrix( this ),
 	u_DeformEnable( this ),
 	u_DeformMagnitude( this ),
@@ -2737,12 +2695,6 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial() :
 	u_NormalScale( this ),
 	GLDeformStage( this )
 {
-}
-
-void GLShader_heatHazeMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
 }
 
 GLShader_screen::GLShader_screen() :
@@ -2763,10 +2715,6 @@ GLShader_screenMaterial::GLShader_screenMaterial() :
 		true, "screen", "screen" ),
 	u_CurrentMap( this ),
 	u_ModelViewProjectionMatrix( this ) {
-}
-
-void GLShader_screenMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
 }
 
 GLShader_portal::GLShader_portal() :
@@ -2909,17 +2857,6 @@ GLShader_liquidMaterial::GLShader_liquidMaterial() :
 	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
 }
 
-void GLShader_liquidMaterial::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_PortalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 2 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_NormalMap" ), 3 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid1" ), 6 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_LightGrid2" ), 7 );
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_HeightMap" ), 15 );
-}
-
 GLShader_motionblur::GLShader_motionblur() :
 	GLShader( "motionblur", ATTR_POSITION,
 		false, "screenSpace", "motionblur" ),
@@ -2971,7 +2908,7 @@ GLShader_depthtile2::GLShader_depthtile2() :
 
 void GLShader_depthtile2::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthTile1" ), 0 );
 }
 
 GLShader_lighttile::GLShader_lighttile() :
@@ -2988,11 +2925,7 @@ GLShader_lighttile::GLShader_lighttile() :
 
 void GLShader_lighttile::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
-
-	if( !glConfig2.uniformBufferObjectAvailable ) {
-		glUniform1i( glGetUniformLocation( shaderProgram->id, "u_Lights" ), 1 );
-	}
+	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthTile2" ), 0 );
 }
 
 GLShader_fxaa::GLShader_fxaa() :
@@ -3033,10 +2966,6 @@ GLShader_depthReduction::GLShader_depthReduction() :
 	u_ViewHeight( this ),
 	u_DepthMap( this ),
 	u_InitialDepthLevel( this ) {
-}
-
-void GLShader_depthReduction::SetShaderProgramUniforms( ShaderProgramDescriptor* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 0 );
 }
 
 GLShader_clearSurfaces::GLShader_clearSurfaces() :

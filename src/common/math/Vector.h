@@ -28,14 +28,7 @@ along with Daemon Source Code.  If not, see <http://www.gnu.org/licenses/>.
 #include <ostream>
 #include <type_traits>
 
-#include "common/CPPStandard.h"
-
-// HACK: checking for CPP_INVOKE_RESULT doesn't work on MSVC
-#if __cplusplus >= 201703L
-	#define invoke_result std::invoke_result
-#else
-	#define invoke_result std::result_of
-#endif
+template<typename Func, typename... Args> using resultof_t = decltype( std::declval<Func>()( std::declval<Args...> ) );
 
 namespace Math {
 
@@ -97,9 +90,9 @@ namespace Math {
 		void Store(Type* ptr) const;
 
 		// Apply a function on all elements of the vector
-		template<typename Func> Vector<Dimension, typename invoke_result<Func(Type)>::type> Apply(Func func) const;
-		template<typename Func, typename Type2> Vector<Dimension, typename invoke_result<Func(Type, Type2)>::type> Apply2(Func func, Vector<Dimension, Type2> other) const;
-		template<typename Func, typename Type2, typename Type3> Vector<Dimension, typename invoke_result<Func(Type, Type2, Type3)>::type> Apply3(Func func, Vector<Dimension, Type2> other1, Vector<Dimension, Type3> other2) const;
+		template<typename Func> Vector<Dimension, resultof_t<Func, Type>> Apply(Func func) const;
+		template<typename Func, typename Type2> Vector<Dimension, resultof_t<Func, Type, Type2>> Apply2(Func func, Vector<Dimension, Type2> other) const;
+		template<typename Func, typename Type2, typename Type3> Vector<Dimension, resultof_t<Func, Type, Type2, Type3>> Apply3(Func func, Vector<Dimension, Type2> other1, Vector<Dimension, Type3> other2) const;
 
 		// Reduce the elements of the vector to a single value
 		template<typename Func> Type Reduce(Type init, Func func);
@@ -853,25 +846,25 @@ namespace Math {
 
 	// VectorBase::Apply/Apply2/Apply3
 	template<size_t Dimension, typename Type> template<typename Func>
-	Vector<Dimension, typename invoke_result<Func(Type)>::type> VectorBase<Dimension, Type>::Apply(Func func) const
+	Vector<Dimension, resultof_t<Func, Type>> VectorBase<Dimension, Type>::Apply(Func func) const
 	{
-		Vector<Dimension, typename invoke_result<Func(Type)>::type> out;
+		Vector<Dimension, resultof_t<Func, Type>> out;
 		for (size_t i = 0; i < Dimension; i++)
 			out.data[i] = func(data[i]);
 		return out;
 	}
 	template<size_t Dimension, typename Type> template<typename Func, typename Type2>
-	Vector<Dimension, typename invoke_result<Func(Type, Type2)>::type> VectorBase<Dimension, Type>::Apply2(Func func, Vector<Dimension, Type2> other) const
+	Vector<Dimension, resultof_t<Func, Type, Type2>> VectorBase<Dimension, Type>::Apply2(Func func, Vector<Dimension, Type2> other) const
 	{
-		Vector<Dimension, typename invoke_result<Func(Type, Type2)>::type> out;
+		Vector<Dimension, resultof_t<Func(Type, Type2)>> out;
 		for (size_t i = 0; i < Dimension; i++)
 			out.data[i] = func(data[i], other.data[i]);
 		return out;
 	}
 	template<size_t Dimension, typename Type> template<typename Func, typename Type2, typename Type3>
-	Vector<Dimension, typename invoke_result<Func(Type, Type2, Type3)>::type> VectorBase<Dimension, Type>::Apply3(Func func, Vector<Dimension, Type2> other1, Vector<Dimension, Type3> other2) const
+	Vector<Dimension, resultof_t<Func, Type, Type2, Type3>> VectorBase<Dimension, Type>::Apply3(Func func, Vector<Dimension, Type2> other1, Vector<Dimension, Type3> other2) const
 	{
-		Vector<Dimension, typename invoke_result<Func(Type, Type2, Type3)>::type> out;
+		Vector<Dimension, resultof_t<Func, Type, Type2, Type3>> out;
 		for (size_t i = 0; i < Dimension; i++)
 			out.data[i] = func(data[i], other1.data[i], other2.data[i]);
 		return out;
