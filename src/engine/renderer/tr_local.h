@@ -473,6 +473,7 @@ enum class ssaoMode {
 	  IF_DEPTH32 = BIT( 11 ),
 	  IF_PACKED_DEPTH24_STENCIL8 = BIT( 12 ),
 	  IF_LIGHTMAP = BIT( 13 ),
+	  IF_RED = BIT( 14 ),
 	  IF_RGBE = BIT( 15 ),
 	  IF_ALPHATEST = BIT( 16 ), // FIXME: this is unused
 	  IF_ALPHA = BIT( 17 ),
@@ -2441,7 +2442,9 @@ enum
 
 		image_t    *defaultImage;
 		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
-		image_t    *fogImage;
+		image_t    *fogImage; // Will be set to either fogImageNaive or fogImageSrgb.
+		image_t    *fogImageNaive;
+		image_t    *fogImageLinear;
 		image_t    *whiteImage; // full of 0xff
 		image_t    *blackImage; // full of 0x0
 		image_t    *redImage;
