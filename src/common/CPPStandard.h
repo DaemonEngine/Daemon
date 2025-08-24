@@ -31,19 +31,62 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
+// CPPStandard.h
 
-/* screenSpace_vp.glsl */
+#ifndef CPPSTANDARD_H
+#define CPPSTANDARD_H
 
-#if defined(HAVE_EXT_gpu_shader4)
-const vec2 vertices[3] = vec2[3] ( vec2( -1.0f, -1.0f ), vec2( 3.0f, -1.0f ), vec2( -1.0f, 3.0f ) );
+#undef CPP_AGGREGATE
+#undef CPP_CONCEPTS
+#undef CPP_CONSTEVAL
+#undef CPP_CONSTEXPR
+#undef CPP_CTAD
+#undef CPP_DESIGNATED_INIT
+#undef CPP_INVOKE_RESULT
+#undef CPP_ATOMIC_WAIT_NOTIFY
+#undef CPP_SOURCE_LOCATION
+#undef CPP_STACKTRACE
 
-void main() {
-	gl_Position = vec4( vertices[gl_VertexID], 0.0f, 1.0f );
-}
-#else
-IN vec3 attr_Position;
-
-void main() {
-	gl_Position = vec4( attr_Position, 1.0f );
-}
+#if defined( __cpp_aggregate_bases ) && defined ( __cpp_aggregate_nsdmi ) && defined ( __cpp_aggregate_paren_init )
+    #define CPP_AGGREGATE
 #endif
+
+#if __cpp_concepts >= 201907L
+    #define CPP_CONCEPTS
+#endif
+
+#if __cpp_consteval >= 201811L
+    #define CPP_CONSTEVAL
+#endif
+
+#if __cpp_constexpr >= 202110L && __cpp_if_constexpr >= 201606L
+    #define CPP_CONSTEXPR
+#endif
+
+#if __cpp_deduction_guides >= 201907L
+    #define CPP_CTAD
+#endif
+
+#if __cpp_designated_initializers >= 201707L
+    #define CPP_DESIGNATED_INIT
+#endif
+
+#if __cpp_lib_is_invocable >= 201703L
+    #define CPP_INVOKE_RESULT
+#endif
+
+#if __cpp_lib_atomic_wait >= 201907L
+    #define CPP_ATOMIC_WAIT_NOTIFY
+#endif
+
+#if __cpp_lib_source_location >= 201907L
+    #define CPP_SOURCE_LOCATION
+#endif
+
+/* Clang/GCC support <stacktrace> with -lstdc++exp/-lstdlibc++_libbacktrace, but they don't define the feature macro,
+so we set a custom macro in build system */
+#if __cpp_lib_stacktrace >= 202011L || defined(DAEMON_CPP23_SUPPORT_LIBRARY_ENABLED)
+    #define CPP_STACKTRACE
+#endif
+
+#endif // CPPSTANDARD_H

@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "System.h"
 #include "CrashDump.h"
 #include "CvarSystem.h"
+#include "common/StackTrace.h"
 #include <common/FileSystem.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -552,10 +553,13 @@ void Error(Str::StringRef message)
 {
 	// Crash immediately in case of a recursive error
 	static std::atomic_flag errorEntered;
-	if (errorEntered.test_and_set())
+	if (errorEntered.test_and_set()) {
 		_exit(-1);
+	}
 
 	Log::Warn(message);
+	PrintStackTrace();
+
 	Shutdown(true, message);
 
 	OSExit(1);

@@ -24,9 +24,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef TR_LOCAL_H
 #define TR_LOCAL_H
 
-#ifndef GLEW_NO_GLU
-#define GLEW_NO_GLU
-#endif
 #include <GL/glew.h>
 
 #include "common/FileSystem.h"
@@ -1162,6 +1159,7 @@ enum
 		bool entitySpriteFaceViewDirection;
 
 		int		autoSpriteMode;
+		bool autoSpriteWarned = false;
 
 		bool forceLightMap;
 
@@ -1726,11 +1724,6 @@ enum
 		fog_t              *fogs;
 
 		int                globalFog; // Arnout: index of global fog
-		vec4_t             globalOriginalFog; // Arnout: to be able to restore original global fog
-		vec4_t             globalTransStartFog; // Arnout: start fog for switch fog transition
-		vec4_t             globalTransEndFog; // Arnout: end fog for switch fog transition
-		int                globalFogTransStartTime;
-		int                globalFogTransEndTime;
 
 		vec3_t             lightGridOrigin;
 		vec3_t             lightGridSize;
@@ -2192,7 +2185,6 @@ enum
 		visTestQueries_t  visTestQueries[ MAX_VISTESTS ];
 		bool          isHyperspace;
 		trRefEntity_t     *currentEntity;
-		bool          skyRenderedThisView; // flag for drawing sun
 		bool dirtyDepthBuffer;
 		bool postDepthLightTileRendered = false;
 
@@ -2687,6 +2679,7 @@ enum
 	extern Cvar::Modified<Cvar::Cvar<std::string>> r_textureMode;
 	extern cvar_t *r_offsetFactor;
 	extern cvar_t *r_offsetUnits;
+	extern Cvar::Cvar<bool> r_depthShaders;
 
 	extern cvar_t *r_physicalMapping;
 	extern cvar_t *r_specularExponentMin;
@@ -2941,7 +2934,7 @@ void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLin
 	void      RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool dirty );
 
 	void      RE_BeginFrame();
-	bool  RE_BeginRegistration( glconfig_t *glconfig, glconfig2_t *glconfig2 );
+	bool  RE_BeginRegistration( WindowConfig* windowCfg );
 	void      RE_LoadWorldMap( const char *mapname );
 	void      RE_SetWorldVisData( const byte *vis );
 	qhandle_t RE_RegisterModel( const char *name );

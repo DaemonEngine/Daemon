@@ -38,9 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 
-#ifndef GLEW_NO_GLU
-#define GLEW_NO_GLU
-#endif
 #include <GL/glew.h>
 
 #include "BufferBind.h"
@@ -239,7 +236,7 @@ class GLVAO {
 			vboAttributeLayout_t& attr = attrs[spec->attrIndex];
 			ASSERT_NQ( spec->numComponents, 0U );
 			attr.componentType = spec->componentStorageType;
-			if ( attr.componentType == GL_HALF_FLOAT && !glConfig2.halfFloatVertexAvailable ) {
+			if ( attr.componentType == GL_HALF_FLOAT && !glConfig.halfFloatVertexAvailable ) {
 				attr.componentType = GL_FLOAT;
 			}
 			attr.numComponents = spec->numComponents;

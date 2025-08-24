@@ -502,7 +502,7 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 	Log::Debug( "Generating world command buffer" );
 
 	// TexBundles
-	if ( glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ) {
+	if ( glConfig.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ) {
 		texDataBufferType = GL_UNIFORM_BUFFER;
 		texDataBindingPoint = BufferBind::TEX_DATA;
 	} else {
@@ -813,7 +813,7 @@ void BindShaderLightMapping( Material* material ) {
 	gl_lightMappingShaderMaterial->SetReliefMapping( material->enableReliefMapping );
 	/* Reflective specular setting is different here than in ProcessMaterialLightMapping(),
 	because we don't have cubemaps built yet at this point, but for the purposes of the material ordering there's no difference */
-	gl_lightMappingShaderMaterial->SetReflectiveSpecular( glConfig2.reflectionMapping && material->enableSpecularMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) );
+	gl_lightMappingShaderMaterial->SetReflectiveSpecular( glConfig.reflectionMapping && material->enableSpecularMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) );
 	gl_lightMappingShaderMaterial->SetPhysicalShading( material->enablePhysicalMapping );
 
 	// Bind shader program.
@@ -836,7 +836,7 @@ void BindShaderLightMapping( Material* material ) {
 		gl_lightMappingShaderMaterial->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_LIGHTGRID2, tr.lightGrid2Image ) );
 	}
 
-	if ( glConfig2.realtimeLighting ) {
+	if ( glConfig.realtimeLighting ) {
 		// bind u_LightTiles
 		gl_lightMappingShaderMaterial->SetUniform_LightTilesBindless(
 			GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
@@ -852,7 +852,7 @@ void BindShaderLightMapping( Material* material ) {
 	gl_lightMappingShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// TODO: Move this to a per-entity buffer
-	if ( glConfig2.reflectionMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) ) {
+	if ( glConfig.reflectionMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) ) {
 		bool isWorldEntity = backEnd.currentEntity == &tr.worldEntity;
 
 		vec3_t position;
@@ -1466,7 +1466,7 @@ void MaterialSystem::AddStageTextures( MaterialSurface* surface, shader_t* shade
 	}
 	surface->texDataDynamic[stage] = dynamic;
 
-	if ( glConfig2.realtimeLighting ) {
+	if ( glConfig.realtimeLighting ) {
 		material->AddTexture( tr.lighttileRenderImage->texture );
 	}
 }
@@ -1526,6 +1526,7 @@ void MaterialSystem::DepthReduction() {
 	uint32_t globalWorkgroupX = ( width + 7 ) / 8;
 	uint32_t globalWorkgroupY = ( height + 7 ) / 8;
 
+	// FIXME: u_DepthMap object on the shader is not actually used
 	GL_Bind( tr.currentDepthImage );
 	glBindImageTexture( 2, depthImage->texnum, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F );
 

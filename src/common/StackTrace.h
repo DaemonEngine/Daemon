@@ -31,19 +31,53 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
+// StackTrace.h
 
-/* screenSpace_vp.glsl */
+#ifndef STACKTRACE_H
+#define STACKTRACE_H
 
-#if defined(HAVE_EXT_gpu_shader4)
-const vec2 vertices[3] = vec2[3] ( vec2( -1.0f, -1.0f ), vec2( 3.0f, -1.0f ), vec2( -1.0f, 3.0f ) );
+#include "CPPStandard.h"
+#include "String.h"
 
-void main() {
-	gl_Position = vec4( vertices[gl_VertexID], 0.0f, 1.0f );
+#include "Log.h"
+
+#if defined( CPP_STACKTRACE )
+
+#include <stacktrace>
+
+inline std::string FormatStackTrace( const std::stacktrace& stackTrace,
+    const bool skipCurrent = false, const bool compact = false ) {
+    std::string out;
+    bool skipped = !skipCurrent;
+    bool addLineEnd = false;
+    
+    for ( const std::stacktrace_entry& entry : stackTrace ) {
+        if ( !skipped ) {
+            skipped = true;
+            continue;
+        }
+
+        if( compact ) {
+            out += Str::Format( addLineEnd ? "\n%s:%u" : "%s:%u", entry.source_file(), entry.source_line());
+        } else {
+            out += Str::Format( addLineEnd ? "\n%s:%u: %s" : "%s:%u: %s", entry.source_file(), entry.source_line(), entry.description());
+        }
+        addLineEnd = true;
+    }
+
+    return out;
 }
+
+inline void PrintStackTrace( const std::stacktrace& stackTrace = std::stacktrace::current() ) {
+    Log::Warn( "\n\n====================\nStackTrace:\n%s\n====================\n\n", FormatStackTrace( stackTrace ) );
+}
+
 #else
-IN vec3 attr_Position;
 
-void main() {
-	gl_Position = vec4( attr_Position, 1.0f );
+inline void PrintStackTrace() {
+    Log::Warn( "StackTrace unavailable: CPP23 required" );
 }
+
 #endif
+
+#endif // STACKTRACE_H

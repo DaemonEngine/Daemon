@@ -104,12 +104,12 @@ FBO_t          *R_CreateFBO( const char *name, int width, int height )
 		Sys::Drop( "R_CreateFBO: \"%s\" is too long", name );
 	}
 
-	if ( width <= 0 || width > glConfig2.maxRenderbufferSize )
+	if ( width <= 0 || width > glConfig.maxRenderbufferSize )
 	{
 		Sys::Drop( "R_CreateFBO: bad width %i", width );
 	}
 
-	if ( height <= 0 || height > glConfig2.maxRenderbufferSize )
+	if ( height <= 0 || height > glConfig.maxRenderbufferSize )
 	{
 		Sys::Drop( "R_CreateFBO: bad height %i", height );
 	}
@@ -141,7 +141,7 @@ void R_CreateFBOColorBuffer( FBO_t *fbo, int format, int index )
 {
 	bool absent;
 
-	if ( index < 0 || index >= glConfig2.maxColorAttachments )
+	if ( index < 0 || index >= glConfig.maxColorAttachments )
 	{
 		Log::Warn("R_CreateFBOColorBuffer: invalid attachment index %i", index );
 		return;
@@ -288,7 +288,7 @@ R_AttachFBOTexture1D
 */
 void R_AttachFBOTexture1D( int texId, int index )
 {
-	if ( index < 0 || index >= glConfig2.maxColorAttachments )
+	if ( index < 0 || index >= glConfig.maxColorAttachments )
 	{
 		Log::Warn("R_AttachFBOTexture1D: invalid attachment index %i", index );
 		return;
@@ -310,7 +310,7 @@ void R_AttachFBOTexture2D( int target, int texId, int index )
 		return;
 	}
 
-	if ( index < 0 || index >= glConfig2.maxColorAttachments )
+	if ( index < 0 || index >= glConfig.maxColorAttachments )
 	{
 		Log::Warn("R_AttachFBOTexture2D: invalid attachment index %i", index );
 		return;
@@ -326,7 +326,7 @@ R_AttachFBOTexture3D
 */
 void R_AttachFBOTexture3D( int texId, int index, int zOffset )
 {
-	if ( index < 0 || index >= glConfig2.maxColorAttachments )
+	if ( index < 0 || index >= glConfig.maxColorAttachments )
 	{
 		Log::Warn("R_AttachFBOTexture3D: invalid attachment index %i", index );
 		return;
@@ -415,8 +415,8 @@ void R_InitFBOs()
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
 
-	width = glConfig.vidWidth;
-	height = glConfig.vidHeight;
+	width = windowConfig.vidWidth;
+	height = windowConfig.vidHeight;
 
 	tr.mainFBO[0] = R_CreateFBO( "_main[0]", width, height );
 	R_BindFBO( tr.mainFBO[0] );
@@ -430,7 +430,7 @@ void R_InitFBOs()
 	R_AttachFBOTexturePackedDepthStencil( tr.currentDepthImage->texnum );
 	R_CheckFBO( tr.mainFBO[1] );
 
-	if ( glConfig2.realtimeLighting )
+	if ( glConfig.realtimeLighting )
 	{
 		/* It's only required to create frame buffers only used by the
 		tiled dynamic lighting renderer when this feature is enabled. */
@@ -452,8 +452,8 @@ void R_InitFBOs()
 	}
 
 	{
-		width = glConfig.vidWidth;
-		height = glConfig.vidHeight;
+		width = windowConfig.vidWidth;
+		height = windowConfig.vidHeight;
 
 		// portalRender FBO for portals, mirrors, water, cameras et cetera
 		tr.portalRenderFBO = R_CreateFBO( "_portalRender", width, height );
@@ -464,10 +464,10 @@ void R_InitFBOs()
 		R_CheckFBO( tr.portalRenderFBO );
 	}
 
-	if ( glConfig2.bloom )
+	if ( glConfig.bloom )
 	{
-		width = glConfig.vidWidth * 0.25f;
-		height = glConfig.vidHeight * 0.25f;
+		width = windowConfig.vidWidth * 0.25f;
+		height = windowConfig.vidHeight * 0.25f;
 
 		tr.contrastRenderFBO = R_CreateFBO( "_contrastRender", width, height );
 		R_BindFBO( tr.contrastRenderFBO );
@@ -510,7 +510,7 @@ void R_ShutdownFBOs()
 	{
 		fbo = tr.fbos[ i ];
 
-		for ( j = 0; j < glConfig2.maxColorAttachments; j++ )
+		for ( j = 0; j < glConfig.maxColorAttachments; j++ )
 		{
 			if ( fbo->colorBuffers[ j ] )
 			{

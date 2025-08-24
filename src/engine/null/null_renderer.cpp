@@ -175,12 +175,11 @@ const char *RE_ShaderNameFromHandle( qhandle_t )
     return "";
 }
 
-bool RE_BeginRegistration( glconfig_t *config, glconfig2_t *glconfig2 )
+bool RE_BeginRegistration( WindowConfig* windowCfg )
 {
-	*config = glconfig_t{};
-	config->vidWidth = 640;
-	config->vidHeight = 480;
-	*glconfig2 = glconfig2_t{};
+	*windowCfg = WindowConfig{};
+    windowCfg->vidWidth = 640;
+    windowCfg->vidHeight = 480;
 
 	return true;
 }

@@ -163,9 +163,10 @@ private:
 	}
 
 	bool SetOptions(Str::StringRef url) {
+		CURLcode err;
 #define SETOPT(option, value) \
-if (curl_easy_setopt(request_, option, value) != CURLE_OK) { \
-	downloadLogger.Warn("Setting " #option " failed"); \
+if ((err = curl_easy_setopt(request_, option, value)) != CURLE_OK) { \
+	downloadLogger.Warn("Setting " #option " failed: %s", curl_easy_strerror(err)); \
 	return false; \
 }
 

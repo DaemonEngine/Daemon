@@ -38,108 +38,108 @@ This file deals with applying shaders to surface data in the tess struct.
 
 static void EnableAvailableFeatures()
 {
-	glConfig2.realtimeLighting = r_realtimeLighting.Get();
+	glConfig.realtimeLighting = r_realtimeLighting.Get();
 
-	if ( glConfig2.realtimeLighting )
+	if ( glConfig.realtimeLighting )
 	{
-		if ( !glConfig2.uniformBufferObjectAvailable ) {
+		if ( !glConfig.uniformBufferObjectAvailable ) {
 			Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_uniform_buffer_object is not available." );
-			glConfig2.realtimeLighting = false;
+			glConfig.realtimeLighting = false;
 		}
 
-		if ( !glConfig2.textureIntegerAvailable ) {
+		if ( !glConfig.textureIntegerAvailable ) {
 			Log::Warn( "Tiled dynamic light renderer disabled because GL_EXT_texture_integer is not available." );
-			glConfig2.realtimeLighting = false;
+			glConfig.realtimeLighting = false;
 		}
 
-		if ( !glConfig2.textureFloatAvailable )
+		if ( !glConfig.textureFloatAvailable )
 		{
 			Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_texture_float is not available." );
-			glConfig2.realtimeLighting = false;
+			glConfig.realtimeLighting = false;
 		}
 
-		if ( glConfig2.max3DTextureSize == 0 )
+		if ( glConfig.max3DTextureSize == 0 )
 		{
 			Log::Warn( "Tiled dynamic light renderer disabled because of missing 3D texture support." );
-			glConfig2.realtimeLighting = false;
+			glConfig.realtimeLighting = false;
 		}
 
 		// See below about ALU instructions on ATI R300 and Intel GMA 3.
-		if ( !glConfig2.glCoreProfile && glConfig2.maxAluInstructions < 128 )
+		if ( !glConfig.glCoreProfile && glConfig.maxAluInstructions < 128 )
 		{
-			Log::Warn( "Tiled dynamic light rendered disabled because GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB is too small: %d", glConfig2.maxAluInstructions );
-			glConfig2.realtimeLighting = false;
+			Log::Warn( "Tiled dynamic light rendered disabled because GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB is too small: %d", glConfig.maxAluInstructions );
+			glConfig.realtimeLighting = false;
 		}
 	}
 
-	if ( glConfig2.realtimeLighting ) {
-		glConfig2.realtimeLightLayers = r_realtimeLightLayers.Get();
+	if ( glConfig.realtimeLighting ) {
+		glConfig.realtimeLightLayers = r_realtimeLightLayers.Get();
 
-		if ( glConfig2.realtimeLightLayers > glConfig2.max3DTextureSize ) {
-			glConfig2.realtimeLightLayers = glConfig2.max3DTextureSize;
-			Log::Notice( "r_realtimeLightLayers exceeds maximum 3D texture size, using %i instead.", glConfig2.max3DTextureSize );
+		if ( glConfig.realtimeLightLayers > glConfig.max3DTextureSize ) {
+			glConfig.realtimeLightLayers = glConfig.max3DTextureSize;
+			Log::Notice( "r_realtimeLightLayers exceeds maximum 3D texture size, using %i instead.", glConfig.max3DTextureSize );
 		}
 
-		Log::Notice( "Using %i dynamic light layers, %i dynamic lights available per tile", glConfig2.realtimeLightLayers,
-			glConfig2.realtimeLightLayers * 16 );
+		Log::Notice( "Using %i dynamic light layers, %i dynamic lights available per tile", glConfig.realtimeLightLayers,
+			glConfig.realtimeLightLayers * 16 );
 	}
 
-	glConfig2.colorGrading = r_colorGrading.Get();
+	glConfig.colorGrading = r_colorGrading.Get();
 
-	if ( glConfig2.colorGrading )
+	if ( glConfig.colorGrading )
 	{
-		if ( glConfig2.max3DTextureSize == 0 )
+		if ( glConfig.max3DTextureSize == 0 )
 		{
 			Log::Warn( "Color grading disabled because of missing 3D texture support." );
-			glConfig2.colorGrading = false;
+			glConfig.colorGrading = false;
 		}
 	}
 
-	glConfig2.deluxeMapping = r_deluxeMapping->integer;
-	glConfig2.normalMapping = r_normalMapping->integer;
-	glConfig2.specularMapping = r_specularMapping->integer;
-	glConfig2.physicalMapping = r_physicalMapping->integer;
-	glConfig2.reliefMapping = r_reliefMapping->integer;
+	glConfig.deluxeMapping = r_deluxeMapping->integer;
+	glConfig.normalMapping = r_normalMapping->integer;
+	glConfig.specularMapping = r_specularMapping->integer;
+	glConfig.physicalMapping = r_physicalMapping->integer;
+	glConfig.reliefMapping = r_reliefMapping->integer;
 
 	/* ATI R300 and Intel GMA 3 only have 64 ALU instructions, which is not enough for some shader
 	variants. For example the lightMapping shader permutation with macros USE_GRID_LIGHTING and
 	USE_GRID_DELUXE_MAPPING from the medium graphics preset requires 67 ALU.
 	For comparison, ATI R400 and R500 have 512 of them. */
-	if ( !glConfig2.glCoreProfile && glConfig2.maxAluInstructions < 128 )
+	if ( !glConfig.glCoreProfile && glConfig.maxAluInstructions < 128 )
 	{
 		static const std::pair<bool*, std::string> aluFeatures[] = {
 			/* Normal mapping, specular mapping and physical mapping does nothing when deluxe mapping
 			is disabled. Hardware that can't do deluxe mapping or normal mapping is not powerful
 			enoough to do relief mapping. */
-			{ &glConfig2.deluxeMapping, "Deluxe mapping" },
-			{ &glConfig2.normalMapping, "Normal mapping" },
-			{ &glConfig2.specularMapping, "Specular mapping" },
-			{ &glConfig2.physicalMapping, "Physical mapping" },
-			{ &glConfig2.reliefMapping, "Relief mapping" },
+			{ &glConfig.deluxeMapping, "Deluxe mapping" },
+			{ &glConfig.normalMapping, "Normal mapping" },
+			{ &glConfig.specularMapping, "Specular mapping" },
+			{ &glConfig.physicalMapping, "Physical mapping" },
+			{ &glConfig.reliefMapping, "Relief mapping" },
 		};
 
 		for ( auto& f : aluFeatures )
 		{
 			if ( *f.first )
 			{
-				Log::Warn( "%s disabled because GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB is too small: %d", f.second, glConfig2.maxAluInstructions );
+				Log::Warn( "%s disabled because GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB is too small: %d", f.second, glConfig.maxAluInstructions );
 				*f.first = false;
 			}
 		}
 	}
 
 	// Disable features that require deluxe mapping to be enabled.
-	glConfig2.normalMapping = glConfig2.deluxeMapping && glConfig2.normalMapping;
-	glConfig2.specularMapping = glConfig2.deluxeMapping && glConfig2.specularMapping;
-	glConfig2.physicalMapping = glConfig2.deluxeMapping && glConfig2.physicalMapping;
+	glConfig.normalMapping = glConfig.deluxeMapping && glConfig.normalMapping;
+	glConfig.specularMapping = glConfig.deluxeMapping && glConfig.specularMapping;
+	glConfig.physicalMapping = glConfig.deluxeMapping && glConfig.physicalMapping;
 
-	glConfig2.bloom = r_bloom.Get();
+	glConfig.bloom = r_bloom.Get();
 
-	glConfig2.ssao = r_ssao.Get() != Util::ordinal( ssaoMode::DISABLED );
+	glConfig.ssao = r_ssao.Get() != Util::ordinal( ssaoMode::DISABLED );
 
 	static const std::pair<bool*, std::string> ssaoRequiredExtensions[] = {
-		{ &glConfig2.textureGatherAvailable, "ARB_texture_gather" },
-		{ &glConfig2.gpuShader4Available, "EXT_gpu_shader4" },
+		{ &glConfig.textureGatherAvailable, "ARB_texture_gather" },
+		{ &glConfig.gpuShader4Available, "EXT_gpu_shader4" },
 	};
 
 	for ( auto& e: ssaoRequiredExtensions )
@@ -147,43 +147,43 @@ static void EnableAvailableFeatures()
 		if ( !*e.first )
 		{
 			Log::Warn( "SSAO disabled because %s is not available.", e.second );
-			glConfig2.ssao = false;
+			glConfig.ssao = false;
 		}
 	}
 
 	/* Motion blur is enabled by cg_motionblur which is a client cvar so we have to build it in all cases,
 	unless unsupported by the hardware which is the only condition when the engine knows it is not used. */
-	glConfig2.motionBlur = true;
+	glConfig.motionBlur = true;
 
 	// This will be enabled later on by R_BuildCubeMaps()
-	glConfig2.reflectionMapping = false;
+	glConfig.reflectionMapping = false;
 
 	/* Intel GMA 3 only has 4 tex indirections, which is not enough for some shaders.
 	For example blurX requires 6, contrast requires 5, motionblur requires 5…
 	For comparison, ATI R300, R400 and R500 have 16 of them. We don't need a finer check as early R300
 	hardware with 16 indirections would better not run that code for performance, so disabling the shader
 	by mistake on an hypothetical lower-end hardware only supporting 8 indirections can't do harm. */
-	if ( !glConfig2.glCoreProfile && glConfig2.maxTexIndirections < 16 )
+	if ( !glConfig.glCoreProfile && glConfig.maxTexIndirections < 16 )
 	{
 		static const std::pair<bool*, std::string> indirectFeatures[] = {
-			{ &glConfig2.bloom, "Bloom" },
-			{ &glConfig2.motionBlur, "Motion blur" },
+			{ &glConfig.bloom, "Bloom" },
+			{ &glConfig.motionBlur, "Motion blur" },
 		};
 
 		for ( auto& f : indirectFeatures )
 		{
 			if ( *f.first )
 			{
-				Log::Warn( "%s disabled because GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB is too small: %d", f.second, glConfig2.maxTexIndirections );
+				Log::Warn( "%s disabled because GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB is too small: %d", f.second, glConfig.maxTexIndirections );
 				*f.first = false;
 			}
 		}
 	}
 
-	glConfig2.usingMaterialSystem = r_materialSystem.Get() && glConfig2.materialSystemAvailable;
-	glConfig2.usingBindlessTextures = glConfig2.usingMaterialSystem ||
-		( r_preferBindlessTextures.Get() && glConfig2.bindlessTexturesAvailable );
-	glConfig2.usingGeometryCache = glConfig2.usingMaterialSystem && glConfig2.geometryCacheAvailable;
+	glConfig.usingMaterialSystem = r_materialSystem.Get() && glConfig.materialSystemAvailable;
+	glConfig.usingBindlessTextures = glConfig.usingMaterialSystem ||
+		( r_preferBindlessTextures.Get() && glConfig.bindlessTexturesAvailable );
+	glConfig.usingGeometryCache = glConfig.usingMaterialSystem && glConfig.geometryCacheAvailable;
 }
 
 // For shaders that require map data for compile-time values 
@@ -196,7 +196,7 @@ void GLSL_InitWorldShaders() {
 	gl_shaderManager.GenerateWorldHeaders();
 
 	// Material system shaders that are always loaded if material system is available
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		gl_cullShader->MarkProgramForBuilding( 0 );
 	}
 
@@ -212,7 +212,7 @@ static void GLSL_InitGPUShadersOrError()
 
 	gl_shaderManager.InitDriverInfo();
 
-	/* It must be done before GenerateBuiltinHeaders() because glConfig2.realtimeLighting
+	/* It must be done before GenerateBuiltinHeaders() because glConfig.realtimeLighting
 	is read in GenEngineConstants(). */
 	EnableAvailableFeatures();
 
@@ -225,7 +225,7 @@ static void GLSL_InitGPUShadersOrError()
 	gl_shaderManager.LoadShader( gl_lightMappingShader );
 
 	// Material system shaders that are always loaded if material system is available
-	if ( glConfig2.usingMaterialSystem )
+	if ( glConfig.usingMaterialSystem )
 	{
 		gl_shaderManager.LoadShader( gl_genericShaderMaterial );
 		gl_shaderManager.LoadShader( gl_lightMappingShaderMaterial );
@@ -247,7 +247,7 @@ static void GLSL_InitGPUShadersOrError()
 		GLSL_InitWorldShaders();
 	}
 
-	if ( glConfig2.realtimeLighting )
+	if ( glConfig.realtimeLighting )
 	{
 		gl_shaderManager.LoadShader( gl_depthtile1Shader );
 		gl_shaderManager.LoadShader( gl_depthtile2Shader );
@@ -258,12 +258,12 @@ static void GLSL_InitGPUShadersOrError()
 		gl_lighttileShader->MarkProgramForBuilding( 0 );
 	}
 
-	if ( glConfig2.reflectionMappingAvailable )
+	if ( glConfig.reflectionMappingAvailable )
 	{
 		// bumped cubemap reflection for abitrary polygons ( EMBM )
 		gl_shaderManager.LoadShader( gl_reflectionShader );
 
-		if ( glConfig2.usingMaterialSystem )
+		if ( glConfig.usingMaterialSystem )
 		{
 			gl_shaderManager.LoadShader( gl_reflectionShaderMaterial );
 		}
@@ -276,7 +276,7 @@ static void GLSL_InitGPUShadersOrError()
 
 		gl_skyboxShader->MarkProgramForBuilding( 0 );
 
-		if ( glConfig2.usingMaterialSystem )
+		if ( glConfig.usingMaterialSystem )
 		{
 			gl_shaderManager.LoadShader( gl_skyboxShaderMaterial );
 
@@ -289,7 +289,7 @@ static void GLSL_InitGPUShadersOrError()
 		// Q3A volumetric fog
 		gl_shaderManager.LoadShader( gl_fogQuake3Shader );
 
-		if ( glConfig2.usingMaterialSystem )
+		if ( glConfig.usingMaterialSystem )
 		{
 			gl_shaderManager.LoadShader( gl_fogQuake3ShaderMaterial );
 		}
@@ -305,20 +305,20 @@ static void GLSL_InitGPUShadersOrError()
 		// heatHaze post process effect
 		gl_shaderManager.LoadShader( gl_heatHazeShader );
 
-		if ( glConfig2.usingMaterialSystem )
+		if ( glConfig.usingMaterialSystem )
 		{
 			gl_shaderManager.LoadShader( gl_heatHazeShaderMaterial );
 		}
 	}
 
-	if ( glConfig2.bloom )
+	if ( glConfig.bloom )
 	{
 		// screen post process effect
 		gl_shaderManager.LoadShader( gl_screenShader );
 
 		gl_screenShader->MarkProgramForBuilding( 0 );
 
-		if ( glConfig2.usingMaterialSystem )
+		if ( glConfig.usingMaterialSystem )
 		{
 			gl_shaderManager.LoadShader( gl_screenShaderMaterial );
 
@@ -341,7 +341,7 @@ static void GLSL_InitGPUShadersOrError()
 
 	gl_cameraEffectsShader->MarkProgramForBuilding( 0 );
 
-	if ( glConfig2.bloom )
+	if ( glConfig.bloom )
 	{
 		// gaussian blur
 		gl_shaderManager.LoadShader( gl_blurShader );
@@ -353,20 +353,20 @@ static void GLSL_InitGPUShadersOrError()
 	{
 		gl_shaderManager.LoadShader( gl_liquidShader );
 
-		if ( glConfig2.usingMaterialSystem )
+		if ( glConfig.usingMaterialSystem )
 		{
 			gl_shaderManager.LoadShader( gl_liquidShaderMaterial );
 		}
 	}
 
-	if ( glConfig2.motionBlur )
+	if ( glConfig.motionBlur )
 	{
 		gl_shaderManager.LoadShader( gl_motionblurShader );
 
 		gl_motionblurShader->MarkProgramForBuilding( 0 );
 	}
 
-	if ( glConfig2.ssao )
+	if ( glConfig.ssao )
 	{
 		gl_shaderManager.LoadShader( gl_ssaoShader );
 
@@ -626,7 +626,7 @@ static void DrawTris()
 
 	GLIMP_LOGCOMMENT( "--- DrawTris ---" );
 
-	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_genericShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
 	gl_genericShader->SetTCGenEnvironment( false );
 	gl_genericShader->SetTCGenLightmap( false );
@@ -664,7 +664,7 @@ static void DrawTris()
 	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_genericShader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -753,7 +753,7 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 
 	GLIMP_LOGCOMMENT( "--- Tess_Begin( surfaceShader = %s, "
 		"skipTangents = %i, lightmapNum = %i, fogNum = %i) ---",
-		tess.surfaceShader->name,
+		tess.surfaceShader ? tess.surfaceShader->name : "NULL",
 		tess.skipTangents, tess.lightmapNum, tess.fogNum );
 }
 
@@ -783,7 +783,7 @@ void ProcessShaderNOP( const shaderStage_t* ) {
 }
 
 void ProcessShaderGeneric3D( const shaderStage_t* pStage ) {
-	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_genericShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
 	gl_genericShader->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShader->SetTCGenLightmap( pStage->tcGen_Lightmap );
@@ -801,10 +801,10 @@ void ProcessShaderLightMapping( const shaderStage_t* pStage ) {
 
 	// Not implemented yet in PBR code.
 	bool enableReflectiveSpecular =
-		pStage->enableSpecularMapping && glConfig2.reflectionMapping
+		pStage->enableSpecularMapping && glConfig.reflectionMapping
 		&& !( tr.refdef.rdflags & RDF_NOCUBEMAP );
 
-	gl_lightMappingShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_lightMappingShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_lightMappingShader->SetVertexAnimation( tess.vboVertexAnimation );
 
 	gl_lightMappingShader->SetBspSurface( tess.bspSurface );
@@ -828,12 +828,12 @@ void ProcessShaderReflection( const shaderStage_t* pStage ) {
 
 	gl_reflectionShader->SetReliefMapping( pStage->enableReliefMapping );
 
-	gl_reflectionShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_reflectionShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_reflectionShader->SetVertexAnimation( tess.vboVertexAnimation );
 }
 
 void ProcessShaderHeatHaze( const shaderStage_t* ) {
-	gl_heatHazeShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_heatHazeShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_heatHazeShader->SetVertexAnimation( tess.vboVertexAnimation );
 }
 
@@ -852,7 +852,7 @@ void ProcessShaderLiquid( const shaderStage_t* pStage ) {
 }
 
 void ProcessShaderFog( const shaderStage_t* ) {
-	gl_fogQuake3Shader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_fogQuake3Shader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_fogQuake3Shader->SetVertexAnimation( tess.vboVertexAnimation );
 }
 
@@ -874,7 +874,7 @@ void Render_generic3D( shaderStage_t *pStage )
 	bool hasDepthFade = pStage->hasDepthFade;
 	bool needDepthMap = pStage->hasDepthFade;
 
-	if ( needDepthMap && backEnd.dirtyDepthBuffer && glConfig2.textureBarrierAvailable )
+	if ( needDepthMap && backEnd.dirtyDepthBuffer && glConfig.textureBarrierAvailable )
 	{
 		// Flush depth buffer to make sure it is available for reading in the depth fade
 		// GLSL - prevents https://github.com/DaemonEngine/Daemon/issues/1676
@@ -912,7 +912,7 @@ void Render_generic3D( shaderStage_t *pStage )
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_genericShader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -1021,7 +1021,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	// Not implemented yet in PBR code.
 	bool enableReflectiveSpecular =
-		pStage->enableSpecularMapping && glConfig2.reflectionMapping
+		pStage->enableSpecularMapping && glConfig.reflectionMapping
 		&& !( tr.refdef.rdflags & RDF_NOCUBEMAP );
 
 	GL_State( stateBits );
@@ -1042,7 +1042,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 	{
 		VectorCopy( backEnd.viewParms.orientation.origin, viewOrigin ); // in world space
 
-		if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+		if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 		{
 			gl_lightMappingShader->SetUniform_Bones( tess.numBones, tess.bones );
 		}
@@ -1061,7 +1061,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	gl_lightMappingShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-	if ( glConfig2.realtimeLighting )
+	if ( glConfig.realtimeLighting )
 	{
 		gl_lightMappingShader->SetUniform_numLights( tr.refdef.numLights );
 
@@ -1263,7 +1263,7 @@ void Render_reflection_CB( shaderStage_t *pStage )
 	gl_reflectionShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_reflectionShader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -1433,7 +1433,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 	gl_heatHazeShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_heatHazeShader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -1649,7 +1649,7 @@ void Render_fog( shaderStage_t* pStage )
 	gl_fogQuake3Shader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_fogQuake3Shader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -2043,8 +2043,8 @@ void Tess_Clear()
 	tess.numVertexes = 0;
 
 	// TODO: stop constantly binding VBOs we aren't going to use!
-	bool usingMapBufferRange = ( !glConfig2.bufferStorageAvailable || !glConfig2.syncAvailable )
-                               && glConfig2.mapBufferRangeAvailable;
+	bool usingMapBufferRange = ( !glConfig.bufferStorageAvailable || !glConfig.syncAvailable )
+                               && glConfig.mapBufferRangeAvailable;
 	if ( tess.verts != nullptr && tess.verts != tess.vertsBuffer && usingMapBufferRange )
 	{
 		R_BindVBO( tess.vbo );

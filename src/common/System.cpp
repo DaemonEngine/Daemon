@@ -51,6 +51,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcommon/sys.h"
 #endif
 
+#include "StackTrace.h"
+
 namespace Sys {
 
 // https://devblogs.microsoft.com/oldnewthing/20120105-00/?p=8683
@@ -234,9 +236,12 @@ void Drop(Str::StringRef message)
 	if (now - lastError < std::chrono::milliseconds(100)) {
 		if (++errorCount > 3)
 			Sys::Error(message);
-	} else
+	} else {
 		errorCount = 0;
+	}
 	lastError = now;
+
+	PrintStackTrace();
 
 	throw DropErr(true, message);
 }

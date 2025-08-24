@@ -115,7 +115,7 @@ void GL_TextureMode( const char *string )
 	gl_filter_min = modes[ i ].minimize;
 	gl_filter_max = modes[ i ].maximize;
 
-	if ( glConfig2.usingBindlessTextures && !tr.images.empty() )
+	if ( glConfig.usingBindlessTextures && !tr.images.empty() )
 	{
 		Log::Notice( "Changing filter type of existing bindless textures requires a restart" );
 		return;
@@ -133,9 +133,9 @@ void GL_TextureMode( const char *string )
 			glTexParameterf( image->type, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 
 			// set texture anisotropy
-			if ( glConfig2.textureAnisotropyAvailable )
+			if ( glConfig.textureAnisotropyAvailable )
 			{
-				glTexParameterf( image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig2.textureAnisotropy );
+				glTexParameterf( image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig.textureAnisotropy );
 			}
 		}
 	}
@@ -880,7 +880,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	// deal with a half mip resampling
 	if ( image->type == GL_TEXTURE_CUBE_MAP )
 	{
-		while ( scaledWidth > glConfig2.maxCubeMapTextureSize || scaledHeight > glConfig2.maxCubeMapTextureSize )
+		while ( scaledWidth > glConfig.maxCubeMapTextureSize || scaledHeight > glConfig.maxCubeMapTextureSize )
 		{
 			scaledWidth >>= 1;
 			scaledHeight >>= 1;
@@ -935,7 +935,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	}
 	else if ( image->bits & ( IF_RGBA16F | IF_RGBA32F | IF_TWOCOMP16F | IF_TWOCOMP32F | IF_ONECOMP16F | IF_ONECOMP32F ) )
 	{
-		if( !glConfig2.textureFloatAvailable ) {
+		if( !glConfig.textureFloatAvailable ) {
 			Log::Warn("floating point image '%s' cannot be loaded", image->name );
 			internalFormat = GL_RGBA8;
 		}
@@ -949,28 +949,28 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		}
 		else if ( image->bits & IF_TWOCOMP16F )
 		{
-			internalFormat = glConfig2.textureRGAvailable ?
+			internalFormat = glConfig.textureRGAvailable ?
 			  GL_RG16F : GL_LUMINANCE_ALPHA16F_ARB;
 		}
 		else if ( image->bits & IF_TWOCOMP32F )
 		{
-			internalFormat = glConfig2.textureRGAvailable ?
+			internalFormat = glConfig.textureRGAvailable ?
 			  GL_RG32F : GL_LUMINANCE_ALPHA32F_ARB;
 		}
 		else if ( image->bits & IF_ONECOMP16F )
 		{
-			internalFormat = glConfig2.textureRGAvailable ?
+			internalFormat = glConfig.textureRGAvailable ?
 			  GL_R16F : GL_ALPHA16F_ARB;
 		}
 		else if ( image->bits & IF_ONECOMP32F )
 		{
-			internalFormat = glConfig2.textureRGAvailable ?
+			internalFormat = glConfig.textureRGAvailable ?
 			  GL_R32F : GL_ALPHA32F_ARB;
 		}
 	}
 	else if ( image->bits & ( IF_RGBA32UI ) )
 	{
-		if( !glConfig2.textureIntegerAvailable ) {
+		if( !glConfig.textureIntegerAvailable ) {
 			Log::Warn( "integer image '%s' cannot be loaded", image->name );
 		}
 		internalFormat = GL_RGBA32UI;
@@ -999,7 +999,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 			blockSize = 16;
 		}
 		else if ( image->bits & IF_BC4 ) {
-			if( !glConfig2.textureCompressionRGTCAvailable ) {
+			if( !glConfig.textureCompressionRGTCAvailable ) {
 				format = GL_NONE;
 				internalFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
 				blockSize = 8;
@@ -1015,7 +1015,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 			}
 		}
 		else if ( image->bits & IF_BC5 ) {
-			if( !glConfig2.textureCompressionRGTCAvailable ) {
+			if( !glConfig.textureCompressionRGTCAvailable ) {
 				format = GL_NONE;
 				internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
 				blockSize = 16;
@@ -1222,9 +1222,9 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		case filterType_t::FT_DEFAULT:
 
 			// set texture anisotropy
-			if ( glConfig2.textureAnisotropyAvailable )
+			if ( glConfig.textureAnisotropyAvailable )
 			{
-				glTexParameterf( image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig2.textureAnisotropy );
+				glTexParameterf( image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig.textureAnisotropy );
 			}
 
 			glTexParameterf( image->type, GL_TEXTURE_MIN_FILTER, gl_filter_min );
@@ -2484,13 +2484,13 @@ static void R_CreateDefaultImage()
 
 static void R_CreateContrastRenderFBOImage()
 {
-	if ( !glConfig2.bloom)
+	if ( !glConfig.bloom)
 	{
 		return;
 	}
 
-	const int width = glConfig.vidWidth * 0.25f;
-	const int height = glConfig.vidHeight * 0.25f;
+	const int width = windowConfig.vidWidth * 0.25f;
+	const int height = windowConfig.vidHeight * 0.25f;
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
@@ -2502,13 +2502,13 @@ static void R_CreateContrastRenderFBOImage()
 
 static void R_CreateBloomRenderFBOImages()
 {
-	if ( !glConfig2.bloom)
+	if ( !glConfig.bloom)
 	{
 		return;
 	}
 
-	const int width = glConfig.vidWidth * 0.25f;
-	const int height = glConfig.vidHeight * 0.25f;
+	const int width = windowConfig.vidWidth * 0.25f;
+	const int height = windowConfig.vidHeight * 0.25f;
 
 	for ( int i = 0; i < 2; i++ )
 	{
@@ -2525,15 +2525,15 @@ static void R_CreateCurrentRenderImage()
 {
 	int  width, height;
 
-	width = glConfig.vidWidth;
-	height = glConfig.vidHeight;
+	width = windowConfig.vidWidth;
+	height = windowConfig.vidHeight;
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
 
 	if ( r_highPrecisionRendering.Get() )
 	{
-		if ( !glConfig2.textureFloatAvailable )
+		if ( !glConfig.textureFloatAvailable )
 		{
 			Log::Warn( "High-precision current render disabled because RGBA16F framebuffer is not available" );
 		}
@@ -2562,23 +2562,23 @@ static void R_CreateCurrentRenderImage()
 
 	tr.currentDepthImage = R_CreateImage( "_currentDepth", nullptr, width, height, 1, imageParams );
 
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.GenerateDepthImages( width, height, imageParams );
 	}
 }
 
 static void R_CreateDepthRenderImage()
 {
-	if ( !glConfig2.realtimeLighting )
+	if ( !glConfig.realtimeLighting )
 	{
 		return;
 	}
 
-	ASSERT( glConfig2.textureFloatAvailable );
+	ASSERT( glConfig.textureFloatAvailable );
 
 	{
-		int width = glConfig.vidWidth;
-		int height = glConfig.vidHeight;
+		int width = windowConfig.vidWidth;
+		int height = windowConfig.vidHeight;
 
 		int w = (width + TILE_SIZE_STEP1 - 1) >> TILE_SHIFT_STEP1;
 		int h = (height + TILE_SIZE_STEP1 - 1) >> TILE_SHIFT_STEP1;
@@ -2588,7 +2588,7 @@ static void R_CreateDepthRenderImage()
 		imageParams.wrapType = wrapTypeEnum_t::WT_ONE_CLAMP;
 
 		imageParams.bits = IF_NOPICMIP;
-		imageParams.bits |= r_highPrecisionRendering.Get() ? IF_RGBA32F : IF_RGBA16F;
+		imageParams.bits |= r_highPrecisionRendering.Get() ? IF_TWOCOMP32F : IF_TWOCOMP16F;
 
 		tr.depthtile1RenderImage = R_CreateImage( "_depthtile1Render", nullptr, w, h, 1, imageParams );
 
@@ -2601,7 +2601,7 @@ static void R_CreateDepthRenderImage()
 
 		imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
 
-		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, glConfig2.realtimeLightLayers, imageParams );
+		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, glConfig.realtimeLightLayers, imageParams );
 	}
 }
 
@@ -2609,8 +2609,8 @@ static void R_CreatePortalRenderImage()
 {
 	int  width, height;
 
-	width = glConfig.vidWidth;
-	height = glConfig.vidHeight;
+	width = windowConfig.vidWidth;
+	height = windowConfig.vidHeight;
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
@@ -2675,7 +2675,7 @@ static void R_CreateWhiteCubeImage()
 
 static void R_CreateColorGradeImage()
 {
-	if ( !glConfig2.colorGrading )
+	if ( !glConfig.colorGrading )
 	{
 		return;
 	}

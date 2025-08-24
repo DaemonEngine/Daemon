@@ -132,7 +132,7 @@ option(USE_WERROR "Tell the compiler to make the build fail when warnings are pr
 option(USE_PEDANTIC "Tell the compiler to be pedantic" OFF)
 option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" ON)
 
-if (CMAKE_GENERATOR MATCHES "^Ninja")
+if (CMAKE_GENERATOR MATCHES "^Ninja" OR APPLE)
     # It isn't currently supported with Ninja yet:
     #
     # > Note that the IMPLICIT_DEPENDS option is currently supported only for
@@ -143,6 +143,9 @@ if (CMAKE_GENERATOR MATCHES "^Ninja")
     #
     # It would be better to be able to know if IMPLICIT_DEPENDS is supported
     # by the current generator instead of comparing generator name.
+
+	# It is broken on macOS.
+	# See: https://github.com/DaemonEngine/Daemon/issues/1549
     option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" OFF)
 else()
     option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" ON)
@@ -279,6 +282,7 @@ try_flag(WARNINGS           "-W${WARNMODE}old-style-cast")
 try_flag(WARNINGS           "-Woverloaded-virtual")
 try_flag(WARNINGS           "-Wstrict-null-sentinel")
 try_flag(WARNINGS           "-W${WARNMODE}sign-compare")
+try_flag(WARNINGS           "-Wno-nonnull")
 
 # MSVC /wd = warning disable
 try_flag(WARNINGS "/wd4127")  # conditional expression is constant
@@ -829,6 +833,7 @@ if (BUILD_CLIENT)
     find_package(GLEW REQUIRED)
     include_directories(${GLEW_INCLUDE_DIR})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${GLEW_LIBRARIES})
+    add_definitions(-DGLEW_NO_GLU)
 
     set(backup_find_framework ${CMAKE_FIND_FRAMEWORK})
     set(CMAKE_FIND_FRAMEWORK NEVER) # Mac's system OpenAL doesn't have efx.h
@@ -840,6 +845,7 @@ endif()
 
 if (BUILD_TESTS)
     set(BUILD_GMOCK ON)
+    set(GTEST_HAS_ABSL OFF)
     set(INSTALL_GTEST OFF)
     set(gtest_force_shared_crt ON)
     add_subdirectory(${LIB_DIR}/googletest EXCLUDE_FROM_ALL)
@@ -853,7 +859,7 @@ endif()
 ################################################################################
 macro(AddApplicationInternal Target Executable)
     add_executable(${Target} ${Sources})
-    target_link_libraries(${Target} ${A_Target}-objects)
+    target_link_libraries(${Target} ${A_Target}-objects ${CPP23SupportLibrary})
 
     if (DEPS_DIR)
         add_dependencies(${Target} runtime_deps)
@@ -878,15 +884,16 @@ endmacro()
 
 function(AddApplication)
     set(oneValueArgs Target ExecutableName)
-    set(multiValueArgs ApplicationMain Definitions Flags Files Libs Tests)
+    set(multiValueArgs ApplicationMain Definitions Flags CompileFeatures Files Libs Tests)
     cmake_parse_arguments(A "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     # Reuse object files between the real application and the test one
     add_library(${A_Target}-objects OBJECT EXCLUDE_FROM_ALL ${A_Files} ${PCH_FILE})
-    target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE})
+    target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE} ${CPP23SupportLibrary})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
+    
     set_target_properties(${A_Target}-objects PROPERTIES FOLDER "engine/objects")
 
     set(Sources WIN32 ${A_ApplicationMain})
@@ -900,7 +907,7 @@ function(AddApplication)
         # -Wl,--whole-archive -l<library path> -Wl,--no-whole-archive
         set(Sources ${A_ApplicationMain} ${A_Tests})
         AddApplicationInternal(test-${A_Target} test-${A_Target})
-        target_link_libraries(test-${A_Target} GTest::gmock)
+        target_link_libraries(test-${A_Target} ${CPP23SupportLibrary} GTest::gmock)
     endif()
 
     ADD_PRECOMPILED_HEADER(${A_Target}-objects)
@@ -910,7 +917,7 @@ daemon_write_buildinfo("Engine")
 
 if (NOT NACL)
     add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${BUILDINFOLIST} ${COMMONLIST} ${ENGINELIST})
-    target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE})
+    target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE} ${CPP23SupportLibrary})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_DEFINITIONS BUILD_ENGINE)
     set_property(TARGET engine-lib APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_OPTIONS ${WARNINGS})
