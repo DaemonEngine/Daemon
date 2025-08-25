@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required (VERSION 3.28)
+cmake_minimum_required (VERSION 3.12)
 
 # Choose Python versions by location instead of getting whatever is in PYTHON_EXECUTABLE
 # Can be removed once we require CMake 3.15
@@ -584,13 +584,6 @@ else()
     add_definitions("-DDAEMON_RENDERER_OPENGL=1")
 endif()
 
-# Required for <stacktrace> on Clang/GCC
-if ( DAEMON_CXX_COMPILER_GCC_COMPATIBILITY OR DAEMON_CXX_COMPILER_Clang_COMPATIBILITY )
-    set( CPP23SupportLibrary "-lstdc++exp" )
-else()
-    set( CPP23SupportLibrary "" )
-endif()
-
 # TODO: Split OpenGL and Vulkan library configuration.
 # Look for OpenGL here before we potentially switch to looking for static libs.
 if (BUILD_CLIENT)
@@ -877,10 +870,6 @@ macro(AddApplicationInternal Target Executable)
     set_property(TARGET ${Target} APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET ${Target} APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
     set_target_properties(${Target} PROPERTIES OUTPUT_NAME "${Executable}" PREFIX "" FOLDER "engine")
-    
-    if( DEFINED A_CompileFeatures AND NOT $A_CompileFeatures STREQUAL "" )
-        target_compile_features( ${A_Target} PRIVATE ${A_CompileFeatures} )
-    endif()
 
     # Append Windows specific manifests.
     # Adding the .manifest as a source works better for MSVC, but it has no

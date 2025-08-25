@@ -93,6 +93,12 @@ enum class glHardwareType_t {
 	// XreaL END
 };
 
+struct WindowConfig {
+	float displayAspect;
+	int displayWidth, displayHeight; // the entire monitor (the one indicated by displayIndex)
+	int vidWidth, vidHeight; // what the game is using
+};
+
 struct glconfig_t {
 	char                 renderer_string[MAX_STRING_CHARS];
 	char                 vendor_string[MAX_STRING_CHARS];
@@ -114,8 +120,6 @@ struct glconfig_t {
 
 	bool8_t smpActive; // dual processor
 };
-
-struct glconfig2_t {};
 
 struct refBone_t {
 #if defined( REFBONE_NAMES )
@@ -240,7 +244,7 @@ struct refexport_t
 	// and height, which can be used by the client to intelligently
 	// size display elements. Returns false if the renderer couldn't
 	// be initialized.
-	bool( *BeginRegistration )( glconfig_t *config, glconfig2_t *glconfig2 );
+	bool( *BeginRegistration )( WindowConfig* windowConfig );
 	qhandle_t ( *RegisterModel )( const char *name );
 	//qhandle_t   (*RegisterModelAllLODs) (const char *name);
 	qhandle_t ( *RegisterSkin )( const char *name );

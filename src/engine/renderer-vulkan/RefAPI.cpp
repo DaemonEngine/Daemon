@@ -64,14 +64,17 @@ namespace TempAPI {
 		taskList.FinishShutdown();
 	}
 
-	bool BeginRegistration( glconfig_t* glconfig, glconfig2_t* ) {
+	bool BeginRegistration( WindowConfig* windowConfig ) {
 		TLM.main = true;
 		taskList.Init();
 
 		Init();
 
-		glconfig->vidWidth = 1920;
-		glconfig->vidHeight = 1080;
+		windowConfig->displayWidth = 1920;
+		windowConfig->displayHeight = 1080;
+		windowConfig->displayAspect = ( float ) windowConfig->displayWidth / windowConfig->displayHeight;
+		windowConfig->vidWidth = 1920;
+		windowConfig->vidHeight = 1080;
 
 		window = mainSurface.window;
 
