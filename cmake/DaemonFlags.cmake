@@ -97,8 +97,6 @@ if(USE_CPP23)
 			
 			set(CPP23SupportLibrary "")
 		else()
-    		add_definitions(-DDAEMON_CPP23_SUPPORT_LIBRARY_ENABLED=1)
-			
 			if (CPP23SupportLibraryOldLibrary)
 				message(STATUS "Using <stacktrace>: found ${CPP23SupportLibrary} (recommended to use libc++exp on this compiler version instead, but it wasn't found)")
 			else()
