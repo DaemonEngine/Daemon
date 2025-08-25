@@ -319,7 +319,6 @@ struct clientStatic_t
 
 	// rendering info
 	WindowConfig windowConfig;
-	GLConfig glConfig;
 	qhandle_t   charSetShader;
 	qhandle_t   whiteShader;
 	bool    useLegacyConsoleFont;
