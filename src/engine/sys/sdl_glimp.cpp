@@ -505,7 +505,7 @@ void GLimp_Shutdown()
 
 	SDL_QuitSubSystem( SDL_INIT_VIDEO );
 
-	ResetStruct( glConfig );
+	ResetStruct( windowConfig );
 	ResetStruct( glState );
 }
 
