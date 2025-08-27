@@ -6294,6 +6294,7 @@ qhandle_t RE_RegisterShader( const char *name, int flags )
 		return 0;
 	}
 
+	int oldNumShaders = tr.numShaders;
 	sh = R_FindShader( name, flags );
 
 	// we want to return 0 if the shader failed to
@@ -6304,6 +6305,15 @@ qhandle_t RE_RegisterShader( const char *name, int flags )
 	if ( sh->defaultShader )
 	{
 		return 0;
+	}
+
+	if ( tr.numShaders > oldNumShaders && r_lazyShaders.Get() == 1 ) // the shader is actually newly registered
+	{
+		// RE_RegisterShader is used for directly user-registered shaders. So assume it will be
+		// used for drawing explicitly specified polygons - not BSP, not models. This is usually right
+		// but one exception is shaders used as `customShader` for models.
+		// This is a no-op if EndRegistration has already been called (unless glsl_restart?).
+		MarkShaderBuild( sh, -1, false, false, false );
 	}
 
 	return sh->index;
