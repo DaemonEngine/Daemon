@@ -356,6 +356,10 @@ set(CLIENTLIST
     ${RENDERERLIST}
 )
 
+if (APPLE)
+    set(CLIENTLIST ${CLIENTLIST} ${ENGINE_DIR}/sys/DisableAccentMenu.m)
+endif()
+
 set(TTYCLIENTLIST
     ${ENGINE_DIR}/null/NullAudio.cpp
     ${ENGINE_DIR}/null/NullKeyboard.cpp

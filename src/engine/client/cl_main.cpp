@@ -56,7 +56,7 @@ Maryland 20850 USA.
 #include <sys/stat.h>
 #endif
 #ifdef BUILD_GRAPHICAL_CLIENT
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #endif
 
 #if defined(USE_MUMBLE)
