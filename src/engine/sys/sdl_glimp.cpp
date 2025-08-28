@@ -185,6 +185,7 @@ static Cvar::Cvar<bool> workaround_glHardware_intel_useFirstProvokinVertex(
 	Cvar::NONE, true );
 
 SDL_Window *window = nullptr;
+static SDL_PropertiesID windowProperties;
 static SDL_GLContext glContext = nullptr;
 
 #ifdef USE_SMP
@@ -887,14 +888,18 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 	int x = SDL_WINDOWPOS_CENTERED_DISPLAY( displayID );
 	int y = SDL_WINDOWPOS_CENTERED_DISPLAY( displayID );
 
-	SDL_PropertiesID props = SDL_CreateProperties();
-	SDL_SetStringProperty( props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, CLIENT_WINDOW_TITLE );
-	SDL_SetNumberProperty( props, SDL_PROP_WINDOW_CREATE_X_NUMBER, x );
-	SDL_SetNumberProperty( props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, y );
-	SDL_SetNumberProperty( props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, windowConfig.vidWidth );
-	SDL_SetNumberProperty( props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, windowConfig.vidHeight );
-	SDL_SetNumberProperty( props, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, flags );
-	window = SDL_CreateWindowWithProperties( props );
+	windowProperties = SDL_CreateProperties();
+	if ( !windowProperties )
+	{
+		Sys::Error( "SDL_CreateProperties failed" );
+	}
+	SDL_SetStringProperty( windowProperties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, CLIENT_WINDOW_TITLE );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_X_NUMBER, x );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, y );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, windowConfig.vidWidth );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, windowConfig.vidHeight );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, flags );
+	window = SDL_CreateWindowWithProperties( windowProperties );
 
 	if ( window )
 	{
@@ -913,6 +918,8 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 			windowType ? windowType : "",
 			windowType ? " ": "" );
 		logger.Warn("SDL_CreateWindow failed: %s", SDL_GetError() );
+		SDL_DestroyProperties( windowProperties );
+		windowProperties = 0;
 		return false;
 	}
 
@@ -945,6 +952,8 @@ static void GLimp_DestroyWindowIfExists()
 		logger.Debug("Destroying %d×%d SDL window at %d,%d", w, h, x, y );
 		SDL_DestroyWindow( window );
 		window = nullptr;
+		SDL_DestroyProperties( windowProperties );
+		windowProperties = 0;
 	}
 }
 
