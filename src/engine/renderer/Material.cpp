@@ -1184,6 +1184,11 @@ void MaterialSystem::AddStage( MaterialSurface* surface, shaderStage_t* pStage, 
 			return;
 		}
 
+		if ( r_materialSeparatePerShader.Get() )
+		{
+			continue;
+		}
+
 		if ( pStage->shaderBinder != pStage2->shaderBinder ) {
 			continue;
 		}

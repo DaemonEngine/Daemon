@@ -44,6 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static constexpr uint32_t MAX_DRAWCOMMAND_TEXTURES = 64;
 
+extern Cvar::Cvar<bool> r_materialSeparatePerShader;
+
 struct GLIndirectCommand {
 	GLuint count;
 	GLuint instanceCount;
@@ -155,6 +157,11 @@ struct Material {
 	std::vector<Texture*> textures;
 
 	bool operator==( const Material& other ) {
+		if ( r_materialSeparatePerShader.Get() )
+		{
+			return refStage == other.refStage;
+		}
+
 		return program == other.program && stateBits == other.stateBits
 			&& fog == other.fog && cullType == other.cullType && usePolygonOffset == other.usePolygonOffset;
 	}
