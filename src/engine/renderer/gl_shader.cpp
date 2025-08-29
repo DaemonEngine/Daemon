@@ -2128,14 +2128,14 @@ void GLShader::PostProcessUniforms() {
 		GLuint size = _materialSystemUniforms[0]->_std430Size;
 		GLuint components = _materialSystemUniforms[0]->_components;
 		size = components ? PAD( size, 4 ) * components : size;
-		GLuint alignmentConsume = 4 - size % 4;
+		GLuint alignmentConsume = PAD( size, 4 ) - size;
 
 		GLUniform* tmpUniform = _materialSystemUniforms[0];
 		tmp.emplace_back( _materialSystemUniforms[0] );
 		_materialSystemUniforms.erase( _materialSystemUniforms.begin() );
 
 		int uniform;
-		while ( ( alignmentConsume & 3 ) && _materialSystemUniforms.size()
+		while ( alignmentConsume  && _materialSystemUniforms.size()
 			&& ( uniform = FindUniformForAlignment( _materialSystemUniforms, alignmentConsume ) ) != -1 ) {
 			alignmentConsume -= _materialSystemUniforms[uniform]->_std430Size;
 
