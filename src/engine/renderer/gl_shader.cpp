@@ -2092,14 +2092,14 @@ GLint GLShader::GetUniformLocation( const GLchar *uniformName ) const {
 	return glGetUniformLocation( p->id, uniformName );
 }
 
-static int FindUniformForAlignment( std::vector<GLUniform*>& uniforms, const GLuint alignment ) {
-	for ( uint32_t i = 0; i < uniforms.size(); i++ ) {
-		if ( uniforms[i]->_std430Size <= alignment ) {
-			return i;
+static auto FindUniformForOffset( std::vector<GLUniform*>& uniforms, const GLuint baseOffset ) {
+	for ( auto it = uniforms.begin(); it != uniforms.end(); ++it ) {
+		if ( 0 == ( ( (*it)->_std430Alignment - 1 ) & baseOffset ) ) {
+			return it;
 		}
 	}
 
-	return -1;
+	return uniforms.end();
 }
 
 // Compute std430 size/alignment and sort uniforms from highest to lowest alignment
@@ -2108,52 +2108,36 @@ void GLShader::PostProcessUniforms() {
 		return;
 	}
 
+	std::vector<GLUniform*> uniformQueue;
 	for ( GLUniform* uniform : _uniforms ) {
 		if ( !uniform->_global ) {
-			_materialSystemUniforms.emplace_back( uniform );
+			uniformQueue.emplace_back( uniform );
 		}
 	}
 
-	std::sort( _materialSystemUniforms.begin(), _materialSystemUniforms.end(),
+	std::stable_sort( uniformQueue.begin(), uniformQueue.end(),
 		[]( const GLUniform* lhs, const GLUniform* rhs ) {
-			return lhs->_std430Size > rhs->_std430Size;
+			return lhs->_std430Alignment > rhs->_std430Alignment;
 		}
 	);
 
 	// Sort uniforms from highest to lowest alignment so we don't need to pad uniforms (other than vec3s)
-	const uint numUniforms = _materialSystemUniforms.size();
-	std::vector<GLUniform*> tmp;
-	while ( tmp.size() < numUniforms ) {
-		// Higher-alignment uniforms first to avoid wasting memory
-		GLuint size = _materialSystemUniforms[0]->_std430Size;
-		GLuint components = _materialSystemUniforms[0]->_components;
-		size = components ? PAD( size, 4 ) * components : size;
-		GLuint alignmentConsume = PAD( size, 4 ) - size;
-
-		GLUniform* tmpUniform = _materialSystemUniforms[0];
-		tmp.emplace_back( _materialSystemUniforms[0] );
-		_materialSystemUniforms.erase( _materialSystemUniforms.begin() );
-
-		int uniform;
-		while ( alignmentConsume  && _materialSystemUniforms.size()
-			&& ( uniform = FindUniformForAlignment( _materialSystemUniforms, alignmentConsume ) ) != -1 ) {
-			alignmentConsume -= _materialSystemUniforms[uniform]->_std430Size;
-
-			tmpUniform = _materialSystemUniforms[uniform];
-
-			tmp.emplace_back( _materialSystemUniforms[uniform] );
-			_materialSystemUniforms.erase( _materialSystemUniforms.begin() + uniform );
+	GLuint align = 4; // mininum alignment since this will be used as an std140 array element
+	std430Size = 0;
+	_materialSystemUniforms.clear();
+	while ( !uniformQueue.empty() || std430Size & ( align - 1 ) ) {
+		auto iterNext = FindUniformForOffset( uniformQueue, std430Size );
+		if ( iterNext == uniformQueue.end() ) {
+			// add 1 unit of padding
+			++std430Size;
+			++_materialSystemUniforms.back()->_std430Size;
+		} else {
+			std430Size += ( *iterNext )->_std430Size;
+			align = std::max( align, ( *iterNext )->_std430Alignment );
+			_materialSystemUniforms.push_back( *iterNext );
+			uniformQueue.erase( iterNext );
 		}
-
-		if ( alignmentConsume ) {
-			tmpUniform->_std430Size += alignmentConsume;
-		}
-
-		size = PAD( size, 4 );
-		std430Size += size;
 	}
-
-	_materialSystemUniforms = tmp;
 }
 
 uint32_t GLShader::GetUniqueCompileMacros( size_t permutation, const int type ) const {

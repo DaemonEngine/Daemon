@@ -73,4 +73,53 @@ TEST(MaterialUniformPackingTest, OneMatrix)
     EXPECT_EQ(uniforms[0]->_std430Size, 16u);
 }
 
+TEST(MaterialUniformPackingTest, TwoFloats)
+{
+    class Shader1 : public MaterialUniformPackingTestShaderBase,
+                    public u_DeformMagnitude, //float
+                    public u_InverseGamma //float
+    {
+    public:
+        Shader1() : u_DeformMagnitude(this), u_InverseGamma(this) {}
+    };
+
+    Shader1 shader1;
+    std::vector<GLUniform*> uniforms = shader1.GetUniforms();
+    EXPECT_EQ(shader1.GetSTD430Size(), 4u);
+    ASSERT_EQ(uniforms.size(), 2);
+    EXPECT_EQ(uniforms[0], Get<u_DeformMagnitude>(shader1));
+    EXPECT_EQ(uniforms[0]->_std430Size, 1u);
+    EXPECT_EQ(uniforms[1], Get<u_InverseGamma>(shader1));
+    EXPECT_EQ(uniforms[1]->_std430Size, 3u);
+}
+
+TEST(MaterialUniformPackingTest, Vec3Handling)
+{
+    class Shader1 : public MaterialUniformPackingTestShaderBase,
+                    public u_DeformMagnitude, //float
+                    public u_SpecularExponent, //vec2
+                    public u_FogColor, //vec3
+                    public u_blurVec //vec3
+    {
+    public:
+        Shader1() : u_DeformMagnitude(this),
+                    u_SpecularExponent(this),
+                    u_FogColor(this),
+                    u_blurVec(this) {}
+    };
+
+    Shader1 shader1;
+    std::vector<GLUniform*> uniforms = shader1.GetUniforms();
+    EXPECT_EQ(shader1.GetSTD430Size(), 12u);
+    ASSERT_EQ(uniforms.size(), 4);
+    EXPECT_EQ(uniforms[0], Get<u_FogColor>(shader1));
+    EXPECT_EQ(uniforms[0]->_std430Size, 3u);
+    EXPECT_EQ(uniforms[1], Get<u_DeformMagnitude>(shader1));
+    EXPECT_EQ(uniforms[1]->_std430Size, 1u);
+    EXPECT_EQ(uniforms[2], Get<u_blurVec>(shader1));
+    EXPECT_EQ(uniforms[2]->_std430Size, 4u);
+    EXPECT_EQ(uniforms[3], Get<u_SpecularExponent>(shader1));
+    EXPECT_EQ(uniforms[3]->_std430Size, 4u);
+}
+
 } // namespace
