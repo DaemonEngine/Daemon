@@ -97,6 +97,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<bool> r_gpuFrustumCulling( "r_gpuFrustumCulling", "Use frustum culling on the GPU for the Material System", Cvar::NONE, true );
 	Cvar::Cvar<bool> r_gpuOcclusionCulling( "r_gpuOcclusionCulling", "Use occlusion culling on the GPU for the Material System", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_materialSystemSkip( "r_materialSystemSkip", "Temporarily skip Material System rendering, using only core renderer instead", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_materialSeparatePerShader("r_materialSeparatePerShader", "generate a material for every q3shader stage (to debug merging)", Cvar::NONE, false);
 	cvar_t      *r_lightStyles;
 	cvar_t      *r_exportTextures;
 	cvar_t      *r_heatHaze;
@@ -1269,7 +1270,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showBspNodes = Cvar_Get( "r_showBspNodes", "0", CVAR_CHEAT );
 		Cvar::Latch( r_showGlobalMaterials );
 		Cvar::Latch( r_materialDebug );
-
+		Cvar::Latch( r_materialSeparatePerShader );
 		Cvar::Latch( r_profilerRenderSubGroups );
 	}
 
