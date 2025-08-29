@@ -186,7 +186,6 @@ private:
 	const bool hasComputeShader;
 
 	GLuint std430Size = 0;
-	uint32_t padding = 0;
 
 	const bool worldShader;
 protected:
@@ -462,8 +461,8 @@ private:
 		ShaderProgramDescriptor* out );
 	void SaveShaderBinary( ShaderProgramDescriptor* descriptor );
 
-	void GenerateUniformStructDefinesText( const std::vector<GLUniform*>& uniforms, const uint32_t padding,
-		const uint32_t paddingCount, const std::string& definesName,
+	void GenerateUniformStructDefinesText(
+		const std::vector<GLUniform*>& uniforms, const std::string& definesName,
 		std::string& uniformStruct, std::string& uniformDefines );
 	std::string RemoveUniformsFromShaderText( const std::string& shaderText, const std::vector<GLUniform*>& uniforms );
 	std::string ShaderPostProcess( GLShader *shader, const std::string& shaderText, const uint32_t offset );

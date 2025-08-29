@@ -1545,9 +1545,8 @@ std::string GLShaderManager::RemoveUniformsFromShaderText( const std::string& sh
 	return shaderMain;
 }
 
-void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUniform*>& uniforms, const uint32_t padding,
-	const uint32_t paddingCount, const std::string& definesName,
-	std::string& uniformStruct, std::string& uniformDefines ) {
+void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUniform*>& uniforms,
+	const std::string& definesName, std::string& uniformStruct, std::string& uniformDefines ) {
 	for ( GLUniform* uniform : uniforms ) {
 		uniformStruct += "	" + ( uniform->_isTexture ? "uvec2" : uniform->_type ) + " " + uniform->_name;
 
@@ -1567,12 +1566,6 @@ void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUnif
 		uniformDefines += uniform->_name;
 
 		uniformDefines += "\n";
-	}
-
-	// Array of structs is aligned to the largest member of the struct
-	for ( uint32_t i = 0; i < padding; i++ ) {
-		uniformStruct += "	int uniform_padding" + std::to_string( i + paddingCount );
-		uniformStruct += ";\n";
 	}
 
 	uniformDefines += "\n";
@@ -1637,8 +1630,8 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	std::string materialStruct = "\nstruct Material {\n";
 	std::string materialDefines;
-	GenerateUniformStructDefinesText( shader->_materialSystemUniforms, shader->padding,
-		0, "materials[baseInstance & 0xFFF]", materialStruct, materialDefines );
+	GenerateUniformStructDefinesText( shader->_materialSystemUniforms,
+		"materials[baseInstance & 0xFFF]", materialStruct, materialDefines );
 
 	materialStruct += "};\n\n";
 
@@ -2158,7 +2151,6 @@ void GLShader::PostProcessUniforms() {
 
 		size = PAD( size, 4 );
 		std430Size += size;
-		padding = alignmentConsume;
 	}
 
 	_materialSystemUniforms = tmp;
