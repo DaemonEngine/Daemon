@@ -1547,6 +1547,7 @@ std::string GLShaderManager::RemoveUniformsFromShaderText( const std::string& sh
 
 void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUniform*>& uniforms,
 	const std::string& definesName, std::string& uniformStruct, std::string& uniformDefines ) {
+	int pad = 0;
 	for ( GLUniform* uniform : uniforms ) {
 		uniformStruct += "	" + ( uniform->_isTexture ? "uvec2" : uniform->_type ) + " " + uniform->_name;
 
@@ -1554,6 +1555,10 @@ void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUnif
 			uniformStruct += "[" + std::to_string( uniform->_components ) + "]";
 		}
 		uniformStruct += ";\n";
+
+		for (int p = uniform->_std430Size - uniform->_std430BaseSize; p--; ) {
+			uniformStruct += "\tfloat _pad" + std::to_string( ++pad ) + ";\n";
+		}
 
 		uniformDefines += "#define ";
 		uniformDefines += uniform->_name;
@@ -2132,6 +2137,7 @@ void GLShader::PostProcessUniforms() {
 			++std430Size;
 			++_materialSystemUniforms.back()->_std430Size;
 		} else {
+			( *iterNext )->_std430Size = ( *iterNext )->_std430BaseSize;
 			std430Size += ( *iterNext )->_std430Size;
 			align = std::max( align, ( *iterNext )->_std430Alignment );
 			_materialSystemUniforms.push_back( *iterNext );
