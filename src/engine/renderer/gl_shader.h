@@ -317,7 +317,8 @@ class GLUniform {
 	const std::string _type;
 
 	// In multiples of 4 bytes
-	GLuint _std430Size;
+	const GLuint _std430BaseSize;
+	GLuint _std430Size; // includes padding that depends on the other uniforms in the struct
 	const GLuint _std430Alignment;
 
 	const bool _global; // This uniform won't go into the materials UBO if true
@@ -334,6 +335,7 @@ class GLUniform {
 		const bool isTexture = false ) :
 		_name( name ),
 		_type( type ),
+		_std430BaseSize( std430Size ),
 		_std430Size( std430Size ),
 		_std430Alignment( std430Alignment ),
 		_global( global ),
