@@ -234,7 +234,7 @@ class GLVAO {
 		uint32_t ofs = 0;
 		for ( const vertexAttributeSpec_t* spec = attrBegin; spec < attrEnd; spec++ ) {
 			vboAttributeLayout_t& attr = attrs[spec->attrIndex];
-			ASSERT_NQ( spec->numComponents, 0U );
+			DAEMON_ASSERT_NQ( spec->numComponents, 0U );
 			attr.componentType = spec->componentStorageType;
 			if ( attr.componentType == GL_HALF_FLOAT && !glConfig.halfFloatVertexAvailable ) {
 				attr.componentType = GL_FLOAT;

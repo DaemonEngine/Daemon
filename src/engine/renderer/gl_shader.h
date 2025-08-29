@@ -495,7 +495,7 @@ class GLUniformSampler : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		return p->uniformLocations[_locationIndex];
@@ -574,7 +574,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -619,7 +619,7 @@ class GLUniform1ui : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -663,7 +663,7 @@ class GLUniform1Bool : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -710,7 +710,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -759,7 +759,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -794,7 +794,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -846,7 +846,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -898,7 +898,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -947,7 +947,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -982,7 +982,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1027,7 +1027,7 @@ class GLUniformMatrix32f : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1065,7 +1065,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1099,7 +1099,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1155,7 +1155,7 @@ public:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 		GLuint blockIndex = p->uniformBlockIndexes[_locationIndex];
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 		if( blockIndex != GL_INVALID_INDEX ) {
 			glBindBufferBase( GL_UNIFORM_BUFFER, blockIndex, buffer );
@@ -2795,7 +2795,7 @@ static colorModulation_t ColorModulateColorGen(
 
 	if ( useMapLightFactor )
 	{
-		ASSERT_EQ( vertexOverbright, false );
+		DAEMON_ASSERT_EQ( vertexOverbright, false );
 		colorModulation.lightFactor = tr.mapLightFactor;
 	}
 
