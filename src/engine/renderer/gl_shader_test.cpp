@@ -67,7 +67,7 @@ TEST(MaterialUniformPackingTest, OneMatrix)
 
     Shader1 shader1;
     std::vector<GLUniform*> uniforms = shader1.GetUniforms();
-    EXPECT_EQ(shader1.GetSTD430Size(), 16u);
+    EXPECT_EQ(shader1.GetSTD140Size(), 16u);
     ASSERT_EQ(uniforms.size(), 1);
     EXPECT_EQ(uniforms[0], Get<u_ModelViewMatrix>(shader1));
     EXPECT_EQ(uniforms[0]->_std430Size, 16u);
@@ -85,7 +85,7 @@ TEST(MaterialUniformPackingTest, TwoFloats)
 
     Shader1 shader1;
     std::vector<GLUniform*> uniforms = shader1.GetUniforms();
-    EXPECT_EQ(shader1.GetSTD430Size(), 4u);
+    EXPECT_EQ(shader1.GetSTD140Size(), 4u);
     ASSERT_EQ(uniforms.size(), 2);
     EXPECT_EQ(uniforms[0], Get<u_DeformMagnitude>(shader1));
     EXPECT_EQ(uniforms[0]->_std430Size, 1u);
@@ -110,7 +110,7 @@ TEST(MaterialUniformPackingTest, Vec3Handling)
 
     Shader1 shader1;
     std::vector<GLUniform*> uniforms = shader1.GetUniforms();
-    EXPECT_EQ(shader1.GetSTD430Size(), 12u);
+    EXPECT_EQ(shader1.GetSTD140Size(), 12u);
     ASSERT_EQ(uniforms.size(), 4);
     EXPECT_EQ(uniforms[0], Get<u_FogColor>(shader1));
     EXPECT_EQ(uniforms[0]->_std430Size, 3u);

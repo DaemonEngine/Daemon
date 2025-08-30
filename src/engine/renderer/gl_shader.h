@@ -185,7 +185,7 @@ private:
 	const bool hasFragmentShader;
 	const bool hasComputeShader;
 
-	GLuint std430Size = 0;
+	GLuint std140Size = 0;
 
 	const bool worldShader;
 protected:
@@ -300,8 +300,8 @@ public:
 		_vertexAttribs &= ~bit;
 	}
 
-	GLuint GetSTD430Size() const {
-		return std430Size;
+	GLuint GetSTD140Size() const {
+		return std140Size;
 	}
 
 	bool UseMaterialSystem() const {
@@ -317,6 +317,7 @@ class GLUniform {
 	const std::string _type;
 
 	// In multiples of 4 bytes
+	// FIXME: the uniform structs are actually std140 so it would be more relevant to provide std140 info
 	const GLuint _std430BaseSize;
 	GLuint _std430Size; // includes padding that depends on the other uniforms in the struct
 	const GLuint _std430Alignment;
@@ -690,11 +691,6 @@ class GLUniform1Bool : protected GLUniform {
 		return sizeof( int );
 	}
 
-	uint32_t* WriteToBuffer( uint32_t *buffer ) override {
-		memcpy( buffer, &currentValue, sizeof( bool ) );
-		return buffer + _std430Size;
-	}
-
 	private:
 	int currentValue = 0;
 };
@@ -770,11 +766,6 @@ protected:
 		}
 
 		glUniform1fv( p->uniformLocations[ _locationIndex ], numFloats, f );
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + _components * _std430Size;
 	}
 
 	private:
@@ -1042,11 +1033,6 @@ class GLUniformMatrix32f : protected GLUniform {
 	public:
 	size_t GetSize() override {
 		return 6 * sizeof( float );
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, currentValue, 6 * sizeof( float ) );
-		return buffer + _std430Size * _components;
 	}
 
 	private:
