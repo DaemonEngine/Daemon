@@ -521,8 +521,8 @@ private:
 class GLUniformSampler : protected GLUniform {
 	protected:
 	GLUniformSampler( GLShader* shader, const char* name, const char* type, const UpdateType updateType ) :
-		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? 2 : 1,
-		                               glConfig2.bindlessTexturesAvailable ? 2 : 1, updateType, 0, true ) {
+		GLUniform( shader, name, type, glConfig.bindlessTexturesAvailable ? 2 : 1,
+		                               glConfig.bindlessTexturesAvailable ? 2 : 1, updateType, 0, true ) {
 	}
 
 	inline GLint GetLocation() {
@@ -616,7 +616,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			currentValue = value;
 			return;
 		}
@@ -660,7 +660,7 @@ class GLUniform1ui : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			currentValue = value;
 			return;
 		}
@@ -703,7 +703,7 @@ class GLUniform1Bool : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			currentValue = value;
 			return;
 		}
@@ -749,7 +749,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			currentValue = value;
 			return;
 		}
@@ -797,7 +797,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			memcpy( currentValue.data(), f, numFloats * sizeof( float ) );
 			return;
 		}
@@ -831,7 +831,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			Vector2Copy( v, currentValue );
 			return;
 		}
@@ -882,7 +882,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			VectorCopy( v, currentValue );
 			return;
 		}
@@ -933,7 +933,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			Vector4Copy( v, currentValue );
 			return;
 		}
@@ -981,7 +981,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			memcpy( currentValue.data(), v, numV * sizeof( vec4_t ) );
 			return;
 		}
@@ -1015,7 +1015,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			MatrixCopy( m, currentValue );
 			return;
 		}
@@ -1059,7 +1059,7 @@ class GLUniformMatrix32f : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			memcpy( currentValue, m, 6 * sizeof( float ) );
 			return;
 		}
@@ -1096,7 +1096,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			memcpy( currentValue.data(), m, numMatrices * sizeof( matrix_t ) );
 			return;
 		}
@@ -1129,7 +1129,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME ) ) {
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
 			memcpy( currentValue.data(), m, numMatrices * sizeof( matrix_t ) );
 			return;
 		}
