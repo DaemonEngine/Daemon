@@ -1578,7 +1578,7 @@ void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUnif
 
 // This will generate all the extra code for material system shaders
 std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::string& shaderText, const uint32_t offset ) {
-	if ( !shader->std430Size ) {
+	if ( !shader->std140Size ) {
 		return shaderText;
 	}
 
@@ -1641,7 +1641,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	materialStruct += "};\n\n";
 
 	// 6 kb for materials
-	const uint32_t count = ( 4096 + 2048 ) / shader->GetSTD430Size();
+	const uint32_t count = ( 4096 + 2048 ) / shader->GetSTD140Size();
 	std::string materialBlock = "layout(std140, binding = "
 		+ std::to_string( BufferBind::MATERIALS )
 		+ ") uniform materialsUBO {\n"
@@ -2084,8 +2084,8 @@ bool GLCompileMacro_USE_BSP_SURFACE::HasConflictingMacros(size_t permutation, co
 	return false;
 }
 
-uint32_t* GLUniform::WriteToBuffer( uint32_t* buffer ) {
-	return buffer;
+uint32_t* GLUniform::WriteToBuffer( uint32_t * ) {
+	Sys::Error( "WriteToBuffer not implemented for GLUniform '%s'", _name );
 }
 
 void GLShader::RegisterUniform( GLUniform* uniform ) {
@@ -2107,7 +2107,9 @@ static auto FindUniformForOffset( std::vector<GLUniform*>& uniforms, const GLuin
 	return uniforms.end();
 }
 
-// Compute std430 size/alignment and sort uniforms from highest to lowest alignment
+// Compute std140 size/alignment and sort uniforms from highest to lowest alignment
+// Note: using the std430 uniform size will give the wrong result for matrix types where
+// the number of rows is not 4
 void GLShader::PostProcessUniforms() {
 	if ( !_useMaterialSystem ) {
 		return;
@@ -2128,17 +2130,18 @@ void GLShader::PostProcessUniforms() {
 
 	// Sort uniforms from highest to lowest alignment so we don't need to pad uniforms (other than vec3s)
 	GLuint align = 4; // mininum alignment since this will be used as an std140 array element
-	std430Size = 0;
+	std140Size = 0;
 	_materialSystemUniforms.clear();
-	while ( !uniformQueue.empty() || std430Size & ( align - 1 ) ) {
-		auto iterNext = FindUniformForOffset( uniformQueue, std430Size );
+	while ( !uniformQueue.empty() || std140Size & ( align - 1 ) ) {
+		auto iterNext = FindUniformForOffset( uniformQueue, std140Size );
 		if ( iterNext == uniformQueue.end() ) {
 			// add 1 unit of padding
-			++std430Size;
+			++std140Size;
 			++_materialSystemUniforms.back()->_std430Size;
 		} else {
+			ASSERT_EQ( 0, ( *iterNext )->_components ); // array handling not implemented
 			( *iterNext )->_std430Size = ( *iterNext )->_std430BaseSize;
-			std430Size += ( *iterNext )->_std430Size;
+			std140Size += ( *iterNext )->_std430Size;
 			align = std::max( align, ( *iterNext )->_std430Alignment );
 			_materialSystemUniforms.push_back( *iterNext );
 			uniformQueue.erase( iterNext );
