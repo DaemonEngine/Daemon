@@ -61,7 +61,7 @@ namespace Resource {
     class Handle {
         public:
             Handle(std::shared_ptr<T> value, const Manager<T>* manager): value(value), manager(manager) {
-                ASSERT(!!value); // Should not be null
+                DAEMON_ASSERT(!!value); // Should not be null
             }
 
             // Returns a pointer to the resource, or to the default value if the

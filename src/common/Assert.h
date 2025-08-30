@@ -42,7 +42,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * information to start debugging when the assert fires.
  *
  * In case of name clashes (with for example a testing library), you can define the
- * DAEMON_SKIP_ASSERT_SHORTHANDS to only define the DAEMON_ prefixed macros.
+ * DAEMON_SKIP_ASSERT_SHORTHANDS to only define the DAEMON_ prefixed macros. Avoid using
+ * the shorthands in header files, so that the headers can be included in tests.
  *
  * These asserts feature:
  *     - Logging of the error with file, line and function information.
@@ -157,10 +158,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #define ASSERT_LE DAEMON_ASSERT_LE
     #define ASSERT_GT DAEMON_ASSERT_GT
     #define ASSERT_GE DAEMON_ASSERT_GE
+    #define ASSERT_UNREACHABLE DAEMON_ASSERT_UNREACHABLE
 #endif
 
 // You can put ASSERT_UNREACHABLE() in places that must never be reached.
-#define ASSERT_UNREACHABLE() DAEMON_ASSERT_CALLSITE(false, , false, "Unreachable code hit."); UNREACHABLE();
+#define DAEMON_ASSERT_UNREACHABLE() DAEMON_ASSERT_CALLSITE(false, , false, "Unreachable code hit."); UNREACHABLE();
 
 #ifdef DAEMON_ASSERTS_ENABLED
 // This stuff is so that the ASSERT_cc variants can be used on objects that don't have a

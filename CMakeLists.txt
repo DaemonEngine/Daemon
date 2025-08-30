@@ -952,7 +952,7 @@ if (BUILD_CLIENT)
         Flags ${WARNINGS}
         Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
         Libs ${LIBS_CLIENT} ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
-        Tests ${ENGINETESTLIST}
+        Tests ${CLIENTTESTLIST}
     )
 
     # generate glsl include files

@@ -49,7 +49,7 @@ public:
 
     template<typename T>
     const T& Cast() const {
-        ASSERT_EQ(this->type, T::ClassType());
+        DAEMON_ASSERT_EQ(this->type, T::ClassType());
         return *static_cast<const T*>(this);
     }
 
