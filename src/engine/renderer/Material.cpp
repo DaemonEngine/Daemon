@@ -725,6 +725,134 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 	GL_CheckErrors();
 }
 
+class ListMaterialsCmd : public Cmd::StaticCmd {
+	public:
+	ListMaterialsCmd() : StaticCmd( "listMaterials", Cmd::RENDERER, "list material system materials" ) {}
+
+	void Run( const Cmd::Args& ) const override {
+		if ( !glConfig.usingMaterialSystem ) {
+			Print( "Material system is disabled" );
+			return;
+		}
+
+		// Taken from tr_shader.cpp
+		static const std::unordered_map<shaderSort_t, std::string> shaderSortName = {
+			{ shaderSort_t::SS_BAD, "BAD" },
+			{ shaderSort_t::SS_PORTAL, "PORTAL" },
+			{ shaderSort_t::SS_DEPTH, "DEPTH" },
+			{ shaderSort_t::SS_ENVIRONMENT_FOG, "ENV_FOG" },
+			{ shaderSort_t::SS_ENVIRONMENT_NOFOG, "ENV_NOFOG" },
+			{ shaderSort_t::SS_OPAQUE, "OPAQUE" },
+			{ shaderSort_t::SS_DECAL, "DECAL" },
+			{ shaderSort_t::SS_SEE_THROUGH, "SEE_THROUGH" },
+			{ shaderSort_t::SS_BANNER, "BANNER" },
+			{ shaderSort_t::SS_FOG, "FOG" },
+			{ shaderSort_t::SS_UNDERWATER, "UNDERWATER" },
+			{ shaderSort_t::SS_FAR, "FAR" },
+			{ shaderSort_t::SS_MEDIUM, "MEDIUM" },
+			{ shaderSort_t::SS_CLOSE, "CLOSE" },
+			{ shaderSort_t::SS_BLEND0, "BLEND0" },
+			{ shaderSort_t::SS_BLEND1, "BLEND1" },
+			{ shaderSort_t::SS_ALMOST_NEAREST, "ALMOST_NEAREST" },
+			{ shaderSort_t::SS_NEAREST, "NEAREST" },
+			{ shaderSort_t::SS_POST_PROCESS, "POST_PROCESS" },
+		};
+
+		for ( const MaterialSystem::MaterialPack& materialPack : materialSystem.materialPacks ) {
+			Print( "MaterialPack %s:%s:",
+			       shaderSortName.at( materialPack.fromSort ), shaderSortName.at( materialPack.toSort ) );
+			for ( const Material& material : materialPack.materials ) {
+				Print( "id: %u, sync: %5s, stateBits: %10x, GLShader: %s, GLProgramID: %u,"
+				       " deform: %i, fog: %i, drawCmdCount: %u",
+				       material.id, material.useSync, material.stateBits,
+				       material.shader->_name, material.program,
+				       material.deformIndex, material.fog, material.drawCommandCount );
+			}
+		}
+	}
+};
+static ListMaterialsCmd listMaterialsCmdRegistration;
+
+static std::string GetStageInfo( const shaderStage_t* pStage, const uint32_t dynamicStagesOffset ) {
+	static const std::unordered_map<stageShaderBinder_t, std::string> stageShaderNames = {
+		{ BindShaderNOP,          "NOP                 " },
+		{ BindShaderGeneric3D,    "genericMaterial     " },
+		{ BindShaderLightMapping, "lightMappingMaterial" },
+		{ BindShaderHeatHaze,     "heatHazeMaterial    " },
+		{ BindShaderFog,          "fogQuake3Material   " },
+		{ BindShaderLiquid,       "liquidMaterial      " },
+		{ BindShaderScreen,       "screenMaterial      " },
+		{ BindShaderSkybox,       "skyboxMaterial      " },
+		{ BindShaderReflection,   "reflectionMaterial  " }
+	};
+
+	std::string out = Str::Format( "%s material offset: %3u, buffer offset: %4u\n",
+		stageShaderNames.at( pStage->shaderBinder ), pStage->materialOffset, pStage->bufferOffset );
+
+	static const char* stageVariants[] = {
+		"base variant                           ",
+		"vertex overbright                      ",
+		"vertex-lit                             ",
+		"fullbright                             ",
+		"vertex overbright vertex-lit           ",
+		"vertex overbright fullbright           ",
+		"vertex-lit fullbright                  ",
+		"vertex overbright vertex-lit fullbright"
+	};
+
+	uint32_t variants = 0;
+	for ( int i = 0; i < ShaderStageVariant::ALL && variants < pStage->variantOffset; i++ ) {
+		if ( pStage->variantOffsets[i] != -1 ) {
+			const uint32_t variantOffset = pStage->variantOffsets[i] * pStage->paddedSize;
+
+			out += Str::Format( "    %s material array offset: %3u, material buffer offset: %4u, size: %2u\n",
+				                stageVariants[i],
+				                pStage->materialOffset + pStage->variantOffsets[i],
+				                pStage->bufferOffset + variantOffset + ( pStage->dynamic ? dynamicStagesOffset : 0 ),
+				                pStage->paddedSize );
+
+			variants++;
+		}
+	}
+
+	return out;
+}
+
+class ListMaterialSystemStagesCmd : public Cmd::StaticCmd {
+	public:
+	ListMaterialSystemStagesCmd() : StaticCmd( "listMaterialSystemStages", Cmd::RENDERER, "list material system stages" ) {}
+
+	void Run( const Cmd::Args& ) const override {
+		if ( !glConfig.usingMaterialSystem ) {
+			Print( "Material system is disabled" );
+			return;
+		}
+
+		Print( "Total stages: %u, static: %u, dynamic: %u",
+			materialSystem.materialStages.size(),
+			materialSystem.materialStages.size() - materialSystem.dynamicStages.size(),
+			materialSystem.dynamicStages.size() );
+		Print( "Total stage size: %u, static: %u, dynamic: %u (offset: %u)",
+			materialSystem.totalStageSize, materialSystem.totalStageSize - materialSystem.dynamicStagesSize,
+			materialSystem.dynamicStagesSize, materialSystem.dynamicStagesOffset );
+
+		Print( "\nStatic stages:" );
+		for ( const shaderStage_t* pStage : materialSystem.materialStages ) {
+			if ( pStage->dynamic ) {
+				continue;
+			}
+
+			Print( GetStageInfo( pStage, materialSystem.dynamicStagesOffset ) );
+		}
+
+		Print( "\nDynamic stages:" );
+		for ( const shaderStage_t* pStage : materialSystem.dynamicStages ) {
+			Print( GetStageInfo( pStage, materialSystem.dynamicStagesOffset ) );
+		}
+	}
+};
+static ListMaterialSystemStagesCmd listMaterialSystemStagesCmdRegistration;
+
 void MaterialSystem::BindBuffers() {
 	materialsUBO.BindBufferBase();
 	texDataBuffer.BindBufferBase( texDataBufferType, texDataBindingPoint );
