@@ -4648,8 +4648,8 @@ static void SetConstUniforms() {
 
 	globalUBOProxy->SetUniform_ProfilerZero();
 
-	if ( glConfig2.usingBindlessTextures ) {
-		if ( glConfig2.colorGrading ) {
+	if ( glConfig.usingBindlessTextures ) {
+		if ( glConfig.colorGrading ) {
 			globalUBOProxy->SetUniform_ColorMap3DBindless( GL_BindToTMU( 3, tr.colorGradeImage ) );
 		}
 
@@ -4661,7 +4661,7 @@ static void SetConstUniforms() {
 			GL_BindToTMU( 0, tr.fogImage )
 		);
 
-		if ( glConfig2.realtimeLighting ) {
+		if ( glConfig.realtimeLighting ) {
 			globalUBOProxy->SetUniform_DepthTile1Bindless(
 				GL_BindToTMU( 0, tr.depthtile1RenderImage )
 			);
@@ -4679,7 +4679,7 @@ static void SetConstUniforms() {
 		globalUBOProxy->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_LIGHTGRID2, tr.lightGrid2Image ) );
 	}
 
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.SetConstUniforms();
 	}
 
