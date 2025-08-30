@@ -107,8 +107,6 @@ struct MaterialSurface {
 };
 
 struct Material {
-	uint32_t materialsSSBOOffset = 0;
-
 	uint32_t globalID = 0;
 	uint32_t surfaceCommandBatchOffset = 0;
 	uint32_t surfaceCommandBatchCount = 0;
@@ -309,6 +307,9 @@ struct SurfaceCommandBatch {
 
 class MaterialSystem {
 	public:
+	friend class ListMaterialsCmd;
+	friend class ListMaterialSystemStagesCmd;
+
 	vec3_t worldViewBounds[2];
 
 	uint8_t maxStages = 0;
