@@ -760,7 +760,7 @@ void R_InitVBOs()
 		stagingBuffer.InitGLBuffer();
 	}
 
-	if ( glConfig2.pushBufferAvailable ) {
+	if ( glConfig.pushBufferAvailable ) {
 		pushBuffer.InitGLBuffers();
 	}
 
@@ -841,7 +841,7 @@ void R_ShutdownVBOs()
 		stagingBuffer.FreeGLBuffer();
 	}
 
-	if ( glConfig2.pushBufferAvailable ) {
+	if ( glConfig.pushBufferAvailable ) {
 		pushBuffer.FreeGLBuffers();
 	}
 
