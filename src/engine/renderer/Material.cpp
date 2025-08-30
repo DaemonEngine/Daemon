@@ -1176,7 +1176,8 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, Mat
 
 	gl_lightMappingShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
 
-	gl_lightMappingShaderMaterial->SetReflectiveSpecular( pStage->enableSpecularMapping );
+	// Check for reflectionMappingAvailable here to better predict which shaders we need to build at the start
+	gl_lightMappingShaderMaterial->SetReflectiveSpecular( glConfig.reflectionMappingAvailable && pStage->enableSpecularMapping );
 
 	gl_lightMappingShaderMaterial->SetPhysicalShading( pStage->enablePhysicalMapping );
 
@@ -1410,7 +1411,19 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 	material.usePolygonOffset = shader->polygonOffset;
 
 	material.bspSurface = surface->bspSurface;
+	
 	pStage->materialProcessor( &material, pStage, surface );
+
+	if ( pStage->enableSpecularMapping && pStage->shaderBinder == BindShaderLightMapping ) {
+		/* This will get the non-reflective version of the material if reflection mapping is enabled,
+		because the reflection maps will need to be built with it if there's no valid cache or the caching is disabled */
+		Material tmp = material;
+
+		pStage->enableSpecularMapping = false;
+		pStage->materialProcessor( &tmp, pStage, surface );
+		pStage->enableSpecularMapping = true;
+	}
+
 	pStage->paddedSize = material.shader->GetSTD140Size();
 
 	// HACK: Copy the shaderStage_t and MaterialSurface that we need into the material, so we can use it with glsl_restart
