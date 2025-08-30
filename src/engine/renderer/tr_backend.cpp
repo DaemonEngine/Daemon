@@ -2805,7 +2805,7 @@ static void SetFrameUniforms() {
 	globalUBOProxy->SetUniform_ColorModulate( tr.viewParms.gradingWeights );
 	globalUBOProxy->SetUniform_InverseGamma( 1.0f / r_gamma->value );
 
-	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig2.textureFloatAvailable;
+	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig.textureFloatAvailable;
 	if ( tonemap ) {
 		vec4_t tonemapParms{ r_toneMappingContrast.Get(), r_toneMappingHighlightsCompressionSpeed.Get() };
 		ComputeTonemapParams( tonemapParms[0], tonemapParms[1], r_toneMappingHDRMax.Get(),
@@ -2815,7 +2815,7 @@ static void SetFrameUniforms() {
 	}
 	globalUBOProxy->SetUniform_Tonemap( tonemap );
 
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.SetFrameUniforms();
 	}
 
@@ -3823,7 +3823,7 @@ void RB_ExecuteRenderCommands( const void *data )
 
 	materialSystem.frameStart = true;
 
-	if ( glConfig2.pushBufferAvailable ) {
+	if ( glConfig.pushBufferAvailable ) {
 		SetFrameUniforms();
 	}
 
