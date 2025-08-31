@@ -173,7 +173,10 @@ class AtomicRingBuffer :
 			ASSERT_EQ( count, 1 );
 		}
 
-		uint64 element = pointer.fetch_add( count, std::memory_order_relaxed );
+		uint64 element;
+		do {
+			element = pointer.fetch_add( count, std::memory_order_relaxed );
+		} while ( element % elementCount + count > elementCount );
 
 		if constexpr ( useTrailingAtomic ) {
 			uint64 currentElement = current.load( std::memory_order_acquire );
