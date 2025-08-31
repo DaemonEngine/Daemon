@@ -176,6 +176,7 @@ void TaskList::FinishDependency( const uint16 bufferID ) {
 		TLM.addTimer.Start();
 
 		AddToThreadQueue( task );
+		taskWithDependenciesCount.fetch_sub( 1, std::memory_order_relaxed );
 
 		TLM.addTimer.Stop();
 	}
@@ -321,6 +322,8 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 
 		if ( !counter ) {
 			AddToThreadQueue( *taskMemory );
+		} else {
+			taskWithDependenciesCount.fetch_add( 1, std::memory_order_relaxed );
 		}
 	} else if ( dependencies.start == dependencies.end ) {
 		AddToThreadQueue( *taskMemory );

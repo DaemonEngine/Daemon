@@ -147,6 +147,7 @@ class TaskList :
 	ThreadQueue threadQueues[MAX_THREADS];
 	std::atomic<uint32> currentThreadExecutionNode = UINT32_MAX;
 	std::atomic<uint32> taskCount;
+	std::atomic<uint32> taskWithDependenciesCount;
 
 	ALIGN_CACHE std::atomic<uint32> executingThreads = 1;
 	ALIGN_CACHE std::atomic<bool> exiting = false;
