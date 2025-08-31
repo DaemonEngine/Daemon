@@ -896,10 +896,6 @@ function(AddApplication)
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
     
     set_target_properties(${A_Target}-objects PROPERTIES FOLDER "engine/objects")
-    
-    if( DEFINED A_CompileFeatures AND NOT $A_CompileFeatures STREQUAL "" )
-        target_compile_features( ${A_Target}-objects PRIVATE ${A_CompileFeatures} )
-    endif()
 
     set(Sources WIN32 ${A_ApplicationMain})
     AddApplicationInternal(${A_Target} ${A_ExecutableName})
@@ -928,10 +924,6 @@ if (NOT NACL)
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_OPTIONS ${WARNINGS})
     set_target_properties(engine-lib PROPERTIES FOLDER "engine/objects")
 
-    if( USE_VULKAN )
-        target_compile_features( engine-lib PRIVATE "cxx_std_23" )
-    endif()
-
     ADD_PRECOMPILED_HEADER(engine-lib)
 
     if (BUILD_DUMMY_APP)
@@ -957,10 +949,8 @@ if (BUILD_CLIENT)
 
     if (USE_VULKAN)
         set(CLIENT_EXECUTABLE_NAME daemon-vulkan)
-        set(COMPILE_FEATURES "cxx_std_23")
     else()
         set(CLIENT_EXECUTABLE_NAME daemon)
-        set(COMPILE_FEATURES)
     endif()
 
     AddApplication(
@@ -969,7 +959,6 @@ if (BUILD_CLIENT)
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions ${Definitions}
         Flags ${WARNINGS}
-        CompileFeatures ${COMPILE_FEATURES}
         Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
         Libs ${LIBS_CLIENT} ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
         Tests ${ENGINETESTLIST}
