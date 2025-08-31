@@ -45,6 +45,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Memory/DynamicArray.h"
 #include "../Memory/MemoryChunk.h"
 
+#include "TLMAllocator.h"
+
 #include "Task.h"
 
 struct AllocationRecord {
