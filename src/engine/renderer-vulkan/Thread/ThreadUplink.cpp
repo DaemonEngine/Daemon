@@ -47,6 +47,8 @@ ThreadUplink threadUplink;
 void ThreadUplink::AddCommand( const ThreadUplinkCommand id ) {
 	const uint8 cmdID = pointer.fetch_add( 1, std::memory_order_relaxed );
 
+	while ( commands[cmdID] != CMD_NONE );
+
 	commands[cmdID] = id;
 }
 
@@ -63,6 +65,8 @@ void ThreadUplink::ExecuteCommands() {
 			default:
 				break;
 		}
+
+		commands[current] = CMD_NONE;
 
 		current++;
 	}
