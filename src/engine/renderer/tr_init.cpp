@@ -103,6 +103,7 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Cvar<bool> r_gpuFrustumCulling( "r_gpuFrustumCulling", "Use frustum culling on the GPU for the Material System", Cvar::NONE, true );
 	Cvar::Cvar<bool> r_gpuOcclusionCulling( "r_gpuOcclusionCulling", "Use occlusion culling on the GPU for the Material System", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_materialSystemSkip( "r_materialSystemSkip", "Temporarily skip Material System rendering, using only core renderer instead", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_materialSeparatePerShader("r_materialSeparatePerShader", "generate a material for every q3shader stage (to debug merging)", Cvar::NONE, false);
 	cvar_t      *r_lightStyles;
 	cvar_t      *r_exportTextures;
 	cvar_t      *r_heatHaze;
@@ -1275,7 +1276,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showBspNodes = Cvar_Get( "r_showBspNodes", "0", CVAR_CHEAT );
 		Cvar::Latch( r_showGlobalMaterials );
 		Cvar::Latch( r_materialDebug );
-
+		Cvar::Latch( r_materialSeparatePerShader );
 		Cvar::Latch( r_profilerRenderSubGroups );
 	}
 
@@ -1499,19 +1500,14 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	{
 		R_SyncRenderThread();
 		if ( r_lazyShaders.Get() == 1 ) {
-			// Particles
-			gl_genericShader->SetVertexSkinning( false );
-			gl_genericShader->SetVertexAnimation( false );
-			gl_genericShader->SetTCGenEnvironment( false );
-			gl_genericShader->SetTCGenLightmap( false );
-			gl_genericShader->SetDepthFade( true );
-			gl_genericShader->MarkProgramForBuilding( 0 );
-
-			// Fog is applied dynamically based on the surface's BBox, so build all of the q3 fog shaders here
-			for ( uint32_t i = 0; i < 3; i++ ) {
-				gl_fogQuake3Shader->SetVertexSkinning( i & 1 );
-				gl_fogQuake3Shader->SetVertexAnimation( i & 2 );
-				gl_fogQuake3Shader->MarkProgramForBuilding( 0 );
+			if ( tr.world->numFogs > 0 )
+			{
+				// Fog is applied dynamically based on the surface's BBox, so build all of the q3 fog shaders here
+				for ( uint32_t i = 0; i < 3; i++ ) {
+					gl_fogQuake3Shader->SetVertexSkinning( i & 1 );
+					gl_fogQuake3Shader->SetVertexAnimation( i & 2 );
+					gl_fogQuake3Shader->MarkProgramForBuilding( 0 );
+				}
 			}
 
 			for ( int i = 0; i < tr.numModels; i++ ) {
