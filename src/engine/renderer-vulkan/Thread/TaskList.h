@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Thread.h"
 
+#include "../Memory/SysAllocator.h"
 #include "../Memory/RingBuffer.h"
 
 #include "Task.h"
@@ -138,8 +139,8 @@ class TaskList :
 		uint8 nextThreadExecutionNode;
 	};
 
-	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory" };
-	AtomicRingBuffer<byte, true> tasksData { "GlobalTaskDataMemory" };
+	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory", &sysAllocator };
+	AtomicRingBuffer<byte, true> tasksData { "GlobalTaskDataMemory", &sysAllocator };
 
 	Thread threads[MAX_THREADS];
 

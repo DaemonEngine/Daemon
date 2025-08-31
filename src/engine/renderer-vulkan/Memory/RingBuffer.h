@@ -44,23 +44,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Math/Bit.h"
 
 #include "Memory.h"
+#include "Allocator.h"
+#include "../Thread/TLMAllocator.h"
 
 template<typename T>
 class RingBuffer :
 	public Tag {
 
 	public:
-	RingBuffer() {
+	RingBuffer( Allocator* newAllocator = &TLMAlloc ) :
+		allocator( newAllocator ) {
 	}
 
-	RingBuffer( const std::string name ) :
-		Tag( name ) {
+	RingBuffer( const std::string name, Allocator* newAllocator = &TLMAlloc ) :
+		Tag( name ),
+		allocator( newAllocator ) {
 	}
 
 	void Alloc( const uint64 newElementCount ) {
 		elementCount = newElementCount;
 		size = ( elementCount * sizeof( T ) + 63 ) & ~63;
-		memory = ( T* ) Alloc64( size );
+		memory = ( T* ) allocator->Alloc( size );
 
 		pointer = 0;
 	}
@@ -72,7 +76,7 @@ class RingBuffer :
 		}
 
 		const uint64 tempSize = ( newElementCount * sizeof( T ) + 63 ) & ~64;
-		T* tempMemory = ( T* ) Alloc64( tempSize );
+		T* tempMemory = ( T* ) allocator->Alloc( tempSize );
 
 		memcpy( tempMemory, memory, size );
 
@@ -106,6 +110,7 @@ class RingBuffer :
 
 	private:
 	T* memory;
+	Allocator* allocator;
 	uint64 size;
 	uint64 elementCount;
 	uint64 pointer;
@@ -117,22 +122,25 @@ class AtomicRingBuffer :
 
 	public:
 	T* memory;
+	Allocator* allocator;
 
 	Timer getTimer;
 	Timer addTimer;
 
-	AtomicRingBuffer() {
+	AtomicRingBuffer( Allocator* newAllocator = &TLMAlloc ) :
+		allocator( newAllocator ) {
 	}
 
-	AtomicRingBuffer( const std::string name ) :
-		Tag( name ) {
+	AtomicRingBuffer( const std::string name, Allocator* newAllocator = &TLMAlloc ) :
+		Tag( name ),
+		allocator( newAllocator ) {
 	}
 
 	void Alloc( const uint64 newElementCount ) {
 		elementCount = newElementCount;
 		size = ( elementCount * sizeof( T ) + 63 ) & ~64;
 		mask = elementCount - 1;
-		memory = ( T* ) Alloc64( size );
+		memory = ( T* ) allocator->Alloc( size, 64 );
 
 		memset( memory, 0, size );
 
@@ -151,7 +159,7 @@ class AtomicRingBuffer :
 		}
 
 		const uint64 tempSize = ( newElementCount * sizeof( T ) + 63 ) & ~64;
-		T* tempMemory = ( T* ) Alloc64( tempSize );
+		T* tempMemory = ( T* ) allocator->Alloc( tempSize, 64 );
 
 		memcpy( tempMemory, memory, size );
 
@@ -165,7 +173,7 @@ class AtomicRingBuffer :
 	}
 
 	void Free() {
-		FreeAligned( memory );
+		allocator->Free( memory );
 	}
 
 	T* GetNextElementMemory( const uint64 count = 1 ) {
