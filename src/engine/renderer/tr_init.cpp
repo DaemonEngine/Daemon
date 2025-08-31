@@ -1439,30 +1439,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			tr.lightMode = lightMode_t::VERTEX;
 		}
 
-		if ( r_reflectionMapping.Get() ) {
-			glConfig.reflectionMappingAvailable = true;
-
-			if ( !r_normalMapping->integer ) {
-				glConfig.reflectionMappingAvailable = false;
-				Log::Warn( "Unable to use static reflections without normal mapping, make sure you enable r_normalMapping" );
-			}
-
-			if ( !r_deluxeMapping->integer ) {
-				glConfig.reflectionMappingAvailable = false;
-				Log::Warn( "Unable to use static reflections without deluxe mapping, make sure you enable r_deluxeMapping" );
-			}
-
-			if ( !r_specularMapping->integer ) {
-				glConfig.reflectionMappingAvailable = false;
-				Log::Warn( "Unable to use static reflections without specular mapping, make sure you enable r_specularMapping" );
-			}
-
-			if ( r_physicalMapping->integer ) {
-				glConfig.reflectionMappingAvailable = false;
-				Log::Warn( "Unable to use static reflections with physical mapping, make sure you disable r_physicalMapping" );
-			}
-		}
-
 		backEndData[ 0 ] = ( backEndData_t * ) ri.Hunk_Alloc( sizeof( *backEndData[ 0 ] ), ha_pref::h_low );
 		backEndData[ 0 ]->polys = ( srfPoly_t * ) ri.Hunk_Alloc( r_maxPolys->integer * sizeof( srfPoly_t ), ha_pref::h_low );
 		backEndData[ 0 ]->polyVerts = ( polyVert_t * ) ri.Hunk_Alloc( r_maxPolyVerts->integer * sizeof( polyVert_t ), ha_pref::h_low );
