@@ -49,4 +49,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define ALIGN_CACHE alignas( CACHE_LINE_SIZE )
 
+namespace PageSize {
+	enum PageSize {
+		SIZE_DEFAULT,
+		SIZE_64,
+		SIZE_LARGE
+	};
+}
+
+struct MemoryInfo {
+	uint64 PAGE_SIZE_DEFAULT;
+	uint64 PAGE_SIZE_64;
+	uint64 PAGE_SIZE_LARGE;
+
+	MemoryInfo();
+};
+
+extern MemoryInfo memoryInfo;
+
 #endif // MEMORY_INFO_H

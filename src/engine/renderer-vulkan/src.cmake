@@ -30,6 +30,7 @@ set(SYNCLIST
 set(SYSLIST
     ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.cpp
     ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.h
+    ${ENGINE_DIR}/renderer-vulkan/Sys/MemoryInfo.cpp
     ${ENGINE_DIR}/renderer-vulkan/Sys/MemoryInfo.h
 )
 

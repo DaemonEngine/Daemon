@@ -46,4 +46,6 @@ extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount;
 
 extern Cvar::Cvar<std::string> r_vkMemoryChunkConfig;
 
+extern Cvar::Range<Cvar::Cvar<int>> r_vkMemoryPageSize;
+
 #endif // MISC_CVARSTORE_H

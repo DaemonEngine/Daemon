@@ -71,6 +71,10 @@ Cvar::Cvar<std::string> r_vkMemoryChunkConfig( "r_vkMemoryChunkConfig",
 	"Configuration for memory chunk system: \"[chunkSize]:[chunkCount] .. [chunkSize]:[chunkCount]\", sizes are in kb."
 	"16:640 1024:640 65536:16 must be reserved for internal use", Cvar::NONE, defaultMemoryChunkConfig );
 
+Cvar::Range<Cvar::Cvar<int>> r_vkMemoryPageSize( "r_vkMemoryPageSize",
+	Str::Format( "Memory page size to use (0: default, 1: %u, 2: %u)", memoryInfo.PAGE_SIZE_64, memoryInfo.PAGE_SIZE_LARGE ),
+	Cvar::NONE, PageSize::SIZE_DEFAULT, PageSize::SIZE_DEFAULT, PageSize::SIZE_LARGE );
+
 // TODO: Move this to some Vulkan file later
 Cvar::Cvar<int> r_rendererApi( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 1 );
 

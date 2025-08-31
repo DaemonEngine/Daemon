@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/Common.h"
 #include "qcommon/qcommon.h"
 
+#include "engine/framework/CvarSystem.h"
 #include "engine/framework/System.h"
 
 #include "Thread/ThreadMemory.h"
@@ -69,4 +70,8 @@ void Init() {
 	taskList.AddTasks( { initMemTask }, { initTLMTask, initMemTask } );
 
 	initTLMFence.Wait();
+
+	Log::Notice( "Large page size: %u", memoryInfo.PAGE_SIZE_LARGE );
+
+	Cvar::Latch( r_vkMemoryPageSize );
 }
