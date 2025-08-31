@@ -2812,6 +2812,30 @@ static void GLimp_EnableAvailableFeatures()
 	// This will be enabled later on by R_BuildCubeMaps()
 	glConfig.reflectionMapping = false;
 
+	glConfig.reflectionMappingAvailable = r_reflectionMapping.Get();
+	if ( glConfig.reflectionMappingAvailable )
+	{
+		if ( !r_normalMapping->integer ) {
+			glConfig.reflectionMappingAvailable = false;
+			Log::Warn( "Unable to use static reflections without normal mapping, make sure you enable r_normalMapping" );
+		}
+
+		if ( !r_deluxeMapping->integer ) {
+			glConfig.reflectionMappingAvailable = false;
+			Log::Warn( "Unable to use static reflections without deluxe mapping, make sure you enable r_deluxeMapping" );
+		}
+
+		if ( !r_specularMapping->integer ) {
+			glConfig.reflectionMappingAvailable = false;
+			Log::Warn( "Unable to use static reflections without specular mapping, make sure you enable r_specularMapping" );
+		}
+
+		if ( r_physicalMapping->integer ) {
+			glConfig.reflectionMappingAvailable = false;
+			Log::Warn( "Unable to use static reflections with physical mapping, make sure you disable r_physicalMapping" );
+		}
+	}
+
 	/* Intel GMA 3 only has 4 tex indirections, which is not enough for some shaders.
 	For example blurX requires 6, contrast requires 5, motionblur requires 5…
 	For comparison, ATI R300, R400 and R500 have 16 of them. We don't need a finer check as early R300
