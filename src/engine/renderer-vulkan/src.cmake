@@ -14,6 +14,8 @@ set(MEMORYLIST
     ${ENGINE_DIR}/renderer-vulkan/Memory/MemoryChunkSystem.cpp
     ${ENGINE_DIR}/renderer-vulkan/Memory/MemoryChunkSystem.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/IteratorSeq.h
+    ${ENGINE_DIR}/renderer-vulkan/Memory/SysAllocator.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Memory/SysAllocator.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/RingBuffer.h
 )
 

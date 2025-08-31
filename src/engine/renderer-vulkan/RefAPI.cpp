@@ -66,7 +66,6 @@ namespace TempAPI {
 
 	bool BeginRegistration( WindowConfig* windowConfig ) {
 		TLM.main = true;
-		taskList.Init();
 
 		Init();
 

@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -31,52 +31,62 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Init.cpp
+// SysAllocator.h
 
-#include "common/Common.h"
-#include "qcommon/qcommon.h"
+#ifndef SYS_ALLOCATOR_H
+#define SYS_ALLOCATOR_H
 
-#include "engine/framework/CvarSystem.h"
-#include "engine/framework/System.h"
+#include <atomic>
 
-#include "Thread/ThreadMemory.h"
-#include "Thread/TaskList.h"
-#include "Thread/ThreadCommand.h"
-#include "Memory/MemoryChunkSystem.h"
-#include "Memory/SysAllocator.h"
-#include "MiscCVarStore.h"
-#include "RefAPI.h"
+#include "../Math/NumberTypes.h"
 
-void Init() {
-	/* TLM.main = true;
-	taskList.Init();
+#include "Allocator.h"
 
-	glconfig->vidWidth = 1920;
-	glconfig->vidHeight = 1080;
+class SysAllocator : public Allocator {
+	public:
+	SysAllocator() = default;
+	~SysAllocator() = default;
 
-	r_width.Set( 1920 );
-	r_height.Set( 1080 );
+	void Init();
 
-	window = mainSurface.window;
+	byte* Alloc( const uint64 size, const uint64 alignment ) override;
+	void Free( byte* memory ) override;
 
-	IN_Init( window ); */
+	private:
+	struct AllocationRecord {
+		uint64 alignment;
 
-	// memoryChunkSystem.InitConfig( r_vkMemoryChunkConfig.Get().c_str() );
+		byte* memory;
 
-	sysAllocator.Init();
-	taskList.Init();
+		uint32 pageCount;
+		uint8 id;
 
-	std::string cfg = r_vkMemoryChunkConfig.Get();
-	Task initMemTask { &InitMemoryChunkSystemConfig, cfg };
+		char source[107];
+	};
 
-	FenceMain initTLMFence;
-	Task initTLMTask { &UpdateThreadCommand, ThreadCommandTask { ThreadCommands::INIT_TLM, initTLMFence } };
+	static constexpr uint32 MAX_THREAD_ALLOCATIONS = 256;
+	AllocationRecord allocations[MAX_THREAD_ALLOCATIONS];
 
-	taskList.AddTasks( { initMemTask }, { initTLMTask, initMemTask } );
+	static constexpr uint32 MAX_THREAD_ALLOCATION_SYNC_VARS = MAX_THREAD_ALLOCATIONS / 64;
+	static_assert( MAX_THREAD_ALLOCATION_SYNC_VARS * 64 == MAX_THREAD_ALLOCATIONS,
+		"MAX_THREAD_ALLOCATIONS must be a multiple of 64" );
+	std::atomic<uint64> availableAllocations[MAX_THREAD_ALLOCATION_SYNC_VARS];
 
-	initTLMFence.Wait();
+	std::atomic<uint32> currentAllocations;
+	std::atomic<uint32> currentAllocatedSize;
+	std::atomic<uint32> currentAllocatedPages;
 
-	Log::Notice( "Large page size: %u", memoryInfo.PAGE_SIZE_LARGE );
+	#ifdef _MSC_VER
+		uint32 allocationFlags;
+		uint32 allocationProtection;
+	#else
+		int    allocationFlags;
+		int    allocationProtection;
+	#endif
 
-	Cvar::Latch( r_vkMemoryPageSize );
-}
+	uint64 pageSize;
+};
+
+extern SysAllocator sysAllocator;
+
+#endif // SYS_ALLOCATOR_H
