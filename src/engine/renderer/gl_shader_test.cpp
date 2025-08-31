@@ -122,4 +122,21 @@ TEST(MaterialUniformPackingTest, Vec3Handling)
     EXPECT_EQ(uniforms[3]->_std430Size, 4u);
 }
 
+TEST(MaterialUniformPackingTest, Array)
+{
+    class Shader1 : public MaterialUniformPackingTestShaderBase,
+                    public u_Frustum //vec4[6]
+    {
+    public:
+        Shader1() : u_Frustum(this) {}
+    };
+
+    Shader1 shader1;
+    std::vector<GLUniform*> uniforms = shader1.GetUniforms();
+    EXPECT_EQ(shader1.GetSTD140Size(), 24u);
+    ASSERT_EQ(uniforms.size(), 1);
+    EXPECT_EQ(uniforms[0], Get<u_Frustum>(shader1));
+    EXPECT_EQ(uniforms[0]->_std430Size, 4u);
+}
+
 } // namespace
