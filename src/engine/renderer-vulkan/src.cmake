@@ -36,7 +36,7 @@ set(SYSLIST
     ${ENGINE_DIR}/renderer-vulkan/Sys/MemoryInfo.h
 )
 
-set(TASKLIST
+set(THREADLIST
     ${ENGINE_DIR}/renderer-vulkan/Thread/GlobalMemory.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/GlobalMemory.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/SyncTask.cpp
@@ -47,6 +47,8 @@ set(TASKLIST
     ${ENGINE_DIR}/renderer-vulkan/Thread/TaskData.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/TaskList.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/TaskList.h
+    ${ENGINE_DIR}/renderer-vulkan/Thread/TLMAllocator.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Thread/TLMAllocator.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/Thread.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/Thread.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadCommand.cpp
@@ -68,7 +70,7 @@ set(RENDERERLIST
     ${MEMORYLIST}
     ${SYNCLIST}
     ${SYSLIST}
-    ${TASKLIST}
+    ${THREADLIST}
     ${UTILSLIST}
     ${ENGINE_DIR}/renderer-vulkan/Surface/Surface.cpp
     ${ENGINE_DIR}/renderer-vulkan/Surface/Surface.h
