@@ -35,9 +35,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "StackAllocator.h"
 
+StackAllocator::StackAllocator( Allocator* newAllocator ) :
+	allocator( newAllocator ) {
+}
+
 void StackAllocator::Init( const uint64_t newSize ) {
 	size = ( newSize + 63 ) & ~64;
-	memory = ( byte* ) Alloc64( size );
+	memory = allocator->Alloc( size, 64 );
 
 	persistentIndex = 0;
 	tempIndex = 0;
@@ -50,7 +54,7 @@ void StackAllocator::Resize( const uint64_t newSize ) {
 	}
 
 	const uint64_t tempSize = ( newSize + 63 ) & ~64;
-	byte* tempMemory = ( byte* ) Alloc64( tempSize );
+	byte* tempMemory = allocator->Alloc( tempSize, 64 );
 
 	memcpy( tempMemory, memory, persistentIndex );
 	memcpy( tempMemory + ( tempSize - tempIndex ), memory + ( size - tempIndex ), persistentIndex );
@@ -62,29 +66,31 @@ void StackAllocator::Resize( const uint64_t newSize ) {
 }
 
 void StackAllocator::Free() {
-	FreeAligned( memory );
+	allocator->Free( memory );
 }
 
-void* StackAllocator::Alloc( const uint64_t allocationSize, const uint64_t alignment, bool temp ) {
+byte* StackAllocator::Alloc( const uint64_t allocationSize, const uint64_t alignment ) {
 	const uint64_t paddedSize = ( allocationSize + alignment - 1 ) & ~alignment;
 
 	if ( paddedSize > size - persistentIndex - tempIndex ) {
 		return nullptr;
 	}
 
-	if ( temp ) {
+	/* if ( temp ) {
 		tempIndex += paddedSize;
 		return ( void* ) ( memory - tempIndex );
-	}
+	} */
 
-	void* ptr = ( void* ) ( memory + persistentIndex );
+	byte* ptr = memory + persistentIndex;
 	persistentIndex += paddedSize;
 
 	return ptr;
 }
 
-void StackAllocator::Free( const void* ptr ) {
-	if ( !ptr ) {
+void StackAllocator::Free( byte* memory ) {
+	if ( !memory ) {
 		return;
 	}
+
+	allocator->Free( memory );
 }

@@ -39,19 +39,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/Common.h"
 
 #include "Memory.h"
+#include "Allocator.h"
+#include "../Thread/TLMAllocator.h"
 
-class StackAllocator {
+class StackAllocator : public Allocator {
 	public:
+	StackAllocator( Allocator* newAllocator = &TLMAlloc );
+	~StackAllocator() = default;
+
 	void Init( const uint64_t newSize );
 	void Resize( const uint64_t newSize );
 	void Free();
 
-	void* Alloc( const uint64_t allocationSize, const uint64_t alignment, bool temp );
-	void Free( const void* ptr );
+	byte* Alloc( const uint64_t allocationSize, const uint64_t alignment ) override;
+	void Free( byte* memory ) override;
 
 	private:
 	uint64_t size;
 	byte* memory;
+	Allocator* allocator;
 
 	uint64_t persistentIndex;
 	uint64_t tempIndex;
