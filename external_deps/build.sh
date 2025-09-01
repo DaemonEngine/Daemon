@@ -480,12 +480,6 @@ build_sdl3() {
 		cmake_build \
 			-DSDL_TEST_LIBRARY=OFF \
 			-DSDL_AUDIO=OFF
-
-		# Workaround for an SDL CMake bug, we need to provide
-		# a bin/ directory even when nothing is used from it.
-		mkdir -p "${PREFIX}/bin"
-		# We don't keep empty folders.
-		touch "${PREFIX}/bin/.keep"
 		;;
 	esac
 }
@@ -1204,7 +1198,7 @@ build_install() {
 	rm -rf "${PKG_PREFIX}/def"
 	rm -rf "${PKG_PREFIX}/share"
 	rm -rf "${PKG_PREFIX}/lib/pkgconfig"
-	find "${PKG_PREFIX}/bin" -not -type d -not -name '*.dll' -not -name '.keep' -execdir rm -f -- {} \;
+	find "${PKG_PREFIX}/bin" -not -type d -not -name '*.dll' -not -execdir rm -f -- {} \;
 	find "${PKG_PREFIX}/lib" -name '*.la' -execdir rm -f -- {} \;
 	find "${PKG_PREFIX}/lib" -name '*.dll.a' -execdir bash -c 'rm -f -- "$(basename "{}" .dll.a).a"' \;
 	find "${PKG_PREFIX}/lib" -name '*.dylib' -execdir bash -c 'rm -f -- "$(basename "{}" .dylib).a"' \;
