@@ -64,10 +64,13 @@ void ThreadMemory::Init() {
 		return;
 	}
 
-	for ( ChunkAllocator& allocator : chunkAllocators ) {
-		allocator.allocatedChunks.Resize( memoryChunkSystem.config.areas->chunkAreas );
-		allocator.availableChunks.Resize( memoryChunkSystem.config.areas->chunkAreas );
-		allocator.chunks.Resize( memoryChunkSystem.config.areas->chunks );
+	for ( int i = 0; i < MAX_MEMORY_AREAS; i++ ) {
+		ChunkAllocator& allocator = chunkAllocators[i];
+		MemoryAreaConfig& config = memoryChunkSystem.config.areas[i];
+
+		allocator.allocatedChunks.Resize( config.chunkAreas );
+		allocator.availableChunks.Resize( config.chunkAreas );
+		allocator.chunks.Resize( config.chunks );
 
 		allocator.allocatedChunks.Zero();
 		allocator.availableChunks.Zero();
