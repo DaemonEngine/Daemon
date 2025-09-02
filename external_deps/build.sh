@@ -1454,9 +1454,10 @@ all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp o
 base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
 all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
 
-linux_build_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
-macos_build_platforms='macos-amd64-default'
-all_platforms="$(echo ${linux_build_platforms} ${macos_build_platforms} | tr ' ' '\n' | sort -u | xargs echo)"
+all_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
+all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
+all_macos_platforms='macos-amd64-default'
+all_platforms="${all_linux_platforms} ${all_windows_platforms} ${all_macos_platforms}"
 
 errorHelp() {
 	sed -e 's/\\t/'$'\t''/g' <<-EOF
@@ -1472,9 +1473,10 @@ errorHelp() {
 	\t${all_platforms}
 
 	Virtual platforms:
-	\tall: all platforms
-	\tbuild-linux — platforms buildable on linux: ${linux_build_platforms}
-	\tbuild-macos — platforms buildable on macos: ${macos_build_platforms}
+	\tlinux — ${all_linux_platforms}
+	\twindows — ${all_windows_platforms}
+	\tmacos — ${all_macos_platforms}
+	\tall — linux windows macos
 
 	Packages:
 	\tpkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
@@ -1568,11 +1570,14 @@ case "${platform}" in
 'all')
 	platform_list="${all_platforms}"
 ;;
-'build-linux')
-	platform_list="${linux_build_platforms}"
+'linux')
+	platform_list="${all_linux_platforms}"
 ;;
-'build-macos')
-	platform_list="${macos_build_platforms}"
+'windows')
+	platform_list="${all_windows_platforms}"
+;;
+'macos')
+	platform_list="${all_macos_platforms}"
 ;;
 *)
 	for known_platform in ${all_platforms}
