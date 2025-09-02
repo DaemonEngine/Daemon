@@ -36,10 +36,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Error.h"
 
 #include "Memory.h"
+#include "SysAllocator.h"
 
 #include "MemoryChunkSystem.h"
 
-MemoryChunkSystem memoryChunkSystem;
+MemoryChunkSystem memoryChunkSystem { &sysAllocator };
 
 /* MemoryChunkSystem should be used for allocating memory wherever possible.
 The system has multiple memory areas: each area consists of a number of memory chunks.
@@ -76,14 +77,15 @@ Chunk allocation is generally handled by TLM/SM, so containers or other custom a
 											***************************
 */
 
-MemoryChunkSystem::MemoryChunkSystem():
-	Tag( "MemoryChunkSystem" ) {
+MemoryChunkSystem::MemoryChunkSystem( Allocator* newAllocator ):
+	Tag( "MemoryChunkSystem" ),
+	allocator( newAllocator ) {
 }
 
 MemoryChunkSystem::~MemoryChunkSystem() {
 	for ( MemoryArea* area = memoryAreas; area < memoryAreas + MAX_MEMORY_AREAS; area++ ) {
-		FreeAligned( area->memory );
-		FreeAligned( area->chunkLocks );
+		allocator->Free( area->memory );
+		allocator->Free( ( byte* ) area->chunkLocks );
 	}
 }
 
@@ -166,10 +168,10 @@ void MemoryChunkSystem::InitConfig( const char* configText ) {
 	Log::NoticeTag( "Parsed memoryChunkConfig" );
 
 	for ( MemoryArea* area = memoryAreas; area < memoryAreas + MAX_MEMORY_AREAS; area++ ) {
-		area->memory = ( byte* ) Alloc64( area->config.chunks * area->config.chunkSize );
+		area->memory = ( byte* ) allocator->Alloc( area->config.chunks * area->config.chunkSize, 64 );
 		memset( area->memory, 0, area->config.chunks * area->config.chunkSize );
 
-		area->chunkLocks = ( AlignedAtomicUint64* ) Alloc64( area->config.chunkAreas * sizeof( AlignedAtomicUint64 ) );
+		area->chunkLocks = ( AlignedAtomicUint64* ) allocator->Alloc( area->config.chunkAreas * sizeof( AlignedAtomicUint64 ), 64 );
 		memset( area->chunkLocks, 0, area->config.chunkAreas * sizeof( AlignedAtomicUint64 ) );
 	}
 }

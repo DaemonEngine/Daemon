@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Math/NumberTypes.h"
 
 #include "Memory.h"
+#include "../Thread/TLMAllocator.h"
 #include "IteratorSeq.h"
 #include "../SrcDebug/Tag.h"
 
@@ -53,15 +54,19 @@ class DynamicArray :
 	uint64 size = 0;
 	uint64 highestUsed = 0;
 	T* memory;
+	Allocator* allocator;
 
-	DynamicArray() {
+	DynamicArray( Allocator* newAllocator = &TLMAlloc ) :
+		allocator( newAllocator ) {
 	}
 
-	DynamicArray( const std::string name ) :
-		Tag( name ) {
+	DynamicArray( const std::string name, Allocator* newAllocator = &TLMAlloc ) :
+		Tag( name ),
+		allocator( newAllocator ) {
 	}
 
-	DynamicArray( std::initializer_list<T> args ) {
+	DynamicArray( std::initializer_list<T> args, Allocator* newAllocator = &TLMAlloc ) :
+		allocator( newAllocator ) {
 		Resize( args.size() );
 		highestUsed = elements;
 
@@ -70,8 +75,9 @@ class DynamicArray :
 		}
 	}
 
-	DynamicArray( const std::string name, std::initializer_list<T> args ) :
-		Tag( name ) {
+	DynamicArray( const std::string name, std::initializer_list<T> args, Allocator* newAllocator = &TLMAlloc ) :
+		Tag( name ),
+		allocator( newAllocator ) {
 		Resize( args.size() );
 		highestUsed = elements;
 
@@ -103,16 +109,16 @@ class DynamicArray :
 			elements = newElements;
 			size = newSize;
 
-			FreeAligned( memory );
+			allocator->Free( ( byte* ) memory );
 
 			if ( elements ) {
-				memory = ( T* ) Alloc64( newSize );
+				memory = ( T* ) allocator->Alloc( newSize, 64 );
 			}
 
 			return;
 		}
 
-		T* newMemory = ( T* ) Alloc64( newSize );
+		T* newMemory = ( T* ) allocator->Alloc( newSize, 64 );
 
 		if ( elements ) {
 			if constexpr ( std::is_trivially_copy_constructible<T>() ) {
@@ -123,7 +129,7 @@ class DynamicArray :
 				}
 			}
 
-			FreeAligned( memory );
+			allocator->Free( ( byte* ) memory );
 		}
 
 		memory = newMemory;

@@ -44,6 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Memory/Allocator.h"
 #include "../Memory/DynamicArray.h"
 #include "../Memory/MemoryChunk.h"
+#include "../Memory/SysAllocator.h"
 
 #include "TLMAllocator.h"
 
@@ -78,9 +79,9 @@ struct MemoryChunkRecord {
 };
 
 struct ChunkAllocator {
-	DynamicArray<uint64> allocatedChunks;
-	DynamicArray<uint64> availableChunks;
-	DynamicArray<MemoryChunkRecord> chunks;
+	uint64 allocatedChunks;
+	uint64 availableChunks;
+	MemoryChunkRecord chunks[64];
 };
 
 struct TaskTime {
@@ -97,7 +98,7 @@ class ThreadMemory : public Allocator {
 	bool main = false;
 	bool initialised = false;
 
-	ChunkAllocator chunkAllocators[MAX_MEMORY_AREAS];
+	DynamicArray<ChunkAllocator> chunkAllocators[MAX_MEMORY_AREAS] { { &sysAllocator }, { &sysAllocator }, { &sysAllocator } };
 
 	uint32 currentMaxThreads = 0;
 

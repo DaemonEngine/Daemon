@@ -45,6 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Math/Bit.h"
 #include "../Shared/Timer.h"
 #include "../SrcDebug/Tag.h"
+#include "Allocator.h"
 
 #include "MemoryChunk.h"
 
@@ -55,7 +56,7 @@ class MemoryChunkSystem :
 	MemoryChunkConfig config;
 	MemoryArea memoryAreas[MAX_MEMORY_AREAS];
 
-	MemoryChunkSystem();
+	MemoryChunkSystem( Allocator* newAllocator );
 	~MemoryChunkSystem();
 
 	void InitConfig( const char* configText );
@@ -66,6 +67,8 @@ class MemoryChunkSystem :
 	void SizeToLevel( const uint64 size, uint32* level, uint32* count );
 
 	private:
+	Allocator* allocator;
+
 	bool LockArea( const uint32 level, uint8* chunkArea, uint8* chunk );
 };
 

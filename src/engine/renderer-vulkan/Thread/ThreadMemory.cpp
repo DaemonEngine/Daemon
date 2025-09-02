@@ -42,15 +42,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ThreadMemory.h"
 
 ThreadMemory::~ThreadMemory() {
-	for ( ChunkAllocator& allocator : chunkAllocators ) {
-		for ( uint32 i = 0; i < allocator.availableChunks.elements; i++ ) {
-			uint64 chunkArea = allocator.availableChunks[i];
+	for ( DynamicArray<ChunkAllocator>& chunkAllocator : chunkAllocators ) {
+		for ( uint32 i = 0; i < chunkAllocator.elements; i++ ) {
+			ChunkAllocator& alloc = chunkAllocator[i];
+
+			uint64 chunkArea = alloc.availableChunks;
 
 			while ( chunkArea ) {
 				uint32 chunk = FindLSB( chunkArea );
 				Log::WarnTagT( "Unreturned memory chunk:" );
 
-				PrintChunkInfo( &allocator.chunks[i * 64 + chunk] );
+				PrintChunkInfo( &alloc.chunks[chunk] );
 
 				UnSetBit( &chunkArea, chunk );
 			}
@@ -65,16 +67,11 @@ void ThreadMemory::Init() {
 	}
 
 	for ( int i = 0; i < MAX_MEMORY_AREAS; i++ ) {
-		ChunkAllocator& allocator = chunkAllocators[i];
+		DynamicArray<ChunkAllocator>& chunkAllocator = chunkAllocators[i];
 		MemoryAreaConfig& config = memoryChunkSystem.config.areas[i];
 
-		allocator.allocatedChunks.Resize( config.chunkAreas );
-		allocator.availableChunks.Resize( config.chunkAreas );
-		allocator.chunks.Resize( config.chunks );
-
-		allocator.allocatedChunks.Zero();
-		allocator.availableChunks.Zero();
-		allocator.chunks.Zero();
+		chunkAllocator.Resize( config.chunkAreas );
+		chunkAllocator.Zero();
 	}
 
 	initialised = true;
@@ -98,11 +95,15 @@ byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {
 	MemoryChunkRecord* found = nullptr;
 	uint32 chunkID = level | ( 1ull << 31 );
 
-	for ( uint64& chunkArea : chunkAllocators[level].availableChunks ) {
+	for ( uint32 i = 0; i < chunkAllocators[level].elements; i++ ) {
+		ChunkAllocator& chunkAllocator = chunkAllocators[level][i];
+
+		uint64& chunkArea = chunkAllocator.availableChunks;
 		uint64 area = chunkArea;
+
 		while ( area ) {
 			uint64 chunk = FindLSB( area );
-			MemoryChunkRecord* record = &chunkAllocators[level].chunks[chunk];
+			MemoryChunkRecord* record = &chunkAllocator.chunks[chunk];
 
 			if ( record->chunk.size >= record->offset + paddedSize ) {
 				found = record;
@@ -111,7 +112,7 @@ byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {
 					UnSetBit( &chunkArea, chunk );
 				}
 
-				chunkID |= ( ( &chunkArea - chunkAllocators[level].availableChunks.memory ) * 64 + chunk ) << 4;
+				chunkID |= ( i * 64 + chunk ) << 4;
 
 				break;
 			}
@@ -127,16 +128,16 @@ byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {
 	if ( !found ) {
 		MemoryChunk chunk = memoryChunkSystem.Alloc( paddedSize );
 
-		ChunkAllocator& allocator = chunkAllocators[chunk.level];
+		ChunkAllocator& chunkAllocator = chunkAllocators[chunk.level][chunk.chunkArea];
 		const uint32 id = chunk.chunkArea * 64 + chunk.chunk;
 
-		SetBit( &allocator.availableChunks[chunk.chunkArea], chunk.chunk );
-		allocator.chunks[id].chunk = chunk;
-		allocator.chunks[id].offset = 0;
+		SetBit( &chunkAllocator.availableChunks, chunk.chunk );
+		chunkAllocator.chunks[chunk.chunk].chunk = chunk;
+		chunkAllocator.chunks[chunk.chunk].offset = 0;
 
-		SetBit( &allocator.allocatedChunks[chunk.chunkArea], chunk.chunk );
+		SetBit( &chunkAllocator.allocatedChunks, chunk.chunk );
 
-		found = &allocator.chunks[id];
+		found = &chunkAllocator.chunks[chunk.chunk];
 		chunkID |= id << 4;
 	}
 
@@ -162,30 +163,31 @@ void ThreadMemory::Free( byte* memory ) {
 		Err( "Memory chunk corrupted: %s", record->Format() );
 	}
 
-	ChunkAllocator& allocator = chunkAllocators[record->chunkID & 0xF];
 	uint32 chunkID = record->chunkID >> 4;
+	uint32 area = chunkID / 64;
+	ChunkAllocator& chunkAllocator = chunkAllocators[record->chunkID & 0xF][area];
 
 	UnSetBit( &record->chunkID, 31 );
 
-	uint32 area = chunkID / 64;
 	uint32 chunk = chunkID - area;
-	allocator.chunks[chunkID].allocs--;
+	chunkAllocator.chunks[chunk].allocs--;
 
-	if ( !allocator.chunks[chunkID].allocs ) {
-		allocator.chunks[chunkID].offset = 0;
+	if ( !chunkAllocator.chunks[chunk].allocs ) {
+		chunkAllocator.chunks[chunk].offset = 0;
 	}
 
-	SetBit( &allocator.availableChunks[area], chunk );
+	SetBit( &chunkAllocator.availableChunks, chunk );
 }
 
 void ThreadMemory::FreeAllChunks() {
-	for ( ChunkAllocator& allocator : chunkAllocators ) {
-		for ( uint32 i = 0; i < allocator.allocatedChunks.elements; i++ ) {
-			uint64& allocatedChunk = allocator.allocatedChunks[i];
+	for ( DynamicArray<ChunkAllocator>& allocs : chunkAllocators ) {
+		for ( uint32 i = 0; i < allocs.elements; i++ ) {
+			ChunkAllocator& chunkAllocator = allocs[i];
+			uint64& allocatedChunk = chunkAllocator.allocatedChunks;
 
 			while ( allocatedChunk ) {
 				uint32 chunk = FindLSB( allocatedChunk );
-				MemoryChunkRecord* record = &allocator.chunks[i * 64 + chunk];
+				MemoryChunkRecord* record = &chunkAllocator.chunks[chunk];
 
 				if ( record->allocs ) {
 					Log::WarnTagT( "Non-freed allocations in memory chunk:" );
@@ -195,7 +197,7 @@ void ThreadMemory::FreeAllChunks() {
 				memoryChunkSystem.Free( &record->chunk );
 
 				UnSetBit( &allocatedChunk, chunk );
-				UnSetBit( &allocator.availableChunks[i], chunk );
+				UnSetBit( &chunkAllocator.availableChunks, chunk );
 			}
 		}
 	}
