@@ -88,7 +88,7 @@ class RingBuffer :
 	}
 
 	void Free() {
-		FreeAligned( memory );
+		allocator->Free( memory );
 	}
 
 	T* GetNextElement() {
