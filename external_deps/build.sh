@@ -72,6 +72,8 @@ CXX='false'
 LD='ld'
 AR='ar'
 RANLIB='ranlib'
+PKG_CONFIG='pkg-config'
+CROSS_PKG_CONFIG_PATH=''
 LIBS_SHARED='OFF'
 LIBS_STATIC='ON'
 CMAKE_TOOLCHAIN=''
@@ -1286,8 +1288,7 @@ common_setup() {
 	BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
 	PREFIX="${BUILD_DIR}/prefix"
 	PATH="${PREFIX}/bin:${PATH}"
-	PKG_CONFIG="pkg-config"
-	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
+	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${CROSS_PKG_CONFIG_PATH}"
 	CPPFLAGS+=" -I${PREFIX}/include"
 	LDFLAGS+=" -L${PREFIX}/lib"
 
@@ -1369,6 +1370,7 @@ common_setup_linux() {
 	CC="${HOST/-unknown-/-}-gcc"
 	CXX="${HOST/-unknown-/-}-g++"
 	STRIP="${HOST/-unknown-/-}-strip"
+	CROSS_PKG_CONFIG_PATH="/usr/lib/${HOST/-unknown-/-}/pkgconfig"
 	CFLAGS+=' -fPIC'
 	CXXFLAGS+=' -fPIC'
 }
