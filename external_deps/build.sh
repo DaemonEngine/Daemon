@@ -370,7 +370,8 @@ build_nettle() {
 	cd "${dir_name}"
 
 	configure_build \
-		--disable-fat
+		--disable-fat \
+		--disable-pic
 }
 
 # Build cURL
