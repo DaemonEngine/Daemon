@@ -243,6 +243,23 @@ cmake_build() {
 	cmake --install build --strip
 }
 
+log_build() {
+	case "${pkg}" in
+	'install')
+		log STATUS "Installing for ${PLATFORM}"
+		;;
+	'package')
+		log STATUS "Packaging for ${PLATFORM}"
+		;;
+	'genlib'|'depcheck')
+		log STATUS "Running ${pkg} for ${PLATFORM}"
+		;;
+	*)
+		log STATUS "Building ${pkg} for ${PLATFORM}"
+		;;
+	esac
+}
+
 # Build pkg-config, needed for opusfile and SDL3.
 # As a host-mode dependency it must be provided by the system when cross-compiling.
 build_pkgconfig() {
@@ -1110,7 +1127,7 @@ build_depcheck() {
 		for dll in $(find "${PREFIX}/bin" -type f -name '*.dll'); do
 			# https://wiki.unvanquished.net/wiki/MinGW#Built-in_DLL_dependencies
 			if objdump -p "${dll}" | grep -oP '(?<=DLL Name: )(libgcc_s|libstdc|libssp|libwinpthread).*'; then
-				echo "${dll} depends on above DLLs"
+				log WARNING "${dll} depends on above DLLs"
 				good=false
 			fi
 		done
@@ -1169,6 +1186,7 @@ list_build() {
 	eval "package_list=(\${${list_name}_${PLATFORM//-/_}_packages})"
 	for pkg in "${package_list[@]}"; do
 		cd "${WORK_DIR}"
+		log_build "${pkg}"
 		"build_${pkg}"
 	done
 }
@@ -1602,6 +1620,7 @@ do (
 	# Build packages
 	for pkg in "${@}"; do
 		cd "${WORK_DIR}"
+		log_build "${pkg}"
 		"build_${pkg}"
 	done
 ) done
