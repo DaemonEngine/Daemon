@@ -1186,15 +1186,20 @@ build_genlib() {
 	esac
 }
 
-list_build() {
-	local list_name="${1}"
-	local package_list
-	eval "package_list=(\${${list_name}_${PLATFORM//-/_}_packages})"
-	for pkg in "${package_list[@]}"; do
+build() {
+	for pkg in "${@}"
+	do
 		cd "${WORK_DIR}"
 		log_build "${pkg}"
 		"build_${pkg}"
 	done
+}
+
+list_build() {
+	local list_name="${1}"
+	local package_list
+	eval "package_list=(\${${list_name}_${PLATFORM//-/_}_packages})"
+	build "${package_list[@]}"
 }
 
 build_base() {
@@ -1622,11 +1627,6 @@ esac
 for PLATFORM in ${platform_list}
 do (
 	"setup_${PLATFORM}"
-
 	# Build packages
-	for pkg in "${@}"; do
-		cd "${WORK_DIR}"
-		log_build "${pkg}"
-		"build_${pkg}"
-	done
+	build "${@}"
 ) done
