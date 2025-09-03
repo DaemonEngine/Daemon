@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import traceback
+import zipfile
 
 class CrashTest:
     def __init__(self, name):
@@ -50,10 +51,11 @@ class BreakpadCrashTest(CrashTest):
         os.makedirs(self.dir)
 
     def Do(self):
+        vmtype = "0" if SYMBOL_ZIPS else "1"
         print("Running daemon...")
         p = subprocess.run([self.engine,
-                            "-set", "vm.sgame.type", "1",
-                            "-set", "vm.cgame.type", "1",
+                            "-set", "vm.sgame.type", vmtype,
+                            "-set", "vm.cgame.type", vmtype,
                             "-set", "sv_fps", "1000",
                             "-set", "common.framerate.max", "0",
                             "-set", "client.errorPopup", "0",
@@ -123,13 +125,14 @@ class ModuleCrashTests(CrashTest):
             tprefix = ""
             eng = module
         engine = ModulePath(eng)
-        target = ModulePath(module)
-
-        assert os.path.isfile(target), target
         assert os.path.isfile(engine), engine
-        print(f"Symbolizing '{target}'...")
-        subprocess.check_call(Virtualize([os.path.join(BREAKPAD_DIR, "symbolize.py"),
-                               "--symbol-directory", SYMBOL_DIR, target]))
+
+        if not SYMBOL_ZIPS:
+            target = ModulePath(module)
+            assert os.path.isfile(target), target
+            print(f"Symbolizing '{target}'...")
+            subprocess.check_call(Virtualize([os.path.join(BREAKPAD_DIR, "symbolize.py"),
+                                              "--symbol-directory", SYMBOL_DIR, target]))
 
         self.Verify(BreakpadCrashTest(module, engine, tprefix, "segfault").Go())
         if tprefix or not EXE:
@@ -144,8 +147,9 @@ def ArgParser(usage=None):
     ap.add_argument("--breakpad-dir", type=str, default=BREAKPAD_DIR, help=r"Path to Breakpad repo containing built dump_syms and stackwalk binaries. It may be a \\wsl.localhost\ path on Windows hosts in order to symbolize NaCl.")
     ap.add_argument("--give-up", action="store_true", help="Stop after first test failure")
     ap.add_argument("--nacl-arch", type=str, choices=["amd64", "i686", "armhf"], default="amd64") # TODO auto-detect?
-    ap.add_argument("module", nargs="*", choices=[
-        "dummyapp", "server", "ttyclient", "client",
+    ap.add_argument("module", nargs="*",
+        default="server", # bogus default needed due to buggy argparse
+        choices=["dummyapp", "server", "ttyclient", "client",
         "cgame", "ttyclient:cgame", "client:cgame",
         "sgame", "server:sgame", "ttyclient:sgame", "client:sgame"])
     return ap
@@ -165,7 +169,7 @@ else:
     EXE = ""
 
 ap = ArgParser(usage=ArgParser().format_usage().rstrip().removeprefix("usage: ")
-                + " [--daemon-args ARGS...]")
+               + " [--daemon-args ARGS...]")
 ap.add_argument("--daemon-args", nargs=argparse.REMAINDER, default=[],
                 help="Extra arguments for Daemon (e.g. -pakpath)")
 pa = ap.parse_args(sys.argv[1:])
@@ -173,7 +177,19 @@ BREAKPAD_DIR = pa.breakpad_dir
 GIVE_UP = pa.give_up
 DAEMON_USER_ARGS = pa.daemon_args
 NACL_ARCH = pa.nacl_arch
-modules = pa.module or ["server", "ttyclient", "sgame", "cgame"]
+SYMBOL_ZIPS = [p for p in os.listdir(GAME_BUILD_DIR) if p.startswith("symbols") and p.endswith(".zip")]
+modules = pa.module
+if isinstance(modules, str):
+    modules = ["server", "ttyclient", "sgame", "cgame"]
+
+if SYMBOL_ZIPS:
+    print("Symbol zip(s) detected. Using release validation mode with pre-built symbols")
+    for z in SYMBOL_ZIPS:
+        with zipfile.ZipFile(z, 'r') as z:
+            z.extractall(SYMBOL_DIR)
+else:
+    print("No symbol zip detected. Using end2end Breakpad tooling test mode with dump_syms")
+
 passed = True
 for module in modules:
     passed &= ModuleCrashTests(*module.split(":")[::-1]).Go()
