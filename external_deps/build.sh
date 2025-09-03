@@ -1110,7 +1110,7 @@ build_depcheck() {
 		for dll in $(find "${PREFIX}/bin" -type f -name '*.dll'); do
 			# https://wiki.unvanquished.net/wiki/MinGW#Built-in_DLL_dependencies
 			if objdump -p "${dll}" | grep -oP '(?<=DLL Name: )(libgcc_s|libstdc|libssp|libwinpthread).*'; then
-				echo "${dll} depends on above DLLs"
+				log WARNING "${dll} depends on above DLLs"
 				good=false
 			fi
 		done
@@ -1169,6 +1169,7 @@ list_build() {
 	eval "package_list=(\${${list_name}_${PLATFORM//-/_}_packages})"
 	for pkg in "${package_list[@]}"; do
 		cd "${WORK_DIR}"
+		log STATUS "Processing target '${pkg}' for ${PLATFORM}"
 		"build_${pkg}"
 	done
 }
@@ -1602,6 +1603,7 @@ do (
 	# Build packages
 	for pkg in "${@}"; do
 		cd "${WORK_DIR}"
+		log STATUS "Processing target '${pkg}' for ${PLATFORM}"
 		"build_${pkg}"
 	done
 ) done
