@@ -1118,7 +1118,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_glMinorVersion = Cvar_Get( "r_glMinorVersion", "", CVAR_LATCH );
 		r_glProfile = Cvar_Get( "r_glProfile", "", CVAR_LATCH );
 		Cvar::Latch( r_glDebugProfile );
-		r_glAllowSoftware = Cvar_Get( "r_glAllowSoftware", "0", CVAR_LATCH );
+		r_glAllowSoftware = Cvar_Get( "r_glAllowSoftware", "1", CVAR_LATCH );
 		r_glExtendedValidation = Cvar_Get( "r_glExtendedValidation", "0", CVAR_LATCH );
 
 		// latched and archived variables
