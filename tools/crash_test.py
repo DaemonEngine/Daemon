@@ -8,7 +8,18 @@ import sys
 import traceback
 import zipfile
 
-class CrashTest:
+if os.name == "nt":
+    EXE = '.exe'
+else:
+    EXE = ""
+
+def PathJoin(*paths):
+    p = os.path.join(*paths)
+    if EXE:
+        p = p.replace("\\", "/") # for WSL
+    return p
+
+class Test:
     def __init__(self, name):
         self.name = name
 
@@ -37,13 +48,13 @@ class CrashTest:
         self.End()
         return self.status == "PASSED"
 
-class BreakpadCrashTest(CrashTest):
+class BreakpadCrashTest(Test):
     def __init__(self, module, engine, tprefix, fault):
         super().__init__(module + "." + fault)
         self.engine = engine
         self.tprefix = tprefix
         self.fault = fault
-        self.dir = os.path.join(TEMP_DIR, self.name)
+        self.dir = PathJoin(TEMP_DIR, self.name)
         try:
             shutil.rmtree(self.dir)
         except FileNotFoundError:
@@ -71,14 +82,14 @@ class BreakpadCrashTest(CrashTest):
                             "+delay 20f echo CRASHTEST_END",
                             "+delay 40f quit"],
                             stderr=subprocess.PIPE, check=bool(self.tprefix))
-        dumps = os.listdir(os.path.join(self.dir, "crashdump"))
+        dumps = os.listdir(PathJoin(self.dir, "crashdump"))
         assert len(dumps) == 1, dumps
-        dump = os.path.join(self.dir, "crashdump", dumps[0])
-        sw_out = os.path.join(TEMP_DIR, self.name + "_stackwalk.log")
+        dump = PathJoin(self.dir, "crashdump", dumps[0])
+        sw_out = PathJoin(TEMP_DIR, self.name + "_stackwalk.log")
         with open(sw_out, "a+") as sw_f:
             print(f"Extracting stack trace to '{sw_out}'...")
             sw_f.truncate()
-            subprocess.run(Virtualize([os.path.join(BREAKPAD_DIR, "src/processor/minidump_stackwalk"), dump, SYMBOL_DIR]), check=True, stdout=sw_f, stderr=subprocess.STDOUT)
+            subprocess.run(Virtualize([PathJoin(BREAKPAD_DIR, "src/processor/minidump_stackwalk"), dump, SYMBOL_DIR]), check=True, stdout=sw_f, stderr=subprocess.STDOUT)
             sw_f.seek(0)
             sw = sw_f.read()
         TRACE_FUNC = "InjectFaultCmd::Run"
@@ -106,9 +117,9 @@ def ModulePath(module):
         "sgame": f"sgame-{NACL_ARCH}.nexe",
         "cgame": f"cgame-{NACL_ARCH}.nexe",
     }[module]
-    return os.path.join(GAME_BUILD_DIR, base)
+    return PathJoin(GAME_DIR, base)
 
-class ModuleCrashTests(CrashTest):
+class ModuleCrashTests(Test):
     def __init__(self, module, engine=None):
         super().__init__(module)
         self.engine = engine
@@ -131,7 +142,7 @@ class ModuleCrashTests(CrashTest):
             target = ModulePath(module)
             assert os.path.isfile(target), target
             print(f"Symbolizing '{target}'...")
-            subprocess.check_call(Virtualize([os.path.join(BREAKPAD_DIR, "symbolize.py"),
+            subprocess.check_call(Virtualize([PathJoin(BREAKPAD_DIR, "symbolize.py"),
                                               "--symbol-directory", SYMBOL_DIR, target]))
 
         self.Verify(BreakpadCrashTest(module, engine, tprefix, "segfault").Go())
@@ -143,52 +154,53 @@ class ModuleCrashTests(CrashTest):
             self.Verify(BreakpadCrashTest(module, engine, tprefix, "throw").Go())
 
 def ArgParser(usage=None):
-    ap = argparse.ArgumentParser(usage=usage)
+    ap = argparse.ArgumentParser(
+        usage=usage,
+        description="Verify that Breakpad toolchain can produce usable stack traces."
+                    " A Daemon build must be found in the current directory. Also Breakpad's tools must be built in its source tree."
+                    " If a symbols zip is found in the current directory, enter release validation mode: prebuilt symbols are used and VM type defaults to 0 (NaCl from paks)."
+                    " Otherwise, enter end-to-end mode: symbols are produced from the binaries and VM type defaults to 1 (NaCl from PWD). In this mode you will likely need to provide pak paths via --daemon-args.")
+    ap.add_argument("--game-dir", type=str, default=".", help="Path to Daemon (+ gamelogic) binaries")
     ap.add_argument("--breakpad-dir", type=str, default=BREAKPAD_DIR, help=r"Path to Breakpad repo containing built dump_syms and stackwalk binaries. It may be a \\wsl.localhost\ path on Windows hosts in order to symbolize NaCl.")
     ap.add_argument("--give-up", action="store_true", help="Stop after first test failure")
     ap.add_argument("--nacl-arch", type=str, choices=["amd64", "i686", "armhf"], default="amd64") # TODO auto-detect?
     ap.add_argument("module", nargs="*",
         default="server", # bogus default needed due to buggy argparse
         choices=["dummyapp", "server", "ttyclient", "client",
-        "cgame", "ttyclient:cgame", "client:cgame",
-        "sgame", "server:sgame", "ttyclient:sgame", "client:sgame"])
+                 "cgame", "ttyclient:cgame", "client:cgame",
+                 "sgame", "server:sgame", "ttyclient:sgame", "client:sgame"])
     return ap
 
-BREAKPAD_DIR = os.path.abspath(os.path.join(
+BREAKPAD_DIR = os.path.abspath(PathJoin(
     os.path.dirname(os.path.realpath(__file__)), "../libs/breakpad"))
-GAME_BUILD_DIR = '.' # WSL calls rely on relative paths
-TEMP_DIR = os.path.join(GAME_BUILD_DIR, "crashtest-tmp")
-SYMBOL_DIR = os.path.join(TEMP_DIR, "symbols")
 
-os.makedirs(TEMP_DIR, exist_ok=True)
-os.makedirs(SYMBOL_DIR, exist_ok=True)
-
-if os.name == "nt":
-    EXE = '.exe'
-else:
-    EXE = ""
-
-ap = ArgParser(usage=ArgParser().format_usage().rstrip().removeprefix("usage: ")
-               + " [--daemon-args ARGS...]")
+ap = ArgParser(
+    usage=ArgParser().format_usage().rstrip().removeprefix("usage: ") + " [--daemon-args ARGS...]")
 ap.add_argument("--daemon-args", nargs=argparse.REMAINDER, default=[],
                 help="Extra arguments for Daemon (e.g. -pakpath)")
 pa = ap.parse_args(sys.argv[1:])
+GAME_DIR = pa.game_dir
 BREAKPAD_DIR = pa.breakpad_dir
 GIVE_UP = pa.give_up
 DAEMON_USER_ARGS = pa.daemon_args
 NACL_ARCH = pa.nacl_arch
-SYMBOL_ZIPS = [p for p in os.listdir(GAME_BUILD_DIR) if p.startswith("symbols") and p.endswith(".zip")]
+SYMBOL_ZIPS = [p for p in os.listdir(GAME_DIR) if p.startswith("symbols") and p.endswith(".zip")]
 modules = pa.module
 if isinstance(modules, str):
     modules = ["server", "ttyclient", "sgame", "cgame"]
 
+TEMP_DIR = "crashtest-tmp" # WSL relies on this being relative
+SYMBOL_DIR = PathJoin(TEMP_DIR, "symbols")
+os.makedirs(TEMP_DIR, exist_ok=True)
+os.makedirs(SYMBOL_DIR, exist_ok=True)
+
 if SYMBOL_ZIPS:
     print("Symbol zip(s) detected. Using release validation mode with pre-built symbols")
     for z in SYMBOL_ZIPS:
-        with zipfile.ZipFile(z, 'r') as z:
+        with zipfile.ZipFile(PathJoin(GAME_DIR, z), 'r') as z:
             z.extractall(SYMBOL_DIR)
 else:
-    print("No symbol zip detected. Using end2end Breakpad tooling test mode with dump_syms")
+    print("No symbol zip detected. Using end-to-end Breakpad tooling test mode with dump_syms")
 
 passed = True
 for module in modules:
