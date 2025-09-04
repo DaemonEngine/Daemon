@@ -2255,13 +2255,13 @@ enum
 				z = Math::Clamp( z, 0u, depth - 1 );
 			}
 
-			ASSERT_GE( x, 0u );
-			ASSERT_GE( y, 0u );
-			ASSERT_GE( z, 0u );
+			DAEMON_ASSERT_GE( x, 0u );
+			DAEMON_ASSERT_GE( y, 0u );
+			DAEMON_ASSERT_GE( z, 0u );
 
-			ASSERT_LT( x, width );
-			ASSERT_LT( y, height );
-			ASSERT_LT( z, depth );
+			DAEMON_ASSERT_LT( x, width );
+			DAEMON_ASSERT_LT( y, height );
+			DAEMON_ASSERT_LT( z, depth );
 
 			return grid[z * width * height + y * width + x];
 		}
@@ -2281,9 +2281,9 @@ enum
 				index = Math::Clamp( index, 0u, size - 1 );
 			}
 
-			ASSERT_GE( index, 0U );
+			DAEMON_ASSERT_GE( index, 0U );
 
-			ASSERT_LT( index, size );
+			DAEMON_ASSERT_LT( index, size );
 
 			return grid[index];
 		}

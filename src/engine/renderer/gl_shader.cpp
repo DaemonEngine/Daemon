@@ -1545,9 +1545,9 @@ std::string GLShaderManager::RemoveUniformsFromShaderText( const std::string& sh
 	return shaderMain;
 }
 
-void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUniform*>& uniforms, const uint32_t padding,
-	const uint32_t paddingCount, const std::string& definesName,
-	std::string& uniformStruct, std::string& uniformDefines ) {
+void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUniform*>& uniforms,
+	const std::string& definesName, std::string& uniformStruct, std::string& uniformDefines ) {
+	int pad = 0;
 	for ( GLUniform* uniform : uniforms ) {
 		uniformStruct += "	" + ( uniform->_isTexture ? "uvec2" : uniform->_type ) + " " + uniform->_name;
 
@@ -1555,6 +1555,10 @@ void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUnif
 			uniformStruct += "[" + std::to_string( uniform->_components ) + "]";
 		}
 		uniformStruct += ";\n";
+
+		for (int p = uniform->_std430Size - uniform->_std430BaseSize; p--; ) {
+			uniformStruct += "\tfloat _pad" + std::to_string( ++pad ) + ";\n";
+		}
 
 		uniformDefines += "#define ";
 		uniformDefines += uniform->_name;
@@ -1569,18 +1573,12 @@ void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUnif
 		uniformDefines += "\n";
 	}
 
-	// Array of structs is aligned to the largest member of the struct
-	for ( uint32_t i = 0; i < padding; i++ ) {
-		uniformStruct += "	int uniform_padding" + std::to_string( i + paddingCount );
-		uniformStruct += ";\n";
-	}
-
 	uniformDefines += "\n";
 }
 
 // This will generate all the extra code for material system shaders
 std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::string& shaderText, const uint32_t offset ) {
-	if ( !shader->std430Size ) {
+	if ( !shader->std140Size ) {
 		return shaderText;
 	}
 
@@ -1637,13 +1635,13 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	std::string materialStruct = "\nstruct Material {\n";
 	std::string materialDefines;
-	GenerateUniformStructDefinesText( shader->_materialSystemUniforms, shader->padding,
-		0, "materials[baseInstance & 0xFFF]", materialStruct, materialDefines );
+	GenerateUniformStructDefinesText( shader->_materialSystemUniforms,
+		"materials[baseInstance & 0xFFF]", materialStruct, materialDefines );
 
 	materialStruct += "};\n\n";
 
 	// 6 kb for materials
-	const uint32_t count = ( 4096 + 2048 ) / shader->GetSTD430Size();
+	const uint32_t count = ( 4096 + 2048 ) / shader->GetSTD140Size();
 	std::string materialBlock = "layout(std140, binding = "
 		+ std::to_string( BufferBind::MATERIALS )
 		+ ") uniform materialsUBO {\n"
@@ -2086,8 +2084,8 @@ bool GLCompileMacro_USE_BSP_SURFACE::HasConflictingMacros(size_t permutation, co
 	return false;
 }
 
-uint32_t* GLUniform::WriteToBuffer( uint32_t* buffer ) {
-	return buffer;
+uint32_t* GLUniform::WriteToBuffer( uint32_t * ) {
+	Sys::Error( "WriteToBuffer not implemented for GLUniform '%s'", _name );
 }
 
 void GLShader::RegisterUniform( GLUniform* uniform ) {
@@ -2099,69 +2097,61 @@ GLint GLShader::GetUniformLocation( const GLchar *uniformName ) const {
 	return glGetUniformLocation( p->id, uniformName );
 }
 
-static int FindUniformForAlignment( std::vector<GLUniform*>& uniforms, const GLuint alignment ) {
-	for ( uint32_t i = 0; i < uniforms.size(); i++ ) {
-		if ( uniforms[i]->_std430Size <= alignment ) {
-			return i;
+static auto FindUniformForOffset( std::vector<GLUniform*>& uniforms, const GLuint baseOffset ) {
+	for ( auto it = uniforms.begin(); it != uniforms.end(); ++it ) {
+		if ( 0 == ( ( (*it)->_std430Alignment - 1 ) & baseOffset ) ) {
+			return it;
 		}
 	}
 
-	return -1;
+	return uniforms.end();
 }
 
-// Compute std430 size/alignment and sort uniforms from highest to lowest alignment
+// Compute std140 size/alignment and sort uniforms from highest to lowest alignment
+// Note: using the std430 uniform size will give the wrong result for matrix types where
+// the number of rows is not 4
 void GLShader::PostProcessUniforms() {
 	if ( !_useMaterialSystem ) {
 		return;
 	}
 
+	std::vector<GLUniform*> uniformQueue;
 	for ( GLUniform* uniform : _uniforms ) {
 		if ( !uniform->_global ) {
-			_materialSystemUniforms.emplace_back( uniform );
+			uniformQueue.emplace_back( uniform );
 		}
 	}
 
-	std::sort( _materialSystemUniforms.begin(), _materialSystemUniforms.end(),
+	std::stable_sort( uniformQueue.begin(), uniformQueue.end(),
 		[]( const GLUniform* lhs, const GLUniform* rhs ) {
-			return lhs->_std430Size > rhs->_std430Size;
+			return lhs->_std430Alignment > rhs->_std430Alignment;
 		}
 	);
 
 	// Sort uniforms from highest to lowest alignment so we don't need to pad uniforms (other than vec3s)
-	const uint numUniforms = _materialSystemUniforms.size();
-	std::vector<GLUniform*> tmp;
-	while ( tmp.size() < numUniforms ) {
-		// Higher-alignment uniforms first to avoid wasting memory
-		GLuint size = _materialSystemUniforms[0]->_std430Size;
-		GLuint components = _materialSystemUniforms[0]->_components;
-		size = components ? PAD( size, 4 ) * components : size;
-		GLuint alignmentConsume = 4 - size % 4;
-
-		GLUniform* tmpUniform = _materialSystemUniforms[0];
-		tmp.emplace_back( _materialSystemUniforms[0] );
-		_materialSystemUniforms.erase( _materialSystemUniforms.begin() );
-
-		int uniform;
-		while ( ( alignmentConsume & 3 ) && _materialSystemUniforms.size()
-			&& ( uniform = FindUniformForAlignment( _materialSystemUniforms, alignmentConsume ) ) != -1 ) {
-			alignmentConsume -= _materialSystemUniforms[uniform]->_std430Size;
-
-			tmpUniform = _materialSystemUniforms[uniform];
-
-			tmp.emplace_back( _materialSystemUniforms[uniform] );
-			_materialSystemUniforms.erase( _materialSystemUniforms.begin() + uniform );
+	GLuint align = 4; // mininum alignment since this will be used as an std140 array element
+	std140Size = 0;
+	_materialSystemUniforms.clear();
+	while ( !uniformQueue.empty() || std140Size & ( align - 1 ) ) {
+		auto iterNext = FindUniformForOffset( uniformQueue, std140Size );
+		if ( iterNext == uniformQueue.end() ) {
+			// add 1 unit of padding
+			ASSERT( !( *iterNext )->_components ); // array WriteToBuffer impls don't handle padding correctly
+			++std140Size;
+			++_materialSystemUniforms.back()->_std430Size;
+		} else {
+			( *iterNext )->_std430Size = ( *iterNext )->_std430BaseSize;
+			if ( ( *iterNext )->_components ) {
+				ASSERT_GE( ( *iterNext )->_std430Alignment, 4 ); // these would need extra padding in a std130 array
+				std140Size += ( *iterNext )->_std430Size * ( *iterNext )->_components;
+			} else {
+				std140Size += ( *iterNext )->_std430Size;
+			}
+			align = std::max( align, ( *iterNext )->_std430Alignment );
+			_materialSystemUniforms.push_back( *iterNext );
+			uniformQueue.erase( iterNext );
 		}
-
-		if ( alignmentConsume ) {
-			tmpUniform->_std430Size += alignmentConsume;
-		}
-
-		size = PAD( size, 4 );
-		std430Size += size;
-		padding = alignmentConsume;
 	}
-
-	_materialSystemUniforms = tmp;
 }
 
 uint32_t GLShader::GetUniqueCompileMacros( size_t permutation, const int type ) const {

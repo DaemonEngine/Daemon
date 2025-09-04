@@ -356,6 +356,10 @@ set(CLIENTLIST
     ${RENDERERLIST}
 )
 
+set(CLIENTTESTLIST ${ENGINETESTLIST}
+    ${ENGINE_DIR}/renderer/gl_shader_test.cpp
+)
+
 set(TTYCLIENTLIST
     ${ENGINE_DIR}/null/NullAudio.cpp
     ${ENGINE_DIR}/null/NullKeyboard.cpp

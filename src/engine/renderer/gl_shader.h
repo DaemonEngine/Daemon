@@ -185,8 +185,7 @@ private:
 	const bool hasFragmentShader;
 	const bool hasComputeShader;
 
-	GLuint std430Size = 0;
-	uint32_t padding = 0;
+	GLuint std140Size = 0;
 
 	const bool worldShader;
 protected:
@@ -301,8 +300,8 @@ public:
 		_vertexAttribs &= ~bit;
 	}
 
-	GLuint GetSTD430Size() const {
-		return std430Size;
+	GLuint GetSTD140Size() const {
+		return std140Size;
 	}
 
 	bool UseMaterialSystem() const {
@@ -318,7 +317,9 @@ class GLUniform {
 	const std::string _type;
 
 	// In multiples of 4 bytes
-	GLuint _std430Size;
+	// FIXME: the uniform structs are actually std140 so it would be more relevant to provide std140 info
+	const GLuint _std430BaseSize;
+	GLuint _std430Size; // includes padding that depends on the other uniforms in the struct
 	const GLuint _std430Alignment;
 
 	const bool _global; // This uniform won't go into the materials UBO if true
@@ -335,6 +336,7 @@ class GLUniform {
 		const bool isTexture = false ) :
 		_name( name ),
 		_type( type ),
+		_std430BaseSize( std430Size ),
 		_std430Size( std430Size ),
 		_std430Alignment( std430Alignment ),
 		_global( global ),
@@ -462,8 +464,8 @@ private:
 		ShaderProgramDescriptor* out );
 	void SaveShaderBinary( ShaderProgramDescriptor* descriptor );
 
-	void GenerateUniformStructDefinesText( const std::vector<GLUniform*>& uniforms, const uint32_t padding,
-		const uint32_t paddingCount, const std::string& definesName,
+	void GenerateUniformStructDefinesText(
+		const std::vector<GLUniform*>& uniforms, const std::string& definesName,
 		std::string& uniformStruct, std::string& uniformDefines );
 	std::string RemoveUniformsFromShaderText( const std::string& shaderText, const std::vector<GLUniform*>& uniforms );
 	std::string ShaderPostProcess( GLShader *shader, const std::string& shaderText, const uint32_t offset );
@@ -496,7 +498,7 @@ class GLUniformSampler : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		return p->uniformLocations[_locationIndex];
@@ -575,7 +577,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -620,7 +622,7 @@ class GLUniform1ui : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -664,7 +666,7 @@ class GLUniform1Bool : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -689,11 +691,6 @@ class GLUniform1Bool : protected GLUniform {
 		return sizeof( int );
 	}
 
-	uint32_t* WriteToBuffer( uint32_t *buffer ) override {
-		memcpy( buffer, &currentValue, sizeof( bool ) );
-		return buffer + _std430Size;
-	}
-
 	private:
 	int currentValue = 0;
 };
@@ -711,7 +708,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -760,7 +757,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -769,11 +766,6 @@ protected:
 		}
 
 		glUniform1fv( p->uniformLocations[ _locationIndex ], numFloats, f );
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + _components * _std430Size;
 	}
 
 	private:
@@ -795,7 +787,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -847,7 +839,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -899,7 +891,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -948,7 +940,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -983,7 +975,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1028,7 +1020,7 @@ class GLUniformMatrix32f : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1041,11 +1033,6 @@ class GLUniformMatrix32f : protected GLUniform {
 	public:
 	size_t GetSize() override {
 		return 6 * sizeof( float );
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, currentValue, 6 * sizeof( float ) );
-		return buffer + _std430Size * _components;
 	}
 
 	private:
@@ -1066,7 +1053,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1100,7 +1087,7 @@ protected:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 
 		if ( _global || !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		if ( _shader->UseMaterialSystem() && !_global ) {
@@ -1156,7 +1143,7 @@ public:
 		ShaderProgramDescriptor *p = _shader->GetProgram();
 		GLuint blockIndex = p->uniformBlockIndexes[_locationIndex];
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 		if( blockIndex != GL_INVALID_INDEX ) {
 			glBindBufferBase( GL_UNIFORM_BUFFER, blockIndex, buffer );
@@ -2796,7 +2783,7 @@ static colorModulation_t ColorModulateColorGen(
 
 	if ( useMapLightFactor )
 	{
-		ASSERT_EQ( vertexOverbright, false );
+		DAEMON_ASSERT_EQ( vertexOverbright, false );
 		colorModulation.lightFactor = tr.mapLightFactor;
 	}
 

@@ -40,7 +40,7 @@ namespace Math {
     template<typename T> inline WARN_UNUSED_RESULT
     T Clamp(T value, T min, T max)
     {
-        ASSERT_LE(min, max);
+        DAEMON_ASSERT_LE(min, max);
         if (!(value >= min))
             return min;
         if (!(value <= max))
