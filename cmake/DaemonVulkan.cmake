@@ -56,6 +56,9 @@ endif()
 #	string( REPLACE "/" "\\" vulkanLoaderPath ${vulkanHeaderPath} )
 #endif()
 
+option( BUILD_VULKAN_HEADER_PARSER "Build Vulkan header parser for default sType and function declarations/definitions." OFF )
+mark_as_advanced( BUILD_VULKAN_HEADER_PARSER )
+
 add_executable( VulkanHeaderParser "${DAEMON_DIR}/cmake/DaemonVulkan/VulkanHeaderParser.cpp" )
 target_compile_definitions( VulkanHeaderParser PRIVATE "-DDAEMON_VULKAN_HEADER_PATH=\"${DAEMON_DIR}/cmake/DaemonVulkan/\"" )
 target_compile_definitions( VulkanHeaderParser PRIVATE "-DDAEMON_VULKAN_LOADER_PATH=\"${DAEMON_DIR}/src/engine/renderer-vulkan/VulkanLoader/\"" )
