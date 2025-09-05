@@ -349,6 +349,7 @@ class GLUniform {
 	const UpdateType _updateType;
 	const int _components;
 	const bool _isTexture;
+	const bool _AMDSkipBindless;
 
 	protected:
 	GLShader* _shader;
@@ -357,7 +358,7 @@ class GLUniform {
 
 	GLUniform( GLShader* shader, const char* name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
 		const UpdateType updateType, const int components = 0,
-		const bool isTexture = false ) :
+		const bool isTexture = false, const bool AMDSkipBindless = false ) :
 		_name( name ),
 		_type( type ),
 		_std430BaseSize( std430Size ),
@@ -366,6 +367,7 @@ class GLUniform {
 		_updateType( updateType ),
 		_components( components ),
 		_isTexture( isTexture ),
+		_AMDSkipBindless( AMDSkipBindless ),
 		_shader( shader ) {
 		_shader->RegisterUniform( this );
 	}
@@ -524,9 +526,9 @@ private:
 
 class GLUniformSampler : protected GLUniform {
 	protected:
-	GLUniformSampler( GLShader* shader, const char* name, const char* type, const UpdateType updateType ) :
+	GLUniformSampler( GLShader* shader, const char* name, const char* type, const UpdateType updateType, const bool AMDSkipBindless = false ) :
 		GLUniform( shader, name, type, glConfig.bindlessTexturesAvailable ? 2 : 1,
-		                               glConfig.bindlessTexturesAvailable ? 2 : 1, updateType, 0, true ) {
+		                               glConfig.bindlessTexturesAvailable ? 2 : 1, updateType, 0, true, AMDSkipBindless ) {
 	}
 
 	inline GLint GetLocation() {
@@ -552,6 +554,12 @@ class GLUniformSampler : protected GLUniform {
 		currentValueBindless = value;
 
 		if ( glConfig.usingBindlessTextures ) {
+			if ( _AMDSkipBindless
+				&& ( glConfig.driverVendor == glDriverVendor_t::ATI || glConfig.driverVendor == glDriverVendor_t::MESA )
+				&& workaround_glDriver_amd_mesa_skipBindlessDepthTarget.Get() ) {
+				return;
+			}
+
 			if ( _shader->UseMaterialSystem() && _updateType == TEXDATA_OR_PUSH ) {
 				return;
 			}
@@ -581,8 +589,8 @@ class GLUniformSampler : protected GLUniform {
 
 class GLUniformSampler2D : protected GLUniformSampler {
 	protected:
-	GLUniformSampler2D( GLShader* shader, const char* name, const UpdateType updateType ) :
-		GLUniformSampler( shader, name, "sampler2D", updateType ) {
+	GLUniformSampler2D( GLShader* shader, const char* name, const UpdateType updateType, const bool AMDSkipBindless = false ) :
+		GLUniformSampler( shader, name, "sampler2D", updateType, AMDSkipBindless ) {
 	}
 };
 
@@ -1746,7 +1754,7 @@ class u_DepthMap :
 	GLUniformSampler2D {
 	public:
 	u_DepthMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_DepthMap", CONST ) {
+		GLUniformSampler2D( shader, "u_DepthMap", CONST, true ) {
 	}
 
 	void SetUniform_DepthMapBindless( GLuint64 bindlessHandle ) {

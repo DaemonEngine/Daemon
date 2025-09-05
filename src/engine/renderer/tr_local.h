@@ -509,7 +509,8 @@ enum class ssaoMode {
 	  IF_BC4 = BIT( 22 ),
 	  IF_BC5 = BIT( 23 ),
 	  IF_RGBA32UI = BIT( 24 ),
-	  IF_HOMEPATH = BIT( 25 )
+	  IF_HOMEPATH = BIT( 25 ),
+	  IF_AMD_SKIP_BINDLESS = BIT( 26 )
 	};
 
 	enum class filterType_t
@@ -2785,6 +2786,8 @@ enum
 	extern Cvar::Range<Cvar::Cvar<int>> r_ssao;
 
 	extern cvar_t *r_evsmPostProcess;
+
+	extern Cvar::Cvar<bool> workaround_glDriver_amd_mesa_skipBindlessDepthTarget;
 
 //====================================================================
 

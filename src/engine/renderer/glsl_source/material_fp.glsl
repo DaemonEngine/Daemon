@@ -56,7 +56,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		sampler2D u_PortalMap = sampler2D( u_PortalMap_initial );
 	#endif // !LIQUID_GLSL
 
-	#if defined(DEPTHMAP_GLSL)
+	#if defined(DEPTHMAP_GLSL) && !defined(DRIVER_AMD_MESA)
 		sampler2D u_DepthMap = sampler2D( u_DepthMap_initial );
 	#endif // !DEPTHMAP_GLSL
 
