@@ -2607,6 +2607,11 @@ static void R_CreateDepthRenderImage()
 
 static void R_CreatePortalRenderImage()
 {
+	if ( !r_liquidMapping->integer )
+	{
+		return;
+	}
+
 	int  width, height;
 
 	width = windowConfig.vidWidth;
