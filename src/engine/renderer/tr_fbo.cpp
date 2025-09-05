@@ -380,7 +380,9 @@ void R_BindFBO( const GLenum target, FBO_t* fbo ) {
 
 	GLIMP_LOGCOMMENT( "--- R_BindFBO( %s ) ---", fbo->name );
 
-	if ( glState.currentFBO != fbo ) {
+	if ( target != GL_FRAMEBUFFER ) {
+		GL_fboShim.glBindFramebuffer( target, fbo->frameBuffer );
+	} else if ( glState.currentFBO != fbo ) {
 		GL_fboShim.glBindFramebuffer( target, fbo->frameBuffer );
 
 		glState.currentFBO = fbo;
@@ -441,11 +443,8 @@ void R_InitFBOs()
 	if( glConfig.MSAA ) {
 		tr.msaaFBO = R_CreateFBO( "msaa", width, height );
 		R_BindFBO( tr.msaaFBO );
-		GL_CheckErrors();
 		R_AttachFBOTexture2D( GL_TEXTURE_2D_MULTISAMPLE, tr.currentRenderImageMSAA->texnum, 0 );
-		GL_CheckErrors();
 		R_AttachFBOTexturePackedDepthStencilMSAA( tr.currentDepthImageMSAA->texnum );
-		GL_CheckErrors();
 		R_CheckFBO( tr.msaaFBO );
 	}
 

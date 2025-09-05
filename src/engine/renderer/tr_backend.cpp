@@ -199,42 +199,36 @@ GLuint64 GL_BindToTMU( int unit, image_t *image )
 	return 0;
 }
 
-static void BlitFBOToMSAA( FBO_t* fbo ) {
-	glState.currentFBO = nullptr;
-
+static void BlitFBOToMSAA( FBO_t* fbo, const GLbitfield mask ) {
 	R_BindFBO( GL_READ_FRAMEBUFFER, fbo );
 	R_BindFBO( GL_DRAW_FRAMEBUFFER, tr.msaaFBO );
 	glBlitFramebuffer( 0, 0, fbo->width, fbo->height, 0, 0, tr.msaaFBO->width, tr.msaaFBO->height,
-		GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST );
+		mask, GL_NEAREST );
 
-	glState.currentFBO = nullptr;
 	R_BindFBO( GL_DRAW_FRAMEBUFFER, fbo );
 	glState.currentFBO = fbo;
 }
 
-static void BlitMSAAToFBO( FBO_t* fbo ) {
-	glState.currentFBO = nullptr;
-
+static void BlitMSAAToFBO( FBO_t* fbo, const GLbitfield mask ) {
 	R_BindFBO( GL_READ_FRAMEBUFFER, tr.msaaFBO );
 	R_BindFBO( GL_DRAW_FRAMEBUFFER, fbo );
 	glBlitFramebuffer( 0, 0, tr.msaaFBO->width, tr.msaaFBO->height, 0, 0, fbo->width, fbo->height,
-		GL_COLOR_BUFFER_BIT /* | GL_DEPTH_BUFFER_BIT */, GL_NEAREST );
+		mask, GL_NEAREST );
 
-	glState.currentFBO = nullptr;
 	R_BindFBO( GL_READ_FRAMEBUFFER, fbo );
 	glState.currentFBO = fbo;
 }
 
-void TransitionMainToMSAA() {
+void TransitionMainToMSAA( const GLbitfield mask ) {
 	if ( glConfig.MSAA ) {
-		BlitFBOToMSAA( tr.mainFBO[backEnd.currentMainFBO] );
+		BlitFBOToMSAA( tr.mainFBO[backEnd.currentMainFBO], mask );
 		R_BindFBO( tr.msaaFBO );
 	}
 }
 
-void TransitionMSAAToMain() {
+void TransitionMSAAToMain( const GLbitfield mask ) {
 	if ( glConfig.MSAA ) {
-		BlitMSAAToFBO( tr.mainFBO[backEnd.currentMainFBO] );
+		BlitMSAAToFBO( tr.mainFBO[backEnd.currentMainFBO], mask );
 	}
 }
 
@@ -1280,6 +1274,8 @@ static void RenderDepthTiles()
 		return;
 	}
 
+	TransitionMSAAToMain( GL_DEPTH_BUFFER_BIT );
+
 	// 1st step
 	R_BindFBO( tr.depthtile1FBO );
 	GL_Viewport( 0, 0, tr.depthtile1FBO->width, tr.depthtile1FBO->height );
@@ -1485,7 +1481,7 @@ void RB_RenderBloom()
 			GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
 		);
 
-		TransitionMSAAToMain();
+		TransitionMSAAToMain( GL_COLOR_BUFFER_BIT );
 
 		R_BindFBO( tr.contrastRenderFBO );
 		GL_ClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
@@ -1551,7 +1547,7 @@ void RB_RenderBloom()
 		GL_PopMatrix();
 	}
 
-	TransitionMainToMSAA();
+	TransitionMainToMSAA( GL_COLOR_BUFFER_BIT );
 
 	GL_CheckErrors();
 }
@@ -1571,7 +1567,7 @@ void RB_RenderMotionBlur()
 
 	gl_motionblurShader->BindProgram( 0 );
 
-	TransitionMSAAToMain();
+	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT );
 
 	// Swap main FBOs
 	gl_motionblurShader->SetUniform_ColorMapBindless(
@@ -1588,7 +1584,7 @@ void RB_RenderMotionBlur()
 
 	Tess_InstantScreenSpaceQuad();
 
-	TransitionMainToMSAA();
+	TransitionMainToMSAA( GL_COLOR_BUFFER_BIT );
 
 	GL_CheckErrors();
 }
@@ -1614,6 +1610,8 @@ void RB_RenderSSAO()
 		glTextureBarrier();
 		backEnd.dirtyDepthBuffer = false;
 	}
+
+	TransitionMSAAToMain( GL_DEPTH_BUFFER_BIT );
 
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -2830,7 +2828,7 @@ static void RB_RenderPostProcess()
 		materialSystem.EndFrame();
 	}
 
-	TransitionMSAAToMain();
+	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT );
 
 	RB_FXAA();
 

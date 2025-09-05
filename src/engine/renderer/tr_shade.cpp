@@ -881,12 +881,22 @@ void Render_generic3D( shaderStage_t *pStage )
 	bool hasDepthFade = pStage->hasDepthFade;
 	bool needDepthMap = pStage->hasDepthFade;
 
+	const bool needMSAATransion = needDepthMap && backEnd.dirtyDepthBuffer;
+
 	if ( needDepthMap && backEnd.dirtyDepthBuffer && glConfig.textureBarrierAvailable )
 	{
 		// Flush depth buffer to make sure it is available for reading in the depth fade
 		// GLSL - prevents https://github.com/DaemonEngine/Daemon/issues/1676
 		glTextureBarrier();
 		backEnd.dirtyDepthBuffer = false;
+	}
+
+	if ( needMSAATransion ) {
+		TransitionMSAAToMain( GL_DEPTH_BUFFER_BIT );
+
+		if ( glConfig.MSAA ) {
+			R_BindFBO( GL_DRAW_FRAMEBUFFER, tr.msaaFBO );
+		}
 	}
 
 	// choose right shader program ----------------------------------
@@ -1458,7 +1468,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 	}
 
 	// draw to background image
-	TransitionMSAAToMain();
+	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	R_BindFBO( tr.mainFBO[ 1 - backEnd.currentMainFBO ] );
 
 	// bind u_NormalMap
@@ -1494,7 +1504,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 	gl_heatHazeShader->SetUniform_DeformMagnitude( 0.0f );
 	Tess_DrawElements();
 
-	TransitionMainToMSAA();
+	TransitionMainToMSAA( GL_COLOR_BUFFER_BIT );
 
 	GL_CheckErrors();
 }

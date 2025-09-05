@@ -2898,8 +2898,8 @@ inline bool checkGLErrors()
 	GLuint64 GL_BindToTMU( int unit, image_t *image );
 	void GL_BindNullProgram();
 
-	void TransitionMainToMSAA();
-	void TransitionMSAAToMain();
+	void TransitionMainToMSAA( const GLbitfield mask );
+	void TransitionMSAAToMain( const GLbitfield mask );
 	void BindMSAAOrMainFBO();
 
 	void GL_SetDefaultState();
