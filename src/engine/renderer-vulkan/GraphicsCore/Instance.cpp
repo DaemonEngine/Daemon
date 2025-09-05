@@ -52,7 +52,6 @@ Instance coreInstance;
 
 void Instance::Init( const char* engineName, const char* appName ) {
 	VkApplicationInfo appInfo{
-		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 		.pApplicationName = appName,
 		.applicationVersion = 0,
 		.pEngineName = engineName,
@@ -84,7 +83,6 @@ void Instance::Init( const char* engineName, const char* appName ) {
 		capabilityPackMinimal.requiredInstanceExtensions.size * sizeof( const char* ) );
 
 	VkInstanceCreateInfo createInfo {
-		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 		.pApplicationInfo = &appInfo,
 		.enabledLayerCount = 0,
 		.ppEnabledLayerNames = nullptr,
