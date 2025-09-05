@@ -1550,9 +1550,9 @@ std::string GLShaderManager::RemoveUniformsFromShaderText( const std::string& sh
 	return shaderMain;
 }
 
-void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUniform*>& uniforms,
-	const std::string& definesName, std::string& uniformStruct, std::string& uniformDefines ) {
-	int pad = 0;
+uint32_t GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUniform*>& uniforms,
+	const std::string& definesName, const uint32_t offset, std::string& uniformStruct, std::string& uniformDefines ) {
+	int pad = offset;
 	for ( GLUniform* uniform : uniforms ) {
 		uniformStruct += "	" + ( uniform->_isTexture ? "uvec2" : uniform->_type ) + " " + uniform->_name;
 
@@ -1579,6 +1579,8 @@ void GLShaderManager::GenerateUniformStructDefinesText( const std::vector<GLUnif
 	}
 
 	uniformDefines += "\n";
+
+	return pad;
 }
 
 void GLShaderManager::PostProcessGlobalUniforms() {
@@ -1602,23 +1604,20 @@ void GLShaderManager::PostProcessGlobalUniforms() {
 	std::string uniformDefines;
 
 	GLuint size;
-	GLuint padding;
 	std::vector<GLUniform*>* uniforms = &( ( GLShader* ) globalUBOProxy )->_uniforms;
 	std::vector<GLUniform*> constUniforms =
-		ProcessUniforms( GLUniform::CONST, GLUniform::CONST, !glConfig.usingBindlessTextures, *uniforms, size, padding );
+		ProcessUniforms( GLUniform::CONST, GLUniform::CONST, !glConfig.usingBindlessTextures, *uniforms, size );
 
-	GenerateUniformStructDefinesText( constUniforms, padding, 0, "globalUniforms", uniformStruct, uniformDefines );
+	const uint32_t padding = GenerateUniformStructDefinesText( constUniforms, "globalUniforms", 0, uniformStruct, uniformDefines );
 
-	uint32_t paddingCount = padding;
-
-	pushBuffer.constUniformsSize = size + padding;
+	pushBuffer.constUniformsSize = size;
 
 	std::vector<GLUniform*> frameUniforms =
-		ProcessUniforms( GLUniform::FRAME, GLUniform::FRAME, !glConfig.usingBindlessTextures, *uniforms, size, padding );
+		ProcessUniforms( GLUniform::FRAME, GLUniform::FRAME, !glConfig.usingBindlessTextures, *uniforms, size );
 	
-	GenerateUniformStructDefinesText( frameUniforms, padding, paddingCount, "globalUniforms", uniformStruct, uniformDefines );
+	GenerateUniformStructDefinesText( frameUniforms, "globalUniforms", padding,  uniformStruct, uniformDefines );
 
-	pushBuffer.frameUniformsSize = size + padding;
+	pushBuffer.frameUniformsSize = size;
 
 	uniformStruct += "};\n\n";
 
@@ -1696,7 +1695,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	std::string materialStruct = "\nstruct Material {\n";
 	std::string materialDefines;
 	GenerateUniformStructDefinesText( shader->_materialSystemUniforms,
-		"materials[baseInstance & 0xFFF]", materialStruct, materialDefines );
+		"materials[baseInstance & 0xFFF]", 0, materialStruct, materialDefines );
 
 	materialStruct += "};\n\n";
 
@@ -2171,12 +2170,7 @@ static auto FindUniformForOffset( std::vector<GLUniform*>& uniforms, const GLuin
 // Note: using the std430 uniform size will give the wrong result for matrix types where
 // the number of rows is not 4
 GLuint GLShaderManager::SortUniforms( std::vector<GLUniform*>& uniforms ) {
-	std::vector<GLUniform*> uniformQueue;
-	for ( GLUniform* uniform : _uniforms ) {
-		if ( !uniform->_global ) {
-			uniformQueue.emplace_back( uniform );
-		}
-	}
+	std::vector<GLUniform*> uniformQueue = uniforms;
 
 	std::stable_sort( uniformQueue.begin(), uniformQueue.end(),
 		[]( const GLUniform* lhs, const GLUniform* rhs ) {
@@ -2188,32 +2182,32 @@ GLuint GLShaderManager::SortUniforms( std::vector<GLUniform*>& uniforms ) {
 	GLuint align = 4; // mininum alignment since this will be used as an std140 array element
 	GLuint structSize = 0;
 	uniforms.clear();
-	while ( !uniformQueue.empty() || std140Size & ( align - 1 ) ) {
-		auto iterNext = FindUniformForOffset( uniformQueue, std140Size );
+	while ( !uniformQueue.empty() || structSize & ( align - 1 ) ) {
+		auto iterNext = FindUniformForOffset( uniformQueue, structSize );
 		if ( iterNext == uniformQueue.end() ) {
 			// add 1 unit of padding
-			ASSERT( !( *iterNext )->_components ); // array WriteToBuffer impls don't handle padding correctly
-			++std140Size;
+			++structSize;
 			++uniforms.back()->_std430Size;
 		} else {
 			( *iterNext )->_std430Size = ( *iterNext )->_std430BaseSize;
 			if ( ( *iterNext )->_components ) {
 				ASSERT_GE( ( *iterNext )->_std430Alignment, 4 ); // these would need extra padding in a std130 array
-				std140Size += ( *iterNext )->_std430Size * ( *iterNext )->_components;
+				structSize += ( *iterNext )->_std430Size * ( *iterNext )->_components;
 			} else {
-				std140Size += ( *iterNext )->_std430Size;
+				structSize += ( *iterNext )->_std430Size;
 			}
 			align = std::max( align, ( *iterNext )->_std430Alignment );
 			uniforms.push_back( *iterNext );
 			uniformQueue.erase( iterNext );
 		}
 	}
+
 	return structSize;
 }
 
 std::vector<GLUniform*> GLShaderManager::ProcessUniforms( const GLUniform::UpdateType minType, const GLUniform::UpdateType maxType,
 	const bool skipTextures,
-	std::vector<GLUniform*>& uniforms, GLuint& structSize, GLuint& padding ) {
+	std::vector<GLUniform*>& uniforms, GLuint& structSize ) {
 	std::vector<GLUniform*> tmp;
 
 	tmp.reserve( uniforms.size() );
@@ -2226,24 +2220,19 @@ std::vector<GLUniform*> GLShaderManager::ProcessUniforms( const GLUniform::Updat
 
 	structSize = SortUniforms( tmp );
 
-	const GLuint structAlignment = 4; // Material buffer is now a UBO, so it uses std140 layout, which is aligned to vec4
-	if ( structSize > 0 ) {
-		padding = ( structAlignment - ( structSize % structAlignment ) ) % structAlignment;
-	}
-
 	return tmp;
 }
 
 void GLShader::PostProcessUniforms() {
 	if ( _useMaterialSystem ) {
 		_materialSystemUniforms = gl_shaderManager.ProcessUniforms( GLUniform::MATERIAL_OR_PUSH, GLUniform::MATERIAL_OR_PUSH,
-			true, _uniforms, std430Size, padding );
+			true, _uniforms, std140Size );
 	}
 
 	if ( glConfig.pushBufferAvailable && !pushSkip ) {
 		GLuint unused;
 		_pushUniforms = gl_shaderManager.ProcessUniforms( GLUniform::CONST, GLUniform::FRAME,
-			!glConfig.usingBindlessTextures, _uniforms, unused, unused );
+			!glConfig.usingBindlessTextures, _uniforms, unused );
 	}
 }
 
