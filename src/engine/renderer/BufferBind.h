@@ -42,9 +42,10 @@ namespace BufferBind {
 		MATERIALS = 0,
 		TEX_DATA = 1,
 		LIGHTMAP_DATA = 2,
-		LIGHTS = 3,
+		GLOBAL_DATA = 3,
+		LIGHTS = 4,
 
-		SURFACE_BATCHES = 4,
+		SURFACE_BATCHES = 5,
 
 		// SSBO
 		SURFACE_DESCRIPTORS = 0,

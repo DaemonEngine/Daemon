@@ -127,8 +127,12 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 	pStage->dynamic = pStage->dynamic || pStage->colorDynamic;
 }
 
-// UpdateSurface*() functions will actually write the uniform values to the SSBO
-// Mirrors parts of the Render_*() functions in tr_shade.cpp
+/* UpdateSurfaceData*() functions will write the material uniform values to the UBO
+Mirrors parts of the Render_*() functions in tr_shade.cpp
+
+All of these functions must write stage material data regardless of whether pStage has the related feature enabled,
+because stages here are combined into as few as possible,
+and the stage chosen for storage might not have all of those enabled */
 
 void UpdateSurfaceDataNONE( uint32_t*, shaderStage_t*, bool, bool, bool ) {
 	ASSERT_UNREACHABLE();
@@ -155,12 +159,9 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage, boo
 	Tess_ComputeColor( pStage );
 	gl_genericShaderMaterial->SetUniform_Color_Uint( tess.svars.color );
 
-	bool hasDepthFade = pStage->hasDepthFade;
-	if ( hasDepthFade ) {
-		gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
-	}
+	gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
 
-	gl_genericShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_genericShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, bool, bool vertexLit, bool fullbright ) {
@@ -189,30 +190,24 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, 
 	gl_lightMappingShaderMaterial->SetUniform_AlphaTest( pStage->stateBits );
 
 	// HeightMap
-	if ( pStage->enableReliefMapping ) {
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		depthScale *= shader->reliefDepthScale;
+	float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+	depthScale *= shader->reliefDepthScale;
 
-		gl_lightMappingShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
-		gl_lightMappingShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
-	}
+	gl_lightMappingShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
+	gl_lightMappingShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
 
 	// bind u_NormalScale
-	if ( pStage->enableNormalMapping ) {
-		vec3_t normalScale;
-		SetNormalScale( pStage, normalScale );
+	vec3_t normalScale;
+	SetNormalScale( pStage, normalScale );
 
-		gl_lightMappingShaderMaterial->SetUniform_NormalScale( normalScale );
-	}
+	gl_lightMappingShaderMaterial->SetUniform_NormalScale( normalScale );
 
-	if ( pStage->enableSpecularMapping ) {
-		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+	float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+	float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 
-		gl_lightMappingShaderMaterial->SetUniform_SpecularExponent( specExpMin, specExpMax );
-	}
+	gl_lightMappingShaderMaterial->SetUniform_SpecularExponent( specExpMin, specExpMax );
 
-	gl_lightMappingShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_lightMappingShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
@@ -237,23 +232,19 @@ void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage, bo
 		GL_BindToTMU( 0, probes[0]->cubemap )
 	);
 
-	if ( pStage->enableNormalMapping ) {
-		vec3_t normalScale;
-		SetNormalScale( pStage, normalScale );
+	vec3_t normalScale;
+	SetNormalScale( pStage, normalScale );
 
-		gl_reflectionShaderMaterial->SetUniform_NormalScale( normalScale );
-	}
+	gl_reflectionShaderMaterial->SetUniform_NormalScale( normalScale );
 
 	// u_depthScale u_reliefOffsetBias
-	if ( pStage->enableReliefMapping ) {
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		float reliefDepthScale = shader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
-		gl_reflectionShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
-		gl_reflectionShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
-	}
+	float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+	float reliefDepthScale = shader->reliefDepthScale;
+	depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
+	gl_reflectionShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
+	gl_reflectionShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
 
-	gl_reflectionShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_reflectionShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
@@ -264,7 +255,7 @@ void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage, bool, 
 	// u_AlphaThreshold
 	gl_skyboxShaderMaterial->SetUniform_AlphaTest( GLS_ATEST_NONE );
 
-	gl_skyboxShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_skyboxShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
@@ -277,7 +268,7 @@ void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage, bool, 
 	this seems to be the only material system shader that might need it to not be global */
 	gl_screenShaderMaterial->SetUniform_CurrentMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 
-	gl_screenShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_screenShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
@@ -288,15 +279,13 @@ void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool
 	float deformMagnitude = RB_EvalExpression( &pStage->deformMagnitudeExp, 1.0 );
 	gl_heatHazeShaderMaterial->SetUniform_DeformMagnitude( deformMagnitude );
 
-	if ( pStage->enableNormalMapping ) {
-		vec3_t normalScale;
-		SetNormalScale( pStage, normalScale );
+	vec3_t normalScale;
+	SetNormalScale( pStage, normalScale );
 
-		// bind u_NormalScale
-		gl_heatHazeShaderMaterial->SetUniform_NormalScale( normalScale );
-	}
+	// bind u_NormalScale
+	gl_heatHazeShaderMaterial->SetUniform_NormalScale( normalScale );
 
-	gl_heatHazeShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_heatHazeShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
@@ -318,37 +307,31 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, 
 
 	// NOTE: specular component is computed by shader.
 	// FIXME: physical mapping is not implemented.
-	if ( pStage->enableSpecularMapping ) {
-		float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
-		gl_liquidShaderMaterial->SetUniform_SpecularExponent( specMin, specMax );
-	}
+	float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+	float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+	gl_liquidShaderMaterial->SetUniform_SpecularExponent( specMin, specMax );
 
 	// bind u_CurrentMap
 	gl_liquidShaderMaterial->SetUniform_CurrentMapBindless( GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) );
 
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
-	if ( pStage->enableReliefMapping ) {
-		float depthScale;
-		float reliefDepthScale;
+	float depthScale;
+	float reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
-		gl_liquidShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
-		gl_liquidShaderMaterial->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
-	}
+	depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+	reliefDepthScale = tess.surfaceShader->reliefDepthScale;
+	depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
+	gl_liquidShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
+	gl_liquidShaderMaterial->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 	// bind u_NormalScale
-	if ( pStage->enableNormalMapping ) {
-		vec3_t normalScale;
-		// FIXME: NormalIntensity default was 0.5
-		SetNormalScale( pStage, normalScale );
+	vec3_t normalScale;
+	// FIXME: NormalIntensity default was 0.5
+	SetNormalScale( pStage, normalScale );
 
-		gl_liquidShaderMaterial->SetUniform_NormalScale( normalScale );
-	}
+	gl_liquidShaderMaterial->SetUniform_NormalScale( normalScale );
 
-	gl_liquidShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_liquidShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
@@ -356,7 +339,7 @@ void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage, bool, boo
 
 	materials += pStage->bufferOffset;
 
-	gl_fogQuake3ShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_fogQuake3ShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
 /*
@@ -1628,9 +1611,24 @@ void MaterialSystem::UpdateDynamicSurfaces() {
 	GL_CheckErrors();
 }
 
+void MaterialSystem::SetConstUniforms() {
+	globalUBOProxy->SetUniform_SurfaceDescriptorsCount( surfaceDescriptorsCount );
+	uint32_t globalWorkGroupX = surfaceDescriptorsCount % MAX_COMMAND_COUNTERS == 0 ?
+		surfaceDescriptorsCount / MAX_COMMAND_COUNTERS : surfaceDescriptorsCount / MAX_COMMAND_COUNTERS + 1;
+
+	globalUBOProxy->SetUniform_FirstPortalGroup( globalWorkGroupX );
+	globalUBOProxy->SetUniform_TotalPortals( totalPortals );
+}
+
+void MaterialSystem::SetFrameUniforms() {
+	globalUBOProxy->SetUniform_Frame( nextFrame );
+
+	globalUBOProxy->SetUniform_UseFrustumCulling( r_gpuFrustumCulling.Get() );
+	globalUBOProxy->SetUniform_UseOcclusionCulling( r_gpuOcclusionCulling.Get() );
+}
+
 void MaterialSystem::UpdateFrameData() {
 	gl_clearSurfacesShader->BindProgram( 0 );
-	gl_clearSurfacesShader->SetUniform_Frame( nextFrame );
 	gl_clearSurfacesShader->DispatchCompute( MAX_VIEWS, 1, 1 );
 
 	GL_CheckErrors();
@@ -1659,8 +1657,10 @@ void MaterialSystem::DepthReduction() {
 	uint32_t globalWorkgroupX = ( width + 7 ) / 8;
 	uint32_t globalWorkgroupY = ( height + 7 ) / 8;
 
-	// FIXME: u_DepthMap object on the shader is not actually used
-	GL_Bind( tr.currentDepthImage );
+	gl_depthReductionShader->SetUniform_DepthMapBindless(
+		GL_BindToTMU( 0, tr.currentDepthImage )
+	);
+
 	glBindImageTexture( 2, depthImage->texnum, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F );
 
 	gl_depthReductionShader->SetUniform_InitialDepthLevel( true );
@@ -1716,15 +1716,9 @@ void MaterialSystem::CullSurfaces() {
 		uint32_t globalWorkGroupX = surfaceDescriptorsCount % MAX_COMMAND_COUNTERS == 0 ?
 			surfaceDescriptorsCount / MAX_COMMAND_COUNTERS : surfaceDescriptorsCount / MAX_COMMAND_COUNTERS + 1;
 		GL_Bind( depthImage );
-		gl_cullShader->SetUniform_Frame( nextFrame );
 		gl_cullShader->SetUniform_ViewID( view );
-		gl_cullShader->SetUniform_SurfaceDescriptorsCount( surfaceDescriptorsCount );
-		gl_cullShader->SetUniform_UseFrustumCulling( r_gpuFrustumCulling.Get() );
-		gl_cullShader->SetUniform_UseOcclusionCulling( r_gpuOcclusionCulling.Get() );
 		gl_cullShader->SetUniform_CameraPosition( origin );
 		gl_cullShader->SetUniform_ModelViewMatrix( viewMatrix );
-		gl_cullShader->SetUniform_FirstPortalGroup( globalWorkGroupX );
-		gl_cullShader->SetUniform_TotalPortals( totalPortals );
 		gl_cullShader->SetUniform_ViewWidth( depthImage->width );
 		gl_cullShader->SetUniform_ViewHeight( depthImage->height );
 		gl_cullShader->SetUniform_SurfaceCommandsOffset( surfaceCommandsCount * ( MAX_VIEWS * nextFrame + view ) );
@@ -1756,7 +1750,6 @@ void MaterialSystem::CullSurfaces() {
 		gl_cullShader->DispatchCompute( globalWorkGroupX, 1, 1 );
 
 		gl_processSurfacesShader->BindProgram( 0 );
-		gl_processSurfacesShader->SetUniform_Frame( nextFrame );
 		gl_processSurfacesShader->SetUniform_ViewID( view );
 		gl_processSurfacesShader->SetUniform_SurfaceCommandsOffset( surfaceCommandsCount * ( MAX_VIEWS * nextFrame + view ) );
 

@@ -34,12 +34,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* depthReduction_cp.glsl */
 
+#define DEPTHMAP_GLSL
+
 #insert common_cp
 
 // Keep this to 8x8 because we don't want extra shared mem etc. to be allocated, and to minimize wasted lanes
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout(binding = 0) uniform sampler2D u_DepthMap;
+uniform sampler2D u_DepthMap;
 layout(r32f, binding = 1) uniform readonly image2D depthImageIn;
 layout(r32f, binding = 2) uniform writeonly image2D depthImageOut;
 
@@ -48,6 +50,8 @@ uniform uint u_ViewHeight;
 uniform bool u_InitialDepthLevel;
 
 void main() {
+    #insert material_fp
+
     const uint globalInvocationID = GLOBAL_INVOCATION_ID;
 
     const ivec2 position = ivec2( gl_GlobalInvocationID.xy );
