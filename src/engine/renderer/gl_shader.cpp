@@ -2142,7 +2142,7 @@ void GLShader::PostProcessUniforms() {
 		} else {
 			( *iterNext )->_std430Size = ( *iterNext )->_std430BaseSize;
 			if ( ( *iterNext )->_components ) {
-				ASSERT_GE( ( *iterNext )->_std430Alignment, 4 ); // these would need extra padding in a std130 array
+				ASSERT_GE( ( *iterNext )->_std430Alignment, 4u ); // these would need extra padding in a std130 array
 				std140Size += ( *iterNext )->_std430Size * ( *iterNext )->_components;
 			} else {
 				std140Size += ( *iterNext )->_std430Size;
