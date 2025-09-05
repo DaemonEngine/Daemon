@@ -135,6 +135,7 @@ class ModuleCrashTests(Test):
         else:
             tprefix = ""
             eng = module
+            assert os.path.isfile(PathJoin(GAME_DIR, "crash_server" + EXE))
         engine = ModulePath(eng)
         assert os.path.isfile(engine), engine
 
