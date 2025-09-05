@@ -1506,8 +1506,8 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 				break;
 
 			case CG_S_ADDLOOPINGSOUND:
-				HandleMsg<Audio::AddLoopingSoundMsg>(std::move(reader), [this] (int entityNum, int sfx) {
-					Audio::AddEntityLoopingSound(entityNum, sfx);
+				HandleMsg<Audio::AddLoopingSoundMsg>(std::move(reader), [this] (int entityNum, int sfx, bool persistent) {
+					Audio::AddEntityLoopingSound(entityNum, sfx, persistent);
 				});
 				break;
 
