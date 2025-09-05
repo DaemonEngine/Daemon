@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -31,17 +31,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MiscCVarStore.h
+// Init.h
 
-#ifndef MISC_CVARSTORE_H
-#define MISC_CVARSTORE_H
+#ifndef GRAPHICS_INIT_H
+#define GRAPHICS_INIT_H
 
-#include "common/Common.h"
+void InitGraphicsEngine();
 
-extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount;
-
-extern Cvar::Cvar<std::string> r_vkMemoryChunkConfig;
-
-extern Cvar::Range<Cvar::Cvar<int>> r_vkMemoryPageSize;
-
-#endif // MISC_CVARSTORE_H
+#endif // GRAPHICS_INIT_H

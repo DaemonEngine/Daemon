@@ -54,7 +54,7 @@ struct Array {
 		}
 	}
 
-	constexpr uint64 Size() {
+	constexpr uint64 Size() const {
 		return newSize;
 	}
 
@@ -71,7 +71,10 @@ struct Array {
 	}
 };
 
-template<typename T>
-Array( T args... ) -> Array<T, sizeof( args )>;
+// template<typename T>
+// Array( T args... ) -> Array<T, sizeof( args )>;
+
+template<typename T, typename... Args>
+Array( T, Args... args ) -> Array<T, sizeof...( args ) + 1>;
 
 #endif // ARRAY_H

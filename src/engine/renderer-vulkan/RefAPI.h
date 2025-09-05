@@ -344,6 +344,8 @@ struct refexport_t
 	void ( *SendBotDebugDrawCommands )( std::vector<char> commands );
 	void ( *SetMatrixTransform )( const matrix_t matrix );
 	void ( *ResetMatrixTransform )();
+
+	bool ( *TestTask )();
 };
 
 //

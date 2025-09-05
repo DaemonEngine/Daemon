@@ -74,8 +74,3 @@ Cvar::Cvar<std::string> r_vkMemoryChunkConfig( "r_vkMemoryChunkConfig",
 Cvar::Range<Cvar::Cvar<int>> r_vkMemoryPageSize( "r_vkMemoryPageSize",
 	Str::Format( "Memory page size to use (0: default, 1: %u, 2: %u)", memoryInfo.PAGE_SIZE_64, memoryInfo.PAGE_SIZE_LARGE ),
 	Cvar::NONE, PageSize::SIZE_DEFAULT, PageSize::SIZE_DEFAULT, PageSize::SIZE_LARGE );
-
-// TODO: Move this to some Vulkan file later
-Cvar::Cvar<int> r_rendererApi( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 1 );
-
-Cvar::Cvar<std::string> r_vkVersion( "r_vkVersion", "Daemon-vulkan version", Cvar::ROM, "0.0.0" );

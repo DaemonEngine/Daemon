@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -31,17 +31,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MiscCVarStore.h
+// Instance.h
 
-#ifndef MISC_CVARSTORE_H
-#define MISC_CVARSTORE_H
+#ifndef INSTANCE_H
+#define INSTANCE_H
 
-#include "common/Common.h"
+#include "engine/qcommon/q_shared.h"
 
-extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount;
+#include "Vulkan.h"
 
-extern Cvar::Cvar<std::string> r_vkMemoryChunkConfig;
+class Instance {
+	public:
+	VkInstance instance;
 
-extern Cvar::Range<Cvar::Cvar<int>> r_vkMemoryPageSize;
+	void Init( const char* engineName, const char* appName );
+};
 
-#endif // MISC_CVARSTORE_H
+extern Instance coreInstance;
+
+#endif // INSTANCE_H

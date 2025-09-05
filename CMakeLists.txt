@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required (VERSION 3.12)
+cmake_minimum_required (VERSION 3.24)
 
 # Choose Python versions by location instead of getting whatever is in PYTHON_EXECUTABLE
 # Can be removed once we require CMake 3.15
@@ -580,6 +580,9 @@ endif()
 
 if (USE_VULKAN)
     add_definitions("-DDAEMON_RENDERER_VULKAN=1")
+    add_definitions("-DVK_NO_PROTOTYPES=1")
+    include(DaemonVulkan)
+    set(LIBS_CLIENT ${LIBS_CLIENT} Vulkan::Vulkan)
 else()
     add_definitions("-DDAEMON_RENDERER_OPENGL=1")
 endif()

@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -31,17 +31,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MiscCVarStore.h
+// Version.h
 
-#ifndef MISC_CVARSTORE_H
-#define MISC_CVARSTORE_H
+#ifndef VERSION_H
+#define VERSION_H
 
-#include "common/Common.h"
+#include <string>
 
-extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount;
+#include "Math/NumberTypes.h"
 
-extern Cvar::Cvar<std::string> r_vkMemoryChunkConfig;
+struct Version {
+	uint32 major;
+	uint32 minor;
+	uint32 patch;
 
-extern Cvar::Range<Cvar::Cvar<int>> r_vkMemoryPageSize;
+	std::string FormatVersion() const;
+};
 
-#endif // MISC_CVARSTORE_H
+constexpr Version DAEMON_VULKAN_VERSION { 0, 1, 0 };
+
+#endif // VERSION_H

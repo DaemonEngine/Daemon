@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -31,17 +31,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MiscCVarStore.h
+// Init.cpp
 
-#ifndef MISC_CVARSTORE_H
-#define MISC_CVARSTORE_H
+#include "Instance.h"
 
-#include "common/Common.h"
+#include "Init.h"
 
-extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount;
-
-extern Cvar::Cvar<std::string> r_vkMemoryChunkConfig;
-
-extern Cvar::Range<Cvar::Cvar<int>> r_vkMemoryPageSize;
-
-#endif // MISC_CVARSTORE_H
+void InitGraphicsEngine() {
+	coreInstance.Init( "Daemon-vulkan", CLIENT_WINDOW_TITLE );
+}

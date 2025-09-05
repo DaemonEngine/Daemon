@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -31,17 +31,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MiscCVarStore.h
+// GraphicsCoreCVars.cpp
 
-#ifndef MISC_CVARSTORE_H
-#define MISC_CVARSTORE_H
+#include "../Version.h"
 
-#include "common/Common.h"
+#include "CapabilityPack.h"
 
-extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount;
+#include "GraphicsCoreCVars.h"
 
-extern Cvar::Cvar<std::string> r_vkMemoryChunkConfig;
+Cvar::Cvar<int> r_rendererApi( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 1 );
 
-extern Cvar::Range<Cvar::Cvar<int>> r_vkMemoryPageSize;
+Cvar::Cvar<std::string> r_vkVersion( "r_vkVersion", "Daemon-vulkan version", Cvar::ROM, DAEMON_VULKAN_VERSION.FormatVersion() );
 
-#endif // MISC_CVARSTORE_H
+Cvar::Range<Cvar::Cvar<int>> r_vkCapabilityPack( "r_vkCapabilityPack", "CapabilityPack override",
+	Cvar::NONE, CapabilityPackType::MINIMAL, CapabilityPackType::MINIMAL, CapabilityPackType::EXPERIMENTAL );

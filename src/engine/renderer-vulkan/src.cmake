@@ -67,6 +67,55 @@ set(UTILSLIST
     ${ENGINE_DIR}/renderer-vulkan/SrcDebug/Tag.h
 )
 
+# Graphics engine
+
+set(GRAPHICSCORELIST
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreCVars.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreCVars.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Init.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Init.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Instance.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Instance.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Vulkan.h
+)
+
+set(VULKANLOADERLIST
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/Vulkan.cpp
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/VulkanLoader.cpp
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/VulkanLoader.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/VulkanLoadFunctions.cpp
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/VulkanLoadFunctions.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_core.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_xlib.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_xlib_xrandr.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_wayland.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_win32.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_xcb.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_vi.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_screen.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_macos.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_metal.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_ohos.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_ios.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_ggp.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_fuchsia.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vk_icd.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vk_layer.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vk_platform.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_android.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_beta.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vulkan_directfb.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/vk_enum_string_helper.h
+)
+
+set(GRAPHICSLIST
+    ${GRAPHICSCORELIST}
+    ${VULKANLOADERLIST}
+)
+
 set(RENDERERLIST
     ${MATHLIST}
     ${MEMORYLIST}
@@ -74,6 +123,7 @@ set(RENDERERLIST
     ${SYSLIST}
     ${THREADLIST}
     ${UTILSLIST}
+    ${GRAPHICSLIST}
     ${ENGINE_DIR}/renderer-vulkan/Surface/Surface.cpp
     ${ENGINE_DIR}/renderer-vulkan/Surface/Surface.h
     ${ENGINE_DIR}/renderer-vulkan/Error.cpp
@@ -84,6 +134,8 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer-vulkan/MiscCVarStore.h
     ${ENGINE_DIR}/renderer-vulkan/RefAPI.cpp
     ${ENGINE_DIR}/renderer-vulkan/RefAPI.h
+    ${ENGINE_DIR}/renderer-vulkan/Version.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Version.h
     ${ENGINE_DIR}/renderer-vulkan/Shared/Timer.cpp
     ${ENGINE_DIR}/renderer-vulkan/Shared/Timer.h
 )

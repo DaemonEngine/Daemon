@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -31,17 +31,56 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MiscCVarStore.h
+// CapabilityPack.h
 
-#ifndef MISC_CVARSTORE_H
-#define MISC_CVARSTORE_H
+#ifndef CAPABILITY_PACK_H
+#define CAPABILITY_PACK_H
 
-#include "common/Common.h"
+#include <SDL3/SDL_vulkan.h>
 
-extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount;
+#include "engine/qcommon/q_shared.h"
 
-extern Cvar::Cvar<std::string> r_vkMemoryChunkConfig;
+#include "Vulkan.h"
 
-extern Cvar::Range<Cvar::Cvar<int>> r_vkMemoryPageSize;
+#include "../Math/NumberTypes.h"
+#include "../Version.h"
+#include "../Memory/Array.h"
 
-#endif // MISC_CVARSTORE_H
+template<const uint32 instanceExtensionCount, const uint32 extensionCount, const uint32 featureCount>
+struct CapabilityPack {
+	const Version minVersion;
+
+	const Array<const char*, instanceExtensionCount> requiredInstanceExtensions;
+	const Array<const char*, extensionCount> requiredExtensions;
+	const Array<const char*, featureCount> requiredFeatures;
+};
+
+namespace CapabilityPackType {
+	enum Type {
+		MINIMAL,
+		RECOMMENDED,
+		EXPERIMENTAL
+	};
+}
+
+constexpr Array instanceExtensions {
+	"VK_LAYER_KHRONOS_validation",
+	"VK_KHR_get_physical_device_properties"
+};
+
+constexpr Array extensionsMinimal {
+	"VK_EXT_descriptor_indexing"
+};
+
+constexpr Array featuresMinimal {
+	"VK_EXT_descriptor_indexing"
+};
+
+constexpr CapabilityPack<instanceExtensions.Size(), extensionsMinimal.Size(), featuresMinimal.Size()> capabilityPackMinimal {
+	.minVersion { 1, 3, 0 },
+	.requiredInstanceExtensions = instanceExtensions,
+	.requiredExtensions = extensionsMinimal,
+	.requiredFeatures = featuresMinimal
+};
+
+#endif // CAPABILITY_PACK_H

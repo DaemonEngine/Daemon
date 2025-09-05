@@ -52,8 +52,14 @@ cvar_t* r_allowResize;
 
 #include "Surface/Surface.h"
 
+#include "engine/framework/System.h"
+#include "Thread/SyncTask.h"
+
 Surface mainSurface;
 SDL_Window* window;
+
+static Cvar::Cvar<int> r_width( "r_width", "width", Cvar::NONE, 0 );
+static Cvar::Cvar<int> r_height( "r_height", "height", Cvar::NONE, 0 );
 
 namespace TempAPI {
 	void Shutdown( bool destroyWindow ) {
@@ -74,6 +80,9 @@ namespace TempAPI {
 		windowConfig->displayAspect = ( float ) windowConfig->displayWidth / windowConfig->displayHeight;
 		windowConfig->vidWidth = 1920;
 		windowConfig->vidHeight = 1080;
+
+		r_width.Set( 1920 );
+		r_height.Set( 1080 );
 
 		window = mainSurface.window;
 
@@ -102,8 +111,102 @@ namespace TempAPI {
 	void EndRegistration() {
 	}
 
+	Timer t;
+	static uint32_t printCount = 0;
+	static bool printed = false;
+
+	void TestPrint() {
+		Log::WarnTag( "%u", printCount );
+		std::this_thread::sleep_for( std::chrono::microseconds( 5 ) );
+
+		if ( printCount >= 1024 && !printed ) {
+			t.Stop();
+			Log::WarnTag( "%s", Timer::FormatTime( t.Time() ) );
+			printed = true;
+		}
+	}
+
+	void TestPrint2() {
+		int count = r_width.Get() * r_height.Get();
+
+		uint64_t res = 0;
+		for ( uint64_t i = 0; i < count; i++ ) {
+			res += Q_rsqrt( i );
+		}
+
+		Log::WarnTagT( "%u", res );
+	}
+
+	void TestPrint3() {
+		int count = r_width.Get() * r_height.Get();
+
+		uint64_t res = 0;
+		for ( uint64_t i = 0; i < count; i++ ) {
+			res += std::exp( i );
+		}
+
+		Log::WarnTagT( "%u", res );
+	}
+
+	void TestRecursive( int* count ) {
+		for ( int i = 0; i < *count; i++ ) {
+			Task task1{ &TestPrint };
+			Task task2{ &TestPrint };
+			Task task3{ &TestPrint };
+
+			taskList.AddTasks( { task3, task1, task2 } );
+		}
+	}
+
+	bool TestTask() {
+		Task task{ &TestPrint };
+		SyncTask( &task );
+		SyncTask( { &TestPrint } );
+
+		Task task1{ &TestPrint };
+		Task task2{ &TestPrint2 };
+		Task task3{ &TestPrint };
+		Task task4{ &TestPrint };
+
+		taskList.AddTask( task1 );
+		taskList.AddTask( task2, { task1 } );
+		taskList.AddTask( task3, { task1 } );
+		taskList.AddTask( task4, { task2 } );
+
+		Task baseTask1{ &TestPrint2 };
+		Task baseTask2{ &TestPrint3 };
+		Task baseTask3{ &TestPrint2 };
+		Task baseTask4{ &TestPrint3 };
+
+		Task task11{ &TestPrint2 };
+		Task task12{ &TestPrint };
+		Task task13{ &TestPrint3 };
+		Task task14{ &TestPrint };
+
+		taskList.AddTasks(
+			{ task11, baseTask1, baseTask2 },
+			{ task12, baseTask1, baseTask3, task3, task4 },
+			{ task13, task11, task12 },
+			{ task14, baseTask4 }
+		);
+
+		static int cnt = 30;
+		Task task20{ &TestRecursive, &cnt };
+		taskList.AddTask( task20 );
+
+		return true;
+	}
+
 	void BeginFrame() {
 		threadUplink.ExecuteCommands();
+
+		TestTask();
+
+		printCount++;
+
+		if ( printCount >= 32 ) {
+			Sys::Quit( "" );
+		}
 	}
 
 	void EndFrame( int*, int* ) {
@@ -386,6 +489,8 @@ refexport_t* GetRefAPI( int apiVersion, refimport_t* rimp ) {
 	re.GenerateTexture = TempAPI::GenerateTexture;
 	re.ShaderNameFromHandle = TempAPI::ShaderNameFromHandle;
 	re.SendBotDebugDrawCommands = TempAPI::SendBotDebugDrawCommands;
+
+	re.TestTask = TempAPI::TestTask;
 
 	return &re;
 }

@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -31,17 +31,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// MiscCVarStore.h
+// VulkanLoadFunctions.h
 
-#ifndef MISC_CVARSTORE_H
-#define MISC_CVARSTORE_H
+#include "../GraphicsCore/Vulkan.h"
 
-#include "common/Common.h"
+void VulkanLoaderInit();
+void VulkanLoaderFree();
 
-extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount;
+void VulkanLoadInstanceFunctions( VkInstance instance );
 
-extern Cvar::Cvar<std::string> r_vkMemoryChunkConfig;
-
-extern Cvar::Range<Cvar::Cvar<int>> r_vkMemoryPageSize;
-
-#endif // MISC_CVARSTORE_H
+void VulkanLoadDeviceFunctions( VkDevice device, VkInstance instance );

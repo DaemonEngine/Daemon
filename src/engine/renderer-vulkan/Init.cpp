@@ -47,6 +47,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MiscCVarStore.h"
 #include "RefAPI.h"
 
+#include "GraphicsCore/Init.h"
+
 void Init() {
 	/* TLM.main = true;
 	taskList.Init();
@@ -79,4 +81,7 @@ void Init() {
 	Log::Notice( "Large page size: %u", memoryInfo.PAGE_SIZE_LARGE );
 
 	Cvar::Latch( r_vkMemoryPageSize );
+
+	Task initGraphicsEngineTask { &InitGraphicsEngine };
+	taskList.AddTasks( { initGraphicsEngineTask } );
 }
