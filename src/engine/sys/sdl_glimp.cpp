@@ -137,6 +137,10 @@ static Cvar::Cvar<bool> workaround_glDriver_amd_oglp_disableBindlessTexture(
 	"workaround.glDriver.amd.oglp.disableBindlessTexture",
 	"Disable ARB_bindless_texture on AMD OGLP driver",
 	Cvar::NONE, true );
+Cvar::Cvar<bool> workaround_glDriver_amd_mesa_skipBindlessDepthTarget(
+	"workaround.glDriver.amd.mesa.skipBindlessDepthTarget",
+	"Disable bindless depth target on AMD and Mesa drivers",
+	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv300_useFloatVertex(
 	"workaround.glDriver.mesa.ati.rv300.useFloatVertex",
 	"Use float vertex instead of supported-but-slower half-float vertex on Mesa driver on ATI RV300 hardware",
