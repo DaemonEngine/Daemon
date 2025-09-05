@@ -92,8 +92,10 @@ class BreakpadCrashTest(Test):
             subprocess.run(Virtualize([PathJoin(BREAKPAD_DIR, "src/processor/minidump_stackwalk"), dump, SYMBOL_DIR]), check=True, stdout=sw_f, stderr=subprocess.STDOUT)
             sw_f.seek(0)
             sw = sw_f.read()
-        TRACE_FUNC = "InjectFaultCmd::Run"
-        self.Verify(TRACE_FUNC in sw, "function names not found in trace (did you build with symbols?)")
+        # Check both function names and filenames. With the Unvanquished 0.55.2 release on Linux,
+        # we get file:line info but not function names...
+        self.Verify("CommandSystem.cpp" in sw, "source file names not found in trace")
+        self.Verify("InjectFaultCmd::Run" in sw, "function names not found in trace")
 
 def Virtualize(cmdline):
     bin, *args = cmdline
