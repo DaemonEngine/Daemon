@@ -422,7 +422,7 @@ public:
 
 	static GLuint SortUniforms( std::vector<GLUniform*>& uniforms );
 	static std::vector<GLUniform*> ProcessUniforms( const GLUniform::UpdateType minType, const GLUniform::UpdateType maxType,
-		const bool skipTextures, std::vector<GLUniform*>& uniforms, GLuint& structSize, GLuint& padding );
+		const bool skipTextures, std::vector<GLUniform*>& uniforms, GLuint& structSize );
 
 	template<class T>
 	void LoadShader( T*& shader ) {
@@ -497,8 +497,8 @@ private:
 		ShaderProgramDescriptor* out );
 	void SaveShaderBinary( ShaderProgramDescriptor* descriptor );
 
-	void GenerateUniformStructDefinesText(
-		const std::vector<GLUniform*>& uniforms, const std::string& definesName,
+	uint32_t GenerateUniformStructDefinesText(
+		const std::vector<GLUniform*>& uniforms, const std::string& definesName, const uint32_t offset,
 		std::string& uniformStruct, std::string& uniformDefines );
 	std::string RemoveUniformsFromShaderText( const std::string& shaderText, const std::vector<GLUniform*>& uniforms );
 	std::string ShaderPostProcess( GLShader *shader, const std::string& shaderText, const uint32_t offset );
@@ -727,6 +727,11 @@ class GLUniform1Bool : protected GLUniform {
 	public:
 	size_t GetSize() override {
 		return sizeof( int );
+	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, &currentValue, sizeof( int ) );
+		return buffer + _std430Size;
 	}
 
 	private:
