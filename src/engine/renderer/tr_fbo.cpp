@@ -451,11 +451,11 @@ void R_InitFBOs()
 		R_CheckFBO( tr.lighttileFBO );
 	}
 
+	if ( r_liquidMapping->integer )
 	{
 		width = windowConfig.vidWidth;
 		height = windowConfig.vidHeight;
 
-		// portalRender FBO for portals, mirrors, water, cameras et cetera
 		tr.portalRenderFBO = R_CreateFBO( "_portalRender", width, height );
 		R_BindFBO( tr.portalRenderFBO );
 
