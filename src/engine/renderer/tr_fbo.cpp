@@ -280,11 +280,8 @@ void R_InitFBOs()
 	if ( glConfig.MSAA ) {
 		tr.msaaFBO = R_CreateFBO( "msaa", width, height );
 		R_BindFBO( tr.msaaFBO );
-		GL_CheckErrors();
 		R_AttachFBOTexture2D( GL_TEXTURE_2D_MULTISAMPLE, tr.currentRenderImageMSAA->texnum, 0 );
-		GL_CheckErrors();
 		R_AttachFBOTexturePackedDepthStencilMSAA( tr.currentDepthImageMSAA->texnum );
-		GL_CheckErrors();
 		R_CheckFBO( tr.msaaFBO );
 	}
 
