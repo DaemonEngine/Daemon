@@ -282,7 +282,7 @@ namespace Audio {
 	using StartSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STARTSOUND>, bool, Vec3, int, int>;
 	using StartLocalSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STARTLOCALSOUND>, int>;
 	using ClearLoopingSoundsMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_CLEARLOOPINGSOUNDS>>;
-	using AddLoopingSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_ADDLOOPINGSOUND>, int, int>;
+	using AddLoopingSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_ADDLOOPINGSOUND>, int, int, bool>;
 	using StopLoopingSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STOPLOOPINGSOUND>, int>;
 	using UpdateEntityPositionMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYPOSITION>, int, Vec3>;
 	using RespatializeMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_RESPATIALIZE>, int, std::array<Vec3, 3>>;
@@ -291,7 +291,7 @@ namespace Audio {
 	using UpdateEntityVelocityMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYVELOCITY>, int, Vec3>;
 	using UpdateEntityPositionVelocityMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYPOSITIONVELOCITY>, int, Vec3, Vec3>;
 	using SetReverbMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_SETREVERB>, int, std::string, float>;
-	using BeginRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_BEGINREGISTRATION>>;
+	using BeginRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_BEGINREGISTRATION>, int>;
 	using EndRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_ENDREGISTRATION>>;
 }
 

@@ -153,7 +153,7 @@ void trap_S_ClearLoopingSounds( bool )
 	cmdBuffer.SendMsg<Audio::ClearLoopingSoundsMsg>();
 }
 
-void trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx )
+void trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, bool persistent )
 {
 	if (origin) {
 		trap_S_UpdateEntityPosition(entityNum, origin);
@@ -161,12 +161,7 @@ void trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t ve
 	if (velocity) {
 		trap_S_UpdateEntityVelocity(entityNum, velocity);
 	}
-	cmdBuffer.SendMsg<Audio::AddLoopingSoundMsg>(entityNum, sfx);
-}
-
-void trap_S_AddRealLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx )
-{
-	trap_S_AddLoopingSound(entityNum, origin, velocity, sfx);
+	cmdBuffer.SendMsg<Audio::AddLoopingSoundMsg>( entityNum, sfx, persistent );
 }
 
 void trap_S_StopLoopingSound( int entityNum )
@@ -223,9 +218,9 @@ void trap_S_SetReverb( int slotNum, const char* name, float ratio )
 	cmdBuffer.SendMsg<Audio::SetReverbMsg>(slotNum, name, ratio);
 }
 
-void trap_S_BeginRegistration()
+void trap_S_BeginRegistration( const int playerNum )
 {
-	cmdBuffer.SendMsg<Audio::BeginRegistrationMsg>();
+	cmdBuffer.SendMsg<Audio::BeginRegistrationMsg>( playerNum );
 }
 
 void trap_S_EndRegistration()

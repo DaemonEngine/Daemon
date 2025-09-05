@@ -47,7 +47,7 @@ namespace Audio {
     }
 
 
-    void BeginRegistration() {
+    void BeginRegistration( const int ) {
     }
 
     sfxHandle_t RegisterSFX(Str::StringRef) {
@@ -65,7 +65,7 @@ namespace Audio {
     }
 
 
-    void AddEntityLoopingSound(int, sfxHandle_t) {
+    void AddEntityLoopingSound(int, sfxHandle_t, bool) {
     }
 
     void ClearAllLoopingSounds() {
