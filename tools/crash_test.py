@@ -53,7 +53,7 @@ class Test:
         try:
             self.Do()
         except Exception as e:
-            traceback.print_exception(e)
+            traceback.print_exc()
             self.status = "FAILED"
         self.End()
         return self.status == "PASSED"
@@ -73,12 +73,14 @@ class BreakpadCrashTest(Test):
 
     def Do(self):
         vmtype = "0" if SYMBOL_ZIPS else "1"
-        print("Running daemon...")
+        print("Running Daemon...")
         p = subprocess.run([self.engine,
                             "-noforward", # catch stupid Linux persistent sockets (if gamelogic test...)
                             "-homepath", self.dir,
                             "-set", "vm.sgame.type", vmtype,
                             "-set", "vm.cgame.type", vmtype,
+                            "-set", "vm.timeout", "30", # Timeout higher than the default since we might
+                                                        # test on emulators that are too slow for real use
                             "-set", "sv_fps", "1000",
                             "-set", "common.framerate.max", "0",
                             "-set", "client.errorPopup", "0",
@@ -101,8 +103,9 @@ class BreakpadCrashTest(Test):
         sw_out = PathJoin(TEMP_DIR, self.name + "_stackwalk.log")
         with open(sw_out, "a+") as sw_f:
             print(f"Extracting stack trace to '{sw_out}'...")
-            sw_f.truncate()
-            subprocess.run(Virtualize([PathJoin(BREAKPAD_DIR, "src/processor/minidump_stackwalk"), dump, SYMBOL_DIR]), check=True, stdout=sw_f, stderr=subprocess.STDOUT)
+            sw_f.truncate(0)
+            subprocess.run(Virtualize([PathJoin(BREAKPAD_DIR, "src/processor/minidump_stackwalk"), dump, SYMBOL_DIR]),
+                           check=True, stdout=sw_f, stderr=sw_f)
             sw_f.seek(0)
             sw = sw_f.read()
         TRACE_FUNC = "InjectFaultCmd::Run"
@@ -148,6 +151,7 @@ class ModuleCrashTests(Test):
         else:
             tprefix = ""
             eng = module
+            assert os.path.isfile(PathJoin(GAME_DIR, "crash_server" + EXE))
         engine = ModulePath(eng)
         assert os.path.isfile(engine), engine
 
@@ -214,6 +218,10 @@ if SYMBOL_ZIPS:
         for z in SYMBOL_ZIPS:
             with zipfile.ZipFile(PathJoin(GAME_DIR, z), 'r') as z:
                 z.extractall(SYMBOL_DIR)
+    if sys.platform == "darwin":
+        assert os.path.isdir(os.path.join(GAME_DIR, "Unvanquished.app"))
+        DAEMON_USER_ARGS = ["-pakpath", os.path.join(GAME_DIR, "pkg")] + DAEMON_USER_ARGS
+        GAME_DIR = os.path.join(GAME_DIR, "Unvanquished.app/Contents/MacOS")
 else:
     print("No symbol zip detected. Using end-to-end Breakpad tooling test mode with dump_syms")
 
