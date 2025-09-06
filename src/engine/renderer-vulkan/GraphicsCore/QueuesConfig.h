@@ -31,70 +31,52 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// CapabilityPack.h
+// QueuesConfig.h
 
-#ifndef CAPABILITY_PACK_H
-#define CAPABILITY_PACK_H
-
-#include <SDL3/SDL_vulkan.h>
-
-#include "engine/qcommon/q_shared.h"
+#ifndef QUEUES_CONFIG_H
+#define QUEUES_CONFIG_H
 
 #include "Vulkan.h"
 
 #include "../Math/NumberTypes.h"
-#include "../Version.h"
-#include "../Memory/Array.h"
+#include "../Memory/IteratorSeq.h"
 
-#include "EngineConfig.h"
-
-template<const uint32 instanceExtensionCount, const uint32 extensionCount, const uint32 featureCount>
-struct CapabilityPack {
-	const Version minVersion;
-
-	const Array<const char*, instanceExtensionCount> requiredInstanceExtensions;
-	const Array<const char*, extensionCount> requiredExtensions;
-	const Array<const char*, featureCount> requiredFeatures;
+enum QueueType {
+	GRAPHICS = VK_QUEUE_GRAPHICS_BIT,
+	COMPUTE  = VK_QUEUE_COMPUTE_BIT,
+	TRANSFER = VK_QUEUE_TRANSFER_BIT,
+	SPARSE   = VK_QUEUE_SPARSE_BINDING_BIT
 };
 
-namespace CapabilityPackType {
-	enum Type {
-		NONE,
-		MINIMAL,
-		RECOMMENDED,
-		EXPERIMENTAL
-	};
-
-	constexpr const char* typeStrings[] = {
-		"NONE",
-		"MINIMAL",
-		"RECOMMENDED",
-		"EXPERIMENTAL"
-	};
-}
-
-constexpr Array instanceExtensions {
-	"VK_LAYER_KHRONOS_validation",
-	"VK_KHR_get_physical_device_properties2"
+struct QueueConfig {
+	QueueType type;
+	uint32 queues = 0;
+	uint32 timestampValidBits;
+	VkExtent3D minImageTransferGranularity;
 };
 
-constexpr Array extensionsMinimal {
-	"VK_EXT_descriptor_indexing"
+struct QueuesConfig {
+	QueueConfig graphicsQueue;
+	QueueConfig computeQueue;
+	QueueConfig transferQueue;
+	QueueConfig sparseQueue;
+
+	uint32 count;
+	QueueConfig queues[8];
+
+	constexpr QueueConfig& operator[]( const uint32 index ) {
+		return queues[index];
+	}
+
+	constexpr IteratorSeq<QueueConfig> begin() {
+		return IteratorSeq<QueueConfig>{ &queues[0] };
+	}
+
+	constexpr IteratorSeq<QueueConfig> end() {
+		return IteratorSeq<QueueConfig>{ &queues[count] };
+	}
 };
 
-constexpr Array featuresMinimal {
-	"VK_EXT_descriptor_indexing"
-};
+QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device );
 
-constexpr bool EngineConfigSupportedMinimal( const EngineConfig& config );
-
-CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig& config );
-
-constexpr CapabilityPack<instanceExtensions.Size(), extensionsMinimal.Size(), featuresMinimal.Size()> capabilityPackMinimal {
-	.minVersion { 1, 3, 0 },
-	.requiredInstanceExtensions = instanceExtensions,
-	.requiredExtensions = extensionsMinimal,
-	.requiredFeatures = featuresMinimal
-};
-
-#endif // CAPABILITY_PACK_H
+#endif // QUEUES_CONFIG_H

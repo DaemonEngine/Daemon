@@ -31,70 +31,61 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// CapabilityPack.h
-
-#ifndef CAPABILITY_PACK_H
-#define CAPABILITY_PACK_H
-
-#include <SDL3/SDL_vulkan.h>
-
-#include "engine/qcommon/q_shared.h"
+// QueuesConfig.h
 
 #include "Vulkan.h"
 
-#include "../Math/NumberTypes.h"
-#include "../Version.h"
 #include "../Memory/Array.h"
 
-#include "EngineConfig.h"
+#include "QueuesConfig.h"
 
-template<const uint32 instanceExtensionCount, const uint32 extensionCount, const uint32 featureCount>
-struct CapabilityPack {
-	const Version minVersion;
+static const QueueConfig* GetQueueConfigForType( QueuesConfig& config, const QueueType& type ) {
+	for ( const QueueConfig* cfg = config.queues; cfg < config.queues + config.count; cfg++ ) {
+		if ( cfg->type & type ) {
+			return cfg;
+		}
+	}
 
-	const Array<const char*, instanceExtensionCount> requiredInstanceExtensions;
-	const Array<const char*, extensionCount> requiredExtensions;
-	const Array<const char*, featureCount> requiredFeatures;
-};
-
-namespace CapabilityPackType {
-	enum Type {
-		NONE,
-		MINIMAL,
-		RECOMMENDED,
-		EXPERIMENTAL
-	};
-
-	constexpr const char* typeStrings[] = {
-		"NONE",
-		"MINIMAL",
-		"RECOMMENDED",
-		"EXPERIMENTAL"
-	};
+	return nullptr;
 }
 
-constexpr Array instanceExtensions {
-	"VK_LAYER_KHRONOS_validation",
-	"VK_KHR_get_physical_device_properties2"
-};
+QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device ) {
+	QueuesConfig config { .count = 8 };
 
-constexpr Array extensionsMinimal {
-	"VK_EXT_descriptor_indexing"
-};
+	VkQueueFamilyProperties2 propertiesArray[8] {};
+	vkGetPhysicalDeviceQueueFamilyProperties2( device, &config.count, propertiesArray );
 
-constexpr Array featuresMinimal {
-	"VK_EXT_descriptor_indexing"
-};
+	for ( int i = 0; i < config.count; i++ ) {
+		QueueConfig* cfg = &config.queues[i];
+		VkQueueFamilyProperties& coreProperties = propertiesArray[i].queueFamilyProperties;
+		
+		cfg->type = ( QueueType ) coreProperties.queueFlags;
+		cfg->queues = coreProperties.queueCount;
+		cfg->timestampValidBits = coreProperties.timestampValidBits;
+		cfg->minImageTransferGranularity = coreProperties.minImageTransferGranularity;
 
-constexpr bool EngineConfigSupportedMinimal( const EngineConfig& config );
+		if (          cfg->type & GRAPHICS ) {
+			config.graphicsQueue = *cfg;
+		} else if (   cfg->type & COMPUTE ) {
+			config.computeQueue  = *cfg;
+		} else if ( ( cfg->type & TRANSFER ) && cfg->queues > config.transferQueue.queues ) {
+			config.transferQueue = *cfg;
+		} else if ( ( cfg->type & SPARSE )   && cfg->queues > config.sparseQueue.queues ) {
+			config.sparseQueue   = *cfg;
+		}
+	}
 
-CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig& config );
+	if ( !config.computeQueue.queues ) {
+		config.computeQueue = *GetQueueConfigForType( config, COMPUTE );
+	}
 
-constexpr CapabilityPack<instanceExtensions.Size(), extensionsMinimal.Size(), featuresMinimal.Size()> capabilityPackMinimal {
-	.minVersion { 1, 3, 0 },
-	.requiredInstanceExtensions = instanceExtensions,
-	.requiredExtensions = extensionsMinimal,
-	.requiredFeatures = featuresMinimal
-};
+	if ( !config.transferQueue.queues ) {
+		config.transferQueue = *GetQueueConfigForType( config, TRANSFER );
+	}
 
-#endif // CAPABILITY_PACK_H
+	if ( !config.sparseQueue.queues ) {
+		config.sparseQueue = *GetQueueConfigForType( config, SPARSE );
+	}
+
+	return config;
+}

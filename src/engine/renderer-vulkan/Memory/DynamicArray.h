@@ -163,6 +163,14 @@ class DynamicArray :
 	constexpr IteratorSeq<T> end() {
 		return IteratorSeq<T>{ &memory[elements] };
 	}
+
+	constexpr IteratorSeq<T> begin() const {
+		return IteratorSeq<T>{ &memory[0] };
+	}
+
+	constexpr IteratorSeq<T> end() const {
+		return IteratorSeq<T>{ &memory[elements] };
+	}
 };
 
 #endif // DYNAMIC_ARRAY_H

@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef ARRAY_H
 #define ARRAY_H
 
+#include <initializer_list>
+
 #include "../Math/NumberTypes.h"
 
 #include "IteratorSeq.h"

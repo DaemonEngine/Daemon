@@ -31,70 +31,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// CapabilityPack.h
+// PhysicalDevice.h
 
-#ifndef CAPABILITY_PACK_H
-#define CAPABILITY_PACK_H
-
-#include <SDL3/SDL_vulkan.h>
-
-#include "engine/qcommon/q_shared.h"
+#ifndef PHYSICAL_DEVICE_H
+#define PHYSICAL_DEVICE_H
 
 #include "Vulkan.h"
 
-#include "../Math/NumberTypes.h"
-#include "../Version.h"
-#include "../Memory/Array.h"
+#include "../Memory/DynamicArray.h"
 
-#include "EngineConfig.h"
+struct EngineConfig;
 
-template<const uint32 instanceExtensionCount, const uint32 extensionCount, const uint32 featureCount>
-struct CapabilityPack {
-	const Version minVersion;
+class PhysicalDevice {
+	public:
 
-	const Array<const char*, instanceExtensionCount> requiredInstanceExtensions;
-	const Array<const char*, extensionCount> requiredExtensions;
-	const Array<const char*, featureCount> requiredFeatures;
+	PhysicalDevice() = default;
+	PhysicalDevice( const VkPhysicalDeviceProperties2& properties, const VkPhysicalDeviceFeatures2& features );
 };
 
-namespace CapabilityPackType {
-	enum Type {
-		NONE,
-		MINIMAL,
-		RECOMMENDED,
-		EXPERIMENTAL
-	};
+bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, EngineConfig* config );
 
-	constexpr const char* typeStrings[] = {
-		"NONE",
-		"MINIMAL",
-		"RECOMMENDED",
-		"EXPERIMENTAL"
-	};
-}
-
-constexpr Array instanceExtensions {
-	"VK_LAYER_KHRONOS_validation",
-	"VK_KHR_get_physical_device_properties2"
-};
-
-constexpr Array extensionsMinimal {
-	"VK_EXT_descriptor_indexing"
-};
-
-constexpr Array featuresMinimal {
-	"VK_EXT_descriptor_indexing"
-};
-
-constexpr bool EngineConfigSupportedMinimal( const EngineConfig& config );
-
-CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig& config );
-
-constexpr CapabilityPack<instanceExtensions.Size(), extensionsMinimal.Size(), featuresMinimal.Size()> capabilityPackMinimal {
-	.minVersion { 1, 3, 0 },
-	.requiredInstanceExtensions = instanceExtensions,
-	.requiredExtensions = extensionsMinimal,
-	.requiredFeatures = featuresMinimal
-};
-
-#endif // CAPABILITY_PACK_H
+#endif // PHYSICAL_DEVICE_H

@@ -40,13 +40,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Math/NumberTypes.h"
 #include "../Memory/DynamicArray.h"
 
+#include "Vulkan.h"
+#include "../VulkanLoader/VulkanLoadFunctions.h"
+
 #include "CapabilityPack.h"
+#include "EngineConfig.h"
+#include "PhysicalDevice.h"
 
 #include "Instance.h"
-
-#include "Vulkan.h"
-
-#include "../VulkanLoader/VulkanLoadFunctions.h"
 
 Instance coreInstance;
 
@@ -107,4 +108,10 @@ void Instance::Init( const char* engineName, const char* appName ) {
 
 	vkGetPhysicalDeviceFeatures2( availableDevices[1], &f );
 	vkGetPhysicalDeviceProperties2( availableDevices[1], &p );
+
+	EngineConfig cfg;
+
+	if ( !SelectPhysicalDevice( availableDevices, &cfg ) ) {
+		return;
+	}
 }

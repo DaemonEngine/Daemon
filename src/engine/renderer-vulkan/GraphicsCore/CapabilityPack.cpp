@@ -34,3 +34,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // CapabilityPack.cpp
 
 #include "CapabilityPack.h"
+
+constexpr bool EngineConfigSupportedMinimal( const EngineConfig& config ) {
+	const bool ret =
+		config.subgroupQuadOpsAllStages && config.robustBufferAccessDynamic
+		&& config.quadDivergentImplicitLod
+		&& config.textureCompressionBC
+		&& config.descriptorIndexing
+		&& config.descriptorBindingUpdateUnusedWhilePending
+		&& config.descriptorBindingPartiallyBound
+		&& config.descriptorBindingVariableDescriptorCount
+		&& config.runtimeDescriptorArray
+		&& config.shaderSampledImageArrayNonUniformIndexing
+		&& config.shaderStorageImageArrayNonUniformIndexing
+		&& config.dynamicRendering
+		&& config.synchronization2;
+
+	return ret;
+};
+
+CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig& config ) {
+	if ( EngineConfigSupportedMinimal( config ) ) {
+		return CapabilityPackType::MINIMAL;
+	}
+
+	return CapabilityPackType::NONE;
+}
