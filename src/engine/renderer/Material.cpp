@@ -127,8 +127,12 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 	pStage->dynamic = pStage->dynamic || pStage->colorDynamic;
 }
 
-// UpdateSurface*() functions will actually write the uniform values to the SSBO
-// Mirrors parts of the Render_*() functions in tr_shade.cpp
+/* UpdateSurfaceData*() functions will write the material uniform values to the UBO
+Mirrors parts of the Render_*() functions in tr_shade.cpp
+
+All of these functions must write stage material data regardless of whether pStage has the related feature enabled,
+because stages here are combined into as few as possible,
+and the stage chosen for storage might not have all of those enabled */
 
 void UpdateSurfaceDataNONE( uint32_t*, shaderStage_t*, bool, bool, bool ) {
 	ASSERT_UNREACHABLE();
@@ -155,10 +159,7 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage, boo
 	Tess_ComputeColor( pStage );
 	gl_genericShaderMaterial->SetUniform_Color_Uint( tess.svars.color );
 
-	bool hasDepthFade = pStage->hasDepthFade;
-	if ( hasDepthFade ) {
-		gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
-	}
+	gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
 
 	gl_genericShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -189,28 +190,22 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, 
 	gl_lightMappingShaderMaterial->SetUniform_AlphaTest( pStage->stateBits );
 
 	// HeightMap
-	if ( pStage->enableReliefMapping ) {
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		depthScale *= shader->reliefDepthScale;
+	float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+	depthScale *= shader->reliefDepthScale;
 
-		gl_lightMappingShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
-		gl_lightMappingShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
-	}
+	gl_lightMappingShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
+	gl_lightMappingShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
 
 	// bind u_NormalScale
-	if ( pStage->enableNormalMapping ) {
-		vec3_t normalScale;
-		SetNormalScale( pStage, normalScale );
+	vec3_t normalScale;
+	SetNormalScale( pStage, normalScale );
 
-		gl_lightMappingShaderMaterial->SetUniform_NormalScale( normalScale );
-	}
+	gl_lightMappingShaderMaterial->SetUniform_NormalScale( normalScale );
 
-	if ( pStage->enableSpecularMapping ) {
-		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+	float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+	float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 
-		gl_lightMappingShaderMaterial->SetUniform_SpecularExponent( specExpMin, specExpMax );
-	}
+	gl_lightMappingShaderMaterial->SetUniform_SpecularExponent( specExpMin, specExpMax );
 
 	gl_lightMappingShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -237,21 +232,17 @@ void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage, bo
 		GL_BindToTMU( 0, probes[0]->cubemap )
 	);
 
-	if ( pStage->enableNormalMapping ) {
-		vec3_t normalScale;
-		SetNormalScale( pStage, normalScale );
+	vec3_t normalScale;
+	SetNormalScale( pStage, normalScale );
 
-		gl_reflectionShaderMaterial->SetUniform_NormalScale( normalScale );
-	}
+	gl_reflectionShaderMaterial->SetUniform_NormalScale( normalScale );
 
 	// u_depthScale u_reliefOffsetBias
-	if ( pStage->enableReliefMapping ) {
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		float reliefDepthScale = shader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
-		gl_reflectionShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
-		gl_reflectionShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
-	}
+	float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+	float reliefDepthScale = shader->reliefDepthScale;
+	depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
+	gl_reflectionShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
+	gl_reflectionShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
 
 	gl_reflectionShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -288,13 +279,11 @@ void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool
 	float deformMagnitude = RB_EvalExpression( &pStage->deformMagnitudeExp, 1.0 );
 	gl_heatHazeShaderMaterial->SetUniform_DeformMagnitude( deformMagnitude );
 
-	if ( pStage->enableNormalMapping ) {
-		vec3_t normalScale;
-		SetNormalScale( pStage, normalScale );
+	vec3_t normalScale;
+	SetNormalScale( pStage, normalScale );
 
-		// bind u_NormalScale
-		gl_heatHazeShaderMaterial->SetUniform_NormalScale( normalScale );
-	}
+	// bind u_NormalScale
+	gl_heatHazeShaderMaterial->SetUniform_NormalScale( normalScale );
 
 	gl_heatHazeShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -318,35 +307,29 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, 
 
 	// NOTE: specular component is computed by shader.
 	// FIXME: physical mapping is not implemented.
-	if ( pStage->enableSpecularMapping ) {
-		float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
-		gl_liquidShaderMaterial->SetUniform_SpecularExponent( specMin, specMax );
-	}
+	float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+	float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+	gl_liquidShaderMaterial->SetUniform_SpecularExponent( specMin, specMax );
 
 	// bind u_CurrentMap
 	gl_liquidShaderMaterial->SetUniform_CurrentMapBindless( GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) );
 
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
-	if ( pStage->enableReliefMapping ) {
-		float depthScale;
-		float reliefDepthScale;
+	float depthScale;
+	float reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
-		gl_liquidShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
-		gl_liquidShaderMaterial->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
-	}
+	depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+	reliefDepthScale = tess.surfaceShader->reliefDepthScale;
+	depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
+	gl_liquidShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
+	gl_liquidShaderMaterial->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 	// bind u_NormalScale
-	if ( pStage->enableNormalMapping ) {
-		vec3_t normalScale;
-		// FIXME: NormalIntensity default was 0.5
-		SetNormalScale( pStage, normalScale );
+	vec3_t normalScale;
+	// FIXME: NormalIntensity default was 0.5
+	SetNormalScale( pStage, normalScale );
 
-		gl_liquidShaderMaterial->SetUniform_NormalScale( normalScale );
-	}
+	gl_liquidShaderMaterial->SetUniform_NormalScale( normalScale );
 
 	gl_liquidShaderMaterial->WriteUniformsToBuffer( materials );
 }

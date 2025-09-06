@@ -40,6 +40,7 @@ std::string GetGLHardwareVendorName( glHardwareVendor_t hardwareVendor )
 		"Unknown",
 		"Software rasterizer",
 		"API Translator",
+		"Apple",
 		"Arm",
 		"AMD/ATI",
 		"Broadcom",
@@ -65,6 +66,7 @@ std::string GetGLDriverVendorName( glDriverVendor_t driverVendor )
 {
 	static const std::string driverVendorNames[] = {
 		"Unknown",
+		"Apple",
 		"AMD/ATI",
 		"Intel",
 		"Mesa",
@@ -126,6 +128,33 @@ void DetectGLVendors(
 	{
 		driverVendor = it->second.first;	
 		hardwareVendor = it->second.second;	
+		return;
+	}
+
+	static const std::string appleVendors[] = {
+		"Apple",
+		"Apple Inc.",
+		"Apple Computer, Inc.",
+	};
+
+	for ( auto& s : appleVendors )
+	{
+		if ( vendorString == s )
+		{
+			driverVendor = glDriverVendor_t::APPLE;
+			break;
+		}
+	}
+
+	if ( driverVendor == glDriverVendor_t::APPLE )
+	{
+		if ( rendererString == "Apple Software Renderer" )
+		{
+			hardwareVendor = glHardwareVendor_t::SOFTWARE;
+			return;
+		}
+
+		hardwareVendor = glHardwareVendor_t::APPLE;
 		return;
 	}
 
@@ -225,6 +254,7 @@ void DetectGLVendors(
 		/* Those substrings at the beginning of a renderer string are assumed to be unambiguous about
 		the hardware or underlying technology. */
 		static const std::pair<std::string, glHardwareVendor_t> rendererStartStringHardware[] = {
+			{ "Apple ", glHardwareVendor_t::APPLE },
 			{ "ATI ", glHardwareVendor_t::ATI },
 			{ "AMD ", glHardwareVendor_t::ATI },
 			{ "i915 ", glHardwareVendor_t::INTEL },

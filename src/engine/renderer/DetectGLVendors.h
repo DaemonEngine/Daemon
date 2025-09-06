@@ -50,6 +50,7 @@ enum class glHardwareVendor_t
 	driver, or an OpenGL virtualization driver sending commands to an hypervisor. */
 	TRANSLATION,
 	// Assumed to be fast (running on GPU directly).
+	APPLE,
 	ARM,
 	ATI,
 	BROADCOM,
@@ -61,6 +62,7 @@ enum class glHardwareVendor_t
 enum class glDriverVendor_t
 {
 	UNKNOWN,
+	APPLE,
 	ATI,
 	INTEL,
 	MESA,

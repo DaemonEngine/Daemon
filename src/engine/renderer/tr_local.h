@@ -2469,7 +2469,7 @@ enum
 		FBO_t *depthtile1FBO;
 		FBO_t *depthtile2FBO;
 		FBO_t *lighttileFBO;
-		FBO_t *portalRenderFBO; // holds a copy of the last currentRender that was rendered into a FBO
+		FBO_t *portalRenderFBO; // used with liquidMapping shader
 		FBO_t *contrastRenderFBO;
 		FBO_t *bloomRenderFBO[ 2 ];
 
