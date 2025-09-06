@@ -27,10 +27,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "q_shared.h"
 #include "qcommon.h"
 
+/* The Nettle headers include the GMP header, this disables the warning
+on GMP alone, not the whole Nettle. We don't use GMP directly ourselves. */
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4146) // "unary minus operator applied to unsigned type, result still unsigned"
 #include <gmp.h>
 #pragma warning(pop)
+#endif
 
 #include <nettle/bignum.h>
 #include <nettle/rsa.h>
