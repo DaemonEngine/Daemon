@@ -214,7 +214,7 @@ else()
 endif()
 
 # Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 10)
+set(DEPS_VERSION 11)
 
 option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
 
@@ -454,22 +454,38 @@ if (DEPS_DIR)
     if (NOT EXISTS ${DEPS_DIR})
         file(MAKE_DIRECTORY ${EXTERNAL_DEPS_DIR})
         get_filename_component(BASENAME ${DEPS_DIR} NAME)
-        set(REMOTE "https://dl.unvanquished.net/deps/${BASENAME}${DEPS_EXT}")
-        message(STATUS "Downloading dependencies from '${REMOTE}'")
-        file(DOWNLOAD ${REMOTE} ${OBJ_DIR}/${BASENAME}${DEPS_EXT}
-            SHOW_PROGRESS
-            STATUS DOWNLOAD_RESULT
-            LOG DOWNLOAD_LOG
-        )
-        list(GET DOWNLOAD_RESULT 0 DOWNLOAD_STATUS)
-        list(GET DOWNLOAD_RESULT 1 DOWNLOAD_STRING)
+		set(DEPS_FILENAME "${BASENAME}${DEPS_EXT}")
+
+		# Download test DEPS archive if DEPS archive isn't available yet.
+		# This makes possible to get the CI working before releasing the DEPS archive.
+		foreach(REMOTE_BASEURL https://dl.unvanquished.net/deps;https://dl.unvanquished.net/test/deps)
+			set(REMOTE "${REMOTE_BASEURL}/${DEPS_FILENAME}")
+			message(STATUS "Downloading dependencies from '${REMOTE}'")
+
+			file(DOWNLOAD "${REMOTE}" "${OBJ_DIR}/${DEPS_FILENAME}"
+				SHOW_PROGRESS
+				STATUS DOWNLOAD_RESULT
+				LOG DOWNLOAD_LOG
+			)
+
+			list(GET DOWNLOAD_RESULT 0 DOWNLOAD_STATUS)
+			list(GET DOWNLOAD_RESULT 1 DOWNLOAD_STRING)
+
+			if (DOWNLOAD_STATUS EQUAL 0)
+				break()
+			else ()
+				message(WARNING "Error downloading '${REMOTE}':
+					Status code: ${DOWNLOAD_STATUS}
+					Error string: ${DOWNLOAD_STRING}
+					Download log: ${DOWNLOAD_LOG}"
+				)
+			endif()
+		endforeach()
+
         if (NOT DOWNLOAD_STATUS EQUAL 0)
-            message(FATAL_ERROR "Error downloading '${REMOTE}':
-                Status code: ${DOWNLOAD_STATUS}
-                Error string: ${DOWNLOAD_STRING}
-                Download log: ${DOWNLOAD_LOG}"
-            )
+            message(FATAL_ERROR "Failed to download '${DEPS_FILENAME}'")
         endif()
+
         message(STATUS "Download completed successfully")
 
         # Extract the downloaded archive
@@ -486,7 +502,7 @@ if (DEPS_DIR)
     # Add to paths
     set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH})
     set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH})
-    set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR} ${CMAKE_FRAMEWORK_PATH})
+    set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR}/lib ${CMAKE_FRAMEWORK_PATH})
     set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH})
     if (DAEMON_PARENT_SCOPE_DIR)
         # Also set parent scope so the top level CMakeLists can find precompiled deps
@@ -709,30 +725,12 @@ endif()
 
 # SDL, required for all targets on win32 because of iconv and SDL_SetHint(SDL_TIMER_RESOLUTION, 0)
 if (BUILD_CLIENT OR WIN32)
-    find_package(SDL2 CONFIG)
-
-    if (SDL2_SDL2main_FOUND)
-        mark_as_advanced(SDL2_DIR)
-    else()
-        # We cannot use REQUIRED because it would look
-        # for OldSDL2_FOUND instead of SDL2_FOUND.
-        find_package(OldSDL2)
-
-        if (NOT SDL2_FOUND)
-            message(FATAL_ERROR "Could NOT find SDL2")
-        endif()
-
-        include_directories(${SDL2_INCLUDE_DIR})
-
-        mark_as_advanced(SDL2MAIN_LIBRARY SDL2_LIBRARY SDL2_INCLUDE_DIR)
-    endif ()
+    find_package(SDL3 REQUIRED CONFIG)
 
     if (WIN32)
-        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE}
-            $<$<TARGET_EXISTS:SDL2::SDL2main>:SDL2::SDL2main> SDL2::SDL2)
+        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} SDL3::SDL3)
     else()
-        set(LIBS_CLIENT ${LIBS_CLIENT}
-            $<$<TARGET_EXISTS:SDL2::SDL2main>:SDL2::SDL2main> SDL2::SDL2)
+        set(LIBS_CLIENT ${LIBS_CLIENT} SDL3::SDL3)
     endif()
 endif()
 
@@ -1062,11 +1060,16 @@ if (DEPS_DIR AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMM
 
     # Mac requires some libraries from external_deps
     if (APPLE)
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${DEPS_DIR}/SDL2.framework
-                ${FULL_OUTPUT_DIR}/SDL2.framework
-        )
+        file(GLOB RUNTIME_FRAMEWORKS ${DEPS_DIR}/lib/*.framework)
+        foreach(RUNTIME_FRAMEWORK ${RUNTIME_FRAMEWORKS})
+            get_filename_component(RUNTIME_FRAMEWORK_NAME ${RUNTIME_FRAMEWORK} NAME)
+            add_custom_command(TARGET runtime_deps PRE_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${RUNTIME_FRAMEWORK}
+                    ${FULL_OUTPUT_DIR}/${RUNTIME_FRAMEWORK_NAME}
+            )
+        endforeach()
+
         file(GLOB RUNTIME_LIBS ${DEPS_DIR}/lib/*.dylib)
         foreach(RUNTIME_LIB ${RUNTIME_LIBS})
             add_custom_command(TARGET runtime_deps PRE_BUILD
@@ -1079,7 +1082,7 @@ if (DEPS_DIR AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMM
 
     # Windows requires some libraries from external_deps
     if (WIN32)
-        file(GLOB RUNTIME_LIBS ${DEPS_DIR}/bin/*.dll ${DEPS_DIR}/SDL2/lib/*/SDL2.dll)
+        file(GLOB RUNTIME_LIBS ${DEPS_DIR}/bin/*.dll ${DEPS_DIR}/SDL3/lib/*/SDL3.dll)
         foreach(RUNTIME_LIB ${RUNTIME_LIBS})
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
