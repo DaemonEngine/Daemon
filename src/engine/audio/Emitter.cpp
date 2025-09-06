@@ -261,7 +261,7 @@ namespace Audio {
     Emitter::~Emitter() = default;
 
     void Emitter::SetupSound(Sound& sound) {
-        sound.GetSource().SetReferenceDistance(120.0f);
+        sound.source->SetReferenceDistance(120.0f);
         InternalSetupSound(sound);
         UpdateSound(sound);
     }
@@ -278,7 +278,7 @@ namespace Audio {
     }
 
     void EntityEmitter::UpdateSound(Sound& sound) {
-        AL::Source& source = sound.GetSource();
+        AL::Source& source = *sound.source;
 
         if (entityNum == listenerEntity) {
             MakeLocal(source);
@@ -288,7 +288,7 @@ namespace Audio {
     }
 
     void EntityEmitter::InternalSetupSound(Sound& sound) {
-        AL::Source& source = sound.GetSource();
+        AL::Source& source = *sound.source;
 
         Make3D(source, entities[entityNum].position, entities[entityNum].velocity);
     }
@@ -306,13 +306,13 @@ namespace Audio {
     }
 
     void PositionEmitter::UpdateSound(Sound& sound) {
-        AL::Source& source = sound.GetSource();
+        AL::Source& source = *sound.source;
 
         Make3D(source, position, origin);
     }
 
     void PositionEmitter::InternalSetupSound(Sound& sound) {
-        AL::Source& source = sound.GetSource();
+        AL::Source& source = *sound.source;
 
         Make3D(source, position, origin);
     }
@@ -334,7 +334,7 @@ namespace Audio {
     }
 
     void LocalEmitter::InternalSetupSound(Sound& sound) {
-        AL::Source& source = sound.GetSource();
+        AL::Source& source = *sound.source;
 
         MakeLocal(source);
     }
