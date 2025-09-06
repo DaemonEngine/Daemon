@@ -93,38 +93,44 @@ log() {
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
 extract() {
-	rm -rf "${2}"
-	mkdir -p "${2}"
-	case "${1}" in
+	local archive_file="${1}"; shift
+	local extract_dir="${1}"; shift
+
+	local archive_name="$(basename "${archive_file}")"
+	log STATUS "Extracting ${archive_name}"
+
+	rm -rf "${extract_dir}"
+	mkdir -p "${extract_dir}"
+	case "${archive_file}" in
 	*.tar.bz2)
-		tar xjf "${1}" -C "${2}"
+		tar xjf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.tar.xz)
-		tar xJf "${1}" -C "${2}"
+		tar xJf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.tar.gz|*.tgz)
-		tar xzf "${1}" -C "${2}"
+		tar xzf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.zip)
-		unzip -d "${2}" "${1}"
+		unzip -d "${extract_dir}" "${archive_file}"
 		;;
 	*.cygtar.bz2)
 		# Some Windows NaCl SDK packages have incorrect symlinks, so use
 		# cygtar to extract them.
-		"${SCRIPT_DIR}/cygtar.py" -xjf "${1}" -C "${2}"
+		"${SCRIPT_DIR}/cygtar.py" -xjf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.dmg)
 		local dmg_temp_dir="$(mktemp -d)"
-		hdiutil attach -mountpoint "${dmg_temp_dir}" "${1}"
-		cp -R "${dmg_temp_dir}/"* "${2}/"
+		hdiutil attach -mountpoint "${dmg_temp_dir}" "${archive_file}"
+		cp -R "${dmg_temp_dir}/"* "${extract_dir}/"
 		hdiutil detach "${dmg_temp_dir}"
 		rmdir "${dmg_temp_dir}"
 		;;
 	*)
-		log ERROR "Unknown archive type for ${1}"
+		log ERROR "Unknown archive type for ${archive_name}"
 		;;
 	esac
-	cd "${2}"
+	cd "${extract_dir}"
 }
 
 download() {
