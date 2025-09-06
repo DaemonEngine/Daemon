@@ -1733,6 +1733,10 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 	StartupWMClass variable to PRODUCT_APPID. */
 	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_IDENTIFIER_STRING, PRODUCT_APPID );
 
+	/* Disable DPI scaling.
+	See the SDL wiki page for details: https://wiki.libsdl.org/SDL3/SDL_HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY */
+	SDL_SetHint( SDL_HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY, "1" );
+
 	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
 	{
 		const char *driverName;
