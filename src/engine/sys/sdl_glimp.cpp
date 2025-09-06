@@ -1722,19 +1722,16 @@ GLimp_StartDriverAndSetMode
 */
 static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordered )
 {
-#if !defined(_WIN32) && !defined(__APPLE__)
+	// See the SDL wiki page for details: https://wiki.libsdl.org/SDL3/SDL_SetAppMetadataProperty
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_NAME_STRING, PRODUCT_NAME );
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_VERSION_STRING, PRODUCT_VERSION );
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_TYPE_STRING, "game" );
+
 	/* Let X11 and Wayland desktops (Linux, FreeBSD…) associate the game
 	window with the XDG .desktop file, with the proper name and icon.
 	The .desktop file should have PRODUCT_APPID as base name or set the
 	StartupWMClass variable to PRODUCT_APPID. */
-
-	// SDL2.
-	Sys::SetEnv( "SDL_VIDEO_X11_WMCLASS", PRODUCT_APPID );
-	Sys::SetEnv( "SDL_VIDEO_WAYLAND_WMCLASS", PRODUCT_APPID );
-
-	// SDL3.
-	Sys::SetEnv( "SDL_HINT_APP_ID", PRODUCT_APPID );
-#endif
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_IDENTIFIER_STRING, PRODUCT_APPID );
 
 	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
 	{
