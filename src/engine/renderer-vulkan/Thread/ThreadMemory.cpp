@@ -141,13 +141,25 @@ byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {
 		chunkID |= id << 4;
 	}
 
-	std::string source = FormatStackTrace( std::stacktrace::current(), true, true );
-	AllocationRecord alloc{ .size = dataSize, .alignment = ( uint32 ) alignment, .chunkID = chunkID };
+	#ifdef _MSC_VER
+		static constexpr const char* pathStrip = "engine\\renderer-vulkan\\";
+	#else
+		static constexpr const char* pathStrip = "engine/renderer-vulkan/";
+	#endif
 
-	Q_strncpyz( alloc.source, source.size() < 104 ? source.c_str() : source.c_str() + ( source.size() - 103 ), 103 );
+	std::string source = FormatStackTrace( std::stacktrace::current(), true, true );
+
+	uint32_t pos = 0;
+	while ( ( pos = source.find( pathStrip, pos ) ) < source.size() ) {
+		source = source.erase( pos, strlen( pathStrip ) );
+	}
+
+	AllocationRecord alloc { .size = dataSize, .alignment = ( uint32 ) alignment, .chunkID = chunkID };
+
+	Q_strncpyz( alloc.source, source.c_str(), 103 );
 	alloc.source[103] = '\0';
 
-	*( ( AllocationRecord* ) found->chunk.memory + found->offset ) = alloc;
+	*( ( AllocationRecord* ) ( found->chunk.memory + found->offset ) ) = alloc;
 
 	byte* ret = found->chunk.memory + found->offset + sizeof( AllocationRecord );
 	found->offset += paddedSize;
@@ -163,11 +175,11 @@ void ThreadMemory::Free( byte* memory ) {
 		Err( "Memory chunk corrupted: %s", record->Format() );
 	}
 
+	UnSetBit( &record->chunkID, 31 );
+
 	uint32 chunkID = record->chunkID >> 4;
 	uint32 area = chunkID / 64;
 	ChunkAllocator& chunkAllocator = chunkAllocators[record->chunkID & 0xF][area];
-
-	UnSetBit( &record->chunkID, 31 );
 
 	uint32 chunk = chunkID - area;
 	chunkAllocator.chunks[chunk].allocs--;
