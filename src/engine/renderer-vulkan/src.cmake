@@ -74,16 +74,20 @@ set(GRAPHICSCORELIST
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineConfig.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineConfig.h
-    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/QueuesConfig.cpp
-    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/QueuesConfig.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreCVars.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreCVars.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreStore.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreStore.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Init.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Init.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Instance.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Instance.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/PhysicalDevice.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/PhysicalDevice.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Queue.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Queue.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/QueuesConfig.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/QueuesConfig.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Vulkan.h
 )
 

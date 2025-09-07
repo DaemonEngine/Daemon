@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // PhysicalDevice.cpp
 
 #include "../Math/NumberTypes.h"
+#include "../Memory/Array.h"
+#include "../Memory/DynamicArray.h"
 #include "../Error.h"
 
 #include "GraphicsCoreCVars.h"
@@ -58,7 +60,7 @@ static void PrintDeviceInfo( const EngineConfig& config ) {
 		config.conformanceVersion.major, config.conformanceVersion.minor, config.conformanceVersion.patch );
 }
 
-bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, EngineConfig* config ) {
+bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, EngineConfig* config, VkPhysicalDevice* deviceOut ) {
 	if ( !devices.size ) {
 		Err( "No Vulkan devices found" );
 		return false;
@@ -109,7 +111,45 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 
 	*config = bestCFG;
 
-	QueuesConfig queuesConfig = GetQueuesConfigForDevice( *bestDevice );
+	*deviceOut = *bestDevice;
 
 	return true;
+}
+
+void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config, QueuesConfig& queuesConfig,
+	const char* const* requiredExtensions, const uint32 extensionCount,
+	VkDevice* device ) {
+	VkPhysicalDeviceVulkan12Features features12 {};
+	VkPhysicalDeviceVulkan13Features features13 { .pNext = &features12 };
+	VkPhysicalDeviceFeatures2        features   { .pNext = &features13 };
+
+	vkGetPhysicalDeviceFeatures2( physicalDevice, &features );
+
+	DynamicArray<VkDeviceQueueCreateInfo> queueInfos;
+	queueInfos.Resize( queuesConfig.count );
+
+	for ( uint32 i = 0; i < queuesConfig.count; i++ ) {
+		DynamicArray<float> priorities;
+		priorities.Resize( queuesConfig[i].queues );
+
+		for ( float* value = priorities.memory; value < priorities.memory + priorities.size; value++ ) {
+			*value = 1.0f;
+		}
+
+		VkDeviceQueueCreateInfo& queueInfo = queueInfos[i];
+
+		queueInfo.queueFamilyIndex = i;
+		queueInfo.queueCount = queuesConfig[i].queues;
+		queueInfo.pQueuePriorities = priorities.memory;
+	}
+
+	VkDeviceCreateInfo info {
+		.pNext = &features,
+		.queueCreateInfoCount = queuesConfig.count,
+		.pQueueCreateInfos = queueInfos.memory,
+		.enabledExtensionCount = extensionCount,
+		.ppEnabledExtensionNames = requiredExtensions
+	};
+
+	VkResult res = vkCreateDevice( physicalDevice, &info, nullptr, device );
 }

@@ -49,6 +49,9 @@ enum QueueType {
 };
 
 struct QueueConfig {
+	uint32 id;
+	bool unique;
+
 	QueueType type;
 	uint32 queues = 0;
 	uint32 timestampValidBits;

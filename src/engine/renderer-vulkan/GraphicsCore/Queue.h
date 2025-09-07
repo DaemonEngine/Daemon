@@ -31,29 +31,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// PhysicalDevice.h
+// Queue.h
 
-#ifndef PHYSICAL_DEVICE_H
-#define PHYSICAL_DEVICE_H
+#ifndef QUEUE_H
+#define QUEUE_H
 
 #include "Vulkan.h"
 
-#include "../Memory/DynamicArray.h"
+#include "../Math/NumberTypes.h"
 
-struct EngineConfig;
-struct QueuesConfig;
+#include "QueuesConfig.h"
 
-class PhysicalDevice {
-	public:
-
-	PhysicalDevice() = default;
-	PhysicalDevice( const VkPhysicalDeviceProperties2& properties, const VkPhysicalDeviceFeatures2& features );
+struct GraphicsQueue {
+	QueueType type;
+	uint32 index;
+	VkQueue queue;
 };
 
-bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, EngineConfig* config, VkPhysicalDevice* deviceOut );
+struct GraphicsQueueRingBuffer {
+	static constexpr uint32 maxQueues = 64;
 
-void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config, QueuesConfig& queuesConfig,
-	const char* const* requiredExtensions, const uint32 extensionCount,
-	VkDevice* device );
+	GraphicsQueue queues[maxQueues] {};
 
-#endif // PHYSICAL_DEVICE_H
+	void Init( const VkDevice device, const uint32 queueGroup, uint32 count );
+};
+
+#endif // QUEUE_H

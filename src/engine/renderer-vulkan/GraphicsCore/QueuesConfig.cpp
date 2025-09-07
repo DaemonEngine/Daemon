@@ -59,6 +59,8 @@ QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device ) {
 		QueueConfig* cfg = &config.queues[i];
 		VkQueueFamilyProperties& coreProperties = propertiesArray[i].queueFamilyProperties;
 		
+		cfg->id = i;
+
 		cfg->type = ( QueueType ) coreProperties.queueFlags;
 		cfg->queues = coreProperties.queueCount;
 		cfg->timestampValidBits = coreProperties.timestampValidBits;
@@ -66,12 +68,16 @@ QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device ) {
 
 		if (          cfg->type & GRAPHICS ) {
 			config.graphicsQueue = *cfg;
+			config.graphicsQueue.unique = true;
 		} else if (   cfg->type & COMPUTE ) {
 			config.computeQueue  = *cfg;
+			config.computeQueue.unique =  true;
 		} else if ( ( cfg->type & TRANSFER ) && cfg->queues > config.transferQueue.queues ) {
 			config.transferQueue = *cfg;
+			config.transferQueue.unique = true;
 		} else if ( ( cfg->type & SPARSE )   && cfg->queues > config.sparseQueue.queues ) {
 			config.sparseQueue   = *cfg;
+			config.sparseQueue.unique =   true;
 		}
 	}
 

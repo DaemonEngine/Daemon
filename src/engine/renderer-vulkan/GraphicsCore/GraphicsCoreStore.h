@@ -31,29 +31,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// PhysicalDevice.h
+// GraphicsCoreStore.h
 
-#ifndef PHYSICAL_DEVICE_H
-#define PHYSICAL_DEVICE_H
+#ifndef GRAPHICS_CORE_STORE_H
+#define GRAPHICS_CORE_STORE_H
 
-#include "Vulkan.h"
-
-#include "../Memory/DynamicArray.h"
-
+struct GraphicsQueueRingBuffer;
 struct EngineConfig;
 struct QueuesConfig;
 
-class PhysicalDevice {
-	public:
+extern EngineConfig engineConfig;
+extern QueuesConfig queuesConfig;
 
-	PhysicalDevice() = default;
-	PhysicalDevice( const VkPhysicalDeviceProperties2& properties, const VkPhysicalDeviceFeatures2& features );
-};
+extern VkPhysicalDevice physicalDevice;
 
-bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, EngineConfig* config, VkPhysicalDevice* deviceOut );
+extern VkDevice device;
 
-void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config, QueuesConfig& queuesConfig,
-	const char* const* requiredExtensions, const uint32 extensionCount,
-	VkDevice* device );
+extern GraphicsQueueRingBuffer graphicsQueue;
+extern GraphicsQueueRingBuffer computeQueue;
+extern GraphicsQueueRingBuffer transferQueue;
+extern GraphicsQueueRingBuffer sparseQueue;
 
-#endif // PHYSICAL_DEVICE_H
+#endif // GRAPHICS_CORE_STORE_H

@@ -45,7 +45,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CapabilityPack.h"
 #include "EngineConfig.h"
+#include "QueuesConfig.h"
 #include "PhysicalDevice.h"
+#include "Queue.h"
+
+#include "GraphicsCoreStore.h"
 
 #include "Instance.h"
 
@@ -109,9 +113,28 @@ void Instance::Init( const char* engineName, const char* appName ) {
 	vkGetPhysicalDeviceFeatures2( availableDevices[1], &f );
 	vkGetPhysicalDeviceProperties2( availableDevices[1], &p );
 
-	EngineConfig cfg;
-
-	if ( !SelectPhysicalDevice( availableDevices, &cfg ) ) {
+	if ( !SelectPhysicalDevice( availableDevices, &engineConfig, &physicalDevice ) ) {
 		return;
+	}
+
+	QueuesConfig queuesConfig = GetQueuesConfigForDevice( physicalDevice );
+
+	CreateDevice( physicalDevice, engineConfig, queuesConfig,
+		capabilityPackMinimal.requiredExtensions.memory, capabilityPackMinimal.requiredExtensions.size, &device );
+
+	VulkanLoadDeviceFunctions( device, instance );
+
+	graphicsQueue.Init( device, queuesConfig.graphicsQueue.id, queuesConfig.graphicsQueue.queues );
+
+	if( queuesConfig.computeQueue.queues ) {
+		computeQueue.Init( device, queuesConfig.computeQueue.id, queuesConfig.computeQueue.queues );
+	}
+
+	if ( queuesConfig.transferQueue.queues ) {
+		transferQueue.Init( device, queuesConfig.transferQueue.id, queuesConfig.transferQueue.queues );
+	}
+
+	if ( queuesConfig.sparseQueue.queues ) {
+		sparseQueue.Init( device, queuesConfig.sparseQueue.id, queuesConfig.sparseQueue.queues );
 	}
 }
