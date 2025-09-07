@@ -848,23 +848,8 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 		}
 	}
 
-	int numDisplays;
-	SDL_DisplayID *displayIDs = SDL_GetDisplays( &numDisplays );
-
-	if ( !displayIDs )
-	{
-		Sys::Error( "SDL_GetDisplays failed: %s", SDL_GetError() );
-	}
-
-	SDL_DisplayID displayID =
-		r_displayIndex->integer < numDisplays || r_displayIndex->integer > numDisplays
-		? displayIDs[ r_displayIndex->integer ]
-		: 0; // 0 implies primary display
-
-	SDL_free( displayIDs );
-
-	int x = SDL_WINDOWPOS_CENTERED_DISPLAY( displayID );
-	int y = SDL_WINDOWPOS_CENTERED_DISPLAY( displayID );
+	int x = SDL_WINDOWPOS_CENTERED_DISPLAY( glConfig.sdlDisplayID );
+	int y = SDL_WINDOWPOS_CENTERED_DISPLAY( glConfig.sdlDisplayID );
 
 	windowProperties = SDL_CreateProperties();
 	if ( !windowProperties )
@@ -1052,11 +1037,13 @@ static rserr_t GLimp_SetModeAndResolution( const int mode )
 		Sys::Error( "SDL_GetDisplays returned 0 displays" );
 	}
 
-	SDL_DisplayID displayID = displayIDs[ Math::Clamp( r_displayIndex->integer, 0, numDisplays - 1 ) ];
+	glConfig.sdlDisplayID = r_displayIndex->integer >= 0 && r_displayIndex->integer < numDisplays
+	                        ? displayIDs[ r_displayIndex->integer ]
+	                        : 0; // 0 indicates primary display
 
 	SDL_free( displayIDs );
 
-	const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode( displayID );
+	const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode( glConfig.sdlDisplayID );
 
 	if ( desktopMode )
 	{
@@ -1802,9 +1789,6 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 #if defined(DAEMON_OPENGL_ABI)
 	logger.Notice( "Using OpenGL ABI \"%s\"", DAEMON_OPENGL_ABI_STRING );
 #endif
-
-	AssertCvarRange( r_displayIndex, 0, numDisplays - 1, true );
-	glConfig.displayIndex = r_displayIndex->integer;
 
 	rserr_t err = GLimp_SetMode(mode, fullscreen, bordered);
 
