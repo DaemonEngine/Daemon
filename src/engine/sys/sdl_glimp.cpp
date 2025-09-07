@@ -1752,16 +1752,6 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 			SDL_VERSIONNUM_MINOR(compiled),
 			SDL_VERSIONNUM_MICRO(compiled));
 
-		/* It is recommended to test for negative value and not just -1.
-
-		> Returns 0 on success or a negative error code on failure;
-		> call SDL_GetError() for more information.
-		> -- https://wiki.libsdl.org/SDL_Init
-
-		the SDL_GetError page also gives a sample of code testing for < 0
-		> if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
-		> -- https://wiki.libsdl.org/SDL_GetError */
-
 		if ( !SDL_Init( SDL_INIT_VIDEO ) )
 		{
 			Sys::Error("SDL_Init( SDL_INIT_VIDEO ) failed: %s", SDL_GetError() );
