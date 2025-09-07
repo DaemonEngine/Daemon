@@ -875,7 +875,7 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 
 	if ( !displayIDs )
 	{
-		Sys::Error( "SDL_GetDisplays failed: %s\n", SDL_GetError() );
+		Sys::Error( "SDL_GetDisplays failed: %s", SDL_GetError() );
 	}
 
 	SDL_DisplayID displayID =
@@ -1066,7 +1066,7 @@ static rserr_t GLimp_SetModeAndResolution( const int mode )
 
 	if ( !displayIDs )
 	{
-		Sys::Error( "SDL_GetDisplays failed: %s\n", SDL_GetError() );
+		Sys::Error( "SDL_GetDisplays failed: %s", SDL_GetError() );
 	}
 
 	if ( numDisplays <= 0 )
@@ -1806,7 +1806,7 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 
 		if ( !driverName )
 		{
-			Sys::Error( "No video driver initialized\n" );
+			Sys::Error( "No video driver initialized" );
 		}
 
 		logger.Notice("SDL using driver \"%s\"", driverName );
@@ -1818,7 +1818,7 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 
 	if ( !displayIDs )
 	{
-		Sys::Error( "SDL_GetDisplays failed: %s\n", SDL_GetError() );
+		Sys::Error( "SDL_GetDisplays failed: %s", SDL_GetError() );
 	}
 
 #if defined(DAEMON_OPENGL_ABI)

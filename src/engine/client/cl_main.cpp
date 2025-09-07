@@ -1387,7 +1387,7 @@ static void CL_LoadRSAKeys()
 
 	if ( !f || len < 1 )
 	{
-		Log::Notice( "^2%s", "Daemon RSA public-key file not found, regenerating\n" );
+		Log::Notice( "^2Daemon RSA public-key file not found, regenerating" );
 		CL_GenerateRSAKeys( fileName );
 		return;
 	}
