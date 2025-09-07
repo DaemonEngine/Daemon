@@ -483,7 +483,7 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
 	if (!FS_LoadPak(pakname))
-		Sys::Drop("Could not load map pak '%s'\n", pakname);
+		Sys::Drop("Could not load map pak '%s'", pakname);
 
 	CM_LoadMap(mapname);
 

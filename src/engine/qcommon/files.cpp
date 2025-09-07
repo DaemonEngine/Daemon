@@ -722,7 +722,7 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 		Cmd::Args extrapaks(fs_extrapaks.Get());
 		for (auto& x: extrapaks) {
 			if (!FS_LoadPak(x))
-				Sys::Error("Could not load extra pak '%s'\n", x.c_str());
+				Sys::Error("Could not load extra pak '%s'", x.c_str());
 		}
 	}
 
