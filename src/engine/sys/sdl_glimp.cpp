@@ -613,6 +613,11 @@ static void SetSwapInterval( int swapInterval )
 	}
 }
 
+struct displayMode_t
+{
+	int w;
+	int h;
+};
 /*
 ===============
 GLimp_CompareModes
@@ -621,8 +626,8 @@ GLimp_CompareModes
 static int GLimp_CompareModes( const void *a, const void *b )
 {
 	const float ASPECT_EPSILON = 0.001f;
-	SDL_Rect    *modeA = ( SDL_Rect * ) a;
-	SDL_Rect    *modeB = ( SDL_Rect * ) b;
+	displayMode_t *modeA = ( displayMode_t * ) a;
+	displayMode_t *modeB = ( displayMode_t * ) b;
 	float       aspectA = ( float ) modeA->w / ( float ) modeA->h;
 	float       aspectB = ( float ) modeB->w / ( float ) modeB->h;
 	int         areaA = modeA->w * modeA->h;
@@ -652,9 +657,6 @@ GLimp_DetectAvailableModes
 */
 static bool GLimp_DetectAvailableModes()
 {
-	constexpr int maxModes = 128;
-	SDL_Rect modes[ maxModes ];
-
 	SDL_DisplayID display = SDL_GetDisplayForWindow( window );
 
 	int allModes;
@@ -665,7 +667,8 @@ static bool GLimp_DetectAvailableModes()
 		Sys::Error( "Couldn't get display modes: %s", SDL_GetError() );
 	}
 
-	int numModes = 0;
+	std::vector<displayMode_t> modes;
+
 	for ( int i = 0; i < allModes; i++ )
 	{
 		SDL_DisplayMode *mode = displayModes[ i ];
@@ -678,59 +681,34 @@ static bool GLimp_DetectAvailableModes()
 			return true;
 		}
 
-		if ( numModes == 0 )
+		if ( !modes.empty() && modes.back().w == mode->w && modes.back().h == mode->h )
 		{
-			modes[ numModes ].w = mode->w;
-			modes[ numModes ].h = mode->h;
-		}
-		else
-		{
-			if ( modes[ numModes - 1 ].w == mode->w
-				&& modes[ numModes - 1 ].h == mode->h )
-			{
-				continue;
-			}
-
-			modes[ numModes ].w = mode->w;
-			modes[ numModes ].h = mode->h;
+			continue;
 		}
 
-		numModes++;
-		
-		if ( numModes == maxModes )
-		{
-			logger.Warn( "More than %d modes", maxModes );
-			break;
-		}
+		modes.push_back( { mode->w, mode->h } );
 	}
 
 	SDL_free( displayModes );
 
-	if ( numModes > 1 )
+	qsort( modes.data(), modes.size(), sizeof( modes[ 0 ] ), GLimp_CompareModes );
+
+	std::string modesString;
+
+	for ( displayMode_t mode : modes )
 	{
-		qsort( modes, numModes, sizeof( SDL_Rect ), GLimp_CompareModes );
+		if ( !modesString.empty() )
+		{
+			modesString.push_back( ' ' );
+		}
+
+		modesString += Str::Format( "%ux%u", mode.w, mode.h );
 	}
 
-	char buf[ MAX_STRING_CHARS ] = { 0 };
-
-	for ( int i = 0; i < numModes; i++ )
+	if ( !modesString.empty() )
 	{
-		const char *newModeString = va( "%ux%u ", modes[ i ].w, modes[ i ].h );
-
-		if ( strlen( newModeString ) < sizeof( buf ) - strlen( buf ) )
-		{
-			Q_strcat( buf, sizeof( buf ), newModeString );
-		}
-		else
-		{
-			logger.Warn("Skipping mode %ux%x, buffer too small", modes[ i ].w, modes[ i ].h );
-		}
-	}
-
-	if ( *buf )
-	{
-		logger.Notice("Available modes: '%s'", buf );
-		Cvar::SetValueForce( r_availableModes.Name(), buf );
+		logger.Notice("Available modes: %s", modesString );
+		Cvar::SetValueForce( r_availableModes.Name(), modesString );
 	}
 
 	return true;
