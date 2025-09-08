@@ -1068,7 +1068,31 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	// Detect formats.
 	if ( dataArray )
 	{
-		if ( internalFormat == GL_RGBA8 )
+		if ( internalFormat == GL_RGB8 )
+		{
+			c = image->width * image->height;
+			scan = dataArray[0];
+
+			bool hasRGB = false;
+
+			for ( i = 0; i < c * 4; i += 4 )
+			{
+				if ( scan[ i + 1 ] != 0 )
+				{
+					hasRGB = true;
+					break;
+				}
+
+				if ( scan[ i + 2 ] != 0 )
+				{
+					hasRGB = true;
+					break;
+				}
+			}
+
+			internalFormat = hasRGB ? GL_RGB8 : GL_RED;
+		}
+		else if ( internalFormat == GL_RGBA8 )
 		{
 			// scan the texture for each channel's max values
 			// and verify if the alpha channel is being used or not
