@@ -849,10 +849,13 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	int        mipWidth, mipHeight, mipLayers, mipSize, blockSize = 0;
 	int        i, c;
 	const byte *scan;
+
+	bool isSRGB = image->bits & IF_SRGB;
+	bool isAlpha = !( image->bits & IF_NOALPHA );
+
 	GLenum     target;
 	GLenum     format = GL_RGBA;
-	GLenum     internalFormat = GL_RGB;
-	bool isSRGB = image->bits & IF_SRGB;
+	GLenum internalFormat = isAlpha ? GL_RGBA : GL_RGB;
 
 	static const vec4_t oneClampBorder = { 1, 1, 1, 1 };
 	static const vec4_t zeroClampBorder = { 0, 0, 0, 1 };
@@ -1054,15 +1057,12 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	}
 	else
 	{
-		// lightmap does not have alpha channel
-		if ( image->bits & IF_LIGHTMAP )
-		{
-			internalFormat = GL_RGB8;
-		}
-		else
-		{
-			internalFormat = GL_RGBA8;
-		}
+		internalFormat = GL_RGBA8;
+	}
+
+	if ( internalFormat == GL_RGBA8 && !isAlpha )
+	{
+		internalFormat = GL_RGB8;
 	}
 
 	// Detect formats.
@@ -2757,7 +2757,7 @@ static void R_CreateColorGradeImage()
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
