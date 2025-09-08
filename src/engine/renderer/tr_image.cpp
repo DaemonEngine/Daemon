@@ -1054,15 +1054,12 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	}
 	else
 	{
-		// lightmap does not have alpha channel
-		if ( image->bits & IF_LIGHTMAP )
-		{
-			internalFormat = GL_RGB8;
-		}
-		else
-		{
-			internalFormat = GL_RGBA8;
-		}
+		internalFormat = GL_RGBA8;
+	}
+
+	if ( internalFormat == GL_RGBA8 && image->bits & IF_NOALPHA )
+	{
+		internalFormat = GL_RGB8;
 	}
 
 	// Detect formats.
