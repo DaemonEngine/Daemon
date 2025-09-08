@@ -1054,30 +1054,44 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	}
 	else
 	{
-		// scan the texture for each channel's max values
-		// and verify if the alpha channel is being used or not
-
-		c = image->width * image->height;
-		scan = dataArray[0];
-
 		// lightmap does not have alpha channel
-
-		// normalmap may have the heightmap in the alpha channel
-		// opaque alpha channel means no displacement, so we can enable
-		// alpha channel everytime it is used, even for normalmap
-
-		internalFormat = GL_RGB8;
-
-		if ( !( image->bits & IF_LIGHTMAP ) )
+		if ( image->bits & IF_LIGHTMAP )
 		{
-			for ( i = 0; i < c; i++ )
+			internalFormat = GL_RGB8;
+		}
+		else
+		{
+			internalFormat = GL_RGBA8;
+		}
+	}
+
+	// Detect formats.
+	if ( dataArray )
+	{
+		if ( internalFormat == GL_RGBA8 )
+		{
+			// scan the texture for each channel's max values
+			// and verify if the alpha channel is being used or not
+
+			c = image->width * image->height;
+			scan = dataArray[0];
+
+			// normalmap may have the heightmap in the alpha channel
+			// opaque alpha channel means no displacement, so we can enable
+			// alpha channel everytime it is used, even for normalmap
+
+			bool hasAlpha = false;
+
+			for ( i = 0; i < c * 4; i += 4 )
 			{
-				if ( scan[ i * 4 + 3 ] != 255 )
+				if ( scan[ i + 3 ] != 255 )
 				{
-					internalFormat = GL_RGBA8;
+					hasAlpha = true;
 					break;
 				}
 			}
+
+			internalFormat = hasAlpha ? GL_RGBA8 : GL_RGB8;
 		}
 	}
 
