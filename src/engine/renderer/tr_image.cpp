@@ -2441,7 +2441,7 @@ static void R_CreateFogImage()
 	// the border color at the edges.  OpenGL 1.2 has clamp-to-edge, which does
 	// what we want.
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_RED;
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
