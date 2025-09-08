@@ -1531,7 +1531,14 @@ printHelp() {
 	    all     ${all_linux_arm64_default_packages}
 
 	EOF
-	false
+	
+	exit
+}
+
+syntaxError() {
+	log ERROR "${1}" || true
+	echo >&2
+	printHelp
 }
 
 download_only='false'
@@ -1552,8 +1559,11 @@ do
 		require_theirs='true'
 		shift
 	;;
-	'--'*)
-		helpError
+	'-h'|'--help')
+		printHelp
+	;;
+	'-'*)
+		syntaxError 'Unknown option'
 	;;
 	*)
 		break
@@ -1561,8 +1571,12 @@ do
 done
 
 # Usage
-if [ "${#}" -lt "2" ]; then
-	errorHelp
+if [ "${#}" -lt "1" ]
+then
+	syntaxError 'Missing platform and package(s)'
+elif [ "${#}" -lt "2" ]
+then
+	syntaxError 'Missing package(s)'
 fi
 
 # Do not reuse self-built curl from external_deps custom PATH
@@ -1603,7 +1617,7 @@ case "${platform}" in
 	done
 	if [ -z "${platform_list}" ]
 	then
-		errorHelp
+		syntaxError 'Unknown platform'
 	fi
 ;;
 esac
