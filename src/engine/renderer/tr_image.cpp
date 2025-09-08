@@ -2644,7 +2644,7 @@ static void R_CreateBlackCubeImage()
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_RED;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -2748,6 +2748,8 @@ void R_CreateBuiltinImages()
 
 	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
+	imageParams.bits = IF_NOPICMIP | IF_RED;
+
 	// we use a solid black image instead of disabling texturing
 	memset( data, 0, sizeof( data ) );
 	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
@@ -2767,6 +2769,8 @@ void R_CreateBuiltinImages()
 		out[ 0 ] = out[ 2 ] = 0;
 		out[ 1 ] = out[ 3 ] = 255;
 	}
+
+	imageParams.bits = IF_NOPICMIP;
 
 	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
