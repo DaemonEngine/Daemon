@@ -1090,8 +1090,37 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 					break;
 				}
 			}
+		}
 
-			internalFormat = hasAlpha ? GL_RGBA8 : GL_RGB8;
+		if ( internalFormat == GL_RGB8 )
+		{
+			if ( isSRGB && !glConfig.textureSrgbR8Available )
+			{
+				break;
+			}
+
+			/* Scan the texture for green and blue channels' max values
+			and verify if the green and blue channels are being used or not. */
+
+			c = image->width * image->height;
+			scan = dataArray[0];
+
+			internalFormat = GL_RED;
+
+			for ( i = 0; i < c * 4; i += 4 )
+			{
+				if ( scan[ i + 1 ] != 0 )
+				{
+					internalFormat = GL_RGB8;
+					break;
+				}
+
+				if ( scan[ i + 2 ] != 0 )
+				{
+					internalFormat = GL_RGB8;
+					break;
+				}
+			}
 		}
 	}
 
