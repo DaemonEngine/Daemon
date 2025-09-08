@@ -851,10 +851,13 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	int        mipWidth, mipHeight, mipLayers, mipSize, blockSize = 0;
 	int        i, c;
 	const byte *scan;
+
+	bool isSRGB = image->bits & IF_SRGB;
+	bool isAlpha = !( image->bits & IF_NOALPHA );
+
 	GLenum     target;
 	GLenum     format = GL_RGBA;
-	GLenum     internalFormat = GL_RGB;
-	bool isSRGB = image->bits & IF_SRGB;
+	GLenum internalFormat = isAlpha ? GL_RGBA : GL_RGB;
 
 	static const vec4_t oneClampBorder = { 1, 1, 1, 1 };
 	static const vec4_t zeroClampBorder = { 0, 0, 0, 1 };
@@ -1044,15 +1047,12 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	}
 	else
 	{
-		// lightmap does not have alpha channel
-		if ( image->bits & IF_LIGHTMAP )
-		{
-			internalFormat = GL_RGB8;
-		}
-		else
-		{
-			internalFormat = GL_RGBA8;
-		}
+		internalFormat = GL_RGBA8;
+	}
+
+	if ( internalFormat == GL_RGBA8 && !isAlpha )
+	{
+		internalFormat = GL_RGB8;
 	}
 
 	// Detect formats.
@@ -2657,7 +2657,7 @@ static void R_CreateBlackCubeImage()
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -2684,7 +2684,7 @@ static void R_CreateWhiteCubeImage()
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -2727,7 +2727,7 @@ static void R_CreateColorGradeImage()
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -2752,7 +2752,7 @@ void R_CreateBuiltinImages()
 	memset( data, 255, sizeof( data ) );
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
@@ -2766,11 +2766,11 @@ void R_CreateBuiltinImages()
 	// generate a default normalmap with a fully opaque heightmap (no displacement)
 	Vector4Set( data, 128, 128, 255, 255 );
 
-	imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA | IF_NORMALMAP;
 
 	tr.flatImage = R_CreateImage( "$flat", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	// Don't reuse previously set data, we test the values for selecting the upload format.

@@ -483,8 +483,8 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 		return;
 	}
 
-	int lightMapBits = IF_LIGHTMAP | IF_NOPICMIP;
-	int deluxeMapBits = IF_NORMALMAP | IF_NOPICMIP;
+	int lightMapBits = IF_LIGHTMAP | IF_NOALPHA | IF_NOPICMIP;
+	int deluxeMapBits = IF_NORMALMAP | IF_NOALPHA | IF_NOPICMIP;
 
 	if ( tr.worldLinearizeLightMap )
 	{
