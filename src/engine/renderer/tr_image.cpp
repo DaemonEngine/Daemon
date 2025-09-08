@@ -2833,6 +2833,9 @@ void R_CreateBuiltinImages()
 	imageParams.bits = IF_NOPICMIP;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
+	// Don't reuse previously set data, we test the values for selecting the upload format.
+	memset( data, 255, sizeof( data ) );
+
 	for ( image_t * &image : tr.cinematicImage )
 	{
 		image = R_CreateImage( "_cinematic", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
