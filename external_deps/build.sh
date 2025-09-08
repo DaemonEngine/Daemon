@@ -1471,63 +1471,64 @@ all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw
 all_macos_platforms='macos-amd64-default'
 all_platforms="${all_linux_platforms} ${all_windows_platforms} ${all_macos_platforms}"
 
-errorHelp() {
-	sed -e 's/\\t/'$'\t''/g' <<-EOF
-	usage: $(basename "${BASH_SOURCE[0]}") [OPTION] <PLATFORM> <PACKAGE[S]...>
+printHelp() {
+	# Please align to 4-space tabs.
+	cat >&2 <<-EOF
+	usage: $(basename "${BASH_SOURCE[0]}") [OPTION] <PLATFORM> <PACKAGE(S)...>
 
 	Script to build dependencies for platforms which do not provide them
 
 	Options:
-	\t--download-only — only download source packages, do not build them
-	\t--prefer-ours — attempt to download from unvanquished.net first
+	    --download-only only download source packages, do not build them
+	    --prefer-ours   attempt to download from unvanquished.net first
 
 	Platforms:
-	\t${all_platforms}
+	    ${all_platforms}
 
 	Virtual platforms:
-	\tlinux — ${all_linux_platforms}
-	\twindows — ${all_windows_platforms}
-	\tmacos — ${all_macos_platforms}
-	\tall — linux windows macos
+	    linux   ${all_linux_platforms}
+	    windows ${all_windows_platforms}
+	    macos   ${all_macos_platforms}
+	    all     linux windows macos
 
 	Packages:
-	\tpkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
+	    pkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
 
 	Virtual packages:
-	\tbase — build packages for pre-built binaries to be downloaded when building the game
-	\tall — build all supported packages that can possibly be involved in building the game
-	\tinstall — create a stripped down version of the built packages that CMake can use
-	\tpackage — create a zip/tarball of the dependencies so they can be distributed
-	\twipe — remove products of build process, excepting download cache but INCLUDING installed files. Must be last
+	    base    build packages for pre-built binaries to be downloaded when building the game
+	    all     build all supported packages that can possibly be involved in building the game
+	    install create a stripped down version of the built packages that CMake can use
+	    package create a tarball of the dependencies so they can be distributed
+	    wipe    remove products of build process, excepting download cache but INCLUDING installed files. Must be last
 
 	Packages required for each platform:
 
 	windows-amd64-msvc:
 	windows-i686-msvc:
-	\tbase: ${base_windows_amd64_msvc_packages}
-	\tall: same
+	    base    ${base_windows_amd64_msvc_packages}
+	    all     same
 
 	windows-amd64-mingw:
 	windows-i686-mingw:
-	\tbase: ${base_windows_amd64_mingw_packages}
-	\tall: same
+	    base    ${base_windows_amd64_mingw_packages}
+	    all     same
 
 	macos-amd64-default:
-	\tbase: ${base_macos_amd64_default_packages}
-	\tall: same
+	    base    ${base_macos_amd64_default_packages}
+	    all     same
 
 	linux-amd64-default:
-	\tbase: ${base_linux_amd64_default_packages}
-	\tall: ${all_linux_amd64_default_packages}
+	    base    ${base_linux_amd64_default_packages}
+	    all     ${all_linux_amd64_default_packages}
 
 	linux-i686-default:
-	\tbase: ${base_linux_i686_default_packages}
-	\tall: ${all_linux_i686_default_packages}
+	    base    ${base_linux_i686_default_packages}
+	    all     ${all_linux_i686_default_packages}
 
 	linux-arm64-default:
 	linux-armhf-default:
-	\tbase: ${base_linux_arm64_default_packages}
-	\tall: ${all_linux_arm64_default_packages}
+	    base    ${base_linux_arm64_default_packages}
+	    all     ${all_linux_arm64_default_packages}
 
 	EOF
 	false
