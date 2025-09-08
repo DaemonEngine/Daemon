@@ -758,7 +758,7 @@ static GLint GL_ToSRGB( GLint internalFormat, bool isSRGB )
 				return GL_SRGB8;
 			case GL_RGBA8:
 				return GL_SRGB8_ALPHA8;
-#if 0 // Internal formats, should not be used directly.
+#if 0 // Not used in the codebase.
 			case GL_COMPRESSED_RGB:
 			 	return GL_COMPRESSED_SRGB;
 			case GL_COMPRESSED_RGBA:
