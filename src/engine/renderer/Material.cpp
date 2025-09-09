@@ -480,6 +480,18 @@ void MaterialSystem::GenerateTexturesBuffer( std::vector<TextureData>& textures,
 	}
 }
 
+int MaterialSystem::GetLightMapIdx( const MaterialSurface &surface, lightMode_t mode )
+{
+	if ( mode == lightMode_t::MAP )
+	{
+		return GetLightMapNum( &surface ) & 255;
+	}
+	else
+	{
+		return 255;
+	}
+}
+
 // This generates the buffers with indirect rendering commands etc.
 void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& surfaces ) {
 	Log::Debug( "Generating world command buffer" );
@@ -680,7 +692,7 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 			surfaceCommand.drawCommand.baseInstance |= surface.texDataDynamic[stage]
 				? ( surface.texDataIDs[stage] + texData.size() ) << TEX_BUNDLE_BITS
 				: surface.texDataIDs[stage] << TEX_BUNDLE_BITS;
-			surfaceCommand.drawCommand.baseInstance |= ( HasLightMap( &surface ) ? GetLightMapNum( &surface ) : 255 ) << LIGHTMAP_BITS;
+			surfaceCommand.drawCommand.baseInstance |= GetLightMapIdx( surface, tr.worldLight ) << LIGHTMAP_BITS;
 			surfaceCommands[cmdID] = surfaceCommand;
 
 			material->drawCommandCount++;
