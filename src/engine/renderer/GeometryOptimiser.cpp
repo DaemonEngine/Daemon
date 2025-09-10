@@ -570,7 +570,7 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, bspSur
 		VectorCopy( ( ( srfGeneric_t* ) surface->data )->origin, srf.origin );
 		srf.radius = ( ( srfGeneric_t* ) surface->data )->radius;
 
-		materialSystem.GenerateMaterial( &srf );
+		materialSystem.GenerateMaterial( &srf, world->globalFog );
 
 		static const float MAX_NORMAL_SURFACE_DISTANCE = 65536.0f * sqrtf( 2.0f );
 		if ( VectorLength( ( ( srfGeneric_t* ) surface->data )->bounds[0] ) > MAX_NORMAL_SURFACE_DISTANCE
