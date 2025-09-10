@@ -1106,12 +1106,9 @@ void BindShaderFog( Material* material ) {
 	float eyeT;
 	vec4_t fogDepthVector;
 	if ( fog->hasSurface ) {
-		fogDepthVector[0] = fog->surface[0] * backEnd.orientation.axis[0][0] +
-			fog->surface[1] * backEnd.orientation.axis[0][1] + fog->surface[2] * backEnd.orientation.axis[0][2];
-		fogDepthVector[1] = fog->surface[0] * backEnd.orientation.axis[1][0] +
-			fog->surface[1] * backEnd.orientation.axis[1][1] + fog->surface[2] * backEnd.orientation.axis[1][2];
-		fogDepthVector[2] = fog->surface[0] * backEnd.orientation.axis[2][0] +
-			fog->surface[1] * backEnd.orientation.axis[2][1] + fog->surface[2] * backEnd.orientation.axis[2][2];
+		fogDepthVector[0] = DotProduct( fog->surface, backEnd.orientation.axis[ 0 ] );
+		fogDepthVector[1] = DotProduct( fog->surface, backEnd.orientation.axis[ 1 ] );
+		fogDepthVector[2] = DotProduct( fog->surface, backEnd.orientation.axis[ 2 ] );
 		fogDepthVector[3] = -fog->surface[3] + DotProduct( backEnd.orientation.origin, fog->surface );
 
 		eyeT = DotProduct( backEnd.orientation.viewOrigin, fogDepthVector ) + fogDepthVector[3];
