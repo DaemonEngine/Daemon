@@ -1481,7 +1481,7 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 /* This will only generate a material itself
 A material represents a distinct global OpenGL state (e. g. blend function, depth test, depth write etc.)
 Materials can have a dependency on other materials to make sure that consecutive stages are rendered in the proper order */
-void MaterialSystem::GenerateMaterial( MaterialSurface* surface ) {
+void MaterialSystem::GenerateMaterial( MaterialSurface* surface, int globalFog ) {
 	uint32_t stage = 0;
 	uint32_t previousMaterialID = 0;
 
@@ -1502,7 +1502,7 @@ void MaterialSystem::GenerateMaterial( MaterialSurface* surface ) {
 		surface->stages++;
 	}
 
-	if ( !surface->shader->noFog && surface->fog >= 1 ) {
+	if ( !surface->shader->noFog && surface->fog >= 1 && surface->fog != globalFog ) {
 		uint32_t unused;
 		ProcessStage( surface, surface->shader->fogShader->stages, surface->shader->fogShader, packIDs, stage, unused, true );
 

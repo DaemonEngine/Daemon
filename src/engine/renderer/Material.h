@@ -384,7 +384,7 @@ class MaterialSystem {
 		const bool mayUseVertexOverbright, const bool vertexLit, const bool fullbright );
 	void ProcessStage( MaterialSurface* surface, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage,
 		uint32_t& previousMaterialID, bool skipStageSync = false );
-	void GenerateMaterial( MaterialSurface* surface );
+	void GenerateMaterial( MaterialSurface* surface, int globalFog );
 	void GenerateWorldMaterialsBuffer();
 	void GenerateWorldCommandBuffer( std::vector<MaterialSurface>& surfaces );
 	void GeneratePortalBoundingSpheres();
