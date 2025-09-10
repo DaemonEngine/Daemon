@@ -2636,7 +2636,8 @@ GLShader_fogGlobal::GLShader_fogGlobal() :
 	u_UnprojectMatrix( this ),
 	u_Color_Float( this ),
 	u_Color_Uint( this ),
-	u_FogDistanceVector( this )
+	u_ViewOrigin( this ),
+	u_FogDensity( this )
 {
 }
 
