@@ -32,11 +32,7 @@ uniform colorPack u_Color;
 uniform vec4		u_FogDistanceVector;
 uniform mat4		u_UnprojectMatrix;
 
-#if __VERSION__ > 120
-out vec4 outputColor;
-#else
-#define outputColor gl_FragColor
-#endif
+DECLARE_OUTPUT(vec4)
 
 void	main()
 {
@@ -48,9 +44,8 @@ void	main()
 	vec4 P = u_UnprojectMatrix * vec4(gl_FragCoord.xy, depth, 1.0);
 	P.xyz /= P.w;
 
-	// calculate the length in fog (t is always 0 if eye is in fog)
+	// calculate the length in fog (t is always 1 if eye is in fog)
 	st.s = dot(P.xyz, u_FogDistanceVector.xyz) + u_FogDistanceVector.w;
-	// st.s = vertexDistanceToCamera;
 	st.t = 1.0;
 
 	vec4 color = texture2D(u_ColorMap, st);

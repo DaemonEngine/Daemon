@@ -34,11 +34,14 @@ uniform colorPack u_ColorGlobal;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
-uniform vec4		u_FogDistanceVector;
-uniform vec4		u_FogDepthVector;
+uniform vec4		u_FogDistanceVector; // view axis in model coordinates, scaled by fog density
+uniform vec4		u_FogDepthVector; // fog plane in model coordinates
 uniform float		u_FogEyeT;
 
 OUT(smooth) vec3	var_Position;
+
+// var_TexCoords.s is distance from viewer to vertex dotted with view axis
+// var_TexCoords.t is the fraction of the viewer-to-vertex ray which is inside fog
 OUT(smooth) vec2	var_TexCoords;
 OUT(smooth) vec4	var_Color;
 

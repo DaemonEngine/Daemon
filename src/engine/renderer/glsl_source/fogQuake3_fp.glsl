@@ -26,7 +26,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 uniform sampler2D u_FogMap;
 
-IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
 
@@ -41,8 +40,4 @@ void	main()
 	color *= var_Color;
 
 	outputColor = color;
-
-#if 0
-	outputColor = vec4(vec3(1.0, 0.0, 0.0), color.a);
-#endif
 }
