@@ -1377,20 +1377,8 @@ void RB_RenderGlobalFog()
 
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 
-		// all fogging distance is based on world Z units
-		vec4_t fogDistanceVector;
-		vec3_t local;
-		VectorSubtract( backEnd.orientation.origin, backEnd.viewParms.orientation.origin, local );
-		fogDistanceVector[ 0 ] = -backEnd.orientation.modelViewMatrix[ 2 ];
-		fogDistanceVector[ 1 ] = -backEnd.orientation.modelViewMatrix[ 6 ];
-		fogDistanceVector[ 2 ] = -backEnd.orientation.modelViewMatrix[ 10 ];
-		fogDistanceVector[ 3 ] = DotProduct( local, backEnd.viewParms.orientation.axis[ 0 ] );
-
-		// scale the fog vectors based on the fog's thickness
-		VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
-		fogDistanceVector[ 3 ] *= fog->tcScale;
-
-		gl_fogGlobalShader->SetUniform_FogDistanceVector( fogDistanceVector );
+		gl_fogGlobalShader->SetUniform_FogDensity( fog->tcScale );
+		gl_fogGlobalShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
 		SetUniform_Color( gl_fogGlobalShader, fog->color );
 	}
 

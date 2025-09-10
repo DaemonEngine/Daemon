@@ -29,7 +29,8 @@ uniform sampler2D	u_DepthMap;
 
 uniform colorPack u_Color;
 
-uniform vec4		u_FogDistanceVector;
+uniform vec3 u_ViewOrigin;
+uniform float u_FogDensity;
 uniform mat4		u_UnprojectMatrix;
 
 DECLARE_OUTPUT(vec4)
@@ -45,7 +46,7 @@ void	main()
 	P.xyz /= P.w;
 
 	// calculate the length in fog (t is always 1 if eye is in fog)
-	st.s = dot(P.xyz, u_FogDistanceVector.xyz) + u_FogDistanceVector.w;
+	st.s = distance(u_ViewOrigin, P.xyz) * u_FogDensity;
 	st.t = 1.0;
 
 	vec4 color = texture2D(u_ColorMap, st);
