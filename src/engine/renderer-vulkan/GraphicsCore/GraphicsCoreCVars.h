@@ -44,4 +44,6 @@ extern Cvar::Cvar<std::string> r_vkVersion;
 
 extern Cvar::Range<Cvar::Cvar<int>> r_vkCapabilityPack;
 
+extern Cvar::Cvar<int> r_vkDevice;
+
 #endif // GRAPHICS_CORE_CVARS_H

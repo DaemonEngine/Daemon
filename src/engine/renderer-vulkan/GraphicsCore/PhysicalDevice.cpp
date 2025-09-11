@@ -104,6 +104,16 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 		}
 	}
 
+	if ( r_vkDevice.Get() != -1 ) {
+		if ( r_vkDevice.Get() < devices.size ) {
+			bestDevice = &devices[r_vkDevice.Get()];
+			bestCFG = GetEngineConfigForDevice( *bestDevice );
+			bestCFG.capabilityPack = GetHighestSuppportedCapabilityPack( bestCFG );
+		} else {
+			Log::Warn( "r_vkDevice out of range, using default instead" );
+		}
+	}
+
 	if ( bestCFG.capabilityPack == CapabilityPackType::NONE ) {
 		Err( "No available Vulkan devices support the minimal capability pack" );
 		return false;

@@ -45,3 +45,5 @@ Cvar::Cvar<std::string> r_vkVersion( "r_vkVersion", "Daemon-vulkan version", Cva
 
 Cvar::Range<Cvar::Cvar<int>> r_vkCapabilityPack( "r_vkCapabilityPack", "CapabilityPack override",
 	Cvar::NONE, CapabilityPackType::MINIMAL, CapabilityPackType::MINIMAL, CapabilityPackType::EXPERIMENTAL );
+
+Cvar::Cvar<int> r_vkDevice( "r_vkDevice", "Use specific GPU (-1: auto)", Cvar::NONE, -1 );
