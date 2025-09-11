@@ -1091,12 +1091,8 @@ void BindShaderFog( Material* material ) {
 
 	// all fogging distance is based on world Z units
 	vec4_t fogDistanceVector;
-	vec3_t local;
-	VectorSubtract( backEnd.orientation.origin, backEnd.viewParms.orientation.origin, local );
-	fogDistanceVector[0] = -backEnd.orientation.modelViewMatrix[2];
-	fogDistanceVector[1] = -backEnd.orientation.modelViewMatrix[6];
-	fogDistanceVector[2] = -backEnd.orientation.modelViewMatrix[10];
-	fogDistanceVector[3] = DotProduct( local, backEnd.viewParms.orientation.axis[0] );
+	VectorCopy( backEnd.viewParms.orientation.axis[ 0 ], fogDistanceVector );
+	fogDistanceVector[ 3 ] = -DotProduct( fogDistanceVector, backEnd.viewParms.orientation.origin );
 
 	// scale the fog vectors based on the fog's thickness
 	VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
@@ -1106,12 +1102,9 @@ void BindShaderFog( Material* material ) {
 	float eyeT;
 	vec4_t fogDepthVector;
 	if ( fog->hasSurface ) {
-		fogDepthVector[0] = DotProduct( fog->surface, backEnd.orientation.axis[ 0 ] );
-		fogDepthVector[1] = DotProduct( fog->surface, backEnd.orientation.axis[ 1 ] );
-		fogDepthVector[2] = DotProduct( fog->surface, backEnd.orientation.axis[ 2 ] );
-		fogDepthVector[3] = -fog->surface[3] + DotProduct( backEnd.orientation.origin, fog->surface );
-
-		eyeT = DotProduct( backEnd.orientation.viewOrigin, fogDepthVector ) + fogDepthVector[3];
+		VectorCopy( fog->surface, fogDepthVector );
+		fogDepthVector[ 3 ] = -fog->surface[ 3 ];
+		eyeT = DotProduct( backEnd.viewParms.orientation.origin, fogDepthVector ) + fogDepthVector[ 3 ];
 	} else {
 		Vector4Set( fogDepthVector, 0, 0, 0, 1 );
 		eyeT = 1; // non-surface fog always has eye inside
