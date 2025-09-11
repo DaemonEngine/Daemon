@@ -1826,14 +1826,33 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 				return image;
 			}
 
-			Log::Verbose( "image params mismatch for %s: 0x%X %d %d/%d %d %d vs. 0x%X %d %d/%d %d %d",
+			bool compatible = false;
+
+			if ( image->initialParams.minDimension > imageParams.minDimension )
+			{
+				// Reuse the image if the only difference is that the minimum level of detail is lower.
+				// We could imagine a similar test for imageMaxDimension, but that keyword has never been
+				// used and the potential motivations are less than clear, so don't bother.
+				imageParams_t test = imageParams;
+				test.minDimension = image->initialParams.minDimension;
+				compatible = test == image->initialParams;
+			}
+
+			Log::Verbose( "image params mismatch for %s: 0x%X %d %d/%d %d %d vs. 0x%X %d %d/%d %d %d, %s",
 				imageName,
 				image->initialParams.bits, Util::ordinal( image->initialParams.filterType ),
 				Util::ordinal( image->initialParams.wrapType.s ), Util::ordinal( image->initialParams.wrapType.t ),
 				image->initialParams.minDimension, image->initialParams.maxDimension,
 				imageParams.bits, Util::ordinal( imageParams.filterType ),
 				Util::ordinal( imageParams.wrapType.s ), Util::ordinal( imageParams.wrapType.t ),
-				imageParams.minDimension, imageParams.maxDimension );
+				imageParams.minDimension, imageParams.maxDimension,
+				compatible ? "reusing previous image since compatible" : "loading new version of image" );
+
+			if ( compatible )
+			{
+				return image;
+			}
+			// TODO replace the old image if it's compatible in the other direction? Not sure if it's safe
 		}
 	}
 
