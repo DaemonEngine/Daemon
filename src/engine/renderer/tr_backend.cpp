@@ -739,12 +739,11 @@ static GLint GL_ToSRGB( GLint internalFormat, bool isSRGB )
 	{
 		switch ( format )
 		{
-#if 0 // Not used in the code base.
 			/* EXT_texture_sRGB_R8 extension.
 			See: https://github.com/KhronosGroup/OpenGL-Registry/blob/main/extensions/EXT/EXT_texture_sRGB_R8.txt */
 			case GL_RED:
+				ASSERT( glConfig2.textureSrgbR8Available );
 				return GL_SR8_EXT;
-#endif
 			case GL_RGB:
 				return GL_SRGB;
 			case GL_RGBA:
