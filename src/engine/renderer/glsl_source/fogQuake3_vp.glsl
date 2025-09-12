@@ -36,10 +36,9 @@ uniform mat4		u_ModelViewProjectionMatrix;
 
 uniform vec4		u_FogDistanceVector; // view axis, scaled by fog density
 uniform vec4		u_FogDepthVector; // fog plane
-uniform float		u_FogEyeT;
 
 // var_TexCoords.s is distance from viewer to vertex dotted with view axis
-// var_TexCoords.t is the fraction of the viewer-to-vertex ray which is inside fog
+// var_TexCoords.t is how far the vertex is under the fog plane
 OUT(smooth) vec2	var_TexCoords;
 OUT(smooth) vec4	var_Color;
 
@@ -79,29 +78,12 @@ void main()
 	float s = dot(position.xyz, u_FogDistanceVector.xyz) + u_FogDistanceVector.w;
 	float t = dot(position.xyz, u_FogDepthVector.xyz) + u_FogDepthVector.w;
 
-	// partially clipped fogs use the T axis
-	if(u_FogEyeT < 0.0)
-	{
-		if(t < 1.0)
-		{
-			t = 1.0 / 32.0;	// point is outside, so no fogging
-		}
-		else
-		{
-			t = 1.0 / 32.0 + 30.0 / 32.0 * t / (t - u_FogEyeT);	// cut the distance at the fog plane
-		}
-	}
-	else
-	{
-		if(t < 0.0)
-		{
-			t = 1.0 / 32.0;	// point is outside, so no fogging
-		}
-		else
-		{
-			t = 31.0 / 32.0;
-		}
-	}
+	// HACK: increase cutoff to avoid dark lines at the edge of BSP triangles that stop
+	// right at the fog plane (when viewed from under fog)
+	// But don't do it for models as this causes a doubly-fogged light band at the fog plane
+	#if !defined(USE_VERTEX_ANIMATION) && !defined(USE_VERTEX_SKINNING)
+		t += 1.5;
+	#endif
 
 	var_TexCoords = vec2(s, t);
 
