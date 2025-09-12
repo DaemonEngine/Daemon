@@ -80,19 +80,6 @@ class ClientApplication : public Application {
         }
 
         void Initialize() override {
-#if defined(__linux__) && defined(BUILD_GRAPHICAL_CLIENT)
-            // identify the game by its name in certain
-            // volume control / power control applets,
-            // for example, the one found on KDE:
-            // "Unvanquished is currently blocking sleep."
-            // instead of "My SDL application ..."
-            // this feature was introduced in SDL 2.0.22
-            SDL_SetHint("SDL_APP_NAME", PRODUCT_NAME);
-            // SDL_hints.h: #define SDL_HINT_APP_NAME "SDL_APP_NAME"
-            // don't use the macro here, in case
-            // SDL doesn't use current headers.
-#endif
-
             Hunk_Init();
 
             Com_Init();

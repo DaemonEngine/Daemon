@@ -209,7 +209,7 @@ namespace Resource {
     Manager<T>::Manager(Str::StringRef defaultName): inRegistration(false), immediate(false) {
         defaultValue = RegisterInternal(defaultName);
         if (not defaultValue) {
-            Sys::Error("Couldn't load the default resource for %s\n", typeid(T).name());
+            Sys::Error("Couldn't load the default resource for %s", typeid(T).name());
         }
     }
 

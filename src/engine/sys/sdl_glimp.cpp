@@ -613,6 +613,11 @@ static void SetSwapInterval( int swapInterval )
 	}
 }
 
+struct displayMode_t
+{
+	int w;
+	int h;
+};
 /*
 ===============
 GLimp_CompareModes
@@ -621,8 +626,8 @@ GLimp_CompareModes
 static int GLimp_CompareModes( const void *a, const void *b )
 {
 	const float ASPECT_EPSILON = 0.001f;
-	SDL_Rect    *modeA = ( SDL_Rect * ) a;
-	SDL_Rect    *modeB = ( SDL_Rect * ) b;
+	displayMode_t *modeA = ( displayMode_t * ) a;
+	displayMode_t *modeB = ( displayMode_t * ) b;
 	float       aspectA = ( float ) modeA->w / ( float ) modeA->h;
 	float       aspectB = ( float ) modeB->w / ( float ) modeB->h;
 	int         areaA = modeA->w * modeA->h;
@@ -652,9 +657,6 @@ GLimp_DetectAvailableModes
 */
 static bool GLimp_DetectAvailableModes()
 {
-	constexpr int maxModes = 128;
-	SDL_Rect modes[ maxModes ];
-
 	SDL_DisplayID display = SDL_GetDisplayForWindow( window );
 
 	int allModes;
@@ -665,7 +667,8 @@ static bool GLimp_DetectAvailableModes()
 		Sys::Error( "Couldn't get display modes: %s", SDL_GetError() );
 	}
 
-	int numModes = 0;
+	std::vector<displayMode_t> modes;
+
 	for ( int i = 0; i < allModes; i++ )
 	{
 		SDL_DisplayMode *mode = displayModes[ i ];
@@ -678,59 +681,34 @@ static bool GLimp_DetectAvailableModes()
 			return true;
 		}
 
-		if ( numModes == 0 )
+		if ( !modes.empty() && modes.back().w == mode->w && modes.back().h == mode->h )
 		{
-			modes[ numModes ].w = mode->w;
-			modes[ numModes ].h = mode->h;
-		}
-		else
-		{
-			if ( modes[ numModes - 1 ].w == mode->w
-				&& modes[ numModes - 1 ].h == mode->h )
-			{
-				continue;
-			}
-
-			modes[ numModes ].w = mode->w;
-			modes[ numModes ].h = mode->h;
+			continue;
 		}
 
-		numModes++;
-		
-		if ( numModes == maxModes )
-		{
-			logger.Warn( "More than %d modes", maxModes );
-			break;
-		}
+		modes.push_back( { mode->w, mode->h } );
 	}
 
 	SDL_free( displayModes );
 
-	if ( numModes > 1 )
+	qsort( modes.data(), modes.size(), sizeof( modes[ 0 ] ), GLimp_CompareModes );
+
+	std::string modesString;
+
+	for ( displayMode_t mode : modes )
 	{
-		qsort( modes, numModes, sizeof( SDL_Rect ), GLimp_CompareModes );
+		if ( !modesString.empty() )
+		{
+			modesString.push_back( ' ' );
+		}
+
+		modesString += Str::Format( "%ux%u", mode.w, mode.h );
 	}
 
-	char buf[ MAX_STRING_CHARS ] = { 0 };
-
-	for ( int i = 0; i < numModes; i++ )
+	if ( !modesString.empty() )
 	{
-		const char *newModeString = va( "%ux%u ", modes[ i ].w, modes[ i ].h );
-
-		if ( strlen( newModeString ) < sizeof( buf ) - strlen( buf ) )
-		{
-			Q_strcat( buf, sizeof( buf ), newModeString );
-		}
-		else
-		{
-			logger.Warn("Skipping mode %ux%x, buffer too small", modes[ i ].w, modes[ i ].h );
-		}
-	}
-
-	if ( *buf )
-	{
-		logger.Notice("Available modes: '%s'", buf );
-		Cvar::SetValueForce( r_availableModes.Name(), buf );
+		logger.Notice("Available modes: %s", modesString );
+		Cvar::SetValueForce( r_availableModes.Name(), modesString );
 	}
 
 	return true;
@@ -870,23 +848,8 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 		}
 	}
 
-	int numDisplays;
-	SDL_DisplayID *displayIDs = SDL_GetDisplays( &numDisplays );
-
-	if ( !displayIDs )
-	{
-		Sys::Error( "SDL_GetDisplays failed: %s\n", SDL_GetError() );
-	}
-
-	SDL_DisplayID displayID =
-		r_displayIndex->integer < numDisplays || r_displayIndex->integer > numDisplays
-		? displayIDs[ r_displayIndex->integer ]
-		: 0; // 0 implies primary display
-
-	SDL_free( displayIDs );
-
-	int x = SDL_WINDOWPOS_CENTERED_DISPLAY( displayID );
-	int y = SDL_WINDOWPOS_CENTERED_DISPLAY( displayID );
+	int x = SDL_WINDOWPOS_CENTERED_DISPLAY( glConfig.sdlDisplayID );
+	int y = SDL_WINDOWPOS_CENTERED_DISPLAY( glConfig.sdlDisplayID );
 
 	windowProperties = SDL_CreateProperties();
 	if ( !windowProperties )
@@ -1066,7 +1029,7 @@ static rserr_t GLimp_SetModeAndResolution( const int mode )
 
 	if ( !displayIDs )
 	{
-		Sys::Error( "SDL_GetDisplays failed: %s\n", SDL_GetError() );
+		Sys::Error( "SDL_GetDisplays failed: %s", SDL_GetError() );
 	}
 
 	if ( numDisplays <= 0 )
@@ -1074,11 +1037,13 @@ static rserr_t GLimp_SetModeAndResolution( const int mode )
 		Sys::Error( "SDL_GetDisplays returned 0 displays" );
 	}
 
-	SDL_DisplayID displayID = displayIDs[ Math::Clamp( r_displayIndex->integer, 0, numDisplays - 1 ) ];
+	glConfig.sdlDisplayID = r_displayIndex->integer >= 0 && r_displayIndex->integer < numDisplays
+	                        ? displayIDs[ r_displayIndex->integer ]
+	                        : 0; // 0 indicates primary display
 
 	SDL_free( displayIDs );
 
-	const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode( displayID );
+	const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode( glConfig.sdlDisplayID );
 
 	if ( desktopMode )
 	{
@@ -1757,19 +1722,20 @@ GLimp_StartDriverAndSetMode
 */
 static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordered )
 {
-#if !defined(_WIN32) && !defined(__APPLE__)
+	// See the SDL wiki page for details: https://wiki.libsdl.org/SDL3/SDL_SetAppMetadataProperty
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_NAME_STRING, PRODUCT_NAME );
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_VERSION_STRING, PRODUCT_VERSION );
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_TYPE_STRING, "game" );
+
 	/* Let X11 and Wayland desktops (Linux, FreeBSD…) associate the game
 	window with the XDG .desktop file, with the proper name and icon.
 	The .desktop file should have PRODUCT_APPID as base name or set the
 	StartupWMClass variable to PRODUCT_APPID. */
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_IDENTIFIER_STRING, PRODUCT_APPID );
 
-	// SDL2.
-	Sys::SetEnv( "SDL_VIDEO_X11_WMCLASS", PRODUCT_APPID );
-	Sys::SetEnv( "SDL_VIDEO_WAYLAND_WMCLASS", PRODUCT_APPID );
-
-	// SDL3.
-	Sys::SetEnv( "SDL_HINT_APP_ID", PRODUCT_APPID );
-#endif
+	/* Disable DPI scaling.
+	See the SDL wiki page for details: https://wiki.libsdl.org/SDL3/SDL_HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY */
+	SDL_SetHint( SDL_HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY, "1" );
 
 	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
 	{
@@ -1787,16 +1753,6 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 			SDL_VERSIONNUM_MINOR(compiled),
 			SDL_VERSIONNUM_MICRO(compiled));
 
-		/* It is recommended to test for negative value and not just -1.
-
-		> Returns 0 on success or a negative error code on failure;
-		> call SDL_GetError() for more information.
-		> -- https://wiki.libsdl.org/SDL_Init
-
-		the SDL_GetError page also gives a sample of code testing for < 0
-		> if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
-		> -- https://wiki.libsdl.org/SDL_GetError */
-
 		if ( !SDL_Init( SDL_INIT_VIDEO ) )
 		{
 			Sys::Error("SDL_Init( SDL_INIT_VIDEO ) failed: %s", SDL_GetError() );
@@ -1806,7 +1762,7 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 
 		if ( !driverName )
 		{
-			Sys::Error( "No video driver initialized\n" );
+			Sys::Error( "No video driver initialized" );
 		}
 
 		logger.Notice("SDL using driver \"%s\"", driverName );
@@ -1818,15 +1774,12 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 
 	if ( !displayIDs )
 	{
-		Sys::Error( "SDL_GetDisplays failed: %s\n", SDL_GetError() );
+		Sys::Error( "SDL_GetDisplays failed: %s", SDL_GetError() );
 	}
 
 #if defined(DAEMON_OPENGL_ABI)
 	logger.Notice( "Using OpenGL ABI \"%s\"", DAEMON_OPENGL_ABI_STRING );
 #endif
-
-	AssertCvarRange( r_displayIndex, 0, numDisplays - 1, true );
-	glConfig.displayIndex = r_displayIndex->integer;
 
 	rserr_t err = GLimp_SetMode(mode, fullscreen, bordered);
 

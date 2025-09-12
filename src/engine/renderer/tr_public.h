@@ -62,7 +62,7 @@ struct GLConfig
 
 	textureCompression_t textureCompression;
 
-	int displayIndex;
+	uint32_t sdlDisplayID;
 
 	bool smpActive; // dual processor
 

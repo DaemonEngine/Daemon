@@ -186,7 +186,7 @@ GLuint64 GL_BindToTMU( int unit, image_t *image )
 
 	if ( unit < 0 || unit >= glConfig.maxTextureUnits )
 	{
-		Sys::Drop( "GL_BindToTMU: unit %i is out of range\n", unit );
+		Sys::Drop( "GL_BindToTMU: unit %i is out of range", unit );
 	}
 
 	if ( tr.currenttextures[ unit ] == texnum )

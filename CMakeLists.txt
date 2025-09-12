@@ -725,6 +725,18 @@ endif()
 
 # SDL, required for all targets on win32 because of iconv and SDL_SetHint(SDL_TIMER_RESOLUTION, 0)
 if (BUILD_CLIENT OR WIN32)
+    # Use our detected architecture instead of letting SDL do it again
+    # Note that sdlcpu.cmake is only included on a random subset of platforms
+    set(sdlvar_i686 SDL_CPU_X86)
+    set(sdlvar_amd64 SDL_CPU_X64)
+    set(sdlvar_armhf SDL_CPU_ARM32)
+    set(sdlvar_arm64 SDL_CPU_ARM64)
+    if (sdlvar_${ARCH})
+        set(${sdlvar_${ARCH}} 1)
+    else()
+        message("Developer TODO: translate architecture ${ARCH} for SDL")
+    endif()
+
     find_package(SDL3 REQUIRED CONFIG)
 
     if (WIN32)

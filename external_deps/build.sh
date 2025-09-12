@@ -93,38 +93,44 @@ log() {
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
 extract() {
-	rm -rf "${2}"
-	mkdir -p "${2}"
-	case "${1}" in
+	local archive_file="${1}"; shift
+	local extract_dir="${1}"; shift
+
+	local archive_name="$(basename "${archive_file}")"
+	log STATUS "Extracting ${archive_name}"
+
+	rm -rf "${extract_dir}"
+	mkdir -p "${extract_dir}"
+	case "${archive_file}" in
 	*.tar.bz2)
-		tar xjf "${1}" -C "${2}"
+		tar xjf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.tar.xz)
-		tar xJf "${1}" -C "${2}"
+		tar xJf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.tar.gz|*.tgz)
-		tar xzf "${1}" -C "${2}"
+		tar xzf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.zip)
-		unzip -d "${2}" "${1}"
+		unzip -d "${extract_dir}" "${archive_file}"
 		;;
 	*.cygtar.bz2)
 		# Some Windows NaCl SDK packages have incorrect symlinks, so use
 		# cygtar to extract them.
-		"${SCRIPT_DIR}/cygtar.py" -xjf "${1}" -C "${2}"
+		"${SCRIPT_DIR}/cygtar.py" -xjf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.dmg)
 		local dmg_temp_dir="$(mktemp -d)"
-		hdiutil attach -mountpoint "${dmg_temp_dir}" "${1}"
-		cp -R "${dmg_temp_dir}/"* "${2}/"
+		hdiutil attach -mountpoint "${dmg_temp_dir}" "${archive_file}"
+		cp -R "${dmg_temp_dir}/"* "${extract_dir}/"
 		hdiutil detach "${dmg_temp_dir}"
 		rmdir "${dmg_temp_dir}"
 		;;
 	*)
-		log ERROR "Unknown archive type for ${1}"
+		log ERROR "Unknown archive type for ${archive_name}"
 		;;
 	esac
-	cd "${2}"
+	cd "${extract_dir}"
 }
 
 download() {
@@ -1110,7 +1116,7 @@ build_depcheck() {
 		for dll in $(find "${PREFIX}/bin" -type f -name '*.dll'); do
 			# https://wiki.unvanquished.net/wiki/MinGW#Built-in_DLL_dependencies
 			if objdump -p "${dll}" | grep -oP '(?<=DLL Name: )(libgcc_s|libstdc|libssp|libwinpthread).*'; then
-				echo "${dll} depends on above DLLs"
+				log WARNING "${dll} depends on above DLLs"
 				good=false
 			fi
 		done
@@ -1163,14 +1169,20 @@ build_genlib() {
 	esac
 }
 
+build() {
+	for pkg in "${@}"
+	do
+		cd "${WORK_DIR}"
+		log STATUS "Processing target '${pkg}' for ${PLATFORM}"
+		"build_${pkg}"
+	done
+}
+
 list_build() {
 	local list_name="${1}"
 	local package_list
 	eval "package_list=(\${${list_name}_${PLATFORM//-/_}_packages})"
-	for pkg in "${package_list[@]}"; do
-		cd "${WORK_DIR}"
-		"build_${pkg}"
-	done
+	build "${package_list[@]}"
 }
 
 build_base() {
@@ -1454,69 +1466,79 @@ all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp o
 base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
 all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
 
-linux_build_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
-macos_build_platforms='macos-amd64-default'
-all_platforms="$(echo ${linux_build_platforms} ${macos_build_platforms} | tr ' ' '\n' | sort -u | xargs echo)"
+all_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
+all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
+all_macos_platforms='macos-amd64-default'
+all_platforms="${all_linux_platforms} ${all_windows_platforms} ${all_macos_platforms}"
 
-errorHelp() {
-	sed -e 's/\\t/'$'\t''/g' <<-EOF
-	usage: $(basename "${BASH_SOURCE[0]}") [OPTION] <PLATFORM> <PACKAGE[S]...>
+printHelp() {
+	# Please align to 4-space tabs.
+	cat >&2 <<-EOF
+	usage: $(basename "${BASH_SOURCE[0]}") [OPTION] <PLATFORM> <PACKAGE(S)...>
 
 	Script to build dependencies for platforms which do not provide them
 
 	Options:
-	\t--download-only — only download source packages, do not build them
-	\t--prefer-ours — attempt to download from unvanquished.net first
+	    --download-only only download source packages, do not build them
+	    --prefer-ours   attempt to download from unvanquished.net first
 
 	Platforms:
-	\t${all_platforms}
+	    ${all_platforms}
 
 	Virtual platforms:
-	\tall: all platforms
-	\tbuild-linux — platforms buildable on linux: ${linux_build_platforms}
-	\tbuild-macos — platforms buildable on macos: ${macos_build_platforms}
+	    linux   ${all_linux_platforms}
+	    windows ${all_windows_platforms}
+	    macos   ${all_macos_platforms}
+	    all     linux windows macos
 
 	Packages:
-	\tpkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
+	    pkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
 
 	Virtual packages:
-	\tbase — build packages for pre-built binaries to be downloaded when building the game
-	\tall — build all supported packages that can possibly be involved in building the game
-	\tinstall — create a stripped down version of the built packages that CMake can use
-	\tpackage — create a zip/tarball of the dependencies so they can be distributed
-	\twipe — remove products of build process, excepting download cache but INCLUDING installed files. Must be last
+	    base    build packages for pre-built binaries to be downloaded when building the game
+	    all     build all supported packages that can possibly be involved in building the game
+	    install create a stripped down version of the built packages that CMake can use
+	    package create a tarball of the dependencies so they can be distributed
+	    wipe    remove products of build process, excepting download cache but INCLUDING installed files. Must be last
 
 	Packages required for each platform:
 
 	windows-amd64-msvc:
 	windows-i686-msvc:
-	\tbase: ${base_windows_amd64_msvc_packages}
-	\tall: same
+	    base    ${base_windows_amd64_msvc_packages}
+	    all     same
 
 	windows-amd64-mingw:
 	windows-i686-mingw:
-	\tbase: ${base_windows_amd64_mingw_packages}
-	\tall: same
+	    base    ${base_windows_amd64_mingw_packages}
+	    all     same
 
 	macos-amd64-default:
-	\tbase: ${base_macos_amd64_default_packages}
-	\tall: same
+	    base    ${base_macos_amd64_default_packages}
+	    all     same
 
 	linux-amd64-default:
-	\tbase: ${base_linux_amd64_default_packages}
-	\tall: ${all_linux_amd64_default_packages}
+	    base    ${base_linux_amd64_default_packages}
+	    all     ${all_linux_amd64_default_packages}
 
 	linux-i686-default:
-	\tbase: ${base_linux_i686_default_packages}
-	\tall: ${all_linux_i686_default_packages}
+	    base    ${base_linux_i686_default_packages}
+	    all     ${all_linux_i686_default_packages}
 
 	linux-arm64-default:
 	linux-armhf-default:
-	\tbase: ${base_linux_arm64_default_packages}
-	\tall: ${all_linux_arm64_default_packages}
+	    base    ${base_linux_arm64_default_packages}
+	    all     ${all_linux_arm64_default_packages}
 
 	EOF
-	false
+	
+	exit
+}
+
+syntaxError() {
+	log ERROR "${1}" || true
+	echo >&2
+	printHelp
 }
 
 download_only='false'
@@ -1537,8 +1559,11 @@ do
 		require_theirs='true'
 		shift
 	;;
-	'--'*)
-		helpError
+	'-h'|'--help')
+		printHelp
+	;;
+	'-'*)
+		syntaxError 'Unknown option'
 	;;
 	*)
 		break
@@ -1546,8 +1571,12 @@ do
 done
 
 # Usage
-if [ "${#}" -lt "2" ]; then
-	errorHelp
+if [ "${#}" -lt "1" ]
+then
+	syntaxError 'Missing platform and package(s)'
+elif [ "${#}" -lt "2" ]
+then
+	syntaxError 'Missing package(s)'
 fi
 
 # Do not reuse self-built curl from external_deps custom PATH
@@ -1556,9 +1585,9 @@ fi
 CURL="$(command -v curl)" || log ERROR "Command 'curl' not found"
 
 # Enable parallel build
-export MAKEFLAGS="-j`nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
+export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)"
+export MAKEFLAGS="-j${CMAKE_BUILD_PARALLEL_LEVEL}"
 export SCONSFLAGS="${MAKEFLAGS}"
-export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1)"
 
 # Setup platform
 platform="${1}"; shift
@@ -1568,11 +1597,14 @@ case "${platform}" in
 'all')
 	platform_list="${all_platforms}"
 ;;
-'build-linux')
-	platform_list="${linux_build_platforms}"
+'linux')
+	platform_list="${all_linux_platforms}"
 ;;
-'build-macos')
-	platform_list="${macos_build_platforms}"
+'windows')
+	platform_list="${all_windows_platforms}"
+;;
+'macos')
+	platform_list="${all_macos_platforms}"
 ;;
 *)
 	for known_platform in ${all_platforms}
@@ -1585,7 +1617,7 @@ case "${platform}" in
 	done
 	if [ -z "${platform_list}" ]
 	then
-		errorHelp
+		syntaxError 'Unknown platform'
 	fi
 ;;
 esac
@@ -1593,10 +1625,5 @@ esac
 for PLATFORM in ${platform_list}
 do (
 	"setup_${PLATFORM}"
-
-	# Build packages
-	for pkg in "${@}"; do
-		cd "${WORK_DIR}"
-		"build_${pkg}"
-	done
+	build "${@}"
 ) done

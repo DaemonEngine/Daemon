@@ -155,11 +155,6 @@ struct Material {
 	std::vector<Texture*> textures;
 
 	bool operator==( const Material& other ) {
-		if ( r_materialSeparatePerShader.Get() )
-		{
-			return refStage == other.refStage;
-		}
-
 		return program == other.program && stateBits == other.stateBits
 			&& fog == other.fog && cullType == other.cullType && usePolygonOffset == other.usePolygonOffset;
 	}

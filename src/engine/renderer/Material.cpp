@@ -1360,6 +1360,12 @@ void MaterialSystem::AddStage( MaterialSurface* surface, shaderStage_t* pStage, 
 			continue;
 		}
 
+		if ( pStage->shader->reliefDepthScale != pStage2->shader->reliefDepthScale
+		     || pStage->shader->reliefOffsetBias != pStage2->shader->reliefOffsetBias )
+		{
+			continue;
+		}
+
 		if ( pStage->refractionIndexExp != pStage2->refractionIndexExp || pStage->specularExponentMin != pStage2->specularExponentMin
 			|| pStage->specularExponentMax != pStage2->specularExponentMax || pStage->fresnelPowerExp != pStage2->fresnelPowerExp
 			|| pStage->fresnelScaleExp != pStage2->fresnelScaleExp || pStage->fresnelBiasExp != pStage2->fresnelBiasExp
