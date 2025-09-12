@@ -55,7 +55,7 @@ QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device ) {
 	VkQueueFamilyProperties2 propertiesArray[8] {};
 	vkGetPhysicalDeviceQueueFamilyProperties2( device, &config.count, propertiesArray );
 
-	for ( int i = 0; i < config.count; i++ ) {
+	for ( uint32 i = 0; i < config.count; i++ ) {
 		QueueConfig* cfg = &config.queues[i];
 		VkQueueFamilyProperties& coreProperties = propertiesArray[i].queueFamilyProperties;
 		
@@ -82,7 +82,7 @@ QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device ) {
 	}
 
 	if ( !config.computeQueue.queues ) {
-		config.computeQueue = *GetQueueConfigForType( config, COMPUTE );
+		config.computeQueue  = *GetQueueConfigForType( config, COMPUTE );
 	}
 
 	if ( !config.transferQueue.queues ) {
@@ -90,7 +90,7 @@ QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device ) {
 	}
 
 	if ( !config.sparseQueue.queues ) {
-		config.sparseQueue = *GetQueueConfigForType( config, SPARSE );
+		config.sparseQueue   = *GetQueueConfigForType( config, SPARSE );
 	}
 
 	return config;

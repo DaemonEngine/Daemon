@@ -38,21 +38,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL3/SDL.h>
 
-#include "engine/qcommon/q_shared.h"
-
 class Surface {
 	public:
 	SDL_Window* window;
 
-	Surface() {
-		window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, 1920, 1080, SDL_WINDOW_VULKAN );
-		SDL_InitSubSystem( SDL_INIT_VIDEO );
-	}
+	Surface();
 
-	~Surface() {
-		SDL_QuitSubSystem( SDL_INIT_VIDEO );
-		SDL_DestroyWindow( window );
-	}
+	~Surface();
 };
 
 #endif // SURFACE_H

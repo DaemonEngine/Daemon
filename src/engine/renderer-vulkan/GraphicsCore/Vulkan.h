@@ -3,6 +3,10 @@
 #ifndef VULKAN_LOADER_H
 #define VULKAN_LOADER_H
 
+#ifdef _MSC_VER
+	#define VK_USE_PLATFORM_WIN32_KHR
+#endif
+
 #include "../VulkanLoader/vulkan.h"
 
 extern PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr; 

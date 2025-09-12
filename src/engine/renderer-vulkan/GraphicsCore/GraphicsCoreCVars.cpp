@@ -37,6 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CapabilityPack.h"
 
+#include "SwapChain.h"
+
 #include "GraphicsCoreCVars.h"
 
 Cvar::Cvar<int> r_rendererApi( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 1 );
@@ -47,3 +49,8 @@ Cvar::Range<Cvar::Cvar<int>> r_vkCapabilityPack( "r_vkCapabilityPack", "Capabili
 	Cvar::NONE, CapabilityPackType::MINIMAL, CapabilityPackType::MINIMAL, CapabilityPackType::EXPERIMENTAL );
 
 Cvar::Cvar<int> r_vkDevice( "r_vkDevice", "Use specific GPU (-1: auto)", Cvar::NONE, -1 );
+
+Cvar::Range<Cvar::Cvar<int>> r_vkPresentMode( "r_vkPresentMode",
+	"Presentation mode: 0 - immediate, 1 - vsync on last frame, 2 - vsync on first new frame, "
+	"3 - relaxed vsync on first new frame, 4 - vsync on the closest frame to scanout",
+	Cvar::NONE, PresentMode::IMMEDIATE, PresentMode::IMMEDIATE, PresentMode::SCANOUT_SYNC_LATEST );

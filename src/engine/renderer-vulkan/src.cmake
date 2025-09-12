@@ -78,6 +78,8 @@ set(GRAPHICSCORELIST
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreCVars.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreStore.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreStore.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsResource.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsResource.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Init.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Init.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Instance.cpp
@@ -88,6 +90,8 @@ set(GRAPHICSCORELIST
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Queue.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/QueuesConfig.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/QueuesConfig.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/SwapChain.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/SwapChain.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Vulkan.h
 )
 

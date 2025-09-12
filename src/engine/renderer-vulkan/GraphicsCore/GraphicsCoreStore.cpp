@@ -35,11 +35,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Vulkan.h"
 
+#include "../Surface/Surface.h"
+
+#include "SwapChain.h"
+
 #include "EngineConfig.h"
 #include "QueuesConfig.h"
 #include "Queue.h"
 
 #include "GraphicsCoreStore.h"
+
+Surface mainSurface;
+
+SwapChain mainSwapChain;
 
 EngineConfig engineConfig;
 QueuesConfig queuesConfig;

@@ -51,6 +51,8 @@ struct GraphicsQueue {
 struct GraphicsQueueRingBuffer {
 	static constexpr uint32 maxQueues = 64;
 
+	uint32 id;
+
 	GraphicsQueue queues[maxQueues] {};
 
 	void Init( const VkDevice device, const uint32 queueGroup, uint32 count );

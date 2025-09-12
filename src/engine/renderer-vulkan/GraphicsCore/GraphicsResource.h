@@ -31,21 +31,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// GraphicsCoreCVars.h
+// GraphicsResource.h
 
-#ifndef GRAPHICS_CORE_CVARS_H
-#define GRAPHICS_CORE_CVARS_H
+#ifndef GRAPHICS_RESOURCE_H
+#define GRAPHICS_RESOURCE_H
 
-#include "common/Common.h"
+struct GraphicsResource {
+	virtual void Free() = 0;
+};
 
-extern Cvar::Cvar<int> r_rendererAPI;
-
-extern Cvar::Cvar<std::string> r_vkVersion;
-
-extern Cvar::Range<Cvar::Cvar<int>> r_vkCapabilityPack;
-
-extern Cvar::Cvar<int> r_vkDevice;
-
-extern Cvar::Range<Cvar::Cvar<int>> r_vkPresentMode;
-
-#endif // GRAPHICS_CORE_CVARS_H
+#endif // GRAPHICS_RESOURCE_H

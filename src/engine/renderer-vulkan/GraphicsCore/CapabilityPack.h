@@ -75,11 +75,13 @@ namespace CapabilityPackType {
 
 constexpr Array instanceExtensions {
 	"VK_LAYER_KHRONOS_validation",
-	"VK_KHR_get_physical_device_properties2"
+	"VK_KHR_get_physical_device_properties2",
+	"VK_KHR_get_surface_capabilities2"
 };
 
 constexpr Array extensionsMinimal {
-	"VK_EXT_descriptor_indexing"
+	"VK_EXT_descriptor_indexing",
+	"VK_KHR_swapchain"
 };
 
 constexpr Array featuresMinimal {

@@ -36,9 +36,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GRAPHICS_CORE_STORE_H
 #define GRAPHICS_CORE_STORE_H
 
+#include "Vulkan.h"
+
 struct GraphicsQueueRingBuffer;
 struct EngineConfig;
 struct QueuesConfig;
+class Surface;
+struct SwapChain;
+
+extern Surface mainSurface;
+
+extern SwapChain mainSwapChain;
 
 extern EngineConfig engineConfig;
 extern QueuesConfig queuesConfig;

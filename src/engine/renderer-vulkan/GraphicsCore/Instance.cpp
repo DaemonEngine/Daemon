@@ -40,8 +40,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Math/NumberTypes.h"
 #include "../Memory/DynamicArray.h"
 
+#include "../Error.h"
+
 #include "Vulkan.h"
 #include "../VulkanLoader/VulkanLoadFunctions.h"
+
+#include "SwapChain.h"
 
 #include "CapabilityPack.h"
 #include "EngineConfig.h"
@@ -124,17 +128,34 @@ void Instance::Init( const char* engineName, const char* appName ) {
 
 	VulkanLoadDeviceFunctions( device, instance );
 
-	graphicsQueue.Init( device, queuesConfig.graphicsQueue.id, queuesConfig.graphicsQueue.queues );
+	mainSwapChain.Init( instance );
+
+	std::string foundQueues = "Found queues: graphics (present: true)";
+	graphicsQueue.Init(     device, queuesConfig.graphicsQueue.id, queuesConfig.graphicsQueue.queues );
+
+	uint32 presentSupported;
+	vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, graphicsQueue.id, mainSwapChain.surface, &presentSupported );
+
+	if ( !presentSupported ) {
+		Err( "Graphics queue doesn't support present" );
+		return;
+	}
 
 	if( queuesConfig.computeQueue.queues ) {
-		computeQueue.Init( device, queuesConfig.computeQueue.id, queuesConfig.computeQueue.queues );
+		computeQueue.Init(  device,  queuesConfig.computeQueue.id, queuesConfig.computeQueue.queues );
+		vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, computeQueue.id, mainSwapChain.surface, &presentSupported );
+		foundQueues += Str::Format( ", async compute (present: %s)", ( bool ) presentSupported );
 	}
 
 	if ( queuesConfig.transferQueue.queues ) {
 		transferQueue.Init( device, queuesConfig.transferQueue.id, queuesConfig.transferQueue.queues );
+		foundQueues += Str::Format( ", async transfer" );
 	}
 
 	if ( queuesConfig.sparseQueue.queues ) {
-		sparseQueue.Init( device, queuesConfig.sparseQueue.id, queuesConfig.sparseQueue.queues );
+		sparseQueue.Init(   device,   queuesConfig.sparseQueue.id, queuesConfig.sparseQueue.queues );
+		foundQueues += Str::Format( ", async sparse binding" );
 	}
+
+	Log::Notice( foundQueues );
 }

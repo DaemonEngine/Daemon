@@ -33,4 +33,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Surface.cpp
 
+#include "engine/qcommon/q_shared.h"
+
 #include "Surface.h"
+
+Surface::Surface() {
+	window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, 1920, 1080, SDL_WINDOW_VULKAN );
+	SDL_InitSubSystem( SDL_INIT_VIDEO );
+}
+
+Surface::~Surface() {
+	SDL_QuitSubSystem( SDL_INIT_VIDEO );
+	SDL_DestroyWindow( window );
+}

@@ -51,11 +51,11 @@ cvar_t* r_allowResize;
 // struct SDL_Window* window;
 
 #include "Surface/Surface.h"
+#include "GraphicsCore/GraphicsCoreStore.h"
 
 #include "engine/framework/System.h"
 #include "Thread/SyncTask.h"
 
-Surface mainSurface;
 SDL_Window* window;
 
 static Cvar::Cvar<int> r_width( "r_width", "width", Cvar::NONE, 0 );

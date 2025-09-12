@@ -31,21 +31,37 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// GraphicsCoreCVars.h
+// SwapChain.h
 
-#ifndef GRAPHICS_CORE_CVARS_H
-#define GRAPHICS_CORE_CVARS_H
+#ifndef SWAP_CHAIN_H
+#define SWAP_CHAIN_H
 
-#include "common/Common.h"
+#include "Vulkan.h"
 
-extern Cvar::Cvar<int> r_rendererAPI;
+#include "../Math/NumberTypes.h"
 
-extern Cvar::Cvar<std::string> r_vkVersion;
+#include "GraphicsResource.h"
 
-extern Cvar::Range<Cvar::Cvar<int>> r_vkCapabilityPack;
+namespace PresentMode {
+	enum PresentMode {
+		IMMEDIATE            = VK_PRESENT_MODE_IMMEDIATE_KHR,
+		SCANOUT_ONE          = VK_PRESENT_MODE_MAILBOX_KHR,
+		SCANOUT_SYNC         = VK_PRESENT_MODE_FIFO_KHR,
+		SCANOUT_SYNC_RELAXED = VK_PRESENT_MODE_FIFO_RELAXED_KHR,
+		SCANOUT_SYNC_LATEST  = VK_PRESENT_MODE_FIFO_LATEST_READY_KHR
+	};
+}
 
-extern Cvar::Cvar<int> r_vkDevice;
+struct SwapChain : public GraphicsResource {
+	VkSurfaceKHR surface;
+	VkSwapchainKHR swapChain;
 
-extern Cvar::Range<Cvar::Cvar<int>> r_vkPresentMode;
+	uint32 minImages;
+	uint32 maxImages;
+	uint32 imageCount;
 
-#endif // GRAPHICS_CORE_CVARS_H
+	void Init( const VkInstance instance );
+	void Free() override;
+};
+
+#endif // SWAP_CHAIN_H
