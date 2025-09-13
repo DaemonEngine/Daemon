@@ -1636,7 +1636,7 @@ void Render_fog( shaderStage_t* pStage )
 	GL_State( pStage->stateBits );
 
 	ProcessShaderFog( pStage );
-	gl_fogQuake3Shader->BindProgram( 0 );
+	gl_fogQuake3Shader->BindProgram( pStage->deformIndex );
 
 	gl_fogQuake3Shader->SetUniform_FogDistanceVector( fogDistanceVector );
 	gl_fogQuake3Shader->SetUniform_FogDepthVector( fogDepthVector );
