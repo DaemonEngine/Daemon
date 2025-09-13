@@ -168,6 +168,7 @@ struct ShaderProgramDescriptor {
 
 class GLShader {
 	friend class GLShaderManager;
+	friend class GLDeformStage;
 public:
 	const std::string _name;
 private:
@@ -190,6 +191,7 @@ private:
 	const bool worldShader;
 protected:
 	int _activeMacros = 0;
+	int _deformIndex = 0;
 	ShaderProgramDescriptor* currentProgram;
 	uint32_t _vertexAttribs = 0; // can be set by uniforms
 
@@ -269,9 +271,9 @@ protected:
 	virtual void SetShaderProgramUniforms( ShaderProgramDescriptor* /*shaderProgram*/ ) { };
 	int SelectProgram();
 public:
-	void MarkProgramForBuilding( int deformIndex );
-	GLuint GetProgram( int deformIndex, const bool buildOneShader );
-	void BindProgram( int deformIndex );
+	void MarkProgramForBuilding();
+	GLuint GetProgram( const bool buildOneShader );
+	void BindProgram();
 	void DispatchCompute( const GLuint globalWorkgroupX, const GLuint globalWorkgroupY, const GLuint globalWorkgroupZ );
 	void DispatchComputeIndirect( const GLintptr indirectBuffer );
 	void SetRequiredVertexPointers();
@@ -427,7 +429,7 @@ public:
 
 	int GetDeformShaderIndex( deformStage_t *deforms, int numDeforms );
 
-	bool BuildPermutation( GLShader* shader, int macroIndex, int deformIndex, const bool buildOneShader );
+	bool BuildPermutation( GLShader* shader, int index, const bool buildOneShader );
 	void BuildAll( const bool buildOnlyMarked );
 	void FreeAll();
 
@@ -2684,7 +2686,7 @@ public:
 };
 
 class u_Time :
-	GLUniform1f
+	protected GLUniform1f
 {
 public:
 	u_Time( GLShader *shader ) :
@@ -2720,6 +2722,11 @@ public:
 	GLDeformStage( GLShader *shader ) :
 		u_Time( shader )
 	{
+	}
+
+	void SetDeform( int deformIndex )
+	{
+		_shader->_deformIndex = deformIndex;
 	}
 };
 

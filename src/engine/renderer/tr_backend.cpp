@@ -1180,7 +1180,8 @@ void RB_RunVisTests( )
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
-		gl_genericShader->BindProgram( 0 );
+		gl_genericShader->SetDeform( 0 );
+		gl_genericShader->BindProgram();
 
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		SetUniform_Color( gl_genericShader, Color::White );
@@ -1231,7 +1232,7 @@ static void RenderDepthTiles()
 	R_BindFBO( tr.depthtile1FBO );
 	GL_Viewport( 0, 0, tr.depthtile1FBO->width, tr.depthtile1FBO->height );
 	GL_Scissor( 0, 0, tr.depthtile1FBO->width, tr.depthtile1FBO->height );
-	gl_depthtile1Shader->BindProgram( 0 );
+	gl_depthtile1Shader->BindProgram();
 
 	vec3_t zParams;
 	zParams[ 0 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_x * 0.5f) ) / windowConfig.vidWidth;
@@ -1262,7 +1263,7 @@ static void RenderDepthTiles()
 
 	GL_Viewport( 0, 0, tr.depthtile2FBO->width, tr.depthtile2FBO->height );
 	GL_Scissor( 0, 0, tr.depthtile2FBO->width, tr.depthtile2FBO->height );
-	gl_depthtile2Shader->BindProgram( 0 );
+	gl_depthtile2Shader->BindProgram();
 
 	gl_depthtile2Shader->SetUniform_DepthTile1Bindless(
 		GL_BindToTMU( 0, tr.depthtile1RenderImage )
@@ -1298,7 +1299,7 @@ void RB_RenderPostDepthLightTile()
 
 	// render lights
 	R_BindFBO( tr.lighttileFBO );
-	gl_lighttileShader->BindProgram( 0 );
+	gl_lighttileShader->BindProgram();
 	gl_lighttileShader->SetUniform_ModelMatrix( backEnd.viewParms.world.modelViewMatrix );
 	gl_lighttileShader->SetUniform_numLights( backEnd.refdef.numLights );
 	gl_lighttileShader->SetUniform_zFar( projToViewParams );
@@ -1365,7 +1366,7 @@ void RB_RenderGlobalFog()
 
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
-	gl_fogGlobalShader->BindProgram( 0 );
+	gl_fogGlobalShader->BindProgram();
 
 	// go back to the world modelview matrix
 	backEnd.orientation = backEnd.viewParms.world;
@@ -1425,7 +1426,7 @@ void RB_RenderBloom()
 		GL_Cull( cullType_t::CT_TWO_SIDED );
 
 		// render contrast downscaled to 1/4th of the screen
-		gl_contrastShader->BindProgram( 0 );
+		gl_contrastShader->BindProgram();
 
 		gl_contrastShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
@@ -1445,7 +1446,7 @@ void RB_RenderBloom()
 		texScale[0] = 1.0f / tr.bloomRenderFBO[0]->width;
 		texScale[1] = 1.0f / tr.bloomRenderFBO[0]->height;
 
-		gl_blurShader->BindProgram( 0 );
+		gl_blurShader->BindProgram();
 
 		gl_blurShader->SetUniform_DeformMagnitude( r_bloomBlur.Get() );
 		gl_blurShader->SetUniform_TexScale( texScale );
@@ -1476,7 +1477,7 @@ void RB_RenderBloom()
 
 		R_BindFBO( tr.mainFBO[backEnd.currentMainFBO] );
 
-		gl_screenShader->BindProgram( 0 );
+		gl_screenShader->BindProgram();
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
 		glVertexAttrib4fv( ATTR_INDEX_COLOR, Color::White.ToArray() );
 
@@ -1511,7 +1512,7 @@ void RB_RenderMotionBlur()
 	GL_State( GLS_DEPTHTEST_DISABLE );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
-	gl_motionblurShader->BindProgram( 0 );
+	gl_motionblurShader->BindProgram();
 
 	// Swap main FBOs
 	gl_motionblurShader->SetUniform_ColorMapBindless(
@@ -1562,7 +1563,7 @@ void RB_RenderSSAO()
 		glClear( GL_COLOR_BUFFER_BIT );
 	}
 
-	gl_ssaoShader->BindProgram( 0 );
+	gl_ssaoShader->BindProgram();
 
 	vec3_t zParams;
 	zParams[ 0 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_x * 0.5f ) ) / windowConfig.vidWidth;
@@ -1605,7 +1606,7 @@ void RB_FXAA()
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
 	// set the shader parameters
-	gl_fxaaShader->BindProgram( 0 );
+	gl_fxaaShader->BindProgram();
 
 	// Swap main FBOs
 	gl_fxaaShader->SetUniform_ColorMapBindless(
@@ -1660,7 +1661,7 @@ void RB_CameraPostFX() {
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
 	// enable shader, set arrays
-	gl_cameraEffectsShader->BindProgram( 0 );
+	gl_cameraEffectsShader->BindProgram();
 
 	gl_cameraEffectsShader->SetUniform_GlobalLightFactor( 1.0f / tr.identityLight );
 	gl_cameraEffectsShader->SetUniform_ColorModulate( backEnd.viewParms.gradingWeights );
@@ -1711,7 +1712,8 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
-		gl_genericShader->BindProgram( 0 );
+		gl_genericShader->SetDeform( 0 );
+		gl_genericShader->BindProgram();
 
 		if ( r_showEntityBounds.Get() == 2 )
 		{
@@ -1794,7 +1796,8 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
-		gl_genericShader->BindProgram( 0 );
+		gl_genericShader->SetDeform( 0 );
+		gl_genericShader->BindProgram();
 
 		GL_Cull( cullType_t::CT_TWO_SIDED );
 
@@ -2009,8 +2012,8 @@ static void RB_RenderDebugUtils()
 		// choose right shader program ----------------------------------
 		gl_reflectionShader->SetVertexSkinning( false );
 		gl_reflectionShader->SetVertexAnimation( false );
-
-		gl_reflectionShader->BindProgram( 0 );
+		gl_reflectionShader->SetDeform( 0 );
+		gl_reflectionShader->BindProgram();
 
 		// end choose right shader program ------------------------------
 
@@ -2077,7 +2080,8 @@ static void RB_RenderDebugUtils()
 			gl_genericShader->SetTCGenEnvironment( false );
 			gl_genericShader->SetTCGenLightmap( false );
 			gl_genericShader->SetDepthFade( false );
-			gl_genericShader->BindProgram( 0 );
+			gl_genericShader->SetDeform( 0 );
+			gl_genericShader->BindProgram();
 
 			// set uniforms
 			gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
@@ -2159,7 +2163,8 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
-		gl_genericShader->BindProgram( 0 );
+		gl_genericShader->SetDeform( 0 );
+		gl_genericShader->BindProgram();
 
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
@@ -2250,7 +2255,8 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
-		gl_genericShader->BindProgram( 0 );
+		gl_genericShader->SetDeform( 0 );
+		gl_genericShader->BindProgram();
 
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
@@ -2543,7 +2549,8 @@ void DebugDrawBegin( debugDrawMode_t mode, float size ) {
 	gl_genericShader->SetTCGenEnvironment( false );
 	gl_genericShader->SetTCGenLightmap( false );
 	gl_genericShader->SetDepthFade( false );
-	gl_genericShader->BindProgram( 0 );
+	gl_genericShader->SetDeform( 0 );
+	gl_genericShader->BindProgram();
 
 	GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 	GL_Cull( cullType_t::CT_FRONT_SIDED );
@@ -3649,7 +3656,8 @@ void RB_ShowImages()
 	gl_genericShader->SetTCGenEnvironment( false );
 	gl_genericShader->SetTCGenLightmap( false );
 	gl_genericShader->SetDepthFade( false );
-	gl_genericShader->BindProgram( 0 );
+	gl_genericShader->SetDeform( 0 );
+	gl_genericShader->BindProgram();
 
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 

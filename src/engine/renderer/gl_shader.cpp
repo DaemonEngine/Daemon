@@ -1053,11 +1053,9 @@ ShaderProgramDescriptor* GLShaderManager::FindShaderProgram( std::vector<ShaderE
 	return &*it;
 }
 
-bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int deformIndex, const bool buildOneShader ) {
-	size_t i = macroIndex + ( deformIndex << shader->_compileMacros.size() );
-
+bool GLShaderManager::BuildPermutation( GLShader* shader, int index, const bool buildOneShader ) {
 	std::string compileMacros;
-	if ( !shader->GetCompileMacrosString( i, compileMacros, GLCompileMacro::VERTEX | GLCompileMacro::FRAGMENT ) ) {
+	if ( !shader->GetCompileMacrosString( index, compileMacros, GLCompileMacro::VERTEX | GLCompileMacro::FRAGMENT ) ) {
 		return false;
 	}
 
@@ -1066,8 +1064,8 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 	}
 
 	// Program already exists
-	if ( i < shader->shaderPrograms.size() &&
-		shader->shaderPrograms[i].id ) {
+	if ( index < shader->shaderPrograms.size() &&
+		shader->shaderPrograms[index].id ) {
 		return false;
 	}
 
@@ -1089,7 +1087,10 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 
 	const int start = Sys::Milliseconds();
 
-	if ( i >= shader->shaderPrograms.size() ) {
+	int macroIndex = index & ( ( 1 << shader->_compileMacros.size() ) - 1 );
+	int deformIndex = index >> shader->_compileMacros.size();
+
+	if ( index >= shader->shaderPrograms.size() ) {
 		shader->shaderPrograms.resize( ( deformIndex + 1 ) << shader->_compileMacros.size() );
 	}
 
@@ -1117,7 +1118,7 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 	GL_BindNullProgram();
 
 	// Copy this for a fast look-up, but the values held in program aren't supposed to change after
-	shader->shaderPrograms[i] = *program;
+	shader->shaderPrograms[index] = *program;
 
 	GL_CheckErrors();
 
@@ -1157,24 +1158,21 @@ void GLShaderManager::BuildAll( const bool buildOnlyMarked ) {
 		if ( buildOnlyMarked ) {
 			for ( size_t i = 0; i < shader->shaderProgramsToBuild.size(); i++ ) {
 				if ( shader->shaderProgramsToBuild[i] ) {
-					const int macroIndex = i & ( ( 1u << shader->GetNumOfCompiledMacros() ) - 1 );
-					const int deformIndex = i >> shader->GetNumOfCompiledMacros();
-
-					count += +BuildPermutation( shader, macroIndex, deformIndex, false );
+					count += +BuildPermutation( shader, i, false );
 				}
 			}
 		} else {
 			size_t numPermutations = static_cast<size_t>( 1 ) << shader->GetNumOfCompiledMacros();
 
 			for ( size_t i = 0; i < numPermutations; i++ ) {
-				count += +BuildPermutation( shader, i, 0, false );
+				// doesn't include deform vertex shaders, those are built elsewhere!
+				count += +BuildPermutation( shader, i, false );
 			}
 		}
 
 		_shaderBuildQueue.pop();
 	}
 
-	// doesn't include deform vertex shaders, those are built elsewhere!
 	Log::Notice( "Built %u glsl shader programs in %i ms (compile: %u in %i ms, link: %u in %i ms, init: %u in %i ms;"
 		" cache: loaded %u in %i ms, saved %u in %i ms)",
 		count, Sys::Milliseconds() - startTime,
@@ -2206,9 +2204,9 @@ int GLShader::SelectProgram()
 {
 	int    index = 0;
 
-	size_t numMacros = _compileMacros.size();
+	int numMacros = static_cast<int>( _compileMacros.size() );
 
-	for ( size_t i = 0; i < numMacros; i++ )
+	for ( int i = 0; i < numMacros; i++ )
 	{
 		if ( _activeMacros & BIT( i ) )
 		{
@@ -2216,28 +2214,26 @@ int GLShader::SelectProgram()
 		}
 	}
 
-	return index;
+	return index | ( _deformIndex << numMacros );
 }
 
-void GLShader::MarkProgramForBuilding( int deformIndex ) {
-	int macroIndex = SelectProgram();
-	size_t index = macroIndex + ( size_t( deformIndex ) << _compileMacros.size() );
+void GLShader::MarkProgramForBuilding() {
+	int index = SelectProgram();
 
-	if ( index >= shaderProgramsToBuild.size() ) {
+	if ( size_t(index) >= shaderProgramsToBuild.size() ) {
 		shaderProgramsToBuild.resize( index + 1 );
 	}
 
 	shaderProgramsToBuild[index] = true;
 }
 
-GLuint GLShader::GetProgram( int deformIndex, const bool buildOneShader ) {
-	int macroIndex = SelectProgram();
-	size_t index = macroIndex + ( size_t( deformIndex ) << _compileMacros.size() );
+GLuint GLShader::GetProgram( const bool buildOneShader ) {
+	int index = SelectProgram();
 
 	// program may not be loaded yet because the shader manager hasn't yet gotten to it
 	// so try to load it now
 	if ( index >= shaderPrograms.size() || !shaderPrograms[index].id ) {
-		gl_shaderManager.BuildPermutation( this, macroIndex, deformIndex, buildOneShader );
+		gl_shaderManager.BuildPermutation( this, index, buildOneShader );
 	}
 
 	// program is still not loaded
@@ -2262,15 +2258,14 @@ GLuint GLShader::GetProgram( int deformIndex, const bool buildOneShader ) {
 	return shaderPrograms[index].id;
 }
 
-void GLShader::BindProgram( int deformIndex ) {
-	int macroIndex = SelectProgram();
-	size_t index = macroIndex + ( size_t(deformIndex) << _compileMacros.size() );
+void GLShader::BindProgram() {
+	int index = SelectProgram();
 
 	// program may not be loaded yet because the shader manager hasn't yet gotten to it
 	// so try to load it now
 	if ( index >= shaderPrograms.size() || !shaderPrograms[index].id )
 	{
-		gl_shaderManager.BuildPermutation( this, macroIndex, deformIndex, true );
+		gl_shaderManager.BuildPermutation( this, index, true );
 	}
 
 	// program is still not loaded
