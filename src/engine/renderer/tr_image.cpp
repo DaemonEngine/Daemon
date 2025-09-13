@@ -1172,6 +1172,29 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		}
 	}
 
+	// Make sure we prefer GL_R8 when ARB_texture_rg is available.
+	ASSERT( !( internalFormat == GL_RED && glConfig.textureRGAvailable ) );
+	// Make sure we only use GL_R8 when ARB_texture_rg is available.
+	ASSERT( !( internalFormat == GL_R8 && !glConfig.textureRGAvailable ) );
+	// Make sure we only use GL_RG8 when ARB_texture_rg is available.
+	ASSERT( !( internalFormat == GL_RG8 && !glConfig.textureRGAvailable ) );
+	// Make sure we only use GL_SR8_EXT when EXT_texture_sRGB_R8 is available.
+	ASSERT( !( internalFormat == GL_R8 && isSRGB && !glConfig.textureSrgbR8Available ) );
+	// Make sure we only use GL_SRG8_EXT when EXT_texture_sRGB_RG8 is available.
+	ASSERT( !( internalFormat == GL_RG8 && isSRGB && !glConfig.textureSrgbRG8Available ) );
+
+	// Make sure we prefer GL_RGB but don't enforce it. GL_RGB is used when we don't set a format.
+	if ( internalFormat == GL_RGBA )
+	{
+		Log::Warn( "An explicit format should be used instead of GL_RGB for image %s", name );
+	}
+
+	// Make sure we prefer GL_RGBA but don't enforce it. GL_RGBA is used when we don't set a format.
+	if ( internalFormat == GL_RGBA )
+	{
+		Log::Warn( "An explicit format should be used instead of GL_RGBA for image %s", name );
+	}
+
 	Log::Debug( "Uploading image %s (%d×%d, %d layers, %0#x type, %0#x format)", name, scaledWidth, scaledHeight, numLayers, image->type, internalFormat );
 
 	// 3D textures are uploaded in slices via glTexSubImage3D,
