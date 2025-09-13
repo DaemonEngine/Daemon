@@ -163,6 +163,7 @@ public:
 			"If internalformat is specified as a base internal format, the GL stores the resulting texture with
 			 internal component resolutions of its own choosing, referred to as the effective internal format."
 			 Use 4 bytes as an estimate: */
+			{ GL_RGB, { "RGB", 3 } },
 			{ GL_RGBA, { "RGBA", 4 } },
 			{ GL_RED, { "RED", 1 } },
 
