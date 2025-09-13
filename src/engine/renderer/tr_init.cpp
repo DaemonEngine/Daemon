@@ -1496,7 +1496,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 				for ( uint32_t i = 0; i < 3; i++ ) {
 					gl_fogQuake3Shader->SetVertexSkinning( i & 1 );
 					gl_fogQuake3Shader->SetVertexAnimation( i & 2 );
-					gl_fogQuake3Shader->MarkProgramForBuilding( 0 );
+					gl_fogQuake3Shader->SetDeform( 0 );
+					gl_fogQuake3Shader->MarkProgramForBuilding();
 				}
 			}
 

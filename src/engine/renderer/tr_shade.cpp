@@ -197,7 +197,7 @@ void GLSL_InitWorldShaders() {
 
 	// Material system shaders that are always loaded if material system is available
 	if ( glConfig.usingMaterialSystem ) {
-		gl_cullShader->MarkProgramForBuilding( 0 );
+		gl_cullShader->MarkProgramForBuilding();
 	}
 
 	gl_shaderManager.InitWorldShaders();
@@ -237,9 +237,9 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.LoadShader( gl_processSurfacesShader );
 		gl_shaderManager.LoadShader( gl_depthReductionShader );
 
-		gl_clearSurfacesShader->MarkProgramForBuilding( 0 );
-		gl_processSurfacesShader->MarkProgramForBuilding( 0 );
-		gl_depthReductionShader->MarkProgramForBuilding( 0 );
+		gl_clearSurfacesShader->MarkProgramForBuilding();
+		gl_processSurfacesShader->MarkProgramForBuilding();
+		gl_depthReductionShader->MarkProgramForBuilding();
 	}
 
 	if ( tr.world ) // this only happens with /glsl_restart
@@ -253,9 +253,9 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.LoadShader( gl_depthtile2Shader );
 		gl_shaderManager.LoadShader( gl_lighttileShader );
 
-		gl_depthtile1Shader->MarkProgramForBuilding( 0 );
-		gl_depthtile2Shader->MarkProgramForBuilding( 0 );
-		gl_lighttileShader->MarkProgramForBuilding( 0 );
+		gl_depthtile1Shader->MarkProgramForBuilding();
+		gl_depthtile2Shader->MarkProgramForBuilding();
+		gl_lighttileShader->MarkProgramForBuilding();
 	}
 
 	if ( glConfig.reflectionMappingAvailable )
@@ -274,13 +274,13 @@ static void GLSL_InitGPUShadersOrError()
 		// skybox drawing for abitrary polygons
 		gl_shaderManager.LoadShader( gl_skyboxShader );
 
-		gl_skyboxShader->MarkProgramForBuilding( 0 );
+		gl_skyboxShader->MarkProgramForBuilding();
 
 		if ( glConfig.usingMaterialSystem )
 		{
 			gl_shaderManager.LoadShader( gl_skyboxShaderMaterial );
 
-			gl_skyboxShaderMaterial->MarkProgramForBuilding( 0 );
+			gl_skyboxShaderMaterial->MarkProgramForBuilding();
 		}
 	}
 
@@ -297,7 +297,7 @@ static void GLSL_InitGPUShadersOrError()
 		// global fog post process effect
 		gl_shaderManager.LoadShader( gl_fogGlobalShader );
 
-		gl_fogGlobalShader->MarkProgramForBuilding( 0 );
+		gl_fogGlobalShader->MarkProgramForBuilding();
 	}
 
 	if ( r_heatHaze->integer )
@@ -316,37 +316,37 @@ static void GLSL_InitGPUShadersOrError()
 		// screen post process effect
 		gl_shaderManager.LoadShader( gl_screenShader );
 
-		gl_screenShader->MarkProgramForBuilding( 0 );
+		gl_screenShader->MarkProgramForBuilding();
 
 		if ( glConfig.usingMaterialSystem )
 		{
 			gl_shaderManager.LoadShader( gl_screenShaderMaterial );
 
-			gl_screenShaderMaterial->MarkProgramForBuilding( 0 );
+			gl_screenShaderMaterial->MarkProgramForBuilding();
 		}
 
 		// LDR bright pass filter
 		gl_shaderManager.LoadShader( gl_contrastShader );
 
-		gl_contrastShader->MarkProgramForBuilding( 0 );
+		gl_contrastShader->MarkProgramForBuilding();
 	}
 	
 	// portal process effect
 	gl_shaderManager.LoadShader( gl_portalShader );
 
-	gl_portalShader->MarkProgramForBuilding( 0 );
+	gl_portalShader->MarkProgramForBuilding();
 
 	// camera post process effect
 	gl_shaderManager.LoadShader( gl_cameraEffectsShader );
 
-	gl_cameraEffectsShader->MarkProgramForBuilding( 0 );
+	gl_cameraEffectsShader->MarkProgramForBuilding();
 
 	if ( glConfig.bloom )
 	{
 		// gaussian blur
 		gl_shaderManager.LoadShader( gl_blurShader );
 
-		gl_blurShader->MarkProgramForBuilding( 0 );
+		gl_blurShader->MarkProgramForBuilding();
 	}
 
 	if ( r_liquidMapping->integer != 0 )
@@ -363,21 +363,21 @@ static void GLSL_InitGPUShadersOrError()
 	{
 		gl_shaderManager.LoadShader( gl_motionblurShader );
 
-		gl_motionblurShader->MarkProgramForBuilding( 0 );
+		gl_motionblurShader->MarkProgramForBuilding();
 	}
 
 	if ( glConfig.ssao )
 	{
 		gl_shaderManager.LoadShader( gl_ssaoShader );
 
-		gl_ssaoShader->MarkProgramForBuilding( 0 );
+		gl_ssaoShader->MarkProgramForBuilding();
 	}
 
 	if ( r_FXAA->integer != 0 )
 	{
 		gl_shaderManager.LoadShader( gl_fxaaShader );
 
-		gl_fxaaShader->MarkProgramForBuilding( 0 );
+		gl_fxaaShader->MarkProgramForBuilding();
 	}
 
 	gl_shaderManager.InitShaders();
@@ -636,7 +636,8 @@ static void DrawTris()
 		deform = tess.surfaceStages[ 0 ].deformIndex;
 	}
 
-	gl_genericShader->BindProgram( deform );
+	gl_genericShader->SetDeform( deform );
+	gl_genericShader->BindProgram();
 
 	GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
 
@@ -785,6 +786,7 @@ void ProcessShaderNOP( const shaderStage_t* ) {
 void ProcessShaderGeneric3D( const shaderStage_t* pStage ) {
 	gl_genericShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
+	gl_genericShader->SetDeform( pStage->deformIndex );
 	gl_genericShader->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShader->SetTCGenLightmap( pStage->tcGen_Lightmap );
 	gl_genericShader->SetDepthFade( pStage->hasDepthFade );
@@ -806,6 +808,7 @@ void ProcessShaderLightMapping( const shaderStage_t* pStage ) {
 
 	gl_lightMappingShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_lightMappingShader->SetVertexAnimation( tess.vboVertexAnimation );
+	gl_lightMappingShader->SetDeform( pStage->deformIndex );
 
 	gl_lightMappingShader->SetBspSurface( tess.bspSurface );
 
@@ -830,11 +833,13 @@ void ProcessShaderReflection( const shaderStage_t* pStage ) {
 
 	gl_reflectionShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_reflectionShader->SetVertexAnimation( tess.vboVertexAnimation );
+	gl_reflectionShader->SetDeform( pStage->deformIndex );
 }
 
-void ProcessShaderHeatHaze( const shaderStage_t* ) {
+void ProcessShaderHeatHaze( const shaderStage_t* pStage ) {
 	gl_heatHazeShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_heatHazeShader->SetVertexAnimation( tess.vboVertexAnimation );
+	gl_heatHazeShader->SetDeform( pStage->deformIndex );
 }
 
 void ProcessShaderLiquid( const shaderStage_t* pStage ) {
@@ -851,9 +856,10 @@ void ProcessShaderLiquid( const shaderStage_t* pStage ) {
 	gl_liquidShader->SetGridLighting( lightMode == lightMode_t::GRID );
 }
 
-void ProcessShaderFog( const shaderStage_t* ) {
+void ProcessShaderFog( const shaderStage_t* pStage ) {
 	gl_fogQuake3Shader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_fogQuake3Shader->SetVertexAnimation( tess.vboVertexAnimation );
+	gl_fogQuake3Shader->SetDeform( pStage->deformIndex );
 }
 
 void Render_NONE( shaderStage_t * )
@@ -881,7 +887,7 @@ void Render_generic3D( shaderStage_t *pStage )
 
 	// choose right shader program ----------------------------------
 	ProcessShaderGeneric3D( pStage );
-	gl_genericShader->BindProgram( pStage->deformIndex );
+	gl_genericShader->BindProgram();
 	// end choose right shader program ------------------------------
 
 	// set uniforms
@@ -1025,7 +1031,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	// choose right shader program ----------------------------------
 	ProcessShaderLightMapping( pStage );
-	gl_lightMappingShader->BindProgram( pStage->deformIndex );
+	gl_lightMappingShader->BindProgram();
 	// end choose right shader program ------------------------------
 
 	// now we are ready to set the shader program uniforms
@@ -1251,7 +1257,7 @@ void Render_reflection_CB( shaderStage_t *pStage )
 
 	// choose right shader program ----------------------------------
 	ProcessShaderReflection( pStage );
-	gl_reflectionShader->BindProgram( pStage->deformIndex );
+	gl_reflectionShader->BindProgram();
 	// end choose right shader program ------------------------------
 
 	gl_reflectionShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // in world space
@@ -1334,7 +1340,7 @@ void Render_skybox( shaderStage_t *pStage )
 
 	GL_State( pStage->stateBits );
 
-	gl_skyboxShader->BindProgram( pStage->deformIndex );
+	gl_skyboxShader->BindProgram();
 
 	gl_skyboxShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -1359,7 +1365,7 @@ void Render_screen( shaderStage_t *pStage )
 
 	GL_State( pStage->stateBits );
 
-	gl_screenShader->BindProgram( pStage->deformIndex );
+	gl_screenShader->BindProgram();
 
 	{
 		GL_VertexAttribsState( ATTR_POSITION );
@@ -1385,7 +1391,7 @@ void Render_portal( shaderStage_t *pStage )
 	GL_State( pStage->stateBits );
 
 	// enable shader, set arrays
-	gl_portalShader->BindProgram( pStage->deformIndex );
+	gl_portalShader->BindProgram();
 
 	{
 		GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD );
@@ -1417,7 +1423,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 
 	// choose right shader program ----------------------------------
 	ProcessShaderHeatHaze( pStage );
-	gl_heatHazeShader->BindProgram( pStage->deformIndex );
+	gl_heatHazeShader->BindProgram();
 	// end choose right shader program ------------------------------
 
 	// set uniforms
@@ -1507,7 +1513,7 @@ void Render_liquid( shaderStage_t *pStage )
 	ProcessShaderLiquid( pStage );
 
 	// enable shader, set arrays
-	gl_liquidShader->BindProgram( pStage->deformIndex );
+	gl_liquidShader->BindProgram();
 	gl_liquidShader->SetRequiredVertexPointers();
 
 	// set uniforms
@@ -1612,7 +1618,7 @@ void Render_fog( shaderStage_t* pStage )
 	GL_State( pStage->stateBits );
 
 	ProcessShaderFog( pStage );
-	gl_fogQuake3Shader->BindProgram( pStage->deformIndex );
+	gl_fogQuake3Shader->BindProgram();
 
 	gl_fogQuake3Shader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
 	gl_fogQuake3Shader->SetUniform_FogDensity( fog->tcScale );
