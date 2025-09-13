@@ -2027,6 +2027,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_sync );
 	Cvar::Latch( r_arb_texture_barrier );
 	Cvar::Latch( r_arb_texture_gather );
+	Cvar::Latch( r_arb_texture_rg );
 	Cvar::Latch( r_arb_uniform_buffer_object );
 	Cvar::Latch( r_arb_vertex_attrib_binding );
 	Cvar::Latch( r_ext_draw_buffers );
@@ -2034,7 +2035,6 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_ext_texture_filter_anisotropic );
 	Cvar::Latch( r_ext_texture_float );
 	Cvar::Latch( r_ext_texture_integer );
-	Cvar::Latch( r_ext_texture_rg );
 	Cvar::Latch( r_ext_texture_srgb_r8 );
 	Cvar::Latch( r_khr_debug );
 	Cvar::Latch( r_khr_shader_subgroup );
@@ -2145,7 +2145,7 @@ static void GLimp_InitExtensions()
 	  && glConfig.gpuShader4Available;
 
 	// made required in OpenGL 3.0
-	glConfig.textureRGAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_rg, r_ext_texture_rg.Get() );
+	glConfig.textureRGAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_rg, r_arb_texture_rg.Get() );
 
 	{
 		bool textureGatherEnabled = r_arb_texture_gather.Get();
