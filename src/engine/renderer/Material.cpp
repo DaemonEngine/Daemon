@@ -1084,7 +1084,7 @@ void BindShaderLiquid( Material* material ) {
 
 void BindShaderFog( Material* material ) {
 	// Bind shader program.
-	gl_fogQuake3ShaderMaterial->BindProgram( 0 );
+	gl_fogQuake3ShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
 	const fog_t* fog = tr.world->fogs + material->fog;
