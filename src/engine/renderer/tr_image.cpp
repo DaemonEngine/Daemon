@@ -197,6 +197,7 @@ public:
 			 If internalformat is one of the six generic compressed internal formats, its value is replaced by the symbolic constant
 			 for a specific compressed internal format of the GL’s choosing with the same base internal format."
 			 Use 4x4 blocks with 8 bytes per block here as an estimate: */
+			{ GL_COMPRESSED_RGB, { "RGBC", 8 } },
 			{ GL_COMPRESSED_RGBA, { "RGBAC", 8 } },
 
 			/* https://registry.khronos.org/OpenGL/extensions/EXT/EXT_texture_compression_s3tc.txt
@@ -378,6 +379,7 @@ public:
 			{
 				switch ( image->internalFormat ) {
 					// Compressed formats encode blocks of 4x4 texels
+					case GL_COMPRESSED_RGB:
 					case GL_COMPRESSED_RGBA:
 					case GL_COMPRESSED_RED_RGTC1:
 					case GL_COMPRESSED_SIGNED_RED_RGTC1:
@@ -1201,6 +1203,22 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	if ( internalFormat == GL_RGBA )
 	{
 		Log::Warn( "An explicit format should be used instead of GL_RGBA for image %s", name );
+	}
+
+	if ( image->bits & IF_COMPRESS )
+	{
+		switch ( internalFormat )
+		{
+			case GL_RED:
+			case GL_RGB8:
+				internalFormat = GL_COMPRESSED_RGB;
+				break;
+			case GL_RGBA8:
+				internalFormat = GL_COMPRESSED_RGBA;
+				break;
+			default:
+				break;
+		}
 	}
 
 	Log::Debug( "Uploading image %s (%d×%d, %d layers, %0#x type, %0#x format)", name, scaledWidth, scaledHeight, numLayers, image->type, internalFormat );
