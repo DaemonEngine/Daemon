@@ -28,7 +28,8 @@ uniform sampler2D u_FogMap;
 
 uniform float u_FogEyeT;
 
-IN(smooth) vec2		var_TexCoords;
+IN(smooth) float var_FogPlaneDistance;
+IN(smooth) vec3 var_ScaledViewerOffset;
 IN(smooth) vec4		var_Color;
 
 DECLARE_OUTPUT(vec4)
@@ -37,17 +38,21 @@ void	main()
 {
 	#insert material_fp
 
-	float t = step( 0, var_TexCoords.t );
+	float s = length(var_ScaledViewerOffset);
+
+	s += 1.0 / 512.0;
+
+	float t = step( 0, var_FogPlaneDistance );
 
 	if ( u_FogEyeT < 0 ) // eye outside fog
 	{
 		// fraction of the viewer-to-vertex ray which is inside fog
-		t *= var_TexCoords.t / ( max( 0, var_TexCoords.t ) - u_FogEyeT );
+		t *= var_FogPlaneDistance / ( max( 0, var_FogPlaneDistance ) - u_FogEyeT );
 	}
 
 	t = 1.0 / 32.0 + ( 30.0 / 32.0 ) * t;
 
-	vec4 color = texture2D(u_FogMap, vec2(var_TexCoords.s, t));
+	vec4 color = texture2D(u_FogMap, vec2(s, t));
 
 	color *= var_Color;
 

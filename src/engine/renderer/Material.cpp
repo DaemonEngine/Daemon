@@ -1089,15 +1089,6 @@ void BindShaderFog( Material* material ) {
 	// Set shader uniforms.
 	const fog_t* fog = tr.world->fogs + material->fog;
 
-	// all fogging distance is based on world Z units
-	vec4_t fogDistanceVector;
-	VectorCopy( backEnd.viewParms.orientation.axis[ 0 ], fogDistanceVector );
-	fogDistanceVector[ 3 ] = -DotProduct( fogDistanceVector, backEnd.viewParms.orientation.origin );
-
-	// scale the fog vectors based on the fog's thickness
-	VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
-	fogDistanceVector[3] *= fog->tcScale;
-
 	// rotate the gradient vector for this orientation
 	float eyeT;
 	vec4_t fogDepthVector;
@@ -1110,11 +1101,11 @@ void BindShaderFog( Material* material ) {
 		eyeT = 1; // non-surface fog always has eye inside
 	}
 
-	// see if the viewpoint is outside
-	// this is needed for clipping distance even for constant fog
-	fogDistanceVector[3] += 1.0 / 512;
+	// Note: things that seemingly should be per-shader or per-surface can be set as global uniforms
+	// since fognum is grouped with the GL state stuff, segregating each fognum in a separate draw call.
 
-	gl_fogQuake3ShaderMaterial->SetUniform_FogDistanceVector( fogDistanceVector );
+	gl_fogQuake3ShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
+	gl_fogQuake3ShaderMaterial->SetUniform_FogDensity( fog->tcScale );
 	gl_fogQuake3ShaderMaterial->SetUniform_FogDepthVector( fogDepthVector );
 	gl_fogQuake3ShaderMaterial->SetUniform_FogEyeT( eyeT );
 

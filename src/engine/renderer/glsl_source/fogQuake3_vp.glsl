@@ -33,13 +33,15 @@ uniform colorPack u_ColorGlobal;
 
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
+uniform vec3 u_ViewOrigin;
 
-uniform vec4		u_FogDistanceVector; // view axis, scaled by fog density
+uniform float u_FogDensity;
 uniform vec4		u_FogDepthVector; // fog plane
 
-// var_TexCoords.s is distance from viewer to vertex dotted with view axis
-// var_TexCoords.t is how far the vertex is under the fog plane
-OUT(smooth) vec2	var_TexCoords;
+// how far the vertex is under the fog plane
+OUT(smooth) float var_FogPlaneDistance;
+
+OUT(smooth) vec3 var_ScaledViewerOffset;
 OUT(smooth) vec4	var_Color;
 
 void DeformVertex( inout vec4 pos,
@@ -74,8 +76,9 @@ void main()
 	position = u_ModelMatrix * position;
 	position.xyz /= position.w;
 
+	var_ScaledViewerOffset = u_FogDensity * (position.xyz - u_ViewOrigin);
+
 	// calculate the length in fog
-	float s = dot(position.xyz, u_FogDistanceVector.xyz) + u_FogDistanceVector.w;
 	float t = dot(position.xyz, u_FogDepthVector.xyz) + u_FogDepthVector.w;
 
 	// HACK: increase cutoff to avoid dark lines at the edge of BSP triangles that stop
@@ -85,7 +88,7 @@ void main()
 		t += 1.5;
 	#endif
 
-	var_TexCoords = vec2(s, t);
+	var_FogPlaneDistance = t;
 
 	var_Color = color;
 }
