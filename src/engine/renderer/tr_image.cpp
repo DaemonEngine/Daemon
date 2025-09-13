@@ -1604,7 +1604,7 @@ image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height
 	image->texture->target = GL_TEXTURE_2D;
 	image->width = width;
 	image->height = height;
-	image->bits = IF_NOPICMIP;
+	image->bits = IF_NOPICMIP | IF_ALPHA;
 	image->filterType = filterType_t::FT_LINEAR;
 	image->wrapType = wrapTypeEnum_t::WT_CLAMP;
 
