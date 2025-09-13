@@ -1594,15 +1594,6 @@ void Render_fog( shaderStage_t* pStage )
 	GLIMP_LOGCOMMENT( "--- Render_fog( fogNum = %i, originalBrushNumber = %i ) ---",
 		tess.fogNum, fog->originalBrushNumber );
 
-	// all fogging distance is based on world Z units
-	vec4_t fogDistanceVector;
-	VectorCopy( backEnd.viewParms.orientation.axis[ 0 ], fogDistanceVector );
-	fogDistanceVector[ 3 ] = -DotProduct( fogDistanceVector, backEnd.viewParms.orientation.origin );
-
-	// scale the fog vectors based on the fog's thickness
-	VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
-	fogDistanceVector[3] *= fog->tcScale;
-
 	// rotate the gradient vector for this orientation
 	float eyeT;
 	vec4_t fogDepthVector;
@@ -1618,16 +1609,13 @@ void Render_fog( shaderStage_t* pStage )
 		eyeT = 1; // non-surface fog always has eye inside
 	}
 
-	// see if the viewpoint is outside
-	// this is needed for clipping distance even for constant fog
-	fogDistanceVector[ 3 ] += 1.0 / 512;
-
 	GL_State( pStage->stateBits );
 
 	ProcessShaderFog( pStage );
 	gl_fogQuake3Shader->BindProgram( 0 );
 
-	gl_fogQuake3Shader->SetUniform_FogDistanceVector( fogDistanceVector );
+	gl_fogQuake3Shader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
+	gl_fogQuake3Shader->SetUniform_FogDensity( fog->tcScale );
 	gl_fogQuake3Shader->SetUniform_FogDepthVector( fogDepthVector );
 	gl_fogQuake3Shader->SetUniform_FogEyeT( eyeT );
 

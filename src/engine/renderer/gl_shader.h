@@ -2112,7 +2112,7 @@ class u_FogDensity :
 {
 public:
 	u_FogDensity( GLShader *shader ) :
-		GLUniform1f( shader, "u_FogDensity" )
+		GLUniform1f( shader, "u_FogDensity", true )
 	{
 	}
 
@@ -2912,21 +2912,6 @@ template<typename Shader> void SetUniform_ColorModulateColorGen(
 	}
 }
 
-class u_FogDistanceVector :
-	GLUniform4f
-{
-public:
-	u_FogDistanceVector( GLShader *shader ) :
-		GLUniform4f( shader, "u_FogDistanceVector", true )
-	{
-	}
-
-	void SetUniform_FogDistanceVector( const vec4_t v )
-	{
-		this->SetValue( v );
-	}
-};
-
 class u_FogDepthVector :
 	GLUniform4f
 {
@@ -3448,7 +3433,8 @@ class GLShader_fogQuake3 :
 	public u_ColorGlobal_Uint,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_FogDistanceVector,
+	public u_ViewOrigin,
+	public u_FogDensity,
 	public u_FogDepthVector,
 	public u_FogEyeT,
 	public GLDeformStage,
@@ -3466,7 +3452,8 @@ class GLShader_fogQuake3Material :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ColorGlobal_Uint,
-	public u_FogDistanceVector,
+	public u_ViewOrigin,
+	public u_FogDensity,
 	public u_FogDepthVector,
 	public u_FogEyeT,
 	public GLDeformStage {
