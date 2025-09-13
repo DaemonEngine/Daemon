@@ -139,6 +139,7 @@ struct GLConfig
 	bool gpuShader5Available;
 	bool textureGatherAvailable;
 	bool textureSrgbR8Available;
+	bool textureSrgbRG8Available;
 	int      maxDrawBuffers;
 
 	float    maxTextureAnisotropy;

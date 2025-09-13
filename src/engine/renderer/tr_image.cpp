@@ -177,10 +177,12 @@ public:
 			{ GL_RGBA32UI, { "RGBA32UI", 16 } },
 			{ GL_ALPHA16F_ARB, { "A16F", 2 } },
 			{ GL_ALPHA32F_ARB, { "A32F", 4 } },
+			{ GL_R8, { "R8", 1 } },
 			{ GL_R16F, { "R16F", 2 } },
 			{ GL_R32F, { "R32F", 4 } },
 			{ GL_LUMINANCE_ALPHA16F_ARB, { "LA16F", 4 } },
 			{ GL_LUMINANCE_ALPHA32F_ARB, { "LA32F", 8 } },
+			{ GL_RG8, { "RG8", 2 } },
 			{ GL_RG16F, { "RG16F", 4 } },
 			{ GL_RG32F, { "RG32F", 8 } },
 
@@ -946,7 +948,19 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		}
 		else
 		{
-			internalFormat = GL_RED;
+			internalFormat = glConfig.textureSrgbRG8Available ? GL_R8 : GL_RED;
+		}
+	}
+	else if ( image->bits & IF_RG )
+	{
+		if ( isSRGB && !glConfig.textureSrgbRG8Available )
+		{
+			Log::Warn("red-green image '%s' cannot be loaded as sRGB", image->name );
+			internalFormat = GL_RGB8;
+		}
+		else
+		{
+			internalFormat = GL_RG8;
 		}
 	}
 	else if ( image->bits & ( IF_RGBA16F | IF_RGBA32F | IF_TWOCOMP16F | IF_TWOCOMP32F | IF_ONECOMP16F | IF_ONECOMP32F ) )
@@ -1094,31 +1108,70 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 
 		if ( internalFormat == GL_RGB8 )
 		{
-			if ( isSRGB && !glConfig.textureSrgbR8Available )
-			{
-				break;
-			}
-
 			/* Scan the texture for green and blue channels' max values
 			and verify if the green and blue channels are being used or not. */
 
-			c = image->width * image->height;
+			c = image->width * image->height * numLayers;
 			scan = dataArray[0];
 
-			internalFormat = GL_RED;
+			bool hasGreen = false;
+			bool hasBlue = false;
 
 			for ( i = 0; i < c * 4; i += 4 )
 			{
-				if ( scan[ i + 1 ] != 0 )
+				if ( scan[ i + 2 ] != 0 )
 				{
-					internalFormat = GL_RGB8;
+					// We need GL_RGB8.
+					hasBlue = true;
 					break;
 				}
 
-				if ( scan[ i + 2 ] != 0 )
+				if ( scan[ i + 1 ] != 0 )
 				{
-					internalFormat = GL_RGB8;
-					break;
+					hasGreen = true;
+
+					if ( !glConfig.textureRGAvailable )
+					{
+						// We can't store RG so we can stop there and use GL_RGB8.
+						break;
+					}
+					// Else continue to make sure there is no blue at all.
+				}
+
+				// Else use GL_RED or GL_R8.
+			}
+
+			if ( hasBlue )
+			{
+				// Keep GL_RGB8.
+			}
+			else if ( hasGreen )
+			{
+				if ( !glConfig.textureRGAvailable )
+				{
+					// Keep GL_RGB8.
+				}
+				else
+				{
+					if ( isSRGB && !glConfig.textureSrgbRG8Available )
+					{
+						// Keep GL_RGB8.
+					}
+					else
+					{
+						internalFormat = GL_RG8;
+					}
+				}
+			}
+			else
+			{
+				if ( isSRGB && !glConfig.textureSrgbR8Available )
+				{
+					// Keep GL_RGB8.
+				}
+				else
+				{
+					internalFormat = glConfig.textureRGAvailable ? GL_R8 : GL_RED;
 				}
 			}
 		}
@@ -2815,7 +2868,14 @@ void R_CreateBuiltinImages()
 
 	imageParams.bits = IF_NOPICMIP;
 
+	if ( glConfig.textureRGAvailable )
+	{
+		imageParams.bits |= IF_RG;
+	}
+
 	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+
+	imageParams.bits = IF_NOPICMIP;
 
 	// blue
 	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )

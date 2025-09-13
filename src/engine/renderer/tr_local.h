@@ -485,7 +485,8 @@ enum class ssaoMode {
 	  IF_BC5 = BIT( 23 ),
 	  IF_RGBA32UI = BIT( 24 ),
 	  IF_HOMEPATH = BIT( 25 ),
-	  IF_NOALPHA = BIT( 26 )
+	  IF_NOALPHA = BIT( 26 ),
+	  IF_RG = BIT(27)
 	};
 
 	enum class filterType_t
