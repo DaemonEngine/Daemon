@@ -55,6 +55,14 @@ mark_as_advanced(USE_RECOMMENDED_CXX_STANDARD)
 
 option(USE_CPP23 "Use C++23 standard where possible" OFF)
 
+if (MSVC)
+	set(DEFAULT_STRIP_SOURCE_PATHS ON)
+else()
+	set(DEFAULT_STRIP_SOURCE_PATHS OFF)
+endif()
+	
+option(STRIP_SOURCE_PATHS "Strip source paths in debug symbols" ${DEFAULT_STRIP_SOURCE_PATHS})
+
 # Required for <stacktrace> on Clang/GCC
 if(USE_CPP23)
     if (DAEMON_CXX_COMPILER_Clang_COMPATIBILITY OR DAEMON_CXX_COMPILER_GCC_COMPATIBILITY)
@@ -217,23 +225,25 @@ macro(try_exe_linker_flag PROP FLAG)
 	endif()
 endmacro()
 
-# Stripping of absolute paths for __FILE__ / source_location
-# Also do without src/ to get libs/
-set(FILENAME_STRIP_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}")
-if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL DAEMON_DIR)
-    set(FILENAME_STRIP_DIRS ${FILENAME_STRIP_DIRS} "${DAEMON_DIR}/src" "${DAEMON_DIR}")
+if (STRIP_SOURCE_PATHS)
+	# Stripping of absolute paths for __FILE__ / source_location
+	# Also do without src/ to get libs/
+	set(FILENAME_STRIP_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}")
+	if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL DAEMON_DIR)
+		set(FILENAME_STRIP_DIRS ${FILENAME_STRIP_DIRS} "${DAEMON_DIR}/src" "${DAEMON_DIR}")
+	endif()
+	foreach(strip_dir ${FILENAME_STRIP_DIRS})
+		if (MSVC)
+			string(REPLACE "/" "\\" backslashed_dir ${strip_dir})
+			# set_c_cxx_flag can't be used because macros barf if the input contains backslashes
+			# https://gitlab.kitware.com/cmake/cmake/-/issues/19281
+			set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} /d1trimfile:${backslashed_dir}\\")
+			set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /d1trimfile:${backslashed_dir}\\")
+		else()
+			try_c_cxx_flag(PREFIX_MAP "-ffile-prefix-map=${strip_dir}/=")
+		endif()
+	endforeach()
 endif()
-foreach(strip_dir ${FILENAME_STRIP_DIRS})
-    if (MSVC)
-        string(REPLACE "/" "\\" backslashed_dir ${strip_dir})
-        # set_c_cxx_flag can't be used because macros barf if the input contains backslashes
-        # https://gitlab.kitware.com/cmake/cmake/-/issues/19281
-        set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} /d1trimfile:${backslashed_dir}\\")
-        set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /d1trimfile:${backslashed_dir}\\")
-    else()
-        try_c_cxx_flag(PREFIX_MAP "-ffile-prefix-map=${strip_dir}/=")
-    endif()
-endforeach()
 
 if (BE_VERBOSE)
     set(WARNMODE "no-error=")
