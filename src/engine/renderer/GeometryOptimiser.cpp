@@ -85,39 +85,39 @@ void MarkShaderBuildNOP( const shaderStage_t* ) {
 
 void MarkShaderBuildGeneric3D( const shaderStage_t* pStage ) {
 	ProcessShaderGeneric3D( pStage );
-	gl_genericShader->MarkProgramForBuilding( pStage->deformIndex );
+	gl_genericShader->MarkProgramForBuilding();
 }
 
 void MarkShaderBuildLightMapping( const shaderStage_t* pStage ) {
 	ProcessShaderLightMapping( pStage );
-	gl_lightMappingShader->MarkProgramForBuilding( pStage->deformIndex );
+	gl_lightMappingShader->MarkProgramForBuilding();
 }
 
 void MarkShaderBuildReflection( const shaderStage_t* pStage ) {
 	ProcessShaderReflection( pStage );
-	gl_reflectionShader->MarkProgramForBuilding( pStage->deformIndex );
+	gl_reflectionShader->MarkProgramForBuilding();
 }
 
-void MarkShaderBuildSkybox( const shaderStage_t* pStage ) {
-	gl_skyboxShader->MarkProgramForBuilding( pStage->deformIndex );
+void MarkShaderBuildSkybox( const shaderStage_t* ) {
+	gl_skyboxShader->MarkProgramForBuilding();
 }
 
-void MarkShaderBuildScreen( const shaderStage_t* pStage ) {
-	gl_screenShader->MarkProgramForBuilding( pStage->deformIndex );
+void MarkShaderBuildScreen( const shaderStage_t* ) {
+	gl_screenShader->MarkProgramForBuilding();
 }
 
-void MarkShaderBuildPortal( const shaderStage_t* pStage ) {
-	gl_portalShader->MarkProgramForBuilding( pStage->deformIndex );
+void MarkShaderBuildPortal( const shaderStage_t* ) {
+	gl_portalShader->MarkProgramForBuilding();
 }
 
 void MarkShaderBuildHeatHaze( const shaderStage_t* pStage ) {
 	ProcessShaderHeatHaze( pStage );
-	gl_heatHazeShader->MarkProgramForBuilding( pStage->deformIndex );
+	gl_heatHazeShader->MarkProgramForBuilding();
 }
 
 void MarkShaderBuildLiquid( const shaderStage_t* pStage ) {
 	ProcessShaderLiquid( pStage );
-	gl_liquidShader->MarkProgramForBuilding( pStage->deformIndex );
+	gl_liquidShader->MarkProgramForBuilding();
 }
 
 void MarkShaderBuild( shader_t* shader, const int lightMapNum, const bool bspSurface,
