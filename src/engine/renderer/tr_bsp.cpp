@@ -3324,6 +3324,12 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		out->fogParms = shader->fogParms;
 
 		out->color = Color::Adapt( shader->fogParms.color );
+
+		if ( tr.worldLinearizeTexture )
+		{
+			out->color = out->color.ConvertFromSRGB();
+		}
+
 		out->color *= tr.identityLight;
 
 		out->color.SetAlpha( 1 );
