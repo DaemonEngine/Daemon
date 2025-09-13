@@ -176,6 +176,7 @@ public:
 			{ GL_RGBA32UI, { "RGBA32UI", 16 } },
 			{ GL_ALPHA16F_ARB, { "A16F", 2 } },
 			{ GL_ALPHA32F_ARB, { "A32F", 4 } },
+			{ GL_RED, { "R8", 1 } },
 			{ GL_R16F, { "R16F", 2 } },
 			{ GL_R32F, { "R32F", 4 } },
 			{ GL_LUMINANCE_ALPHA16F_ARB, { "LA16F", 4 } },
@@ -933,6 +934,18 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		format = GL_DEPTH_STENCIL;
 		internalFormat = GL_DEPTH24_STENCIL8;
 	}
+	else if ( image->bits & IF_RED )
+	{
+		if( isSRGB && !glConfig.textureSrgbR8Available )
+		{
+			Log::Warn("red image '%s' cannot be loaded as sRGB", image->name );
+			internalFormat = GL_RGB8;
+		}
+		else
+		{
+			internalFormat = GL_RED;
+		}
+	}
 	else if ( image->bits & ( IF_RGBA16F | IF_RGBA32F | IF_TWOCOMP16F | IF_TWOCOMP32F | IF_ONECOMP16F | IF_ONECOMP32F ) )
 	{
 		if( !glConfig.textureFloatAvailable ) {
@@ -1041,30 +1054,65 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	}
 	else
 	{
-		// scan the texture for each channel's max values
-		// and verify if the alpha channel is being used or not
+		internalFormat = GL_RGBA8;
+	}
 
-		c = image->width * image->height;
-		scan = dataArray[0];
-
-		// lightmap does not have alpha channel
-
-		// normalmap may have the heightmap in the alpha channel
-		// opaque alpha channel means no displacement, so we can enable
-		// alpha channel everytime it is used, even for normalmap
-
+	if ( internalFormat == GL_RGBA8 && image->bits & IF_NOALPHA )
+	{
 		internalFormat = GL_RGB8;
+	}
 
-		if ( !( image->bits & IF_LIGHTMAP ) )
+	// Detect formats.
+	if ( dataArray )
+	{
+		if ( internalFormat == GL_RGB8 )
 		{
-			for ( i = 0; i < c; i++ )
+			c = image->width * image->height;
+			scan = dataArray[0];
+
+			bool hasRGB = false;
+
+			for ( i = 0; i < c * 4; i += 4 )
 			{
-				if ( scan[ i * 4 + 3 ] != 255 )
+				if ( scan[ i + 1 ] != 0 )
 				{
-					internalFormat = GL_RGBA8;
+					hasRGB = true;
+					break;
+				}
+
+				if ( scan[ i + 2 ] != 0 )
+				{
+					hasRGB = true;
 					break;
 				}
 			}
+
+			internalFormat = hasRGB ? GL_RGB8 : GL_RED;
+		}
+		else if ( internalFormat == GL_RGBA8 )
+		{
+			// scan the texture for each channel's max values
+			// and verify if the alpha channel is being used or not
+
+			c = image->width * image->height;
+			scan = dataArray[0];
+
+			// normalmap may have the heightmap in the alpha channel
+			// opaque alpha channel means no displacement, so we can enable
+			// alpha channel everytime it is used, even for normalmap
+
+			bool hasAlpha = false;
+
+			for ( i = 0; i < c * 4; i += 4 )
+			{
+				if ( scan[ i + 3 ] != 255 )
+				{
+					hasAlpha = true;
+					break;
+				}
+			}
+
+			internalFormat = hasAlpha ? GL_RGBA8 : GL_RGB8;
 		}
 	}
 
@@ -1501,7 +1549,7 @@ image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height
 	image->texture->target = GL_TEXTURE_2D;
 	image->width = width;
 	image->height = height;
-	image->bits = IF_NOPICMIP;
+	image->bits = IF_NOPICMIP | IF_ALPHA;
 	image->filterType = filterType_t::FT_LINEAR;
 	image->wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -2404,27 +2452,23 @@ R_CreateFogImage
 static void R_CreateFogImage()
 {
 	// Fog image is always created because disabling fog is cheat.
+	constexpr size_t FOG_S = 256;
+	constexpr size_t FOG_T = 32;
+	constexpr size_t channels = 4;
 
-	int   x, y;
-	byte  *data, *ptr;
-	float d;
-	float borderColor[ 4 ];
-
-	constexpr int FOG_S = 256;
-	constexpr int FOG_T = 32;
-
-	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
+	byte *data, *ptr;
+	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * channels );
 
 	// S is distance, T is depth
-	for ( y = 0; y < FOG_T; y++ )
+	for ( size_t y = 0; y < FOG_T; y++ )
 	{
-		for ( x = 0; x < FOG_S; x++ )
+		for ( size_t x = 0; x < FOG_S; x++ )
 		{
-			d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
+			float d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
 
-			ptr[ 0 ] = ptr[ 1 ] = ptr[ 2 ] = 255;
-			ptr[ 3 ] = 255 * d;
-			ptr += 4;
+			ptr[ 0 ] = 255 * d;
+			ptr[ 1 ] = ptr[ 2 ] = ptr[ 3 ] = 255;
+			ptr += channels;
 		}
 	}
 
@@ -2432,17 +2476,15 @@ static void R_CreateFogImage()
 	// the border color at the edges.  OpenGL 1.2 has clamp-to-edge, which does
 	// what we want.
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_RED;
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.fogImage = R_CreateImage( "_fog", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
 	ri.Hunk_FreeTempMemory( data );
 
-	borderColor[ 0 ] = 1.0;
-	borderColor[ 1 ] = 1.0;
-	borderColor[ 2 ] = 1.0;
-	borderColor[ 3 ] = 1;
+ 	vec4_t borderColor;
+ 	Vector4Set( borderColor, 1.0f, 1.0f, 1.0f, 1.0f );
 
 	glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor );
 }
@@ -2637,7 +2679,7 @@ static void R_CreateBlackCubeImage()
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_RED;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -2741,6 +2783,8 @@ void R_CreateBuiltinImages()
 
 	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
+	imageParams.bits = IF_NOPICMIP | IF_RED;
+
 	// we use a solid black image instead of disabling texturing
 	memset( data, 0, sizeof( data ) );
 	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
@@ -2760,6 +2804,8 @@ void R_CreateBuiltinImages()
 		out[ 0 ] = out[ 2 ] = 0;
 		out[ 1 ] = out[ 3 ] = 255;
 	}
+
+	imageParams.bits = IF_NOPICMIP;
 
 	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
@@ -2786,6 +2832,9 @@ void R_CreateBuiltinImages()
 
 	imageParams.bits = IF_NOPICMIP;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+
+	// Don't reuse previously set data, we test the values for selecting the upload format.
+	memset( data, 255, sizeof( data ) );
 
 	for ( image_t * &image : tr.cinematicImage )
 	{
