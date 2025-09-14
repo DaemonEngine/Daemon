@@ -213,7 +213,7 @@ void CL_InitDownloads()
 	// reset the redirect checksum tracking
 	clc.redirectedList.clear();
 
-	if ( cl_allowDownload->integer && FS_ComparePaks( clc.downloadList, clc.downloadList.size() ) )
+	if ( cl_allowDownload->integer && FS_ComparePaks( clc.downloadList ) )
 	{
 		downloadLogger.Debug( "Need paks: '%s'", clc.downloadList );
 

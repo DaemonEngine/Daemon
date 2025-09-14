@@ -433,7 +433,7 @@ bool     FS_LoadServerPaks( const char* paks, bool isDemo );
 // shutdown and restart the filesystem so changes to fs_gamedir can take effect
 
 void FS_DeletePaksWithBadChecksum();
-bool FS_ComparePaks( std::string& neededpaks, int len );
+bool FS_ComparePaks( std::string& neededpaks );
 
 /*
 ==============================================================
