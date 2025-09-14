@@ -1513,17 +1513,11 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	void       COM_ParseError( const char *format, ... ) PRINTF_LIKE(1);
 	void       COM_ParseWarning( const char *format, ... ) PRINTF_LIKE(1);
 
-	int        Com_ParseInfos( const char *buf, int max, char infos[][ MAX_INFO_STRING ] );
-
 	int        Com_HashKey( char *string, int maxlen );
 
 	bool  SkipBracedSection( const char **program );
 	bool  SkipBracedSection_Depth( const char **program, int depth );  // start at given depth if already
 	void      SkipRestOfLine( const char **data );
-
-	void      Parse1DMatrix( const char **buf_p, int x, float *m );
-	void      Parse2DMatrix( const char **buf_p, int y, int x, float *m );
-	void      Parse3DMatrix( const char **buf_p, int z, int y, int x, float *m );
 
 	int Com_sprintf( char *dest, int size, const char *fmt, ... ) PRINTF_LIKE(3);
 
