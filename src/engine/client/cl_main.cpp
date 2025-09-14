@@ -1598,9 +1598,6 @@ Resend a connect message if the last one has timed out
 */
 void CL_CheckForResend()
 {
-	int  port;
-	char info[ MAX_INFO_STRING ];
-
 	// don't send anything if playing back a demo
 	if ( clc.demoplaying )
 	{
@@ -1633,15 +1630,17 @@ void CL_CheckForResend()
 
 			mpz_get_str( key, 16, public_key.n);
 			// sending back the challenge
-			port = Cvar_VariableValue( "net_qport" );
+			int port = Cvar_VariableValue( "net_qport" );
 
-			Q_strncpyz( info, Cvar_InfoString( CVAR_USERINFO, false ), sizeof( info ) );
-			Info_SetValueForKey( info, "protocol", Str::Format( "%i", PROTOCOL_VERSION ).c_str(), false);
-			Info_SetValueForKey( info, "qport", Str::Format( "%i", port ).c_str(), false);
-			Info_SetValueForKey( info, "challenge", clc.challenge.c_str(), false );
-			Info_SetValueForKey( info, "pubkey", key, false );
+			InfoMap info;
+			Cvar::PopulateInfoMap( CVAR_USERINFO, info );
+			
+			info["protocol"] = Str::Format( "%i", PROTOCOL_VERSION );
+			info["qport"] = Str::Format( "%i", port );
+			info["challenge"] = clc.challenge;
+			info["pubkey"] = key;
 
-			std::string data = Str::Format( "connect %s", Cmd_QuoteString( info ) );
+			std::string data = Str::Format( "connect %s", Cmd_QuoteString( InfoMapToString( info ).c_str() ) );
 			// This will be read by MSG_ReadString, which expects the string length
 			data.resize( data.size() + 4 );
 			std::move( data.data(), data.data() + data.size() - 4, data.data() + 4 );
