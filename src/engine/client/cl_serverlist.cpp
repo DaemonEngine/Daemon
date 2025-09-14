@@ -68,7 +68,7 @@ struct ping_t
 	int      time;
 	char     challenge[ 9 ]; // 8-character challenge string
 	serverResponseProtocol_t responseProto;
-	char     info[ MAX_INFO_STRING ];
+	std::string info;
 };
 
 ping_t             cl_pinglist[ MAX_PINGREQUESTS ];
@@ -480,10 +480,10 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 }
 
 static void CL_SetServerInfo(
-	serverInfo_t *server, const char *info,
+	serverInfo_t *server, const std::string& info,
 	serverResponseProtocol_t proto, pingStatus_t pingStatus, int ping )
 {
-	if ( info )
+	if ( info.size() )
 	{
 		server->infoString = info;
 	}
@@ -494,12 +494,10 @@ static void CL_SetServerInfo(
 }
 
 static void CL_SetServerInfoByAddress(
-	const netadr_t& from, const char *info,
+	const netadr_t& from, const std::string& info,
 	serverResponseProtocol_t proto, pingStatus_t pingStatus, int ping )
 {
-	int i;
-
-	for ( i = 0; i < MAX_OTHER_SERVERS; i++ )
+	for ( int i = 0; i < MAX_OTHER_SERVERS; i++ )
 	{
 		if ( NET_CompareAdr( from, cls.localServers[ i ].adr ) )
 		{
@@ -507,7 +505,7 @@ static void CL_SetServerInfoByAddress(
 		}
 	}
 
-	for ( i = 0; i < MAX_GLOBAL_SERVERS; i++ )
+	for ( int i = 0; i < MAX_GLOBAL_SERVERS; i++ )
 	{
 		if ( NET_CompareAdr( from, cls.globalServers[ i ].adr ) )
 		{
@@ -523,27 +521,24 @@ CL_ServerInfoPacket
 */
 void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 {
-	char info[ MAX_INFO_STRING ];
-	int  prot;
-	const char *gameName;
-
-	std::string infoString = MSG_ReadString( msg );
+	std::string infoStr = MSG_ReadString( msg );
+	InfoMap infoString = InfoStringToMap( infoStr );
 
 	// if this isn't the correct protocol version, ignore it
-	prot = atoi( Info_ValueForKey( infoString.c_str(), "protocol" ) );
+	int prot = atoi( infoString["protocol"].c_str() );
 
 	if ( prot != PROTOCOL_VERSION )
 	{
-		serverInfoLog.Verbose( "Different protocol info packet: %s", infoString );
+		serverInfoLog.Verbose( "Different protocol info packet: %i", prot );
 		return;
 	}
 
 	// Arnout: if this isn't the correct game, ignore it
-	gameName = Info_ValueForKey( infoString.c_str(), "gamename" );
+	const std::string& gameName = infoString["gamename"];
 
-	if ( !gameName[ 0 ] || Q_stricmp( gameName, GAMENAME_STRING ) )
+	if ( !gameName[ 0 ] || gameName != GAMENAME_STRING )
 	{
-		serverInfoLog.Verbose( "Different game info packet: %s", infoString );
+		serverInfoLog.Verbose( "Different game info packet: %s", gameName );
 		return;
 	}
 
@@ -552,7 +547,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	{
 		if ( cl_pinglist[ i ].adr.port && cl_pinglist[ i ].time == -1 && NET_CompareAdr( from, cl_pinglist[i].adr ) )
 		{
-			if ( strcmp( cl_pinglist[ i ].challenge, Info_ValueForKey( infoString.c_str(), "challenge" ) ) )
+			if ( cl_pinglist[ i ].challenge != infoString["challenge"] )
 			{
 				serverInfoLog.Verbose( "wrong challenge for ping response from %s", NET_AdrToString( from ) );
 				return;
@@ -564,7 +559,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 			serverInfoLog.Debug( "ping time %dms from %s", cl_pinglist[ i ].time, NET_AdrToString( from ) );
 
 			// save of info
-			Q_strncpyz( cl_pinglist[ i ].info, infoString.c_str(), sizeof( cl_pinglist[ i ].info ) );
+			cl_pinglist[i].info = infoStr;
 
 			// tack on the net type
 			switch ( from.type )
@@ -583,7 +578,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 					break;
 			}
 
-			CL_SetServerInfoByAddress( from, infoString.c_str(), cl_pinglist[ i ].responseProto,
+			CL_SetServerInfoByAddress( from, infoStr, cl_pinglist[ i ].responseProto,
 			                           pingStatus_t::COMPLETE, cl_pinglist[ i ].time );
 
 			return;
@@ -627,15 +622,14 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	cls.localServers[ i ].responseProto = serverResponseProtocol_t::UNKNOWN;
 	cls.localServers[ i ].infoString.clear();
 
-	Q_strncpyz( info, MSG_ReadString( msg ).c_str(), MAX_INFO_STRING );
+	std::string info = MSG_ReadString( msg );
 
 	// TODO when does this happen?
 	if ( info[ 0 ] )
 	{
-		char *last = info + strlen( info ) - 1;
-		if ( *last == '\n' )
+		if ( info.back() == '\n' )
 		{
-			*last = '\0';
+			info = info.substr( 0, info.size() - 1 );
 		}
 
 		Log::Notice( "%s: %s", Net::AddressToString( from, true ), info );
@@ -979,7 +973,7 @@ void CL_Ping_f()
 	pingptr->time = -1;
 	GeneratePingChallenge( *pingptr );
 
-	CL_SetServerInfoByAddress( pingptr->adr, nullptr, serverResponseProtocol_t::UNKNOWN,
+	CL_SetServerInfoByAddress( pingptr->adr, "", serverResponseProtocol_t::UNKNOWN,
 	                           pingStatus_t::WAITING, 0 );
 
 	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getinfo %s", pingptr->challenge );
