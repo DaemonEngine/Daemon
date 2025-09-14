@@ -710,10 +710,10 @@ void CL_MapLoading()
 	cls.keyCatchers = 0;
 
 	// if we are already connected to the local host, stay connected
-	if ( cls.state >= connstate_t::CA_CONNECTED && !Q_stricmp( cls.servername, "loopback" ) )
+	if ( cls.state >= connstate_t::CA_CONNECTED && cls.servername == "loopback" )
 	{
 		cls.state = connstate_t::CA_CONNECTED; // so the connect screen is drawn
-		memset( cls.updateInfoString, 0, sizeof( cls.updateInfoString ) );
+		cls.updateInfoString.clear();
 		clc.serverMessage.clear();
 		cl.gameState.fill("");
 		clc.lastPacketSentTime = -9999;
@@ -726,13 +726,13 @@ void CL_MapLoading()
 		} catch (Sys::DropErr& err) {
 			Sys::Error( "CL_Disconnect error during map load: %s", err.what() );
 		}
-		Q_strncpyz( cls.servername, "loopback", sizeof( cls.servername ) );
+		cls.servername = "loopback";
 		*cls.reconnectCmd = 0; // can't reconnect to this!
 		cls.state = connstate_t::CA_CHALLENGING; // so the connect screen is drawn
 		cls.keyCatchers = 0;
 		SCR_UpdateScreen();
 		clc.connectTime = -RETRANSMIT_TIMEOUT;
-		NET_StringToAdr( cls.servername, &clc.serverAddress, netadrtype_t::NA_UNSPEC );
+		NET_StringToAdr( cls.servername.c_str(), &clc.serverAddress, netadrtype_t::NA_UNSPEC);
 		// we don't need a challenge on the localhost
 
 		CL_CheckForResend();
@@ -922,9 +922,9 @@ CL_Reconnect_f
 */
 void CL_Reconnect_f()
 {
-	if ( !*cls.servername )
+	if ( cls.servername.empty() )
 	{
-		Log::Notice("Can't reconnect to nothing." );
+		Log::Notice( "Can't reconnect to nothing." );
 	}
 	else if ( !*cls.reconnectCmd )
 	{
@@ -999,7 +999,7 @@ void CL_Connect_f()
 	}
 
 	//Copy the arguments before they can be overwritten, after that server is invalid
-	Q_strncpyz( cls.servername, server, sizeof( cls.servername ) );
+	cls.servername = server;
 	Q_strncpyz( cls.reconnectCmd, Cmd::GetCurrentArgs().EscapedArgs(0).c_str(), sizeof( cls.reconnectCmd ) );
 
 	Audio::StopAllSounds(); // NERVE - SMF
@@ -1024,7 +1024,7 @@ void CL_Connect_f()
 	}
 	Con_Close();
 
-	if ( !NET_StringToAdr( cls.servername, &clc.serverAddress, family ) )
+	if ( !NET_StringToAdr( cls.servername.c_str(), &clc.serverAddress, family ) )
 	{
 		Log::Notice("Bad server address" );
 		cls.state = connstate_t::CA_DISCONNECTED;

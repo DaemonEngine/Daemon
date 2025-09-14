@@ -70,9 +70,9 @@ struct cgClientState_t
 	connstate_t connState;
 	int         connectPacketCount;
 	int         clientNum;
-	char        servername[ MAX_STRING_CHARS ];
-	char        updateInfoString[ MAX_STRING_CHARS ];
-	char        messageString[ MAX_STRING_CHARS ];
+	std::string servername;
+	std::string updateInfoString;
+	std::string messageString;
 };
 
 enum class MouseMode
