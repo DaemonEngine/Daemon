@@ -1410,11 +1410,6 @@ void RB_RenderGlobalFog()
 
 	gl_fogGlobalShader->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
 
-	// bind u_ColorMap
-	gl_fogGlobalShader->SetUniform_ColorMapBindless(
-		GL_BindToTMU( 0, tr.fogImage ) 
-	);
-
 	// bind u_DepthMap
 	gl_fogGlobalShader->SetUniform_DepthMapBindless(
 		GL_BindToTMU( 1, tr.currentDepthImage )

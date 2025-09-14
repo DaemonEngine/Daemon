@@ -2444,7 +2444,6 @@ enum
 
 		image_t    *defaultImage;
 		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
-		image_t    *fogImage;
 		image_t    *whiteImage; // full of 0xff
 		image_t    *blackImage; // full of 0x0
 		image_t    *redImage;
@@ -2584,7 +2583,6 @@ enum
 		float         triangleTable[ FUNCTABLE_SIZE ];
 		float         sawToothTable[ FUNCTABLE_SIZE ];
 		float         inverseSawToothTable[ FUNCTABLE_SIZE ];
-		float         fogTable[ FOG_TABLE_SIZE ];
 
 		scissorState_t scissor;
 	};
@@ -2987,8 +2985,6 @@ void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLin
 
 	void    RE_GetTextureSize( int textureID, int *width, int *height );
 
-	void    R_InitFogTable();
-	float   R_FogFactor( float s, float t );
 	void    RE_SetColorGrading( int slot, qhandle_t hShader );
 
 	/*
