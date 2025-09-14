@@ -2649,34 +2649,34 @@ void R_CreateBuiltinImages()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
-	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
+	tr.whiteImage = R_CreateImage( "$white", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// we use a solid black image instead of disabling texturing
 	memset( data, 0, sizeof( data ) );
 
-	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
+	tr.blackImage = R_CreateImage( "$black", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// red
 	Vector4Set( data, 255, 0, 0, 255 );
 
-	tr.redImage = R_CreateImage( "_red", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
+	tr.redImage = R_CreateImage( "$red", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// green
 	Vector4Set( data, 0, 255, 0, 255 );
 
-	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
+	tr.greenImage = R_CreateImage( "$green", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// blue
 	Vector4Set( data, 0, 0, 255, 255 );
 
-	tr.blueImage = R_CreateImage( "_blue", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
+	tr.blueImage = R_CreateImage( "$blue", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// generate a default normalmap with a fully opaque heightmap (no displacement)
 	Vector4Set( data, 128, 128, 255, 255 );
 
 	imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
 
-	tr.flatImage = R_CreateImage( "_flat", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
+	tr.flatImage = R_CreateImage( "$flat", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	imageParams.bits = IF_NOPICMIP;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
