@@ -1429,22 +1429,17 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 		return true;
 	}
 
-	if ( !Q_stricmp( token, "$whiteimage" ) || !Q_stricmp( token, "$white" ) || !Q_stricmp( token, "_white" ) ||
-	     !Q_stricmp( token, "*white" ) )
+	// Quake III backward compatibility.
+	if ( !Q_stricmp( token, "$whiteimage" ) || !Q_stricmp( token, "*white" ) )
 	{
 		stage->bundle[ bundleIndex ].image[ 0 ] = tr.whiteImage;
 		return true;
 	}
-	else if ( !Q_stricmp( token, "$blackimage" ) || !Q_stricmp( token, "$black" ) || !Q_stricmp( token, "_black" ) ||
-	          !Q_stricmp( token, "*black" ) )
+
+	// Other engine compatibility (old XeaL, QFusion…)
+	if ( !Q_stricmp( token, "$blackimage" ) || !Q_stricmp( token, "*black" ) )
 	{
 		stage->bundle[ bundleIndex ].image[ 0 ] = tr.blackImage;
-		return true;
-	}
-	else if ( !Q_stricmp( token, "$flatimage" ) || !Q_stricmp( token, "$flat" ) || !Q_stricmp( token, "_flat" ) ||
-	          !Q_stricmp( token, "*flat" ) )
-	{
-		stage->bundle[ bundleIndex ].image[ 0 ] = tr.flatImage;
 		return true;
 	}
 
