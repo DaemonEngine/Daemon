@@ -182,35 +182,18 @@ namespace // Implementation details
 			if (err)
 				ThrowShaderError(Str::Format("Failed to read shader from file %s: %s", shaderFilename, err.message()));
 
-			// Alert the user when a file does not match it's built-in version.
-			// There should be no differences in normal conditions.
-			// When testing shader file changes this is an expected message
-			// and helps the tester track which files have changed and need
-			// to be recommitted to git.
-			// If one is not making shader files changes this message
-			// indicates there is a mismatch between disk changes and builtins
-			// which the application is out of sync with it's files
-			// and he translation script needs to be run.
 			auto textPtr = GetInternalShader(filename);
 			std::string internalShaderText;
 			if (textPtr != nullptr)
 				internalShaderText = textPtr;
 
-			// Note to the user any differences that might exist between
-			// what's on disk and what's compiled into the program in shaders.cpp.
-			// The developer should be aware of any differences why they exist but
-			// they might be expected or unexpected.
-			// If the developer made changes they might want to be reminded of what
-			// they have changed while they are working.
-			// But it also might be that the developer hasn't made any changes but
-			// the compiled code is shaders.cpp is just out of sync with the shader
-			// files and that buildshaders.sh might need to be run to re-sync.
-			// This message alerts user to either situation and they can decide
-			// what's going on from seeing that.
-			// We normalize the text by removing CL/LF's so they aren't considered
+			// Alert the user when a file does not match its built-in version.
+			// When testing shader file changes this is an expected message
+			// and helps the tester track which files have changed.
+			// We normalize the text by removing CR/LF's so they aren't considered
 			// a difference as Windows or the Version Control System can put them in
 			// and another OS might read them back and consider that a difference
-			// to what's in shader.cpp or vice vesa.
+			// to what's in shaders.cpp or vice versa.
 			NormalizeShaderText(internalShaderText);
 			NormalizeShaderText(shaderText);
 			if (internalShaderText != shaderText)
