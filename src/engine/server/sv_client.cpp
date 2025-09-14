@@ -201,7 +201,7 @@ void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 	Q_strncpyz( new_client->pubkey, userinfo["pubkey"].c_str(), sizeof( new_client->pubkey ) );
 	userinfo.erase("pubkey");
 	// save the userinfo
-	Q_strncpyz( new_client->userinfo, InfoMapToString(userinfo).c_str(), sizeof( new_client->userinfo ) );
+	new_client->userinfo = InfoMapToString( userinfo );
 
 	// get the game a chance to reject this connection or modify the userinfo
 	char reason[ MAX_STRING_CHARS ];
@@ -287,7 +287,7 @@ void SV_DropClient( client_t *drop, const char *reason )
 	{
 		// tell everyone why they got dropped
 		// Gordon: we want this displayed elsewhere now
-		SV_SendServerCommand( nullptr, "print %s\"^* \"%s\"\n\"", Cmd_QuoteString( drop->name ), Cmd_QuoteString( reason ) );
+		SV_SendServerCommand( nullptr, "print %s\"^* \"%s\"\n\"", Cmd_QuoteString( drop->name.c_str() ), Cmd_QuoteString( reason ) );
 
 		// add the disconnect command
 		SV_SendServerCommand( drop, "disconnect %s\n", Cmd_QuoteString( reason ) );
@@ -1021,11 +1021,9 @@ into a more C friendly form.
 */
 void SV_UserinfoChanged( client_t *cl )
 {
-	const char *val;
-	int  i;
-
 	// name for C code
-	Q_strncpyz( cl->name, Info_ValueForKey( cl->userinfo, "name" ), sizeof( cl->name ) );
+	InfoMap userinfo = InfoStringToMap( cl->userinfo );
+	cl->name = userinfo["name"];
 
 	// rate command
 
@@ -1039,11 +1037,11 @@ void SV_UserinfoChanged( client_t *cl )
 	}
 	else
 	{
-		val = Info_ValueForKey( cl->userinfo, "rate" );
+		const std::string val = userinfo["rate"];
 
-		if ( strlen( val ) )
+		if ( val.size() )
 		{
-			i = atoi( val );
+			int i = atoi( val.c_str() );
 			cl->rate = i;
 
 			if ( cl->rate < 1000 )
@@ -1062,11 +1060,11 @@ void SV_UserinfoChanged( client_t *cl )
 	}
 
 	// snaps command
-	val = Info_ValueForKey( cl->userinfo, "snaps" );
+	const std::string val = userinfo["snaps"];
 
-	if ( strlen( val ) )
+	if ( val.size() )
 	{
-		i = atoi( val );
+		int i = atoi( val.c_str() );
 
 		if ( i < 1 )
 		{
@@ -1091,7 +1089,8 @@ void SV_UserinfoChanged( client_t *cl )
 	// zinx - modified to always keep this consistent, instead of only
 	// when "ip" is 0-length, so users can't supply their own IP address
 	//Log::Debug("Maintain IP address in userinfo for '%s'", cl->name);
-	Info_SetValueForKey( cl->userinfo, "ip", NET_AdrToString( cl->netchan.remoteAddress ), false );
+	userinfo["ip"] = NET_AdrToString( cl->netchan.remoteAddress );
+	cl->userinfo = InfoMapToString( userinfo );
 }
 
 /*
@@ -1105,7 +1104,7 @@ static void SV_UpdateUserinfo_f( client_t *cl, const Cmd::Args& args )
 		return;
 	}
 
-	Q_strncpyz(cl->userinfo, args.Argv(1).c_str(), sizeof(cl->userinfo)); // FIXME QUOTING INFO
+	cl->userinfo = args.Argv( 1 ); // FIXME QUOTING INFO
 
 	SV_UserinfoChanged( cl );
 	// call prog code to allow overrides

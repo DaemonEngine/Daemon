@@ -135,7 +135,7 @@ struct netchan_buffer_t
 struct client_t
 {
 	clientState_t  state;
-	char           userinfo[ MAX_INFO_STRING ]; // name, etc
+	std::string userinfo; // name, etc
 
 	std::vector<std::string> reliableCommands;
 	uint32_t reliableSequence; // last added reliable message, not necessarily sent or acknowledged yet
@@ -150,7 +150,7 @@ struct client_t
 	uint32_t  lastClientCommand; // reliable client message sequence
 	char           lastClientCommandString[ MAX_STRING_CHARS ];
 	sharedEntity_t *gentity; // SV_GentityNum(clientnum)
-	char           name[ MAX_NAME_LENGTH ]; // extracted from userinfo, high bits masked
+	std::string name; // extracted from userinfo, high bits masked
 
 	// downloading
 	std::string   downloadName; // if not empty string, we are downloading
@@ -192,7 +192,7 @@ struct client_t
 	//% netchan_buffer_t **netchan_end_queue;
 	netchan_buffer_t *netchan_end_queue;
 
-	char             pubkey[ RSA_STRING_LENGTH ];
+	char pubkey[ RSA_STRING_LENGTH ];
 
 	//bani
 	int downloadnotify;
@@ -343,8 +343,8 @@ void SV_UpdateConfigStrings();
 void SV_GetConfigstring( int index, char *buffer, int bufferSize );
 void SV_SetConfigstringRestrictions( int index, const clientList_t *clientList );
 
-void SV_SetUserinfo( int index, const char *val );
-void SV_GetUserinfo( int index, char *buffer, int bufferSize );
+void SV_SetUserinfo( int index, const std::string& userinfo );
+std::string SV_GetUserinfo( int index );
 void SV_GetPlayerPubkey( int clientNum, char *pubkey, int size );
 
 void SV_CreateBaseline();
