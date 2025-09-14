@@ -2636,11 +2636,8 @@ R_CreateBuiltinImages
 */
 void R_CreateBuiltinImages()
 {
-	constexpr int DIMENSION = 8;
-	int   x;
-	byte  data[ DIMENSION * DIMENSION * 4 ];
+	byte  data[ 1 * 1 * 4 ];
 	byte  *dataPtr = data;
-	byte  *out;
 
 	R_CreateDefaultImage();
 
@@ -2652,50 +2649,34 @@ void R_CreateBuiltinImages()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
-	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// we use a solid black image instead of disabling texturing
 	memset( data, 0, sizeof( data ) );
-	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+
+	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// red
-	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
-	{
-		out[ 1 ] = out[ 2 ] = 0;
-		out[ 0 ] = out[ 3 ] = 255;
-	}
+	Vector4Set( data, 255, 0, 0, 255 );
 
-	tr.redImage = R_CreateImage( "_red", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	tr.redImage = R_CreateImage( "_red", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// green
-	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
-	{
-		out[ 0 ] = out[ 2 ] = 0;
-		out[ 1 ] = out[ 3 ] = 255;
-	}
+	Vector4Set( data, 0, 255, 0, 255 );
 
-	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// blue
-	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
-	{
-		out[ 0 ] = out[ 1 ] = 0;
-		out[ 2 ] = out[ 3 ] = 255;
-	}
+	Vector4Set( data, 0, 0, 255, 255 );
 
-	tr.blueImage = R_CreateImage( "_blue", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	tr.blueImage = R_CreateImage( "_blue", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// generate a default normalmap with a fully opaque heightmap (no displacement)
-	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
-	{
-		out[ 0 ] = out[ 1 ] = 128;
-		out[ 2 ] = 255;
-		out[ 3 ] = 255;
-	}
+	Vector4Set( data, 128, 128, 255, 255 );
 
 	imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
 
-	tr.flatImage = R_CreateImage( "_flat", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	tr.flatImage = R_CreateImage( "_flat", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	imageParams.bits = IF_NOPICMIP;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
