@@ -452,7 +452,7 @@ namespace LAN {
 	>;
 	using ResetPingsMsg = IPC::Message<IPC::Id<VM::QVM, CG_LAN_RESETPINGS>, int>;
 	using ServerStatusMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_LAN_SERVERSTATUS>, std::string, int>,
+		IPC::Message<IPC::Id<VM::QVM, CG_LAN_SERVERSTATUS>, std::string>,
 		IPC::Reply<std::string, int>
 	>;
 	using ResetServerStatusMsg = IPC::Message<IPC::Id<VM::QVM, CG_LAN_RESETSERVERSTATUS>>;

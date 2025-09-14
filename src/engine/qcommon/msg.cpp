@@ -138,8 +138,6 @@ bit functions
 // negative bit values include signs
 void MSG_WriteBits( msg_t *msg, int value, int bits )
 {
-	int i;
-
 	msg->uncompsize += bits; // NERVE - SMF - net debugging
 
 	// this isn't an exact overflow check, but close enough
@@ -194,11 +192,9 @@ void MSG_WriteBits( msg_t *msg, int value, int bits )
 
 		if ( bits & 7 )
 		{
-			int nbits;
+			int nbits = bits & 7;
 
-			nbits = bits & 7;
-
-			for ( i = 0; i < nbits; i++ )
+			for ( int i = 0; i < nbits; i++ )
 			{
 				Huff_putBit( ( value & 1 ), msg->data, &msg->bit );
 				value = ( value >> 1 );
@@ -209,7 +205,7 @@ void MSG_WriteBits( msg_t *msg, int value, int bits )
 
 		if ( bits )
 		{
-			for ( i = 0; i < bits; i += 8 )
+			for ( int i = 0; i < bits; i += 8 )
 			{
 				Huff_offsetTransmit( &msgHuff.compressor, ( value & 0xff ), msg->data, &msg->bit );
 				value = ( value >> 8 );
@@ -222,13 +218,7 @@ void MSG_WriteBits( msg_t *msg, int value, int bits )
 
 int MSG_ReadBits( msg_t *msg, int bits )
 {
-	int      value;
-	int      get;
 	bool sgn;
-	int      i;
-
-	value = 0;
-
 	if ( bits < 0 )
 	{
 		bits = -bits;
@@ -239,6 +229,7 @@ int MSG_ReadBits( msg_t *msg, int bits )
 		sgn = false;
 	}
 
+	int value = 0;
 	if ( msg->oob )
 	{
 		if ( bits == 8 )
@@ -270,6 +261,7 @@ int MSG_ReadBits( msg_t *msg, int bits )
 	}
 	else
 	{
+		int i;
 		for ( i = 0; i < ( bits & 7 ); i++ )
 		{
 			value |= ( Huff_getBit( msg->data, &msg->bit ) << i );
@@ -277,6 +269,7 @@ int MSG_ReadBits( msg_t *msg, int bits )
 
 		for ( ; i < bits; i += 8 )
 		{
+			int get;
 			Huff_offsetReceive( msgHuff.decompressor.tree, &get, msg->data, &msg->bit );
 			value |= get << i;
 		}
@@ -331,9 +324,7 @@ void MSG_WriteByte( msg_t *sb, int c )
 
 void MSG_WriteData( msg_t *buf, const void *data, int length )
 {
-	int i;
-
-	for ( i = 0; i < length; i++ )
+	for ( int i = 0; i < length; i++ )
 	{
 		MSG_WriteByte( buf, ( ( byte * ) data ) [ i ] );
 	}
@@ -370,56 +361,11 @@ void MSG_WriteFloat( msg_t *sb, float f )
 	MSG_WriteBits( sb, dat.l, 32 );
 }
 
-void MSG_WriteString( msg_t *sb, const char *s )
+void MSG_WriteString( msg_t *sb, const std::string& string )
 {
-	if ( !s )
-	{
-		MSG_WriteData( sb, "", 1 );
-	}
-	else
-	{
-		int  l;
-		char string[ MAX_STRING_CHARS ];
+	MSG_WriteLong( sb, string.size() );
 
-		l = strlen( s );
-
-		if ( l >= MAX_STRING_CHARS )
-		{
-			Log::Notice( "MSG_WriteString: MAX_STRING_CHARS exceeded" );
-			MSG_WriteData( sb, "", 1 );
-			return;
-		}
-
-		Q_strncpyz( string, s, sizeof( string ) );
-
-		MSG_WriteData( sb, string, l + 1 );
-	}
-}
-
-void MSG_WriteBigString( msg_t *sb, const char *s )
-{
-	if ( !s )
-	{
-		MSG_WriteData( sb, "", 1 );
-	}
-	else
-	{
-		int  l;
-		char string[ BIG_INFO_STRING ];
-
-		l = strlen( s );
-
-		if ( l >= BIG_INFO_STRING )
-		{
-			Log::Notice( "MSG_WriteBigString: BIG_INFO_STRING exceeded" );
-			MSG_WriteData( sb, "", 1 );
-			return;
-		}
-
-		Q_strncpyz( string, s, sizeof( string ) );
-
-		MSG_WriteData( sb, string, l + 1 );
-	}
+	MSG_WriteData( sb, string.data(), string.size() );
 }
 
 //============================================================
@@ -430,9 +376,7 @@ void MSG_WriteBigString( msg_t *sb, const char *s )
 
 int MSG_ReadByte( msg_t *msg )
 {
-	int c;
-
-	c = ( unsigned char ) MSG_ReadBits( msg, 8 );
+	int c = ( unsigned char ) MSG_ReadBits( msg, 8 );
 
 	if ( msg->readcount > msg->cursize )
 	{
@@ -444,9 +388,7 @@ int MSG_ReadByte( msg_t *msg )
 
 int MSG_ReadShort( msg_t *msg )
 {
-	int c;
-
-	c = ( short ) MSG_ReadBits( msg, 16 );
+	int c = ( short ) MSG_ReadBits( msg, 16 );
 
 	if ( msg->readcount > msg->cursize )
 	{
@@ -458,9 +400,7 @@ int MSG_ReadShort( msg_t *msg )
 
 int MSG_ReadLong( msg_t *msg )
 {
-	int c;
-
-	c = MSG_ReadBits( msg, 32 );
+	int c = MSG_ReadBits( msg, 32 );
 
 	if ( msg->readcount > msg->cursize )
 	{
@@ -489,92 +429,33 @@ float MSG_ReadFloat( msg_t *msg )
 	return dat.f;
 }
 
-char           *MSG_ReadString( msg_t *msg )
+std::string MSG_ReadString( msg_t *msg, const bool allowNewLines )
 {
-	static char string[ MAX_STRING_CHARS ];
-	unsigned l;
-    int c;
+	std::string string;
+	uint32_t size = MSG_ReadLong( msg );
 
-	l = 0;
+	string.resize( size );
 
-	do
-	{
-		c = MSG_ReadByte( msg );  // use ReadByte so -1 is out of bounds
+	if ( allowNewLines ) {
+		MSG_ReadData( msg, string.data(), size );
+	} else {
+		for ( char* write = string.data(); write < string.data() + size; write++ ) {
+			const int c = MSG_ReadByte( msg );
 
-		if ( c == -1 || c == 0 )
-		{
-			break;
+			if ( c == '\n' ) {
+				break;
+			}
+
+			*write = c;
 		}
-
-		string[ l ] = c;
-		l++;
 	}
-	while ( l < sizeof( string ) - 1 );
-
-	string[ l ] = 0;
-
-	return string;
-}
-
-char           *MSG_ReadBigString( msg_t *msg )
-{
-	static char string[ BIG_INFO_STRING ];
-	unsigned l;
-    int c;
-
-	l = 0;
-
-	do
-	{
-		c = MSG_ReadByte( msg );  // use ReadByte so -1 is out of bounds
-
-		if ( c == -1 || c == 0 )
-		{
-			break;
-		}
-
-		string[ l ] = c;
-		l++;
-	}
-	while ( l < sizeof( string ) - 1 );
-
-	string[ l ] = 0;
-
-	return string;
-}
-
-char           *MSG_ReadStringLine( msg_t *msg )
-{
-	static char string[ MAX_STRING_CHARS ];
-	unsigned l;
-    int c;
-
-	l = 0;
-
-	do
-	{
-		c = MSG_ReadByte( msg );  // use ReadByte so -1 is out of bounds
-
-		if ( c == -1 || c == 0 || c == '\n' )
-		{
-			break;
-		}
-
-		string[ l ] = c;
-		l++;
-	}
-	while ( l < sizeof( string ) - 1 );
-
-	string[ l ] = 0;
 
 	return string;
 }
 
 void MSG_ReadData( msg_t *msg, void *data, int len )
 {
-	int i;
-
-	for ( i = 0; i < len; i++ )
+	for ( int i = 0; i < len; i++ )
 	{
 		( ( byte * ) data ) [ i ] = MSG_ReadByte( msg );
 	}

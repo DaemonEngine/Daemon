@@ -130,7 +130,7 @@ void            trap_LAN_MarkServerVisible( int source, int n, bool visible );
 int             trap_LAN_ServerIsVisible( int source, int n );
 bool        trap_LAN_UpdateVisiblePings( int source );
 void            trap_LAN_ResetPings( int n );
-int             trap_LAN_ServerStatus( const char *serverAddress, char *serverStatus, int maxLen );
+bool            trap_LAN_ServerStatus( const char *serverAddress, std::string& serverStatus );
 void            trap_LAN_ResetServerStatus();
 void            trap_R_GetShaderNameFromHandle( const qhandle_t shader, char *out, int len );
 void            trap_PrepareKeyUp();

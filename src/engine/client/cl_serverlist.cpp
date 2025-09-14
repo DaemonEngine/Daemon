@@ -523,17 +523,14 @@ CL_ServerInfoPacket
 */
 void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 {
-	int  i;
 	char info[ MAX_INFO_STRING ];
-//	char*   str;
-	char *infoString;
 	int  prot;
 	const char *gameName;
 
-	infoString = MSG_ReadString( msg );
+	std::string infoString = MSG_ReadString( msg );
 
 	// if this isn't the correct protocol version, ignore it
-	prot = atoi( Info_ValueForKey( infoString, "protocol" ) );
+	prot = atoi( Info_ValueForKey( infoString.c_str(), "protocol" ) );
 
 	if ( prot != PROTOCOL_VERSION )
 	{
@@ -542,7 +539,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	}
 
 	// Arnout: if this isn't the correct game, ignore it
-	gameName = Info_ValueForKey( infoString, "gamename" );
+	gameName = Info_ValueForKey( infoString.c_str(), "gamename" );
 
 	if ( !gameName[ 0 ] || Q_stricmp( gameName, GAMENAME_STRING ) )
 	{
@@ -551,11 +548,11 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	}
 
 	// iterate servers waiting for ping response
-	for ( i = 0; i < MAX_PINGREQUESTS; i++ )
+	for ( int i = 0; i < MAX_PINGREQUESTS; i++ )
 	{
 		if ( cl_pinglist[ i ].adr.port && cl_pinglist[ i ].time == -1 && NET_CompareAdr( from, cl_pinglist[i].adr ) )
 		{
-			if ( strcmp( cl_pinglist[ i ].challenge, Info_ValueForKey( infoString, "challenge" ) ) )
+			if ( strcmp( cl_pinglist[ i ].challenge, Info_ValueForKey( infoString.c_str(), "challenge" ) ) )
 			{
 				serverInfoLog.Verbose( "wrong challenge for ping response from %s", NET_AdrToString( from ) );
 				return;
@@ -567,7 +564,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 			serverInfoLog.Debug( "ping time %dms from %s", cl_pinglist[ i ].time, NET_AdrToString( from ) );
 
 			// save of info
-			Q_strncpyz( cl_pinglist[ i ].info, infoString, sizeof( cl_pinglist[ i ].info ) );
+			Q_strncpyz( cl_pinglist[ i ].info, infoString.c_str(), sizeof( cl_pinglist[ i ].info ) );
 
 			// tack on the net type
 			switch ( from.type )
@@ -586,7 +583,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 					break;
 			}
 
-			CL_SetServerInfoByAddress( from, infoString, cl_pinglist[ i ].responseProto,
+			CL_SetServerInfoByAddress( from, infoString.c_str(), cl_pinglist[ i ].responseProto,
 			                           pingStatus_t::COMPLETE, cl_pinglist[ i ].time );
 
 			return;
@@ -599,7 +596,8 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 		return;
 	}
 
-	for ( i = 0; i < MAX_OTHER_SERVERS; i++ )
+	int i = 0;
+	for ( ; i < MAX_OTHER_SERVERS; i++ )
 	{
 		// empty slot
 		if ( cls.localServers[ i ].adr.port == 0 )
@@ -629,7 +627,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	cls.localServers[ i ].responseProto = serverResponseProtocol_t::UNKNOWN;
 	cls.localServers[ i ].infoString.clear();
 
-	Q_strncpyz( info, MSG_ReadString( msg ), MAX_INFO_STRING );
+	Q_strncpyz( info, MSG_ReadString( msg ).c_str(), MAX_INFO_STRING );
 
 	// TODO when does this happen?
 	if ( info[ 0 ] )

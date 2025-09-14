@@ -44,7 +44,7 @@ Maryland 20850 USA.
 
 struct serverStatus_t
 {
-	char     string[ BIG_INFO_STRING ];
+	std::string string;
 	netadr_t address;
 	int      time, startTime;
 	bool pending;
@@ -112,16 +112,12 @@ static serverStatus_t *CL_GetServerStatus( const netadr_t& from )
 CL_ServerStatus
 ===================
 */
-int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen )
+bool CL_ServerStatus( const std::string& serverAddress, std::string& serverStatusString )
 {
-	int            i;
-	netadr_t       to;
-	serverStatus_t *serverStatus;
-
 	// if no server address then reset all server status requests
-	if ( !serverAddress )
+	if ( serverAddress.empty() )
 	{
-		for ( i = 0; i < MAX_SERVERSTATUSREQUESTS; i++ )
+		for ( int i = 0; i < MAX_SERVERSTATUSREQUESTS; i++ )
 		{
 			cl_serverStatusList[ i ].address.port = 0;
 			cl_serverStatusList[ i ].retrieved = true;
@@ -131,19 +127,13 @@ int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int ma
 	}
 
 	// get the address
-	if ( !NET_StringToAdr( serverAddress, &to, netadrtype_t::NA_UNSPEC ) )
+	netadr_t to;
+	if ( !NET_StringToAdr( serverAddress.c_str(), &to, netadrtype_t::NA_UNSPEC ) )
 	{
 		return false;
 	}
 
-	serverStatus = CL_GetServerStatus( to );
-
-	// if no server status string then reset the server status request for this address
-	if ( !serverStatusString )
-	{
-		serverStatus->retrieved = true;
-		return false;
-	}
+	serverStatus_t* serverStatus = CL_GetServerStatus( to );
 
 	// if this server status request has the same address
 	if ( NET_CompareAdr( to, serverStatus->address ) )
@@ -151,7 +141,7 @@ int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int ma
 		// if we received a response for this server status request
 		if ( !serverStatus->pending )
 		{
-			Q_strncpyz( serverStatusString, serverStatus->string, maxLen );
+			serverStatusString = serverStatus->string;
 			serverStatus->retrieved = true;
 			serverStatus->startTime = 0;
 			return true;
@@ -184,6 +174,13 @@ int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int ma
 	return false;
 }
 
+void CL_ServerStatusReset() {
+	for ( int i = 0; i < MAX_SERVERSTATUSREQUESTS; i++ ) {
+		cl_serverStatusList[i].address.port = 0;
+		cl_serverStatusList[i].retrieved = true;
+	}
+}
+
 /*
 ===================
 CL_ServerStatusResponse
@@ -191,14 +188,9 @@ CL_ServerStatusResponse
 */
 void CL_ServerStatusResponse( const netadr_t& from, msg_t *msg )
 {
-	const char           *s;
-	int            i, score, ping;
-	int            len;
-	serverStatus_t *serverStatus;
+	serverStatus_t *serverStatus = nullptr;
 
-	serverStatus = nullptr;
-
-	for ( i = 0; i < MAX_SERVERSTATUSREQUESTS; i++ )
+	for ( int i = 0; i < MAX_SERVERSTATUSREQUESTS; i++ )
 	{
 		if ( NET_CompareAdr( from, cl_serverStatusList[ i ].address ) )
 		{
@@ -213,22 +205,18 @@ void CL_ServerStatusResponse( const netadr_t& from, msg_t *msg )
 		return;
 	}
 
-	s = MSG_ReadStringLine( msg );
-
-	len = 0;
-	Com_sprintf( &serverStatus->string[ len ], sizeof( serverStatus->string ) - len, "%s", s );
+	serverStatus->string = MSG_ReadString( msg, false );
 
 	if ( serverStatus->print )
 	{
 		Log::CommandInteractionMessage("Server settings:" );
 		// print cvars
-		for (const auto& kv: InfoStringToMap(s)) {
+		for (const auto& kv: InfoStringToMap( serverStatus->string )) {
 			Log::CommandInteractionMessage(Str::Format("%-24s%s", kv.first, kv.second));
 		}
 	}
 
-	len = strlen( serverStatus->string );
-	Com_sprintf( &serverStatus->string[ len ], sizeof( serverStatus->string ) - len, "\\" );
+	serverStatus->string += "\\";
 
 	if ( serverStatus->print )
 	{
@@ -236,14 +224,23 @@ void CL_ServerStatusResponse( const netadr_t& from, msg_t *msg )
 		Log::CommandInteractionMessage( "num: score: ping: name:" );
 	}
 
-	for ( i = 0, s = MSG_ReadStringLine( msg ); *s; s = MSG_ReadStringLine( msg ), i++ )
+	uint32_t i = 0;
+	while ( true )
 	{
-		len = strlen( serverStatus->string );
-		Com_sprintf( &serverStatus->string[ len ], sizeof( serverStatus->string ) - len, "\\%s", s );
+		const std::string string = MSG_ReadString( msg, false );
+
+		if ( string.empty() ) {
+			break;
+		}
+
+		serverStatus->string += "\\" + string;
 
 		if ( serverStatus->print )
 		{
-			score = ping = 0;
+			int ping = 0;
+			int score = 0;
+			const char* s = string.c_str();
+
 			sscanf( s, "%d %d", &score, &ping );
 			s = strchr( s, ' ' );
 
@@ -265,8 +262,7 @@ void CL_ServerStatusResponse( const netadr_t& from, msg_t *msg )
 		}
 	}
 
-	len = strlen( serverStatus->string );
-	Com_sprintf( &serverStatus->string[ len ], sizeof( serverStatus->string ) - len, "\\" );
+	serverStatus->string += "\\";
 
 	serverStatus->time = Sys::Milliseconds();
 	serverStatus->address = from;

@@ -358,7 +358,6 @@ void SV_SendClientGameState( client_t *client )
 
 	// send the gamestate
 	MSG_WriteByte( &msg, svc_gamestate );
-	MSG_WriteLong( &msg, client->reliableSequence );
 
 	// write the configstrings
 	for ( start = 0; start < MAX_CONFIGSTRINGS; start++ )
@@ -367,7 +366,7 @@ void SV_SendClientGameState( client_t *client )
 		{
 			MSG_WriteByte( &msg, svc_configstring );
 			MSG_WriteShort( &msg, start );
-			MSG_WriteBigString( &msg, sv.configstrings[ start ] );
+			MSG_WriteString( &msg, sv.configstrings[ start ] );
 		}
 	}
 
@@ -452,8 +451,6 @@ clear/free any download vars
 */
 static void SV_CloseDownload( client_t *cl )
 {
-	int i;
-
 	// EOF
 	if ( cl->download )
 	{
@@ -461,10 +458,10 @@ static void SV_CloseDownload( client_t *cl )
 		cl->download = nullptr;
 	}
 
-	*cl->downloadName = 0;
+	cl->downloadName.clear();
 
 	// Free the temporary buffer space
-	for ( i = 0; i < MAX_DOWNLOAD_WINDOW; i++ )
+	for ( int i = 0; i < MAX_DOWNLOAD_WINDOW; i++ )
 	{
 		if ( cl->downloadBlocks[ i ] )
 		{
@@ -483,7 +480,7 @@ Abort a download if in progress
 */
 void SV_StopDownload_f( client_t *cl, const Cmd::Args& )
 {
-	if ( *cl->downloadName )
+	if ( cl->downloadName.size() )
 	{
 		Log::Debug( "clientDownload: %d: file \"%s^*\" aborted", ( int )( cl - svs.clients ), cl->downloadName );
 	}
@@ -570,7 +567,7 @@ void SV_BeginDownload_f( client_t *cl, const Cmd::Args& args )
 
 	// cl->downloadName is non-zero now, SV_WriteDownloadToClient will see this and open
 	// the file itself
-	Q_strncpyz( cl->downloadName, args.Argv(1).c_str(), sizeof( cl->downloadName ) );
+	cl->downloadName = args.Argv( 1 );
 }
 
 /*
@@ -590,7 +587,7 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 	if ( !cl->bWWWDl )
 	{
 		Log::Notice( "SV_WWWDownload: unexpected wwwdl '%s^*' for client '%s^*'", subcmd, cl->name );
-		SV_DropClient( cl, va( "SV_WWWDownload: unexpected wwwdl %s", subcmd ) );
+		SV_DropClient( cl, Str::Format( "SV_WWWDownload: unexpected wwwdl %s", subcmd ).c_str() );
 		return;
 	}
 
@@ -609,19 +606,19 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 	if ( !cl->bWWWing )
 	{
 		Log::Notice( "SV_WWWDownload: unexpected wwwdl '%s^*' for client '%s^*'", subcmd, cl->name );
-		SV_DropClient( cl, va( "SV_WWWDownload: unexpected wwwdl %s", subcmd ) );
+		SV_DropClient( cl, Str::Format( "SV_WWWDownload: unexpected wwwdl %s", subcmd ).c_str() );
 		return;
 	}
 
 	if ( !Q_stricmp( subcmd, "done" ) )
 	{
-		*cl->downloadName = 0;
+		cl->downloadName.clear();
 		cl->bWWWing = false;
 		return;
 	}
 	else if ( !Q_stricmp( subcmd, "fail" ) )
 	{
-		*cl->downloadName = 0;
+		cl->downloadName.clear();
 		cl->bWWWing = false;
 		cl->bFallback = true;
 		// send a reconnect
@@ -632,7 +629,7 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 	{
 		Log::Warn("client '%s^*' reports that the redirect download for '%s^*' had wrong checksum.\n\tYou should check your download redirect configuration.",
 				 cl->name, cl->downloadName );
-		*cl->downloadName = 0;
+		cl->downloadName.clear();
 		cl->bWWWing = false;
 		cl->bFallback = true;
 		// send a reconnect
@@ -640,8 +637,8 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 		return;
 	}
 
-	Log::Notice("SV_WWWDownload: unknown wwwdl subcommand '%s^*' for client '%s^*'", subcmd, cl->name );
-	SV_DropClient( cl, va( "SV_WWWDownload: unknown wwwdl subcommand '%s^*'", subcmd ) );
+	Log::Notice( "SV_WWWDownload: unknown wwwdl subcommand '%s^*' for client '%s^*'", subcmd, cl->name );
+	SV_DropClient( cl, Str::Format( "SV_WWWDownload: unknown wwwdl subcommand '%s^*'", subcmd ).c_str() );
 }
 
 // abort an attempted download
@@ -651,7 +648,7 @@ void SV_BadDownload( client_t *cl, msg_t *msg )
 	MSG_WriteShort( msg, 0 );  // client is expecting block zero
 	MSG_WriteLong( msg, -1 );  // illegal file size
 
-	*cl->downloadName = 0;
+	cl->downloadName.clear();
 }
 
 /*
@@ -676,7 +673,7 @@ static bool SV_CheckFallbackURL( client_t *cl, const char* pakName, int download
 
 	MSG_WriteByte( msg, svc_download );
 	MSG_WriteShort( msg, -1 );  // block -1 means ftp/http download
-	MSG_WriteString( msg, va( "%s/%s", sv_wwwFallbackURL.Get().c_str(), pakName ) );
+	MSG_WriteString( msg, Str::Format( "%s/%s", sv_wwwFallbackURL.Get(), pakName ) );
 	MSG_WriteLong( msg, downloadSize );
 	MSG_WriteLong( msg, sv_wwwFallbackURL.Get().size() + 1 );
 
@@ -696,13 +693,12 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 	int      curindex;
 	int      rate;
 	int      blockspersnap;
-	char     errorMessage[ 1024 ];
 
 	const FS::PakInfo* pak;
 	bool success;
 	bool bTellRate = false; // verbosity
 
-	if ( !*cl->downloadName )
+	if ( cl->downloadName.empty() )
 	{
 		return; // Nothing being downloaded
 	}
@@ -727,10 +723,10 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 		{
 			Log::Notice( "clientDownload: %d : \"%s\" download disabled", ( int )( cl - svs.clients ), cl->downloadName );
 
-			Com_sprintf( errorMessage, sizeof( errorMessage ),
-							"Could not download \"%s\" because autodownloading is disabled on the server.\n\n"
-							"You will need to get this file elsewhere before you can connect to this server.\n",
-							cl->downloadName );
+			const std::string errorMessage = Str::Format(
+				"Could not download \"%s\" because autodownloading is disabled on the server.\n\n"
+				"You will need to get this file elsewhere before you can connect to this server.\n",
+				cl->downloadName );
 
 			SV_BadDownload( cl, msg );
 			MSG_WriteString( msg, errorMessage );  // (could SV_DropClient instead?)
@@ -748,7 +744,8 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 			Util::optional<uint32_t> checksum;
 			int downloadSize = 0;
 
-			success = FS::ParsePakName(cl->downloadName, cl->downloadName + strlen(cl->downloadName), name, version, checksum);
+			success = FS::ParsePakName(cl->downloadName.c_str(), cl->downloadName.c_str() + cl->downloadName.size(),
+				name, version, checksum);
 
 			if (success) {
 				// legacy pk3s have empty version but no checksum
@@ -827,7 +824,8 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 		std::string name, version;
 		Util::optional<uint32_t> checksum;
 
-		success = FS::ParsePakName(cl->downloadName, cl->downloadName + strlen(cl->downloadName), name, version, checksum);
+		success = FS::ParsePakName(cl->downloadName.c_str(), cl->downloadName.c_str() + cl->downloadName.size(),
+			name, version, checksum);
 
 		if (success) {
 			// legacy paks have empty version but no checksum
@@ -859,8 +857,8 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 		if ( !success )
 		{
 			Log::Notice( "clientDownload: %d : \"%s\" file not found on server", ( int )( cl - svs.clients ), cl->downloadName );
-			Com_sprintf( errorMessage, sizeof( errorMessage ), "File \"%s\" not found on server for autodownloading.\n",
-			             cl->downloadName );
+			const std::string errorMessage = Str::Format( "File \"%s\" not found on server for autodownloading.\n",
+				cl->downloadName );
 			SV_BadDownload( cl, msg );
 			MSG_WriteString( msg, errorMessage );  // (could SV_DropClient instead?)
 			return;
@@ -1188,11 +1186,11 @@ SV_ClientCommand
 */
 static bool SV_ClientCommand( client_t *cl, msg_t *msg, bool premaprestart )
 {
-	bool   clientOk = true;
-	bool   floodprotect = true;
+	bool clientOk = true;
+	bool floodprotect = true;
 
-	auto seq = MSG_ReadLong( msg );
-	auto s = MSG_ReadString( msg );
+	uint32_t seq = MSG_ReadLong( msg );
+	std::string command = MSG_ReadString( msg );
 
 	// see if we have already executed it
 	if ( cl->lastClientCommand >= seq )
@@ -1200,21 +1198,12 @@ static bool SV_ClientCommand( client_t *cl, msg_t *msg, bool premaprestart )
 		return true;
 	}
 
-	Log::Debug( "clientCommand: %s^* : %i : %s", cl->name, seq, s );
-
-	// drop the connection if we have somehow lost commands
-	if ( seq > cl->lastClientCommand + 1 )
-	{
-		Log::Notice( "Client %s lost %i clientCommands", cl->name, seq - cl->lastClientCommand + 1 );
-		SV_DropClient( cl, "Lost reliable commands" );
-		return false;
-	}
+	Log::Debug( "clientCommand: %s^* : %i : %s", cl->name, seq, command );
 
 	// Gordon: AHA! Need to steal this for some other stuff BOOKMARK
 	// NERVE - SMF - some server game-only commands we cannot have flood protect
-	if ( !Q_strncmp( "team", s, 4 ) || !Q_strncmp( "setspawnpt", s, 10 ) || !Q_strncmp( "score", s, 5 ) || !Q_stricmp( "forcetapout", s ) )
-	{
-//      Log::Debug( "Skipping flood protection for: %s", s );
+	if ( command.substr( 0, 4 ) == "team" || command.substr( 0, 10 ) == "setspawnpt"
+		|| command.substr( 0, 5 ) == "score" || command == "forcetapout" ) {
 		floodprotect = false;
 	}
 
@@ -1239,10 +1228,10 @@ static bool SV_ClientCommand( client_t *cl, msg_t *msg, bool premaprestart )
 		cl->nextReliableTime = svs.time + 800;
 	}
 
-	SV_ExecuteClientCommand( cl, s, clientOk, premaprestart );
+	SV_ExecuteClientCommand( cl, command.c_str(), clientOk, premaprestart );
 
 	cl->lastClientCommand = seq;
-	Com_sprintf( cl->lastClientCommandString, sizeof( cl->lastClientCommandString ), "%s", s );
+	Com_sprintf( cl->lastClientCommandString, sizeof( cl->lastClientCommandString ), "%s", command.c_str() );
 
 	return true; // continue processing
 }
@@ -1399,7 +1388,7 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg )
 	// NOTE: when the client message is fux0red the acknowledgement numbers
 	// can be out of range, this could cause the server to send thousands of server
 	// commands which the server thinks are not yet acknowledged in SV_UpdateServerCommandsToClient
-	if ( cl->reliableAcknowledge < 0 || cl->reliableAcknowledge < cl->reliableSequence - MAX_RELIABLE_COMMANDS || cl->reliableAcknowledge > cl->reliableSequence )
+	if ( cl->reliableAcknowledge < 0 || cl->reliableAcknowledge > cl->reliableSequence )
 	{
 		// usually only hackers create messages like this
 		// it is more annoying for them to let them hanging
@@ -1409,6 +1398,18 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg )
 		cl->reliableAcknowledge = cl->reliableSequence;
 		return;
 	}
+
+	if ( cl->reliableAcknowledge != cl->previousAcknowledge ) {
+		std::vector<std::string>::iterator start = cl->reliableCommands.begin() + ( cl->reliableSequence - cl->reliableAcknowledge );
+		std::vector<std::string>::iterator end = cl->reliableCommands.end();
+
+		std::move( start, end, cl->reliableCommands.begin() );
+		cl->reliableCommands.erase( start, end );
+
+		cl->previousAcknowledge = cl->reliableAcknowledge;
+	}
+
+	cl->reliableSequence = std::max( cl->reliableSequence, cl->reliableAcknowledge );
 
 	// if this is a usercmd from a previous gamestate,
 	// ignore it or retransmit the current gamestate
@@ -1422,7 +1423,7 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg )
 	// don't drop as long as previous command was a nextdl, after a dl is done, downloadName is set back to ""
 	// but we still need to read the next message to move to next download or send gamestate
 	// I don't like this hack though, it must have been working fine at some point, suspecting the fix is somewhere else
-	if ( serverId != sv.serverId && !*cl->downloadName && !strstr( cl->lastClientCommandString, "nextdl" ) )
+	if ( serverId != sv.serverId && cl->downloadName.empty() && !strstr(cl->lastClientCommandString, "nextdl") )
 	{
 		if ( serverId >= sv.restartedServerId && serverId < sv.serverId )
 		{

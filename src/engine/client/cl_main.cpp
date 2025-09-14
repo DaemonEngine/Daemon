@@ -209,8 +209,6 @@ not have future usercmd_t executed before it is executed
 */
 void CL_AddReliableCommand( const char *cmd )
 {
-	int index;
-
 	// catch empty commands
 	while ( *cmd && *cmd <= ' ' )
 	{
@@ -222,16 +220,9 @@ void CL_AddReliableCommand( const char *cmd )
 		return;
 	}
 
-	// if we would be losing an old command that hasn't been acknowledged,
-	// we must drop the connection
-	if ( clc.reliableSequence - clc.reliableAcknowledge > MAX_RELIABLE_COMMANDS )
-	{
-		Sys::Drop( "Client command overflow" );
-	}
+	clc.reliableCommands.push_back( cmd );
 
 	clc.reliableSequence++;
-	index = clc.reliableSequence & ( MAX_RELIABLE_COMMANDS - 1 );
-	Q_strncpyz( clc.reliableCommands[ index ], cmd, sizeof( clc.reliableCommands[ index ] ) );
 }
 
 /*
@@ -379,8 +370,9 @@ std::string GenerateDemoName()
 
 void CL_Record(std::string demo_name)
 {
-    if ( demo_name.empty() )
-        demo_name = GenerateDemoName();
+	if ( demo_name.empty() ) {
+		demo_name = GenerateDemoName();
+	}
 
     std::string file_name = Str::Format("demos/%s.dm_%d", demo_name, PROTOCOL_VERSION);
     clc.demofile = FS_FOpenFileWrite(file_name.c_str());
@@ -392,7 +384,7 @@ void CL_Record(std::string demo_name)
     Log::Notice( "recording to %s.", file_name );
 
     clc.demorecording = true;
-    Q_strncpyz(clc.demoName, demo_name.c_str(), std::min<std::size_t>(demo_name.size(), MAX_QPATH));
+	clc.demoName = demo_name;
     Cvar::SetValueForce(cvar_demo_status_isrecording.Name(), "1");
     Cvar::SetValueForce(cvar_demo_status_filename.Name(), demo_name);
 
@@ -422,7 +414,7 @@ void CL_Record(std::string demo_name)
 
         MSG_WriteByte( &buf, svc_configstring );
         MSG_WriteShort( &buf, i );
-        MSG_WriteBigString( &buf, cl.gameState[i].c_str() );
+        MSG_WriteString( &buf, cl.gameState[i] );
     }
 
     // baselines
@@ -600,7 +592,7 @@ class DemoPlayCmd: public Cmd::StaticCmd {
                 Sys::Drop("couldn't open %s", name);
             }
 
-            Q_strncpyz(clc.demoName, arg, sizeof(clc.demoName));
+			clc.demoName = arg;
 
             Con_Close();
 
@@ -722,7 +714,7 @@ void CL_MapLoading()
 	{
 		cls.state = connstate_t::CA_CONNECTED; // so the connect screen is drawn
 		memset( cls.updateInfoString, 0, sizeof( cls.updateInfoString ) );
-		memset( clc.serverMessage, 0, sizeof( clc.serverMessage ) );
+		clc.serverMessage.clear();
 		cl.gameState.fill("");
 		clc.lastPacketSentTime = -9999;
 		SCR_UpdateScreen();
@@ -805,7 +797,8 @@ void CL_Disconnect( bool showMainMenu )
 		clc.download = 0;
 	}
 
-	*cls.downloadTempName = *cls.downloadName = 0;
+	cls.downloadName.clear();
+	cls.downloadTempName.clear();
 	Cvar_Set( "cl_downloadName", "" );
 
 	StopVideo();
@@ -1012,7 +1005,7 @@ void CL_Connect_f()
 	Audio::StopAllSounds(); // NERVE - SMF
 
 	// clear any previous "server full" type messages
-	clc.serverMessage[ 0 ] = 0;
+	clc.serverMessage.clear();
 
 	if ( com_sv_running->integer && !strcmp( server, "loopback" ) )
 	{
@@ -1607,7 +1600,6 @@ void CL_CheckForResend()
 {
 	int  port;
 	char info[ MAX_INFO_STRING ];
-	char data[ MAX_INFO_STRING ];
 
 	// don't send anything if playing back a demo
 	if ( clc.demoplaying )
@@ -1644,15 +1636,21 @@ void CL_CheckForResend()
 			port = Cvar_VariableValue( "net_qport" );
 
 			Q_strncpyz( info, Cvar_InfoString( CVAR_USERINFO, false ), sizeof( info ) );
-			Info_SetValueForKey( info, "protocol", va( "%i", PROTOCOL_VERSION ), false );
-			Info_SetValueForKey( info, "qport", va( "%i", port ), false );
+			Info_SetValueForKey( info, "protocol", Str::Format( "%i", PROTOCOL_VERSION ).c_str(), false);
+			Info_SetValueForKey( info, "qport", Str::Format( "%i", port ).c_str(), false);
 			Info_SetValueForKey( info, "challenge", clc.challenge.c_str(), false );
 			Info_SetValueForKey( info, "pubkey", key, false );
 
-			Com_sprintf( data, sizeof(data), "connect %s", Cmd_QuoteString( info ) );
+			std::string data = Str::Format( "connect %s", Cmd_QuoteString( info ) );
+			// This will be read by MSG_ReadString, which expects the string length
+			data.resize( data.size() + 4 );
+			std::move( data.data(), data.data() + data.size() - 4, data.data() + 4 );
+
+			uint32_t* sizeEncode = ( uint32_t* ) data.data();
+			*sizeEncode = data.size() - 4;
 
 			Net::OutOfBandData( netsrc_t::NS_CLIENT, clc.serverAddress,
-				reinterpret_cast<byte*>( data ), strlen( data ) );
+				reinterpret_cast<byte*>( data.data() ), data.size() );
 			// the most current userinfo has been sent, so watch for any
 			// newer changes to userinfo variables
 			cvar_modifiedFlags &= ~CVAR_USERINFO;
@@ -1718,21 +1716,14 @@ print OOB are the only messages we handle markups in
 */
 void CL_PrintPacket( msg_t *msg )
 {
-	char *s;
+	clc.serverMessage = MSG_ReadString( msg );
 
-	s = MSG_ReadBigString( msg );
-
-	if ( !Q_strnicmp( s, "[err_dialog]", 12 ) )
+	if ( clc.serverMessage.substr( 12 ) == "[err_dialog]" )
 	{
-		Q_strncpyz( clc.serverMessage, s + 12, sizeof( clc.serverMessage ) );
-		Sys::Drop( "^3Server disconnected:\n^7%s", clc.serverMessage );
-	}
-	else
-	{
-		Q_strncpyz( clc.serverMessage, s, sizeof( clc.serverMessage ) );
+		Sys::Drop( "^3Server disconnected:\n^7%s", clc.serverMessage.substr( 12, clc.serverMessage.size() ) );
 	}
 
-	Log::Notice("%s", clc.serverMessage );
+	Log::Notice( clc.serverMessage );
 }
 
 /*
@@ -1747,7 +1738,7 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	MSG_BeginReadingOOB( msg );
 	MSG_ReadLong( msg );  // skip the -1
 
-	Cmd::Args args(MSG_ReadStringLine( msg ));
+	Cmd::Args args( MSG_ReadString( msg, false ) );
 
 	if ( args.Argc() < 1 )
 	{
@@ -1874,7 +1865,7 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	// prints a n error message returned by the server
 	if ( args.Argv(0) == "error" )
 	{
-		Log::Warn( MSG_ReadStringLine(msg) );
+		Log::Warn( MSG_ReadString( msg, false ) );
 		return;
 	}
 

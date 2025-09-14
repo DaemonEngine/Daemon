@@ -180,15 +180,15 @@ struct clientConnection_t
 	netadr_t serverAddress;
 	int      connectTime; // for connection retransmits
 	int      connectPacketCount; // for display on connection dialog
-	char     serverMessage[ MAX_STRING_TOKENS ]; // for display on connection dialog
+	std::string serverMessage; // for display on connection dialog
 
 	std::string challenge; // from the server to use for connecting
 
 	// these are our reliable messages that go to the server
-	int  reliableSequence;
-	int  reliableAcknowledge; // the last one the server has executed
-	// TTimo - NOTE: incidentally, reliableCommands[0] is never used (always start at reliableAcknowledge+1)
-	char reliableCommands[ MAX_RELIABLE_COMMANDS ][ MAX_TOKEN_CHARS ];
+	uint32_t reliableSequence;
+	uint32_t reliableAcknowledge = 0; // the last one the server has executed
+	uint32_t previousAcknowledge = 0;
+	std::vector<std::string> reliableCommands;
 
 	// server message (unreliable) and command (reliable) sequence
 	// numbers are NOT cleared at level changes, but continue to
@@ -199,9 +199,9 @@ struct clientConnection_t
 	int serverMessageSequence;
 
 	// reliable messages received from server
-	int  serverCommandSequence;
+	int  serverCommandSequence = 0;
 	int  lastExecutedServerCommand; // last server command grabbed or executed with CL_GetServerCommand
-	char serverCommands[ MAX_RELIABLE_COMMANDS ][ MAX_TOKEN_CHARS ];
+	std::vector<std::string> serverCommands;
 
 	// file transfer from server
 	fileHandle_t download;
@@ -209,17 +209,16 @@ struct clientConnection_t
 	int          downloadBlock; // block we are waiting for
 	int          downloadCount; // how many bytes we got
 	int          downloadSize; // how many bytes we got
-	char         downloadList[ MAX_INFO_STRING ]; // list of paks we need to download
+	std::string  downloadList; // list of paks we need to download
 
 	// www downloading
 	bool bWWWDl; // we have a www download going
 	bool bWWWDlAborting; // disable the CL_WWWDownload until server gets us a gamestate (used for aborts)
-	char     redirectedList[ MAX_INFO_STRING ]; // list of files that we downloaded through a redirect since last FS_ComparePaks
-	char     badChecksumList[ MAX_INFO_STRING ]; // list of files for which wwwdl redirect is broken (wrong checksum)
-	char     newsString[ MAX_NEWS_STRING ];
+	std::string redirectedList; // list of files that we downloaded through a redirect since last FS_ComparePaks
+	std::string badChecksumList; // list of files for which wwwdl redirect is broken (wrong checksum)
 
 	// demo information
-	char         demoName[ MAX_QPATH ];
+	std::string demoName;
 	bool     demorecording;
 	bool     demoplaying;
 	bool     demowaiting; // don't record until a non-delta message is received
@@ -313,9 +312,9 @@ struct clientStatic_t
 	// www downloading
 	// in the static stuff since this may have to survive server disconnects (but disconnected dl was removed so this is maybe no longer true?)
 	// if new stuff gets added, CL_ClearStaticDownload code needs to be updated for clear up
-	char     downloadName[ MAX_OSPATH ];
-	char     downloadTempName[ MAX_OSPATH ]; // in wwwdl mode, this is OS path (it's a qpath otherwise)
-	char     originalDownloadName[ MAX_OSPATH ]; // if we get a redirect, keep a copy of the original file path
+	std::string downloadName;
+	std::string downloadTempName; // in wwwdl mode, this is OS path (it's a qpath otherwise)
+	std::string originalDownloadName; // if we get a redirect, keep a copy of the original file path
 	bool downloadRestart; // if true, we need to do another FS_Restart because we downloaded a pak
 };
 
@@ -468,9 +467,10 @@ void CL_Record(std::string demo_name);
 //
 // cl_serverstatus.cpp
 //
-int         CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen );
-void        CL_ServerStatus_f();
-void        CL_ServerStatusResponse( const netadr_t& from, msg_t *msg );
+bool CL_ServerStatus( const std::string& serverAddress, std::string& serverStatusString );
+void CL_ServerStatusReset();
+void CL_ServerStatus_f();
+void CL_ServerStatusResponse( const netadr_t& from, msg_t *msg );
 
 //
 // cl_keys (for input usage)

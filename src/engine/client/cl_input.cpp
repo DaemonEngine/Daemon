@@ -800,14 +800,16 @@ bool CL_ReadyToSendPacket()
 	}
 
 	// If we are downloading, we send no less than 50ms between packets
-	if ( *cls.downloadTempName && cls.realtime - clc.lastPacketSentTime < 50 )
+	if ( cls.downloadTempName.size() && cls.realtime - clc.lastPacketSentTime < 50 )
 	{
 		return false;
 	}
 
 	// if we don't have a valid gamestate yet, only send
 	// one packet a second
-	if ( cls.state != connstate_t::CA_ACTIVE && cls.state != connstate_t::CA_PRIMED && !*cls.downloadTempName && cls.realtime - clc.lastPacketSentTime < 1000 )
+	if ( cls.state != connstate_t::CA_ACTIVE && cls.state != connstate_t::CA_PRIMED
+		&& cls.downloadTempName.empty()
+		&& cls.realtime - clc.lastPacketSentTime < 1000 )
 	{
 		return false;
 	}
@@ -871,11 +873,6 @@ void CL_WritePacket()
 {
 	msg_t     buf;
 	byte      data[ MAX_MSGLEN ];
-	int       j;
-	usercmd_t *cmd, *oldcmd;
-	int       packetNum;
-	int       oldPacketNum;
-	int       count;
 
 	// don't send anything if playing back a demo
 	if ( clc.demoplaying )
@@ -884,7 +881,7 @@ void CL_WritePacket()
 	}
 
 	usercmd_t nullcmd{};
-	oldcmd = &nullcmd;
+	usercmd_t* oldcmd = &nullcmd;
 
 	MSG_Init( &buf, data, sizeof( data ) );
 
@@ -904,11 +901,11 @@ void CL_WritePacket()
 	// write any unacknowledged clientCommands
 	// NOTE TTimo: if you verbose this, you will see that there are quite a few duplicates
 	// typically several unacknowledged cp or userinfo commands stacked up
-	for ( int i = clc.reliableAcknowledge + 1; i <= clc.reliableSequence; i++ )
+	for ( uint32_t i = 0; i < clc.reliableSequence - clc.reliableAcknowledge; i++ )
 	{
 		MSG_WriteByte( &buf, clc_clientCommand );
-		MSG_WriteLong( &buf, i );
-		MSG_WriteString( &buf, clc.reliableCommands[ i & ( MAX_RELIABLE_COMMANDS - 1 ) ] );
+		MSG_WriteLong( &buf, i + clc.reliableAcknowledge );
+		MSG_WriteString( &buf, clc.reliableCommands[i] );
 	}
 
 	// we want to send all the usercmds that were generated in the last
@@ -923,8 +920,8 @@ void CL_WritePacket()
 		Cvar_Set( "cl_packetdup", "5" );
 	}
 
-	oldPacketNum = ( clc.netchan.outgoingSequence - 1 - cl_packetdup->integer ) & PACKET_MASK;
-	count = cl.cmdNumber - cl.outPackets[ oldPacketNum ].p_cmdNumber;
+	int oldPacketNum = ( clc.netchan.outgoingSequence - 1 - cl_packetdup->integer ) & PACKET_MASK;
+	int count = cl.cmdNumber - cl.outPackets[ oldPacketNum ].p_cmdNumber;
 
 	if ( count > MAX_PACKET_USERCMDS )
 	{
@@ -955,17 +952,15 @@ void CL_WritePacket()
 		// write all the commands, including the predicted command
 		for ( int i = 0; i < count; i++ )
 		{
-			j = ( cl.cmdNumber - count + i + 1 ) & CMD_MASK;
-			cmd = &cl.cmds[ j ];
+			int j = ( cl.cmdNumber - count + i + 1 ) & CMD_MASK;
+			usercmd_t* cmd = &cl.cmds[ j ];
 			MSG_WriteDeltaUsercmd( &buf, oldcmd, cmd );
 			oldcmd = cmd;
 		}
 	}
 
-	//
 	// deliver the message
-	//
-	packetNum = clc.netchan.outgoingSequence & PACKET_MASK;
+	int packetNum = clc.netchan.outgoingSequence & PACKET_MASK;
 	cl.outPackets[ packetNum ].p_realtime = cls.realtime;
 	cl.outPackets[ packetNum ].p_serverTime = oldcmd->serverTime;
 	cl.outPackets[ packetNum ].p_cmdNumber = cl.cmdNumber;
@@ -973,7 +968,7 @@ void CL_WritePacket()
 
 	if ( cl_showSend->integer )
 	{
-		Log::Notice("%i ", buf.cursize );
+		Log::Notice( "%i ", buf.cursize );
 	}
 
 	MSG_WriteByte( &buf, clc_EOF );

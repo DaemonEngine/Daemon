@@ -153,14 +153,11 @@ SV_WriteSnapshotToClient
 */
 static void SV_WriteSnapshotToClient( client_t *client, msg_t *msg )
 {
-	clientSnapshot_t *frame, *oldframe;
-	int              lastframe;
-	int              i;
-	int              snapFlags;
-
 	// this is the snapshot we are creating
-	frame = &client->frames[ client->netchan.outgoingSequence & PACKET_MASK ];
+	clientSnapshot_t* frame = &client->frames[ client->netchan.outgoingSequence & PACKET_MASK ];
+	clientSnapshot_t* oldframe;
 
+	int lastframe;
 	// try to use a previous frame as the source for delta compressing the snapshot
 	if ( client->deltaMessage <= 0 || client->state != clientState_t::CS_ACTIVE )
 	{
@@ -192,10 +189,6 @@ static void SV_WriteSnapshotToClient( client_t *client, msg_t *msg )
 
 	MSG_WriteByte( msg, svc_snapshot );
 
-	// NOTE, MRE: now sent at the start of every message from server to client
-	// let the client know which reliable clientCommands we have received
-	//MSG_WriteLong( msg, client->lastClientCommand );
-
 	// send over the current server time so the client can drift
 	// its view of time to try to match
 	MSG_WriteLong( msg, sv.time );
@@ -203,7 +196,7 @@ static void SV_WriteSnapshotToClient( client_t *client, msg_t *msg )
 	// what we are delta'ing from
 	MSG_WriteByte( msg, lastframe );
 
-	snapFlags = svs.snapFlagServerBit;
+	int snapFlags = svs.snapFlagServerBit;
 
 	if ( client->rateDelayed )
 	{
@@ -239,7 +232,7 @@ static void SV_WriteSnapshotToClient( client_t *client, msg_t *msg )
 	// padding for rate debugging
 	if ( sv_padPackets->integer )
 	{
-		for ( i = 0; i < sv_padPackets->integer; i++ )
+		for ( int i = 0; i < sv_padPackets->integer; i++ )
 		{
 			MSG_WriteByte( msg, svc_nop );
 		}
@@ -255,17 +248,13 @@ SV_UpdateServerCommandsToClient
 */
 void SV_UpdateServerCommandsToClient( client_t *client, msg_t *msg )
 {
-	int i;
-
 	// write any unacknowledged serverCommands
-	for ( i = client->reliableAcknowledge + 1; i <= client->reliableSequence; i++ )
+	for ( uint32_t i = 0; i < client->reliableSequence - client->reliableAcknowledge; i++ )
 	{
 		MSG_WriteByte( msg, svc_serverCommand );
-		MSG_WriteLong( msg, i );
-		MSG_WriteString( msg, client->reliableCommands[ i & ( MAX_RELIABLE_COMMANDS - 1 ) ] );
+		MSG_WriteLong( msg, i + client->reliableAcknowledge );
+		MSG_WriteString( msg, client->reliableCommands[i] );
 	}
-
-	client->reliableSent = client->reliableSequence;
 }
 
 /*
@@ -793,7 +782,7 @@ static int SV_RateMsec( client_t *client, int messageSize )
 	rate = client->rate;
 
 	// work on the appropriate max rate (client or download)
-	if ( !*client->downloadName )
+	if ( client->downloadName.empty() )
 	{
 		maxRate = sv_maxRate->integer;
 	}
@@ -851,7 +840,7 @@ void SV_SendMessageToClient( msg_t *msg, client_t *client )
 	// TTimo - during a download, ignore the snapshotMsec
 	// the update server on steroids, with this disabled and sv_fps 60, the download can reach 30 kb/s
 	// on a regular server, we will still top at 20 kb/s because of sv_fps 20
-	if ( !*client->downloadName && rateMsec < client->snapshotMsec )
+	if ( client->downloadName.empty() && rateMsec < client->snapshotMsec )
 	{
 		// never send more packets than this, no matter what the rate is at
 		rateMsec = client->snapshotMsec;
@@ -870,7 +859,7 @@ void SV_SendMessageToClient( msg_t *msg, client_t *client )
 		// a gigantic connection message may have already put the nextSnapshotTime
 		// more than a second away, so don't shorten it
 		// do shorten if client is downloading
-		if ( !*client->downloadName && client->nextSnapshotTime < svs.time + 1000 )
+		if ( client->downloadName.empty() && client->nextSnapshotTime < svs.time + 1000 )
 		{
 			client->nextSnapshotTime = svs.time + 1000;
 		}
