@@ -49,9 +49,9 @@ void CL_ClearStaticDownload()
 {
 	downloadLogger.Debug("Clearing the download info");
 	cls.downloadRestart = false;
-	cls.downloadTempName[ 0 ] = '\0';
-	cls.downloadName[ 0 ] = '\0';
-	cls.originalDownloadName[ 0 ] = '\0';
+	cls.downloadTempName.clear();
+	cls.downloadName.clear();
+	cls.originalDownloadName.clear();
 }
 
 /*
@@ -121,23 +121,24 @@ Requests a file to download from the server.  Stores it in the current
 game directory.
 =================
 */
-static void CL_BeginDownload( const char *localName, const char *remoteName )
+static void CL_BeginDownload( const std::string& localName, const std::string& remoteName )
 {
 	downloadLogger.Debug("Requesting the download of '%s', with remote name '%s'", localName, remoteName);
 
-	Q_strncpyz( cls.downloadName, localName, sizeof( cls.downloadName ) );
-	Com_sprintf( cls.downloadTempName, sizeof( cls.downloadTempName ), "%s.tmp", localName );
+	cls.downloadName = localName;
+	cls.downloadTempName = localName; 
+	cls.downloadTempName += ".tmp";
 
 	// Set so UI gets access to it
-	Cvar_Set( "cl_downloadName", remoteName );
+	Cvar_Set( "cl_downloadName", remoteName.c_str() );
 	Cvar_Set( "cl_downloadSize", "0" );
-	cl_downloadCount.Set(0);
+	cl_downloadCount.Set( 0 );
 	Cvar_SetValue( "cl_downloadTime", cls.realtime );
 
 	clc.downloadBlock = 0; // Starting new file
 	clc.downloadCount = 0;
 
-	CL_AddReliableCommand( va( "download %s", Cmd_QuoteString( remoteName ) ) );
+	CL_AddReliableCommand( Str::Format( "download %s", Cmd_QuoteString( remoteName.c_str() ) ).c_str() );
 }
 
 /*
@@ -149,49 +150,39 @@ A download completed or failed
 */
 static void CL_NextDownload()
 {
-	char *s;
-	char *remoteName, *localName;
-
 	// We are looking to start a download here
-	if ( *clc.downloadList )
+	if ( clc.downloadList.size() )
 	{
-		downloadLogger.Debug("CL_NextDownload downloadList is '%s'", clc.downloadList);
-		s = clc.downloadList;
+		downloadLogger.Debug( "CL_NextDownload downloadList is '%s'", clc.downloadList );
 
 		// format is:
 		//  @remotename@localname@remotename@localname, etc.
 
-		if ( *s == '@' )
-		{
-			s++;
-		}
+		size_t offset  = clc.downloadList[0] == '@' ? 1 : 0;
+		size_t offset2 = clc.downloadList.find( "@", offset + 1 );
+		const std::string remoteName = clc.downloadList.substr( offset, offset2 - offset );
 
-		remoteName = s;
-
-		if ( ( s = strchr( s, '@' ) ) == nullptr )
+		if ( offset2 == std::string::npos )
 		{
 			CL_DownloadsComplete();
 			return;
 		}
 
-		*s++ = 0;
-		localName = s;
+		offset = offset2 + 1;
+		offset2 = clc.downloadList.find( "@", offset2 + 1 );
 
-		if ( ( s = strchr( s, '@' ) ) != nullptr )
-		{
-			*s++ = 0;
-		}
-		else
-		{
-			s = localName + strlen( localName );  // point at the nul byte
-		}
+		const std::string localName = clc.downloadList.substr( offset, offset2 - 1 );
 
 		CL_BeginDownload( localName, remoteName );
 
 		cls.downloadRestart = true;
 
 		// move over the rest
-		memmove( clc.downloadList, s, strlen( s ) + 1 );
+		if ( offset2 == std::string::npos ) {
+			clc.downloadList.clear();
+		} else {
+			clc.downloadList = clc.downloadList.substr( offset2 );
+		}
 
 		return;
 	}
@@ -215,17 +206,18 @@ void CL_InitDownloads()
 	clc.bWWWDlAborting = false;
 	CL_ClearStaticDownload();
 
-	if ( cl_allowDownload->integer )
+	if ( cl_allowDownload->integer ) {
 		FS_DeletePaksWithBadChecksum();
+	}
 
 	// reset the redirect checksum tracking
-	clc.redirectedList[ 0 ] = '\0';
+	clc.redirectedList.clear();
 
-	if ( cl_allowDownload->integer && FS_ComparePaks( clc.downloadList, sizeof( clc.downloadList ) ) )
+	if ( cl_allowDownload->integer && FS_ComparePaks( clc.downloadList, clc.downloadList.size() ) )
 	{
-		downloadLogger.Debug("Need paks: '%s'", clc.downloadList);
+		downloadLogger.Debug( "Need paks: '%s'", clc.downloadList );
 
-		if ( *clc.downloadList )
+		if ( clc.downloadList.size() )
 		{
 			// if autodownloading is not enabled on the server
 			cls.state = connstate_t::CA_DOWNLOADING;
@@ -277,24 +269,17 @@ void CL_WWWDownload()
 		// taken from CL_ParseDownload
 		clc.download = 0;
 
-		FS_SV_Rename( cls.downloadTempName, cls.originalDownloadName );
+		FS_SV_Rename( cls.downloadTempName.c_str(), cls.originalDownloadName.c_str() );
 
-		*cls.downloadTempName = *cls.downloadName = 0;
+		cls.downloadTempName.clear();
+		cls.downloadName.clear();
 		Cvar_Set( "cl_downloadName", "" );
 
 		CL_AddReliableCommand( "wwwdl done" );
 
 		// tracking potential web redirects leading us to wrong checksum - only works in connected mode
-		if ( strlen( clc.redirectedList ) + strlen( cls.originalDownloadName ) + 1 >= sizeof( clc.redirectedList ) )
-		{
-			// just to be safe
-			Log::Warn( "redirectedList overflow (%s)", clc.redirectedList );
-		}
-		else
-		{
-			strcat( clc.redirectedList, "@" );
-			strcat( clc.redirectedList, cls.originalDownloadName );
-		}
+		clc.redirectedList += "@";
+		clc.redirectedList += cls.originalDownloadName;
 	}
 	else
 	{
@@ -321,19 +306,13 @@ this indicates that the redirect setup is broken, and next dl attempt should NOT
 */
 bool CL_WWWBadChecksum( const char *pakname )
 {
-	if ( strstr( clc.redirectedList, va( "@%s@", pakname ) ) )
+	if ( clc.redirectedList.find( Str::Format( "@%s@", pakname ) ) != std::string::npos )
 	{
 		Log::Warn("file %s obtained through download redirect has wrong checksum"
 		              "\tthis likely means the server configuration is broken", pakname );
 
-		if ( strlen( clc.badChecksumList ) + strlen( pakname ) + 1 >= sizeof( clc.badChecksumList ) )
-		{
-			Log::Warn("badChecksumList overflowed (%s)", clc.badChecksumList );
-			return false;
-		}
-
-		strcat( clc.badChecksumList, "@" );
-		strcat( clc.badChecksumList, pakname );
+		clc.badChecksumList += "@";
+		clc.badChecksumList += pakname;
 		Log::Debug( "bad checksums: %s", clc.badChecksumList );
 		return true;
 	}
@@ -354,7 +333,7 @@ void CL_ParseDownload( msg_t *msg )
 	unsigned char data[ MAX_MSGLEN ];
 	int           block;
 
-	if ( !*cls.downloadTempName )
+	if ( cls.downloadTempName.empty() )
 	{
 		Log::Notice( "Server sending download, but no download was requested" );
 		// Eat the packet anyway
@@ -386,13 +365,14 @@ void CL_ParseDownload( msg_t *msg )
 		if ( !clc.bWWWDl )
 		{
 			// server is sending us a www download
-			Q_strncpyz( cls.originalDownloadName, cls.downloadName, sizeof( cls.originalDownloadName ) );
-			Q_strncpyz( cls.downloadName, MSG_ReadString( msg ), sizeof( cls.downloadName ) );
+			cls.originalDownloadName = cls.downloadName;
+			cls.downloadName = MSG_ReadString( msg );
+
 			clc.downloadSize = MSG_ReadLong( msg );
 			int basePathLen = MSG_ReadLong( msg );
 
-			downloadLogger.Debug("Server sent us a new WWW DL '%s', size %i, prefix len %i",
-			                     cls.downloadName, clc.downloadSize, basePathLen);
+			downloadLogger.Debug( "Server sent us a new WWW DL '%s', size %i, prefix len %i",
+			                     cls.downloadName, clc.downloadSize, basePathLen );
 
 			Cvar_SetValue( "cl_downloadSize", clc.downloadSize );
 			clc.bWWWDl = true; // activate wwwdl client loop
@@ -400,15 +380,14 @@ void CL_ParseDownload( msg_t *msg )
 			cls.state = connstate_t::CA_DOWNLOADING;
 
 			// make sure the server is not trying to redirect us again on a bad checksum
-			if ( strstr( clc.badChecksumList, va( "@%s", cls.originalDownloadName ) ) )
-			{
+			if ( clc.badChecksumList.find( Str::Format( "@%s", cls.originalDownloadName ) ) != std::string::npos ) {
 				Log::Notice( "refusing redirect to %s by server (bad checksum)", cls.downloadName );
 				CL_AddReliableCommand( "wwwdl fail" );
 				clc.bWWWDlAborting = true;
 				return;
 			}
 
-			if ( !DL_BeginDownload( cls.downloadTempName, cls.downloadName, basePathLen ) )
+			if ( !DL_BeginDownload( cls.downloadTempName.c_str(), cls.downloadName.c_str(), basePathLen ) )
 			{
 				// setting bWWWDl to false after sending the wwwdl fail doesn't work
 				// not sure why, but I suspect we have to eat all remaining block -1 that the server has sent us
@@ -424,7 +403,6 @@ void CL_ParseDownload( msg_t *msg )
 		else
 		{
 			// server keeps sending that message till we ack it, eat and ignore
-			//MSG_ReadLong( msg );
 			MSG_ReadString( msg );
 			MSG_ReadLong( msg );
 			MSG_ReadLong( msg );
@@ -442,7 +420,7 @@ void CL_ParseDownload( msg_t *msg )
 
 		if ( clc.downloadSize < 0 )
 		{
-			Sys::Drop( "%s", MSG_ReadString( msg ) );
+			Sys::Drop( MSG_ReadString( msg ) );
 		}
 	}
 
@@ -466,7 +444,7 @@ void CL_ParseDownload( msg_t *msg )
 	// open the file if not opened yet
 	if ( !clc.download )
 	{
-		clc.download = FS_SV_FOpenFileWrite( cls.downloadTempName );
+		clc.download = FS_SV_FOpenFileWrite( cls.downloadTempName.c_str() );
 
 		if ( !clc.download )
 		{
@@ -500,10 +478,11 @@ void CL_ParseDownload( msg_t *msg )
 			clc.download = 0;
 
 			// rename the file
-			FS_SV_Rename( cls.downloadTempName, cls.downloadName );
+			FS_SV_Rename( cls.downloadTempName.c_str(), cls.downloadName.c_str() );
 		}
 
-		*cls.downloadTempName = *cls.downloadName = 0;
+		cls.downloadTempName.clear();
+		cls.downloadName.clear();
 		Cvar_Set( "cl_downloadName", "" );
 
 		// send intentions now

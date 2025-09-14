@@ -66,7 +66,7 @@ void OutOfBandData( netsrc_t sock, const netadr_t& adr, byte *data, std::size_t 
 	msg_t mbuf{};
 	mbuf.data = buf;
 	mbuf.cursize = size;
-	Huff_Compress( &mbuf, 12 );
+	Huff_Compress( &mbuf, 16 );
 	// send the datagram
 	NET_SendPacket( sock, mbuf.cursize, mbuf.data, adr );
 }

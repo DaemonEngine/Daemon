@@ -71,8 +71,7 @@ void  MSG_WriteByte( msg_t *sb, int c );
 void  MSG_WriteShort( msg_t *sb, int c );
 void  MSG_WriteLong( msg_t *sb, int c );
 void  MSG_WriteFloat( msg_t *sb, float f );
-void  MSG_WriteString( msg_t *sb, const char *s );
-void  MSG_WriteBigString( msg_t *sb, const char *s );
+void  MSG_WriteString( msg_t *sb, const std::string& string );
 
 void  MSG_BeginReading( msg_t *sb );
 void  MSG_BeginReadingOOB( msg_t *sb );
@@ -84,9 +83,7 @@ int   MSG_ReadByte( msg_t *sb );
 int   MSG_ReadShort( msg_t *sb );
 int   MSG_ReadLong( msg_t *sb );
 float MSG_ReadFloat( msg_t *sb );
-char  *MSG_ReadString( msg_t *sb );
-char  *MSG_ReadBigString( msg_t *sb );
-char  *MSG_ReadStringLine( msg_t *sb );
+std::string MSG_ReadString( msg_t *sb, const bool allowNewLines = true );
 void  MSG_ReadData( msg_t *sb, void *buffer, int size );
 
 void  MSG_WriteDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to );
@@ -229,7 +226,7 @@ The server you are attempting to join is running an incompatible version of the 
 The server you attempted to join is running an incompatible version of the game.\n\
 You or the server may be running older versions of the game."
 
-#define PROTOCOL_VERSION       86
+#define PROTOCOL_VERSION       87
 
 #define URI_SCHEME             GAMENAME_STRING "://"
 #define URI_SCHEME_LENGTH      ( ARRAY_LEN( URI_SCHEME ) - 1 )
@@ -436,7 +433,7 @@ bool     FS_LoadServerPaks( const char* paks, bool isDemo );
 // shutdown and restart the filesystem so changes to fs_gamedir can take effect
 
 void FS_DeletePaksWithBadChecksum();
-bool FS_ComparePaks(char* neededpaks, int len);
+bool FS_ComparePaks( std::string& neededpaks, int len );
 
 /*
 ==============================================================

@@ -179,10 +179,6 @@ void CL_ParseSnapshot( msg_t *msg )
 	int          oldMessageNum;
 	int          i, packetNum;
 
-	// get the reliable sequence acknowledge number
-	// NOTE: now sent with all server to client messages
-	//clc.reliableAcknowledge = MSG_ReadLong( msg );
-
 	// read in the new snapshot to a temporary buffer
 	// we will only copy to cl.snap if it is valid
 	clSnapshot_t newSnap{};
@@ -406,9 +402,6 @@ void CL_ParseGamestate( msg_t *msg )
 	if ( !cl.reading ) {
 		// wipe local client state
 		CL_ClearState();
-
-		// a gamestate always marks a server command sequence
-		clc.serverCommandSequence = MSG_ReadLong( msg );
 	}
 
 	// parse all the configstrings and baselines
@@ -430,8 +423,7 @@ void CL_ParseGamestate( msg_t *msg )
 				Sys::Drop( "configstring > MAX_CONFIGSTRINGS" );
 			}
 
-			const char* str = MSG_ReadBigString( msg );
-			cl.gameState[i] = str;
+			cl.gameState[i] = MSG_ReadString( msg );
 		}
 		else if ( cmd == svc_baseline )
 		{
@@ -483,23 +475,18 @@ when it transitions a snapshot
 */
 void CL_ParseCommandString( msg_t *msg )
 {
-	char *s;
-	int  seq;
-	int  index;
+	uint32_t seq = MSG_ReadLong( msg );
 
-	seq = MSG_ReadLong( msg );
-	s = MSG_ReadString( msg );
-
-	// see if we have already executed stored it off
+	// see if we have already executed or stored it off
 	if ( clc.serverCommandSequence >= seq )
 	{
+		MSG_ReadString( msg ); // Skip the string
 		return;
 	}
 
-	clc.serverCommandSequence = seq;
+	clc.serverCommands.push_back( MSG_ReadString( msg ) );
 
-	index = seq & ( MAX_RELIABLE_COMMANDS - 1 );
-	Q_strncpyz( clc.serverCommands[ index ], s, sizeof( clc.serverCommands[ index ] ) );
+	clc.serverCommandSequence++;
 }
 
 /*
@@ -509,11 +496,6 @@ CL_ParseServerMessage
 */
 void CL_ParseServerMessage( msg_t *msg )
 {
-	int cmd;
-//	msg_t           msgback;
-
-//	msgback = *msg;
-
 	if ( cl_shownet->integer == 1 )
 	{
 		Log::Notice("%i ", msg->cursize );
@@ -528,15 +510,19 @@ void CL_ParseServerMessage( msg_t *msg )
 	// get the reliable sequence acknowledge number
 	clc.reliableAcknowledge = MSG_ReadLong( msg );
 
-	//
-	if ( clc.reliableAcknowledge < clc.reliableSequence - MAX_RELIABLE_COMMANDS )
-	{
-		clc.reliableAcknowledge = clc.reliableSequence;
+	if ( clc.reliableAcknowledge != clc.previousAcknowledge ) {
+		std::vector<std::string>::iterator start = clc.reliableCommands.begin() + ( clc.reliableSequence - clc.reliableAcknowledge );
+		std::vector<std::string>::iterator end = clc.reliableCommands.end();
+
+		std::move( start, end, clc.reliableCommands.begin() );
+		clc.reliableCommands.erase( start, end );
+
+		clc.previousAcknowledge = clc.reliableAcknowledge;
 	}
 
-	//
+	clc.reliableSequence = std::max( clc.reliableSequence, clc.reliableAcknowledge );
+
 	// parse the message
-	//
 	while (true)
 	{
 		if ( msg->readcount > msg->cursize )
@@ -544,7 +530,7 @@ void CL_ParseServerMessage( msg_t *msg )
 			Sys::Drop( "CL_ParseServerMessage: read past end of server message" );
 		}
 
-		cmd = MSG_ReadByte( msg );
+		int cmd = MSG_ReadByte( msg );
 
 		if ( cmd < 0 || cmd == svc_EOF )
 		{

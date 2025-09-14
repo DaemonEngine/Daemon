@@ -747,19 +747,21 @@ void FS_DeletePaksWithBadChecksum() {
 	}
 }
 
-bool FS_ComparePaks(char* neededpaks, int len)
+bool FS_ComparePaks( std::string& neededpaks, int len )
 {
-	*neededpaks = '\0';
 	for (const missingPak_t& x: fs_missingPaks) {
-		Q_strcat(neededpaks, len, "@");
-		Q_strcat(neededpaks, len, FS::MakePakName(x.name, x.version, x.checksum).c_str());
-		Q_strcat(neededpaks, len, "@");
-		std::string pakName = Str::Format("pkg/%s", FS::MakePakName(x.name, x.version));
-		if (FS::HomePath::FileExists(pakName))
-			Q_strcat(neededpaks, len, Str::Format("pkg/%s", FS::MakePakName(x.name, x.version, x.checksum)).c_str());
-		else
-			Q_strcat(neededpaks, len, pakName.c_str());
+		neededpaks += "@";
+		neededpaks += FS::MakePakName( x.name, x.version, x.checksum );
+		neededpaks += "@";
+
+		std::string pakName = Str::Format( "pkg/%s", FS::MakePakName( x.name, x.version ) );
+		if ( FS::HomePath::FileExists( pakName ) ) {
+			neededpaks += Str::Format( "pkg/%s", FS::MakePakName( x.name, x.version, x.checksum ) );
+		} else {
+			neededpaks += pakName;
+		}
 	}
+
 	return !fs_missingPaks.empty();
 }
 #endif // !BUILD_SERVER
