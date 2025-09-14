@@ -747,7 +747,7 @@ void FS_DeletePaksWithBadChecksum() {
 	}
 }
 
-bool FS_ComparePaks( std::string& neededpaks, int len )
+bool FS_ComparePaks( std::string& neededpaks )
 {
 	for (const missingPak_t& x: fs_missingPaks) {
 		neededpaks += "@";
