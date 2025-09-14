@@ -22,9 +22,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* fogQuake3_fp.glsl */
 
-#define FOGQUAKE3_GLSL
+#insert fogEquation_fp
 
-uniform sampler2D u_FogMap;
+#define FOGQUAKE3_GLSL
 
 uniform float u_FogEyeT;
 
@@ -52,7 +52,7 @@ void	main()
 
 	t = 1.0 / 32.0 + ( 30.0 / 32.0 ) * t;
 
-	vec4 color = texture2D(u_FogMap, vec2(s, t));
+	vec4 color = vec4(1, 1, 1, GetFogAlpha(s, t));
 
 	color *= var_Color;
 

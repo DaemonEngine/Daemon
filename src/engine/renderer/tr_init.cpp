@@ -1326,8 +1326,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			}
 		}
 
-		R_InitFogTable();
-
 		R_NoiseInit();
 
 		R_Register();
