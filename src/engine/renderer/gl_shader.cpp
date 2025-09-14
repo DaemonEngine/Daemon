@@ -2597,7 +2597,6 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial() :
 GLShader_fogQuake3::GLShader_fogQuake3() :
 	GLShader( "fogQuake3", ATTR_POSITION | ATTR_QTANGENT,
 		false, "fogQuake3", "fogQuake3" ),
-	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ColorGlobal_Float( this ),
@@ -2614,15 +2613,9 @@ GLShader_fogQuake3::GLShader_fogQuake3() :
 {
 }
 
-void GLShader_fogQuake3::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_FogMap" ), 0 );
-}
-
 GLShader_fogQuake3Material::GLShader_fogQuake3Material() :
 	GLShader( "fogQuake3Material", ATTR_POSITION | ATTR_QTANGENT,
 		true, "fogQuake3", "fogQuake3" ),
-	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ColorGlobal_Uint( this ),
@@ -2636,7 +2629,6 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material() :
 GLShader_fogGlobal::GLShader_fogGlobal() :
 	GLShader( "fogGlobal", ATTR_POSITION,
 		false, "screenSpace", "fogGlobal" ),
-	u_ColorMap( this ),
 	u_DepthMap( this ),
 	u_UnprojectMatrix( this ),
 	u_Color_Float( this ),

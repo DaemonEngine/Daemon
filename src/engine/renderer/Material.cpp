@@ -1115,11 +1115,6 @@ void BindShaderFog( Material* material ) {
 	gl_fogQuake3ShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
 	gl_fogQuake3ShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
-
-	// bind u_ColorMap
-	gl_fogQuake3ShaderMaterial->SetUniform_FogMapBindless(
-		GL_BindToTMU( 0, tr.fogImage )
-	);
 }
 
 void ProcessMaterialNONE( Material*, shaderStage_t*, MaterialSurface* ) {
