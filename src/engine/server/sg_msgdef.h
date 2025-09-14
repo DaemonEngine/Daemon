@@ -71,7 +71,7 @@ using GetConfigStringMsg = IPC::SyncMessage<
 using SetConfigStringRestrictionsMsg = IPC::Message<IPC::Id<VM::QVM, G_SET_CONFIGSTRING_RESTRICTIONS>>;
 using SetUserinfoMsg = IPC::Message<IPC::Id<VM::QVM, G_SET_USERINFO>, int, std::string>;
 using GetUserinfoMsg =  IPC::SyncMessage<
-    IPC::Message<IPC::Id<VM::QVM, G_GET_USERINFO>, int, int>,
+    IPC::Message<IPC::Id<VM::QVM, G_GET_USERINFO>, int>,
     IPC::Reply<std::string>
 >;
 using GetServerinfoMsg = IPC::SyncMessage<

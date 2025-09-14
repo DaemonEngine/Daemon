@@ -487,16 +487,13 @@ void GameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& chan
 
 	case G_SET_USERINFO:
 		IPC::HandleMsg<SetUserinfoMsg>(channel, std::move(reader), [this](int index, std::string val) {
-			SV_SetUserinfo(index, val.c_str());
+			SV_SetUserinfo(index, val);
 		});
 		break;
 
 	case G_GET_USERINFO:
-		IPC::HandleMsg<GetUserinfoMsg>(channel, std::move(reader), [this](int index, int len, std::string& res) {
-			std::unique_ptr<char[]> buffer(new char[len]);
-			buffer[0] = '\0';
-			SV_GetUserinfo(index, buffer.get(), len);
-			res.assign(buffer.get());
+		IPC::HandleMsg<GetUserinfoMsg>(channel, std::move(reader), [this](int index, std::string& res) {
+			res = SV_GetUserinfo( index );
 		});
 		break;
 
