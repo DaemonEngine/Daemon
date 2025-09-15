@@ -365,7 +365,9 @@ static void SV_Serverinfo_f()
 	}
 
 	Log::Notice( "Server info settings:" );
-	Info_Print( Cvar_InfoString( CVAR_SERVERINFO, false ) );
+	InfoMap info;
+	Cvar::PopulateInfoMap( CVAR_SERVERINFO, info );
+	Info_Print( InfoMapToString( info ).c_str() );
 }
 
 /*
@@ -385,7 +387,9 @@ static void SV_Systeminfo_f()
 	}
 
 	Log::Notice( "System info settings:" );
-	Info_Print( Cvar_InfoString( CVAR_SYSTEMINFO, false ) );
+	InfoMap info;
+	Cvar::PopulateInfoMap( CVAR_SYSTEMINFO, info );
+	Info_Print( InfoMapToString( info ).c_str() );
 }
 
 class ListMapsCmd: public Cmd::StaticCmd

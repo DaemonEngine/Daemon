@@ -118,7 +118,7 @@ struct clientActive_t
 	// cleared when CL_AdjustTimeDelta looks at it
 	bool     newSnapshots; // set on parse of any valid packet
 
-	char         mapname[ MAX_QPATH ]; // extracted from CS_SERVERINFO
+	std::string mapname; // extracted from CS_SERVERINFO
 
 	int          mouseDx[ 2 ], mouseDy[ 2 ]; // added to by mouse events
 	int          mouseIndex;

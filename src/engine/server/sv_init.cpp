@@ -564,9 +564,12 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 
 	// save systeminfo and serverinfo strings
 	cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
-	SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString( CVAR_SYSTEMINFO, true ) );
+	InfoMap info;
+	Cvar::PopulateInfoMap( CVAR_SYSTEMINFO, info );
+	SV_SetConfigstring( CS_SYSTEMINFO, InfoMapToString( info ).c_str() );
 
-	SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO, false ) );
+	Cvar::PopulateInfoMap( CVAR_SERVERINFO, info );
+	SV_SetConfigstring( CS_SERVERINFO, InfoMapToString( info ).c_str() );
 	cvar_modifiedFlags &= ~CVAR_SERVERINFO;
 
 	// any media configstring setting now should issue a warning

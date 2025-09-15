@@ -589,20 +589,14 @@ Should only by called by CL_StartHunkUsers
 */
 void CL_InitCGame()
 {
-	const char *info;
-	const char *mapname;
-	int        t1, t2;
-
-	t1 = Sys::Milliseconds();
+	const int t1 = Sys::Milliseconds();
 
 	// put away the console
 	Con_Close();
 
 	// find the current mapname
-	info = cl.gameState[ CS_SERVERINFO ].c_str();
-	mapname = Info_ValueForKey( info, "mapname" );
-	Com_sprintf( cl.mapname, sizeof( cl.mapname ), "maps/%s.bsp", mapname );
-
+	const std::string mapname = InfoStringToMap( cl.gameState[CS_SERVERINFO] )["mapname"];
+	cl.mapname = Str::Format( "maps/%s.bsp", mapname );
 
 	cls.state = connstate_t::CA_LOADING;
 
@@ -613,7 +607,7 @@ void CL_InitCGame()
 	// will cause the server to send us the first snapshot
 	cls.state = connstate_t::CA_PRIMED;
 
-	t2 = Sys::Milliseconds();
+	const int t2 = Sys::Milliseconds();
 
 	Log::Debug( "CL_InitCGame: %5.2fs", ( t2 - t1 ) / 1000.0 );
 

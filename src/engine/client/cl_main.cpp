@@ -1511,7 +1511,9 @@ void CL_Clientinfo_f()
 	Log::Notice( "state: %s", Util::enum_str(cls.state));
 	Log::Notice( "Server: %s", cls.servername );
 	Log::Notice("User info settings:" );
-	Info_Print( Cvar_InfoString( CVAR_USERINFO, false ) );
+	InfoMap info;
+	Cvar::PopulateInfoMap( CVAR_USERINFO, info );
+	Info_Print( InfoMapToString( info ).c_str() );
 	Log::Notice("--------------------------------------" );
 }
 
@@ -1993,7 +1995,9 @@ void CL_CheckUserinfo()
 	if ( cvar_modifiedFlags & CVAR_USERINFO )
 	{
 		cvar_modifiedFlags &= ~CVAR_USERINFO;
-		CL_AddReliableCommand( va( "userinfo %s", Cmd_QuoteString( Cvar_InfoString( CVAR_USERINFO, false ) ) ) );
+		InfoMap info;
+		Cvar::PopulateInfoMap( CVAR_USERINFO, info );
+		CL_AddReliableCommand( Str::Format( "userinfo %s", Cmd_QuoteString( InfoMapToString( info ).c_str() ) ).c_str() );
 	}
 }
 

@@ -335,26 +335,21 @@ gamestate, and possibly during gameplay.
 */
 void CL_SystemInfoChanged()
 {
-	const char *systemInfo;
-	const char *s;
-	char       key[ BIG_INFO_KEY ];
-	char       value[ BIG_INFO_VALUE ];
-
-	systemInfo = cl.gameState[ CS_SYSTEMINFO ].c_str();
+	InfoMap systemInfo = InfoStringToMap( cl.gameState[ CS_SYSTEMINFO ] );
 	// NOTE TTimo:
 	// when the serverId changes, any further messages we send to the server will use this new serverId
 	// show_bug.cgi?id=475
 	// in some cases, outdated cp commands might get sent with this news serverId
-	cl.serverId = atoi( Info_ValueForKey( systemInfo, "sv_serverid" ) );
+	cl.serverId = atoi( systemInfo["sv_serverid"].c_str() );
 
 	// load paks sent by the server, but not if we are running a local server
-	if (!com_sv_running->integer) {
+	if ( !com_sv_running->integer ) {
 		FS::PakPath::ClearPaks();
-		if (!FS_LoadServerPaks(Info_ValueForKey(systemInfo, "sv_paks"), clc.demoplaying)) {
-			if (!cl_allowDownload->integer) {
-				Sys::Drop("Client is missing paks but downloads are disabled");
-			} else if (clc.demoplaying) {
-				Sys::Drop("Client is missing paks needed by the demo");
+		if ( !FS_LoadServerPaks( systemInfo["sv_paks"].c_str(), clc.demoplaying ) ) {
+			if ( !cl_allowDownload->integer ) {
+				Sys::Drop( "Client is missing paks but downloads are disabled" );
+			} else if ( clc.demoplaying ) {
+				Sys::Drop( "Client is missing paks needed by the demo" );
 			}
 		}
 	}
@@ -366,18 +361,9 @@ void CL_SystemInfoChanged()
 	}
 
 	// scan through all the variables in the systeminfo and locally set cvars to match
-	s = systemInfo;
-
-	while ( s )
+	for ( const std::pair<std::string, std::string>& pair : systemInfo )
 	{
-		Info_NextPair( &s, key, value );
-
-		if ( !key[ 0 ] )
-		{
-			break;
-		}
-
-		Cvar_Set( key, value );
+		Cvar_Set( pair.first.c_str(), pair.second.c_str() );
 	}
 }
 

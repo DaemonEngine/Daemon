@@ -1372,16 +1372,19 @@ void SV_Frame( int msec )
 		return;
 	}
 
+	InfoMap info;
+	Cvar::PopulateInfoMap( CVAR_SERVERINFO, info );
 	// update infostrings if anything has been changed
 	if ( cvar_modifiedFlags & CVAR_SERVERINFO )
 	{
-		SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO, false ) );
+		SV_SetConfigstring( CS_SERVERINFO, InfoMapToString( info ).c_str() );
 		cvar_modifiedFlags &= ~CVAR_SERVERINFO;
 	}
 
+	Cvar::PopulateInfoMap( CVAR_SYSTEMINFO, info );
 	if ( cvar_modifiedFlags & CVAR_SYSTEMINFO )
 	{
-		SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString( CVAR_SYSTEMINFO, true ) );
+		SV_SetConfigstring( CS_SYSTEMINFO, InfoMapToString( info ).c_str() );
 		cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
 	}
 
