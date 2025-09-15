@@ -79,16 +79,7 @@ void main()
 	var_ScaledViewerOffset = u_FogDensity * (position.xyz - u_ViewOrigin);
 
 	// calculate the length in fog
-	float t = dot(position.xyz, u_FogDepthVector.xyz) + u_FogDepthVector.w;
-
-	// HACK: increase cutoff to avoid dark lines at the edge of BSP triangles that stop
-	// right at the fog plane (when viewed from under fog)
-	// But don't do it for models as this causes a doubly-fogged light band at the fog plane
-	#if !defined(USE_VERTEX_ANIMATION) && !defined(USE_VERTEX_SKINNING)
-		t += 1.5;
-	#endif
-
-	var_FogPlaneDistance = t;
+	var_FogPlaneDistance = dot(position.xyz, u_FogDepthVector.xyz) + u_FogDepthVector.w;
 
 	var_Color = color;
 }
