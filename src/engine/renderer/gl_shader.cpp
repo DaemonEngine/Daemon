@@ -41,7 +41,7 @@ static Cvar::Cvar<bool> r_logUnmarkedGLSLBuilds(
 	"r_logUnmarkedGLSLBuilds", "Log building information for GLSL shaders that are built after the map is loaded",
 	Cvar::NONE, true );
 
-extern std::unordered_map<std::string, std::string> shadermap;
+extern const std::unordered_map<std::string, std::string> shadermap;
 // shaderKind's value will be determined later based on command line setting or absence of.
 ShaderKind shaderKind = ShaderKind::Unknown;
 
