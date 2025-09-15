@@ -83,7 +83,8 @@ int   MSG_ReadByte( msg_t *sb );
 int   MSG_ReadShort( msg_t *sb );
 int   MSG_ReadLong( msg_t *sb );
 float MSG_ReadFloat( msg_t *sb );
-std::string MSG_ReadString( msg_t *sb, const bool allowNewLines = true );
+std::string MSG_ReadString( msg_t *sb );
+std::vector<std::string> MSG_ReadStringLines( msg_t* sb );
 void  MSG_ReadData( msg_t *sb, void *buffer, int size );
 
 void  MSG_WriteDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to );

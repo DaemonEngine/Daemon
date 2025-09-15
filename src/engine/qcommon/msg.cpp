@@ -429,28 +429,47 @@ float MSG_ReadFloat( msg_t *msg )
 	return dat.f;
 }
 
-std::string MSG_ReadString( msg_t *msg, const bool allowNewLines )
+std::string MSG_ReadString( msg_t *msg )
 {
 	std::string string;
 	uint32_t size = MSG_ReadLong( msg );
 
 	string.resize( size );
 
-	if ( allowNewLines ) {
-		MSG_ReadData( msg, string.data(), size );
-	} else {
-		for ( char* write = string.data(); write < string.data() + size; write++ ) {
-			const int c = MSG_ReadByte( msg );
-
-			if ( c == '\n' ) {
-				break;
-			}
-
-			*write = c;
-		}
-	}
+	MSG_ReadData( msg, string.data(), size );
 
 	return string;
+}
+
+std::vector<std::string> MSG_ReadStringLines( msg_t* msg ) {
+	std::string string;
+	uint32_t size = MSG_ReadLong( msg );
+
+	string.reserve( size );
+
+	std::vector<std::string> out;
+
+	for ( uint32_t i = 0; i < size; i++ ) {
+		const int c = MSG_ReadByte( msg );
+
+		if ( c == '\n' ) {
+			string.shrink_to_fit();
+			out.push_back( string );
+
+			string.clear();
+			string.reserve( size - out.back().size() );
+			continue;
+		}
+
+		string.push_back( c );
+	}
+
+	if ( string.size() ) {
+		string.shrink_to_fit();
+		out.push_back( string );
+	}
+
+	return out;
 }
 
 void MSG_ReadData( msg_t *msg, void *data, int len )

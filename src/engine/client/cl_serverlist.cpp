@@ -519,9 +519,8 @@ static void CL_SetServerInfoByAddress(
 CL_ServerInfoPacket
 ===================
 */
-void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
+void CL_ServerInfoPacket( const netadr_t& from, const std::string& infoStr )
 {
-	std::string infoStr = MSG_ReadString( msg );
 	InfoMap infoString = InfoStringToMap( infoStr );
 
 	// if this isn't the correct protocol version, ignore it
@@ -547,7 +546,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	{
 		if ( cl_pinglist[ i ].adr.port && cl_pinglist[ i ].time == -1 && NET_CompareAdr( from, cl_pinglist[i].adr ) )
 		{
-			if ( cl_pinglist[ i ].challenge != infoString["challenge"] )
+			if ( Q_strncmp( cl_pinglist[ i ].challenge, infoString["challenge"].c_str(), 7 ) )
 			{
 				serverInfoLog.Verbose( "wrong challenge for ping response from %s", NET_AdrToString( from ) );
 				return;
@@ -622,10 +621,10 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	cls.localServers[ i ].responseProto = serverResponseProtocol_t::UNKNOWN;
 	cls.localServers[ i ].infoString.clear();
 
-	std::string info = MSG_ReadString( msg );
+	// std::string info = MSG_ReadString( msg );
 
 	// TODO when does this happen?
-	if ( info[ 0 ] )
+	/* if ( info[ 0 ] )
 	{
 		if ( info.back() == '\n' )
 		{
@@ -633,7 +632,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 		}
 
 		Log::Notice( "%s: %s", Net::AddressToString( from, true ), info );
-	}
+	} */
 }
 
 /*
@@ -643,16 +642,13 @@ CL_LocalServers_f
 */
 void CL_LocalServers_f()
 {
-	const char *message;
-	int      i, j;
-
 	serverInfoLog.Verbose( "Scanning for servers on the local network…" );
 
 	// reset the list, waiting for response
 	cls.numlocalservers = 0;
 	cls.pingUpdateSource = AS_LOCAL;
 
-	for ( i = 0; i < MAX_OTHER_SERVERS; i++ )
+	for ( int i = 0; i < MAX_OTHER_SERVERS; i++ )
 	{
 		bool b = cls.localServers[ i ].visible;
 		cls.localServers[ i ] = {};
@@ -664,24 +660,27 @@ void CL_LocalServers_f()
 	// The 'xxx' in the message is a challenge that will be echoed back
 	// by the server.  We don't care about that here, but master servers
 	// can use that to prevent spoofed server responses from invalid IP addresses
-	message = "\377\377\377\377getinfo xxx";
-	int messageLen = strlen(message);
+	std::string message = "\377\377\377\377xxxxgetinfo xxx";
+
+	// This will be read by MSG_ReadString, which expects the string length
+	uint32_t* sizeEncode = ( uint32_t* ) ( message.data() + 4 );
+	*sizeEncode = message.size() - 4;
 
 	// send each message twice in case one is dropped
-	for ( i = 0; i < 2; i++ )
+	for ( int i = 0; i < 2; i++ )
 	{
 		// send a broadcast packet on each server port
 		// we support multiple server ports so a single machine
 		// can nicely run multiple servers
-		for ( j = 0; j < NUM_SERVER_PORTS; j++ )
+		for ( int j = 0; j < NUM_SERVER_PORTS; j++ )
 		{
 			to.port = UBigShort( ( uint16_t )( PORT_SERVER + j ) );
 
 			to.type = netadrtype_t::NA_BROADCAST;
-			NET_SendPacket( netsrc_t::NS_CLIENT, messageLen, message, to );
+			NET_SendPacket( netsrc_t::NS_CLIENT, message.size(), message.c_str(), to );
 
 			to.type = netadrtype_t::NA_MULTICAST6;
-			NET_SendPacket( netsrc_t::NS_CLIENT, messageLen, message, to );
+			NET_SendPacket( netsrc_t::NS_CLIENT, message.size(), message.c_str(), to );
 		}
 	}
 }
