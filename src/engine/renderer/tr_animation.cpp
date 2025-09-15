@@ -997,6 +997,32 @@ static int IQMBuildSkeleton( refSkeleton_t *skel, skelAnimation_t *skelAnim,
 	return true;
 }
 
+void R_TransformSkeleton( refSkeleton_t* skel, const float scale ) {
+	skel->scale = scale;
+
+	switch ( skel->type ) {
+		case refSkeletonType_t::SK_INVALID:
+		case refSkeletonType_t::SK_ABSOLUTE:
+			return;
+
+		default:
+			break;
+	}
+
+	// calculate absolute transforms
+	for ( refBone_t* bone = &skel->bones[0]; bone < &skel->bones[skel->numBones]; bone++ ) {
+		if ( bone->parentIndex >= 0 ) {
+			refBone_t* parent;
+
+			parent = &skel->bones[bone->parentIndex];
+
+			TransCombine( &bone->t, &parent->t, &bone->t );
+		}
+	}
+
+	skel->type = refSkeletonType_t::SK_ABSOLUTE;
+}
+
 /*
 ==============
 RE_BuildSkeleton
@@ -1152,6 +1178,7 @@ int RE_BuildSkeleton( refSkeleton_t *skel, qhandle_t hAnim, int startFrame, int 
 	}
 
 	// FIXME: clear existing bones and bounds?
+	skel->numBones = 0;
 	return false;
 }
 

@@ -91,18 +91,38 @@ namespace Util {
 		}
 	};
 
+	template<> struct SerializeTraits<std::vector<BoneMod>> {
+		static void Write( Writer& stream, const std::vector<BoneMod>& boneMods ) {
+			stream.WriteSize( boneMods.size() );
+			stream.WriteData( boneMods.data(), boneMods.size() * sizeof( BoneMod ) );
+		}
+
+		static std::vector<BoneMod> Read( Reader& stream ) {
+			std::vector<BoneMod> boneMods;
+			const size_t size = stream.ReadSize<BoneMod>();
+			boneMods.resize( size );
+			stream.ReadData( boneMods.data(), size * sizeof( BoneMod ) );
+			return boneMods;
+		}
+	};
+
 	// Use that bone optimization for refEntity_t
 	template<> struct SerializeTraits<refEntity_t> {
 		static void Write(Writer& stream, const refEntity_t& ent)
 		{
-			stream.WriteData(&ent, offsetof(refEntity_t, skeleton));
-			stream.Write<refSkeleton_t>(ent.skeleton);
+			stream.WriteData(&ent, offsetof(refEntity_t, tag));
+			stream.Write<std::string>( ent.tag );
+			stream.Write<std::vector<BoneMod>>( ent.boneMods );
+			// stream.Write<refSkeleton_t>(ent.skeleton);
 		}
+
 		static refEntity_t Read(Reader& stream)
 		{
 			refEntity_t ent;
-			stream.ReadData(&ent, offsetof(refEntity_t, skeleton));
-			ent.skeleton = stream.Read<refSkeleton_t>();
+			stream.ReadData(&ent, offsetof(refEntity_t, tag));
+			ent.tag = stream.Read<std::string>();
+			ent.boneMods = stream.Read<std::vector<BoneMod>>();
+			// ent.skeleton = stream.Read<refSkeleton_t>();
 			return ent;
 		}
 	};

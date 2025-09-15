@@ -1825,6 +1825,33 @@ static void R_SortDrawSurfs()
 	R_AddDrawViewCmd( false );
 }
 
+static void PositionEntityOnTag( refEntity_t* entity, const refEntity_t* parent, orientation_t* orientation ) {
+	// FIXME: allow origin offsets along tag?
+	VectorCopy( parent->origin, entity->origin );
+
+	for ( int i = 0; i < 3; i++ ) {
+		VectorMA( entity->origin, orientation->origin[i], parent->axis[i], entity->origin );
+	}
+
+	// had to cast away the const to avoid compiler problems...
+	AxisMultiply( orientation->axis, ( ( refEntity_t* ) parent )->axis, entity->axis );
+	entity->backlerp = parent->backlerp;
+}
+
+static void PositionRotatedEntityOnTag( refEntity_t* entity, const refEntity_t* parent, orientation_t* orientation ) {
+	// FIXME: allow origin offsets along tag?
+	VectorCopy( parent->origin, entity->origin );
+
+	for ( int i = 0; i < 3; i++ ) {
+		VectorMA( entity->origin, orientation->origin[i], parent->axis[i], entity->origin );
+	}
+
+	// had to cast away the const to avoid compiler problems...
+	axis_t tempAxis;
+	AxisMultiply( entity->axis, orientation->axis, tempAxis );
+	AxisMultiply( tempAxis, ( ( refEntity_t* ) parent )->axis, entity->axis );
+}
+
 /*
 =============
 R_AddEntitySurfaces
@@ -1889,19 +1916,142 @@ void R_AddEntitySurfaces()
 				}
 				else
 				{
-					switch ( tr.currentModel->type )
-					{
+					switch ( tr.currentModel->type ) {
 						case modtype_t::MOD_MESH:
 							R_AddMDVSurfaces( ent );
 							break;
 
 						case modtype_t::MOD_MD5:
+							/* Log::Warn("%i %s: old: %i-%i %f new: %i-%i %f | %f %f", ent->e.animationHandle,
+								R_GetAnimationByHandle( ent->e.animationHandle )->name, ent->e.startFrame,
+								ent->e.endFrame, ent->e.lerp, ent->e.startFrame2, ent->e.endFrame2, ent->e.lerp2,
+								ent->e.blendLerp, ent->e.scale ); */
+							switch ( ent->e.positionOnTag ) {
+								case EntityTag::ON_TAG:
+								{
+									orientation_t orientation;
+									RE_LerpTagET( &orientation, &tr.refdef.entities[ent->e.attachmentEntity].e, ent->e.tag.c_str(), 0 );
+									PositionEntityOnTag( &ent->e, &tr.refdef.entities[ent->e.attachmentEntity].e, &orientation );
+									R_RotateEntityForViewParms( ent, &tr.viewParms, &tr.orientation );
+									break;
+								}
+
+								case EntityTag::ON_TAG_ROTATED:
+								{
+									orientation_t orientation;
+									RE_LerpTagET( &orientation, &tr.refdef.entities[ent->e.attachmentEntity].e, ent->e.tag.c_str(), 0 );
+									PositionRotatedEntityOnTag( &ent->e, &tr.refdef.entities[ent->e.attachmentEntity].e, &orientation );
+									R_RotateEntityForViewParms( ent, &tr.viewParms, &tr.orientation );
+									break;
+								}
+
+								case EntityTag::NONE:
+								default:
+									break;
+							}
+
+							if ( ent->e.scale == 0 ) {
+								ent->e.scale = 1;
+							}
+							if ( ent->e.animationHandle == 0 ) {
+								ent->e.animationHandle = ent->e.animationHandle2;
+							} else if ( ent->e.animationHandle2 == 0 ) {
+								ent->e.animationHandle2 = ent->e.animationHandle;
+							}
+
+							RE_BuildSkeleton( &ent->e.skeleton, ent->e.animationHandle, ent->e.startFrame, ent->e.endFrame,
+								ent->e.lerp, ent->e.clearOrigin );
+							ent->e.skeleton.scale = ent->e.scale;
+							if ( ent->e.blendLerp > 0.0 ) {
+								refSkeleton_t skel;
+								RE_BuildSkeleton( &skel, ent->e.animationHandle2, ent->e.startFrame2, ent->e.endFrame2,
+									ent->e.lerp2, ent->e.clearOrigin2 );
+								RE_BlendSkeleton( &ent->e.skeleton, &skel, ent->e.blendLerp );
+							}
+
+							for ( const BoneMod& boneMod : ent->e.boneMods ) {
+								QuatMultiply2( ent->e.skeleton.bones[boneMod.index].t.rot, boneMod.rotation );
+							}
+
+							if ( ent->e.boundsAdd ) {
+								matrix_t mat;
+								vec3_t bounds[2];
+
+								MatrixFromAngles( mat, ent->e.boundsRotation[0], ent->e.boundsRotation[1], ent->e.boundsRotation[2] );
+								MatrixTransformBounds( mat, ent->e.skeleton.bounds[0], ent->e.skeleton.bounds[1], bounds[0], bounds[1] );
+								BoundsAdd( ent->e.skeleton.bounds[0], ent->e.skeleton.bounds[1], bounds[0], bounds[1] );
+							}
+
 							R_AddMD5Surfaces( ent );
 							break;
 
 						case modtype_t::MOD_IQM:
+						{
+							/* Log::Warn("%i %s: old: %i-%i %f new: %i-%i %f | %f %f", ent->e.animationHandle,
+								R_GetAnimationByHandle( ent->e.animationHandle )->name, ent->e.startFrame,
+								ent->e.endFrame, ent->e.lerp, ent->e.startFrame2, ent->e.endFrame2, ent->e.lerp2,
+								ent->e.blendLerp, ent->e.scale ); */
+							switch ( ent->e.positionOnTag ) {
+								case EntityTag::ON_TAG:
+								{
+									orientation_t orientation;
+									RE_LerpTagET( &orientation, &tr.refdef.entities[ent->e.attachmentEntity].e, ent->e.tag.c_str(), 0 );
+									PositionEntityOnTag( &ent->e, &tr.refdef.entities[ent->e.attachmentEntity].e, &orientation );
+									R_RotateEntityForViewParms( ent, &tr.viewParms, &tr.orientation );
+									break;
+								}
+
+								case EntityTag::ON_TAG_ROTATED:
+								{
+									orientation_t orientation;
+									RE_LerpTagET( &orientation, &tr.refdef.entities[ent->e.attachmentEntity].e, ent->e.tag.c_str(), 0 );
+									PositionRotatedEntityOnTag( &ent->e, &tr.refdef.entities[ent->e.attachmentEntity].e, &orientation );
+									R_RotateEntityForViewParms( ent, &tr.viewParms, &tr.orientation );
+									break;
+								}
+
+								case EntityTag::NONE:
+								default:
+									break;
+							}
+
+							bool transform = true;
+							if ( ent->e.scale == 0 ) {
+								ent->e.scale = 1;
+							}
+							if ( ent->e.animationHandle == 0 ) {
+								ent->e.animationHandle = ent->e.animationHandle2;
+							} else if ( ent->e.animationHandle2 == 0 ) {
+								ent->e.animationHandle2 = ent->e.animationHandle;
+							}
+
+							ent->e.skeleton.scale = ent->e.scale;
+							RE_BuildSkeleton( &ent->e.skeleton, ent->e.animationHandle, ent->e.startFrame, ent->e.endFrame,
+								ent->e.lerp, ent->e.clearOrigin );
+							if ( ent->e.blendLerp > 0.0 ) {
+								refSkeleton_t skel;
+								RE_BuildSkeleton( &skel, ent->e.animationHandle2, ent->e.startFrame2, ent->e.endFrame2,
+									ent->e.lerp2, ent->e.clearOrigin2 );
+								RE_BlendSkeleton( &ent->e.skeleton, &skel, ent->e.blendLerp );
+							}
+
+							for ( const BoneMod& boneMod : ent->e.boneMods ) {
+								QuatMultiply2( ent->e.skeleton.bones[boneMod.index].t.rot, boneMod.rotation );
+							}
+							R_TransformSkeleton( &ent->e.skeleton, ent->e.scale );
+
+							if ( ent->e.boundsAdd ) {
+								matrix_t mat;
+								vec3_t bounds[2];
+
+								MatrixFromAngles( mat, ent->e.boundsRotation[0], ent->e.boundsRotation[1], ent->e.boundsRotation[2] );
+								MatrixTransformBounds( mat, ent->e.skeleton.bounds[0], ent->e.skeleton.bounds[1], bounds[0], bounds[1] );
+								BoundsAdd( ent->e.skeleton.bounds[0], ent->e.skeleton.bounds[1], bounds[0], bounds[1] );
+							}
+
 							R_AddIQMSurfaces( ent );
 							break;
+					}
 
 						case modtype_t::MOD_BSP:
 							R_AddBSPModelSurfaces( ent );

@@ -283,9 +283,14 @@ void trap_R_ClearScene()
 	cmdBuffer.SendMsg<Render::ClearSceneMsg>();
 }
 
-void trap_R_AddRefEntityToScene( const refEntity_t *re )
+/* HACK: We need the entityNum to get the correct positions for entities that need to be attached to another entity's bone
+This must be equal to the r_numEntities in engine at the time of adding the entity */
+static int entityNum;
+int trap_R_AddRefEntityToScene( const refEntity_t *re )
 {
 	cmdBuffer.SendMsg<Render::AddRefEntityToSceneMsg>(*re);
+	entityNum++;
+	return entityNum - 1;
 }
 
 void trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts )
@@ -350,6 +355,7 @@ void trap_R_AddLightToScene( const vec3_t origin, float radius, float intensity,
 
 void trap_R_RenderScene( const refdef_t *fd )
 {
+	entityNum = 0;
 	cmdBuffer.SendMsg<Render::RenderSceneMsg>(*fd);
 }
 
@@ -391,7 +397,7 @@ void trap_R_ModelBounds( clipHandle_t model, vec3_t mins, vec3_t maxs )
 	VectorCopy(mymaxs, maxs);
 }
 
-int trap_R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagName, int startIndex )
+int trap_R_LerpTag( orientation_t *tag, const refEntity_t* refent, const char *tagName, int startIndex )
 {
 	int result;
 	VM::SendMsg<Render::LerpTagMsg>(*refent, tagName, startIndex, *tag, result);
@@ -436,6 +442,7 @@ qhandle_t trap_R_RegisterAnimation( const char *name )
 int trap_R_BuildSkeleton( refSkeleton_t *skel, qhandle_t anim, int startFrame, int endFrame, float frac, bool clearOrigin )
 {
 	int result;
+	skel->numBones = 0;
 	VM::SendMsg<Render::BuildSkeletonMsg>(anim, startFrame, endFrame, frac, clearOrigin, *skel, result);
 	return result;
 }
@@ -448,7 +455,7 @@ int trap_R_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float
 
     if ( skel->numBones != blend->numBones )
     {
-        Log::Warn("trap_R_BlendSkeleton: different number of bones %d != %d", skel->numBones, blend->numBones);
+        // Log::Warn("trap_R_BlendSkeleton: different number of bones %d != %d", skel->numBones, blend->numBones);
         return false;
     }
 
