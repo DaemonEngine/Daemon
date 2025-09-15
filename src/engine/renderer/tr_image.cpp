@@ -2410,7 +2410,7 @@ static void R_CreateContrastRenderFBOImage()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.contrastRenderFBOImage = R_CreateImage( "_contrastRenderFBO", nullptr, width, height, 1, imageParams );
+	tr.contrastRenderFBOImage = R_CreateImage( "*contrastRenderFBO", nullptr, width, height, 1, imageParams );
 }
 
 static void R_CreateBloomRenderFBOImages()
@@ -2430,7 +2430,7 @@ static void R_CreateBloomRenderFBOImages()
 		imageParams.filterType = filterType_t::FT_LINEAR;
 		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-		tr.bloomRenderFBOImage[i] = R_CreateImage( va( "_bloomRenderFBO%d", i ), nullptr, width, height, 1, imageParams );
+		tr.bloomRenderFBOImage[i] = R_CreateImage( va( "*bloomRenderFBO%d", i ), nullptr, width, height, 1, imageParams );
 	}
 }
 
@@ -2465,15 +2465,15 @@ static void R_CreateCurrentRenderImage()
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.currentRenderImage[0] = R_CreateImage( "_currentRender[0]", nullptr, width, height, 1, imageParams );
-	tr.currentRenderImage[1] = R_CreateImage( "_currentRender[1]", nullptr, width, height, 1, imageParams );
+	tr.currentRenderImage[0] = R_CreateImage( "*currentRender0", nullptr, width, height, 1, imageParams );
+	tr.currentRenderImage[1] = R_CreateImage( "*currentRender1", nullptr, width, height, 1, imageParams );
 
 	imageParams = {};
 	imageParams.bits = IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8;
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.currentDepthImage = R_CreateImage( "_currentDepth", nullptr, width, height, 1, imageParams );
+	tr.currentDepthImage = R_CreateImage( "*currentDepth", nullptr, width, height, 1, imageParams );
 
 	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.GenerateDepthImages( width, height, imageParams );
@@ -2503,18 +2503,18 @@ static void R_CreateDepthRenderImage()
 		imageParams.bits = IF_NOPICMIP;
 		imageParams.bits |= r_highPrecisionRendering.Get() ? IF_TWOCOMP32F : IF_TWOCOMP16F;
 
-		tr.depthtile1RenderImage = R_CreateImage( "_depthtile1Render", nullptr, w, h, 1, imageParams );
+		tr.depthtile1RenderImage = R_CreateImage( "*depthtile1Render", nullptr, w, h, 1, imageParams );
 
 		w = (width + TILE_SIZE - 1) >> TILE_SHIFT;
 		h = (height + TILE_SIZE - 1) >> TILE_SHIFT;
 
 		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-		tr.depthtile2RenderImage = R_CreateImage( "_depthtile2Render", nullptr, w, h, 1, imageParams );
+		tr.depthtile2RenderImage = R_CreateImage( "*depthtile2Render", nullptr, w, h, 1, imageParams );
 
 		imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
 
-		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, glConfig.realtimeLightLayers, imageParams );
+		tr.lighttileRenderImage = R_Create3DImage( "*lighttileRender", nullptr, w, h, glConfig.realtimeLightLayers, imageParams );
 	}
 }
 
@@ -2535,7 +2535,7 @@ static void R_CreatePortalRenderImage()
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.portalRenderImage = R_CreateImage( "_portalRender", nullptr, width, height, 1, imageParams );
+	tr.portalRenderImage = R_CreateImage( "*portalRender", nullptr, width, height, 1, imageParams );
 }
 
 // *INDENT-OFF*
