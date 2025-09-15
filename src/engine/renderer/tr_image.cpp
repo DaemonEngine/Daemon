@@ -2392,7 +2392,7 @@ static void R_CreateDefaultImage()
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
-	tr.defaultImage = R_CreateImage( "_default", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
+	tr.defaultImage = R_CreateImage( "$default", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
 }
 
 static void R_CreateContrastRenderFBOImage()
@@ -2555,7 +2555,7 @@ static void R_CreateBlackCubeImage()
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
 	const byte *dataPtrs[ 6 ] = { data, data, data, data, data, data };
-	tr.blackCubeImage = R_CreateCubeImage( "_blackCube", dataPtrs, width, height, imageParams );
+	tr.blackCubeImage = R_CreateCubeImage( "$blackCube", dataPtrs, width, height, imageParams );
 }
 
 // *INDENT-ON*
@@ -2581,7 +2581,7 @@ static void R_CreateWhiteCubeImage()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-	tr.whiteCubeImage = R_CreateCubeImage( "_whiteCube", ( const byte ** ) data, width, height, imageParams );
+	tr.whiteCubeImage = R_CreateCubeImage( "$whiteCube", ( const byte ** ) data, width, height, imageParams );
 
 	for ( i = 5; i >= 0; i-- )
 	{
@@ -2624,7 +2624,7 @@ static void R_CreateColorGradeImage()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-	tr.colorGradeImage = R_Create3DImage( "_colorGrade", data, REF_COLORGRADEMAP_SIZE, REF_COLORGRADEMAP_SIZE, REF_COLORGRADE_SLOTS * REF_COLORGRADEMAP_SIZE, imageParams );
+	tr.colorGradeImage = R_Create3DImage( "$colorGrade", data, REF_COLORGRADEMAP_SIZE, REF_COLORGRADEMAP_SIZE, REF_COLORGRADE_SLOTS * REF_COLORGRADEMAP_SIZE, imageParams );
 
 	ri.Hunk_FreeTempMemory( data );
 }
