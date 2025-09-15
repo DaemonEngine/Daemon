@@ -186,7 +186,7 @@ void CL_ServerStatusReset() {
 CL_ServerStatusResponse
 ===================
 */
-void CL_ServerStatusResponse( const netadr_t& from, msg_t *msg )
+void CL_ServerStatusResponse( const netadr_t& from, const std::vector<std::string>& lines )
 {
 	serverStatus_t *serverStatus = nullptr;
 
@@ -205,7 +205,7 @@ void CL_ServerStatusResponse( const netadr_t& from, msg_t *msg )
 		return;
 	}
 
-	serverStatus->string = MSG_ReadString( msg, false );
+	serverStatus->string = lines[1];
 
 	if ( serverStatus->print )
 	{
@@ -224,41 +224,37 @@ void CL_ServerStatusResponse( const netadr_t& from, msg_t *msg )
 		Log::CommandInteractionMessage( "num: score: ping: name:" );
 	}
 
-	uint32_t i = 0;
-	while ( true )
-	{
-		const std::string string = MSG_ReadString( msg, false );
+	if ( lines.size() > 2 ) {
+		uint32_t i = 0;
+		while ( true ) {
+			const std::string string = lines[2];
 
-		if ( string.empty() ) {
-			break;
-		}
-
-		serverStatus->string += "\\" + string;
-
-		if ( serverStatus->print )
-		{
-			int ping = 0;
-			int score = 0;
-			const char* s = string.c_str();
-
-			sscanf( s, "%d %d", &score, &ping );
-			s = strchr( s, ' ' );
-
-			if ( s )
-			{
-				s = strchr( s + 1, ' ' );
+			if ( string.empty() ) {
+				break;
 			}
 
-			if ( s )
-			{
-				s++;
-			}
-			else
-			{
-				s = "unknown";
-			}
+			serverStatus->string += "\\" + string;
 
-			Log::CommandInteractionMessage(Str::Format("%-2d   %-3d    %-3d   %s", i, score, ping, s));
+			if ( serverStatus->print ) {
+				int ping = 0;
+				int score = 0;
+				const char* s = string.c_str();
+
+				sscanf( s, "%d %d", &score, &ping );
+				s = strchr( s, ' ' );
+
+				if ( s ) {
+					s = strchr( s + 1, ' ' );
+				}
+
+				if ( s ) {
+					s++;
+				} else {
+					s = "unknown";
+				}
+
+				Log::CommandInteractionMessage( Str::Format( "%-2d   %-3d    %-3d   %s", i, score, ping, s ) );
+			}
 		}
 	}
 

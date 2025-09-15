@@ -1298,9 +1298,9 @@ public:
 
 static RconDiscoverCmd RconDiscoverCmdRegistration;
 
-static void CL_ServerRconInfoPacket( netadr_t, msg_t *msg )
+static void CL_ServerRconInfoPacket( netadr_t, const std::string& message )
 {
-	InfoMap info = InfoStringToMap( MSG_ReadString( msg ) );
+	InfoMap info = InfoStringToMap( message );
 	int value;
 	if ( Str::ParseInt( value, info["secure"] ) )
 	{
@@ -1713,11 +1713,11 @@ print OOB are the only messages we handle markups in
   to 256 chars.
 ===================
 */
-void CL_PrintPacket( msg_t *msg )
+static void CL_PrintPacket( const std::string& message )
 {
-	clc.serverMessage = MSG_ReadString( msg );
+	clc.serverMessage = message;
 
-	if ( clc.serverMessage.substr( 12 ) == "[err_dialog]" )
+	if ( clc.serverMessage.substr( 0, 12 ) == "[err_dialog]" )
 	{
 		Sys::Drop( "^3Server disconnected:\n^7%s", clc.serverMessage.substr( 12, clc.serverMessage.size() ) );
 	}
@@ -1737,7 +1737,8 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	MSG_BeginReadingOOB( msg );
 	MSG_ReadLong( msg );  // skip the -1
 
-	Cmd::Args args( MSG_ReadString( msg, false ) );
+	std::vector<std::string> lines = MSG_ReadStringLines( msg );
+	Cmd::Args args( lines[0] );
 
 	if ( args.Argc() < 1 )
 	{
@@ -1748,7 +1749,7 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 
 	// challenge from the server we are connecting to
 
-	if ( args.Argv(0) == "challengeResponse" )
+	if ( args.Argv( 0 ).starts_with( "challengeResponse" ) )
 	{
 		if ( cls.state == connstate_t::CA_CONNECTING )
 		{
@@ -1776,7 +1777,7 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	}
 
 	// server connection
-	if ( args.Argv(0) == "connectResponse" )
+	if ( args.Argv( 0 ).starts_with( "connectResponse" ) )
 	{
 		if ( cls.state >= connstate_t::CA_CONNECTED )
 		{
@@ -1805,73 +1806,73 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	}
 
 	// server responding to an info broadcast
-	if ( args.Argv(0) == "infoResponse" )
+	if ( args.Argv( 0 ).starts_with( "infoResponse" ) )
 	{
-		CL_ServerInfoPacket( from, msg );
+		CL_ServerInfoPacket( from, lines[1] );
 		return;
 	}
 
 	// server responding to a get playerlist
 	if ( args.Argv(0) == "statusResponse" )
 	{
-		CL_ServerStatusResponse( from, msg );
+		CL_ServerStatusResponse( from, lines );
 		return;
 	}
 
 	// a disconnect message from the server, which will happen if the server
 	// dropped the connection but it is still getting packets from us
-	if ( args.Argv(0) == "disconnect" )
+	if ( args.Argv( 0 ).starts_with( "disconnect" ) )
 	{
 		CL_DisconnectPacket( from );
 		return;
 	}
 
 	// echo request from server
-	if ( args.Argv(0) == "echo" && args.Argc() >= 2)
+	if ( args.Argv( 0 ).starts_with( "echo" ) && args.Argc() >= 2)
 	{
 		Net::OutOfBandPrint( netsrc_t::NS_CLIENT, from, "%s", args.Argv(1) );
 		return;
 	}
 
 	// echo request from server
-	if ( args.Argv(0) == "print" )
+	if ( args.Argv( 0 ).starts_with( "print" ) )
 	{
-		CL_PrintPacket( msg );
+		CL_PrintPacket( lines[1] );
 		return;
 	}
 
 	// echo request from server
-	if ( args.Argv(0) == "getserversResponse" )
+	if ( args.Argv( 0 ).starts_with( "getserversResponse" ) )
 	{
 		CL_ServersResponsePacket( &from, msg, false );
 		return;
 	}
 
 	// list of servers with both IPv4 and IPv6 addresses; sent back by a master server (extended)
-	if ( args.Argv(0) == "getserversExtResponseLinks" )
+	if ( args.Argv( 0 ).starts_with( "getserversExtResponseLinks" ) )
 	{
 		CL_ServerLinksResponsePacket( msg );
 		return;
 	}
 
 	// list of servers sent back by a master server (extended)
-	if ( args.Argv(0) == "getserversExtResponse" )
+	if ( args.Argv( 0 ).starts_with( "getserversExtResponse" ) )
 	{
 		CL_ServersResponsePacket( &from, msg, true );
 		return;
 	}
 
 	// prints a n error message returned by the server
-	if ( args.Argv(0) == "error" )
+	if ( args.Argv( 0 ).starts_with( "error" ) )
 	{
-		Log::Warn( MSG_ReadString( msg, false ) );
+		Log::Warn( lines[1] );
 		return;
 	}
 
 	// prints a n error message returned by the server
-	if ( args.Argv(0) == "rconInfoResponse" )
+	if ( args.Argv( 0 ).starts_with( "rconInfoResponse" ) )
 	{
-		CL_ServerRconInfoPacket( from, msg );
+		CL_ServerRconInfoPacket( from, lines[1] );
 		return;
 	}
 

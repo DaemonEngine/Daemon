@@ -981,7 +981,8 @@ static void SV_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 		Huff_Decompress( msg, 16 );
 	}
 
-	Cmd::Args args( MSG_ReadString( msg, false ) );
+	std::vector<std::string> lines = MSG_ReadStringLines( msg );
+	Cmd::Args args( lines[0] );
 
 	if ( args.Argc() <= 0 )
 	{

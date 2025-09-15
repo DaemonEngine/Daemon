@@ -470,7 +470,7 @@ void CL_Record(std::string demo_name);
 bool CL_ServerStatus( const std::string& serverAddress, std::string& serverStatusString );
 void CL_ServerStatusReset();
 void CL_ServerStatus_f();
-void CL_ServerStatusResponse( const netadr_t& from, msg_t *msg );
+void CL_ServerStatusResponse( const netadr_t& from, const std::vector<std::string>& lines );
 
 //
 // cl_keys (for input usage)
@@ -545,7 +545,7 @@ void CL_ParseServerMessage( msg_t *msg );
 //
 // cl_serverlist.cpp
 //
-void     CL_ServerInfoPacket( const netadr_t& from, msg_t *msg );
+void CL_ServerInfoPacket( const netadr_t& from, const std::string& infoStr );
 void CL_ServerLinksResponsePacket( msg_t *msg );
 void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended );
 void     CL_LocalServers_f();
