@@ -1608,8 +1608,6 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	// DEPRECATED: Use InfoMap
 	void       Info_SetValueForKey( char *s, const char *key, const char *value , bool big );
 	// DEPRECATED: Use InfoMap
-	void       Info_SetValueForKeyRocket( char *s, const char *key, const char *value, bool big );
-	// DEPRECATED: Use InfoMap
 	bool   Info_Validate( const char *s );
 	// DEPRECATED: Use InfoMap
 	void       Info_NextPair( const char **s, char *key, char *value );
