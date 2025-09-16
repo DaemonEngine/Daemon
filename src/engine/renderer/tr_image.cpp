@@ -2850,7 +2850,7 @@ qhandle_t RE_GenerateTexture( const byte *pic, int width, int height )
 {
 	R_SyncRenderThread();
 
-	std::string name = Str::Format( "$generatedTexture%d", tr.numGeneratedTextures++ );
+	std::string name = Str::Format( "*generatedTexture%d", tr.numGeneratedTextures++ );
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
