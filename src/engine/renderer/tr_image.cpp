@@ -2656,21 +2656,6 @@ void R_CreateBuiltinImages()
 
 	tr.blackImage = R_CreateImage( "$black", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
-	// red
-	Vector4Set( data, 255, 0, 0, 255 );
-
-	tr.redImage = R_CreateImage( "$red", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
-
-	// green
-	Vector4Set( data, 0, 255, 0, 255 );
-
-	tr.greenImage = R_CreateImage( "$green", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
-
-	// blue
-	Vector4Set( data, 0, 0, 255, 255 );
-
-	tr.blueImage = R_CreateImage( "$blue", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
-
 	// generate a default normalmap with a fully opaque heightmap (no displacement)
 	Vector4Set( data, 128, 128, 255, 255 );
 
