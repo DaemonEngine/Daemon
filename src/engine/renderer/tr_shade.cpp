@@ -951,7 +951,7 @@ void Render_generic3D( shaderStage_t *pStage )
 	if ( needDepthMap )
 	{
 		gl_genericShader->SetUniform_DepthMapBindless(
-			GL_BindToTMU( 1, tr.currentDepthImage )
+			GL_BindToTMU( 1, tr.depthSamplerImage )
 		);
 	}
 
@@ -1550,7 +1550,7 @@ void Render_liquid( shaderStage_t *pStage )
 	gl_liquidShader->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
 
 	// depth texture
-	gl_liquidShader->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.currentDepthImage ) );
+	gl_liquidShader->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.depthSamplerImage ) );
 
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )
