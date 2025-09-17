@@ -201,18 +201,20 @@ R_BindFBO
 */
 void R_BindFBO( FBO_t *fbo )
 {
-	if ( !fbo )
+	R_BindFBO( GL_DRAW_FRAMEBUFFER, fbo );
+}
+
+void R_BindFBO( GLenum target, FBO_t *fbo )
+{
+	GLuint handle = fbo == nullptr ? 0 : fbo->frameBuffer;
+
+	if ( target != GL_DRAW_FRAMEBUFFER )
 	{
-		R_BindNullFBO();
-		return;
+		GL_fboShim.glBindFramebuffer( target, handle );
 	}
-
-	GLIMP_LOGCOMMENT( "--- R_BindFBO( %s ) ---", fbo->name );
-
-	if ( glState.currentFBO != fbo )
+	else if ( glState.currentFBO != fbo )
 	{
-		GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, fbo->frameBuffer );
-
+		GL_fboShim.glBindFramebuffer( target, handle );
 		glState.currentFBO = fbo;
 	}
 }
@@ -224,13 +226,7 @@ R_BindNullFBO
 */
 void R_BindNullFBO()
 {
-	GLIMP_LOGCOMMENT( "--- R_BindNullFBO ---" );
-
-	if ( glState.currentFBO )
-	{
-		GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
-		glState.currentFBO = nullptr;
-	}
+	R_BindFBO( nullptr );
 }
 
 /*

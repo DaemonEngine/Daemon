@@ -3278,6 +3278,7 @@ void GLimp_LogComment_( std::string comment );
 	void     R_AttachFBOTexture3D( int texId, int attachmentIndex, int zOffset );
 
 	void     R_BindFBO( FBO_t *fbo );
+	void     R_BindFBO( GLenum target, FBO_t *fbo );
 	void     R_BindNullFBO();
 
 	void     R_InitFBOs();
