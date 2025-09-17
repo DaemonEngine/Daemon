@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "Material.h"
 #include "GeometryCache.h"
 #include "GeometryOptimiser.h"
+#include "EntityCache.h"
 
 #ifdef _WIN32
 	extern "C" {
@@ -1299,6 +1300,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		ResetStruct( backEnd );
 		ResetStruct( tess );
 
+		ClearEntityCache();
+
 		tr.convertFloatFromSRGB = convertFloatFromSRGB_NOP;
 		tr.convertColorFromSRGB = convertColorFromSRGB_NOP;
 
@@ -1630,12 +1633,12 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		re.MarkFragments = R_MarkFragments;
 
-		re.LerpTag = RE_LerpTagET;
-
 		re.ModelBounds = R_ModelBounds;
 
 		re.ClearScene = RE_ClearScene;
 		re.AddRefEntityToScene = RE_AddRefEntityToScene;
+		re.SyncRefEntities = SyncEntityCacheFromCGame;
+		re.SyncLerpTags = SyncEntityCacheToCGame;
 
 		re.AddPolyToScene = RE_AddPolyToSceneET;
 		re.AddPolysToScene = RE_AddPolysToScene;

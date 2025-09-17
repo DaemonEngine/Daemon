@@ -79,6 +79,10 @@ void RE_SetWorldVisData( const byte * ) { }
 void RE_EndRegistration() { }
 void RE_ClearScene() { }
 void RE_AddRefEntityToScene( const refEntity_t * ) { }
+void RE_SyncRefEntities( const std::vector<EntityUpdate>& ) {}
+std::vector<LerpTagSync> RE_SyncLerpTags( const std::vector<LerpTagUpdate>& ) {
+    return {};
+}
 int R_LightForPoint( vec3_t, vec3_t, vec3_t, vec3_t )
 {
 	return 0;
@@ -207,6 +211,9 @@ refexport_t    *GetRefAPI( int, refimport_t* )
 
     re.ClearScene = RE_ClearScene;
     re.AddRefEntityToScene = RE_AddRefEntityToScene;
+    re.SyncRefEntities = RE_SyncRefEntities;
+    re.SyncLerpTags = RE_SyncLerpTags;
+
     re.LightForPoint = R_LightForPoint;
 
     re.AddPolyToScene = RE_AddPolyToScene;
@@ -229,7 +236,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
 
     re.MarkFragments = R_MarkFragments;
 
-    re.LerpTag = R_LerpTag;
     re.ModelBounds = R_ModelBounds;
 
     re.RemapShader = R_RemapShader;
