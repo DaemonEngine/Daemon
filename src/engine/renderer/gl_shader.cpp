@@ -2139,7 +2139,7 @@ void GLShader::PostProcessUniforms() {
 		auto iterNext = FindUniformForOffset( uniformQueue, std140Size );
 		if ( iterNext == uniformQueue.end() ) {
 			// add 1 unit of padding
-			ASSERT( !( *iterNext )->_components ); // array WriteToBuffer impls don't handle padding correctly
+			ASSERT( !_materialSystemUniforms.back()->_components); // array WriteToBuffer impls don't handle padding correctly
 			++std140Size;
 			++_materialSystemUniforms.back()->_std430Size;
 		} else {
