@@ -122,6 +122,8 @@ void MarkShaderBuildLiquid( const shaderStage_t* pStage ) {
 
 void MarkShaderBuild( shader_t* shader, const int lightMapNum, const bool bspSurface,
 	const bool vertexSkinning, const bool vertexAnimation ) {
+	auto tessBackup = tess;
+
 	tess.surfaceShader = shader;
 	tess.bspSurface = bspSurface;
 	tess.lightmapNum = lightMapNum;
@@ -133,11 +135,7 @@ void MarkShaderBuild( shader_t* shader, const int lightMapNum, const bool bspSur
 		pStage->shaderBuildMarker( pStage );
 	}
 
-	tess.bspSurface = false;
-	tess.lightmapNum = -1;
-
-	tess.vboVertexSkinning = false;
-	tess.vboVertexAnimation = false;
+	tess = tessBackup;
 }
 
 static void CoreResetSurfaceViewCounts( bspSurface_t** rendererSurfaces, int numSurfaces ) {
