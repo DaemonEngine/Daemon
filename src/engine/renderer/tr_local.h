@@ -2454,6 +2454,7 @@ enum
 		image_t    *bloomRenderFBOImage[ 2 ];
 		image_t    *currentRenderImage[ 2 ];
 		image_t    *currentDepthImage;
+		image_t    *depthSamplerImage;
 		image_t    *depthtile1RenderImage;
 		image_t    *depthtile2RenderImage;
 		image_t    *lighttileRenderImage;
@@ -2465,6 +2466,7 @@ enum
 
 		// framebuffer objects
 		FBO_t *mainFBO[ 2 ];
+		FBO_t *readonlyDepthFBO;
 		FBO_t *depthtile1FBO;
 		FBO_t *depthtile2FBO;
 		FBO_t *lighttileFBO;
