@@ -2445,7 +2445,7 @@ enum
 		image_t    *defaultImage;
 		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
 		image_t    *whiteImage; // full of 0xff
-		image_t    *blackImage; // full of 0x0
+		image_t    *blackImage; // 0x0 color channels, 0xff alpha channel
 		image_t    *redImage;
 		image_t    *greenImage;
 		image_t    *blueImage;
