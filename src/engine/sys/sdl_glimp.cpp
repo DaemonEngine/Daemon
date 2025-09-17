@@ -2075,6 +2075,8 @@ static void GLimp_InitExtensions()
 	glGetIntegerv( GL_MAX_TEXTURE_SIZE, &glConfig.maxTextureSize );
 	glGetIntegerv( GL_MAX_3D_TEXTURE_SIZE, &glConfig.max3DTextureSize );
 	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig.maxCubeMapTextureSize );
+	glGetIntegerv( GL_MAX_COLOR_TEXTURE_SAMPLES, &glConfig.maxColorTextureSamples );
+	glGetIntegerv( GL_MAX_DEPTH_TEXTURE_SAMPLES, &glConfig.maxDepthTextureSamples );
 
 	// Stubbed or broken drivers may report garbage.
 

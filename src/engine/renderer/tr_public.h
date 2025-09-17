@@ -90,6 +90,8 @@ struct GLConfig
 	int max3DTextureSize;
 	int maxCubeMapTextureSize;
 	int maxTextureUnits;
+	int maxColorTextureSamples;
+	int maxDepthTextureSamples;
 
 	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
 	int      shadingLanguageVersion;
@@ -166,6 +168,7 @@ struct GLConfig
 	bool reflectionMappingAvailable;
 	bool reflectionMapping;
 	bool bloom;
+	int MSAA; // 0 == disabled, otherwise used as sample count
 	bool ssao;
 	bool motionBlur;
 };
