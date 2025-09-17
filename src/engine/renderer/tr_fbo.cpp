@@ -35,13 +35,13 @@ bool R_CheckFBO( const FBO_t *fbo )
 	int id;
 
 	glGetIntegerv( GL_FRAMEBUFFER_BINDING, &id );
-	GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, fbo->frameBuffer );
+	GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, fbo->frameBuffer );
 
-	code = GL_fboShim.glCheckFramebufferStatus( GL_FRAMEBUFFER );
+	code = GL_fboShim.glCheckFramebufferStatus( GL_DRAW_FRAMEBUFFER );
 
 	if ( code == GL_FRAMEBUFFER_COMPLETE )
 	{
-		GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, id );
+		GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, id );
 		return true;
 	}
 
@@ -85,7 +85,7 @@ bool R_CheckFBO( const FBO_t *fbo )
 			break;
 	}
 
-	GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, id );
+	GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, id );
 
 	return false;
 }
@@ -142,7 +142,7 @@ void R_AttachFBOTexture1D( int texId, int index )
 		return;
 	}
 
-	glFramebufferTexture1D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_1D, texId, 0 );
+	glFramebufferTexture1D( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_1D, texId, 0 );
 }
 
 /*
@@ -164,7 +164,7 @@ void R_AttachFBOTexture2D( int target, int texId, int index )
 		return;
 	}
 
-	GL_fboShim.glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, target, texId, 0 );
+	GL_fboShim.glFramebufferTexture2D( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, target, texId, 0 );
 }
 
 /*
@@ -180,7 +180,7 @@ void R_AttachFBOTexture3D( int texId, int index, int zOffset )
 		return;
 	}
 
-	glFramebufferTexture3D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_3D, texId, 0, zOffset );
+	glFramebufferTexture3D( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_3D, texId, 0, zOffset );
 }
 
 /*
@@ -190,8 +190,8 @@ R_AttachFBOTexturePackedDepthStencil
 */
 void R_AttachFBOTexturePackedDepthStencil( int texId )
 {
-	GL_fboShim.glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texId, 0 );
-	GL_fboShim.glFramebufferTexture2D( GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texId, 0 );
+	GL_fboShim.glFramebufferTexture2D( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texId, 0 );
+	GL_fboShim.glFramebufferTexture2D( GL_DRAW_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texId, 0 );
 }
 
 /*
@@ -211,7 +211,7 @@ void R_BindFBO( FBO_t *fbo )
 
 	if ( glState.currentFBO != fbo )
 	{
-		GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, fbo->frameBuffer );
+		GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, fbo->frameBuffer );
 
 		glState.currentFBO = fbo;
 	}
@@ -228,7 +228,7 @@ void R_BindNullFBO()
 
 	if ( glState.currentFBO )
 	{
-		GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+		GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
 		glState.currentFBO = nullptr;
 	}
 }
