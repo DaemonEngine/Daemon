@@ -113,6 +113,8 @@ struct refexport_t {
 	// Nothing is drawn until R_RenderScene is called.
 	void ( *ClearScene )( );
 	void ( *AddRefEntityToScene )( const refEntity_t* re );
+	void ( *SyncRefEntities )( const std::vector<EntityUpdate>& ents );
+	std::vector<LerpTagSync>( *SyncLerpTags )( const std::vector<LerpTagUpdate>& lerpTags );
 
 	void ( *AddPolyToScene )( qhandle_t hShader, int numVerts, const polyVert_t* verts );
 	void ( *AddPolysToScene )( qhandle_t hShader, int numVerts, const polyVert_t* verts, int numPolys );
@@ -139,7 +141,6 @@ struct refexport_t {
 	int ( *MarkFragments )( int numPoints, const vec3_t* points, const vec3_t projection,
 		int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t* fragmentBuffer );
 
-	int ( *LerpTag )( orientation_t* tag, const refEntity_t* refent, const char* tagName, int startIndex );
 	void ( *ModelBounds )( qhandle_t model, vec3_t mins, vec3_t maxs );
 
 	void ( *RemapShader )( const char* oldShader, const char* newShader, const char* offsetTime );
