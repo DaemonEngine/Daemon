@@ -79,6 +79,10 @@ void RE_SetWorldVisData( const byte * ) { }
 void RE_EndRegistration() { }
 void RE_ClearScene() { }
 void RE_AddRefEntityToScene( const refEntity_t * ) { }
+void RE_SyncRefEntities( const std::vector<EntityUpdate>& ) {}
+std::vector<LerpTagSync> RE_SyncLerpTags( const std::vector<LerpTagUpdate>& ) {
+    return {};
+}
 void RE_AddPolyToScene( qhandle_t, int, const polyVert_t* ) { }
 void RE_AddPolysToScene( qhandle_t, int, const polyVert_t*, int ) { }
 void RE_AddLightToScene( const vec3_t, float, float, float, float, int ) { }
@@ -203,6 +207,8 @@ refexport_t    *GetRefAPI( int, refimport_t* )
 
     re.ClearScene = RE_ClearScene;
     re.AddRefEntityToScene = RE_AddRefEntityToScene;
+    re.SyncRefEntities = RE_SyncRefEntities;
+    re.SyncLerpTags = RE_SyncLerpTags;
 
     re.AddPolyToScene = RE_AddPolyToScene;
     // Ridah
@@ -224,7 +230,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
 
     re.MarkFragments = R_MarkFragments;
 
-    re.LerpTag = R_LerpTag;
     re.ModelBounds = R_ModelBounds;
 
     re.RemapShader = R_RemapShader;
