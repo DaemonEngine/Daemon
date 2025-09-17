@@ -144,7 +144,6 @@ struct GLConfig
 	float textureAnisotropy;
 	bool textureAnisotropyAvailable;
 
-	int      maxRenderbufferSize;
 	int      maxColorAttachments;
 
 	bool getProgramBinaryAvailable;

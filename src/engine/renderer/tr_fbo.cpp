@@ -104,12 +104,12 @@ FBO_t          *R_CreateFBO( const char *name, int width, int height )
 		Sys::Drop( "R_CreateFBO: \"%s\" is too long", name );
 	}
 
-	if ( width <= 0 || width > glConfig.maxRenderbufferSize )
+	if ( width <= 0 )
 	{
 		Sys::Drop( "R_CreateFBO: bad width %i", width );
 	}
 
-	if ( height <= 0 || height > glConfig.maxRenderbufferSize )
+	if ( height <= 0 )
 	{
 		Sys::Drop( "R_CreateFBO: bad height %i", height );
 	}
@@ -229,7 +229,6 @@ void R_BindNullFBO()
 	if ( glState.currentFBO )
 	{
 		GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-		GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, 0 );
 		glState.currentFBO = nullptr;
 	}
 }
