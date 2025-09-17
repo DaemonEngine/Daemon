@@ -2652,7 +2652,7 @@ void R_CreateBuiltinImages()
 	tr.whiteImage = R_CreateImage( "$white", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// we use a solid black image instead of disabling texturing
-	memset( data, 0, sizeof( data ) );
+	Vector4Set( data, 0, 0, 0, 255 );
 
 	tr.blackImage = R_CreateImage( "$black", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
