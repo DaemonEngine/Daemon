@@ -563,21 +563,7 @@ enum class ssaoMode {
 	{
 		char     name[ MAX_QPATH ];
 
-		int      index;
-
 		uint32_t frameBuffer;
-
-		uint32_t colorBuffers[ 16 ];
-		int      colorFormat;
-
-		uint32_t depthBuffer;
-		int      depthFormat;
-
-		uint32_t stencilBuffer;
-		int      stencilFormat;
-
-		uint32_t packedDepthStencilBuffer;
-		int      packedDepthStencilFormat;
 
 		int      width;
 		int      height;
@@ -3287,14 +3273,9 @@ void GLimp_LogComment_( std::string comment );
 
 	FBO_t    *R_CreateFBO( const char *name, int width, int height );
 
-	void     R_CreateFBOColorBuffer( FBO_t *fbo, int format, int index );
-	void     R_CreateFBODepthBuffer( FBO_t *fbo, int format );
-	void     R_CreateFBOStencilBuffer( FBO_t *fbo, int format );
-
 	void     R_AttachFBOTexture1D( int texId, int attachmentIndex );
 	void     R_AttachFBOTexture2D( int target, int texId, int attachmentIndex );
 	void     R_AttachFBOTexture3D( int texId, int attachmentIndex, int zOffset );
-	void     R_AttachFBOTextureDepth( int texId );
 
 	void     R_BindFBO( FBO_t *fbo );
 	void     R_BindNullFBO();
