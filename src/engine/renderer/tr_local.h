@@ -233,6 +233,8 @@ struct glFboShim_t
 	PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
 	// void (*glRenderbufferStorage) (GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
 	PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
+	// void (*glBlitFramebuffer) (GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
+	PFNGLBLITFRAMEBUFFERPROC glBlitFramebuffer;
 
 	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	// void (*glRenderbufferStorageMultisample) (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
@@ -266,6 +268,7 @@ static inline void glFboSetArb()
 	GL_fboShim.glGenFramebuffers = glGenFramebuffers;
 	GL_fboShim.glGenRenderbuffers = glGenRenderbuffers;
 	GL_fboShim.glRenderbufferStorage = glRenderbufferStorage;
+	GL_fboShim.glBlitFramebuffer = glBlitFramebuffer;
 
 	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisample; */
@@ -273,6 +276,7 @@ static inline void glFboSetArb()
 
 static inline void glFboSetExt()
 {
+	// EXT_framebuffer_object
 	GL_fboShim.glBindFramebuffer = glBindFramebufferEXT;
 	GL_fboShim.glBindRenderbuffer = glBindRenderbufferEXT;
 	GL_fboShim.glCheckFramebufferStatus = glCheckFramebufferStatusEXT;
@@ -284,6 +288,9 @@ static inline void glFboSetExt()
 	GL_fboShim.glGenFramebuffers = glGenFramebuffersEXT;
 	GL_fboShim.glGenRenderbuffers = glGenRenderbuffersEXT;
 	GL_fboShim.glRenderbufferStorage = glRenderbufferStorageEXT;
+
+	// EXT_framebuffer_blit
+	GL_fboShim.glBlitFramebuffer = glBlitFramebufferEXT;
 
 	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisampleEXT; */
