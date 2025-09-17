@@ -121,164 +121,12 @@ FBO_t          *R_CreateFBO( const char *name, int width, int height )
 
 	fbo = tr.fbos[ tr.numFBOs ] = (FBO_t*) ri.Hunk_Alloc( sizeof( *fbo ), ha_pref::h_low );
 	Q_strncpyz( fbo->name, name, sizeof( fbo->name ) );
-	fbo->index = tr.numFBOs++;
 	fbo->width = width;
 	fbo->height = height;
 
 	GL_fboShim.glGenFramebuffers( 1, &fbo->frameBuffer );
 
 	return fbo;
-}
-
-/*
-================
-R_CreateFBOColorBuffer
-
-Framebuffer must be bound
-================
-*/
-void R_CreateFBOColorBuffer( FBO_t *fbo, int format, int index )
-{
-	bool absent;
-
-	if ( index < 0 || index >= glConfig.maxColorAttachments )
-	{
-		Log::Warn("R_CreateFBOColorBuffer: invalid attachment index %i", index );
-		return;
-	}
-
-	fbo->colorFormat = format;
-
-	absent = fbo->colorBuffers[ index ] == 0;
-
-	if ( absent )
-	{
-		GL_fboShim.glGenRenderbuffers( 1, &fbo->colorBuffers[ index ] );
-	}
-
-	GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, fbo->colorBuffers[ index ] );
-	GL_fboShim.glRenderbufferStorage( GL_RENDERBUFFER, format, fbo->width, fbo->height );
-
-	if ( absent )
-	{
-		GL_fboShim.glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_RENDERBUFFER,
-					   fbo->colorBuffers[ index ] );
-	}
-
-	GL_CheckErrors();
-}
-
-/*
-================
-R_CreateFBODepthBuffer
-================
-*/
-void R_CreateFBODepthBuffer( FBO_t *fbo, int format )
-{
-	bool absent;
-
-	if ( format != GL_DEPTH_COMPONENT &&
-	     format != GL_DEPTH_COMPONENT16 && format != GL_DEPTH_COMPONENT24 && format != GL_DEPTH_COMPONENT32_ARB )
-	{
-		Log::Warn("R_CreateFBODepthBuffer: format %i is not depth-renderable", format );
-		return;
-	}
-
-	fbo->depthFormat = format;
-
-	absent = fbo->depthBuffer == 0;
-
-	if ( absent )
-	{
-		GL_fboShim.glGenRenderbuffers( 1, &fbo->depthBuffer );
-	}
-
-	GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, fbo->depthBuffer );
-	GL_fboShim.glRenderbufferStorage( GL_RENDERBUFFER, fbo->depthFormat, fbo->width, fbo->height );
-
-	if ( absent )
-	{
-		GL_fboShim.glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, fbo->depthBuffer );
-	}
-
-	GL_CheckErrors();
-}
-
-/*
-================
-R_CreateFBOStencilBuffer
-================
-*/
-void R_CreateFBOStencilBuffer( FBO_t *fbo, int format )
-{
-	bool absent;
-
-	if ( format != GL_STENCIL_INDEX &&
-	     format != GL_STENCIL_INDEX1_EXT &&
-	     format != GL_STENCIL_INDEX4_EXT && format != GL_STENCIL_INDEX8_EXT && format != GL_STENCIL_INDEX16_EXT )
-	{
-		Log::Warn("R_CreateFBOStencilBuffer: format %i is not stencil-renderable", format );
-		return;
-	}
-
-	fbo->stencilFormat = format;
-
-	absent = fbo->stencilBuffer == 0;
-
-	if ( absent )
-	{
-		GL_fboShim.glGenRenderbuffers( 1, &fbo->stencilBuffer );
-	}
-
-	GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, fbo->stencilBuffer );
-	GL_fboShim.glRenderbufferStorage( GL_RENDERBUFFER, fbo->stencilFormat, fbo->width, fbo->height );
-	GL_CheckErrors();
-
-	if ( absent )
-	{
-		GL_fboShim.glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, fbo->stencilBuffer );
-	}
-
-	GL_CheckErrors();
-}
-
-/*
-================
-R_CreateFBOPackedDepthStencilBuffer
-================
-*/
-void R_CreateFBOPackedDepthStencilBuffer( FBO_t *fbo, int format )
-{
-	bool absent;
-
-	if ( format != GL_DEPTH_STENCIL && format != GL_DEPTH24_STENCIL8 )
-	{
-		Log::Warn("R_CreateFBOPackedDepthStencilBuffer: format %i is not depth-stencil-renderable", format );
-		return;
-	}
-
-	fbo->packedDepthStencilFormat = format;
-
-	absent = fbo->packedDepthStencilBuffer == 0;
-
-	if ( absent )
-	{
-		GL_fboShim.glGenRenderbuffers( 1, &fbo->packedDepthStencilBuffer );
-	}
-
-	GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, fbo->packedDepthStencilBuffer );
-	GL_fboShim.glRenderbufferStorage( GL_RENDERBUFFER, fbo->packedDepthStencilFormat, fbo->width, fbo->height );
-	GL_CheckErrors();
-
-	if ( absent )
-	{
-		GL_fboShim.glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
-					   fbo->packedDepthStencilBuffer );
-		GL_fboShim.glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
-					   fbo->packedDepthStencilBuffer );
-	}
-
-	GL_CheckErrors();
 }
 
 /*
@@ -333,16 +181,6 @@ void R_AttachFBOTexture3D( int texId, int index, int zOffset )
 	}
 
 	glFramebufferTexture3D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_3D, texId, 0, zOffset );
-}
-
-/*
-=================
-R_AttachFBOTextureDepth
-=================
-*/
-void R_AttachFBOTextureDepth( int texId )
-{
-	GL_fboShim.glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texId, 0 );
 }
 
 /*
@@ -499,34 +337,15 @@ R_ShutdownFBOs
 */
 void R_ShutdownFBOs()
 {
-	int   i, j;
 	FBO_t *fbo;
 
 	Log::Debug("------- R_ShutdownFBOs -------" );
 
 	R_BindNullFBO();
 
-	for ( i = 0; i < tr.numFBOs; i++ )
+	for ( int i = 0; i < tr.numFBOs; i++ )
 	{
 		fbo = tr.fbos[ i ];
-
-		for ( j = 0; j < glConfig.maxColorAttachments; j++ )
-		{
-			if ( fbo->colorBuffers[ j ] )
-			{
-				GL_fboShim.glDeleteRenderbuffers( 1, &fbo->colorBuffers[ j ] );
-			}
-		}
-
-		if ( fbo->depthBuffer )
-		{
-			GL_fboShim.glDeleteRenderbuffers( 1, &fbo->depthBuffer );
-		}
-
-		if ( fbo->stencilBuffer )
-		{
-			GL_fboShim.glDeleteRenderbuffers( 1, &fbo->stencilBuffer );
-		}
 
 		if ( fbo->frameBuffer )
 		{
