@@ -223,8 +223,12 @@ struct glFboShim_t
 	PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
 	// void (*glFramebufferRenderbuffer) (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
 	PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
+	// void (*glFramebufferTexture1D) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
+	PFNGLFRAMEBUFFERTEXTURE1DPROC glFramebufferTexture1D;
 	// void (*glFramebufferTexture2D) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
 	PFNGLFRAMEBUFFERTEXTURE2DPROC glFramebufferTexture2D;
+	// void (*glFramebufferTexture3D) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLint zoffset);
+	PFNGLFRAMEBUFFERTEXTURE3DPROC glFramebufferTexture3D;
 	// void (*glGenerateMipmap) (GLenum target);
 	PFNGLGENERATEMIPMAPPROC glGenerateMipmap;
 	// void (*glGenFramebuffers) (GLsizei n, GLuint *framebuffers);
@@ -263,7 +267,9 @@ static inline void glFboSetArb()
 	GL_fboShim.glDeleteFramebuffers = glDeleteFramebuffers;
 	GL_fboShim.glDeleteRenderbuffers = glDeleteRenderbuffers;
 	GL_fboShim.glFramebufferRenderbuffer = glFramebufferRenderbuffer;
+	GL_fboShim.glFramebufferTexture1D = glFramebufferTexture1D;
 	GL_fboShim.glFramebufferTexture2D = glFramebufferTexture2D;
+	GL_fboShim.glFramebufferTexture3D = glFramebufferTexture3D;
 	GL_fboShim.glGenerateMipmap = glGenerateMipmap;
 	GL_fboShim.glGenFramebuffers = glGenFramebuffers;
 	GL_fboShim.glGenRenderbuffers = glGenRenderbuffers;
@@ -283,7 +289,9 @@ static inline void glFboSetExt()
 	GL_fboShim.glDeleteFramebuffers = glDeleteFramebuffersEXT;
 	GL_fboShim.glDeleteRenderbuffers = glDeleteRenderbuffersEXT;
 	GL_fboShim.glFramebufferRenderbuffer = glFramebufferRenderbufferEXT;
+	GL_fboShim.glFramebufferTexture1D = glFramebufferTexture1DEXT;
 	GL_fboShim.glFramebufferTexture2D = glFramebufferTexture2DEXT;
+	GL_fboShim.glFramebufferTexture3D = glFramebufferTexture3DEXT;
 	GL_fboShim.glGenerateMipmap = glGenerateMipmapEXT;
 	GL_fboShim.glGenFramebuffers = glGenFramebuffersEXT;
 	GL_fboShim.glGenRenderbuffers = glGenRenderbuffersEXT;

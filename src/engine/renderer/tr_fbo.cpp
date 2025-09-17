@@ -142,7 +142,7 @@ void R_AttachFBOTexture1D( int texId, int index )
 		return;
 	}
 
-	glFramebufferTexture1D( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_1D, texId, 0 );
+	GL_fboShim.glFramebufferTexture1D( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_1D, texId, 0 );
 }
 
 /*
@@ -180,7 +180,7 @@ void R_AttachFBOTexture3D( int texId, int index, int zOffset )
 		return;
 	}
 
-	glFramebufferTexture3D( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_3D, texId, 0, zOffset );
+	GL_fboShim.glFramebufferTexture3D( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_3D, texId, 0, zOffset );
 }
 
 /*
