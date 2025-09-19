@@ -874,12 +874,9 @@ void Render_generic3D( shaderStage_t *pStage )
 	bool hasDepthFade = pStage->hasDepthFade;
 	bool needDepthMap = pStage->hasDepthFade;
 
-	if ( needDepthMap && backEnd.dirtyDepthBuffer && glConfig.textureBarrierAvailable )
+	if ( needDepthMap )
 	{
-		// Flush depth buffer to make sure it is available for reading in the depth fade
-		// GLSL - prevents https://github.com/DaemonEngine/Daemon/issues/1676
-		glTextureBarrier();
-		backEnd.dirtyDepthBuffer = false;
+		RB_PrepareForSamplingDepthMap();
 	}
 
 	// choose right shader program ----------------------------------

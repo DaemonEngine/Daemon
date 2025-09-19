@@ -2000,6 +2000,11 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 		}
 	}
 
+	// All material packs currently render depth-writing shaders.
+	// If we were to render depth fade or anything else sampling u_DepthMap with the material system,
+	// we would need to track this on a per-material basis.
+	backEnd.dirtyDepthBuffer = true;
+
 	GL_BindVAO( backEnd.defaultVAO );
 
 	// Draw the skybox here because we skipped R_AddWorldSurfaces()
