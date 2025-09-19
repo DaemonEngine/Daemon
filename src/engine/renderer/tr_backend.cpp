@@ -1210,6 +1210,25 @@ void RB_RunVisTests( )
 	}
 }
 
+void RB_PrepareForSamplingDepthMap()
+{
+	if ( !glConfig.textureBarrierAvailable )
+	{
+		return;
+	}
+
+	if ( !backEnd.dirtyDepthBuffer )
+	{
+		return;
+	}
+
+	// Flush depth buffer to make sure it is available for reading in the depth fade
+	// GLSL - prevents https://github.com/DaemonEngine/Daemon/issues/1676
+	glTextureBarrier();
+
+	backEnd.dirtyDepthBuffer = false;
+}
+
 static void RenderDepthTiles()
 {
 	GL_State( GLS_DEPTHTEST_DISABLE );
@@ -1534,12 +1553,7 @@ void RB_RenderSSAO()
 
 	GLIMP_LOGCOMMENT( "--- RB_RenderSSAO ---" );
 
-	// Assume depth is dirty since we just rendered depth pass and everything opaque
-	if ( glConfig.textureBarrierAvailable )
-	{
-		glTextureBarrier();
-		backEnd.dirtyDepthBuffer = false;
-	}
+	RB_PrepareForSamplingDepthMap();
 
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -2706,9 +2720,6 @@ static void RB_RenderView( bool depthPass )
 	// draw everything that is translucent
 	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, backEnd.viewParms.viewID );
-
-		// HACK: assume surfaces with depth fade don't use the material system
-		backEnd.dirtyDepthBuffer = true;
 	}
 	RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, DRAWSURFACES_ALL );
 
