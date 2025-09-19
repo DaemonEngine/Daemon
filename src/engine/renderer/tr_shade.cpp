@@ -1494,6 +1494,8 @@ void Render_liquid( shaderStage_t *pStage )
 
 	GLIMP_LOGCOMMENT( "--- Render_liquid ---" );
 
+	RB_PrepareForSamplingDepthMap();
+
 	// Tr3B: don't allow blend effects
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
 
