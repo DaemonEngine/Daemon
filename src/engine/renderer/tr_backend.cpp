@@ -1246,6 +1246,11 @@ static void RenderDepthTiles()
 		return;
 	}
 
+	if ( glConfig.usingBindlessTextures )
+	{
+		RB_PrepareForSamplingDepthMap();
+	}
+
 	// 1st step
 	R_BindFBO( tr.depthtile1FBO );
 	GL_Viewport( 0, 0, tr.depthtile1FBO->width, tr.depthtile1FBO->height );
@@ -1382,6 +1387,8 @@ void RB_RenderGlobalFog()
 
 	GLIMP_LOGCOMMENT( "--- RB_RenderGlobalFog ---" );
 
+	RB_PrepareForSamplingDepthMap();
+
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
 	gl_fogGlobalShader->BindProgram( 0 );
@@ -1514,6 +1521,8 @@ void RB_RenderMotionBlur()
 	}
 
 	GLIMP_LOGCOMMENT( "--- RB_RenderMotionBlur ---" );
+
+	RB_PrepareForSamplingDepthMap();
 
 	GL_State( GLS_DEPTHTEST_DISABLE );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
