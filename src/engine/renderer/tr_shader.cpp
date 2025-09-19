@@ -4735,10 +4735,10 @@ static bool ParseShader( const char *_text )
 		}
 	}
 
-	// ignore shaders that don't have any stages, unless it is a sky or fog
+	// Make shaders without stages that are not fog and not sky as blend (they are fully transparent).
 	if ( s == 0 && !shader.forceOpaque && !shader.isSky && !( shader.contentFlags & CONTENTS_FOG ) && implicitMap[ 0 ] == '\0' )
 	{
-		return false;
+		shader.sort = Util::ordinal( shaderSort_t::SS_BLEND0 );
 	}
 
 	return true;
@@ -5697,12 +5697,6 @@ static void ValidateStage( shaderStage_t *pStage )
 // without a thorough investigation.
 static float DetermineShaderSort()
 {
-	// fogonly shaders don't have any stage passes
-	if ( numStages == 0 && !shader.isSky )
-	{
-		return Util::ordinal(shaderSort_t::SS_FOG);
-	}
-
 	for ( size_t stage = numStages; stage--; )
 	{
 		ASSERT( stages[ stage ].active );
