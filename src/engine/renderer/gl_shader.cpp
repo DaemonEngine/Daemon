@@ -41,7 +41,7 @@ static Cvar::Cvar<bool> r_logUnmarkedGLSLBuilds(
 	"r_logUnmarkedGLSLBuilds", "Log building information for GLSL shaders that are built after the map is loaded",
 	Cvar::NONE, true );
 
-extern std::unordered_map<std::string, std::string> shadermap;
+extern const std::unordered_map<std::string, std::string> shadermap;
 // shaderKind's value will be determined later based on command line setting or absence of.
 ShaderKind shaderKind = ShaderKind::Unknown;
 
@@ -2597,14 +2597,14 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial() :
 GLShader_fogQuake3::GLShader_fogQuake3() :
 	GLShader( "fogQuake3", ATTR_POSITION | ATTR_QTANGENT,
 		false, "fogQuake3", "fogQuake3" ),
-	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ColorGlobal_Float( this ),
 	u_ColorGlobal_Uint( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
-	u_FogDistanceVector( this ),
+	u_ViewOrigin( this ),
+	u_FogDensity( this ),
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),
 	GLDeformStage( this ),
@@ -2613,19 +2613,14 @@ GLShader_fogQuake3::GLShader_fogQuake3() :
 {
 }
 
-void GLShader_fogQuake3::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_FogMap" ), 0 );
-}
-
 GLShader_fogQuake3Material::GLShader_fogQuake3Material() :
 	GLShader( "fogQuake3Material", ATTR_POSITION | ATTR_QTANGENT,
 		true, "fogQuake3", "fogQuake3" ),
-	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ColorGlobal_Uint( this ),
-	u_FogDistanceVector( this ),
+	u_ViewOrigin( this ),
+	u_FogDensity( this ),
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),
 	GLDeformStage( this ) {
@@ -2634,7 +2629,6 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material() :
 GLShader_fogGlobal::GLShader_fogGlobal() :
 	GLShader( "fogGlobal", ATTR_POSITION,
 		false, "screenSpace", "fogGlobal" ),
-	u_ColorMap( this ),
 	u_DepthMap( this ),
 	u_UnprojectMatrix( this ),
 	u_Color_Float( this ),

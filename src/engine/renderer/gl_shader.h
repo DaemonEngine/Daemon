@@ -1826,18 +1826,6 @@ class u_CloudMap :
 	}
 };
 
-class u_FogMap :
-	GLUniformSampler2D {
-	public:
-	u_FogMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_FogMap" ) {
-	}
-
-	void SetUniform_FogMapBindless( GLuint64 bindlessHandle ) {
-		this->SetValueBindless( bindlessHandle );
-	}
-};
-
 class u_DepthTile1 :
 	GLUniformSampler2D {
 	public:
@@ -2112,7 +2100,7 @@ class u_FogDensity :
 {
 public:
 	u_FogDensity( GLShader *shader ) :
-		GLUniform1f( shader, "u_FogDensity" )
+		GLUniform1f( shader, "u_FogDensity", true )
 	{
 	}
 
@@ -2912,21 +2900,6 @@ template<typename Shader> void SetUniform_ColorModulateColorGen(
 	}
 }
 
-class u_FogDistanceVector :
-	GLUniform4f
-{
-public:
-	u_FogDistanceVector( GLShader *shader ) :
-		GLUniform4f( shader, "u_FogDistanceVector", true )
-	{
-	}
-
-	void SetUniform_FogDistanceVector( const vec4_t v )
-	{
-		this->SetValue( v );
-	}
-};
-
 class u_FogDepthVector :
 	GLUniform4f
 {
@@ -3441,14 +3414,14 @@ class GLShader_skyboxMaterial :
 
 class GLShader_fogQuake3 :
 	public GLShader,
-	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ColorGlobal_Float,
 	public u_ColorGlobal_Uint,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_FogDistanceVector,
+	public u_ViewOrigin,
+	public u_FogDensity,
 	public u_FogDepthVector,
 	public u_FogEyeT,
 	public GLDeformStage,
@@ -3457,16 +3430,15 @@ class GLShader_fogQuake3 :
 {
 public:
 	GLShader_fogQuake3();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
 class GLShader_fogQuake3Material :
 	public GLShader,
-	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ColorGlobal_Uint,
-	public u_FogDistanceVector,
+	public u_ViewOrigin,
+	public u_FogDensity,
 	public u_FogDepthVector,
 	public u_FogEyeT,
 	public GLDeformStage {
@@ -3476,7 +3448,6 @@ class GLShader_fogQuake3Material :
 
 class GLShader_fogGlobal :
 	public GLShader,
-	public u_ColorMap,
 	public u_DepthMap,
 	public u_UnprojectMatrix,
 	public u_Color_Float,

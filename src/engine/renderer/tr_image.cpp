@@ -2352,121 +2352,6 @@ image_t *R_FindCubeImage( const char *name, imageParams_t &imageParams )
 }
 
 /*
-=================
-R_InitFogTable
-=================
-*/
-void R_InitFogTable()
-{
-	int   i;
-	float d;
-	float exp;
-
-	exp = 0.5;
-
-	for ( i = 0; i < FOG_TABLE_SIZE; i++ )
-	{
-		d = pow( ( float ) i / ( FOG_TABLE_SIZE - 1 ), exp );
-
-		tr.fogTable[ i ] = d;
-	}
-}
-
-/*
-================
-R_FogFactor
-
-Returns a 0.0 to 1.0 fog density value
-This is called for each texel of the fog texture on startup
-and for each vertex of transparent shaders in fog dynamically
-================
-*/
-float R_FogFactor( float s, float t )
-{
-	float d;
-
-	s -= 1.0f / 512.0f;
-
-	if ( s < 0 )
-	{
-		return 0;
-	}
-
-	if ( t < 1.0f / 32.0f )
-	{
-		return 0;
-	}
-
-	if ( t < 31.0f / 32.0f )
-	{
-		s *= ( t - 1.0f / 32.0f ) / ( 30.0f / 32.0f );
-	}
-
-	// we need to leave a lot of clamp range
-	s *= 8;
-
-	if ( s > 1.0f )
-	{
-		s = 1.0f;
-	}
-
-	d = tr.fogTable[( int )( s * ( FOG_TABLE_SIZE - 1 ) ) ];
-
-	return d;
-}
-
-/*
-================
-R_CreateFogImage
-================
-*/
-static void R_CreateFogImage()
-{
-	// Fog image is always created because disabling fog is cheat.
-
-	int   x, y;
-	byte  *data, *ptr;
-	float d;
-	float borderColor[ 4 ];
-
-	constexpr int FOG_S = 256;
-	constexpr int FOG_T = 32;
-
-	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
-
-	// S is distance, T is depth
-	for ( y = 0; y < FOG_T; y++ )
-	{
-		for ( x = 0; x < FOG_S; x++ )
-		{
-			d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
-
-			ptr[ 0 ] = ptr[ 1 ] = ptr[ 2 ] = 255;
-			ptr[ 3 ] = 255 * d;
-			ptr += 4;
-		}
-	}
-
-	// standard openGL clamping doesn't really do what we want -- it includes
-	// the border color at the edges.  OpenGL 1.2 has clamp-to-edge, which does
-	// what we want.
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_DEFAULT;
-	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-
-	tr.fogImage = R_CreateImage( "_fog", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
-	ri.Hunk_FreeTempMemory( data );
-
-	borderColor[ 0 ] = 1.0;
-	borderColor[ 1 ] = 1.0;
-	borderColor[ 2 ] = 1.0;
-	borderColor[ 3 ] = 1;
-
-	glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor );
-}
-
-/*
 ==================
 R_CreateDefaultImage
 ==================
@@ -2811,7 +2696,6 @@ void R_CreateBuiltinImages()
 		image = R_CreateImage( "_cinematic", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 	}
 
-	R_CreateFogImage();
 	R_CreateContrastRenderFBOImage();
 	R_CreateBloomRenderFBOImages();
 	R_CreateCurrentRenderImage();
