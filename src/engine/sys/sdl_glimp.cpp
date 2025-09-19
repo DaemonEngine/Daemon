@@ -88,6 +88,8 @@ static Cvar::Cvar<bool> r_arb_map_buffer_range( "r_arb_map_buffer_range",
 	"Use GL_ARB_map_buffer_range if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_multi_draw_indirect( "r_arb_multi_draw_indirect",
 	"Use GL_ARB_multi_draw_indirect if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_program_interface_query( "r_arb_program_interface_query",
+	"Load GL_ARB_program_interface_query if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_shader_draw_parameters( "r_arb_shader_draw_parameters",
 	"Use GL_ARB_shader_draw_parameters if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_shader_atomic_counters( "r_arb_shader_atomic_counters",
@@ -2508,6 +2510,12 @@ static void GLimp_InitExtensions()
 
 	// made required in OpenGL 4.6
 	glConfig.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, shaderDrawParametersEnabled );
+
+	// made required in OpenGL 4.3
+	// We don't use it but the ARB_shader_storage_buffer_object spec says "OpenGL 4.3 or ARB_program_interface_query is required" and
+	// Intel's driver interprets that as meaning we must explicitly load the extension for SSBOs to work?
+	// But don't stop ourselves from using SSBOs if this fails.
+	LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_program_interface_query, r_arb_program_interface_query.Get() );
 
 	// made required in OpenGL 4.3
 	glConfig.SSBOAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_storage_buffer_object, r_arb_shader_storage_buffer_object.Get() );
