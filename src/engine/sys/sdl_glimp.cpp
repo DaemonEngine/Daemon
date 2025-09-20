@@ -2338,7 +2338,6 @@ static void GLimp_InitExtensions()
 		glFboSetExt();
 	}
 
-	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig.maxRenderbufferSize );
 	glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &glConfig.maxColorAttachments );
 
 	// made required in OpenGL 2.0
