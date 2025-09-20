@@ -1819,11 +1819,20 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 			}
 
 			// Built-in images can't be reloaded with different parameters, so return them as-is.
-			// For most of the usable ones e.g. _white, parameters wouldn't make a difference anyway.
+			// For most of the usable ones e.g. $white, parameters wouldn't make a difference anyway.
 			// HACK: detect built-in images by naming convention, though nothing stops users from using such names
-			if ( image->name[ 0 ] == '_' && !strchr( image->name, '/' ) )
+			switch ( image->name[ 0 ] )
 			{
-				return image;
+				case '_': // TODO: Remove once _fog is removed.
+				case '*':
+				case '$':
+					if ( !strchr( image->name, '/' ) )
+					{
+						return image;
+					}
+					break;
+				default:
+					break;
 			}
 
 			bool compatible = false;
@@ -2498,7 +2507,7 @@ static void R_CreateDefaultImage()
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
-	tr.defaultImage = R_CreateImage( "_default", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
+	tr.defaultImage = R_CreateImage( "$default", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
 }
 
 static void R_CreateContrastRenderFBOImage()
@@ -2516,7 +2525,7 @@ static void R_CreateContrastRenderFBOImage()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.contrastRenderFBOImage = R_CreateImage( "_contrastRenderFBO", nullptr, width, height, 1, imageParams );
+	tr.contrastRenderFBOImage = R_CreateImage( "*contrastRenderFBO", nullptr, width, height, 1, imageParams );
 }
 
 static void R_CreateBloomRenderFBOImages()
@@ -2536,7 +2545,7 @@ static void R_CreateBloomRenderFBOImages()
 		imageParams.filterType = filterType_t::FT_LINEAR;
 		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-		tr.bloomRenderFBOImage[i] = R_CreateImage( va( "_bloomRenderFBO%d", i ), nullptr, width, height, 1, imageParams );
+		tr.bloomRenderFBOImage[i] = R_CreateImage( va( "*bloomRenderFBO%d", i ), nullptr, width, height, 1, imageParams );
 	}
 }
 
@@ -2571,15 +2580,15 @@ static void R_CreateCurrentRenderImage()
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.currentRenderImage[0] = R_CreateImage( "_currentRender[0]", nullptr, width, height, 1, imageParams );
-	tr.currentRenderImage[1] = R_CreateImage( "_currentRender[1]", nullptr, width, height, 1, imageParams );
+	tr.currentRenderImage[0] = R_CreateImage( "*currentRender0", nullptr, width, height, 1, imageParams );
+	tr.currentRenderImage[1] = R_CreateImage( "*currentRender1", nullptr, width, height, 1, imageParams );
 
 	imageParams = {};
 	imageParams.bits = IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8;
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.currentDepthImage = R_CreateImage( "_currentDepth", nullptr, width, height, 1, imageParams );
+	tr.currentDepthImage = R_CreateImage( "*currentDepth", nullptr, width, height, 1, imageParams );
 
 	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.GenerateDepthImages( width, height, imageParams );
@@ -2609,18 +2618,18 @@ static void R_CreateDepthRenderImage()
 		imageParams.bits = IF_NOPICMIP;
 		imageParams.bits |= r_highPrecisionRendering.Get() ? IF_TWOCOMP32F : IF_TWOCOMP16F;
 
-		tr.depthtile1RenderImage = R_CreateImage( "_depthtile1Render", nullptr, w, h, 1, imageParams );
+		tr.depthtile1RenderImage = R_CreateImage( "*depthtile1Render", nullptr, w, h, 1, imageParams );
 
 		w = (width + TILE_SIZE - 1) >> TILE_SHIFT;
 		h = (height + TILE_SIZE - 1) >> TILE_SHIFT;
 
 		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-		tr.depthtile2RenderImage = R_CreateImage( "_depthtile2Render", nullptr, w, h, 1, imageParams );
+		tr.depthtile2RenderImage = R_CreateImage( "*depthtile2Render", nullptr, w, h, 1, imageParams );
 
 		imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
 
-		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, glConfig.realtimeLightLayers, imageParams );
+		tr.lighttileRenderImage = R_Create3DImage( "*lighttileRender", nullptr, w, h, glConfig.realtimeLightLayers, imageParams );
 	}
 }
 
@@ -2641,7 +2650,7 @@ static void R_CreatePortalRenderImage()
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.portalRenderImage = R_CreateImage( "_portalRender", nullptr, width, height, 1, imageParams );
+	tr.portalRenderImage = R_CreateImage( "*portalRender", nullptr, width, height, 1, imageParams );
 }
 
 // *INDENT-OFF*
@@ -2661,7 +2670,7 @@ static void R_CreateBlackCubeImage()
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
 	const byte *dataPtrs[ 6 ] = { data, data, data, data, data, data };
-	tr.blackCubeImage = R_CreateCubeImage( "_blackCube", dataPtrs, width, height, imageParams );
+	tr.blackCubeImage = R_CreateCubeImage( "$blackCube", dataPtrs, width, height, imageParams );
 }
 
 // *INDENT-ON*
@@ -2687,7 +2696,7 @@ static void R_CreateWhiteCubeImage()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-	tr.whiteCubeImage = R_CreateCubeImage( "_whiteCube", ( const byte ** ) data, width, height, imageParams );
+	tr.whiteCubeImage = R_CreateCubeImage( "$whiteCube", ( const byte ** ) data, width, height, imageParams );
 
 	for ( i = 5; i >= 0; i-- )
 	{
@@ -2730,7 +2739,7 @@ static void R_CreateColorGradeImage()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-	tr.colorGradeImage = R_Create3DImage( "_colorGrade", data, REF_COLORGRADEMAP_SIZE, REF_COLORGRADEMAP_SIZE, REF_COLORGRADE_SLOTS * REF_COLORGRADEMAP_SIZE, imageParams );
+	tr.colorGradeImage = R_Create3DImage( "$colorGrade", data, REF_COLORGRADEMAP_SIZE, REF_COLORGRADEMAP_SIZE, REF_COLORGRADE_SLOTS * REF_COLORGRADEMAP_SIZE, imageParams );
 
 	ri.Hunk_FreeTempMemory( data );
 }
@@ -2742,11 +2751,8 @@ R_CreateBuiltinImages
 */
 void R_CreateBuiltinImages()
 {
-	constexpr int DIMENSION = 8;
-	int   x;
-	byte  data[ DIMENSION * DIMENSION * 4 ];
+	byte  data[ 1 * 1 * 4 ];
 	byte  *dataPtr = data;
-	byte  *out;
 
 	R_CreateDefaultImage();
 
@@ -2758,57 +2764,31 @@ void R_CreateBuiltinImages()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
-	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	tr.whiteImage = R_CreateImage( "$white", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// we use a solid black image instead of disabling texturing
-	memset( data, 0, sizeof( data ) );
-	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	Vector4Set( data, 0, 0, 0, 255 );
 
-	// red
-	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
-	{
-		out[ 1 ] = out[ 2 ] = 0;
-		out[ 0 ] = out[ 3 ] = 255;
-	}
-
-	tr.redImage = R_CreateImage( "_red", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
-
-	// green
-	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
-	{
-		out[ 0 ] = out[ 2 ] = 0;
-		out[ 1 ] = out[ 3 ] = 255;
-	}
-
-	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
-
-	// blue
-	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
-	{
-		out[ 0 ] = out[ 1 ] = 0;
-		out[ 2 ] = out[ 3 ] = 255;
-	}
-
-	tr.blueImage = R_CreateImage( "_blue", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	tr.blackImage = R_CreateImage( "$black", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// generate a default normalmap with a fully opaque heightmap (no displacement)
-	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
-	{
-		out[ 0 ] = out[ 1 ] = 128;
-		out[ 2 ] = 255;
-		out[ 3 ] = 255;
-	}
+	Vector4Set( data, 128, 128, 255, 255 );
 
 	imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
 
-	tr.flatImage = R_CreateImage( "_flat", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	tr.flatImage = R_CreateImage( "$flat", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	imageParams.bits = IF_NOPICMIP;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
+	// Don't reuse previously set data, we test the values for selecting the upload format.
+	memset( data, 255, sizeof( data ) );
+
+	size_t numCinematicImages = 0;
 	for ( image_t * &image : tr.cinematicImage )
 	{
-		image = R_CreateImage( "_cinematic", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
+		std::string name = Str::Format( "*cinematic%d", numCinematicImages++ );
+		image = R_CreateImage( name.c_str(), ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 	}
 
 	R_CreateFogImage();
@@ -2971,7 +2951,7 @@ qhandle_t RE_GenerateTexture( const byte *pic, int width, int height )
 {
 	R_SyncRenderThread();
 
-	std::string name = Str::Format( "$generatedTexture%d", tr.numGeneratedTextures++ );
+	std::string name = Str::Format( "*generatedTexture%d", tr.numGeneratedTextures++ );
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
