@@ -233,6 +233,8 @@ struct glFboShim_t
 	PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
 	// void (*glRenderbufferStorage) (GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
 	PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
+	// void (*glBlitFramebuffer) (GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
+	PFNGLBLITFRAMEBUFFERPROC glBlitFramebuffer;
 
 	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	// void (*glRenderbufferStorageMultisample) (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
@@ -266,13 +268,15 @@ static inline void glFboSetArb()
 	GL_fboShim.glGenFramebuffers = glGenFramebuffers;
 	GL_fboShim.glGenRenderbuffers = glGenRenderbuffers;
 	GL_fboShim.glRenderbufferStorage = glRenderbufferStorage;
+	GL_fboShim.glBlitFramebuffer = glBlitFramebuffer;
 
-	/* Unused for now, part of GL_EXT_framebuffer_multisample:
+	/* Unused for now:
 	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisample; */
 }
 
 static inline void glFboSetExt()
 {
+	// EXT_framebuffer_object
 	GL_fboShim.glBindFramebuffer = glBindFramebufferEXT;
 	GL_fboShim.glBindRenderbuffer = glBindRenderbufferEXT;
 	GL_fboShim.glCheckFramebufferStatus = glCheckFramebufferStatusEXT;
@@ -284,6 +288,9 @@ static inline void glFboSetExt()
 	GL_fboShim.glGenFramebuffers = glGenFramebuffersEXT;
 	GL_fboShim.glGenRenderbuffers = glGenRenderbuffersEXT;
 	GL_fboShim.glRenderbufferStorage = glRenderbufferStorageEXT;
+
+	// EXT_framebuffer_blit
+	GL_fboShim.glBlitFramebuffer = glBlitFramebufferEXT;
 
 	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisampleEXT; */
@@ -563,21 +570,7 @@ enum class ssaoMode {
 	{
 		char     name[ MAX_QPATH ];
 
-		int      index;
-
 		uint32_t frameBuffer;
-
-		uint32_t colorBuffers[ 16 ];
-		int      colorFormat;
-
-		uint32_t depthBuffer;
-		int      depthFormat;
-
-		uint32_t stencilBuffer;
-		int      stencilFormat;
-
-		uint32_t packedDepthStencilBuffer;
-		int      packedDepthStencilFormat;
 
 		int      width;
 		int      height;
@@ -2455,6 +2448,7 @@ enum
 		image_t    *bloomRenderFBOImage[ 2 ];
 		image_t    *currentRenderImage[ 2 ];
 		image_t    *currentDepthImage;
+		image_t    *readableDepthImage;
 		image_t    *depthtile1RenderImage;
 		image_t    *depthtile2RenderImage;
 		image_t    *lighttileRenderImage;
@@ -2466,6 +2460,7 @@ enum
 
 		// framebuffer objects
 		FBO_t *mainFBO[ 2 ];
+		FBO_t *readonlyDepthFBO;
 		FBO_t *depthtile1FBO;
 		FBO_t *depthtile2FBO;
 		FBO_t *lighttileFBO;
@@ -3287,16 +3282,12 @@ void GLimp_LogComment_( std::string comment );
 
 	FBO_t    *R_CreateFBO( const char *name, int width, int height );
 
-	void     R_CreateFBOColorBuffer( FBO_t *fbo, int format, int index );
-	void     R_CreateFBODepthBuffer( FBO_t *fbo, int format );
-	void     R_CreateFBOStencilBuffer( FBO_t *fbo, int format );
-
 	void     R_AttachFBOTexture1D( int texId, int attachmentIndex );
 	void     R_AttachFBOTexture2D( int target, int texId, int attachmentIndex );
 	void     R_AttachFBOTexture3D( int texId, int attachmentIndex, int zOffset );
-	void     R_AttachFBOTextureDepth( int texId );
 
 	void     R_BindFBO( FBO_t *fbo );
+	void     R_BindFBO( GLenum target, FBO_t *fbo );
 	void     R_BindNullFBO();
 
 	void     R_InitFBOs();

@@ -1544,7 +1544,7 @@ void Render_liquid( shaderStage_t *pStage )
 	gl_liquidShader->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
 
 	// depth texture
-	gl_liquidShader->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.currentDepthImage ) );
+	gl_liquidShader->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.readableDepthImage ) );
 
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )

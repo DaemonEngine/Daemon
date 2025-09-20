@@ -1417,7 +1417,7 @@ void RB_RenderGlobalFog()
 
 	// bind u_DepthMap
 	gl_fogGlobalShader->SetUniform_DepthMapBindless(
-		GL_BindToTMU( 1, tr.currentDepthImage )
+		GL_BindToTMU( 1, tr.readableDepthImage )
 	);
 
 	Tess_InstantScreenSpaceQuad();
@@ -1539,7 +1539,7 @@ void RB_RenderMotionBlur()
 	gl_motionblurShader->SetUniform_blurVec(tr.refdef.blurVec);
 
 	gl_motionblurShader->SetUniform_DepthMapBindless(
-		GL_BindToTMU( 1, tr.currentDepthImage )
+		GL_BindToTMU( 1, tr.readableDepthImage )
 	);
 
 	Tess_InstantScreenSpaceQuad();
@@ -1590,7 +1590,7 @@ void RB_RenderSSAO()
 	gl_ssaoShader->SetUniform_UnprojectionParams( unprojectionParams );
 
 	gl_ssaoShader->SetUniform_DepthMapBindless(
-		GL_BindToTMU( 0, tr.currentDepthImage )
+		GL_BindToTMU( 0, tr.readableDepthImage )
 	);
 
 	Tess_InstantScreenSpaceQuad();
@@ -2695,6 +2695,18 @@ static void RB_RenderView( bool depthPass )
 			backEnd.postDepthLightTileRendered = true;
 		}
 		return;
+	}
+
+	if ( glConfig.usingReadonlyDepth )
+	{
+		FBO_t *currentDrawFBO = glState.currentFBO;
+		R_BindFBO( GL_READ_FRAMEBUFFER, currentDrawFBO );
+		R_BindFBO( GL_DRAW_FRAMEBUFFER, tr.readonlyDepthFBO );
+		int x0 = backEnd.viewParms.viewportX, x1 = x0 + backEnd.viewParms.viewportWidth;
+		int y0 = backEnd.viewParms.viewportY, y1 = y0 + backEnd.viewParms.viewportHeight;
+		// We don't need stencil but maybe it could be faster to copy the entire texture verbatim? Needs testing
+		GL_fboShim.glBlitFramebuffer( x0, y0, x1, y1, x0, y0, x1, y1, GL_DEPTH_BUFFER_BIT /* | GL_STENCIL_BUFFER_BIT */, GL_NEAREST );
+		R_BindFBO( currentDrawFBO );
 	}
 
 	if( tr.refdef.blurVec[0] != 0.0f ||
