@@ -163,7 +163,9 @@ public:
 			"If internalformat is specified as a base internal format, the GL stores the resulting texture with
 			 internal component resolutions of its own choosing, referred to as the effective internal format."
 			 Use 4 bytes as an estimate: */
+			{ GL_RGB, { "RGB", 3 } },
 			{ GL_RGBA, { "RGBA", 4 } },
+			{ GL_RED, { "RED", 1 } },
 
 			{ GL_RGB8, { "RGB8", 3 } },
 			{ GL_RGBA8, { "RGBA8", 4 } },
@@ -176,10 +178,12 @@ public:
 			{ GL_RGBA32UI, { "RGBA32UI", 16 } },
 			{ GL_ALPHA16F_ARB, { "A16F", 2 } },
 			{ GL_ALPHA32F_ARB, { "A32F", 4 } },
+			{ GL_R8, { "R8", 1 } },
 			{ GL_R16F, { "R16F", 2 } },
 			{ GL_R32F, { "R32F", 4 } },
 			{ GL_LUMINANCE_ALPHA16F_ARB, { "LA16F", 4 } },
 			{ GL_LUMINANCE_ALPHA32F_ARB, { "LA32F", 8 } },
+			{ GL_RG8, { "RG8", 2 } },
 			{ GL_RG16F, { "RG16F", 4 } },
 			{ GL_RG32F, { "RG32F", 8 } },
 
@@ -848,10 +852,13 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	int        mipWidth, mipHeight, mipLayers, mipSize, blockSize = 0;
 	int        i, c;
 	const byte *scan;
+
+	bool isSRGB = image->bits & IF_SRGB;
+	bool isAlpha = !( image->bits & IF_NOALPHA );
+
 	GLenum     target;
 	GLenum     format = GL_RGBA;
-	GLenum     internalFormat = GL_RGB;
-	bool isSRGB = image->bits & IF_SRGB;
+	GLenum internalFormat = isAlpha ? GL_RGBA : GL_RGB;
 
 	static const vec4_t oneClampBorder = { 1, 1, 1, 1 };
 	static const vec4_t zeroClampBorder = { 0, 0, 0, 1 };
@@ -932,6 +939,30 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	{
 		format = GL_DEPTH_STENCIL;
 		internalFormat = GL_DEPTH24_STENCIL8;
+	}
+	else if ( image->bits & IF_RED )
+	{
+		if ( isSRGB && !glConfig.textureSrgbR8Available )
+		{
+			Log::Warn("red image '%s' cannot be loaded as sRGB", image->name );
+			internalFormat = GL_RGB8;
+		}
+		else
+		{
+			internalFormat = glConfig.textureSrgbRG8Available ? GL_R8 : GL_RED;
+		}
+	}
+	else if ( image->bits & IF_RG )
+	{
+		if ( isSRGB && !glConfig.textureSrgbRG8Available )
+		{
+			Log::Warn("red-green image '%s' cannot be loaded as sRGB", image->name );
+			internalFormat = GL_RGB8;
+		}
+		else
+		{
+			internalFormat = GL_RG8;
+		}
 	}
 	else if ( image->bits & ( IF_RGBA16F | IF_RGBA32F | IF_TWOCOMP16F | IF_TWOCOMP32F | IF_ONECOMP16F | IF_ONECOMP32F ) )
 	{
@@ -1041,31 +1072,133 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	}
 	else
 	{
-		// scan the texture for each channel's max values
-		// and verify if the alpha channel is being used or not
+		internalFormat = GL_RGBA8;
+	}
 
-		c = image->width * image->height;
-		scan = dataArray[0];
-
-		// lightmap does not have alpha channel
-
-		// normalmap may have the heightmap in the alpha channel
-		// opaque alpha channel means no displacement, so we can enable
-		// alpha channel everytime it is used, even for normalmap
-
+	if ( internalFormat == GL_RGBA8 && !isAlpha )
+	{
 		internalFormat = GL_RGB8;
+	}
 
-		if ( !( image->bits & IF_LIGHTMAP ) )
+	// Detect formats.
+	if ( dataArray )
+	{
+		if ( internalFormat == GL_RGBA8 )
 		{
-			for ( i = 0; i < c; i++ )
+			/* Scan the texture for alpha channel's max values
+			and verify if the alpha channel is being used or not. */
+
+			c = image->width * image->height * numLayers;
+			scan = dataArray[0];
+
+			/* A normalmap may have the heightmap in the alpha channel,
+			an opaque alpha channel means no displacement, so we can enable
+			the alpha channel everytime it is used, even for normalmap. */
+
+			internalFormat = GL_RGB8;
+
+			for ( i = 0; i < c * 4; i += 4 )
 			{
-				if ( scan[ i * 4 + 3 ] != 255 )
+				if ( scan[ i + 3 ] != 255 )
 				{
 					internalFormat = GL_RGBA8;
 					break;
 				}
 			}
 		}
+
+		if ( internalFormat == GL_RGB8 )
+		{
+			/* Scan the texture for green and blue channels' max values
+			and verify if the green and blue channels are being used or not. */
+
+			c = image->width * image->height * numLayers;
+			scan = dataArray[0];
+
+			bool hasGreen = false;
+			bool hasBlue = false;
+
+			for ( i = 0; i < c * 4; i += 4 )
+			{
+				if ( scan[ i + 2 ] != 0 )
+				{
+					// We need GL_RGB8.
+					hasBlue = true;
+					break;
+				}
+
+				if ( scan[ i + 1 ] != 0 )
+				{
+					hasGreen = true;
+
+					if ( !glConfig.textureRGAvailable )
+					{
+						// We can't store RG so we can stop there and use GL_RGB8.
+						break;
+					}
+					// Else continue to make sure there is no blue at all.
+				}
+
+				// Else use GL_RED or GL_R8.
+			}
+
+			if ( hasBlue )
+			{
+				// Keep GL_RGB8.
+			}
+			else if ( hasGreen )
+			{
+				if ( !glConfig.textureRGAvailable )
+				{
+					// Keep GL_RGB8.
+				}
+				else
+				{
+					if ( isSRGB && !glConfig.textureSrgbRG8Available )
+					{
+						// Keep GL_RGB8.
+					}
+					else
+					{
+						internalFormat = GL_RG8;
+					}
+				}
+			}
+			else
+			{
+				if ( isSRGB && !glConfig.textureSrgbR8Available )
+				{
+					// Keep GL_RGB8.
+				}
+				else
+				{
+					internalFormat = glConfig.textureRGAvailable ? GL_R8 : GL_RED;
+				}
+			}
+		}
+	}
+
+	// Make sure we prefer GL_R8 when ARB_texture_rg is available.
+	ASSERT( !( internalFormat == GL_RED && glConfig.textureRGAvailable ) );
+	// Make sure we only use GL_R8 when ARB_texture_rg is available.
+	ASSERT( !( internalFormat == GL_R8 && !glConfig.textureRGAvailable ) );
+	// Make sure we only use GL_RG8 when ARB_texture_rg is available.
+	ASSERT( !( internalFormat == GL_RG8 && !glConfig.textureRGAvailable ) );
+	// Make sure we only use GL_SR8_EXT when EXT_texture_sRGB_R8 is available.
+	ASSERT( !( internalFormat == GL_R8 && isSRGB && !glConfig.textureSrgbR8Available ) );
+	// Make sure we only use GL_SRG8_EXT when EXT_texture_sRGB_RG8 is available.
+	ASSERT( !( internalFormat == GL_RG8 && isSRGB && !glConfig.textureSrgbRG8Available ) );
+
+	// Make sure we prefer GL_RGB but don't enforce it. GL_RGB is used when we don't set a format.
+	if ( internalFormat == GL_RGBA )
+	{
+		Log::Warn( "An explicit format should be used instead of GL_RGB for image %s", name );
+	}
+
+	// Make sure we prefer GL_RGBA but don't enforce it. GL_RGBA is used when we don't set a format.
+	if ( internalFormat == GL_RGBA )
+	{
+		Log::Warn( "An explicit format should be used instead of GL_RGBA for image %s", name );
 	}
 
 	Log::Debug( "Uploading image %s (%d×%d, %d layers, %0#x type, %0#x format)", name, scaledWidth, scaledHeight, numLayers, image->type, internalFormat );
@@ -1501,7 +1634,7 @@ image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height
 	image->texture->target = GL_TEXTURE_2D;
 	image->width = width;
 	image->height = height;
-	image->bits = IF_NOPICMIP;
+	image->bits = IF_NOPICMIP | IF_ALPHA;
 	image->filterType = filterType_t::FT_LINEAR;
 	image->wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -2423,27 +2556,23 @@ R_CreateFogImage
 static void R_CreateFogImage()
 {
 	// Fog image is always created because disabling fog is cheat.
+	constexpr size_t FOG_S = 256;
+	constexpr size_t FOG_T = 32;
+	constexpr size_t channels = 4;
 
-	int   x, y;
-	byte  *data, *ptr;
-	float d;
-	float borderColor[ 4 ];
-
-	constexpr int FOG_S = 256;
-	constexpr int FOG_T = 32;
-
-	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
+	byte *data, *ptr;
+	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * channels );
 
 	// S is distance, T is depth
-	for ( y = 0; y < FOG_T; y++ )
+	for ( size_t y = 0; y < FOG_T; y++ )
 	{
-		for ( x = 0; x < FOG_S; x++ )
+		for ( size_t x = 0; x < FOG_S; x++ )
 		{
-			d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
+			float d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
 
-			ptr[ 0 ] = ptr[ 1 ] = ptr[ 2 ] = 255;
-			ptr[ 3 ] = 255 * d;
-			ptr += 4;
+			ptr[ 0 ] = 255 * d;
+			ptr[ 1 ] = ptr[ 2 ] = ptr[ 3 ] = 255;
+			ptr += channels;
 		}
 	}
 
@@ -2451,17 +2580,15 @@ static void R_CreateFogImage()
 	// the border color at the edges.  OpenGL 1.2 has clamp-to-edge, which does
 	// what we want.
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_RED;
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.fogImage = R_CreateImage( "_fog", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
 	ri.Hunk_FreeTempMemory( data );
 
-	borderColor[ 0 ] = 1.0;
-	borderColor[ 1 ] = 1.0;
-	borderColor[ 2 ] = 1.0;
-	borderColor[ 3 ] = 1;
+ 	vec4_t borderColor;
+ 	Vector4Set( borderColor, 1.0f, 1.0f, 1.0f, 1.0f );
 
 	glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor );
 }
@@ -2656,7 +2783,7 @@ static void R_CreateBlackCubeImage()
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_RED;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -2726,7 +2853,7 @@ static void R_CreateColorGradeImage()
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -2760,6 +2887,8 @@ void R_CreateBuiltinImages()
 
 	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
 
+	imageParams.bits = IF_NOPICMIP | IF_RED;
+
 	// we use a solid black image instead of disabling texturing
 	memset( data, 0, sizeof( data ) );
 	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
@@ -2780,7 +2909,16 @@ void R_CreateBuiltinImages()
 		out[ 1 ] = out[ 3 ] = 255;
 	}
 
+	imageParams.bits = IF_NOPICMIP;
+
+	if ( glConfig.textureRGAvailable )
+	{
+		imageParams.bits |= IF_RG;
+	}
+
 	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+
+	imageParams.bits = IF_NOPICMIP;
 
 	// blue
 	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
@@ -2805,6 +2943,9 @@ void R_CreateBuiltinImages()
 
 	imageParams.bits = IF_NOPICMIP;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+
+	// Don't reuse previously set data, we test the values for selecting the upload format.
+	memset( data, 255, sizeof( data ) );
 
 	for ( image_t * &image : tr.cinematicImage )
 	{
