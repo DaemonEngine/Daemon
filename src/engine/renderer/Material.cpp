@@ -1091,12 +1091,8 @@ void BindShaderFog( Material* material ) {
 
 	// all fogging distance is based on world Z units
 	vec4_t fogDistanceVector;
-	vec3_t local;
-	VectorSubtract( backEnd.orientation.origin, backEnd.viewParms.orientation.origin, local );
-	fogDistanceVector[0] = -backEnd.orientation.modelViewMatrix[2];
-	fogDistanceVector[1] = -backEnd.orientation.modelViewMatrix[6];
-	fogDistanceVector[2] = -backEnd.orientation.modelViewMatrix[10];
-	fogDistanceVector[3] = DotProduct( local, backEnd.viewParms.orientation.axis[0] );
+	VectorCopy( backEnd.viewParms.orientation.axis[ 0 ], fogDistanceVector );
+	fogDistanceVector[ 3 ] = -DotProduct( fogDistanceVector, backEnd.viewParms.orientation.origin );
 
 	// scale the fog vectors based on the fog's thickness
 	VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
@@ -1106,15 +1102,9 @@ void BindShaderFog( Material* material ) {
 	float eyeT;
 	vec4_t fogDepthVector;
 	if ( fog->hasSurface ) {
-		fogDepthVector[0] = fog->surface[0] * backEnd.orientation.axis[0][0] +
-			fog->surface[1] * backEnd.orientation.axis[0][1] + fog->surface[2] * backEnd.orientation.axis[0][2];
-		fogDepthVector[1] = fog->surface[0] * backEnd.orientation.axis[1][0] +
-			fog->surface[1] * backEnd.orientation.axis[1][1] + fog->surface[2] * backEnd.orientation.axis[1][2];
-		fogDepthVector[2] = fog->surface[0] * backEnd.orientation.axis[2][0] +
-			fog->surface[1] * backEnd.orientation.axis[2][1] + fog->surface[2] * backEnd.orientation.axis[2][2];
-		fogDepthVector[3] = -fog->surface[3] + DotProduct( backEnd.orientation.origin, fog->surface );
-
-		eyeT = DotProduct( backEnd.orientation.viewOrigin, fogDepthVector ) + fogDepthVector[3];
+		VectorCopy( fog->surface, fogDepthVector );
+		fogDepthVector[ 3 ] = -fog->surface[ 3 ];
+		eyeT = DotProduct( backEnd.viewParms.orientation.origin, fogDepthVector ) + fogDepthVector[ 3 ];
 	} else {
 		Vector4Set( fogDepthVector, 0, 0, 0, 1 );
 		eyeT = 1; // non-surface fog always has eye inside
@@ -1487,7 +1477,7 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 /* This will only generate a material itself
 A material represents a distinct global OpenGL state (e. g. blend function, depth test, depth write etc.)
 Materials can have a dependency on other materials to make sure that consecutive stages are rendered in the proper order */
-void MaterialSystem::GenerateMaterial( MaterialSurface* surface ) {
+void MaterialSystem::GenerateMaterial( MaterialSurface* surface, int globalFog ) {
 	uint32_t stage = 0;
 	uint32_t previousMaterialID = 0;
 
@@ -1508,7 +1498,7 @@ void MaterialSystem::GenerateMaterial( MaterialSurface* surface ) {
 		surface->stages++;
 	}
 
-	if ( !surface->shader->noFog && surface->fog >= 1 ) {
+	if ( !surface->shader->noFog && surface->fog >= 1 && surface->fog != globalFog ) {
 		uint32_t unused;
 		ProcessStage( surface, surface->shader->fogShader->stages, surface->shader->fogShader, packIDs, stage, unused, true );
 
@@ -2009,6 +1999,11 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 			}
 		}
 	}
+
+	// All material packs currently render depth-writing shaders.
+	// If we were to render depth fade or anything else sampling u_DepthMap with the material system,
+	// we would need to track this on a per-material basis.
+	backEnd.dirtyDepthBuffer = true;
 
 	GL_BindVAO( backEnd.defaultVAO );
 

@@ -2922,6 +2922,7 @@ void GL_TexImage3D( GLenum target, GLint level, GLint internalFormat, GLsizei wi
 void GL_CompressedTexImage2D( GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data, bool isSRGB );
 void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLint yOffset, GLint zOffset, GLsizei width, GLsizei height, GLsizei depth, GLenum internalFormat, GLsizei size, const void *data, bool isSRGB );
 	void R_ShutdownBackend();
+	void RB_PrepareForSamplingDepthMap();
 
 	/*
 	====================================================================

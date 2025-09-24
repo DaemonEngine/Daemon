@@ -34,11 +34,12 @@ uniform colorPack u_ColorGlobal;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
-uniform vec4		u_FogDistanceVector;
-uniform vec4		u_FogDepthVector;
+uniform vec4		u_FogDistanceVector; // view axis, scaled by fog density
+uniform vec4		u_FogDepthVector; // fog plane
 uniform float		u_FogEyeT;
 
-OUT(smooth) vec3	var_Position;
+// var_TexCoords.s is distance from viewer to vertex dotted with view axis
+// var_TexCoords.t is the fraction of the viewer-to-vertex ray which is inside fog
 OUT(smooth) vec2	var_TexCoords;
 OUT(smooth) vec4	var_Color;
 
@@ -71,7 +72,8 @@ void main()
 	gl_Position = u_ModelViewProjectionMatrix * position;
 
 	// transform position into world space
-	var_Position = (u_ModelMatrix * position).xyz;
+	position = u_ModelMatrix * position;
+	position.xyz /= position.w;
 
 	// calculate the length in fog
 	float s = dot(position.xyz, u_FogDistanceVector.xyz) + u_FogDistanceVector.w;

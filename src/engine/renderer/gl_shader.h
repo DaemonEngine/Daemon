@@ -3481,7 +3481,8 @@ class GLShader_fogGlobal :
 	public u_UnprojectMatrix,
 	public u_Color_Float,
 	public u_Color_Uint,
-	public u_FogDistanceVector
+	public u_ViewOrigin,
+	public u_FogDensity
 {
 public:
 	GLShader_fogGlobal();

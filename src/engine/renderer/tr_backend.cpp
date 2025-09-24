@@ -1210,6 +1210,25 @@ void RB_RunVisTests( )
 	}
 }
 
+void RB_PrepareForSamplingDepthMap()
+{
+	if ( !glConfig.textureBarrierAvailable )
+	{
+		return;
+	}
+
+	if ( !backEnd.dirtyDepthBuffer )
+	{
+		return;
+	}
+
+	// Flush depth buffer to make sure it is available for reading in the depth fade
+	// GLSL - prevents https://github.com/DaemonEngine/Daemon/issues/1676
+	glTextureBarrier();
+
+	backEnd.dirtyDepthBuffer = false;
+}
+
 static void RenderDepthTiles()
 {
 	GL_State( GLS_DEPTHTEST_DISABLE );
@@ -1225,6 +1244,11 @@ static void RenderDepthTiles()
 		glClearColor( /*max*/ 99999.f, /*min*/ 0.0f, 0.0f, 0.0f );
 		glClear( GL_COLOR_BUFFER_BIT );
 		return;
+	}
+
+	if ( glConfig.usingBindlessTextures )
+	{
+		RB_PrepareForSamplingDepthMap();
 	}
 
 	// 1st step
@@ -1363,6 +1387,8 @@ void RB_RenderGlobalFog()
 
 	GLIMP_LOGCOMMENT( "--- RB_RenderGlobalFog ---" );
 
+	RB_PrepareForSamplingDepthMap();
+
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
 	gl_fogGlobalShader->BindProgram( 0 );
@@ -1377,20 +1403,8 @@ void RB_RenderGlobalFog()
 
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 
-		// all fogging distance is based on world Z units
-		vec4_t fogDistanceVector;
-		vec3_t local;
-		VectorSubtract( backEnd.orientation.origin, backEnd.viewParms.orientation.origin, local );
-		fogDistanceVector[ 0 ] = -backEnd.orientation.modelViewMatrix[ 2 ];
-		fogDistanceVector[ 1 ] = -backEnd.orientation.modelViewMatrix[ 6 ];
-		fogDistanceVector[ 2 ] = -backEnd.orientation.modelViewMatrix[ 10 ];
-		fogDistanceVector[ 3 ] = DotProduct( local, backEnd.viewParms.orientation.axis[ 0 ] );
-
-		// scale the fog vectors based on the fog's thickness
-		VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
-		fogDistanceVector[ 3 ] *= fog->tcScale;
-
-		gl_fogGlobalShader->SetUniform_FogDistanceVector( fogDistanceVector );
+		gl_fogGlobalShader->SetUniform_FogDensity( fog->tcScale );
+		gl_fogGlobalShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
 		SetUniform_Color( gl_fogGlobalShader, fog->color );
 	}
 
@@ -1508,6 +1522,8 @@ void RB_RenderMotionBlur()
 
 	GLIMP_LOGCOMMENT( "--- RB_RenderMotionBlur ---" );
 
+	RB_PrepareForSamplingDepthMap();
+
 	GL_State( GLS_DEPTHTEST_DISABLE );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
@@ -1546,12 +1562,7 @@ void RB_RenderSSAO()
 
 	GLIMP_LOGCOMMENT( "--- RB_RenderSSAO ---" );
 
-	// Assume depth is dirty since we just rendered depth pass and everything opaque
-	if ( glConfig.textureBarrierAvailable )
-	{
-		glTextureBarrier();
-		backEnd.dirtyDepthBuffer = false;
-	}
+	RB_PrepareForSamplingDepthMap();
 
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -2718,9 +2729,6 @@ static void RB_RenderView( bool depthPass )
 	// draw everything that is translucent
 	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, backEnd.viewParms.viewID );
-
-		// HACK: assume surfaces with depth fade don't use the material system
-		backEnd.dirtyDepthBuffer = true;
 	}
 	RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, DRAWSURFACES_ALL );
 

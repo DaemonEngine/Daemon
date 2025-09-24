@@ -2139,7 +2139,7 @@ void GLShader::PostProcessUniforms() {
 		auto iterNext = FindUniformForOffset( uniformQueue, std140Size );
 		if ( iterNext == uniformQueue.end() ) {
 			// add 1 unit of padding
-			ASSERT( !( *iterNext )->_components ); // array WriteToBuffer impls don't handle padding correctly
+			ASSERT( !_materialSystemUniforms.back()->_components); // array WriteToBuffer impls don't handle padding correctly
 			++std140Size;
 			++_materialSystemUniforms.back()->_std430Size;
 		} else {
@@ -2639,7 +2639,8 @@ GLShader_fogGlobal::GLShader_fogGlobal() :
 	u_UnprojectMatrix( this ),
 	u_Color_Float( this ),
 	u_Color_Uint( this ),
-	u_FogDistanceVector( this )
+	u_ViewOrigin( this ),
+	u_FogDensity( this )
 {
 }
 
