@@ -1824,9 +1824,18 @@ all_linux_ppc64el_default_packages="${all_linux_arm64_default_packages}"
 base_linux_loong64_default_packages="${base_linux_arm64_default_packages}"
 all_linux_loong64_default_packages="${all_linux_arm64_default_packages}"
 
-all_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
-all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
-all_macos_platforms='macos-amd64-default macos-arm64-default'
+supported_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
+supported_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
+supported_macos_platforms='macos-amd64-default macos-arm64-default'
+
+extra_linux_platforms='linux-armel-default linux-riscv64-default linux-ppc64el-default linux-loong64-default'
+
+supported_platforms="${supported_linux_platforms} ${supported_windows_platforms} ${supported_macos_platforms}"
+
+all_linux_platforms="${supported_linux_platforms} ${extra_linux_platforms}"
+all_windows_platforms="${supported_windows_platforms}"
+all_macos_platforms="${supported_macos_platforms}"
+
 all_platforms="${all_linux_platforms} ${all_windows_platforms} ${all_macos_platforms}"
 
 printHelp() {
@@ -1844,10 +1853,14 @@ printHelp() {
 	    ${all_platforms}
 
 	Virtual platforms:
-	    linux   ${all_linux_platforms}
-	    windows ${all_windows_platforms}
-	    macos   ${all_macos_platforms}
-	    all     linux windows macos
+	    supported-linux     ${supported_linux_platforms}
+	    supported-windows   ${supported_windows_platforms}
+	    supported-macos     ${supported_macos_platforms}
+	    supported           supported-linux supported-windows supported-macos
+	    extra-linux         ${extra_linux_platforms}
+	    extra               extra-linux
+	    all-linux           linux extra-linux
+	    all                 supported extra
 
 	Packages:
 	    native-pkgconfig native-nasm native-jwasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk naclruntime wasisdk wasmtime box64
@@ -1960,14 +1973,29 @@ case "${platform}" in
 all)
 	platform_list="${all_platforms}"
 	;;
-linux)
+supported)
+	platform_list="${supported_platforms}"
+	;;
+all-linux)
 	platform_list="${all_linux_platforms}"
 	;;
-windows)
+supported-linux)
+	platform_list="${supported_linux_platforms}"
+	;;
+extra-linux)
+	platform_list="${extra_linux_platforms}"
+	;;
+all-windows)
 	platform_list="${all_windows_platforms}"
 	;;
-macos)
+supported-windows)
+	platform_list="${supported_windows_platforms}"
+	;;
+all-macos)
 	platform_list="${all_macos_platforms}"
+	;;
+supported-macos)
+	platform_list="${supported_macos_platforms}"
 	;;
 *)
 	for known_platform in ${all_platforms}
