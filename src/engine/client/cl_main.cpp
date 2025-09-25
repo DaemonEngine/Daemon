@@ -2143,7 +2143,7 @@ bool CL_InitRenderer()
 		FS_FCloseFile( f );
 	}
 
-	cls.whiteShader = re.RegisterShader( "white", RSF_NOMIP );
+	cls.whiteShader = re.RegisterShader( "white", RSF_NOMIP | RSF_2D );
 
 	g_console_field_width = cls.windowConfig.vidWidth / SMALLCHAR_WIDTH - 2;
 	g_consoleField.SetWidth(g_console_field_width);
