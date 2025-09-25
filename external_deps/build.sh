@@ -678,29 +678,36 @@ build_jpeg() {
 		;;
 	esac
 
-	local jpeg_cmake_args=(-DREQUIRE_SIMD=ON)
+	local jpeg_cmake_args=()
+
+	local SYSTEM_PROCESSOR='unknown'
+	local jpeg_require_simd='OFF'
 
 	case "${PLATFORM}" in
 	*-amd64-*)
-		local SYSTEM_PROCESSOR='x86_64'
+		SYSTEM_PROCESSOR='x86_64'
+		jpeg_require_simd='ON'
 		# Ensure NASM is available
 		nasm --help >/dev/null
 		;;
 	*-i686-*)
-		local SYSTEM_PROCESSOR='i386'
+		SYSTEM_PROCESSOR='i386'
+		jpeg_require_simd='ON'
 		# Ensure NASM is available
 		nasm --help >/dev/null
 		;;
 	*-arm64-*)
-		local SYSTEM_PROCESSOR='aarch64'
+		SYSTEM_PROCESSOR='aarch64'
+		jpeg_require_simd='ON'
 		jpeg_cmake_args+=(-DNEON_INTRINSICS=ON)
 		;;
 	*-armhf-*)
-		local SYSTEM_PROCESSOR='arm'
+		SYSTEM_PROCESSOR='arm'
+		jpeg_require_simd='ON'
 		jpeg_cmake_args+=(-DNEON_INTRINSICS=ON)
 		;;
 	*)
-		log ERROR 'Unsupported platform for JPEG'
+		log WARNING 'Unknown platform for JPEG'
 		;;
 	esac
 
@@ -725,6 +732,7 @@ build_jpeg() {
 		-DENABLE_STATIC="${LIBS_STATIC}" \
 		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" \
 		-DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
+		-DREQUIRE_SIMD=${jpeg_require_simd} \
 		-DWITH_JPEG8=1 \
 		-DWITH_TURBOJPEG=0 \
 		"${jpeg_cmake_args[@]}"
