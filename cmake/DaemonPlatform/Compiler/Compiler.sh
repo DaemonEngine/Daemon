@@ -32,7 +32,7 @@
 set -ueo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-file_path="${script_dir}/DaemonCompiler.c"
+file_path="${script_dir}/Compiler.c"
 
 # PNaCl doesn't work with “-o /dev/null” as it uses the output path as a
 # pattern for temporary files and then the parent folder should be writable.

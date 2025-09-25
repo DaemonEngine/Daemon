@@ -39,8 +39,9 @@ option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for 
 option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
 
 include(ExternalProject)
-include(DaemonBuildInfo)
-include(DaemonPlatform)
+include(DaemonPlatform/Platform)
+# TODO: Delete when Game uses NACL_PIE instead of GAME_PIE.
+set(GAME_PIE ${NACL_PIE})
 
 # Do not report unused native compiler if native vms are not built.
 # If only NACL vms are built, this will be reported in chainloaded build.
