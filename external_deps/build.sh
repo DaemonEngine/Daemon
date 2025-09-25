@@ -1138,7 +1138,7 @@ build_naclsdk() {
 		local NACLSDK_ARCH=x86_32
 		local DAEMON_ARCH=i686
 		;;
-	*-amd64-*|macos-arm64-*)
+	*-amd64-*|macos-arm64-*|linux-riscv64-*)
 		local NACLSDK_ARCH=x86_64
 		local DAEMON_ARCH=amd64
 		;;
@@ -1227,6 +1227,9 @@ build_naclruntime() {
 		;;
 	linux-armel-*)
 		nacl_arch_list+=('armhf')
+		;;
+	linux-riscv64-*)
+		nacl_arch_list+=('amd64')
 		;;
 	macos-amd64-*)
 		nacl_arch_list+=('amd64')
@@ -1546,6 +1549,8 @@ common_setup_arch() {
 		CFLAGS+=' -mfpu=vfp -mfloat-abi=softfp'
 		CXXFLAGS+=' -mfpu=vfp -mfloat-abi=softfp'
 		;;
+	*-riscv64-*)
+		;;
 	*-native-*)
 		;;
 	*)
@@ -1728,6 +1733,12 @@ setup_linux-arm64-default() {
 	common_setup linux aarch64-unknown-linux-gnu
 }
 
+# Set up environment for 64-bit little-endian riscv Linux
+setup_linux-riscv64-default() {
+	setup_default
+	common_setup linux riscv64-unknown-linux-gnu
+}
+
 # Set up environment for native host tools
 setup_native() {
 	setup_default
@@ -1781,6 +1792,9 @@ all_linux_armel_default_packages="${all_linux_armhf_default_packages}"
 
 base_linux_arm64_default_packages="${base_linux_amd64_default_packages} box64"
 all_linux_arm64_default_packages="${all_linux_amd64_default_packages} box64"
+
+base_linux_riscv64_default_packages="${base_linux_arm64_default_packages}"
+all_linux_riscv64_default_packages="${all_linux_arm64_default_packages}"
 
 all_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
 all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
@@ -1845,6 +1859,7 @@ printHelp() {
 	    all     ${all_linux_amd64_default_packages}
 
 	linux-arm64-default:
+	linux-riscv64-default:
 	    base    ${base_linux_arm64_default_packages}
 	    all     ${all_linux_arm64_default_packages}
 
