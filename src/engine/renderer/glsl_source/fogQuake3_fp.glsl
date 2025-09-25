@@ -35,7 +35,7 @@ void	main()
 {
 	#insert material_fp
 
-	vec4 color = texture2D(u_FogMap, var_TexCoords);
+	vec4 color = vec4( vec3( 1.0 ), texture2D( u_FogMap, var_TexCoords ).r );
 
 	color *= var_Color;
 

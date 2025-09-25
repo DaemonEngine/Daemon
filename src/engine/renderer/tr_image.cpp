@@ -176,6 +176,7 @@ public:
 			{ GL_RGBA32UI, { "RGBA32UI", 16 } },
 			{ GL_ALPHA16F_ARB, { "A16F", 2 } },
 			{ GL_ALPHA32F_ARB, { "A32F", 4 } },
+			{ GL_RED, { "R8", 1 } },
 			{ GL_R16F, { "R16F", 2 } },
 			{ GL_R32F, { "R32F", 4 } },
 			{ GL_LUMINANCE_ALPHA16F_ARB, { "LA16F", 4 } },
@@ -932,6 +933,18 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	{
 		format = GL_DEPTH_STENCIL;
 		internalFormat = GL_DEPTH24_STENCIL8;
+	}
+	else if ( image->bits & IF_RED )
+	{
+		if( isSRGB && !glConfig2.textureSrgbR8Available )
+		{
+			Log::Warn("red image '%s' cannot be loaded as sRGB", image->name );
+			internalFormat = GL_RGBA8;
+		}
+		else
+		{
+			internalFormat = GL_RED;
+		}
 	}
 	else if ( image->bits & ( IF_RGBA16F | IF_RGBA32F | IF_TWOCOMP16F | IF_TWOCOMP32F | IF_ONECOMP16F | IF_ONECOMP32F ) )
 	{
@@ -2424,26 +2437,23 @@ static void R_CreateFogImage()
 {
 	// Fog image is always created because disabling fog is cheat.
 
-	int   x, y;
-	byte  *data, *ptr;
-	float d;
-	float borderColor[ 4 ];
+	constexpr size_t FOG_S = 256;
+	constexpr size_t FOG_T = 32;
+	constexpr size_t channels = 4;
 
-	constexpr int FOG_S = 256;
-	constexpr int FOG_T = 32;
-
-	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
+	byte *data, *ptr;
+	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * channels );
 
 	// S is distance, T is depth
-	for ( y = 0; y < FOG_T; y++ )
+	for ( size_t y = 0; y < FOG_T; y++ )
 	{
-		for ( x = 0; x < FOG_S; x++ )
+		for ( size_t x = 0; x < FOG_S; x++ )
 		{
-			d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
+			float d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
 
-			ptr[ 0 ] = ptr[ 1 ] = ptr[ 2 ] = 255;
-			ptr[ 3 ] = 255 * d;
-			ptr += 4;
+			ptr[ 0 ] = 255 * d;
+			ptr[ 1 ] = ptr[ 2 ] = ptr[ 3 ] = 255;
+			ptr += channels;
 		}
 	}
 
@@ -2451,17 +2461,32 @@ static void R_CreateFogImage()
 	// the border color at the edges.  OpenGL 1.2 has clamp-to-edge, which does
 	// what we want.
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_RED;
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.fogImage = R_CreateImage( "_fog", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
+	tr.fogImageNaive = R_CreateImage( "_fogNaive", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
+
+	/* HACK: The previous fog image generator was calibrated for the
+	naive pipeline that was unaware of colorspaces. We need a new fog
+	image generator calibrated for the linear pipeline. It happens that
+	applying an sRGB-to-linear conversion of the alpha channel luckily
+	produces some good-enough results, and since we optimize the alpha
+	channel by storing it in a red-only image, this is very cheap to do.
+	A non-hacky implementation is welcome. */
+	imageParams.bits = IF_NOPICMIP | IF_SRGB;
+	imageParams.bits |= glConfig2.textureSrgbR8Available ? IF_RED : 0;
+
+	tr.fogImageLinear = R_CreateImage( "_fogLinear", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
+
 	ri.Hunk_FreeTempMemory( data );
 
-	borderColor[ 0 ] = 1.0;
-	borderColor[ 1 ] = 1.0;
-	borderColor[ 2 ] = 1.0;
-	borderColor[ 3 ] = 1;
+	/* Just to be safe and not leave a null pointer in the wild.
+	This is modified when a map is loaded. */
+	tr.fogImage = tr.fogImageNaive;
+
+	vec4_t borderColor;
+	Vector4Set( borderColor, 1.0f, 1.0f, 1.0f, 1.0f );
 
 	glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor );
 }

@@ -124,6 +124,8 @@ static Cvar::Cvar<bool> r_ext_texture_integer( "r_ext_texture_integer",
 	"Use GL_EXT_texture_integer if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_ext_texture_rg( "r_ext_texture_rg",
 	"Use GL_EXT_texture_rg if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_ext_texture_srgb_r8( "r_ext_texture_srgb_r8",
+	"Use GL_EXT_texture_sRGB_R8 if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_khr_debug( "r_khr_debug",
 	"Use GL_KHR_debug if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_khr_shader_subgroup( "r_khr_shader_subgroup",
@@ -2033,6 +2035,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_ext_texture_float );
 	Cvar::Latch( r_ext_texture_integer );
 	Cvar::Latch( r_ext_texture_rg );
+	Cvar::Latch( r_ext_texture_srgb_r8 );
 	Cvar::Latch( r_khr_debug );
 	Cvar::Latch( r_khr_shader_subgroup );
 
@@ -2211,6 +2214,8 @@ static void GLimp_InitExtensions()
 
 	// made required in OpenGL 3.0
 	glConfig.textureCompressionRGTCAvailable = LOAD_EXTENSION( ExtFlag_CORE, ARB_texture_compression_rgtc );
+
+	glConfig2.textureSrgbR8Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, EXT_texture_sRGB_R8, r_ext_texture_srgb_r8.Get() );
 
 	// Texture - others
 	glConfig.textureAnisotropyAvailable = false;
