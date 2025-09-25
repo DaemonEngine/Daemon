@@ -2581,6 +2581,11 @@ static void R_CreateCurrentRenderImage()
 
 	tr.currentDepthImage = R_CreateImage( "_currentDepth", nullptr, width, height, 1, imageParams );
 
+	if ( glConfig.usingReadonlyDepth )
+	{
+		tr.readableDepthImage = R_CreateImage( "_readonlyDepth", nullptr, width, height, 1, imageParams );
+	}
+
 	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.GenerateDepthImages( width, height, imageParams );
 	}

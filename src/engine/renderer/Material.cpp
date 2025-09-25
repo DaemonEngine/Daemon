@@ -903,7 +903,7 @@ void BindShaderGeneric3D( Material* material ) {
 	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
-	gl_genericShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.currentDepthImage ) );
+	gl_genericShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.readableDepthImage ) );
 
 	// u_DeformGen
 	gl_genericShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
@@ -1076,7 +1076,7 @@ void BindShaderLiquid( Material* material ) {
 	gl_liquidShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
 	// depth texture
-	gl_liquidShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.currentDepthImage ) );
+	gl_liquidShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.readableDepthImage ) );
 
 	// bind u_PortalMap
 	gl_liquidShaderMaterial->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );

@@ -92,6 +92,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<bool> r_overbrightIgnoreMapSettings("r_overbrightIgnoreMapSettings", "force usage of r_overbrightDefaultClamp / r_overbrightDefaultExponent, ignoring worldspawn", Cvar::NONE, false);
 	Cvar::Range<Cvar::Cvar<int>> r_lightMode("r_lightMode", "lighting mode: 0: fullbright (cheat), 1: vertex light, 2: grid light (cheat), 3: light map", Cvar::NONE, Util::ordinal(lightMode_t::MAP), Util::ordinal(lightMode_t::FULLBRIGHT), Util::ordinal(lightMode_t::MAP));
 	Cvar::Cvar<bool> r_colorGrading( "r_colorGrading", "Use color grading", Cvar::NONE, true );
+	static Cvar::Range<Cvar::Cvar<int>> r_copyDepthBuffer(
+		"r_copyDepthBuffer", "sample depth from a copy of the depth texture: 0 = no (unsafe), 1 = if necessary depending on GL features, 2 = yes",
+		Cvar::NONE, 1, 0, 2);
 	Cvar::Cvar<bool> r_preferBindlessTextures( "r_preferBindlessTextures", "use bindless textures even when material system is off", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_materialSystem( "r_materialSystem", "Use Material System", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_gpuFrustumCulling( "r_gpuFrustumCulling", "Use frustum culling on the GPU for the Material System", Cvar::NONE, true );
@@ -867,8 +870,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		   bound.
 		 */
 
-		GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-		GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, 0 );
+		GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
 		glState.currentFBO = nullptr;
 
 		GL_PolygonMode( GL_FRONT_AND_BACK, GL_FILL );
@@ -949,7 +951,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("GL_TEXTURE_MAX_ANISOTROPY_EXT: %f", glConfig.maxTextureAnisotropy );
 		}
 
-		Log::Notice("GL_MAX_RENDERBUFFER_SIZE: %d", glConfig.maxRenderbufferSize );
 		Log::Notice("GL_MAX_COLOR_ATTACHMENTS: %d", glConfig.maxColorAttachments );
 
 		Log::Notice("PIXELFORMAT: color(%d-bits)", glConfig.colorBits );
@@ -1195,6 +1196,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Cvar::Latch( r_realtimeLighting );
 		Cvar::Latch( r_realtimeLightLayers );
+		Cvar::Latch( r_copyDepthBuffer );
 		Cvar::Latch( r_preferBindlessTextures );
 		Cvar::Latch( r_materialSystem );
 
@@ -1411,11 +1413,29 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			backEndData[ 1 ] = nullptr;
 		}
 
+		switch ( r_copyDepthBuffer.Get() )
+		{
+		case 0:
+			glConfig.usingReadonlyDepth = false;
+			break;
+		case 1:
+			glConfig.usingReadonlyDepth = !glConfig.textureBarrierAvailable;
+			break;
+		case 2:
+			glConfig.usingReadonlyDepth = true;
+			break;
+		}
+
 		R_ToggleSmpFrame();
 
 		R_InitImages();
 
 		R_InitFBOs();
+
+		if ( !glConfig.usingReadonlyDepth )
+		{
+			tr.readableDepthImage = tr.currentDepthImage;
+		}
 
 		R_InitVBOs();
 
