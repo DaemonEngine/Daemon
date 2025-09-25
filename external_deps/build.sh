@@ -598,29 +598,42 @@ build_jpeg() {
 		;;
 	esac
 
-	local jpeg_cmake_args=(-DREQUIRE_SIMD=ON)
+	local jpeg_cmake_args=()
+
+	local SYSTEM_PROCESSOR='unknown'
+	local jpeg_require_simd='OFF'
 
 	case "${PLATFORM}" in
 	*-amd64-*)
-		local SYSTEM_PROCESSOR='x86_64'
+		SYSTEM_PROCESSOR='x86_64'
+		jpeg_require_simd='ON'
 		# Ensure NASM is available
 		nasm --help >/dev/null
 		;;
 	*-i686-*)
-		local SYSTEM_PROCESSOR='i386'
+		SYSTEM_PROCESSOR='i386'
+		jpeg_require_simd='ON'
 		# Ensure NASM is available
 		nasm --help >/dev/null
 		;;
 	*-arm64-*)
-		local SYSTEM_PROCESSOR='aarch64'
+		SYSTEM_PROCESSOR='aarch64'
+		jpeg_require_simd='ON'
 		jpeg_cmake_args+=(-DNEON_INTRINSICS=ON)
 		;;
 	*-armhf-*)
-		local SYSTEM_PROCESSOR='arm'
+		SYSTEM_PROCESSOR='arm'
+		jpeg_require_simd='ON'
 		jpeg_cmake_args+=(-DNEON_INTRINSICS=ON)
 		;;
+	*-riscv64-*)
+		# There is no riscv64 code implemented in libjpeg yet, but we can build it without SIMD code.
+		# This string will only be used for warnings like that:
+		# > SIMD extensions not available for this CPU (riscv64). Performance will suffer.
+		SYSTEM_PROCESSOR='riscv64'
+		;;
 	*)
-		log ERROR 'Unsupported platform for JPEG'
+		log WARNING 'Unknown platform for JPEG'
 		;;
 	esac
 
@@ -645,6 +658,7 @@ build_jpeg() {
 		-DENABLE_STATIC="${LIBS_STATIC}" \
 		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" \
 		-DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
+		-DREQUIRE_SIMD=${jpeg_require_simd} \
 		-DWITH_JPEG8=1 \
 		-DWITH_TURBOJPEG=0 \
 		"${jpeg_cmake_args[@]}"
@@ -1328,6 +1342,8 @@ common_setup_arch() {
 		CFLAGS+=' -march=armv7-a -mfpu=neon'
 		CXXFLAGS+=' -march=armv7-a -mfpu=neon'
 		;;
+	*-riscv64-*)
+		;;
 	*)
 		log ERROR 'Unsupported platform'
 		;;
@@ -1439,6 +1455,11 @@ setup_linux-arm64-default() {
 	common_setup linux aarch64-unknown-linux-gnu
 }
 
+# Set up environment for 64-bit riscv Linux
+setup_linux-riscv64-default() {
+	common_setup linux riscv64-unknown-linux-gnu
+}
+
 base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck genlib'
 all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
 
@@ -1466,10 +1487,16 @@ all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp o
 base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
 all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
 
-all_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
-all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
-all_macos_platforms='macos-amd64-default'
-all_platforms="${all_linux_platforms} ${all_windows_platforms} ${all_macos_platforms}"
+base_linux_riscv64_default_packages='sdl3'
+all_linux_riscv64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses'
+
+supported_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
+supported_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
+supported_macos_platforms='macos-amd64-default'
+supported_platforms="${supported_linux_platforms} ${supported_windows_platforms} ${supported_macos_platforms}"
+
+extra_linux_platforms='linux-riscv64-default'
+extra_platforms="${extra_linux_platforms}"
 
 printHelp() {
 	# Please align to 4-space tabs.
@@ -1482,14 +1509,17 @@ printHelp() {
 	    --download-only only download source packages, do not build them
 	    --prefer-ours   attempt to download from unvanquished.net first
 
-	Platforms:
-	    ${all_platforms}
+	Supported platforms:
+	    ${supported_platforms}
 
-	Virtual platforms:
-	    linux   ${all_linux_platforms}
-	    windows ${all_windows_platforms}
-	    macos   ${all_macos_platforms}
+	Supported virtual platforms:
+	    linux   ${supported_linux_platforms}
+	    windows ${supported_windows_platforms}
+	    macos   ${supported_macos_platforms}
 	    all     linux windows macos
+
+	Extra platforms:
+	    ${extra_platforms}
 
 	Packages:
 	    pkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
@@ -1529,6 +1559,10 @@ printHelp() {
 	linux-armhf-default:
 	    base    ${base_linux_arm64_default_packages}
 	    all     ${all_linux_arm64_default_packages}
+
+	linux-riscv64-default:
+	    base    ${base_linux_riscv64_default_packages}
+	    all     ${all_linux_riscv64_default_packages}
 
 	EOF
 	
@@ -1595,19 +1629,19 @@ platform="${1}"; shift
 platform_list=''
 case "${platform}" in
 'all')
-	platform_list="${all_platforms}"
+	platform_list="${supported_platforms}"
 ;;
 'linux')
-	platform_list="${all_linux_platforms}"
+	platform_list="${supported_linux_platforms}"
 ;;
 'windows')
-	platform_list="${all_windows_platforms}"
+	platform_list="${supported_windows_platforms}"
 ;;
 'macos')
-	platform_list="${all_macos_platforms}"
+	platform_list="${supported_macos_platforms}"
 ;;
 *)
-	for known_platform in ${all_platforms}
+	for known_platform in ${supported_platforms} ${extra_platforms}
 	do
 		if [ "${platform}" = "${known_platform}" ]
 		then
