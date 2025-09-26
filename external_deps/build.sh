@@ -262,7 +262,12 @@ build_pkgconfig() {
 
 	cd "${dir_name}"
 
-	CFLAGS="${CFLAGS} -Wno-error=int-conversion" \
+	# Reset the environment variables, we don't cross-compile this,
+	# it is part of the cross-compilation toolchain.
+	# CXXFLAGS is unused.
+	CFLAGS='-Wno-error=int-conversion' \
+	LDFLAGS='' \
+	HOST='' \
 	configure_build \
 		--with-internal-glib
 }
