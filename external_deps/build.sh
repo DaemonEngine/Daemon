@@ -609,6 +609,11 @@ build_glew() {
 		glew_env+=(CFLAGS.EXTRA="${CFLAGS}")
 		glew_options+=(LIBDIR="${PREFIX}/lib" LD="${CC}")
 		;;
+	freebsd-*-*)
+		glew_env+=(CFLAGS.EXTRA="${CFLAGS}")
+		sed -e 's/ -soname / -Wl,-soname=/' config/Makefile.freebsd > config/Makefile.freebsd-fix
+		glew_options+=(SYSTEM=freebsd-fix LD="${CC}")
+		;;
 	*)
 		log ERROR 'Unsupported platform for GLEW'
 		;;
