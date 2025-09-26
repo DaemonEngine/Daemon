@@ -1823,7 +1823,9 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 			// Detect built-in images by naming convention.
 			switch ( image->name[ 0 ] )
 			{
+				// Private images not meant to be reused (like framebuffers, UI-generated images…).
 				case '*':
+				// Public images reusable by the user, like $white that can be used in .shader files.
 				case '$':
 					return image;
 					break;
