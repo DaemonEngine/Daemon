@@ -1437,7 +1437,7 @@ setup_macos-amd64-default() {
 	MACOS_ARCH=x86_64
 	# OpenAL requires 10.14.
 	export MACOSX_DEPLOYMENT_TARGET=10.14 # works with CMake
-	common_setup macos x86_64-apple-darwin11
+	common_setup macos "x86_64-apple-macosx${MACOSX_DEPLOYMENT_TARGET}"
 }
 
 # Set up environment for 32-bit i686 Linux
