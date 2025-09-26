@@ -770,6 +770,7 @@ build_openal() {
 		cd "${dir_name}"
 
 		cmake_build \
+			-DALSOFT_UTILS=OFF \
 			"${openal_cmake_args[@]}"
 		;;
 	esac
