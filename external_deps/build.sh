@@ -249,7 +249,7 @@ cmake_build() {
 	cmake --install build --strip
 }
 
-# Build pkg-config, needed for opusfile and SDL3.
+# Build pkg-config, needed for opusfile.
 # As a host-mode dependency it must be provided by the system when cross-compiling.
 build_pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
