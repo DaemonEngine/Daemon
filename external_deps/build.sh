@@ -1018,7 +1018,7 @@ build_naclsdk() {
 		local NACLSDK_ARCH=x86_32
 		local DAEMON_ARCH=i686
 		;;
-	*-amd64-*)
+	*-amd64-*|macos-arm64-*)
 		local NACLSDK_ARCH=x86_64
 		local DAEMON_ARCH=amd64
 		;;
@@ -1440,6 +1440,15 @@ setup_macos-amd64-default() {
 	common_setup macos "x86_64-apple-macosx${MACOSX_DEPLOYMENT_TARGET}"
 }
 
+# Set up environment for 64-bit arm64 macOS
+setup_macos-arm64-default() {
+	MACOS_ARCH=arm64
+	# First macOS supporting the Apple M1.
+	export MACOSX_DEPLOYMENT_TARGET=11.0
+	# Some old configure-based build like opusfile doen't recognize the arm64-apple prefix.
+	common_setup macos "aarch64-apple-macosx${MACOSX_DEPLOYMENT_TARGET}"
+}
+
 # Set up environment for 32-bit i686 Linux
 setup_linux-i686-default() {
 	common_setup linux i686-unknown-linux-gnu
@@ -1480,6 +1489,9 @@ all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
+base_macos_arm64_default_packages='pkgconfig gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+all_macos_arm64_default_packages="${base_macos_arm64_default_packages}"
+
 base_linux_i686_default_packages='sdl3 naclsdk'
 all_linux_i686_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
 
@@ -1501,7 +1513,8 @@ supported_macos_platforms='macos-amd64-default'
 supported_platforms="${supported_linux_platforms} ${supported_windows_platforms} ${supported_macos_platforms}"
 
 extra_linux_platforms='linux-riscv64-default'
-extra_platforms="${extra_linux_platforms}"
+extra_macos_platforms='macos-arm64-default'
+extra_platforms="${extra_linux_platforms} ${extra_macos_platforms}"
 
 printHelp() {
 	# Please align to 4-space tabs.
@@ -1550,6 +1563,10 @@ printHelp() {
 
 	macos-amd64-default:
 	    base    ${base_macos_amd64_default_packages}
+	    all     same
+
+	macos-arm64-default:
+	    base    ${base_macos_arm64_default_packages}
 	    all     same
 
 	linux-amd64-default:
