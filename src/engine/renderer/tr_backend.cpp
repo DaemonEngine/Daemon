@@ -1838,9 +1838,9 @@ static void RB_RenderDebugUtils()
 
 			skel = nullptr;
 
-			if ( ent->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
+			if ( ent->skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
 			{
-				skel = &ent->e.skeleton;
+				skel = &ent->skeleton;
 			}
 			else
 			{
