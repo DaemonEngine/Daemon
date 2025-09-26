@@ -533,7 +533,7 @@ class GLUniformSampler : protected GLUniform {
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 
 		if ( !_shader->UseMaterialSystem() ) {
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 		}
 
 		return p->uniformLocations[_locationIndex];
@@ -631,7 +631,7 @@ protected:
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 #if defined( USE_UNIFORM_FIREWALL )
 		int *firewall = ( int * ) &p->uniformFirewall[ _firewallIndex ];
@@ -675,7 +675,7 @@ class GLUniform1ui : protected GLUniform {
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 #if defined( USE_UNIFORM_FIREWALL )
 		uint* firewall = ( uint* ) &p->uniformFirewall[_firewallIndex];
@@ -718,7 +718,7 @@ class GLUniform1Bool : protected GLUniform {
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 #if defined( USE_UNIFORM_FIREWALL )
 		int* firewall = ( int* ) &p->uniformFirewall[_firewallIndex];
@@ -764,7 +764,7 @@ protected:
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 #if defined( USE_UNIFORM_FIREWALL )
 		float *firewall = ( float * ) &p->uniformFirewall[ _firewallIndex ];
@@ -812,7 +812,7 @@ protected:
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 		glUniform1fv( p->uniformLocations[ _locationIndex ], numFloats, f );
 	}
@@ -841,7 +841,7 @@ protected:
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 #if defined( USE_UNIFORM_FIREWALL )
 		vec2_t *firewall = ( vec2_t * ) &p->uniformFirewall[ _firewallIndex ];
@@ -892,7 +892,7 @@ protected:
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 #if defined( USE_UNIFORM_FIREWALL )
 		vec3_t *firewall = ( vec3_t * ) &p->uniformFirewall[ _firewallIndex ];
@@ -943,7 +943,7 @@ protected:
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 #if defined( USE_UNIFORM_FIREWALL )
 		vec4_t *firewall = ( vec4_t * ) &p->uniformFirewall[ _firewallIndex ];
@@ -991,7 +991,7 @@ protected:
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 		glUniform4fv( p->uniformLocations[ _locationIndex ], numV, &v[ 0 ][ 0 ] );
 	}
@@ -1025,7 +1025,7 @@ protected:
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 #if defined( USE_UNIFORM_FIREWALL )
 		matrix_t *firewall = ( matrix_t * ) &p->uniformFirewall[ _firewallIndex ];
@@ -1069,7 +1069,7 @@ class GLUniformMatrix32f : protected GLUniform {
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 		glUniformMatrix3x2fv( p->uniformLocations[_locationIndex], 1, transpose, m );
 	}
@@ -1101,7 +1101,7 @@ protected:
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 		glUniformMatrix4fv( p->uniformLocations[ _locationIndex ], numMatrices, transpose, &m[ 0 ][ 0 ] );
 	}
@@ -1134,7 +1134,7 @@ protected:
 			return;
 		}
 
-		ASSERT_EQ( p, glState.currentProgram );
+		DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 		glUniformMatrix3x4fv( p->uniformLocations[ _locationIndex ], numMatrices, transpose, m );
 	}
@@ -3793,7 +3793,6 @@ class GlobalUBOProxy :
 	public u_ColorMap3D,
 	public u_DepthMap,
 	public u_PortalMap,
-	public u_FogMap,
 	public u_DepthTile1,
 	public u_DepthTile2,
 	public u_LightTiles,

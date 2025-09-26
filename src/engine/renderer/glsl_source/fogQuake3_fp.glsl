@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #insert fogEquation_fp
 
-#define FOGQUAKE3_GLSL
+#define DEPTHMAP_GLSL
 
 uniform float u_FogEyeT;
 

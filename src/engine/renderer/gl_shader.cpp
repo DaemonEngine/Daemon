@@ -2184,7 +2184,7 @@ GLuint GLShaderManager::SortUniforms( std::vector<GLUniform*>& uniforms ) {
 		auto iterNext = FindUniformForOffset( uniformQueue, structSize );
 		if ( iterNext == uniformQueue.end() ) {
 			// add 1 unit of padding
-			ASSERT( !_materialSystemUniforms.back()->_components); // array WriteToBuffer impls don't handle padding correctly
+			ASSERT( !uniforms.back()->_components ); // array WriteToBuffer impls don't handle padding correctly
 			++structSize;
 			++uniforms.back()->_std430Size;
 		} else {
@@ -3078,7 +3078,6 @@ GlobalUBOProxy::GlobalUBOProxy() :
 	u_ColorMap3D( this ),
 	u_DepthMap( this ),
 	u_PortalMap( this ),
-	u_FogMap( this ),
 	u_DepthTile1( this ),
 	u_DepthTile2( this ),
 	u_LightTiles( this ),

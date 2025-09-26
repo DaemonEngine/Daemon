@@ -4663,10 +4663,6 @@ static void SetConstUniforms() {
 
 		globalUBOProxy->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
 
-		globalUBOProxy->SetUniform_FogMapBindless(
-			GL_BindToTMU( 0, tr.fogImage )
-		);
-
 		if ( glConfig.realtimeLighting ) {
 			globalUBOProxy->SetUniform_DepthTile1Bindless(
 				GL_BindToTMU( 0, tr.depthtile1RenderImage )
