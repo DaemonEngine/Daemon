@@ -1820,16 +1820,12 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 
 			// Built-in images can't be reloaded with different parameters, so return them as-is.
 			// For most of the usable ones e.g. $white, parameters wouldn't make a difference anyway.
-			// HACK: detect built-in images by naming convention, though nothing stops users from using such names
+			// Detect built-in images by naming convention.
 			switch ( image->name[ 0 ] )
 			{
-				case '_':
 				case '*':
 				case '$':
-					if ( !strchr( image->name, '/' ) )
-					{
-						return image;
-					}
+					return image;
 					break;
 				default:
 					break;
