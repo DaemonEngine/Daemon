@@ -534,6 +534,10 @@ build_glew() {
 		glew_env+=(CFLAGS.EXTRA="${CFLAGS}")
 		glew_options+=(LIBDIR="${PREFIX}/lib" LD="${CC}")
 		;;
+	freebsd-*-*)
+		glew_env+=(CFLAGS.EXTRA="${CFLAGS}")
+		glew_options+=(SYSTEM=freebsd LD="${CC}")
+		;;
 	*)
 		log ERROR 'Unsupported platform for GLEW'
 		;;
@@ -604,6 +608,9 @@ build_jpeg() {
 		;;
 	linux-*-*)
 		local SYSTEM_NAME='Linux'
+		;;
+	freebsd-*-*)
+		local SYSTEM_NAME='FreeBSD'
 		;;
 	*)
 		# Other platforms can build but we need to explicitly
@@ -942,6 +949,9 @@ build_wasisdk() {
 	linux-*-*)
 		local WASISDK_PLATFORM=linux
 		;;
+	*)
+		log ERROR "wasi doesn't have release for ${PLATFORM}"
+		;;
 	esac
 	case "${PLATFORM}" in
 	*-amd64-*)
@@ -977,6 +987,9 @@ build_wasmtime() {
 	linux-*-*)
 		local WASMTIME_PLATFORM=linux
 		local ARCHIVE_EXT=tar.xz
+		;;
+	*)
+		log ERROR "wasmtime doesn't have release for ${PLATFORM}"
 		;;
 	esac
 	case "${PLATFORM}" in
@@ -1017,7 +1030,7 @@ build_naclsdk() {
 		local EXE=
 		local TAR_EXT=tar
 		;;
-	linux-*-*)
+	linux-*-*|freebsd-*-*)
 		local NACLSDK_PLATFORM=linux
 		local EXE=
 		local TAR_EXT=tar
@@ -1047,7 +1060,7 @@ build_naclsdk() {
 
 	cp pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 	case "${PLATFORM}" in
-	linux-amd64-*)
+	linux-amd64-*|freebsd-amd64-*)
 		;; # Get sel_ldr from naclruntime package
 	*)
 		cp pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/nacl_loader${EXE}"
@@ -1077,7 +1090,7 @@ build_naclsdk() {
 		cp pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/nacl_loader-amd64.exe"
 		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-amd64.nexe"
 		;;
-	linux-amd64-*)
+	linux-amd64-*|freebsd-amd64-*)
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		;;
@@ -1258,7 +1271,7 @@ build_install() {
 		# Fix import lib paths to use MSVC-style instead of MinGW ones (see 'genlib' target)
 		find "${PKG_PREFIX}/lib/cmake" -name '*.cmake' -execdir sed -i -E 's@[.]dll[.]a\b@.lib@g' {} \;
 		;;
-	linux-*-*)
+	linux-*-*|freebsd-*-*)
 		find "${PKG_PREFIX}/lib" -name '*.so' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.so.*' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*_g.a' -execdir rm -f -- {} \;
@@ -1416,6 +1429,15 @@ common_setup_linux() {
 	CXXFLAGS+=' -fPIC'
 }
 
+common_setup_freebsd() {
+	CC='clang'
+	CXX='clang++'
+	STRIP='strip'
+	CFLAGS+=" -target ${HOST}"
+	CXXFLAGS+=" -target ${HOST}"
+	LDFLAGS+=" -target ${HOST}"
+}
+
 # Set up environment for 32-bit i686 Windows for Visual Studio (compile all as .dll)
 setup_windows-i686-msvc() {
 	BITNESS=32
@@ -1484,6 +1506,11 @@ setup_linux-riscv64-default() {
 	common_setup linux riscv64-unknown-linux-gnu
 }
 
+# Set up environment for 64-bit amd64 FreeBSD
+setup_freebsd-amd64-default() {
+	common_setup freebsd x86_64-unknown-freebsd13.3
+}
+
 base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck genlib'
 all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
 
@@ -1517,6 +1544,10 @@ all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
 base_linux_riscv64_default_packages='sdl3'
 all_linux_riscv64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses'
 
+# FIXME: The naclruntime isn't rebuilt.
+base_freebsd_amd64_default_packages='sdl3 naclsdk'
+all_freebsd_amd64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+
 supported_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
 supported_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
 supported_macos_platforms='macos-amd64-default'
@@ -1524,7 +1555,8 @@ supported_platforms="${supported_linux_platforms} ${supported_windows_platforms}
 
 extra_linux_platforms='linux-riscv64-default'
 extra_macos_platforms='macos-arm64-default'
-extra_platforms="${extra_linux_platforms} ${extra_macos_platforms}"
+extra_freebsd_platforms='freebsd-amd64-default'
+extra_platforms="${extra_linux_platforms} ${extra_macos_platforms} ${extra_freebsd_platforms}"
 
 printHelp() {
 	# Please align to 4-space tabs.
@@ -1595,6 +1627,10 @@ printHelp() {
 	linux-riscv64-default:
 	    base    ${base_linux_riscv64_default_packages}
 	    all     ${all_linux_riscv64_default_packages}
+
+	freebsd-amd64-default:
+	    base    ${base_freebsd_amd64_default_packages}
+	    all     ${all_freebsd_amd64_default_packages}
 
 	EOF
 	
