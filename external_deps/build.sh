@@ -84,6 +84,16 @@ CFLAGS='-O3 -fPIC'
 CXXFLAGS='-O3 -fPIC'
 LDFLAGS='-O3 -fPIC'
 
+case "$(uname -s)" in
+	'FreeBSD')
+		# The builtin make isn't compatible enough.
+		MAKE='gmake'
+	;;
+	*)
+		MAKE='make'
+	;;
+esac
+
 log() {
 	level="${1}"; shift
 	printf '%s: %s\n' "${level}" "${@}" >&2
@@ -202,8 +212,8 @@ configure_build() {
 		--libdir="${PREFIX}/lib" \
 		"${configure_args[@]}"
 
-	make
-	make install
+	"${MAKE}"
+	"${MAKE}" install
 }
 
 get_compiler_name() {
@@ -309,8 +319,8 @@ build_zlib() {
 
 	case "${PLATFORM}" in
 	windows-*-*)
-		LOC="${CFLAGS}" make -f win32/Makefile.gcc PREFIX="${HOST}-"
-		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
+		LOC="${CFLAGS}" "${MAKE}" -f win32/Makefile.gcc PREFIX="${HOST}-"
+		"${MAKE}" -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
 		;;
 	*)
 		CFLAGS="${CFLAGS} -DZLIB_CONST" \
@@ -537,12 +547,12 @@ build_glew() {
 	# manually re-add the required flags there.
 	case "${PLATFORM}" in
 	macos-*-*)
-		make "${glew_env[@]}" "${glew_options[@]}"
-		make install "${glew_env[@]}" "${glew_options[@]}"
+		"${MAKE}" "${glew_env[@]}" "${glew_options[@]}"
+		"${MAKE}" install "${glew_env[@]}" "${glew_options[@]}"
 		;;
 	*)
-		env "${glew_env[@]}" make "${glew_options[@]}"
-		env "${glew_env[@]}" make install "${glew_options[@]}"
+		env "${glew_env[@]}" "${MAKE}" "${glew_options[@]}"
+		env "${glew_env[@]}" "${MAKE}" install "${glew_options[@]}"
 		;;
 	esac
 
