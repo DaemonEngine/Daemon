@@ -1254,6 +1254,7 @@ build_install() {
 	rm -rf "${PKG_PREFIX}/def"
 	rm -rf "${PKG_PREFIX}/share"
 	rm -rf "${PKG_PREFIX}/lib/pkgconfig"
+	rm -rf "${PKG_PREFIX}/libdata/pkgconfig"
 	find "${PKG_PREFIX}/bin" -not -type d -not -name '*.dll' -not -execdir rm -f -- {} \;
 	find "${PKG_PREFIX}/lib" -name '*.la' -execdir rm -f -- {} \;
 	find "${PKG_PREFIX}/lib" -name '*.dll.a' -execdir bash -c 'rm -f -- "$(basename "{}" .dll.a).a"' \;
