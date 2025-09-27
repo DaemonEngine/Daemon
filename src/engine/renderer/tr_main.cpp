@@ -168,7 +168,7 @@ void R_QtangentsToNormal( const i16vec4_t qtangent, vec3_t normal )
 }
 
 void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
-		       const vec3_t normal, i16vec4_t qtangent )
+	const vec3_t normal, i16vec4_t qtangent, bool fast )
 {
 	vec3_t tangent2, binormal2, normal2;
 	vec4_t q;
@@ -292,7 +292,15 @@ void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
 	}
 
 	i16vec4_t resqtangent;
-	floatToSnorm16( q, resqtangent );
+
+	if ( fast )
+	{
+		floatToSnorm16_fast( q, resqtangent );
+	}
+	else
+	{
+		floatToSnorm16( q, resqtangent );
+	}
 
 	if( resqtangent[ 3 ] == 0 )
 	{

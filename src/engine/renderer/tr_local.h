@@ -116,6 +116,15 @@ static inline void floatToSnorm16( const vec4_t in, i16vec4_t out )
 	out[ 3 ] = floatToSnorm16( in[ 3 ] );
 }
 
+static inline void floatToSnorm16_fast( const vec4_t in, i16vec4_t out )
+{
+	// Just truncate them all.
+	out[ 0 ] = in[ 0 ] * 32767.0f;
+	out[ 1 ] = in[ 1 ] * 32767.0f;
+	out[ 2 ] = in[ 2 ] * 32767.0f;
+	out[ 3 ] = in[ 3 ] * 32767.0f;
+}
+
 static inline void snorm16ToFloat( const i16vec4_t in, vec4_t out )
 {
 	out[ 0 ] = snorm16ToFloat( in[ 0 ] );
@@ -2868,7 +2877,13 @@ inline bool checkGLErrors()
 	 *   minimal error.
 	 */
 	void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
-			       const vec3_t normal, i16vec4_t qtangent );
+		const vec3_t normal, i16vec4_t qtangent, bool fast = false );
+
+	inline void R_TBNtoQtangentsFast( const vec3_t tangent, const vec3_t binormal,
+		const vec3_t normal, i16vec4_t qtangent )
+	{
+		R_TBNtoQtangents( tangent, binormal, normal, qtangent, true );
+	}
 
 	void R_QtangentsToTBN( const i16vec4_t qtangent, vec3_t tangent,
 			       vec3_t binormal, vec3_t normal );
