@@ -2794,11 +2794,13 @@ void R_CreateBuiltinImages()
 
 	tr.flatImage = R_CreateImage( "$flat", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
+	/* Generate cinematic frames.
+	It is empty data to be filled by the cinematic code, but
+	we fill it with non-zero values so the format detector keeps all color channels. */
+	memset( data, 255, sizeof( data ) );
+
 	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-
-	// Don't reuse previously set data, we test the values for selecting the upload format.
-	memset( data, 255, sizeof( data ) );
 
 	size_t numCinematicImages = 0;
 	for ( image_t * &image : tr.cinematicImage )
