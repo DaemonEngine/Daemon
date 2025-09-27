@@ -2493,23 +2493,18 @@ R_CreateDefaultImage
 static void R_CreateDefaultImage()
 {
 	constexpr int DEFAULT_SIZE = 128;
-	int  x;
 	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
 	byte *dataPtr = &data[0][0][0];
 
 	// the default image will be a box, to allow you to see the mapping coordinates
 	memset( data, 32, sizeof( data ) );
 
-	for ( x = 0; x < DEFAULT_SIZE; x++ )
+	for ( int x = 0; x < DEFAULT_SIZE; x++ )
 	{
-		data[ 0 ][ x ][ 0 ] = data[ 0 ][ x ][ 1 ] = data[ 0 ][ x ][ 2 ] = data[ 0 ][ x ][ 3 ] = 255;
-		data[ x ][ 0 ][ 0 ] = data[ x ][ 0 ][ 1 ] = data[ x ][ 0 ][ 2 ] = data[ x ][ 0 ][ 3 ] = 255;
-
-		data[ DEFAULT_SIZE - 1 ][ x ][ 0 ] =
-		  data[ DEFAULT_SIZE - 1 ][ x ][ 1 ] = data[ DEFAULT_SIZE - 1 ][ x ][ 2 ] = data[ DEFAULT_SIZE - 1 ][ x ][ 3 ] = 255;
-
-		data[ x ][ DEFAULT_SIZE - 1 ][ 0 ] =
-		  data[ x ][ DEFAULT_SIZE - 1 ][ 1 ] = data[ x ][ DEFAULT_SIZE - 1 ][ 2 ] = data[ x ][ DEFAULT_SIZE - 1 ][ 3 ] = 255;
+		Vector4Set( data[ 0 ][ x ], 255, 255, 255, 255 );
+		Vector4Set( data[ x ][ 0 ], 255, 255, 255, 255 );
+		Vector4Set( data[ DEFAULT_SIZE - 1 ][ x ], 255, 255, 255, 255 );
+		Vector4Set( data[ x ][ DEFAULT_SIZE - 1 ], 255, 255, 255, 255 );
 	}
 
 	imageParams_t imageParams = {};
