@@ -36,6 +36,8 @@ IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
 
 #if defined(USE_DEPTH_FADE)
+	#define DEPTHMAP_GLSL
+
 IN(smooth) float        var_FadeDepth;
 uniform sampler2D       u_DepthMap;
 #endif
