@@ -850,7 +850,6 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	const byte *data;
 	byte       *scaledBuffer = nullptr;
 	int        mipWidth, mipHeight, mipLayers, mipSize, blockSize = 0;
-	int        i, c;
 	const byte *scan;
 
 	bool isSRGB = image->bits & IF_SRGB;
@@ -1066,7 +1065,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 
 			internalFormat = GL_RGB8;
 
-			c = image->width * image->height;
+			int c = image->width * image->height;
 
 			/* A normalmap may have the heightmap in the alpha channel,
 			an opaque alpha channel means no displacement, so we can enable
@@ -1076,7 +1075,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 			{
 				scan = dataArray[ l ];
 
-				for ( i = 0; i < c * 4; i += 4 )
+				for ( int i = 0; i < c * 4; i += 4 )
 				{
 					if ( scan[ i + 3 ] != 255 )
 					{
@@ -1100,13 +1099,13 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 			bool hasGreen = false;
 			bool hasBlue = false;
 
-			c = image->width * image->height;
+			int c = image->width * image->height;
 
 			for ( int l = 0; l < numLayers; l++ )
 			{
 				scan = dataArray[ l ];
 
-				for ( i = 0; i < c * 4; i += 4 )
+				for ( int i = 0; i < c * 4; i += 4 )
 				{
 					if ( scan[ i + 2 ] != 0 )
 					{
@@ -1204,7 +1203,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		mipHeight = scaledHeight;
 		mipLayers = numLayers;
 
-		for( i = 0; i < numMips; i++ ) {
+		for( int i = 0; i < numMips; i++ ) {
 			GL_TexImage3D( GL_TEXTURE_3D, i, internalFormat, scaledWidth, scaledHeight, mipLayers, 0, format, GL_UNSIGNED_BYTE, nullptr, isSRGB );
 
 			if( mipWidth  > 1 ) mipWidth  >>= 1;
@@ -1217,7 +1216,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		if( dataArray )
 			scaledBuffer = (byte*) ri.Hunk_AllocateTempMemory( sizeof( byte ) * scaledWidth * scaledHeight * 4 );
 
-		for ( i = 0; i < numLayers; i++ )
+		for ( int i = 0; i < numLayers; i++ )
 		{
 			if( dataArray )
 				data = dataArray[ i ];
@@ -1238,7 +1237,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 				}
 
 				if( image->bits & IF_NORMALMAP ) {
-					c = scaledWidth * scaledHeight;
+					int c = scaledWidth * scaledHeight;
 					for ( int j = 0; j < c; j++ )
 					{
 						vec3_t n;
@@ -1306,7 +1305,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		mipHeight = scaledHeight;
 		mipLayers = numLayers;
 
-		for ( i = 0; i < numMips; i++ )
+		for ( int i = 0; i < numMips; i++ )
 		{
 			mipSize = ((mipWidth + 3) >> 2)
 			  * ((mipHeight + 3) >> 2) * blockSize;
