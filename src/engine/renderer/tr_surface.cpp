@@ -1120,7 +1120,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 			VectorNormalizeFast( binormal );
 			VectorCopy( position, tessVertex->xyz );
 
-			R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
+			R_TBNtoQtangentsFast( tangent, binormal, normal, tessVertex->qtangents );
 
 			Vector2Copy( surfaceVertex->texCoords, tessVertex->texCoords );
 		}
@@ -1325,7 +1325,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 				VectorNormalizeFast( binormal );
 				VectorCopy( position, tessVertex->xyz );
 
-				R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
+				R_TBNtoQtangentsFast( tangent, binormal, normal, tessVertex->qtangents );
 
 				Vector2Copy( modelTexcoord, tessVertex->texCoords );
 			}
@@ -1342,7 +1342,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 		{
 			VectorScale( modelPosition, scale, tessVertex->xyz );
 
-			R_TBNtoQtangents( modelTangent, modelBitangent, modelNormal, tessVertex->qtangents );
+			R_TBNtoQtangentsFast( modelTangent, modelBitangent, modelNormal, tessVertex->qtangents );
 
 			Vector2Copy( modelTexcoord, tessVertex->texCoords );
 		}
