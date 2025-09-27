@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef TAG_H
 #define TAG_H
 
+#include <source_location>
+
 #include "common/Common.h"
 
 namespace LogExtendedFunctionMode {

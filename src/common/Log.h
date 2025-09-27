@@ -31,12 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_LOG_H_
 #define COMMON_LOG_H_
 
-#include "engine/qcommon/q_shared.h"
-
-#if defined( CPP_SOURCE_LOCATION )
-    #include <source_location>
-#endif
-
 namespace Log {
 
     /*
@@ -262,71 +256,7 @@ namespace Log {
                 ),
                 Level::DEBUG, format );
         }
-
-        template<typename ... Args>
-        void Logger::WarnExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args ) {
-            if ( filterLevel->Get() <= Level::WARNING ) {
-                this->Dispatch(
-                    AddSrcLocation( Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ), srcLocation, logExtendWarn.Get() ),
-                    Level::WARNING, format );
-            }
-        }
-
-        template<typename ... Args>
-        void Logger::NoticeExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args ) {
-            if ( filterLevel->Get() <= Level::NOTICE ) {
-                this->Dispatch(
-                    AddSrcLocation( Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ), srcLocation, logExtendNotice.Get() ),
-                    Level::NOTICE, format );
-            }
-        }
-
-        template<typename ... Args>
-        void Logger::VerboseExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args ) {
-            if ( filterLevel->Get() <= Level::VERBOSE ) {
-                this->Dispatch(
-                    AddSrcLocation( Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ), srcLocation, logExtendVerbose.Get() ),
-                    Level::VERBOSE, format );
-            }
-        }
-
-        template<typename ... Args>
-        void Logger::DebugExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args ) {
-            if ( filterLevel->Get() <= Level::DEBUG ) {
-                this->Dispatch(
-                    AddSrcLocation( Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ), srcLocation, logExtendDebug.Get() ),
-                    Level::DEBUG, format );
-            }
-        }
-    #else
-        template<typename ... Args>
-        void Logger::WarnExt( Str::StringRef format, Args&& ... args ) {
-            if ( filterLevel->Get() <= Level::WARNING ) {
-                this->Dispatch( Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ), Level::WARNING, format );
-            }
-        }
-
-        template<typename ... Args>
-        void Logger::NoticeExt( Str::StringRef format, Args&& ... args ) {
-            if ( filterLevel->Get() <= Level::NOTICE ) {
-                this->Dispatch( Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ), Level::NOTICE, format );
-            }
-        }
-
-        template<typename ... Args>
-        void Logger::VerboseExt( Str::StringRef format, Args&& ... args ) {
-            if ( filterLevel->Get() <= Level::VERBOSE ) {
-                this->Dispatch( Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ), Level::VERBOSE, format );
-            }
-        }
-
-        template<typename ... Args>
-        void Logger::DebugExt( Str::StringRef format, Args&& ... args ) {
-            if ( filterLevel->Get() <= Level::DEBUG ) {
-                this->Dispatch( Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ), Level::DEBUG, format );
-            }
-        }
-    #endif
+    }
 
     template<typename F>
     inline void Logger::DoWarnCode(F&& code) {
