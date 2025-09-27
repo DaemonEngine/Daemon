@@ -642,7 +642,9 @@ elseif (NOT NACL)
 
 	option(USE_CPU_GENERIC_ARCHITECTURE "Enforce generic -march and -mtune compiler options" ON)
 	if (USE_CPU_GENERIC_ARCHITECTURE)
-		try_c_cxx_flag_werror(MARCH "-march=${GCC_GENERIC_ARCH}")
+		if (GCC_GENERIC_ARCH)
+			try_c_cxx_flag_werror(MARCH "-march=${GCC_GENERIC_ARCH}")
+		endif()
 
 		if (GCC_GENERIC_TUNE)
 			try_c_cxx_flag_werror(MTUNE "-mtune=${GCC_GENERIC_TUNE}")

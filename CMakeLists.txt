@@ -218,21 +218,18 @@ set(DEPS_VERSION 11)
 
 option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
 
+macro(set_deps_dir)
+    set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/${DEPS_SYSTEM}-${DEPS_ARCH}-${DEPS_COMPILER}_${DEPS_VERSION})
+endmacro()
+
+set(DEFAULT_USE_EXTERNAL_DEPS_LIBS ON)
+
 if (USE_EXTERNAL_DEPS AND NOT NACL)
     set(EXTERNAL_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external_deps" CACHE STRING "Directory in which to store the downloaded dependencies.")
 
     set(DEPS_EXT ".tar.xz")
 
-    if (WIN32)
-        set(DEPS_SYSTEM windows)
-        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
-    elseif (APPLE)
-        set(DEPS_SYSTEM macos)
-        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64)
-    elseif (LINUX OR FREEBSD)
-        set(DEPS_SYSTEM linux)
-        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686 arm64 armhf)
-    endif()
+    set(DEPS_ARCH "${ARCH}")
 
     if (MSVC)
         set(DEPS_COMPILER msvc)
@@ -242,14 +239,67 @@ if (USE_EXTERNAL_DEPS AND NOT NACL)
         set(DEPS_COMPILER default)
     endif()
 
-    if (DEPS_SYSTEM AND ARCH IN_LIST SUPPORTED_${DEPS_SYSTEM}_ARCH)
-        set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/${DEPS_SYSTEM}-${ARCH}-${DEPS_COMPILER}_${DEPS_VERSION})
+    if (WIN32)
+        set(DEPS_SYSTEM windows)
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
+    elseif (APPLE)
+        set(DEPS_SYSTEM macos)
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64)
+
+        if (ARCH STREQUAL arm64)
+            set(DEPS_ARCH amd64)
+
+            set_deps_dir()
+
+            if (NOT EXISTS ${DEPS_DIR})
+                set(DEFAULT_USE_EXTERNAL_DEPS_LIBS OFF)
+            endif()
+        endif()
+    elseif (LINUX)
+        set(DEPS_SYSTEM linux)
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686 arm64 armhf)
+    elseif (FREEBSD)
+        set(DEPS_SYSTEM freebsd)
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
+
+        set_deps_dir()
+
+        if (NOT EXISTS ${DEPS_DIR})
+            set(DEFAULT_USE_EXTERNAL_DEPS_LIBS OFF)
+            set(DEPS_SYSTEM linux)
+        endif()
+    endif()
+
+    set_deps_dir()
+
+    if (DEPS_SYSTEM AND DEPS_ARCH IN_LIST SUPPORTED_${DEPS_SYSTEM}_ARCH)
+        set(HAS_NACL ON)
 
         if (DAEMON_PARENT_SCOPE_DIR)
             set(DEPS_DIR ${DEPS_DIR} PARENT_SCOPE)
         endif()
     else()
-        message(WARNING "No dependencies are provided for this system, Native Client is likely unsupported.")
+        message(WARNING "No prebuilt dependencies are available for this platform, Native Client is likely unsupported.")
+
+        if (NOT EXISTS ${DEPS_DIR})
+            unset(DEPS_DIR)
+        endif()
+    endif()
+endif()
+
+option(USE_EXTERNAL_DEPS_LIBS "Build and link against libraries from the EXTERNAL_DEPS_DIR" ${DEFAULT_USE_EXTERNAL_DEPS_LIBS})
+
+if (USE_EXTERNAL_DEPS AND NOT NACL)
+    if (DEPS_DIR)
+        message(STATUS "Using external deps dir: ${DEPS_DIR}")
+
+        if (USE_EXTERNAL_DEPS_LIBS)
+            message(STATUS "Building against libraries from external deps dir")
+        else()
+            message(STATUS "Not building against libraries from external deps dir")
+        endif()
+    else()
+        message(STATUS "Not using any external deps dir")
     endif()
 endif()
 
@@ -499,17 +549,19 @@ if (DEPS_DIR)
         endif()
     endif()
 
-    # Add to paths
-    set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH})
-    set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH})
-    set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR}/lib ${CMAKE_FRAMEWORK_PATH})
-    set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH})
-    if (DAEMON_PARENT_SCOPE_DIR)
-        # Also set parent scope so the top level CMakeLists can find precompiled deps
-        set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH} PARENT_SCOPE)
-        set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH} PARENT_SCOPE)
-        set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR} ${CMAKE_FRAMEWORK_PATH} PARENT_SCOPE)
-        set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH} PARENT_SCOPE)
+    if (USE_EXTERNAL_DEPS_LIBS)
+        # Add to paths
+        set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH})
+        set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH})
+        set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR}/lib ${CMAKE_FRAMEWORK_PATH})
+        set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH})
+        if (DAEMON_PARENT_SCOPE_DIR)
+            # Also set parent scope so the top level CMakeLists can find precompiled deps
+            set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH} PARENT_SCOPE)
+            set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH} PARENT_SCOPE)
+            set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR} ${CMAKE_FRAMEWORK_PATH} PARENT_SCOPE)
+            set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH} PARENT_SCOPE)
+        endif()
     endif()
 endif()
 
@@ -871,7 +923,7 @@ macro(AddApplicationInternal Target Executable)
     add_executable(${Target} ${Sources})
     target_link_libraries(${Target} ${A_Target}-objects ${CPP23SupportLibrary})
 
-    if (DEPS_DIR)
+    if (DEPS_DIR AND HAS_NACL)
         add_dependencies(${Target} runtime_deps)
     endif()
 
@@ -1024,7 +1076,7 @@ endif()
 # Runtime dependencies
 ################################################################################
 
-if (DEPS_DIR AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP))
+if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP))
     add_custom_target(runtime_deps)
     set_target_properties(runtime_deps PROPERTIES FOLDER "CMakePlumbing")
 
