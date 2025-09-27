@@ -2024,6 +2024,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_shading_language_420pack );
 	Cvar::Latch( r_arb_shader_storage_buffer_object );
 	Cvar::Latch( r_arb_sync );
+	Cvar::Latch( r_arb_texture_barrier );
 	Cvar::Latch( r_arb_texture_gather );
 	Cvar::Latch( r_arb_uniform_buffer_object );
 	Cvar::Latch( r_arb_vertex_attrib_binding );
