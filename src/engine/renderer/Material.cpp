@@ -127,8 +127,12 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 	pStage->dynamic = pStage->dynamic || pStage->colorDynamic;
 }
 
-// UpdateSurface*() functions will actually write the uniform values to the SSBO
-// Mirrors parts of the Render_*() functions in tr_shade.cpp
+/* UpdateSurfaceData*() functions will write the material uniform values to the UBO
+Mirrors parts of the Render_*() functions in tr_shade.cpp
+
+All of these functions must write stage material data regardless of whether pStage has the related feature enabled,
+because stages here are combined into as few as possible,
+and the stage chosen for storage might not have all of those enabled */
 
 void UpdateSurfaceDataNONE( uint32_t*, shaderStage_t*, bool, bool, bool ) {
 	ASSERT_UNREACHABLE();
@@ -155,10 +159,7 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage, boo
 	Tess_ComputeColor( pStage );
 	gl_genericShaderMaterial->SetUniform_Color_Uint( tess.svars.color );
 
-	bool hasDepthFade = pStage->hasDepthFade;
-	if ( hasDepthFade ) {
-		gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
-	}
+	gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
 
 	gl_genericShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -189,28 +190,22 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, 
 	gl_lightMappingShaderMaterial->SetUniform_AlphaTest( pStage->stateBits );
 
 	// HeightMap
-	if ( pStage->enableReliefMapping ) {
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		depthScale *= shader->reliefDepthScale;
+	float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+	depthScale *= shader->reliefDepthScale;
 
-		gl_lightMappingShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
-		gl_lightMappingShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
-	}
+	gl_lightMappingShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
+	gl_lightMappingShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
 
 	// bind u_NormalScale
-	if ( pStage->enableNormalMapping ) {
-		vec3_t normalScale;
-		SetNormalScale( pStage, normalScale );
+	vec3_t normalScale;
+	SetNormalScale( pStage, normalScale );
 
-		gl_lightMappingShaderMaterial->SetUniform_NormalScale( normalScale );
-	}
+	gl_lightMappingShaderMaterial->SetUniform_NormalScale( normalScale );
 
-	if ( pStage->enableSpecularMapping ) {
-		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+	float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+	float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 
-		gl_lightMappingShaderMaterial->SetUniform_SpecularExponent( specExpMin, specExpMax );
-	}
+	gl_lightMappingShaderMaterial->SetUniform_SpecularExponent( specExpMin, specExpMax );
 
 	gl_lightMappingShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -237,21 +232,17 @@ void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage, bo
 		GL_BindToTMU( 0, probes[0]->cubemap )
 	);
 
-	if ( pStage->enableNormalMapping ) {
-		vec3_t normalScale;
-		SetNormalScale( pStage, normalScale );
+	vec3_t normalScale;
+	SetNormalScale( pStage, normalScale );
 
-		gl_reflectionShaderMaterial->SetUniform_NormalScale( normalScale );
-	}
+	gl_reflectionShaderMaterial->SetUniform_NormalScale( normalScale );
 
 	// u_depthScale u_reliefOffsetBias
-	if ( pStage->enableReliefMapping ) {
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		float reliefDepthScale = shader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
-		gl_reflectionShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
-		gl_reflectionShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
-	}
+	float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+	float reliefDepthScale = shader->reliefDepthScale;
+	depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
+	gl_reflectionShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
+	gl_reflectionShaderMaterial->SetUniform_ReliefOffsetBias( shader->reliefOffsetBias );
 
 	gl_reflectionShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -288,13 +279,11 @@ void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool
 	float deformMagnitude = RB_EvalExpression( &pStage->deformMagnitudeExp, 1.0 );
 	gl_heatHazeShaderMaterial->SetUniform_DeformMagnitude( deformMagnitude );
 
-	if ( pStage->enableNormalMapping ) {
-		vec3_t normalScale;
-		SetNormalScale( pStage, normalScale );
+	vec3_t normalScale;
+	SetNormalScale( pStage, normalScale );
 
-		// bind u_NormalScale
-		gl_heatHazeShaderMaterial->SetUniform_NormalScale( normalScale );
-	}
+	// bind u_NormalScale
+	gl_heatHazeShaderMaterial->SetUniform_NormalScale( normalScale );
 
 	gl_heatHazeShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -318,35 +307,29 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, 
 
 	// NOTE: specular component is computed by shader.
 	// FIXME: physical mapping is not implemented.
-	if ( pStage->enableSpecularMapping ) {
-		float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
-		gl_liquidShaderMaterial->SetUniform_SpecularExponent( specMin, specMax );
-	}
+	float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+	float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+	gl_liquidShaderMaterial->SetUniform_SpecularExponent( specMin, specMax );
 
 	// bind u_CurrentMap
 	gl_liquidShaderMaterial->SetUniform_CurrentMapBindless( GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) );
 
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
-	if ( pStage->enableReliefMapping ) {
-		float depthScale;
-		float reliefDepthScale;
+	float depthScale;
+	float reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
-		gl_liquidShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
-		gl_liquidShaderMaterial->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
-	}
+	depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+	reliefDepthScale = tess.surfaceShader->reliefDepthScale;
+	depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
+	gl_liquidShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
+	gl_liquidShaderMaterial->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 	// bind u_NormalScale
-	if ( pStage->enableNormalMapping ) {
-		vec3_t normalScale;
-		// FIXME: NormalIntensity default was 0.5
-		SetNormalScale( pStage, normalScale );
+	vec3_t normalScale;
+	// FIXME: NormalIntensity default was 0.5
+	SetNormalScale( pStage, normalScale );
 
-		gl_liquidShaderMaterial->SetUniform_NormalScale( normalScale );
-	}
+	gl_liquidShaderMaterial->SetUniform_NormalScale( normalScale );
 
 	gl_liquidShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -725,6 +708,134 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 	GL_CheckErrors();
 }
 
+class ListMaterialsCmd : public Cmd::StaticCmd {
+	public:
+	ListMaterialsCmd() : StaticCmd( "listMaterials", Cmd::RENDERER, "list material system materials" ) {}
+
+	void Run( const Cmd::Args& ) const override {
+		if ( !glConfig.usingMaterialSystem ) {
+			Print( "Material system is disabled" );
+			return;
+		}
+
+		// Taken from tr_shader.cpp
+		static const std::unordered_map<shaderSort_t, std::string> shaderSortName = {
+			{ shaderSort_t::SS_BAD, "BAD" },
+			{ shaderSort_t::SS_PORTAL, "PORTAL" },
+			{ shaderSort_t::SS_DEPTH, "DEPTH" },
+			{ shaderSort_t::SS_ENVIRONMENT_FOG, "ENV_FOG" },
+			{ shaderSort_t::SS_ENVIRONMENT_NOFOG, "ENV_NOFOG" },
+			{ shaderSort_t::SS_OPAQUE, "OPAQUE" },
+			{ shaderSort_t::SS_DECAL, "DECAL" },
+			{ shaderSort_t::SS_SEE_THROUGH, "SEE_THROUGH" },
+			{ shaderSort_t::SS_BANNER, "BANNER" },
+			{ shaderSort_t::SS_FOG, "FOG" },
+			{ shaderSort_t::SS_UNDERWATER, "UNDERWATER" },
+			{ shaderSort_t::SS_FAR, "FAR" },
+			{ shaderSort_t::SS_MEDIUM, "MEDIUM" },
+			{ shaderSort_t::SS_CLOSE, "CLOSE" },
+			{ shaderSort_t::SS_BLEND0, "BLEND0" },
+			{ shaderSort_t::SS_BLEND1, "BLEND1" },
+			{ shaderSort_t::SS_ALMOST_NEAREST, "ALMOST_NEAREST" },
+			{ shaderSort_t::SS_NEAREST, "NEAREST" },
+			{ shaderSort_t::SS_POST_PROCESS, "POST_PROCESS" },
+		};
+
+		for ( const MaterialSystem::MaterialPack& materialPack : materialSystem.materialPacks ) {
+			Print( "MaterialPack %s:%s:",
+			       shaderSortName.at( materialPack.fromSort ), shaderSortName.at( materialPack.toSort ) );
+			for ( const Material& material : materialPack.materials ) {
+				Print( "id: %u, sync: %5s, stateBits: %10x, GLShader: %s, GLProgramID: %u,"
+				       " deform: %i, fog: %i, drawCmdCount: %u",
+				       material.id, material.useSync, material.stateBits,
+				       material.shader->_name, material.program,
+				       material.deformIndex, material.fog, material.drawCommandCount );
+			}
+		}
+	}
+};
+static ListMaterialsCmd listMaterialsCmdRegistration;
+
+static std::string GetStageInfo( const shaderStage_t* pStage, const uint32_t dynamicStagesOffset ) {
+	static const std::unordered_map<stageShaderBinder_t, std::string> stageShaderNames = {
+		{ BindShaderNOP,          "NOP                 " },
+		{ BindShaderGeneric3D,    "genericMaterial     " },
+		{ BindShaderLightMapping, "lightMappingMaterial" },
+		{ BindShaderHeatHaze,     "heatHazeMaterial    " },
+		{ BindShaderFog,          "fogQuake3Material   " },
+		{ BindShaderLiquid,       "liquidMaterial      " },
+		{ BindShaderScreen,       "screenMaterial      " },
+		{ BindShaderSkybox,       "skyboxMaterial      " },
+		{ BindShaderReflection,   "reflectionMaterial  " }
+	};
+
+	std::string out = Str::Format( "%s material offset: %3u, buffer offset: %4u\n",
+		stageShaderNames.at( pStage->shaderBinder ), pStage->materialOffset, pStage->bufferOffset );
+
+	static const char* stageVariants[] = {
+		"base variant                           ",
+		"vertex overbright                      ",
+		"vertex-lit                             ",
+		"fullbright                             ",
+		"vertex overbright vertex-lit           ",
+		"vertex overbright fullbright           ",
+		"vertex-lit fullbright                  ",
+		"vertex overbright vertex-lit fullbright"
+	};
+
+	uint32_t variants = 0;
+	for ( int i = 0; i < ShaderStageVariant::ALL && variants < pStage->variantOffset; i++ ) {
+		if ( pStage->variantOffsets[i] != -1 ) {
+			const uint32_t variantOffset = pStage->variantOffsets[i] * pStage->paddedSize;
+
+			out += Str::Format( "    %s material array offset: %3u, material buffer offset: %4u, size: %2u\n",
+				                stageVariants[i],
+				                pStage->materialOffset + pStage->variantOffsets[i],
+				                pStage->bufferOffset + variantOffset + ( pStage->dynamic ? dynamicStagesOffset : 0 ),
+				                pStage->paddedSize );
+
+			variants++;
+		}
+	}
+
+	return out;
+}
+
+class ListMaterialSystemStagesCmd : public Cmd::StaticCmd {
+	public:
+	ListMaterialSystemStagesCmd() : StaticCmd( "listMaterialSystemStages", Cmd::RENDERER, "list material system stages" ) {}
+
+	void Run( const Cmd::Args& ) const override {
+		if ( !glConfig.usingMaterialSystem ) {
+			Print( "Material system is disabled" );
+			return;
+		}
+
+		Print( "Total stages: %u, static: %u, dynamic: %u",
+			materialSystem.materialStages.size(),
+			materialSystem.materialStages.size() - materialSystem.dynamicStages.size(),
+			materialSystem.dynamicStages.size() );
+		Print( "Total stage size: %u, static: %u, dynamic: %u (offset: %u)",
+			materialSystem.totalStageSize, materialSystem.totalStageSize - materialSystem.dynamicStagesSize,
+			materialSystem.dynamicStagesSize, materialSystem.dynamicStagesOffset );
+
+		Print( "\nStatic stages:" );
+		for ( const shaderStage_t* pStage : materialSystem.materialStages ) {
+			if ( pStage->dynamic ) {
+				continue;
+			}
+
+			Print( GetStageInfo( pStage, materialSystem.dynamicStagesOffset ) );
+		}
+
+		Print( "\nDynamic stages:" );
+		for ( const shaderStage_t* pStage : materialSystem.dynamicStages ) {
+			Print( GetStageInfo( pStage, materialSystem.dynamicStagesOffset ) );
+		}
+	}
+};
+static ListMaterialSystemStagesCmd listMaterialSystemStagesCmdRegistration;
+
 void MaterialSystem::BindBuffers() {
 	materialsUBO.BindBufferBase();
 	texDataBuffer.BindBufferBase( texDataBufferType, texDataBindingPoint );
@@ -978,42 +1089,23 @@ void BindShaderFog( Material* material ) {
 	// Set shader uniforms.
 	const fog_t* fog = tr.world->fogs + material->fog;
 
-	// all fogging distance is based on world Z units
-	vec4_t fogDistanceVector;
-	vec3_t local;
-	VectorSubtract( backEnd.orientation.origin, backEnd.viewParms.orientation.origin, local );
-	fogDistanceVector[0] = -backEnd.orientation.modelViewMatrix[2];
-	fogDistanceVector[1] = -backEnd.orientation.modelViewMatrix[6];
-	fogDistanceVector[2] = -backEnd.orientation.modelViewMatrix[10];
-	fogDistanceVector[3] = DotProduct( local, backEnd.viewParms.orientation.axis[0] );
-
-	// scale the fog vectors based on the fog's thickness
-	VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
-	fogDistanceVector[3] *= fog->tcScale;
-
 	// rotate the gradient vector for this orientation
 	float eyeT;
 	vec4_t fogDepthVector;
 	if ( fog->hasSurface ) {
-		fogDepthVector[0] = fog->surface[0] * backEnd.orientation.axis[0][0] +
-			fog->surface[1] * backEnd.orientation.axis[0][1] + fog->surface[2] * backEnd.orientation.axis[0][2];
-		fogDepthVector[1] = fog->surface[0] * backEnd.orientation.axis[1][0] +
-			fog->surface[1] * backEnd.orientation.axis[1][1] + fog->surface[2] * backEnd.orientation.axis[1][2];
-		fogDepthVector[2] = fog->surface[0] * backEnd.orientation.axis[2][0] +
-			fog->surface[1] * backEnd.orientation.axis[2][1] + fog->surface[2] * backEnd.orientation.axis[2][2];
-		fogDepthVector[3] = -fog->surface[3] + DotProduct( backEnd.orientation.origin, fog->surface );
-
-		eyeT = DotProduct( backEnd.orientation.viewOrigin, fogDepthVector ) + fogDepthVector[3];
+		VectorCopy( fog->surface, fogDepthVector );
+		fogDepthVector[ 3 ] = -fog->surface[ 3 ];
+		eyeT = DotProduct( backEnd.viewParms.orientation.origin, fogDepthVector ) + fogDepthVector[ 3 ];
 	} else {
 		Vector4Set( fogDepthVector, 0, 0, 0, 1 );
 		eyeT = 1; // non-surface fog always has eye inside
 	}
 
-	// see if the viewpoint is outside
-	// this is needed for clipping distance even for constant fog
-	fogDistanceVector[3] += 1.0 / 512;
+	// Note: things that seemingly should be per-shader or per-surface can be set as global uniforms
+	// since fognum is grouped with the GL state stuff, segregating each fognum in a separate draw call.
 
-	gl_fogQuake3ShaderMaterial->SetUniform_FogDistanceVector( fogDistanceVector );
+	gl_fogQuake3ShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
+	gl_fogQuake3ShaderMaterial->SetUniform_FogDensity( fog->tcScale );
 	gl_fogQuake3ShaderMaterial->SetUniform_FogDepthVector( fogDepthVector );
 	gl_fogQuake3ShaderMaterial->SetUniform_FogEyeT( eyeT );
 
@@ -1023,11 +1115,6 @@ void BindShaderFog( Material* material ) {
 	gl_fogQuake3ShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
 	gl_fogQuake3ShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
-
-	// bind u_ColorMap
-	gl_fogQuake3ShaderMaterial->SetUniform_FogMapBindless(
-		GL_BindToTMU( 0, tr.fogImage )
-	);
 }
 
 void ProcessMaterialNONE( Material*, shaderStage_t*, MaterialSurface* ) {
@@ -1089,7 +1176,8 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, Mat
 
 	gl_lightMappingShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
 
-	gl_lightMappingShaderMaterial->SetReflectiveSpecular( pStage->enableSpecularMapping );
+	// Check for reflectionMappingAvailable here to better predict which shaders we need to build at the start
+	gl_lightMappingShaderMaterial->SetReflectiveSpecular( glConfig.reflectionMappingAvailable && pStage->enableSpecularMapping );
 
 	gl_lightMappingShaderMaterial->SetPhysicalShading( pStage->enablePhysicalMapping );
 
@@ -1249,6 +1337,12 @@ void MaterialSystem::AddStage( MaterialSurface* surface, shaderStage_t* pStage, 
 			continue;
 		}
 
+		if ( pStage->shader->reliefDepthScale != pStage2->shader->reliefDepthScale
+		     || pStage->shader->reliefOffsetBias != pStage2->shader->reliefOffsetBias )
+		{
+			continue;
+		}
+
 		if ( pStage->refractionIndexExp != pStage2->refractionIndexExp || pStage->specularExponentMin != pStage2->specularExponentMin
 			|| pStage->specularExponentMax != pStage2->specularExponentMax || pStage->fresnelPowerExp != pStage2->fresnelPowerExp
 			|| pStage->fresnelScaleExp != pStage2->fresnelScaleExp || pStage->fresnelBiasExp != pStage2->fresnelBiasExp
@@ -1317,8 +1411,20 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 	material.usePolygonOffset = shader->polygonOffset;
 
 	material.bspSurface = surface->bspSurface;
+	
 	pStage->materialProcessor( &material, pStage, surface );
-	pStage->paddedSize = material.shader->GetSTD430Size();
+
+	if ( pStage->enableSpecularMapping && pStage->shaderBinder == BindShaderLightMapping ) {
+		/* This will get the non-reflective version of the material if reflection mapping is enabled,
+		because the reflection maps will need to be built with it if there's no valid cache or the caching is disabled */
+		Material tmp = material;
+
+		pStage->enableSpecularMapping = false;
+		pStage->materialProcessor( &tmp, pStage, surface );
+		pStage->enableSpecularMapping = true;
+	}
+
+	pStage->paddedSize = material.shader->GetSTD140Size();
 
 	// HACK: Copy the shaderStage_t and MaterialSurface that we need into the material, so we can use it with glsl_restart
 	material.refStage = pStage;
@@ -1370,7 +1476,7 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 /* This will only generate a material itself
 A material represents a distinct global OpenGL state (e. g. blend function, depth test, depth write etc.)
 Materials can have a dependency on other materials to make sure that consecutive stages are rendered in the proper order */
-void MaterialSystem::GenerateMaterial( MaterialSurface* surface ) {
+void MaterialSystem::GenerateMaterial( MaterialSurface* surface, int globalFog ) {
 	uint32_t stage = 0;
 	uint32_t previousMaterialID = 0;
 
@@ -1391,7 +1497,7 @@ void MaterialSystem::GenerateMaterial( MaterialSurface* surface ) {
 		surface->stages++;
 	}
 
-	if ( !surface->shader->noFog && surface->fog >= 1 ) {
+	if ( !surface->shader->noFog && surface->fog >= 1 && surface->fog != globalFog ) {
 		uint32_t unused;
 		ProcessStage( surface, surface->shader->fogShader->stages, surface->shader->fogShader, packIDs, stage, unused, true );
 
@@ -1892,6 +1998,11 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 			}
 		}
 	}
+
+	// All material packs currently render depth-writing shaders.
+	// If we were to render depth fade or anything else sampling u_DepthMap with the material system,
+	// we would need to track this on a per-material basis.
+	backEnd.dirtyDepthBuffer = true;
 
 	GL_BindVAO( backEnd.defaultVAO );
 

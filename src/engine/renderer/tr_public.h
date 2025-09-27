@@ -62,7 +62,7 @@ struct GLConfig
 
 	textureCompression_t textureCompression;
 
-	int displayIndex;
+	uint32_t sdlDisplayID;
 
 	bool smpActive; // dual processor
 
@@ -144,7 +144,6 @@ struct GLConfig
 	float textureAnisotropy;
 	bool textureAnisotropyAvailable;
 
-	int      maxRenderbufferSize;
 	int      maxColorAttachments;
 
 	bool getProgramBinaryAvailable;

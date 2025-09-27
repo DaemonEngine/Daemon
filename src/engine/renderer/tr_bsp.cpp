@@ -3324,12 +3324,18 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		out->fogParms = shader->fogParms;
 
 		out->color = Color::Adapt( shader->fogParms.color );
+
+		if ( tr.worldLinearizeTexture )
+		{
+			out->color = out->color.ConvertFromSRGB();
+		}
+
 		out->color *= tr.identityLight;
 
 		out->color.SetAlpha( 1 );
 
 		d = shader->fogParms.depthForOpaque < 1 ? 1 : shader->fogParms.depthForOpaque;
-		out->tcScale = 1.0f / ( d * 8 );
+		out->tcScale = 1.0f / d;
 
 		// ydnar: global fog sets clearcolor/zfar
 		if ( out->originalBrushNumber == -1 )

@@ -108,16 +108,15 @@ AudioData LoadWavCodec(std::string filename)
 
 	int size = PackChars(audioFile, dataOffset + 4, 4);
 
-	if (size <= 0 || sampleRate  <=0 ){
+	if (size <= 0 || sampleRate <= 0 ) {
 		audioLogs.Warn("Error in reading %s.", filename);
 		return AudioData();
 	}
 
-	char* data = new char[size];
+	AudioData out { sampleRate, byteDepth, numChannels };
+	out.rawSamples.assign( audioFile.data() + dataOffset + 8, audioFile.data() + size );
 
-	std::copy_n(audioFile.data() + dataOffset + 8, size, data);
-
-	return AudioData(sampleRate, byteDepth, numChannels, size, data);
+	return out;
 }
 
 } // namespace Audio

@@ -33,13 +33,15 @@ uniform colorPack u_ColorGlobal;
 
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
+uniform vec3 u_ViewOrigin;
 
-uniform vec4		u_FogDistanceVector;
-uniform vec4		u_FogDepthVector;
-uniform float		u_FogEyeT;
+uniform float u_FogDensity;
+uniform vec4		u_FogDepthVector; // fog plane
 
-OUT(smooth) vec3	var_Position;
-OUT(smooth) vec2	var_TexCoords;
+// how far the vertex is under the fog plane
+OUT(smooth) float var_FogPlaneDistance;
+
+OUT(smooth) vec3 var_ScaledViewerOffset;
 OUT(smooth) vec4	var_Color;
 
 void DeformVertex( inout vec4 pos,
@@ -71,37 +73,13 @@ void main()
 	gl_Position = u_ModelViewProjectionMatrix * position;
 
 	// transform position into world space
-	var_Position = (u_ModelMatrix * position).xyz;
+	position = u_ModelMatrix * position;
+	position.xyz /= position.w;
+
+	var_ScaledViewerOffset = u_FogDensity * (position.xyz - u_ViewOrigin);
 
 	// calculate the length in fog
-	float s = dot(position.xyz, u_FogDistanceVector.xyz) + u_FogDistanceVector.w;
-	float t = dot(position.xyz, u_FogDepthVector.xyz) + u_FogDepthVector.w;
-
-	// partially clipped fogs use the T axis
-	if(u_FogEyeT < 0.0)
-	{
-		if(t < 1.0)
-		{
-			t = 1.0 / 32.0;	// point is outside, so no fogging
-		}
-		else
-		{
-			t = 1.0 / 32.0 + 30.0 / 32.0 * t / (t - u_FogEyeT);	// cut the distance at the fog plane
-		}
-	}
-	else
-	{
-		if(t < 0.0)
-		{
-			t = 1.0 / 32.0;	// point is outside, so no fogging
-		}
-		else
-		{
-			t = 31.0 / 32.0;
-		}
-	}
-
-	var_TexCoords = vec2(s, t);
+	var_FogPlaneDistance = dot(position.xyz, u_FogDepthVector.xyz) + u_FogDepthVector.w;
 
 	var_Color = color;
 }

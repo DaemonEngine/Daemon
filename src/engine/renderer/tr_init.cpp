@@ -103,7 +103,7 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Cvar<bool> r_gpuFrustumCulling( "r_gpuFrustumCulling", "Use frustum culling on the GPU for the Material System", Cvar::NONE, true );
 	Cvar::Cvar<bool> r_gpuOcclusionCulling( "r_gpuOcclusionCulling", "Use occlusion culling on the GPU for the Material System", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_materialSystemSkip( "r_materialSystemSkip", "Temporarily skip Material System rendering, using only core renderer instead", Cvar::NONE, false );
-	Cvar::Cvar<bool> r_materialSeparatePerShader("r_materialSeparatePerShader", "generate a material for every q3shader stage (to debug merging)", Cvar::NONE, false);
+	Cvar::Cvar<bool> r_materialSeparatePerShader("r_materialSeparatePerShader", "store separate material uniforms for every q3shader stage (to debug merging)", Cvar::NONE, false);
 	cvar_t      *r_lightStyles;
 	cvar_t      *r_exportTextures;
 	cvar_t      *r_heatHaze;
@@ -873,8 +873,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		   bound.
 		 */
 
-		GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-		GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, 0 );
+		GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
 		glState.currentFBO = nullptr;
 
 		GL_PolygonMode( GL_FRONT_AND_BACK, GL_FILL );
@@ -955,7 +954,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("GL_TEXTURE_MAX_ANISOTROPY_EXT: %f", glConfig.maxTextureAnisotropy );
 		}
 
-		Log::Notice("GL_MAX_RENDERBUFFER_SIZE: %d", glConfig.maxRenderbufferSize );
 		Log::Notice("GL_MAX_COLOR_ATTACHMENTS: %d", glConfig.maxColorAttachments );
 
 		Log::Notice("PIXELFORMAT: color(%d-bits)", glConfig.colorBits );
@@ -1124,7 +1122,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_glMinorVersion = Cvar_Get( "r_glMinorVersion", "", CVAR_LATCH );
 		r_glProfile = Cvar_Get( "r_glProfile", "", CVAR_LATCH );
 		Cvar::Latch( r_glDebugProfile );
-		r_glAllowSoftware = Cvar_Get( "r_glAllowSoftware", "0", CVAR_LATCH );
+		r_glAllowSoftware = Cvar_Get( "r_glAllowSoftware", "1", CVAR_LATCH );
 		r_glExtendedValidation = Cvar_Get( "r_glExtendedValidation", "0", CVAR_LATCH );
 
 		// latched and archived variables
@@ -1331,8 +1329,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 				tr.triangleTable[ i ] = -tr.triangleTable[ i - FUNCTABLE_SIZE / 2 ];
 			}
 		}
-
-		R_InitFogTable();
 
 		R_NoiseInit();
 

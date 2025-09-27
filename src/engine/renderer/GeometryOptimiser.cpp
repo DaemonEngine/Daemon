@@ -122,6 +122,8 @@ void MarkShaderBuildLiquid( const shaderStage_t* pStage ) {
 
 void MarkShaderBuild( shader_t* shader, const int lightMapNum, const bool bspSurface,
 	const bool vertexSkinning, const bool vertexAnimation ) {
+	auto tessBackup = tess;
+
 	tess.surfaceShader = shader;
 	tess.bspSurface = bspSurface;
 	tess.lightmapNum = lightMapNum;
@@ -133,11 +135,7 @@ void MarkShaderBuild( shader_t* shader, const int lightMapNum, const bool bspSur
 		pStage->shaderBuildMarker( pStage );
 	}
 
-	tess.bspSurface = false;
-	tess.lightmapNum = -1;
-
-	tess.vboVertexSkinning = false;
-	tess.vboVertexAnimation = false;
+	tess = tessBackup;
 }
 
 static void CoreResetSurfaceViewCounts( bspSurface_t** rendererSurfaces, int numSurfaces ) {
@@ -570,7 +568,7 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, bspSur
 		VectorCopy( ( ( srfGeneric_t* ) surface->data )->origin, srf.origin );
 		srf.radius = ( ( srfGeneric_t* ) surface->data )->radius;
 
-		materialSystem.GenerateMaterial( &srf );
+		materialSystem.GenerateMaterial( &srf, world->globalFog );
 
 		static const float MAX_NORMAL_SURFACE_DISTANCE = 65536.0f * sqrtf( 2.0f );
 		if ( VectorLength( ( ( srfGeneric_t* ) surface->data )->bounds[0] ) > MAX_NORMAL_SURFACE_DISTANCE

@@ -90,6 +90,7 @@ set(GLSLSOURCELIST
     # Common shader libraries
     ${ENGINE_DIR}/renderer/glsl_source/common.glsl
     ${ENGINE_DIR}/renderer/glsl_source/common_cp.glsl
+    ${ENGINE_DIR}/renderer/glsl_source/fogEquation_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/shaderProfiler_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/shaderProfiler_fp.glsl
     
@@ -292,6 +293,14 @@ set(CLIENTLIST
     ${ENGINE_DIR}/client/key_identification.cpp
     ${ENGINE_DIR}/sys/sdl_input.cpp
     ${RENDERERLIST}
+)
+
+if (APPLE)
+    set(CLIENTLIST ${CLIENTLIST} ${ENGINE_DIR}/sys/DisableAccentMenu.m)
+endif()
+
+set(CLIENTTESTLIST ${ENGINETESTLIST}
+    ${ENGINE_DIR}/renderer/gl_shader_test.cpp
 )
 
 set(TTYCLIENTLIST

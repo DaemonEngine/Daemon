@@ -874,12 +874,9 @@ void Render_generic3D( shaderStage_t *pStage )
 	bool hasDepthFade = pStage->hasDepthFade;
 	bool needDepthMap = pStage->hasDepthFade;
 
-	if ( needDepthMap && backEnd.dirtyDepthBuffer && glConfig.textureBarrierAvailable )
+	if ( needDepthMap )
 	{
-		// Flush depth buffer to make sure it is available for reading in the depth fade
-		// GLSL - prevents https://github.com/DaemonEngine/Daemon/issues/1676
-		glTextureBarrier();
-		backEnd.dirtyDepthBuffer = false;
+		RB_PrepareForSamplingDepthMap();
 	}
 
 	// choose right shader program ----------------------------------
@@ -1497,6 +1494,8 @@ void Render_liquid( shaderStage_t *pStage )
 
 	GLIMP_LOGCOMMENT( "--- Render_liquid ---" );
 
+	RB_PrepareForSamplingDepthMap();
+
 	// Tr3B: don't allow blend effects
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
 
@@ -1595,33 +1594,14 @@ void Render_fog( shaderStage_t* pStage )
 	GLIMP_LOGCOMMENT( "--- Render_fog( fogNum = %i, originalBrushNumber = %i ) ---",
 		tess.fogNum, fog->originalBrushNumber );
 
-	// all fogging distance is based on world Z units
-	vec4_t fogDistanceVector;
-	vec3_t local;
-	VectorSubtract( backEnd.orientation.origin, backEnd.viewParms.orientation.origin, local );
-	fogDistanceVector[ 0 ] = -backEnd.orientation.modelViewMatrix[ 2 ];
-	fogDistanceVector[ 1 ] = -backEnd.orientation.modelViewMatrix[ 6 ];
-	fogDistanceVector[ 2 ] = -backEnd.orientation.modelViewMatrix[ 10 ];
-	fogDistanceVector[ 3 ] = DotProduct( local, backEnd.viewParms.orientation.axis[ 0 ] );
-
-	// scale the fog vectors based on the fog's thickness
-	VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
-	fogDistanceVector[3] *= fog->tcScale;
-
 	// rotate the gradient vector for this orientation
 	float eyeT;
 	vec4_t fogDepthVector;
 	if ( fog->hasSurface )
 	{
-		fogDepthVector[ 0 ] = fog->surface[ 0 ] * backEnd.orientation.axis[ 0 ][ 0 ] +
-		                      fog->surface[ 1 ] * backEnd.orientation.axis[ 0 ][ 1 ] + fog->surface[ 2 ] * backEnd.orientation.axis[ 0 ][ 2 ];
-		fogDepthVector[ 1 ] = fog->surface[ 0 ] * backEnd.orientation.axis[ 1 ][ 0 ] +
-		                      fog->surface[ 1 ] * backEnd.orientation.axis[ 1 ][ 1 ] + fog->surface[ 2 ] * backEnd.orientation.axis[ 1 ][ 2 ];
-		fogDepthVector[ 2 ] = fog->surface[ 0 ] * backEnd.orientation.axis[ 2 ][ 0 ] +
-		                      fog->surface[ 1 ] * backEnd.orientation.axis[ 2 ][ 1 ] + fog->surface[ 2 ] * backEnd.orientation.axis[ 2 ][ 2 ];
-		fogDepthVector[ 3 ] = -fog->surface[ 3 ] + DotProduct( backEnd.orientation.origin, fog->surface );
-
-		eyeT = DotProduct( backEnd.orientation.viewOrigin, fogDepthVector ) + fogDepthVector[ 3 ];
+		VectorCopy( fog->surface, fogDepthVector );
+		fogDepthVector[ 3 ] = -fog->surface[ 3 ];
+		eyeT = DotProduct( backEnd.viewParms.orientation.origin, fogDepthVector ) + fogDepthVector[ 3 ];
 	}
 	else
 	{
@@ -1629,16 +1609,13 @@ void Render_fog( shaderStage_t* pStage )
 		eyeT = 1; // non-surface fog always has eye inside
 	}
 
-	// see if the viewpoint is outside
-	// this is needed for clipping distance even for constant fog
-	fogDistanceVector[ 3 ] += 1.0 / 512;
-
 	GL_State( pStage->stateBits );
 
 	ProcessShaderFog( pStage );
 	gl_fogQuake3Shader->BindProgram( 0 );
 
-	gl_fogQuake3Shader->SetUniform_FogDistanceVector( fogDistanceVector );
+	gl_fogQuake3Shader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
+	gl_fogQuake3Shader->SetUniform_FogDensity( fog->tcScale );
 	gl_fogQuake3Shader->SetUniform_FogDepthVector( fogDepthVector );
 	gl_fogQuake3Shader->SetUniform_FogEyeT( eyeT );
 
@@ -1661,11 +1638,6 @@ void Render_fog( shaderStage_t* pStage )
 	}
 
 	gl_fogQuake3Shader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
-
-	// bind u_ColorMap
-	gl_fogQuake3Shader->SetUniform_FogMapBindless(
-		GL_BindToTMU( 0, tr.fogImage ) 
-	);
 
 	gl_fogQuake3Shader->SetRequiredVertexPointers();
 

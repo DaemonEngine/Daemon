@@ -134,51 +134,35 @@ void R_RemapShader( const char *shaderName, const char *newShaderName, const cha
 {
 	char      strippedName[ MAX_QPATH ];
 	int       hash;
-	shader_t  *sh, *sh2;
-	qhandle_t h;
-
-	sh = R_FindShaderByName( shaderName );
-
-	if ( sh == nullptr || sh == tr.defaultShader )
-	{
-		h = RE_RegisterShader( shaderName, RSF_DEFAULT );
-		sh = R_GetShaderByHandle( h );
-	}
-
-	if ( sh == nullptr || sh == tr.defaultShader )
-	{
-		Log::Warn("R_RemapShader: shader %s not found", shaderName );
-		return;
-	}
-
-	sh2 = R_FindShaderByName( newShaderName );
-
-	if ( sh2 == nullptr || sh2 == tr.defaultShader )
-	{
-		h = RE_RegisterShader( newShaderName, RSF_DEFAULT );
-		sh2 = R_GetShaderByHandle( h );
-	}
-
-	if ( sh2 == nullptr || sh2 == tr.defaultShader )
-	{
-		Log::Warn("R_RemapShader: new shader %s not found", newShaderName );
-		return;
-	}
-
-	if ( sh->autoSpriteMode != sh2->autoSpriteMode ) {
-		Log::Warn("R_RemapShader: shaders %s and %s have different autoSprite modes", shaderName, newShaderName );
-		return;
-	}
 
 	// remap all the shaders with the given name
 	// even tho they might have different lightmaps
 	COM_StripExtension3( shaderName, strippedName, sizeof( strippedName ) );
 	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
+	bool found = false;
 
-	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
+	for ( shader_t *sh = shaderHashTable[ hash ]; sh; sh = sh->next )
 	{
 		if ( Q_stricmp( sh->name, strippedName ) == 0 )
 		{
+			found = true;
+			shader_t *sh2 = R_FindShader( newShaderName, sh->registerFlags );
+
+			if ( sh2->defaultShader )
+			{
+				if ( !sh2->shaderRemapWarned )
+				{
+					Log::Warn( "R_RemapShader: new shader %s not found", newShaderName );
+					sh2->shaderRemapWarned = true;
+				}
+				return;
+			}
+
+			if ( sh->autoSpriteMode != sh2->autoSpriteMode ) {
+				Log::Warn( "R_RemapShader: shaders %s and %s have different autoSprite modes", shaderName, newShaderName );
+				return;
+			}
+
 			if ( sh != sh2 )
 			{
 				sh->remappedShader = sh2;
@@ -187,6 +171,17 @@ void R_RemapShader( const char *shaderName, const char *newShaderName, const cha
 			{
 				sh->remappedShader = nullptr;
 			}
+		}
+	}
+
+	if ( !found )
+	{
+		// try registering it to detect typos
+		shader_t *test = R_FindShader( shaderName, RSF_DEFAULT );
+
+		if ( test->defaultShader )
+		{
+			Log::Warn( "R_RemapShader: shader %s not found", shaderName );
 		}
 	}
 }
@@ -1434,22 +1429,17 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 		return true;
 	}
 
-	if ( !Q_stricmp( token, "$whiteimage" ) || !Q_stricmp( token, "$white" ) || !Q_stricmp( token, "_white" ) ||
-	     !Q_stricmp( token, "*white" ) )
+	// Quake III backward compatibility.
+	if ( !Q_stricmp( token, "$whiteimage" ) || !Q_stricmp( token, "*white" ) )
 	{
 		stage->bundle[ bundleIndex ].image[ 0 ] = tr.whiteImage;
 		return true;
 	}
-	else if ( !Q_stricmp( token, "$blackimage" ) || !Q_stricmp( token, "$black" ) || !Q_stricmp( token, "_black" ) ||
-	          !Q_stricmp( token, "*black" ) )
+
+	// Other engine compatibility (old XeaL, QFusion…)
+	if ( !Q_stricmp( token, "$blackimage" ) || !Q_stricmp( token, "*black" ) )
 	{
 		stage->bundle[ bundleIndex ].image[ 0 ] = tr.blackImage;
-		return true;
-	}
-	else if ( !Q_stricmp( token, "$flatimage" ) || !Q_stricmp( token, "$flat" ) || !Q_stricmp( token, "_flat" ) ||
-	          !Q_stricmp( token, "*flat" ) )
-	{
-		stage->bundle[ bundleIndex ].image[ 0 ] = tr.flatImage;
 		return true;
 	}
 
@@ -4735,10 +4725,10 @@ static bool ParseShader( const char *_text )
 		}
 	}
 
-	// ignore shaders that don't have any stages, unless it is a sky or fog
+	// Make shaders without stages that are not fog and not sky as blend (they are fully transparent).
 	if ( s == 0 && !shader.forceOpaque && !shader.isSky && !( shader.contentFlags & CONTENTS_FOG ) && implicitMap[ 0 ] == '\0' )
 	{
-		return false;
+		shader.sort = Util::ordinal( shaderSort_t::SS_BLEND0 );
 	}
 
 	return true;
@@ -5697,12 +5687,6 @@ static void ValidateStage( shaderStage_t *pStage )
 // without a thorough investigation.
 static float DetermineShaderSort()
 {
-	// fogonly shaders don't have any stage passes
-	if ( numStages == 0 && !shader.isSky )
-	{
-		return Util::ordinal(shaderSort_t::SS_FOG);
-	}
-
 	for ( size_t stage = numStages; stage--; )
 	{
 		ASSERT( stages[ stage ].active );
@@ -5988,43 +5972,6 @@ static const char    *FindShaderInShaderText( const char *shaderName )
 	return nullptr;
 }
 
-/*
-==================
-R_FindShaderByName
-
-Will always return a valid shader, but it might be the
-default shader if the real one can't be found.
-==================
-*/
-shader_t       *R_FindShaderByName( const char *name )
-{
-	char     strippedName[ MAX_QPATH ];
-	int      hash;
-	shader_t *sh;
-
-	if ( ( name == nullptr ) || ( name[ 0 ] == 0 ) )
-	{
-		// bk001205
-		return tr.defaultShader;
-	}
-
-	COM_StripExtension3( name, strippedName, sizeof( strippedName ) );
-
-	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
-
-	// see if the shader is already loaded
-	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
-	{
-		if ( Q_stricmp( sh->name, strippedName ) == 0 )
-		{
-			// match found
-			return sh;
-		}
-	}
-
-	return tr.defaultShader;
-}
-
 static void ClearGlobalShader()
 {
 	ResetStruct( shader );
@@ -6070,6 +6017,8 @@ shader_t       *R_FindShader( const char *name, int flags )
 
 	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
 
+	const shader_t *firstRegistration = nullptr;
+
 	// see if the shader is already loaded
 	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
 	{
@@ -6085,9 +6034,14 @@ shader_t       *R_FindShader( const char *name, int flags )
 				return sh;
 			}
 
-			Log::Verbose( "shader %s registered with varying flags: previously with 0x%X, now with 0x%X",
-			              strippedName, sh->registerFlags, flags );
+			firstRegistration = sh;
 		}
+	}
+
+	if ( firstRegistration != nullptr )
+	{
+		Log::Verbose( "shader %s registered with varying flags: first time with 0x%X, now with 0x%X",
+		              strippedName, firstRegistration->registerFlags, flags );
 	}
 
 	shader.altShader[ 0 ].index = flags; // save for later use (in case of alternative shaders)

@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2024 Daemon Developers
+Copyright (c) 2025 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -32,53 +32,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-// DetectGLVendors.h
-
-#ifndef DETECT_OPENGL_VENDORS_H
-#define DETECT_OPENGL_VENDORS_H
-
-#include "common/Common.h"
-#include "common/Assert.h"
-#include "qcommon/q_shared.h"
-
-enum class glHardwareVendor_t
+float GetFogAlpha(float s, float t)
 {
-	UNKNOWN,
-	// Assumed to be slow (running on CPU).
-	SOFTWARE,
-	/* Assumed to be fast (running on GPU through a translation, like an OpenGL over Vulkan
-	driver, or an OpenGL virtualization driver sending commands to an hypervisor. */
-	TRANSLATION,
-	// Assumed to be fast (running on GPU directly).
-	APPLE,
-	ARM,
-	ATI,
-	BROADCOM,
-	INTEL,
-	NVIDIA,
-	NUM_HARDWARE_VENDORS,
-};
+	t = clamp(t, 0.0, 1.0);
 
-enum class glDriverVendor_t
-{
-	UNKNOWN,
-	APPLE,
-	ATI,
-	INTEL,
-	MESA,
-	NVIDIA,
-	NUM_DRIVER_VENDORS,
-};
+	float x = min(1, s * t);
 
-std::string GetGLHardwareVendorName( glHardwareVendor_t hardwareVendor );
-
-std::string GetGLDriverVendorName( glDriverVendor_t driverVendor );
-
-void DetectGLVendors(
-	const std::string& vendorString,
-	const std::string& versionString,
-	const std::string& rendererString,
-	glHardwareVendor_t& hardwareVendor,
-	glDriverVendor_t& driverVendor );
-
-#endif // DETECT_OPENGL_VENDORS_H
+	// sqrt(x) is bad near 0 because it increases too quickly resulting in sharp edges.
+	// x ≤ 1/32: √32 * x
+	// x ≥ 1/32: √x
+	return min(sqrt(32.0) * x, sqrt(x));
+}

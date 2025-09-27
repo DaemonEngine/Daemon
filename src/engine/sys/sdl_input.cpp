@@ -456,21 +456,18 @@ void IN_SetMouseMode(MouseMode newMode)
 		{
 			case MouseMode::SystemCursor:
 				SDL_ShowCursor();
-				SDL_SetWindowKeyboardGrab( window, false );
 				SDL_SetWindowMouseGrab( window, false );
 				SDL_SetWindowRelativeMouseMode( window, false );
 				break;
 
 			case MouseMode::CustomCursor:
 				SDL_HideCursor();
-				SDL_SetWindowKeyboardGrab( window, false );
 				SDL_SetWindowMouseGrab( window, false );
 				SDL_SetWindowRelativeMouseMode( window, false );
 				break;
 
 			case MouseMode::Deltas:
 				SDL_HideCursor();
-				SDL_SetWindowKeyboardGrab( window, true );
 				SDL_SetWindowMouseGrab( window, true );
 				SDL_SetWindowRelativeMouseMode( window, true );
 				break;
@@ -556,9 +553,9 @@ struct
 	unsigned int oldhats;
 } stick_state;
 
-static const char* JoystickNameForIndex( int index )
+static const char* JoystickNameForID( SDL_JoystickID id )
 {
-    const char* name = SDL_GetJoystickNameForID( index );
+    const char* name = SDL_GetJoystickNameForID( id );
     return name ? name : "<no name found>";
 }
 
@@ -608,19 +605,27 @@ static void IN_InitJoystick()
 
 	for ( int i = 0; i < total; i++ )
 	{
-		Log::Debug( "[%d] %s", i, JoystickNameForIndex( ids[i] ) );
+		Log::Debug( "[%d] %s", i, JoystickNameForID( ids[i] ) );
 	}
 
 	in_joystickNo = Cvar_Get( "in_joystickNo", "0", 0 );
+	in_joystickUseAnalog = Cvar_Get( "in_joystickUseAnalog", "0", 0 );
+
+	if ( total <= 0 )
+	{
+		SDL_free( ids );
+		return;
+	}
 
 	if ( in_joystickNo->integer < 0 || in_joystickNo->integer >= total )
 	{
 		Cvar_Set( "in_joystickNo", "0" );
 	}
 
-	in_joystickUseAnalog = Cvar_Get( "in_joystickUseAnalog", "0", 0 );
+	SDL_JoystickID id = ids[ in_joystickNo->integer ];
+	SDL_free( ids );
 
-	stick = SDL_OpenJoystick( in_joystickNo->integer );
+	stick = SDL_OpenJoystick( id );
 
 	if ( stick == nullptr )
 	{
@@ -628,9 +633,9 @@ static void IN_InitJoystick()
 		return;
 	}
 
-	if ( SDL_IsGamepad( in_joystickNo->integer ) )
+	if ( SDL_IsGamepad( id ) )
 	{
-		gamepad = SDL_OpenGamepad( in_joystickNo->integer );
+		gamepad = SDL_OpenGamepad( id );
 		if ( gamepad )
 		{
 			Cvar_Set( "in_gameControllerAvailable", "1" );
@@ -639,7 +644,7 @@ static void IN_InitJoystick()
 	}
 
 	Log::Debug( "Joystick %d opened", in_joystickNo->integer );
-	Log::Debug( "Name:    %s", JoystickNameForIndex( in_joystickNo->integer ) );
+	Log::Debug( "Name:    %s", JoystickNameForID( id ) );
 	Log::Debug( "Axes:    %d", SDL_GetNumJoystickAxes( stick ) );
 	Log::Debug( "Hats:    %d", SDL_GetNumJoystickHats( stick ) );
 	Log::Debug( "Buttons: %d", SDL_GetNumJoystickButtons( stick ) );
@@ -1293,6 +1298,9 @@ void IN_FrameEnd()
 IN_Init
 ===============
 */
+#ifdef __APPLE__
+extern "C" void DisableAccentMenu();
+#endif
 void IN_Init( void *windowData )
 {
 	int appState;
@@ -1323,6 +1331,13 @@ void IN_Init( void *windowData )
 	Cvar_SetValue( "com_unfocused", !( appState & SDL_WINDOW_INPUT_FOCUS ) );
 	Cvar_SetValue( "com_minimized", ( appState & SDL_WINDOW_MINIMIZED ) );
 	IN_InitJoystick();
+
+#ifdef __APPLE__
+	// We have to act after SDL does. Whoever has the last word wins!
+	// https://github.com/libsdl-org/SDL/commit/caf0348b26d02bc22ba9a0a908c83c43f8e4e6ad
+	DisableAccentMenu();
+#endif
+
 	Log::Debug( "------------------------------------" );
 }
 

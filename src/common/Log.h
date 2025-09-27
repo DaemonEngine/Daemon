@@ -31,8 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_LOG_H_
 #define COMMON_LOG_H_
 
-#include "CPPStandard.h"
-
 #include "engine/qcommon/q_shared.h"
 
 #if defined( CPP_SOURCE_LOCATION )
@@ -97,31 +95,17 @@ namespace Log {
         public:
             Logger(Str::StringRef name, std::string prefix = "", Level defaultLevel = DEFAULT_FILTER_LEVEL);
 
-            #if defined( CPP_SOURCE_LOCATION )
-                template<typename ... Args>
-                void WarnExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args );
+            template<typename ... Args>
+            void WarnExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args );
 
-                template<typename ... Args>
-                void NoticeExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args );
+            template<typename ... Args>
+            void NoticeExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args );
 
-                template<typename ... Args>
-                void VerboseExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args );
+            template<typename ... Args>
+            void VerboseExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args );
 
-                template<typename ... Args>
-                void DebugExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args );
-            #else
-                template<typename ... Args>
-                void WarnExt( Str::StringRef format, Args&& ... args );
-
-                template<typename ... Args>
-                void NoticeExt( Str::StringRef format, Args&& ... args );
-
-                template<typename ... Args>
-                void VerboseExt( Str::StringRef format, Args&& ... args );
-
-                template<typename ... Args>
-                void DebugExt( Str::StringRef format, Args&& ... args );
-            #endif
+            template<typename ... Args>
+            void DebugExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args );
 
             template<typename F>
             void DoWarnCode(F&& code);
@@ -158,31 +142,17 @@ namespace Log {
      * cannot be filtered and will clutter the console.
      */
 
-    #if defined( CPP_SOURCE_LOCATION )
-        template<typename ... Args>
-        void Warn( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args );
+    template<typename ... Args>
+    void Warn( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args );
 
-        template<typename ... Args>
-        void Notice( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args );
+    template<typename ... Args>
+    void Notice( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args );
 
-        template<typename ... Args>
-        void Verbose( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args );
+    template<typename ... Args>
+    void Verbose( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args );
 
-        template<typename ... Args>
-        void Debug( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args );
-    #else
-        template<typename ... Args>
-        void Warn( Str::StringRef format, Args&& ... args );
-
-        template<typename ... Args>
-        void Notice( Str::StringRef format, Args&& ... args );
-
-        template<typename ... Args>
-        void Verbose( Str::StringRef format, Args&& ... args );
-
-        template<typename ... Args>
-        void Debug( Str::StringRef format, Args&& ... args );
-    #endif
+    template<typename ... Args>
+    void Debug( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args );
 
     /*
      * For messages which are not true log messages, but rather are produced by
@@ -235,24 +205,62 @@ namespace Log {
 
     // Logger
 
-    #if defined( CPP_SOURCE_LOCATION )
-        inline std::string AddSrcLocation( const std::string& message, const std::source_location& srcLocation, const bool extend ) {
-            if ( logExtendAll.Get() || extend ) {
-                const char* start = Q_stristr( srcLocation.file_name(), "/src/" );
+    inline std::string AddSrcLocation( const std::string& message,
+        const char* file, const char* function, const int line,
+        const bool extend ) {
+        if ( logExtendAll.Get() || extend ) {
+            return message + Str::Format( " ^F(%s:%u, %s)",
+                file, line, function );
+        }
 
-                if( !start ) {
-                    start = Q_stristr( srcLocation.file_name(), "\\src\\" );
-                }
+        return message;
+    }
 
-                if ( !start ) {
-                    start = srcLocation.file_name();
-                }
+    template<typename ... Args>
+    void Logger::WarnExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args ) {
+        if ( filterLevel->Get() <= Level::WARNING ) {
+            this->Dispatch(
+                AddSrcLocation(
+                    Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ),
+                    file, function, line, logExtendWarn.Get()
+                ),
+                Level::WARNING, format );
+        }
+    }
 
-                return message + Str::Format( " ^F(file: %s, line: %u:%u, func: %s)",
-                    start, srcLocation.line(), srcLocation.column(), srcLocation.function_name() );
-            }
+    template<typename ... Args>
+    void Logger::NoticeExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args ) {
+        if ( filterLevel->Get() <= Level::NOTICE ) {
+            this->Dispatch(
+                AddSrcLocation(
+                    Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ),
+                    file, function, line, logExtendNotice.Get()
+                ),
+                Level::NOTICE, format );
+        }
+    }
 
-            return message;
+    template<typename ... Args>
+    void Logger::VerboseExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args ) {
+        if ( filterLevel->Get() <= Level::VERBOSE ) {
+            this->Dispatch(
+                AddSrcLocation(
+                    Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ),
+                    file, function, line, logExtendVerbose.Get()
+                ),
+                Level::VERBOSE, format );
+        }
+    }
+
+    template<typename ... Args>
+    void Logger::DebugExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args ) {
+        if ( filterLevel->Get() <= Level::DEBUG ) {
+            this->Dispatch(
+                AddSrcLocation(
+                    Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ),
+                    file, function, line, logExtendDebug.Get()
+                ),
+                Level::DEBUG, format );
         }
 
         template<typename ... Args>
@@ -351,58 +359,31 @@ namespace Log {
     // Quick Logs
     extern Logger defaultLogger;
 
-    #if defined( CPP_SOURCE_LOCATION )
-        template<typename ... Args>
-        void WarnExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args ) {
-            defaultLogger.WarnExt( srcLocation, format, std::forward<Args>( args ) ... );
-        }
+    template<typename ... Args>
+    void WarnExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args ) {
+        defaultLogger.WarnExt( file, function, line, format, std::forward<Args>( args ) ... );
+    }
 
-        template<typename ... Args>
-        void NoticeExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args ) {
-            defaultLogger.NoticeExt( srcLocation, format, std::forward<Args>( args ) ... );
-        }
+    template<typename ... Args>
+    void NoticeExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args ) {
+        defaultLogger.NoticeExt( file, function, line, format, std::forward<Args>( args ) ... );
+    }
 
-        template<typename ... Args>
-        void VerboseExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args ) {
-            defaultLogger.VerboseExt( srcLocation, format, std::forward<Args>( args ) ... );
-        }
+    template<typename ... Args>
+    void VerboseExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args ) {
+        defaultLogger.VerboseExt( file, function, line, format, std::forward<Args>( args ) ... );
+    }
 
-        template<typename ... Args>
-        void DebugExt( const std::source_location& srcLocation, Str::StringRef format, Args&& ... args ) {
-            defaultLogger.DebugExt( srcLocation, format, std::forward<Args>( args ) ... );
-        }
+    template<typename ... Args>
+    void DebugExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args ) {
+        defaultLogger.DebugExt( file, function, line, format, std::forward<Args>( args ) ... );
+    }
 
-        // Use ##__VA_ARGS__ instead of __VA_ARGS__ because args may be empty. __VA_OPT__( , ) currently doesn't seem to work on MSVC
-        #define Warn( format, ... ) WarnExt( std::source_location::current(), format, ##__VA_ARGS__ )
-        #define Notice( format, ... ) NoticeExt( std::source_location::current(), format, ##__VA_ARGS__ )
-        #define Verbose( format, ... ) VerboseExt( std::source_location::current(), format, ##__VA_ARGS__ )
-        #define Debug( format, ... ) DebugExt( std::source_location::current(), format, ##__VA_ARGS__ )
-    #else
-        template<typename ... Args>
-        void WarnExt( Str::StringRef format, Args&& ... args ) {
-            defaultLogger.WarnExt( format, std::forward<Args>( args ) ... );
-        }
-
-        template<typename ... Args>
-        void NoticeExt( Str::StringRef format, Args&& ... args ) {
-            defaultLogger.NoticeExt( format, std::forward<Args>( args ) ... );
-        }
-
-        template<typename ... Args>
-        void VerboseExt( Str::StringRef format, Args&& ... args ) {
-            defaultLogger.VerboseExt( format, std::forward<Args>( args ) ... );
-        }
-
-        template<typename ... Args>
-        void DebugExt( Str::StringRef format, Args&& ... args ) {
-            defaultLogger.DebugExt( format, std::forward<Args>( args ) ... );
-        }
-
-        #define Warn WarnExt
-        #define Notice NoticeExt
-        #define Verbose VerboseExt
-        #define Debug DebugExt
-    #endif
+    // Use ##__VA_ARGS__ instead of __VA_ARGS__ because args may be empty. __VA_OPT__( , ) currently doesn't seem to work on MSVC
+    #define Warn( format, ... ) WarnExt( __FILE__, __func__, __LINE__, format, ##__VA_ARGS__ )
+    #define Notice( format, ... ) NoticeExt( __FILE__, __func__, __LINE__, format, ##__VA_ARGS__ )
+    #define Verbose( format, ... ) VerboseExt( __FILE__, __func__, __LINE__, format, ##__VA_ARGS__ )
+    #define Debug( format, ... ) DebugExt( __FILE__, __func__, __LINE__, format, ##__VA_ARGS__ )
 }
 
 namespace Cvar {

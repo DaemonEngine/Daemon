@@ -215,7 +215,7 @@ std::string KeyToString(Key key)
 }
 
 int GetCharForScancode(int scancode) {
-    int keycode = static_cast<int>(SDL_GetKeyFromScancode(Util::enum_cast<SDL_Scancode>(scancode), NULL, false));
+    int keycode = static_cast<int>(SDL_GetKeyFromScancode(Util::enum_cast<SDL_Scancode>(scancode), 0, false));
     // The keycode is a "large" number for keys such as Shift
     if (MIN_PRINTABLE_ASCII <= keycode && keycode <= UNICODE_MAX_CODE_POINT) {
         return keycode;

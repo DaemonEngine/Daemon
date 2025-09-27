@@ -109,8 +109,6 @@ struct MaterialSurface {
 };
 
 struct Material {
-	uint32_t materialsSSBOOffset = 0;
-
 	uint32_t globalID = 0;
 	uint32_t surfaceCommandBatchOffset = 0;
 	uint32_t surfaceCommandBatchCount = 0;
@@ -157,11 +155,6 @@ struct Material {
 	std::vector<Texture*> textures;
 
 	bool operator==( const Material& other ) {
-		if ( r_materialSeparatePerShader.Get() )
-		{
-			return refStage == other.refStage;
-		}
-
 		return program == other.program && stateBits == other.stateBits
 			&& fog == other.fog && cullType == other.cullType && usePolygonOffset == other.usePolygonOffset;
 	}
@@ -316,6 +309,9 @@ struct SurfaceCommandBatch {
 
 class MaterialSystem {
 	public:
+	friend class ListMaterialsCmd;
+	friend class ListMaterialSystemStagesCmd;
+
 	vec3_t worldViewBounds[2];
 
 	uint8_t maxStages = 0;
@@ -383,7 +379,7 @@ class MaterialSystem {
 		const bool mayUseVertexOverbright, const bool vertexLit, const bool fullbright );
 	void ProcessStage( MaterialSurface* surface, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage,
 		uint32_t& previousMaterialID, bool skipStageSync = false );
-	void GenerateMaterial( MaterialSurface* surface );
+	void GenerateMaterial( MaterialSurface* surface, int globalFog );
 	void GenerateWorldMaterialsBuffer();
 	void GenerateWorldCommandBuffer( std::vector<MaterialSurface>& surfaces );
 	void GeneratePortalBoundingSpheres();

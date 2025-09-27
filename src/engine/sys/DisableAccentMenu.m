@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 Daemon BSD Source Code
-Copyright (c) 2013-2016, Daemon Developers
+Copyright (c) 2025, Daemon Developers
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,39 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#ifndef AUDIO_DATA_H
-#define AUDIO_DATA_H
-#include <memory>
-#include <vector>
+#import <Foundation/Foundation.h>
 
-namespace Audio {
-
-struct AudioData {
-	AudioData()
-	    : sampleRate{0}
-	    , byteDepth{0}
-	    , numberOfChannels{0}
-	{}
-
-	AudioData(int sampleRate, int byteDepth, int numberOfChannels )
-	    : sampleRate{sampleRate}
-	    , byteDepth{byteDepth}
-	    , numberOfChannels{numberOfChannels}
-	{}
-
-	AudioData(AudioData&& that)
-	    : sampleRate{that.sampleRate}
-	    , byteDepth{that.byteDepth}
-	    , numberOfChannels{that.numberOfChannels}
-	    , rawSamples{std::move(that.rawSamples)}
-	{}
-
-	AudioData(const AudioData& that) = delete;
-
-	const int sampleRate;
-	const int byteDepth;
-	const int numberOfChannels;
-	std::vector<char> rawSamples;
-};
-} // namespace Audio
-#endif
+void DisableAccentMenu() {
+    // Don't do this: https://forums.factorio.com/download/file.php?id=46540
+    NSDictionary *appDefaults = [[NSDictionary alloc] initWithObjectsAndKeys:
+        [NSNumber numberWithBool:NO], @"ApplePressAndHoldEnabled", nil];
+    [[NSUserDefaults standardUserDefaults] registerDefaults:appDefaults];
+}

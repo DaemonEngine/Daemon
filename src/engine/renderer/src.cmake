@@ -1,4 +1,5 @@
 set(RENDERERLIST
+    ${CMAKE_CURRENT_BINARY_DIR}/GeneratedSource/shaders.cpp
     ${ENGINE_DIR}/renderer/BufferBind.h
     ${ENGINE_DIR}/renderer/DetectGLVendors.cpp
     ${ENGINE_DIR}/renderer/DetectGLVendors.h
@@ -6,7 +7,6 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/gl_shader.h
     ${ENGINE_DIR}/renderer/iqm.h
     ${ENGINE_DIR}/renderer/ShadeCommon.h
-    ${ENGINE_DIR}/renderer/shaders.cpp
     ${ENGINE_DIR}/renderer/tr_animation.cpp
     ${ENGINE_DIR}/renderer/tr_backend.cpp
     ${ENGINE_DIR}/renderer/tr_bsp.cpp
@@ -20,6 +20,7 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/GeometryOptimiser.h
     ${ENGINE_DIR}/renderer/GLMemory.cpp
     ${ENGINE_DIR}/renderer/GLMemory.h
+    ${ENGINE_DIR}/renderer/GLUtils.h
     ${ENGINE_DIR}/renderer/InternalImage.cpp
     ${ENGINE_DIR}/renderer/InternalImage.h
     ${ENGINE_DIR}/renderer/Material.cpp

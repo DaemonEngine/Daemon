@@ -72,7 +72,7 @@ static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 	}
 	else
 	{
-		Sys::Drop("%sUnknown attribute layout for vbo: %s\n",
+		Sys::Drop("%sUnknown attribute layout for vbo: %s",
 		          Color::ToString( Color::Yellow ), vbo->name );
 	}
 }

@@ -21,10 +21,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "qcommon/q_shared.h" // Include before SDL.h due to M_PI issue...
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #ifdef USE_SMP
-#include <SDL_thread.h>
+#include <SDL3/SDL_thread.h>
 #endif
 
 #include "renderer/tr_local.h"
@@ -36,7 +36,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "sdl_icon.h"
 #pragma warning(pop)
 
-#include "SDL_syswm.h"
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
 
@@ -89,6 +88,8 @@ static Cvar::Cvar<bool> r_arb_map_buffer_range( "r_arb_map_buffer_range",
 	"Use GL_ARB_map_buffer_range if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_multi_draw_indirect( "r_arb_multi_draw_indirect",
 	"Use GL_ARB_multi_draw_indirect if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_program_interface_query( "r_arb_program_interface_query",
+	"Load GL_ARB_program_interface_query if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_shader_draw_parameters( "r_arb_shader_draw_parameters",
 	"Use GL_ARB_shader_draw_parameters if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_shader_atomic_counters( "r_arb_shader_atomic_counters",
@@ -186,6 +187,7 @@ static Cvar::Cvar<bool> workaround_glHardware_intel_useFirstProvokinVertex(
 	Cvar::NONE, true );
 
 SDL_Window *window = nullptr;
+static SDL_PropertiesID windowProperties;
 static SDL_GLContext glContext = nullptr;
 
 #ifdef USE_SMP
@@ -214,9 +216,9 @@ SMP acceleration
  * thread-safe OpenGL libraries.
  */
 
-static SDL_mutex  *smpMutex = nullptr;
-static SDL_cond   *renderCommandsEvent = nullptr;
-static SDL_cond   *renderCompletedEvent = nullptr;
+static SDL_Mutex *smpMutex = nullptr;
+static SDL_Condition *renderCommandsEvent = nullptr;
+static SDL_Condition *renderCompletedEvent = nullptr;
 static void ( *renderThreadFunction )() = nullptr;
 static SDL_Thread *renderThread = nullptr;
 
@@ -269,7 +271,7 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 		return false;
 	}
 
-	renderCommandsEvent = SDL_CreateCond();
+	renderCommandsEvent = SDL_CreateCondition();
 
 	if ( renderCommandsEvent == nullptr )
 	{
@@ -278,7 +280,7 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 		return false;
 	}
 
-	renderCompletedEvent = SDL_CreateCond();
+	renderCompletedEvent = SDL_CreateCondition();
 
 	if ( renderCompletedEvent == nullptr )
 	{
@@ -323,13 +325,13 @@ void GLimp_ShutdownRenderThread()
 
 	if ( renderCommandsEvent != nullptr )
 	{
-		SDL_DestroyCond( renderCommandsEvent );
+		SDL_DestroyCondition( renderCommandsEvent );
 		renderCommandsEvent = nullptr;
 	}
 
 	if ( renderCompletedEvent != nullptr )
 	{
-		SDL_DestroyCond( renderCompletedEvent );
+		SDL_DestroyCondition( renderCompletedEvent );
 		renderCompletedEvent = nullptr;
 	}
 
@@ -356,11 +358,11 @@ void           *GLimp_RendererSleep()
 		smpDataReady = false;
 
 		// after this, the front end can exit GLimp_FrontEndSleep
-		SDL_CondSignal( renderCompletedEvent );
+		SDL_SignalCondition( renderCompletedEvent );
 
 		while ( !smpDataReady )
 		{
-			SDL_CondWait( renderCommandsEvent, smpMutex );
+			SDL_WaitCondition( renderCommandsEvent, smpMutex );
 		}
 
 		data = ( void * ) smpData;
@@ -383,7 +385,7 @@ void GLimp_FrontEndSleep()
 	{
 		while ( smpData )
 		{
-			SDL_CondWait( renderCompletedEvent, smpMutex );
+			SDL_WaitCondition( renderCompletedEvent, smpMutex );
 		}
 	}
 	SDL_UnlockMutex( smpMutex );
@@ -417,7 +419,7 @@ void GLimp_WakeRenderer( void *data )
 		smpDataReady = true;
 
 		// after this, the renderer can continue through GLimp_RendererSleep
-		SDL_CondSignal( renderCommandsEvent );
+		SDL_SignalCondition( renderCommandsEvent );
 	}
 	SDL_UnlockMutex( smpMutex );
 }
@@ -472,7 +474,6 @@ enum class rserr_t
 };
 
 cvar_t                     *r_allowResize; // make window resizable
-cvar_t                     *r_centerWindow;
 cvar_t                     *r_displayIndex;
 cvar_t                     *r_sdlDriver;
 
@@ -564,10 +565,8 @@ static void SetSwapInterval( int swapInterval )
 
 	About how to deal with errors:
 
-	> If an application requests adaptive vsync and the system
-	> does not support it, this function will fail and return -1.
-	> In such a case, you should probably retry the call with 1
-	> for the interval.
+	> Returns true on success or false on failure;
+	> call SDL_GetError() for more information.
 	> -- https://wiki.libsdl.org/SDL_GL_SetSwapInterval
 
 	Given what's written in Swap Interval Khronos page, setting r_finish
@@ -588,7 +587,7 @@ static void SetSwapInterval( int swapInterval )
 	int sign = swapInterval < 0 ? -1 : 1;
 	int interval = std::abs( swapInterval );
 
-	while ( SDL_GL_SetSwapInterval( sign * interval ) == -1 )
+	while ( !SDL_GL_SetSwapInterval( sign * interval ) )
 	{
 		if ( sign == -1 )
 		{
@@ -616,6 +615,11 @@ static void SetSwapInterval( int swapInterval )
 	}
 }
 
+struct displayMode_t
+{
+	int w;
+	int h;
+};
 /*
 ===============
 GLimp_CompareModes
@@ -624,8 +628,8 @@ GLimp_CompareModes
 static int GLimp_CompareModes( const void *a, const void *b )
 {
 	const float ASPECT_EPSILON = 0.001f;
-	SDL_Rect    *modeA = ( SDL_Rect * ) a;
-	SDL_Rect    *modeB = ( SDL_Rect * ) b;
+	displayMode_t *modeA = ( displayMode_t * ) a;
+	displayMode_t *modeB = ( displayMode_t * ) b;
 	float       aspectA = ( float ) modeA->w / ( float ) modeA->h;
 	float       aspectB = ( float ) modeB->w / ( float ) modeB->h;
 	int         areaA = modeA->w * modeA->h;
@@ -655,72 +659,58 @@ GLimp_DetectAvailableModes
 */
 static bool GLimp_DetectAvailableModes()
 {
-	char     buf[ MAX_STRING_CHARS ] = { 0 };
-	SDL_Rect modes[ 128 ];
-	int      numModes = 0;
-	int      i;
-	SDL_DisplayMode windowMode;
-	int      display;
+	SDL_DisplayID display = SDL_GetDisplayForWindow( window );
 
-	display = SDL_GetWindowDisplayIndex( window );
+	int allModes;
+	SDL_DisplayMode **displayModes = SDL_GetFullscreenDisplayModes( display, &allModes );
 
-	if ( SDL_GetWindowDisplayMode( window, &windowMode ) < 0 )
+	if ( !displayModes )
 	{
-		logger.Warn("Couldn't get window display mode: %s", SDL_GetError() );
-		/* FIXME: returning true means the engine will crash if the window size is
-		larger than what the GPU can support, but we need to not fail to open a window
-		with a size the GPU can handle even if not using native screen resolutions. */
-		return true;
+		Sys::Error( "Couldn't get display modes: %s", SDL_GetError() );
 	}
 
-	for ( i = 0; i < SDL_GetNumDisplayModes( display ); i++ )
+	std::vector<displayMode_t> modes;
+
+	for ( int i = 0; i < allModes; i++ )
 	{
-		SDL_DisplayMode mode;
+		SDL_DisplayMode *mode = displayModes[ i ];
 
-		if ( SDL_GetDisplayMode( display, i, &mode ) < 0 )
+		if ( !mode->w || !mode->h )
 		{
-			continue;
-		}
-
-		if ( !mode.w || !mode.h )
-		{
+			// FIXME is this really a thing? I don't see it in SDL2 or SDL3 documentation
 			logger.Notice("Display supports any resolution" );
+			SDL_free( displayModes );
 			return true;
 		}
 
-		if ( windowMode.format != mode.format || windowMode.refresh_rate != mode.refresh_rate )
+		if ( !modes.empty() && modes.back().w == mode->w && modes.back().h == mode->h )
 		{
 			continue;
 		}
 
-		modes[ numModes ].w = mode.w;
-		modes[ numModes ].h = mode.h;
-		numModes++;
+		modes.push_back( { mode->w, mode->h } );
 	}
 
-	if ( numModes > 1 )
-	{
-		qsort( modes, numModes, sizeof( SDL_Rect ), GLimp_CompareModes );
-	}
+	SDL_free( displayModes );
 
-	for ( i = 0; i < numModes; i++ )
-	{
-		const char *newModeString = va( "%ux%u ", modes[ i ].w, modes[ i ].h );
+	qsort( modes.data(), modes.size(), sizeof( modes[ 0 ] ), GLimp_CompareModes );
 
-		if ( strlen( newModeString ) < sizeof( buf ) - strlen( buf ) )
+	std::string modesString;
+
+	for ( displayMode_t mode : modes )
+	{
+		if ( !modesString.empty() )
 		{
-			Q_strcat( buf, sizeof( buf ), newModeString );
+			modesString.push_back( ' ' );
 		}
-		else
-		{
-			logger.Warn("Skipping mode %ux%x, buffer too small", modes[ i ].w, modes[ i ].h );
-		}
+
+		modesString += Str::Format( "%ux%u", mode.w, mode.h );
 	}
 
-	if ( *buf )
+	if ( !modesString.empty() )
 	{
-		logger.Notice("Available modes: '%s'", buf );
-		Cvar::SetValueForce( r_availableModes.Name(), buf );
+		logger.Notice("Available modes: %s", modesString );
+		Cvar::SetValueForce( r_availableModes.Name(), modesString );
 	}
 
 	return true;
@@ -798,6 +788,15 @@ static void GLimp_SetAttributes( const glConfiguration &configuration )
 	}
 }
 
+// Copied from https://github.com/libsdl-org/SDL/blob/main/docs/README-migration.md
+static SDL_Surface *SDL_CreateRGBSurfaceFrom(
+	void *pixels, int width, int height, int depth, int pitch, Uint32 Rmask, Uint32 Gmask, Uint32 Bmask, Uint32 Amask )
+{
+	return SDL_CreateSurfaceFrom( width, height,
+	                              SDL_GetPixelFormatForMasks( depth, Rmask, Gmask, Bmask, Amask ),
+	                              pixels, pitch);
+}
+
 static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfiguration &configuration )
 {
 	/* The requested attributes should be set before creating
@@ -851,20 +850,21 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 		}
 	}
 
-	int x, y;
-	if ( r_centerWindow->integer )
-	{
-		// center window on specified display
-		x = SDL_WINDOWPOS_CENTERED_DISPLAY( r_displayIndex->integer );
-		y = SDL_WINDOWPOS_CENTERED_DISPLAY( r_displayIndex->integer );
-	}
-	else
-	{
-		x = SDL_WINDOWPOS_UNDEFINED_DISPLAY( r_displayIndex->integer );
-		y = SDL_WINDOWPOS_UNDEFINED_DISPLAY( r_displayIndex->integer );
-	}
+	int x = SDL_WINDOWPOS_CENTERED_DISPLAY( glConfig.sdlDisplayID );
+	int y = SDL_WINDOWPOS_CENTERED_DISPLAY( glConfig.sdlDisplayID );
 
-	window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y, windowConfig.vidWidth, windowConfig.vidHeight, flags );
+	windowProperties = SDL_CreateProperties();
+	if ( !windowProperties )
+	{
+		Sys::Error( "SDL_CreateProperties failed" );
+	}
+	SDL_SetStringProperty( windowProperties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, CLIENT_WINDOW_TITLE );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_X_NUMBER, x );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, y );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, windowConfig.vidWidth );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, windowConfig.vidHeight );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, flags );
+	window = SDL_CreateWindowWithProperties( windowProperties );
 
 	if ( window )
 	{
@@ -883,12 +883,14 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 			windowType ? windowType : "",
 			windowType ? " ": "" );
 		logger.Warn("SDL_CreateWindow failed: %s", SDL_GetError() );
+		SDL_DestroyProperties( windowProperties );
+		windowProperties = 0;
 		return false;
 	}
 
 	SDL_SetWindowIcon( window, icon );
 
-	SDL_FreeSurface( icon );
+	SDL_DestroySurface( icon );
 
 	return true;
 }
@@ -897,7 +899,7 @@ static void GLimp_DestroyContextIfExists()
 {
 	if ( glContext != nullptr )
 	{
-		SDL_GL_DeleteContext( glContext );
+		SDL_GL_DestroyContext( glContext );
 		glContext = nullptr;
 	}
 }
@@ -915,6 +917,8 @@ static void GLimp_DestroyWindowIfExists()
 		logger.Debug("Destroying %d×%d SDL window at %d,%d", w, h, x, y );
 		SDL_DestroyWindow( window );
 		window = nullptr;
+		SDL_DestroyProperties( windowProperties );
+		windowProperties = 0;
 	}
 }
 
@@ -1008,9 +1012,7 @@ static bool GLimp_RecreateWindowWhenChange( const bool fullscreen, const bool bo
 
 	if ( bordered != currentBordered )
 	{
-		SDL_bool sdlBordered = bordered ? SDL_TRUE : SDL_FALSE;
-
-		SDL_SetWindowBordered( window, sdlBordered );
+		SDL_SetWindowBordered( window, bordered );
 
 		const char* windowType = bordered ? "bordered" : "borderless";
 		logger.Debug( "SDL window set as %s.", windowType );
@@ -1024,30 +1026,48 @@ static bool GLimp_RecreateWindowWhenChange( const bool fullscreen, const bool bo
 
 static rserr_t GLimp_SetModeAndResolution( const int mode )
 {
-	SDL_DisplayMode desktopMode;
+	int numDisplays;
+	SDL_DisplayID *displayIDs = SDL_GetDisplays( &numDisplays );
 
-	if ( SDL_GetDesktopDisplayMode( r_displayIndex->integer, &desktopMode ) == 0 )
+	if ( !displayIDs )
 	{
-		windowConfig.displayAspect = ( float ) desktopMode.w / ( float ) desktopMode.h;
+		Sys::Error( "SDL_GetDisplays failed: %s", SDL_GetError() );
+	}
+
+	if ( numDisplays <= 0 )
+	{
+		Sys::Error( "SDL_GetDisplays returned 0 displays" );
+	}
+
+	glConfig.sdlDisplayID = r_displayIndex->integer >= 0 && r_displayIndex->integer < numDisplays
+	                        ? displayIDs[ r_displayIndex->integer ]
+	                        : 0; // 0 indicates primary display
+
+	SDL_free( displayIDs );
+
+	const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode( glConfig.sdlDisplayID );
+
+	if ( desktopMode )
+	{
+		windowConfig.displayAspect = ( float ) desktopMode->w / ( float ) desktopMode->h;
 		logger.Notice( "Display aspect: %.3f", windowConfig.displayAspect );
 	}
 	else
 	{
-		memset( &desktopMode, 0, sizeof( SDL_DisplayMode ) );
 		windowConfig.displayAspect = 1.333f;
 		logger.Warn("Cannot determine display aspect, assuming %.3f: %s", windowConfig.displayAspect, SDL_GetError() );
 	}
 
-	windowConfig.displayWidth = desktopMode.w;
-	windowConfig.displayHeight = desktopMode.h;
+	windowConfig.displayWidth = desktopMode->w;
+	windowConfig.displayHeight = desktopMode->h;
 
 	if ( mode == -2 )
 	{
 		// use desktop video resolution
-		if ( desktopMode.h > 0 )
+		if ( desktopMode->h > 0 )
 		{
-			windowConfig.vidWidth = desktopMode.w;
-			windowConfig.vidHeight = desktopMode.h;
+			windowConfig.vidWidth = desktopMode->w;
+			windowConfig.vidHeight = desktopMode->h;
 		}
 		else
 		{
@@ -1704,42 +1724,38 @@ GLimp_StartDriverAndSetMode
 */
 static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordered )
 {
-	int numDisplays;
+	// See the SDL wiki page for details: https://wiki.libsdl.org/SDL3/SDL_SetAppMetadataProperty
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_NAME_STRING, PRODUCT_NAME );
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_VERSION_STRING, PRODUCT_VERSION );
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_TYPE_STRING, "game" );
 
-#if !defined(_WIN32) && !defined(__APPLE__)
 	/* Let X11 and Wayland desktops (Linux, FreeBSD…) associate the game
 	window with the XDG .desktop file, with the proper name and icon.
 	The .desktop file should have PRODUCT_APPID as base name or set the
 	StartupWMClass variable to PRODUCT_APPID. */
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_IDENTIFIER_STRING, PRODUCT_APPID );
 
-	// SDL2.
-	Sys::SetEnv( "SDL_VIDEO_X11_WMCLASS", PRODUCT_APPID );
-	Sys::SetEnv( "SDL_VIDEO_WAYLAND_WMCLASS", PRODUCT_APPID );
-
-	// SDL3.
-	Sys::SetEnv( "SDL_HINT_APP_ID", PRODUCT_APPID );
-#endif
+	/* Disable DPI scaling.
+	See the SDL wiki page for details: https://wiki.libsdl.org/SDL3/SDL_HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY */
+	SDL_SetHint( SDL_HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY, "1" );
 
 	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
 	{
 		const char *driverName;
-		SDL_version v;
-		SDL_GetVersion( &v );
+
+		const int linked = SDL_GetVersion();
+		const int compiled = SDL_VERSION;
 
 		logger.Notice("SDL_Init( SDL_INIT_VIDEO )... " );
-		logger.Notice("Using SDL version %u.%u.%u", v.major, v.minor, v.patch );
+		logger.Notice("Using SDL version %d.%d.%d (compiled against SDL version %d.%d.%d)",
+			SDL_VERSIONNUM_MAJOR(linked),
+			SDL_VERSIONNUM_MINOR(linked),
+			SDL_VERSIONNUM_MICRO(linked),
+			SDL_VERSIONNUM_MAJOR(compiled),
+			SDL_VERSIONNUM_MINOR(compiled),
+			SDL_VERSIONNUM_MICRO(compiled));
 
-		/* It is recommended to test for negative value and not just -1.
-
-		> Returns 0 on success or a negative error code on failure;
-		> call SDL_GetError() for more information.
-		> -- https://wiki.libsdl.org/SDL_Init
-
-		the SDL_GetError page also gives a sample of code testing for < 0
-		> if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
-		> -- https://wiki.libsdl.org/SDL_GetError */
-
-		if ( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+		if ( !SDL_Init( SDL_INIT_VIDEO ) )
 		{
 			Sys::Error("SDL_Init( SDL_INIT_VIDEO ) failed: %s", SDL_GetError() );
 		}
@@ -1748,26 +1764,24 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 
 		if ( !driverName )
 		{
-			Sys::Error( "No video driver initialized\n" );
+			Sys::Error( "No video driver initialized" );
 		}
 
 		logger.Notice("SDL using driver \"%s\"", driverName );
 		Cvar_Set( "r_sdlDriver", driverName );
 	}
 
-	numDisplays = SDL_GetNumVideoDisplays();
+	int numDisplays;
+	SDL_DisplayID *displayIDs = SDL_GetDisplays( &numDisplays );
 
-	if ( numDisplays <= 0 )
+	if ( !displayIDs )
 	{
-		Sys::Error( "SDL_GetNumVideoDisplays failed: %s\n", SDL_GetError() );
+		Sys::Error( "SDL_GetDisplays failed: %s", SDL_GetError() );
 	}
 
 #if defined(DAEMON_OPENGL_ABI)
 	logger.Notice( "Using OpenGL ABI \"%s\"", DAEMON_OPENGL_ABI_STRING );
 #endif
-
-	AssertCvarRange( r_displayIndex, 0, numDisplays - 1, true );
-	glConfig.displayIndex = r_displayIndex->integer;
 
 	rserr_t err = GLimp_SetMode(mode, fullscreen, bordered);
 
@@ -1822,7 +1836,7 @@ static GLenum debugTypes[] =
 };
 
 #ifdef _WIN32
-#define DEBUG_CALLBACK_CALL APIENTRY
+#define DEBUG_CALLBACK_CALL __stdcall //APIENTRY
 #else
 #define DEBUG_CALLBACK_CALL
 #endif
@@ -2324,7 +2338,6 @@ static void GLimp_InitExtensions()
 		glFboSetExt();
 	}
 
-	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig.maxRenderbufferSize );
 	glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &glConfig.maxColorAttachments );
 
 	// made required in OpenGL 2.0
@@ -2498,6 +2511,12 @@ static void GLimp_InitExtensions()
 	glConfig.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, shaderDrawParametersEnabled );
 
 	// made required in OpenGL 4.3
+	// We don't use it but the ARB_shader_storage_buffer_object spec says "OpenGL 4.3 or ARB_program_interface_query is required" and
+	// Intel's driver interprets that as meaning we must explicitly load the extension for SSBOs to work?
+	// But don't stop ourselves from using SSBOs if this fails.
+	LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_program_interface_query, r_arb_program_interface_query.Get() );
+
+	// made required in OpenGL 4.3
 	glConfig.SSBOAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_storage_buffer_object, r_arb_shader_storage_buffer_object.Get() );
 
 	// made required in OpenGL 4.0
@@ -2638,7 +2657,6 @@ bool GLimp_Init()
 
 	r_sdlDriver = Cvar_Get( "r_sdlDriver", "", CVAR_ROM );
 	r_allowResize = Cvar_Get( "r_allowResize", "0", CVAR_LATCH );
-	r_centerWindow = Cvar_Get( "r_centerWindow", "0", 0 );
 	r_displayIndex = Cvar_Get( "r_displayIndex", "0", 0 );
 
 	Cvar::Latch( workaround_glDriver_amd_adrenalin_disableBindlessTexture );
@@ -2918,7 +2936,7 @@ void GLimp_HandleCvars()
 
 	if ( Util::optional<bool> noBorder = r_noBorder.GetModifiedValue() )
 	{
-		SDL_bool bordered = *noBorder ? SDL_FALSE : SDL_TRUE;
+		bool bordered = !*noBorder;
 		SDL_SetWindowBordered( window, bordered );
 	}
 
