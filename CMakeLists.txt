@@ -784,6 +784,7 @@ if (USE_BREAKPAD)
     elseif (LINUX)
         add_library(srclibs-breakpad EXCLUDE_FROM_ALL ${BREAKPAD_LIST})
         set_target_properties(srclibs-breakpad PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+        target_compile_definitions(srclibs-breakpad PUBLIC HAVE_GETCONTEXT=1)
         set(LIBS_ENGINE ${LIBS_ENGINE} srclibs-breakpad)
 
         add_executable(crash_server src/engine/crash_server/crash_server_linux.cpp)
