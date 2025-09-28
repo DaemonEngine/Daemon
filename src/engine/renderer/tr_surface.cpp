@@ -740,8 +740,7 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 			i16vec4_t qtangents;
 
 			VectorNormalizeFast(normals[i]);
-			R_TBNtoQtangents(tangents[i], binormals[i],
-				normals[i], qtangents);
+			R_TBNtoQtangentsFast(tangents[i], binormals[i], normals[i], qtangents);
 
 			VectorCopy(p->verts[i].xyz, tess.verts[tess.numVertexes + i].xyz);
 
