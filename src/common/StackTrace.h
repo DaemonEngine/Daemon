@@ -58,9 +58,9 @@ inline std::string FormatStackTrace( const std::stacktrace& stackTrace,
         }
 
         if( compact ) {
-            out += Str::Format( addLineEnd ? "\n%s:%u" : "%s:%u", entry.source_file(), entry.source_line());
+            out += Str::Format( addLineEnd ? "\n%s:%u" : "%s:%u", entry.source_file(), entry.source_line() );
         } else {
-            out += Str::Format( addLineEnd ? "\n%s:%u: %s" : "%s:%u: %s", entry.source_file(), entry.source_line(), entry.description());
+            out += Str::Format( addLineEnd ? "\n%s:%u: %s" : "%s:%u: %s", entry.source_file(), entry.source_line(), entry.description() );
         }
         addLineEnd = true;
     }

@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define CG_MSGDEF_H
 
 #include "cg_api.h"
-#include "engine/renderer/tr_types.h"
+#include "engine/RefAPI.h"
 #include "common/IPC/CommonSyscalls.h"
 #include "common/KeyIdentification.h"
 
