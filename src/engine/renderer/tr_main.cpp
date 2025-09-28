@@ -57,7 +57,7 @@ void R_CalcFaceNormal( vec3_t normal,
 	VectorSubtract( v1, v0, v );
 	CrossProduct( u, v, normal );
 
-	VectorNormalize( normal );
+	VectorNormalizeFast( normal );
 }
 
 
