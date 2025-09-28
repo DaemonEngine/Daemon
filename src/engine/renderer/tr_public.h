@@ -111,6 +111,7 @@ struct GLConfig
 	bool computeShaderAvailable;
 	bool bindlessTexturesAvailable; // do the driver/hardware support it
 	bool usingBindlessTextures; // are we using them right now
+	bool usingReadonlyDepth;
 	bool shaderDrawParametersAvailable;
 	bool SSBOAvailable;
 	bool multiDrawIndirectAvailable;

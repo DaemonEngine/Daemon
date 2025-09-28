@@ -2473,6 +2473,12 @@ static void R_CreateCurrentRenderImage()
 
 	tr.currentDepthImage = R_CreateImage( "*currentDepth", nullptr, width, height, 1, imageParams );
 
+	if ( glConfig.usingReadonlyDepth )
+	{
+		// For use with glBlitFramebuffer, format must be the same as currentDepthImage
+		tr.depthSamplerImage = R_CreateImage( "*readonlyDepth", nullptr, width, height, 1, imageParams );
+	}
+
 	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.GenerateDepthImages( width, height, imageParams );
 	}
