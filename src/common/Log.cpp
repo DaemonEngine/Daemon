@@ -30,6 +30,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Common.h"
 
+#ifdef BUILD_ENGINE
+// TODO: when cvar multiple registration is available, just declare the cvars in each module.
+static Cvar::Cvar<bool> suppressionEnabled(
+    "logs.suppression.enabled", "Whether to suppress log messages that are printed too many times", Cvar::NONE, true);
+static Cvar::Range<Cvar::Cvar<int>> suppressionInterval(
+    "logs.suppression.interval", "Interval in milliseconds for detecting log spam", Cvar::NONE, 2000, 1, 1000000);
+static Cvar::Range<Cvar::Cvar<int>> suppressionCount(
+    "logs.suppression.count", "Number of occurrences for a message to be considered log spam", Cvar::NONE, 10, 1, 1000000);
+static Cvar::Range<Cvar::Cvar<int>> suppressionBufSize(
+    "logs.suppression.bufferSize", "How many distinct messages to track for log suppression", Cvar::NONE, 50, 1, 1000000);
+
+#define GET_LOG_CVAR(type, name, object) (object.Get())
+#else
+#define GET_LOG_CVAR(type, name, object) (GetCvarOrDie<type>(name))
+template <typename T>
+static T GetCvarOrDie(Str::StringRef cvar) {
+    T value;
+    std::string valueString = Cvar::GetValue(cvar);
+    if (!Cvar::ParseCvarValue(valueString, value)) {
+        Sys::Error("Failed to deserialize cvar %s with value: %s", cvar, valueString);
+    }
+   return value;
+}
+#endif
+
 namespace Log {
     Cvar::Cvar<bool> logExtendAll(
         "logs.writeSrcLocation.all", "Always print source code location for logs", Cvar::NONE, false );
@@ -137,15 +162,6 @@ namespace Log {
         }
     }
 
-    template <typename T>
-    static T GetCvarOrDie(Str::StringRef cvar) {
-        T value;
-        std::string valueString = Cvar::GetValue(cvar);
-        if (!Cvar::ParseCvarValue(valueString, value)) {
-            Sys::Error("Failed to deserialize cvar %s with value: %s", cvar, valueString);
-        }
-        return value;
-    }
     namespace {
         // Log-spam suppression: if more than MAX_OCCURRENCES log messages with the same format string
         // are sent in less than INTERVAL_MS milliseconds, they will stop being printed.
@@ -167,9 +183,9 @@ namespace Log {
             };
             Result UpdateAndEvaluate(Str::StringRef messageFormat) {
                 std::lock_guard<std::mutex> lock(mutex);
-                int intervalMs = GetCvarOrDie<int>("logs.suppression.interval");
-                int maxOccurrences = GetCvarOrDie<int>("logs.suppression.count");
-                int bufferSize = GetCvarOrDie<int>("logs.suppression.bufferSize");
+                int intervalMs = GET_LOG_CVAR(int, "logs.suppression.interval", suppressionInterval);
+                int maxOccurrences = GET_LOG_CVAR(int, "logs.suppression.count", suppressionCount);
+                int bufferSize = GET_LOG_CVAR(int, "logs.suppression.bufferSize", suppressionBufSize);
                 buf.resize(bufferSize);
                 MessageStatistics* oldest = &buf[0];
                 int now = Sys::Milliseconds();
@@ -200,7 +216,7 @@ namespace Log {
 
     void DispatchWithSuppression(std::string message, Log::Level level, Str::StringRef format) {
         static LogSpamSuppressor suppressor;
-        if (level == Level::DEBUG || !GetCvarOrDie<bool>("logs.suppression.enabled")) {
+        if (level == Level::DEBUG || !GET_LOG_CVAR(bool, "logs.suppression.enabled", suppressionEnabled)) {
             DispatchByLevel(std::move(message), level);
             return;
         }
