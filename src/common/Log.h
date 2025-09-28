@@ -118,7 +118,7 @@ namespace Log {
         private:
             void Dispatch(std::string message, Log::Level level, Str::StringRef format);
 
-            std::string Prefix(std::string message) const;
+            std::string Prefix(Str::StringRef message) const;
 
             // the cvar logs.level.<name>
             std::shared_ptr<Cvar::Cvar<Level>> filterLevel;

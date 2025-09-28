@@ -45,15 +45,16 @@ namespace Log {
     Logger::Logger(Str::StringRef name, std::string prefix, Level defaultLevel)
         : filterLevel(new Cvar::Cvar<Log::Level>(
               "logs.level." + name, "Log::Level - logs from '" + name + "' below the level specified are filtered", 0, defaultLevel)),
-          prefix(prefix), enableSuppression(true) {
+          enableSuppression(true)
+    {
+        if (!prefix.empty()) {
+            // TODO allow prefixes without a space, e.g. a color code
+            this->prefix = prefix + " ";
+        }
     }
 
-    std::string Logger::Prefix(std::string message) const {
-        if (prefix.empty()) {
-            return message;
-        } else {
-            return prefix + " " + message;
-        }
+    std::string Logger::Prefix(Str::StringRef message) const {
+        return prefix + message;
     }
 
     void Logger::Dispatch(std::string message, Log::Level level, Str::StringRef format) {
