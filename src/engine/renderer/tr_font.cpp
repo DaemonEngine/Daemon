@@ -418,8 +418,7 @@ static void RE_StoreImage( fontInfo_t *font, int chunk, int page, int from, int 
 		buffer[ j++ ] = ( ( float ) bitmap[ i ] * max );
 	}
 
-
-	Com_sprintf( fileName, sizeof( fileName ), "%s_%i_%i_%i.png", font->name, chunk, page, font->pointSize );
+	Com_sprintf( fileName, sizeof( fileName ), "*%s_%i_%i_%i", font->name, chunk, page, font->pointSize );
 
 	image = R_CreateGlyph( fileName, buffer, FONT_SIZE, y );
 

@@ -352,7 +352,7 @@ void CL_SystemInfoChanged()
 	cl.serverId = atoi( Info_ValueForKey( systemInfo, "sv_serverid" ) );
 
 	// load paks sent by the server, but not if we are running a local server
-	if (!com_sv_running->integer) {
+	if (!com_sv_running.Get()) {
 		FS::PakPath::ClearPaks();
 		if (!FS_LoadServerPaks(Info_ValueForKey(systemInfo, "sv_paks"), clc.demoplaying)) {
 			if (!cl_allowDownload->integer) {

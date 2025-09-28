@@ -168,6 +168,7 @@ struct ShaderProgramDescriptor {
 
 class GLShader {
 	friend class GLShaderManager;
+	friend class GLDeformStage;
 public:
 	const std::string _name;
 private:
@@ -190,6 +191,7 @@ private:
 	const bool worldShader;
 protected:
 	int _activeMacros = 0;
+	int _deformIndex = 0;
 	ShaderProgramDescriptor* currentProgram;
 	uint32_t _vertexAttribs = 0; // can be set by uniforms
 
@@ -269,9 +271,9 @@ protected:
 	virtual void SetShaderProgramUniforms( ShaderProgramDescriptor* /*shaderProgram*/ ) { };
 	int SelectProgram();
 public:
-	void MarkProgramForBuilding( int deformIndex );
-	GLuint GetProgram( int deformIndex, const bool buildOneShader );
-	void BindProgram( int deformIndex );
+	void MarkProgramForBuilding();
+	GLuint GetProgram( const bool buildOneShader );
+	void BindProgram();
 	void DispatchCompute( const GLuint globalWorkgroupX, const GLuint globalWorkgroupY, const GLuint globalWorkgroupZ );
 	void DispatchComputeIndirect( const GLintptr indirectBuffer );
 	void SetRequiredVertexPointers();
@@ -427,7 +429,7 @@ public:
 
 	int GetDeformShaderIndex( deformStage_t *deforms, int numDeforms );
 
-	bool BuildPermutation( GLShader* shader, int macroIndex, int deformIndex, const bool buildOneShader );
+	bool BuildPermutation( GLShader* shader, int index, const bool buildOneShader );
 	void BuildAll( const bool buildOnlyMarked );
 	void FreeAll();
 
@@ -1826,18 +1828,6 @@ class u_CloudMap :
 	}
 };
 
-class u_FogMap :
-	GLUniformSampler2D {
-	public:
-	u_FogMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_FogMap" ) {
-	}
-
-	void SetUniform_FogMapBindless( GLuint64 bindlessHandle ) {
-		this->SetValueBindless( bindlessHandle );
-	}
-};
-
 class u_DepthTile1 :
 	GLUniformSampler2D {
 	public:
@@ -2112,7 +2102,7 @@ class u_FogDensity :
 {
 public:
 	u_FogDensity( GLShader *shader ) :
-		GLUniform1f( shader, "u_FogDensity" )
+		GLUniform1f( shader, "u_FogDensity", true )
 	{
 	}
 
@@ -2684,7 +2674,7 @@ public:
 };
 
 class u_Time :
-	GLUniform1f
+	protected GLUniform1f
 {
 public:
 	u_Time( GLShader *shader ) :
@@ -2720,6 +2710,11 @@ public:
 	GLDeformStage( GLShader *shader ) :
 		u_Time( shader )
 	{
+	}
+
+	void SetDeform( int deformIndex )
+	{
+		_shader->_deformIndex = deformIndex;
 	}
 };
 
@@ -2911,21 +2906,6 @@ template<typename Shader> void SetUniform_ColorModulateColorGen(
 		shader->SetUniform_ColorModulateColorGen_Float( colorGen, alphaGen, vertexOverbright, useMapLightFactor );
 	}
 }
-
-class u_FogDistanceVector :
-	GLUniform4f
-{
-public:
-	u_FogDistanceVector( GLShader *shader ) :
-		GLUniform4f( shader, "u_FogDistanceVector", true )
-	{
-	}
-
-	void SetUniform_FogDistanceVector( const vec4_t v )
-	{
-		this->SetValue( v );
-	}
-};
 
 class u_FogDepthVector :
 	GLUniform4f
@@ -3441,14 +3421,14 @@ class GLShader_skyboxMaterial :
 
 class GLShader_fogQuake3 :
 	public GLShader,
-	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ColorGlobal_Float,
 	public u_ColorGlobal_Uint,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_FogDistanceVector,
+	public u_ViewOrigin,
+	public u_FogDensity,
 	public u_FogDepthVector,
 	public u_FogEyeT,
 	public GLDeformStage,
@@ -3457,16 +3437,15 @@ class GLShader_fogQuake3 :
 {
 public:
 	GLShader_fogQuake3();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
 class GLShader_fogQuake3Material :
 	public GLShader,
-	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ColorGlobal_Uint,
-	public u_FogDistanceVector,
+	public u_ViewOrigin,
+	public u_FogDensity,
 	public u_FogDepthVector,
 	public u_FogEyeT,
 	public GLDeformStage {
@@ -3476,7 +3455,6 @@ class GLShader_fogQuake3Material :
 
 class GLShader_fogGlobal :
 	public GLShader,
-	public u_ColorMap,
 	public u_DepthMap,
 	public u_UnprojectMatrix,
 	public u_Color_Float,

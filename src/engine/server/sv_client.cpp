@@ -96,7 +96,7 @@ void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 	);
 
 	if ( reconnecting != clients_end &&
-		svs.time - reconnecting->lastConnectTime < sv_reconnectlimit->integer * 1000 )
+		svs.time - reconnecting->lastConnectTime < sv_reconnectlimit.Get() * 1000 )
 	{
 		Log::Debug( "%s: reconnect rejected: too soon", NET_AdrToString( from ) );
 		return;
@@ -142,7 +142,7 @@ void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 		// check for privateClient password
 
 		auto allowed_clients_begin = clients_begin;
-		if ( userinfo["password"] != sv_privatePassword->string )
+		if ( userinfo["password"] != sv_privatePassword.Get() )
 		{
 			// skip past the reserved slots
 			allowed_clients_begin += std::min(sv_privateClients.Get(), sv_maxClients.Get());
@@ -175,7 +175,7 @@ void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 			}
 			else
 			{
-				Net::OutOfBandPrint( netsrc_t::NS_SERVER, from, "print\n%s", sv_fullmsg->string );
+				Net::OutOfBandPrint( netsrc_t::NS_SERVER, from, "print\n%s", sv_fullmsg.Get() );
 				Log::Debug( "Rejected a connection." );
 				return;
 			}
@@ -723,7 +723,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 			Log::Notice( "clientDownload: %d : beginning \"%s\"", ( int )( cl - svs.clients ), cl->downloadName );
 		}
 
-		if ( !sv_allowDownload->integer )
+		if ( !sv_allowDownload.Get() )
 		{
 			Log::Notice( "clientDownload: %d : \"%s\" download disabled", ( int )( cl - svs.clients ), cl->downloadName );
 
@@ -917,13 +917,13 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 	// show_bug.cgi?id=509
 	// for autodownload, we use a separate max rate value
 	// we do this every time because the client might change its rate during the download
-	if ( sv_dl_maxRate->integer < rate )
+	if ( sv_dl_maxRate.Get() < rate )
 	{
-		rate = sv_dl_maxRate->integer;
+		rate = sv_dl_maxRate.Get();
 
 		if ( bTellRate )
 		{
-			Log::Notice( "'%s' downloading at sv_dl_maxrate (%d)", cl->name, sv_dl_maxRate->integer );
+			Log::Notice( "'%s' downloading at sv_dl_maxrate (%d)", cl->name, sv_dl_maxRate.Get() );
 		}
 	}
 	else if ( bTellRate )
@@ -1035,31 +1035,22 @@ void SV_UserinfoChanged( client_t *cl )
 	// Internet server, assume that they don't need a rate choke
 	if ( Sys_IsLANAddress( cl->netchan.remoteAddress )
 		&& sv_networkScope.Get() <= 1
-		&& sv_lanForceRate->integer == 1 )
+		&& sv_lanForceRate.Get() )
 	{
-		cl->rate = 99999; // lans should not rate limit
+		cl->rate = NETWORK_LAN_RATE; // lans should not rate limit (though sv_maxRate still applies?)
 	}
 	else
 	{
 		val = Info_ValueForKey( cl->userinfo, "rate" );
 
-		if ( strlen( val ) )
+		int rate;
+		if ( Str::ParseInt( rate, val ) )
 		{
-			i = atoi( val );
-			cl->rate = i;
-
-			if ( cl->rate < 1000 )
-			{
-				cl->rate = 1000;
-			}
-			else if ( cl->rate > 90000 )
-			{
-				cl->rate = 90000;
-			}
+			cl->rate = Math::Clamp( rate, NETWORK_MIN_RATE, NETWORK_MAX_RATE );
 		}
 		else
 		{
-			cl->rate = 5000;
+			cl->rate = NETWORK_DEFAULT_RATE;
 		}
 	}
 
@@ -1074,9 +1065,9 @@ void SV_UserinfoChanged( client_t *cl )
 		{
 			i = 1;
 		}
-		else if ( i > sv_fps->integer )
+		else if ( i > sv_fps.Get() )
 		{
-			i = sv_fps->integer;
+			i = sv_fps.Get();
 		}
 
 		cl->snapshotMsec = 1000 / i;
@@ -1142,10 +1133,9 @@ Also called by bot code
 */
 
 Log::Logger clientCommands("server.clientCommands");
-void SV_ExecuteClientCommand( client_t *cl, const char *s, bool clientOK, bool premaprestart )
+void SV_ExecuteClientCommand( client_t *cl, const char *s, bool premaprestart )
 {
 	ucmd_t   *u;
-	bool bProcessed = false;
 
 	Log::Debug( "EXCL: %s", s );
 	Cmd::Args args(s);
@@ -1162,22 +1152,14 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, bool clientOK, bool p
 			}
 
 			u->func(cl, args);
-			bProcessed = true;
 			break;
 		}
 	}
 
-	if ( clientOK )
+	// pass unknown strings to the game
+	if ( !u->name && sv.state == serverState_t::SS_GAME )
 	{
-		// pass unknown strings to the game
-		if ( !u->name && sv.state == serverState_t::SS_GAME )
-		{
-			gvm.GameClientCommand( cl - svs.clients, s );
-		}
-	}
-	else if ( !bProcessed )
-	{
-		Log::Debug( "client text ignored for %s^*: %s", cl->name, args.Argv(0).c_str());
+		gvm.GameClientCommand( cl - svs.clients, s );
 	}
 }
 
@@ -1188,9 +1170,6 @@ SV_ClientCommand
 */
 static bool SV_ClientCommand( client_t *cl, msg_t *msg, bool premaprestart )
 {
-	bool   clientOk = true;
-	bool   floodprotect = true;
-
 	auto seq = MSG_ReadLong( msg );
 	auto s = MSG_ReadString( msg );
 
@@ -1210,36 +1189,7 @@ static bool SV_ClientCommand( client_t *cl, msg_t *msg, bool premaprestart )
 		return false;
 	}
 
-	// Gordon: AHA! Need to steal this for some other stuff BOOKMARK
-	// NERVE - SMF - some server game-only commands we cannot have flood protect
-	if ( !Q_strncmp( "team", s, 4 ) || !Q_strncmp( "setspawnpt", s, 10 ) || !Q_strncmp( "score", s, 5 ) || !Q_stricmp( "forcetapout", s ) )
-	{
-//      Log::Debug( "Skipping flood protection for: %s", s );
-		floodprotect = false;
-	}
-
-	// malicious users may try using too many string commands
-	// to lag other players.  If we decide that we want to stall
-	// the command, we will stop processing the rest of the packet,
-	// including the usercmd.  This causes flooders to lag themselves
-	// but not other people
-	// We don't do this when the client hasn't been active yet, since it is
-	// by protocol to spam a lot of commands when downloading
-	if ( !com_cl_running->integer && cl->state >= clientState_t::CS_ACTIVE && // (SA) this was commented out in Wolf.  Did we do that?
-	     sv_floodProtect->integer && svs.time < cl->nextReliableTime && floodprotect )
-	{
-		// ignore any other text messages from this client but let them keep playing
-		// TTimo - moved the ignored verbose to the actual processing in SV_ExecuteClientCommand, only printing if the core doesn't intercept
-		clientOk = false;
-	}
-
-	// don't allow another command for 800 msec
-	if ( floodprotect && svs.time >= cl->nextReliableTime )
-	{
-		cl->nextReliableTime = svs.time + 800;
-	}
-
-	SV_ExecuteClientCommand( cl, s, clientOk, premaprestart );
+	SV_ExecuteClientCommand( cl, s, premaprestart );
 
 	cl->lastClientCommand = seq;
 	Com_sprintf( cl->lastClientCommandString, sizeof( cl->lastClientCommandString ), "%s", s );

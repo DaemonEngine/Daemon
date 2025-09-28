@@ -41,7 +41,7 @@ static Cvar::Cvar<bool> r_logUnmarkedGLSLBuilds(
 	"r_logUnmarkedGLSLBuilds", "Log building information for GLSL shaders that are built after the map is loaded",
 	Cvar::NONE, true );
 
-extern std::unordered_map<std::string, std::string> shadermap;
+extern const std::unordered_map<std::string, std::string> shadermap;
 // shaderKind's value will be determined later based on command line setting or absence of.
 ShaderKind shaderKind = ShaderKind::Unknown;
 
@@ -182,35 +182,18 @@ namespace // Implementation details
 			if (err)
 				ThrowShaderError(Str::Format("Failed to read shader from file %s: %s", shaderFilename, err.message()));
 
-			// Alert the user when a file does not match it's built-in version.
-			// There should be no differences in normal conditions.
-			// When testing shader file changes this is an expected message
-			// and helps the tester track which files have changed and need
-			// to be recommitted to git.
-			// If one is not making shader files changes this message
-			// indicates there is a mismatch between disk changes and builtins
-			// which the application is out of sync with it's files
-			// and he translation script needs to be run.
 			auto textPtr = GetInternalShader(filename);
 			std::string internalShaderText;
 			if (textPtr != nullptr)
 				internalShaderText = textPtr;
 
-			// Note to the user any differences that might exist between
-			// what's on disk and what's compiled into the program in shaders.cpp.
-			// The developer should be aware of any differences why they exist but
-			// they might be expected or unexpected.
-			// If the developer made changes they might want to be reminded of what
-			// they have changed while they are working.
-			// But it also might be that the developer hasn't made any changes but
-			// the compiled code is shaders.cpp is just out of sync with the shader
-			// files and that buildshaders.sh might need to be run to re-sync.
-			// This message alerts user to either situation and they can decide
-			// what's going on from seeing that.
-			// We normalize the text by removing CL/LF's so they aren't considered
+			// Alert the user when a file does not match its built-in version.
+			// When testing shader file changes this is an expected message
+			// and helps the tester track which files have changed.
+			// We normalize the text by removing CR/LF's so they aren't considered
 			// a difference as Windows or the Version Control System can put them in
 			// and another OS might read them back and consider that a difference
-			// to what's in shader.cpp or vice vesa.
+			// to what's in shaders.cpp or vice versa.
 			NormalizeShaderText(internalShaderText);
 			NormalizeShaderText(shaderText);
 			if (internalShaderText != shaderText)
@@ -1057,11 +1040,9 @@ ShaderProgramDescriptor* GLShaderManager::FindShaderProgram( std::vector<ShaderE
 	return &*it;
 }
 
-bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int deformIndex, const bool buildOneShader ) {
-	size_t i = macroIndex + ( deformIndex << shader->_compileMacros.size() );
-
+bool GLShaderManager::BuildPermutation( GLShader* shader, int index, const bool buildOneShader ) {
 	std::string compileMacros;
-	if ( !shader->GetCompileMacrosString( i, compileMacros, GLCompileMacro::VERTEX | GLCompileMacro::FRAGMENT ) ) {
+	if ( !shader->GetCompileMacrosString( index, compileMacros, GLCompileMacro::VERTEX | GLCompileMacro::FRAGMENT ) ) {
 		return false;
 	}
 
@@ -1070,8 +1051,8 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 	}
 
 	// Program already exists
-	if ( i < shader->shaderPrograms.size() &&
-		shader->shaderPrograms[i].id ) {
+	if ( index < shader->shaderPrograms.size() &&
+		shader->shaderPrograms[index].id ) {
 		return false;
 	}
 
@@ -1093,7 +1074,10 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 
 	const int start = Sys::Milliseconds();
 
-	if ( i >= shader->shaderPrograms.size() ) {
+	int macroIndex = index & ( ( 1 << shader->_compileMacros.size() ) - 1 );
+	int deformIndex = index >> shader->_compileMacros.size();
+
+	if ( index >= shader->shaderPrograms.size() ) {
 		shader->shaderPrograms.resize( ( deformIndex + 1 ) << shader->_compileMacros.size() );
 	}
 
@@ -1121,7 +1105,7 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int macroIndex, int de
 	GL_BindNullProgram();
 
 	// Copy this for a fast look-up, but the values held in program aren't supposed to change after
-	shader->shaderPrograms[i] = *program;
+	shader->shaderPrograms[index] = *program;
 
 	GL_CheckErrors();
 
@@ -1161,17 +1145,15 @@ void GLShaderManager::BuildAll( const bool buildOnlyMarked ) {
 		if ( buildOnlyMarked ) {
 			for ( size_t i = 0; i < shader->shaderProgramsToBuild.size(); i++ ) {
 				if ( shader->shaderProgramsToBuild[i] ) {
-					const int macroIndex = i & ( ( 1u << shader->GetNumOfCompiledMacros() ) - 1 );
-					const int deformIndex = i >> shader->GetNumOfCompiledMacros();
-
-					count += +BuildPermutation( shader, macroIndex, deformIndex, false );
+					count += +BuildPermutation( shader, i, false );
 				}
 			}
 		} else {
 			size_t numPermutations = static_cast<size_t>( 1 ) << shader->GetNumOfCompiledMacros();
 
 			for ( size_t i = 0; i < numPermutations; i++ ) {
-				count += +BuildPermutation( shader, i, 0, false );
+				// doesn't include deform vertex shaders, those are built elsewhere!
+				count += +BuildPermutation( shader, i, false );
 			}
 		}
 
@@ -2209,9 +2191,9 @@ int GLShader::SelectProgram()
 {
 	int    index = 0;
 
-	size_t numMacros = _compileMacros.size();
+	int numMacros = static_cast<int>( _compileMacros.size() );
 
-	for ( size_t i = 0; i < numMacros; i++ )
+	for ( int i = 0; i < numMacros; i++ )
 	{
 		if ( _activeMacros & BIT( i ) )
 		{
@@ -2219,28 +2201,26 @@ int GLShader::SelectProgram()
 		}
 	}
 
-	return index;
+	return index | ( _deformIndex << numMacros );
 }
 
-void GLShader::MarkProgramForBuilding( int deformIndex ) {
-	int macroIndex = SelectProgram();
-	size_t index = macroIndex + ( size_t( deformIndex ) << _compileMacros.size() );
+void GLShader::MarkProgramForBuilding() {
+	int index = SelectProgram();
 
-	if ( index >= shaderProgramsToBuild.size() ) {
+	if ( size_t(index) >= shaderProgramsToBuild.size() ) {
 		shaderProgramsToBuild.resize( index + 1 );
 	}
 
 	shaderProgramsToBuild[index] = true;
 }
 
-GLuint GLShader::GetProgram( int deformIndex, const bool buildOneShader ) {
-	int macroIndex = SelectProgram();
-	size_t index = macroIndex + ( size_t( deformIndex ) << _compileMacros.size() );
+GLuint GLShader::GetProgram( const bool buildOneShader ) {
+	int index = SelectProgram();
 
 	// program may not be loaded yet because the shader manager hasn't yet gotten to it
 	// so try to load it now
 	if ( index >= shaderPrograms.size() || !shaderPrograms[index].id ) {
-		gl_shaderManager.BuildPermutation( this, macroIndex, deformIndex, buildOneShader );
+		gl_shaderManager.BuildPermutation( this, index, buildOneShader );
 	}
 
 	// program is still not loaded
@@ -2265,15 +2245,14 @@ GLuint GLShader::GetProgram( int deformIndex, const bool buildOneShader ) {
 	return shaderPrograms[index].id;
 }
 
-void GLShader::BindProgram( int deformIndex ) {
-	int macroIndex = SelectProgram();
-	size_t index = macroIndex + ( size_t(deformIndex) << _compileMacros.size() );
+void GLShader::BindProgram() {
+	int index = SelectProgram();
 
 	// program may not be loaded yet because the shader manager hasn't yet gotten to it
 	// so try to load it now
 	if ( index >= shaderPrograms.size() || !shaderPrograms[index].id )
 	{
-		gl_shaderManager.BuildPermutation( this, macroIndex, deformIndex, true );
+		gl_shaderManager.BuildPermutation( this, index, true );
 	}
 
 	// program is still not loaded
@@ -2597,14 +2576,14 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial() :
 GLShader_fogQuake3::GLShader_fogQuake3() :
 	GLShader( "fogQuake3", ATTR_POSITION | ATTR_QTANGENT,
 		false, "fogQuake3", "fogQuake3" ),
-	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ColorGlobal_Float( this ),
 	u_ColorGlobal_Uint( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
-	u_FogDistanceVector( this ),
+	u_ViewOrigin( this ),
+	u_FogDensity( this ),
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),
 	GLDeformStage( this ),
@@ -2613,19 +2592,14 @@ GLShader_fogQuake3::GLShader_fogQuake3() :
 {
 }
 
-void GLShader_fogQuake3::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_FogMap" ), 0 );
-}
-
 GLShader_fogQuake3Material::GLShader_fogQuake3Material() :
 	GLShader( "fogQuake3Material", ATTR_POSITION | ATTR_QTANGENT,
 		true, "fogQuake3", "fogQuake3" ),
-	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ColorGlobal_Uint( this ),
-	u_FogDistanceVector( this ),
+	u_ViewOrigin( this ),
+	u_FogDensity( this ),
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),
 	GLDeformStage( this ) {
@@ -2634,7 +2608,6 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material() :
 GLShader_fogGlobal::GLShader_fogGlobal() :
 	GLShader( "fogGlobal", ATTR_POSITION,
 		false, "screenSpace", "fogGlobal" ),
-	u_ColorMap( this ),
 	u_DepthMap( this ),
 	u_UnprojectMatrix( this ),
 	u_Color_Float( this ),

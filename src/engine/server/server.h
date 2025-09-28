@@ -173,7 +173,6 @@ struct client_t
 	// note: this is one-shot, multiple downloads would cause a www download to be attempted again
 
 	int              deltaMessage; // frame last client usercmd message
-	int              nextReliableTime; // svs.time when another reliable command will be allowed
 	int              lastPacketTime; // svs.time when packet was last received
 	int              lastConnectTime; // svs.time when connection started
 	int              nextSnapshotTime; // send another snapshot when svs.time >= nextSnapshotTime
@@ -285,34 +284,31 @@ extern serverStatic_t svs; // persistent server info across maps
 extern server_t       sv; // cleared each map
 extern GameVM         gvm; // game virtual machine
 
-extern cvar_t         *sv_fps;
-extern cvar_t         *sv_timeout;
-extern cvar_t         *sv_zombietime;
-extern cvar_t         *sv_privatePassword;
-extern cvar_t         *sv_allowDownload;
+extern Cvar::Range<Cvar::Cvar<int>> sv_fps;
+extern Cvar::Cvar<int> sv_timeout;
+extern Cvar::Cvar<int> sv_zombietime;
+extern Cvar::Cvar<std::string> sv_privatePassword;
+extern Cvar::Cvar<bool> sv_allowDownload;
 extern Cvar::Range<Cvar::Cvar<int>> sv_maxClients;
 
 extern Cvar::Range<Cvar::Cvar<int>> sv_privateClients;
-extern cvar_t         *sv_hostname;
-extern cvar_t         *sv_statsURL;
-extern cvar_t         *sv_reconnectlimit;
-extern cvar_t         *sv_padPackets;
+extern Cvar::Cvar<std::string> sv_hostname;
+extern Cvar::Cvar<std::string> sv_statsURL;
+extern Cvar::Cvar<int> sv_reconnectlimit;
+extern Cvar::Cvar<int> sv_padPackets;
 extern cvar_t         *sv_killserver;
-extern cvar_t         *sv_mapname;
+extern Cvar::Cvar<std::string> sv_mapname;
 extern cvar_t         *sv_mapChecksum;
-extern cvar_t         *sv_serverid;
-extern cvar_t         *sv_maxRate;
+extern Cvar::Cvar<int> sv_serverid;
+extern Cvar::Cvar<int> sv_maxRate;
 
-extern cvar_t *sv_floodProtect;
-extern cvar_t *sv_lanForceRate;
-
-extern cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
+extern Cvar::Cvar<bool> sv_lanForceRate;
 
 // TTimo - autodl
-extern cvar_t *sv_dl_maxRate;
+extern Cvar::Cvar<int> sv_dl_maxRate;
 
 //fretn
-extern cvar_t *sv_fullmsg;
+extern Cvar::Cvar<std::string> sv_fullmsg;
 
 extern Cvar::Range<Cvar::Cvar<int>> sv_networkScope;
 
@@ -366,7 +362,7 @@ void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd );
 void SV_FreeClient( client_t *client );
 void SV_DropClient( client_t *drop, const char *reason );
 
-void SV_ExecuteClientCommand( client_t *cl, const char *s, bool clientOK, bool premaprestart );
+void SV_ExecuteClientCommand( client_t *cl, const char *s, bool premaprestart );
 void SV_ClientThink( client_t *cl, usercmd_t *cmd );
 
 void SV_WriteDownloadToClient( client_t *cl, msg_t *msg );

@@ -56,35 +56,32 @@ GameVM         gvm; // game virtual machine
 // timescale 5, the number of gamelogic frames per wall second will be 200.
 // For the dedicated server this also controls the engine frame rate. The engine framerate
 // is based on real time, disregarding timescale.
-cvar_t         *sv_fps;
+Cvar::Range<Cvar::Cvar<int>> sv_fps("sv_fps", "sgame and dedicated server frame rate", Cvar::NONE, 40, 1, 1000);
 
-cvar_t         *sv_timeout; // seconds without any message
-cvar_t         *sv_zombietime; // seconds to sink messages after disconnect
-cvar_t         *sv_privatePassword; // password for the privateClient slots
-cvar_t         *sv_allowDownload;
+Cvar::Cvar<int> sv_timeout("sv_timeout", "seconds without connectivity after which to drop a client", Cvar::NONE, 240);
+Cvar::Cvar<int> sv_zombietime("sv_zombietime", "seconds without messages after which to recycle client slot", Cvar::NONE, 2);
+Cvar::Cvar<std::string> sv_privatePassword("sv_privatePassword", "password guarding private server slots", Cvar::NONE, "");
+Cvar::Cvar<bool> sv_allowDownload("sv_allowDownload", "let clients download missing paks", Cvar::NONE, true);
 Cvar::Range<Cvar::Cvar<int>> sv_maxClients("sv_maxclients",
 	"max number of players on the server", Cvar::SERVERINFO, 20, 1, MAX_CLIENTS);
 
 Cvar::Range<Cvar::Cvar<int>> sv_privateClients("sv_privateClients",
     "number of password-protected client slots", Cvar::SERVERINFO, 0, 0, MAX_CLIENTS);
-cvar_t         *sv_hostname;
-cvar_t         *sv_statsURL;
-cvar_t         *sv_reconnectlimit; // minimum seconds between connect messages
-cvar_t         *sv_padPackets; // add nop bytes to messages
+Cvar::Cvar<std::string> sv_hostname("sv_hostname", "server name for server list", Cvar::SERVERINFO, UNNAMED_SERVER);
+Cvar::Cvar<std::string> sv_statsURL("sv_statsURL", "URL for server's gameplay statistics", Cvar::SERVERINFO, "");
+Cvar::Cvar<int> sv_reconnectlimit("sv_reconnectlimit", "minimum time (seconds) before client can reconnect", Cvar::NONE, 3);
+Cvar::Cvar<int> sv_padPackets("sv_padPackets", "(debugging) add n NOP bytes to each snapshot packet", Cvar::NONE, 0);
 cvar_t         *sv_killserver; // menu system can set to 1 to shut server down
-cvar_t         *sv_mapname;
-cvar_t         *sv_serverid;
-cvar_t         *sv_maxRate;
+Cvar::Cvar<std::string> sv_mapname("mapname", "current map on this server", Cvar::SERVERINFO | Cvar::ROM, "nomap");
+Cvar::Cvar<int> sv_serverid("sv_serverid", "match ID", Cvar::SYSTEMINFO | Cvar::ROM, 0);
+Cvar::Cvar<int> sv_maxRate("sv_maxRate", "max bytes/sec to send to a client (0 = unlimited)", Cvar::SERVERINFO, 0);
 
-cvar_t         *sv_floodProtect;
-cvar_t         *sv_lanForceRate; // TTimo - dedicated 1 (LAN) server forces local client rates to 99999 (bug #491)
+Cvar::Cvar<bool> sv_lanForceRate("sv_lanForceRate", "make LAN clients use max network rate", Cvar::NONE, true);
 
-cvar_t         *sv_dl_maxRate;
-
-cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
+Cvar::Cvar<int> sv_dl_maxRate("sv_dl_maxRate", "max bytes/sec for UDP pak download", Cvar::NONE, 42000);
 
 // fretn
-cvar_t *sv_fullmsg;
+Cvar::Cvar<std::string> sv_fullmsg("sv_fullmsg", "message for clients attempting to join full server", Cvar::NONE, "Server is full.");
 
 Cvar::Range<Cvar::Cvar<int>> sv_networkScope(
 	"sv_networkScope",
@@ -516,7 +513,7 @@ if a user is interested in a server to do a full status
 */
 static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 {
-	if ( SV_Private(ServerPrivate::NoStatus) || !com_sv_running || !com_sv_running->integer )
+	if ( SV_Private(ServerPrivate::NoStatus) || !com_sv_running.Get() )
 	{
 		return;
 	}
@@ -584,18 +581,18 @@ static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 	}
 
 	info_map["protocol"] = std::to_string( PROTOCOL_VERSION );
-	info_map["hostname"] = sv_hostname->string;
+	info_map["hostname"] = sv_hostname.Get();
 	info_map["serverload"] = std::to_string( svs.serverLoad );
-	info_map["mapname"] = sv_mapname->string;
+	info_map["mapname"] = sv_mapname.Get();
 	info_map["clients"] = std::to_string( publicSlotHumans + privateSlotHumans );
 	info_map["bots"] = std::to_string( bots );
 	// Satisfies (number of open public slots) = (displayed max clients) - (number of clients).
 	info_map["sv_maxclients"] = std::to_string(
 	    std::max( 0, sv_maxClients.Get() - sv_privateClients.Get() ) + privateSlotHumans );
 
-	if ( sv_statsURL->string[0] )
+	if ( !sv_statsURL.Get().empty() )
 	{
-		info_map["stats"] = sv_statsURL->string;
+		info_map["stats"] = sv_statsURL.Get().c_str();
 	}
 
 	info_map["gamename"] = GAMENAME_STRING;  // Arnout: to be able to filter out Quake servers
@@ -1238,8 +1235,8 @@ void SV_CheckTimeouts()
 	int      droppoint;
 	int      zombiepoint;
 
-	droppoint = svs.time - 1000 * sv_timeout->integer;
-	zombiepoint = svs.time - 1000 * sv_zombietime->integer;
+	droppoint = svs.time - 1000 * sv_timeout.Get();
+	zombiepoint = svs.time - 1000 * sv_zombietime.Get();
 
 	for ( i = 0, cl = svs.clients; i < sv_maxClients.Get(); i++, cl++ )
 	{
@@ -1288,23 +1285,16 @@ Return time in milliseconds until processing of the next server frame.
 */
 int SV_FrameMsec()
 {
-	if( sv_fps )
-	{
-		const int frameMsec = static_cast<int>(1000.0f / sv_fps->value);
-		int scaledResidual = static_cast<int>( sv.timeResidual / com_timescale->value );
+	const int frameMsec = 1000 / sv_fps.Get();
+	int scaledResidual = static_cast<int>( sv.timeResidual / com_timescale->value );
 
-		if ( frameMsec < scaledResidual )
-		{
-			return 0;
-		}
-		else
-		{
-			return frameMsec - scaledResidual;
-		}
+	if ( frameMsec < scaledResidual )
+	{
+		return 0;
 	}
 	else
 	{
-		return 1;
+		return frameMsec - scaledResidual;
 	}
 }
 
@@ -1335,7 +1325,7 @@ void SV_Frame( int msec )
 		return;
 	}
 
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		return;
 	}
@@ -1343,12 +1333,7 @@ void SV_Frame( int msec )
 	frameStartTime = Sys::Milliseconds();
 
 	// if it isn't time for the next frame, do nothing
-	if ( sv_fps->integer < 1 )
-	{
-		Cvar_Set( "sv_fps", "10" );
-	}
-
-	frameMsec = 1000 / sv_fps->integer;
+	frameMsec = 1000 / sv_fps.Get();
 
 	sv.timeResidual += msec;
 
@@ -1372,7 +1357,7 @@ void SV_Frame( int msec )
 		// there won't be a map_restart if you have shut down the server
 		// since it doesn't restart a non-running server
 		// instead, re-run the current map
-		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(sv_mapname->string)));
+		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(sv_mapname.Get())));
 
 		Sys::Drop( "Restarting server due to time wrapping" );
 	}
@@ -1381,7 +1366,7 @@ void SV_Frame( int msec )
 	if ( svs.nextSnapshotEntities >= 0x7FFFFFFE - svs.numSnapshotEntities )
 	{
 		// TTimo see above
-		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(sv_mapname->string)));
+		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(sv_mapname.Get())));
 		Sys::Drop( "Restarting server due to numSnapshotEntities wrapping" );
 	}
 

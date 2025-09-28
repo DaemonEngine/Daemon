@@ -91,7 +91,7 @@ void Tess_StageIteratorSky()
 	rb_surfaceTable[Util::ordinal( *( tr.skybox->surface ) )]( tr.skybox->surface );
 	GL_VertexAttribsState( ATTR_POSITION );
 
-	gl_skyboxShader->BindProgram( 0 );
+	gl_skyboxShader->BindProgram();
 
 	gl_skyboxShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 

@@ -1509,7 +1509,7 @@ image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height
 
 	image->uploadWidth = width;
 	image->uploadHeight = height;
-	image->internalFormat = GL_RGBA;
+	image->internalFormat = GL_RGBA8;
 
 	GL_TexImage2D( GL_TEXTURE_2D, 0, image->internalFormat, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic, false );
 
@@ -1819,11 +1819,18 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 			}
 
 			// Built-in images can't be reloaded with different parameters, so return them as-is.
-			// For most of the usable ones e.g. _white, parameters wouldn't make a difference anyway.
-			// HACK: detect built-in images by naming convention, though nothing stops users from using such names
-			if ( image->name[ 0 ] == '_' && !strchr( image->name, '/' ) )
+			// For most of the usable ones e.g. $white, parameters wouldn't make a difference anyway.
+			// Detect built-in images by naming convention.
+			switch ( image->name[ 0 ] )
 			{
-				return image;
+				// Private images not meant to be reused (like framebuffers, UI-generated images…).
+				case '*':
+				// Public images reusable by the user, like $white that can be used in .shader files.
+				case '$':
+					return image;
+					break;
+				default:
+					break;
 			}
 
 			bool compatible = false;
@@ -2352,121 +2359,6 @@ image_t *R_FindCubeImage( const char *name, imageParams_t &imageParams )
 }
 
 /*
-=================
-R_InitFogTable
-=================
-*/
-void R_InitFogTable()
-{
-	int   i;
-	float d;
-	float exp;
-
-	exp = 0.5;
-
-	for ( i = 0; i < FOG_TABLE_SIZE; i++ )
-	{
-		d = pow( ( float ) i / ( FOG_TABLE_SIZE - 1 ), exp );
-
-		tr.fogTable[ i ] = d;
-	}
-}
-
-/*
-================
-R_FogFactor
-
-Returns a 0.0 to 1.0 fog density value
-This is called for each texel of the fog texture on startup
-and for each vertex of transparent shaders in fog dynamically
-================
-*/
-float R_FogFactor( float s, float t )
-{
-	float d;
-
-	s -= 1.0f / 512.0f;
-
-	if ( s < 0 )
-	{
-		return 0;
-	}
-
-	if ( t < 1.0f / 32.0f )
-	{
-		return 0;
-	}
-
-	if ( t < 31.0f / 32.0f )
-	{
-		s *= ( t - 1.0f / 32.0f ) / ( 30.0f / 32.0f );
-	}
-
-	// we need to leave a lot of clamp range
-	s *= 8;
-
-	if ( s > 1.0f )
-	{
-		s = 1.0f;
-	}
-
-	d = tr.fogTable[( int )( s * ( FOG_TABLE_SIZE - 1 ) ) ];
-
-	return d;
-}
-
-/*
-================
-R_CreateFogImage
-================
-*/
-static void R_CreateFogImage()
-{
-	// Fog image is always created because disabling fog is cheat.
-
-	int   x, y;
-	byte  *data, *ptr;
-	float d;
-	float borderColor[ 4 ];
-
-	constexpr int FOG_S = 256;
-	constexpr int FOG_T = 32;
-
-	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
-
-	// S is distance, T is depth
-	for ( y = 0; y < FOG_T; y++ )
-	{
-		for ( x = 0; x < FOG_S; x++ )
-		{
-			d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
-
-			ptr[ 0 ] = ptr[ 1 ] = ptr[ 2 ] = 255;
-			ptr[ 3 ] = 255 * d;
-			ptr += 4;
-		}
-	}
-
-	// standard openGL clamping doesn't really do what we want -- it includes
-	// the border color at the edges.  OpenGL 1.2 has clamp-to-edge, which does
-	// what we want.
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_DEFAULT;
-	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-
-	tr.fogImage = R_CreateImage( "_fog", ( const byte ** ) &data, FOG_S, FOG_T, 1, imageParams );
-	ri.Hunk_FreeTempMemory( data );
-
-	borderColor[ 0 ] = 1.0;
-	borderColor[ 1 ] = 1.0;
-	borderColor[ 2 ] = 1.0;
-	borderColor[ 3 ] = 1;
-
-	glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor );
-}
-
-/*
 ==================
 R_CreateDefaultImage
 ==================
@@ -2498,7 +2390,7 @@ static void R_CreateDefaultImage()
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
-	tr.defaultImage = R_CreateImage( "_default", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
+	tr.defaultImage = R_CreateImage( "$default", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
 }
 
 static void R_CreateContrastRenderFBOImage()
@@ -2516,7 +2408,7 @@ static void R_CreateContrastRenderFBOImage()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.contrastRenderFBOImage = R_CreateImage( "_contrastRenderFBO", nullptr, width, height, 1, imageParams );
+	tr.contrastRenderFBOImage = R_CreateImage( "*contrastRenderFBO", nullptr, width, height, 1, imageParams );
 }
 
 static void R_CreateBloomRenderFBOImages()
@@ -2536,7 +2428,7 @@ static void R_CreateBloomRenderFBOImages()
 		imageParams.filterType = filterType_t::FT_LINEAR;
 		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-		tr.bloomRenderFBOImage[i] = R_CreateImage( va( "_bloomRenderFBO%d", i ), nullptr, width, height, 1, imageParams );
+		tr.bloomRenderFBOImage[i] = R_CreateImage( va( "*bloomRenderFBO%d", i ), nullptr, width, height, 1, imageParams );
 	}
 }
 
@@ -2571,15 +2463,15 @@ static void R_CreateCurrentRenderImage()
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.currentRenderImage[0] = R_CreateImage( "_currentRender[0]", nullptr, width, height, 1, imageParams );
-	tr.currentRenderImage[1] = R_CreateImage( "_currentRender[1]", nullptr, width, height, 1, imageParams );
+	tr.currentRenderImage[0] = R_CreateImage( "*currentRender0", nullptr, width, height, 1, imageParams );
+	tr.currentRenderImage[1] = R_CreateImage( "*currentRender1", nullptr, width, height, 1, imageParams );
 
 	imageParams = {};
 	imageParams.bits = IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8;
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.currentDepthImage = R_CreateImage( "_currentDepth", nullptr, width, height, 1, imageParams );
+	tr.currentDepthImage = R_CreateImage( "*currentDepth", nullptr, width, height, 1, imageParams );
 
 	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.GenerateDepthImages( width, height, imageParams );
@@ -2609,18 +2501,18 @@ static void R_CreateDepthRenderImage()
 		imageParams.bits = IF_NOPICMIP;
 		imageParams.bits |= r_highPrecisionRendering.Get() ? IF_TWOCOMP32F : IF_TWOCOMP16F;
 
-		tr.depthtile1RenderImage = R_CreateImage( "_depthtile1Render", nullptr, w, h, 1, imageParams );
+		tr.depthtile1RenderImage = R_CreateImage( "*depthtile1Render", nullptr, w, h, 1, imageParams );
 
 		w = (width + TILE_SIZE - 1) >> TILE_SHIFT;
 		h = (height + TILE_SIZE - 1) >> TILE_SHIFT;
 
 		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-		tr.depthtile2RenderImage = R_CreateImage( "_depthtile2Render", nullptr, w, h, 1, imageParams );
+		tr.depthtile2RenderImage = R_CreateImage( "*depthtile2Render", nullptr, w, h, 1, imageParams );
 
 		imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
 
-		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, glConfig.realtimeLightLayers, imageParams );
+		tr.lighttileRenderImage = R_Create3DImage( "*lighttileRender", nullptr, w, h, glConfig.realtimeLightLayers, imageParams );
 	}
 }
 
@@ -2641,7 +2533,7 @@ static void R_CreatePortalRenderImage()
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-	tr.portalRenderImage = R_CreateImage( "_portalRender", nullptr, width, height, 1, imageParams );
+	tr.portalRenderImage = R_CreateImage( "*portalRender", nullptr, width, height, 1, imageParams );
 }
 
 // *INDENT-OFF*
@@ -2661,7 +2553,7 @@ static void R_CreateBlackCubeImage()
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
 	const byte *dataPtrs[ 6 ] = { data, data, data, data, data, data };
-	tr.blackCubeImage = R_CreateCubeImage( "_blackCube", dataPtrs, width, height, imageParams );
+	tr.blackCubeImage = R_CreateCubeImage( "$blackCube", dataPtrs, width, height, imageParams );
 }
 
 // *INDENT-ON*
@@ -2687,7 +2579,7 @@ static void R_CreateWhiteCubeImage()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-	tr.whiteCubeImage = R_CreateCubeImage( "_whiteCube", ( const byte ** ) data, width, height, imageParams );
+	tr.whiteCubeImage = R_CreateCubeImage( "$whiteCube", ( const byte ** ) data, width, height, imageParams );
 
 	for ( i = 5; i >= 0; i-- )
 	{
@@ -2730,7 +2622,7 @@ static void R_CreateColorGradeImage()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-	tr.colorGradeImage = R_Create3DImage( "_colorGrade", data, REF_COLORGRADEMAP_SIZE, REF_COLORGRADEMAP_SIZE, REF_COLORGRADE_SLOTS * REF_COLORGRADEMAP_SIZE, imageParams );
+	tr.colorGradeImage = R_Create3DImage( "$colorGrade", data, REF_COLORGRADEMAP_SIZE, REF_COLORGRADEMAP_SIZE, REF_COLORGRADE_SLOTS * REF_COLORGRADEMAP_SIZE, imageParams );
 
 	ri.Hunk_FreeTempMemory( data );
 }
@@ -2742,11 +2634,8 @@ R_CreateBuiltinImages
 */
 void R_CreateBuiltinImages()
 {
-	constexpr int DIMENSION = 8;
-	int   x;
-	byte  data[ DIMENSION * DIMENSION * 4 ];
+	byte  data[ 1 * 1 * 4 ];
 	byte  *dataPtr = data;
-	byte  *out;
 
 	R_CreateDefaultImage();
 
@@ -2758,60 +2647,33 @@ void R_CreateBuiltinImages()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
-	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	tr.whiteImage = R_CreateImage( "$white", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// we use a solid black image instead of disabling texturing
-	memset( data, 0, sizeof( data ) );
-	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	Vector4Set( data, 0, 0, 0, 255 );
 
-	// red
-	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
-	{
-		out[ 1 ] = out[ 2 ] = 0;
-		out[ 0 ] = out[ 3 ] = 255;
-	}
-
-	tr.redImage = R_CreateImage( "_red", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
-
-	// green
-	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
-	{
-		out[ 0 ] = out[ 2 ] = 0;
-		out[ 1 ] = out[ 3 ] = 255;
-	}
-
-	tr.greenImage = R_CreateImage( "_green", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
-
-	// blue
-	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
-	{
-		out[ 0 ] = out[ 1 ] = 0;
-		out[ 2 ] = out[ 3 ] = 255;
-	}
-
-	tr.blueImage = R_CreateImage( "_blue", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	tr.blackImage = R_CreateImage( "$black", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	// generate a default normalmap with a fully opaque heightmap (no displacement)
-	for ( x = DIMENSION * DIMENSION, out = data; x; --x, out += 4 )
-	{
-		out[ 0 ] = out[ 1 ] = 128;
-		out[ 2 ] = 255;
-		out[ 3 ] = 255;
-	}
+	Vector4Set( data, 128, 128, 255, 255 );
 
 	imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
 
-	tr.flatImage = R_CreateImage( "_flat", ( const byte ** ) &dataPtr, DIMENSION, DIMENSION, 1, imageParams );
+	tr.flatImage = R_CreateImage( "$flat", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
 	imageParams.bits = IF_NOPICMIP;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
+	// Don't reuse previously set data, we test the values for selecting the upload format.
+	memset( data, 255, sizeof( data ) );
+
+	size_t numCinematicImages = 0;
 	for ( image_t * &image : tr.cinematicImage )
 	{
-		image = R_CreateImage( "_cinematic", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
+		std::string name = Str::Format( "*cinematic%d", numCinematicImages++ );
+		image = R_CreateImage( name.c_str(), ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 	}
 
-	R_CreateFogImage();
 	R_CreateContrastRenderFBOImage();
 	R_CreateBloomRenderFBOImages();
 	R_CreateCurrentRenderImage();
@@ -2971,7 +2833,7 @@ qhandle_t RE_GenerateTexture( const byte *pic, int width, int height )
 {
 	R_SyncRenderThread();
 
-	std::string name = Str::Format( "$generatedTexture%d", tr.numGeneratedTextures++ );
+	std::string name = Str::Format( "*generatedTexture%d", tr.numGeneratedTextures++ );
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;

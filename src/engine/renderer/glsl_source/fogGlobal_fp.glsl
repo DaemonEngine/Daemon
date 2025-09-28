@@ -23,8 +23,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* fogGlobal_fp.glsl */
 
 #insert common
+#insert fogEquation_fp
 
-uniform sampler2D	u_ColorMap; // fog texture
 uniform sampler2D	u_DepthMap;
 
 uniform colorPack u_Color;
@@ -46,10 +46,9 @@ void	main()
 	P.xyz /= P.w;
 
 	// calculate the length in fog (t is always 1 if eye is in fog)
-	st.s = distance(u_ViewOrigin, P.xyz) * u_FogDensity;
-	st.t = 1.0;
+	float s = distance(u_ViewOrigin, P.xyz) * u_FogDensity;
 
-	vec4 color = texture2D(u_ColorMap, st);
+	vec4 color = vec4(1, 1, 1, GetFogAlpha(s, 1.0));
 
 	outputColor = UnpackColor( u_Color ) * color;
 }

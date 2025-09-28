@@ -223,8 +223,12 @@ struct glFboShim_t
 	PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
 	// void (*glFramebufferRenderbuffer) (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
 	PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
+	// void (*glFramebufferTexture1D) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
+	PFNGLFRAMEBUFFERTEXTURE1DPROC glFramebufferTexture1D;
 	// void (*glFramebufferTexture2D) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
 	PFNGLFRAMEBUFFERTEXTURE2DPROC glFramebufferTexture2D;
+	// void (*glFramebufferTexture3D) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLint zoffset);
+	PFNGLFRAMEBUFFERTEXTURE3DPROC glFramebufferTexture3D;
 	// void (*glGenerateMipmap) (GLenum target);
 	PFNGLGENERATEMIPMAPPROC glGenerateMipmap;
 	// void (*glGenFramebuffers) (GLsizei n, GLuint *framebuffers);
@@ -233,6 +237,8 @@ struct glFboShim_t
 	PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
 	// void (*glRenderbufferStorage) (GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
 	PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
+	// void (*glBlitFramebuffer) (GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
+	PFNGLBLITFRAMEBUFFERPROC glBlitFramebuffer;
 
 	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	// void (*glRenderbufferStorageMultisample) (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
@@ -261,11 +267,14 @@ static inline void glFboSetArb()
 	GL_fboShim.glDeleteFramebuffers = glDeleteFramebuffers;
 	GL_fboShim.glDeleteRenderbuffers = glDeleteRenderbuffers;
 	GL_fboShim.glFramebufferRenderbuffer = glFramebufferRenderbuffer;
+	GL_fboShim.glFramebufferTexture1D = glFramebufferTexture1D;
 	GL_fboShim.glFramebufferTexture2D = glFramebufferTexture2D;
+	GL_fboShim.glFramebufferTexture3D = glFramebufferTexture3D;
 	GL_fboShim.glGenerateMipmap = glGenerateMipmap;
 	GL_fboShim.glGenFramebuffers = glGenFramebuffers;
 	GL_fboShim.glGenRenderbuffers = glGenRenderbuffers;
 	GL_fboShim.glRenderbufferStorage = glRenderbufferStorage;
+	GL_fboShim.glBlitFramebuffer = glBlitFramebuffer;
 
 	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisample; */
@@ -273,17 +282,23 @@ static inline void glFboSetArb()
 
 static inline void glFboSetExt()
 {
+	// EXT_framebuffer_object
 	GL_fboShim.glBindFramebuffer = glBindFramebufferEXT;
 	GL_fboShim.glBindRenderbuffer = glBindRenderbufferEXT;
 	GL_fboShim.glCheckFramebufferStatus = glCheckFramebufferStatusEXT;
 	GL_fboShim.glDeleteFramebuffers = glDeleteFramebuffersEXT;
 	GL_fboShim.glDeleteRenderbuffers = glDeleteRenderbuffersEXT;
 	GL_fboShim.glFramebufferRenderbuffer = glFramebufferRenderbufferEXT;
+	GL_fboShim.glFramebufferTexture1D = glFramebufferTexture1DEXT;
 	GL_fboShim.glFramebufferTexture2D = glFramebufferTexture2DEXT;
+	GL_fboShim.glFramebufferTexture3D = glFramebufferTexture3DEXT;
 	GL_fboShim.glGenerateMipmap = glGenerateMipmapEXT;
 	GL_fboShim.glGenFramebuffers = glGenFramebuffersEXT;
 	GL_fboShim.glGenRenderbuffers = glGenRenderbuffersEXT;
 	GL_fboShim.glRenderbufferStorage = glRenderbufferStorageEXT;
+
+	// EXT_framebuffer_blit
+	GL_fboShim.glBlitFramebuffer = glBlitFramebufferEXT;
 
 	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisampleEXT; */
@@ -561,21 +576,7 @@ enum class ssaoMode {
 	{
 		char     name[ MAX_QPATH ];
 
-		int      index;
-
 		uint32_t frameBuffer;
-
-		uint32_t colorBuffers[ 16 ];
-		int      colorFormat;
-
-		uint32_t depthBuffer;
-		int      depthFormat;
-
-		uint32_t stencilBuffer;
-		int      stencilFormat;
-
-		uint32_t packedDepthStencilBuffer;
-		int      packedDepthStencilFormat;
 
 		int      width;
 		int      height;
@@ -1162,6 +1163,8 @@ enum
 		bool autoSpriteWarned = false;
 
 		bool forceLightMap;
+
+		bool shaderRemapWarned;
 
 		uint8_t         numDeforms;
 		deformStage_t   deforms[ MAX_SHADER_DEFORMS ];
@@ -2441,12 +2444,8 @@ enum
 
 		image_t    *defaultImage;
 		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
-		image_t    *fogImage;
 		image_t    *whiteImage; // full of 0xff
-		image_t    *blackImage; // full of 0x0
-		image_t    *redImage;
-		image_t    *greenImage;
-		image_t    *blueImage;
+		image_t    *blackImage; // 0x0 color channels, 0xff alpha channel
 		image_t    *flatImage; // use this as default normalmap
 		image_t    *blackCubeImage;
 		image_t    *whiteCubeImage;
@@ -2581,7 +2580,6 @@ enum
 		float         triangleTable[ FUNCTABLE_SIZE ];
 		float         sawToothTable[ FUNCTABLE_SIZE ];
 		float         inverseSawToothTable[ FUNCTABLE_SIZE ];
-		float         fogTable[ FOG_TABLE_SIZE ];
 
 		scissorState_t scissor;
 	};
@@ -2982,8 +2980,6 @@ void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLin
 
 	void    RE_GetTextureSize( int textureID, int *width, int *height );
 
-	void    R_InitFogTable();
-	float   R_FogFactor( float s, float t );
 	void    RE_SetColorGrading( int slot, qhandle_t hShader );
 
 	/*
@@ -2998,7 +2994,6 @@ void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLin
 
 	shader_t  *R_FindShader( const char *name, int flags );
 	shader_t  *R_GetShaderByHandle( qhandle_t hShader );
-	shader_t  *R_FindShaderByName( const char *name );
 	const char *RE_GetShaderNameFromHandle( qhandle_t shader );
 	void      R_InitShaders();
 	void      R_RemapShader( const char *oldShader, const char *newShader, const char *timeOffset );
@@ -3285,16 +3280,12 @@ void GLimp_LogComment_( std::string comment );
 
 	FBO_t    *R_CreateFBO( const char *name, int width, int height );
 
-	void     R_CreateFBOColorBuffer( FBO_t *fbo, int format, int index );
-	void     R_CreateFBODepthBuffer( FBO_t *fbo, int format );
-	void     R_CreateFBOStencilBuffer( FBO_t *fbo, int format );
-
 	void     R_AttachFBOTexture1D( int texId, int attachmentIndex );
 	void     R_AttachFBOTexture2D( int target, int texId, int attachmentIndex );
 	void     R_AttachFBOTexture3D( int texId, int attachmentIndex, int zOffset );
-	void     R_AttachFBOTextureDepth( int texId );
 
 	void     R_BindFBO( FBO_t *fbo );
+	void     R_BindFBO( GLenum target, FBO_t *fbo );
 	void     R_BindNullFBO();
 
 	void     R_InitFBOs();
