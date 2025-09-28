@@ -31,8 +31,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "qcommon/qfiles.h"
 #include "qcommon/qcommon.h"
 #include "botlib/bot_debug.h"
-#include "tr_public.h"
+#include "engine/RefAPI.h"
+#include "GLUtils.h"
 #include "iqm.h"
+#include "DetectGLVendors.h"
 #include "TextureManager.h"
 #include "VBO.h"
 
@@ -2598,6 +2600,8 @@ enum
 //
 // cvars
 //
+	extern Cvar::Cvar<int> r_rendererAPI;
+
 	extern cvar_t *r_glMajorVersion; // override GL version autodetect (for testing)
 	extern cvar_t *r_glMinorVersion;
 	extern cvar_t *r_glProfile;

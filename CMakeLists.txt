@@ -117,6 +117,10 @@ if(NOT DAEMON_EXTERNAL_APP)
         option(USE_MUMBLE "Build Daemon with mumblelink sumpport" ON)
     endif()
 
+    if (BUILD_CLIENT)
+        # option(USE_VULKAN "Use Vulkan rendering API instead of OpenGL." OFF)
+    endif()
+
     option(USE_SMP "Compile with support for running the renderer in a separate thread" ON)
     option(USE_BREAKPAD "Generate Daemon crash dumps (which require Breakpad tools to read)" OFF)
 endif()
@@ -634,65 +638,72 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     endif()
 endif()
 
-# Look for OpenGL here before we potentially switch to looking for static libs.
-if (BUILD_CLIENT)
-    if (LINUX OR FREEBSD)
-        # Set LEGACY OpenGL ABI if the variable is not explictly set.
-        # The backward-incompatible GLVND OpenGL ABI should only be used
-        # by developers who have a good reason to require it.
-        # See: https://github.com/DaemonEngine/Daemon/issues/945#issuecomment-1835091256
-        set(OpenGL_GL_PREFERENCE "LEGACY" CACHE STRING "Linux OpenGL ABI (LEGACY or GLVND).")
-    endif()
+if (USE_VULKAN)
+    add_definitions("-DDAEMON_RENDERER_VULKAN=1")
+    add_definitions("-DVK_NO_PROTOTYPES=1")
+else()
+    add_definitions("-DDAEMON_RENDERER_OPENGL=1")
 
-    find_package(OpenGL REQUIRED)
-    include_directories(${OPENGL_INCLUDE_DIR})
-    set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
-
-    # When OpenGL_GL_PREFERENCE is set but neither GLVND nor LEGACY are available,
-    # This code is unreachable since it already errored out at find_package time.
-    # This code only executes if OpenGL is supported, either because the GLVND ABI
-    # is available, either because the LEGACY ABI is available.
-    if (LINUX OR FREEBSD)
-        if (NOT OPENGL_gl_LIBRARY)
-            # When OpenGL_GL_PREFERENCE is supported and GLVND is available
-            # OPENGL_gl_LIBRARY is expected to be empty. So we can use the
-            # emptyness of OPENGL_gl_LIBRARY to detect that CMake supports
-            # OpenGL_GL_PREFERENCE and GLVND is used:
-            # > If the GLVND OpenGL and GLX libraries are available, prefer them.
-            # > This forces OPENGL_gl_LIBRARY to be empty.
-            # -- https://cmake.org/cmake/help/latest/module/FindOpenGL.html
-            set(OpenGL_selected_ABI "GLVND")
-            set(OpenGL_selected_LIBRARY "${OPENGL_opengl_LIBRARY}")
-        else()
-            # When OpenGL_GL_PREFERENCE is not supported or GLVND is not available
-            # the OPENGL_gl_LIBRARY is always set, so if it is set, it means the ABI
-            # is the LEGACY one.
-            set(OpenGL_selected_ABI "LEGACY")
-            set(OpenGL_selected_LIBRARY "${OPENGL_gl_LIBRARY}")
+    # Look for OpenGL here before we potentially switch to looking for static libs.
+    if (BUILD_CLIENT)
+        if (LINUX OR FREEBSD)
+            # Set LEGACY OpenGL ABI if the variable is not explictly set.
+            # The backward-incompatible GLVND OpenGL ABI should only be used
+            # by developers who have a good reason to require it.
+            # See: https://github.com/DaemonEngine/Daemon/issues/945#issuecomment-1835091256
+            set(OpenGL_GL_PREFERENCE "LEGACY" CACHE STRING "Linux OpenGL ABI (LEGACY or GLVND).")
         endif()
 
-        if (OpenGL_selected_ABI STREQUAL "GLVND")
-            message(WARNING "The GLVND OpenGL ABI is backward incompatible with legacy drivers.\nSee https://github.com/DaemonEngine/Daemon/issues/945")
-        endif()
+        find_package(OpenGL REQUIRED)
+        include_directories(${OPENGL_INCLUDE_DIR})
+        set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
 
-        if (OpenGL_GL_PREFERENCE STREQUAL "GLVND")
-            if (NOT OPENGL_opengl_LIBRARY)
-                message(WARNING "GLVND OpenGL ABI not available but LEGACY is.\nTry OpenGL_GL_PREFERENCE=LEGACY")
-                message(FATAL_ERROR "Could NOT find GLVND libOpenGL.so")
-            endif()
-        else()
+        # When OpenGL_GL_PREFERENCE is set but neither GLVND nor LEGACY are available,
+        # This code is unreachable since it already errored out at find_package time.
+        # This code only executes if OpenGL is supported, either because the GLVND ABI
+        # is available, either because the LEGACY ABI is available.
+        if (LINUX OR FREEBSD)
             if (NOT OPENGL_gl_LIBRARY)
-                message(WARNING "LEGACY OpenGL ABI not available but GLVND is.\nTry OpenGL_GL_PREFERENCE=GLVND")
-                message(FATAL_ERROR "Could NOT find LEGACY libGL.so")
+                # When OpenGL_GL_PREFERENCE is supported and GLVND is available
+                # OPENGL_gl_LIBRARY is expected to be empty. So we can use the
+                # emptyness of OPENGL_gl_LIBRARY to detect that CMake supports
+                # OpenGL_GL_PREFERENCE and GLVND is used:
+                # > If the GLVND OpenGL and GLX libraries are available, prefer them.
+                # > This forces OPENGL_gl_LIBRARY to be empty.
+                # -- https://cmake.org/cmake/help/latest/module/FindOpenGL.html
+                set(OpenGL_selected_ABI "GLVND")
+                set(OpenGL_selected_LIBRARY "${OPENGL_opengl_LIBRARY}")
+            else()
+                # When OpenGL_GL_PREFERENCE is not supported or GLVND is not available
+                # the OPENGL_gl_LIBRARY is always set, so if it is set, it means the ABI
+                # is the LEGACY one.
+                set(OpenGL_selected_ABI "LEGACY")
+                set(OpenGL_selected_LIBRARY "${OPENGL_gl_LIBRARY}")
             endif()
+
+            if (OpenGL_selected_ABI STREQUAL "GLVND")
+                message(WARNING "The GLVND OpenGL ABI is backward incompatible with legacy drivers.\nSee https://github.com/DaemonEngine/Daemon/issues/945")
+            endif()
+
+            if (OpenGL_GL_PREFERENCE STREQUAL "GLVND")
+                if (NOT OPENGL_opengl_LIBRARY)
+                    message(WARNING "GLVND OpenGL ABI not available but LEGACY is.\nTry OpenGL_GL_PREFERENCE=LEGACY")
+                    message(FATAL_ERROR "Could NOT find GLVND libOpenGL.so")
+                endif()
+            else()
+                if (NOT OPENGL_gl_LIBRARY)
+                    message(WARNING "LEGACY OpenGL ABI not available but GLVND is.\nTry OpenGL_GL_PREFERENCE=GLVND")
+                    message(FATAL_ERROR "Could NOT find LEGACY libGL.so")
+                endif()
+            endif()
+
+            message(STATUS "Found OpenGL ABI: ${OpenGL_selected_ABI}")
+            message(STATUS "Found OpenGL library: ${OpenGL_selected_LIBRARY}")
+
+            daemon_add_buildinfo("char*" "DAEMON_OPENGL_ABI_STRING" "\"${OpenGL_selected_ABI}\"")
+            add_definitions("-DDAEMON_OPENGL_ABI_${OpenGL_selected_ABI}")
+            add_definitions("-DDAEMON_OPENGL_ABI")
         endif()
-
-        message(STATUS "Found OpenGL ABI: ${OpenGL_selected_ABI}")
-        message(STATUS "Found OpenGL library: ${OpenGL_selected_LIBRARY}")
-
-        daemon_add_buildinfo("char*" "DAEMON_OPENGL_ABI_STRING" "\"${OpenGL_selected_ABI}\"")
-        add_definitions("-DDAEMON_OPENGL_ABI_${OpenGL_selected_ABI}")
-        add_definitions("-DDAEMON_OPENGL_ABI")
     endif()
 endif()
 
@@ -985,6 +996,7 @@ if (NOT NACL)
     set_property(TARGET engine-lib APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_OPTIONS ${WARNINGS})
     set_target_properties(engine-lib PROPERTIES FOLDER "engine/objects")
+
     ADD_PRECOMPILED_HEADER(engine-lib)
 
     if (BUILD_DUMMY_APP)
@@ -1007,9 +1019,16 @@ if (BUILD_CLIENT)
     if (USE_SMP)
         list(APPEND Definitions USE_SMP)
     endif()
+
+    if (USE_VULKAN)
+        set(CLIENT_EXECUTABLE_NAME daemon-vulkan)
+    else()
+        set(CLIENT_EXECUTABLE_NAME daemon)
+    endif()
+
     AddApplication(
         Target client
-        ExecutableName daemon
+        ExecutableName ${CLIENT_EXECUTABLE_NAME}
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions ${Definitions}
         Flags ${WARNINGS}
