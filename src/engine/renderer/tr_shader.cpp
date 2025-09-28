@@ -2009,6 +2009,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	filterType_t filterType;
 	char         buffer[ 1024 ] = "";
 	bool     loadMap = false;
+	bool colorspaceMatch = true;
 
 	while ( true )
 	{
@@ -2844,6 +2845,23 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				continue;
 			}
 		}
+		// disable the stage if the renderer's blending mode does not match the specified mode
+		else if ( !Q_stricmp( token, "colorspace" ) )
+		{
+			token = COM_ParseExt2( text, false );
+			if ( !Q_stricmp( token, "naive" ) )
+			{
+				colorspaceMatch = !tr.worldLinearizeTexture;
+			}
+			else if ( !Q_stricmp( token, "linear" ) )
+			{
+				colorspaceMatch = tr.worldLinearizeTexture;
+			}
+			else
+			{
+				Log::Warn( "unknown colorspace '%s' in shader '%s'", token, shader.name );
+			}
+		}
 		// alpha <arithmetic expression>
 		else if ( !Q_stricmp( token, "alpha" ) )
 		{
@@ -3220,6 +3238,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			SkipRestOfLine( text );
 			continue;
 		}
+	}
+
+	if ( !colorspaceMatch )
+	{
+		return true; // parsing succeeded, but not active
 	}
 
 	// parsing succeeded
@@ -6049,6 +6072,11 @@ shader_t       *R_FindShader( const char *name, int flags )
 	// make sure the render thread is stopped, because we are probably
 	// going to have to upload an image
 	R_SyncRenderThread();
+
+	if ( !( flags & RSF_2D ) && !tr.worldMapLoaded )
+	{
+		Log::Warn( "non-2D shader '%s' registered before map colorspace is known, assuming naive blending", name );
+	}
 
 	ClearGlobalShader();
 
