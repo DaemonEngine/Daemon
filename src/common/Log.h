@@ -131,22 +131,26 @@ namespace Log {
 
     /*
      * When debugging a function or before a logger is introduced for
-     * a module the following functions can be used for less typing.
+     * a module, the following signatures can be used for less typing.
      * However it shouldn't stay in production code because it
      * cannot be filtered and will clutter the console.
+     *
+     * These are not the real function declarations because macros are involved to get __LINE__ etc.
      */
 
+#if 0
     template<typename ... Args>
-    void Warn( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args );
+    void Warn( Str::StringRef format, Args&& ... args );
 
     template<typename ... Args>
-    void Notice( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args );
+    void Notice( Str::StringRef format, Args&& ... args );
 
     template<typename ... Args>
-    void Verbose( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args );
+    void Verbose( Str::StringRef format, Args&& ... args );
 
     template<typename ... Args>
-    void Debug( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args );
+    void Debug( Str::StringRef format, Args&& ... args );
+#endif
 
     /*
      * For messages which are not true log messages, but rather are produced by
