@@ -91,19 +91,81 @@ namespace Util {
 		}
 	};
 
+	template<> struct SerializeTraits<std::vector<BoneMod>> {
+		static void Write( Writer& stream, const std::vector<BoneMod>& boneMods ) {
+			stream.WriteSize( boneMods.size() );
+			stream.WriteData( boneMods.data(), boneMods.size() * sizeof( BoneMod ) );
+		}
+
+		static std::vector<BoneMod> Read( Reader& stream ) {
+			std::vector<BoneMod> boneMods;
+			const size_t size = stream.ReadSize<BoneMod>();
+			boneMods.resize( size );
+			stream.ReadData( boneMods.data(), size * sizeof( BoneMod ) );
+			return boneMods;
+		}
+	};
+
 	// Use that bone optimization for refEntity_t
 	template<> struct SerializeTraits<refEntity_t> {
 		static void Write(Writer& stream, const refEntity_t& ent)
 		{
-			stream.WriteData(&ent, offsetof(refEntity_t, skeleton));
-			stream.Write<refSkeleton_t>(ent.skeleton);
+			stream.WriteData(&ent, offsetof(refEntity_t, tag));
+			stream.Write<std::string>( ent.tag );
+			stream.Write<std::vector<BoneMod>>( ent.boneMods );
+			// stream.Write<refSkeleton_t>(ent.skeleton);
 		}
+
 		static refEntity_t Read(Reader& stream)
 		{
 			refEntity_t ent;
-			stream.ReadData(&ent, offsetof(refEntity_t, skeleton));
-			ent.skeleton = stream.Read<refSkeleton_t>();
+			stream.ReadData(&ent, offsetof(refEntity_t, tag));
+			ent.tag = stream.Read<std::string>();
+			ent.boneMods = stream.Read<std::vector<BoneMod>>();
+			// ent.skeleton = stream.Read<refSkeleton_t>();
 			return ent;
+		}
+	};
+
+	template<> struct SerializeTraits<EntityUpdate> {
+		static void Write( Writer& stream, const EntityUpdate& ent ) {
+			stream.Write<refEntity_t>( ent.ent );
+			stream.Write<uint16_t>( ent.id );
+		}
+
+		static EntityUpdate Read( Reader& stream ) {
+			EntityUpdate ent;
+			ent.ent = stream.Read<refEntity_t>();
+			ent.id  = stream.Read<uint16_t>();
+			return ent;
+		}
+	};
+
+	template<> struct SerializeTraits<LerpTagUpdate> {
+		static void Write( Writer& stream, const LerpTagUpdate& tag ) {
+			stream.Write<std::string>( tag.tag );
+			stream.Write<uint16_t>( tag.id );
+		}
+
+		static LerpTagUpdate Read( Reader& stream ) {
+			LerpTagUpdate tag;
+			tag.tag = stream.Read<std::string>();
+			tag.id  = stream.Read<uint16_t>();
+			return tag;
+		}
+	};
+
+	template<> struct SerializeTraits<LerpTagSync> {
+		static void Write( Writer& stream, const LerpTagSync& tag ) {
+			stream.Write<orientation_t>( tag.entityOrientation );
+			stream.Write<orientation_t>( tag.orientation );
+		}
+
+		static LerpTagSync Read( Reader& stream ) {
+			LerpTagSync tag;
+			tag.entityOrientation = stream.Read<orientation_t>();
+			tag.orientation = stream.Read<orientation_t>();
+			return tag;
 		}
 	};
 
@@ -166,6 +228,8 @@ enum cgameImport_t
   CG_R_REGISTERFONT,
   CG_R_CLEARSCENE,
   CG_R_ADDREFENTITYTOSCENE,
+  CG_R_SYNCREFENTITIES,
+  CG_R_SYNCLERPTAGS,
   CG_R_ADDPOLYTOSCENE,
   CG_R_ADDPOLYSTOSCENE,
   CG_R_ADDLIGHTTOSCENE,
@@ -179,7 +243,6 @@ enum cgameImport_t
   CG_R_DRAWSTRETCHPIC,
   CG_R_DRAWROTATEDPIC,
   CG_R_MODELBOUNDS,
-  CG_R_LERPTAG,
   CG_R_REMAP_SHADER,
   CG_R_BATCHINPVS,
   CG_R_LIGHTFORPOINT,
@@ -319,10 +382,6 @@ namespace Render {
 		IPC::Message<IPC::Id<VM::QVM, CG_R_MODELBOUNDS>, int>,
 		IPC::Reply<std::array<float, 3>, std::array<float, 3>>
 	>;
-	using LerpTagMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_R_LERPTAG>, refEntity_t, std::string, int>,
-		IPC::Reply<orientation_t, int>
-	>;
 	using RemapShaderMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_REMAP_SHADER>, std::string, std::string, std::string>;
 	// TODO not a renderer call, handle in CM in the VM?
 	using BatchInPVSMsg = IPC::SyncMessage<
@@ -379,6 +438,11 @@ namespace Render {
 	using ScissorSetMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_SCISSOR_SET>, int, int, int, int>;
 	using ClearSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_CLEARSCENE>>;
 	using AddRefEntityToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDREFENTITYTOSCENE>, refEntity_t>;
+	using SyncRefEntitiesMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_SYNCREFENTITIES>, std::vector<EntityUpdate>>;
+	using SyncLerpTagsMsg = IPC::SyncMessage<IPC::Message<IPC::Id<VM::QVM, CG_R_SYNCLERPTAGS>,
+		std::vector<LerpTagUpdate>>,
+		IPC::Reply<std::vector<LerpTagSync>>
+	>;
 	using AddPolyToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDPOLYTOSCENE>, int, std::vector<polyVert_t>>;
 	using AddPolysToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDPOLYSTOSCENE>, int, std::vector<polyVert_t>, int, int>;
 	using AddLightToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDLIGHTTOSCENE>, std::array<float, 3>, float, float, float, float, int>;

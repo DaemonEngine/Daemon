@@ -614,7 +614,7 @@ static cullResult_t R_CullMD5( trRefEntity_t *ent )
 {
 	int        i;
 
-	if ( ent->e.skeleton.type == refSkeletonType_t::SK_INVALID )
+	if ( ent->skeleton.type == refSkeletonType_t::SK_INVALID )
 	{
 		// no properly set skeleton so use the bounding box by the model instead by the animations
 		md5Model_t *model = tr.currentModel->md5;
@@ -627,8 +627,8 @@ static cullResult_t R_CullMD5( trRefEntity_t *ent )
 		// copy a bounding box in the current coordinate system provided by skeleton
 		for ( i = 0; i < 3; i++ )
 		{
-			ent->localBounds[ 0 ][ i ] = ent->e.skeleton.bounds[ 0 ][ i ] * ent->e.skeleton.scale;
-			ent->localBounds[ 1 ][ i ] = ent->e.skeleton.bounds[ 1 ][ i ] * ent->e.skeleton.scale;
+			ent->localBounds[ 0 ][ i ] = ent->skeleton.bounds[ 0 ][ i ] * ent->skeleton.scale;
+			ent->localBounds[ 1 ][ i ] = ent->skeleton.bounds[ 1 ][ i ] * ent->skeleton.scale;
 		}
 	}
 
@@ -680,7 +680,7 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 	fogNum = R_FogWorldBox( ent->worldBounds );
 
 	if ( !r_vboModels.Get() || !model->numVBOSurfaces ||
-	     ( !glConfig.vboVertexSkinningAvailable && ent->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE ) )
+	     ( !glConfig.vboVertexSkinningAvailable && ent->skeleton.type == refSkeletonType_t::SK_ABSOLUTE ) )
 	{
 		shader_t *shader;
 
@@ -997,6 +997,32 @@ static int IQMBuildSkeleton( refSkeleton_t *skel, skelAnimation_t *skelAnim,
 	return true;
 }
 
+void R_TransformSkeleton( refSkeleton_t* skel, const float scale ) {
+	skel->scale = scale;
+
+	switch ( skel->type ) {
+		case refSkeletonType_t::SK_INVALID:
+		case refSkeletonType_t::SK_ABSOLUTE:
+			return;
+
+		default:
+			break;
+	}
+
+	// calculate absolute transforms
+	for ( refBone_t* bone = &skel->bones[0]; bone < &skel->bones[skel->numBones]; bone++ ) {
+		if ( bone->parentIndex >= 0 ) {
+			refBone_t* parent;
+
+			parent = &skel->bones[bone->parentIndex];
+
+			TransCombine( &bone->t, &parent->t, &bone->t );
+		}
+	}
+
+	skel->type = refSkeletonType_t::SK_ABSOLUTE;
+}
+
 /*
 ==============
 RE_BuildSkeleton
@@ -1152,6 +1178,7 @@ int RE_BuildSkeleton( refSkeleton_t *skel, qhandle_t hAnim, int startFrame, int 
 	}
 
 	// FIXME: clear existing bones and bounds?
+	skel->numBones = 0;
 	return false;
 }
 
