@@ -896,7 +896,7 @@ if (NOT NACL)
             Definitions USELESS_DEFINITION_TO_AVOID_PCH_ISSUE
             ApplicationMain ${ENGINE_DIR}/null/NullApplication.cpp
             CompileFlags ${WARNINGS}
-            Files ${COMMON_DIR}/Util.h  # must be nonempty
+            Files ${DUMMYAPPLIST}
             Tests ${ENGINETESTLIST}
         )
     endif()
@@ -922,7 +922,8 @@ if (BUILD_CLIENT)
         ExecutableName ${CLIENT_EXECUTABLE_NAME}
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions ${Definitions}
-        CompileFlags ${WARNINGS}
+        CompileFlags ${WARNINGS};${OPENMP_COMPILE_FLAG}
+        LinkFlags ${OPENMP_LINK_FLAG}
         Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
         Libs ${LIBS_CLIENT} ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
         Tests ${CLIENTTESTLIST}
