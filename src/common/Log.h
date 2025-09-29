@@ -51,12 +51,6 @@ namespace Log {
     // The default filtering level
     const Level DEFAULT_FILTER_LEVEL = Level::WARNING;
 
-    extern Cvar::Cvar<bool> logExtendAll;
-    extern Cvar::Cvar<bool> logExtendWarn;
-    extern Cvar::Cvar<bool> logExtendNotice;
-    extern Cvar::Cvar<bool> logExtendVerbose;
-    extern Cvar::Cvar<bool> logExtendDebug;
-
     /*
      * Loggers are used to group logs by subsystems and allow logs
      * to be filtered by log level by subsystem. They are used like so
@@ -116,7 +110,8 @@ namespace Log {
             Logger WithoutSuppression();
 
         private:
-            void Dispatch(std::string message, Log::Level level, Str::StringRef format);
+            void Dispatch(std::string message, Log::Level level, Str::StringRef format,
+                          const char* file, const char* function, int line);
 
             std::string Prefix(Str::StringRef message) const;
 
@@ -203,62 +198,35 @@ namespace Log {
 
     // Logger
 
-    inline std::string AddSrcLocation( const std::string& message,
-        const char* file, const char* function, const int line,
-        const bool extend ) {
-        if ( logExtendAll.Get() || extend ) {
-            return message + Str::Format( " ^F(%s:%u, %s)",
-                file, line, function );
-        }
-
-        return message;
-    }
-
     template<typename ... Args>
     void Logger::WarnExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args ) {
         if ( filterLevel->Get() <= Level::WARNING ) {
-            this->Dispatch(
-                AddSrcLocation(
-                    Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ),
-                    file, function, line, logExtendWarn.Get()
-                ),
-                Level::WARNING, format );
+            this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args)...)),
+                           Level::WARNING, format, file, function, line);
         }
     }
 
     template<typename ... Args>
     void Logger::NoticeExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args ) {
         if ( filterLevel->Get() <= Level::NOTICE ) {
-            this->Dispatch(
-                AddSrcLocation(
-                    Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ),
-                    file, function, line, logExtendNotice.Get()
-                ),
-                Level::NOTICE, format );
+            this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args)...)),
+                           Level::NOTICE, format, file, function, line);
         }
     }
 
     template<typename ... Args>
     void Logger::VerboseExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args ) {
         if ( filterLevel->Get() <= Level::VERBOSE ) {
-            this->Dispatch(
-                AddSrcLocation(
-                    Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ),
-                    file, function, line, logExtendVerbose.Get()
-                ),
-                Level::VERBOSE, format );
+            this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args)...)),
+                           Level::VERBOSE, format, file, function, line);
         }
     }
 
     template<typename ... Args>
     void Logger::DebugExt( const char* file, const char* function, const int line, Str::StringRef format, Args&& ... args ) {
         if ( filterLevel->Get() <= Level::DEBUG ) {
-            this->Dispatch(
-                AddSrcLocation(
-                    Prefix( Str::Format( format, std::forward<Args>( args ) ... ) ),
-                    file, function, line, logExtendDebug.Get()
-                ),
-                Level::DEBUG, format );
+            this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args)...)),
+                           Level::DEBUG, format, file, function, line);
         }
     }
 

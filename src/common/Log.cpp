@@ -40,6 +40,16 @@ static Cvar::Range<Cvar::Cvar<int>> suppressionCount(
     "logs.suppression.count", "Number of occurrences for a message to be considered log spam", Cvar::NONE, 10, 1, 1000000);
 static Cvar::Range<Cvar::Cvar<int>> suppressionBufSize(
     "logs.suppression.bufferSize", "How many distinct messages to track for log suppression", Cvar::NONE, 50, 1, 1000000);
+static Cvar::Cvar<bool> logExtendAll(
+    "logs.writeSrcLocation.all", "Always print source code location for logs", Cvar::NONE, false);
+static Cvar::Cvar<bool> logExtendWarn(
+    "logs.writeSrcLocation.warn", "Print source code location for Warn logs", Cvar::NONE, false);
+static Cvar::Cvar<bool> logExtendNotice(
+    "logs.writeSrcLocation.notice", "Print source code location for Notice logs", Cvar::NONE, false);
+static Cvar::Cvar<bool> logExtendVerbose(
+    "logs.writeSrcLocation.verbose", "Print source code location for Verbose logs", Cvar::NONE, false);
+static Cvar::Cvar<bool> logExtendDebug(
+    "logs.writeSrcLocation.debug", "Print source code location for Debug logs", Cvar::NONE, false);
 
 #define GET_LOG_CVAR(type, name, object) (object.Get())
 #else
@@ -56,16 +66,6 @@ static T GetCvarOrDie(Str::StringRef cvar) {
 #endif
 
 namespace Log {
-    Cvar::Cvar<bool> logExtendAll(
-        "logs.writeSrcLocation.all", "Always print source code location for logs", Cvar::NONE, false );
-    Cvar::Cvar<bool> logExtendWarn(
-        "logs.writeSrcLocation.warn", "Print source code location for Warn logs", Cvar::NONE, false );
-    Cvar::Cvar<bool> logExtendNotice(
-        "logs.writeSrcLocation.notice", "Print source code location for Notice logs", Cvar::NONE, false );
-    Cvar::Cvar<bool> logExtendVerbose(
-        "logs.writeSrcLocation.verbose", "Print source code location for Verbose logs", Cvar::NONE, false );
-    Cvar::Cvar<bool> logExtendDebug(
-        "logs.writeSrcLocation.debug", "Print source code location for Debug logs", Cvar::NONE, false );
 
     Logger::Logger(Str::StringRef name, std::string prefix, Level defaultLevel)
         : filterLevel(new Cvar::Cvar<Log::Level>(
@@ -82,7 +82,27 @@ namespace Log {
         return prefix + message;
     }
 
-    void Logger::Dispatch(std::string message, Log::Level level, Str::StringRef format) {
+    static bool WantLocationInfo(Log::Level level) {
+        if (GET_LOG_CVAR(bool, "logs.writeSrcLocation.all", logExtendAll)) {
+            return true;
+        }
+        switch (level) {
+        case Log::Level::DEBUG:
+            return GET_LOG_CVAR(bool, "logs.writeSrcLocation.debug", logExtendDebug);
+        case Log::Level::VERBOSE:
+            return GET_LOG_CVAR(bool, "logs.writeSrcLocation.verbose", logExtendVerbose);
+        case Log::Level::NOTICE:
+            return GET_LOG_CVAR(bool, "logs.writeSrcLocation.notice", logExtendNotice);
+        case Log::Level::WARNING:
+            return GET_LOG_CVAR(bool, "logs.writeSrcLocation.warn", logExtendWarn);
+        }
+        ASSERT_UNREACHABLE();
+    }
+
+    void Logger::Dispatch(std::string message, Log::Level level, Str::StringRef format, const char* file, const char* function, int line) {
+        if (WantLocationInfo(level)) {
+            message = Str::Format("%s ^F(%s:%u, %s)", message, file, line, function);
+        }
         if (enableSuppression) {
             Log::DispatchWithSuppression(std::move(message), level, format);
         } else {
