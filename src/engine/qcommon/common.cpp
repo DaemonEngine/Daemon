@@ -51,6 +51,12 @@ Maryland 20850 USA.
 #include "sys/sys_events.h"
 #include <common/FileSystem.h>
 
+#if defined(__GNUC__) && defined(USE_OPENMP)
+#include <parallel/algorithm>
+static Cvar::Range<Cvar::Cvar<int>> common_ompThreads(
+	"common.ompThreads", "OpenMP threads", Cvar::NONE, 0, 0, 32 );
+#endif
+
 cvar_t *com_speeds;
 cvar_t *com_timescale;
 cvar_t *com_dropsim; // 0.0 to 1.0, simulated packet drops
@@ -765,6 +771,34 @@ int Com_ModifyMsec( int msec )
 	return msec;
 }
 
+static int ompMaxThreads = 1;
+static int ompThreads = 1;
+
+void Com_ReadOmpMaxThreads()
+{
+#if defined(__GNUC__) && defined(USE_OPENMP)
+	ompMaxThreads = omp_get_max_threads();
+#endif
+}
+
+void Com_ReadOmpThreads()
+{
+#if defined(__GNUC__) && defined(USE_OPENMP)
+	ompThreads = common_ompThreads.Get()
+		? common_ompThreads.Get()
+		: ompMaxThreads <= 2
+			? ompMaxThreads
+			: std::max( 2, ompMaxThreads / 2 );
+#endif
+}
+
+void Com_ApplyOmpThreads()
+{
+#if defined(__GNUC__) && defined(USE_OPENMP)
+	omp_set_num_threads( ompThreads );
+#endif
+}
+
 /*
 =================
 Com_Frame
@@ -803,6 +837,8 @@ void Com_Frame()
 	timeBeforeEvents = 0;
 	timeBeforeClient = 0;
 	timeAfter = 0;
+
+	Com_ReadOmpThreads();
 
 	// Check to make sure we don't have any http data waiting
 	// comment this out until I get things going better under win32

@@ -992,6 +992,8 @@ __declspec(dllexport) void DummyPreventingLinkerFromBreakingASLR() {}
 // This is why ALIGN_STACK_FOR_MINGW is needed (normally gcc would generate alignment code in main()).
 ALIGN_STACK_FOR_MINGW int main(int argc, char** argv)
 {
+	Com_ReadOmpMaxThreads();
+
 	// Initialize the engine. Any errors here are fatal.
 	try {
 		Sys::Init(argc, argv);

@@ -25,6 +25,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "gl_shader.h"
 #include "Material.h"
 
+#if defined(__GNUC__) && defined(USE_OPENMP)
+#include <parallel/algorithm>
+#endif
+
 /*
 ==============================================================================
 THIS ENTIRE FILE IS BACK END!
@@ -1286,48 +1290,66 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 			byte *modelBlendIndex = model->blendIndexes + 4 * firstVertex;
 			byte *modelBlendWeight = model->blendWeights + 4 * firstVertex;
 
-			for ( ; tessVertex < lastVertex; tessVertex++,
-				modelPosition += 3, modelNormal += 3,
-				modelTangent += 3, modelBitangent += 3,
-				modelTexcoord += 2 )
+			std::vector<size_t> indexes;
+			indexes.resize( surf->num_vertexes );
+			for ( size_t i = 0; i < indexes.size(); i++ ) { indexes[ i ] = i; }
+
+			auto process = [&]( const size_t& i ) -> void
 			{
+				shaderVertex_t *tessVertex_ = tessVertex + i;
+				float *modelPosition_ = modelPosition + 3 * i;
+				float *modelNormal_ = modelNormal + 3 * i;
+				float *modelTangent_ = modelTangent + 3 * i;
+				float *modelBitangent_ = modelBitangent + 3 * i;
+				float *modelTexcoord_ = modelTexcoord + 2 * i;
+				byte *modelBlendIndex_ = modelBlendIndex + 4 * i;
+				byte *modelBlendWeight_ = modelBlendWeight + 4 * i;
+
 				vec3_t position = {}, tangent = {}, binormal = {}, normal = {};
 
-				byte *lastBlendIndex = modelBlendIndex + 4;
+				byte *lastBlendIndex = modelBlendIndex_ + 4;
 
-				for ( ; modelBlendIndex < lastBlendIndex; modelBlendIndex++,
-					modelBlendWeight++ )
+				for ( ; modelBlendIndex_ < lastBlendIndex; modelBlendIndex_++,
+					modelBlendWeight_++ )
 				{
-					if ( *modelBlendWeight == 0 )
+					if ( *modelBlendWeight_ == 0 )
 					{
 						continue;
 					}
 
-					float weight = *modelBlendWeight * weightFactor;
+					float weight = *modelBlendWeight_ * weightFactor;
 					vec3_t tmp;
 
-					TransformPoint( &bones[ *modelBlendIndex ], modelPosition, tmp );
+					TransformPoint( &bones[ *modelBlendIndex_ ], modelPosition_, tmp );
 					VectorMA( position, weight, tmp, position );
 
-					TransformNormalVector( &bones[ *modelBlendIndex ], modelNormal, tmp );
+					TransformNormalVector( &bones[ *modelBlendIndex_ ], modelNormal_, tmp );
 					VectorMA( normal, weight, tmp, normal );
 
-					TransformNormalVector( &bones[ *modelBlendIndex ], modelTangent, tmp );
+					TransformNormalVector( &bones[ *modelBlendIndex_ ], modelTangent_, tmp );
 					VectorMA( tangent, weight, tmp, tangent );
 
-					TransformNormalVector( &bones[ *modelBlendIndex ], modelBitangent, tmp );
+					TransformNormalVector( &bones[ *modelBlendIndex_ ], modelBitangent_, tmp );
 					VectorMA( binormal, weight, tmp, binormal );
 				}
 
 				VectorNormalizeFast( normal );
 				VectorNormalizeFast( tangent );
 				VectorNormalizeFast( binormal );
-				VectorCopy( position, tessVertex->xyz );
+				VectorCopy( position, tessVertex_->xyz );
 
-				R_TBNtoQtangentsFast( tangent, binormal, normal, tessVertex->qtangents );
+				R_TBNtoQtangentsFast( tangent, binormal, normal, tessVertex_->qtangents );
 
-				Vector2Copy( modelTexcoord, tessVertex->texCoords );
-			}
+				Vector2Copy( modelTexcoord_, tessVertex_->texCoords );
+			};
+
+#if defined(__GNUC__) && defined(USE_OPENMP)
+			Com_ApplyOmpThreads();
+
+			__gnu_parallel::for_each( indexes.cbegin(), indexes.cend(), process );
+#else
+			std::for_each( indexes.cbegin(), indexes.cend(), process );
+#endif
 		}
 	}
 	else

@@ -595,6 +595,10 @@ void   Hunk_FreeTempMemory( void *buf );
 void   Com_Init();
 void   Com_Frame();
 
+void Com_ReadOmpMaxThreads();
+void Com_ReadOmpThreads();
+void Com_ApplyOmpThreads();
+
 /*
 ==============================================================
 
