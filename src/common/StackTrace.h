@@ -75,7 +75,6 @@ inline void PrintStackTrace( const std::stacktrace& stackTrace = std::stacktrace
 #else
 
 inline void PrintStackTrace() {
-    Log::Warn( "StackTrace unavailable: CPP23 required" );
 }
 
 #endif
