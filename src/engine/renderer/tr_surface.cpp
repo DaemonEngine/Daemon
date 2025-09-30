@@ -1251,6 +1251,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 			byte *modelBlendIndex = model->blendIndexes + 4 * firstVertex;
 			byte *modelBlendWeight = model->blendWeights + 4 * firstVertex;
 
+			#pragma omp parallel for
 			for ( int i = 0; i < surf->num_vertexes; i++ )
 			{
 				shaderVertex_t *tessVertex = modelTessVertex + i;
@@ -1288,6 +1289,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 			byte *modelBlendIndex = model->blendIndexes + 4 * firstVertex;
 			byte *modelBlendWeight = model->blendWeights + 4 * firstVertex;
 
+			#pragma omp parallel for
 			for ( int i = 0; i < surf->num_vertexes; i++ )
 			{
 				shaderVertex_t *tessVertex = modelTessVertex + i;
@@ -1342,6 +1344,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	{
 		float scale = model->internalScale * backEnd.currentEntity->e.skeleton.scale;
 
+		#pragma omp parallel for
 		for ( int i = 0; i < surf->num_vertexes; i++ )
 		{
 			shaderVertex_t *tessVertex = modelTessVertex + i;
