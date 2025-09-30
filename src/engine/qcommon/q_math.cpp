@@ -544,7 +544,7 @@ void MakeNormalVectors( const vec3_t forward, vec3_t right, vec3_t up )
 
 	d = DotProduct( right, forward );
 	VectorMA( right, -d, forward, right );
-	VectorNormalize( right );
+	VectorNormalizeFast( right );
 	CrossProduct( right, forward, up );
 }
 
@@ -1082,7 +1082,7 @@ void PerpendicularVector( vec3_t dst, const vec3_t src )
 	/*
 	 * * normalize the result
 	 */
-	VectorNormalize( dst );
+	VectorNormalizeFast( dst );
 }
 
 // Ridah
@@ -1099,13 +1099,13 @@ void GetPerpendicularViewVector( const vec3_t point, const vec3_t p1, const vec3
 	vec3_t v1, v2;
 
 	VectorSubtract( point, p1, v1 );
-	VectorNormalize( v1 );
+	VectorNormalizeFast( v1 );
 
 	VectorSubtract( point, p2, v2 );
-	VectorNormalize( v2 );
+	VectorNormalizeFast( v2 );
 
 	CrossProduct( v1, v2, up );
-	VectorNormalize( up );
+	VectorNormalizeFast( up );
 }
 
 /*
@@ -1119,7 +1119,7 @@ void ProjectPointOntoVector( const vec3_t point, const vec3_t vStart, const vec3
 
 	VectorSubtract( point, vStart, pVec );
 	VectorSubtract( vEnd, vStart, vec );
-	VectorNormalize( vec );
+	VectorNormalizeFast( vec );
 	// project onto the directional vector for this segment
 	VectorMA( vStart, DotProduct( pVec, vec ), vec, vProj );
 }
@@ -1255,7 +1255,7 @@ void ProjectPointOntoVectorBounded( const vec3_t point, const vec3_t vStart, con
 
 	VectorSubtract( point, vStart, pVec );
 	VectorSubtract( vEnd, vStart, vec );
-	VectorNormalize( vec );
+	VectorNormalizeFast( vec );
 	// project onto the directional vector for this segment
 	VectorMA( vStart, DotProduct( pVec, vec ), vec, vProj );
 
@@ -2684,16 +2684,16 @@ void MatrixLookAtLH( matrix_t m, const vec3_t eye, const vec3_t dir, const vec3_
 
 #if 1
 	CrossProduct( up, dir, sideN );
-	VectorNormalize( sideN );
+	VectorNormalizeFast( sideN );
 
 	CrossProduct( dir, sideN, upN );
-	VectorNormalize( upN );
+	VectorNormalizeFast( upN );
 #else
 	CrossProduct( dir, up, sideN );
-	VectorNormalize( sideN );
+	VectorNormalizeFast( sideN );
 
 	CrossProduct( sideN, dir, upN );
-	VectorNormalize( upN );
+	VectorNormalizeFast( upN );
 #endif
 
 	VectorNormalize2( dir, dirN );
@@ -2723,10 +2723,10 @@ void MatrixLookAtRH( matrix_t m, const vec3_t eye, const vec3_t dir, const vec3_
 	vec3_t sideN;
 
 	CrossProduct( dir, up, sideN );
-	VectorNormalize( sideN );
+	VectorNormalizeFast( sideN );
 
 	CrossProduct( sideN, dir, upN );
-	VectorNormalize( upN );
+	VectorNormalizeFast( upN );
 
 	VectorNormalize2( dir, dirN );
 

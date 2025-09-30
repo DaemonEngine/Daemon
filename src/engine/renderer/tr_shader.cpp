@@ -4084,7 +4084,7 @@ static bool ParseShader( const char *_text )
 
 			tr.sunLight[ 2 ] = atof( token );
 
-			VectorNormalize( tr.sunLight );
+			VectorNormalizeFast( tr.sunLight );
 
 			token = COM_ParseExt2( text, false );
 

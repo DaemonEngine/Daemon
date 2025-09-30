@@ -162,7 +162,7 @@ int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, ve
 		lightDir[ 1 ] = copysignf( 1.0f - fabsf( X ), Y );
 	}
 
-	VectorNormalize( lightDir );
+	VectorNormalizeFast( lightDir );
 
 	if ( ambientLight[ 0 ] < r_forceAmbient.Get() &&
 	     ambientLight[ 1 ] < r_forceAmbient.Get() &&

@@ -1498,7 +1498,7 @@ static void R_SetupPortalFrustum( const viewParms_t& oldParms, const orientation
 
 	for (int i = 0; i < 4; i++)
 	{
-		VectorNormalize(frustum[i].normal);
+		VectorNormalizeFast(frustum[i].normal);
 		SetPlaneSignbits(&frustum[i]);
 		frustum[i].dist = 0; // all side planes intersect the view origin
 		frustum[i].type = PLANE_NON_AXIAL;

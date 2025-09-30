@@ -77,11 +77,11 @@ static void CalcTangentSpaces( md5Surface_t &surf, const vec2_t *texCoords )
 	v = surf.verts;
 	for ( unsigned j = 0; j < surf.numVerts; j++, v++ )
 	{
-		VectorNormalize( v->tangent );
+		VectorNormalizeFast( v->tangent );
 		v->tangent[ 3 ] = 0;
-		VectorNormalize( v->binormal );
+		VectorNormalizeFast( v->binormal );
 		v->binormal[ 3 ] = 0;
-		VectorNormalize( v->normal );
+		VectorNormalizeFast( v->normal );
 		v->normal[ 3 ] = 0;
 	}
 }

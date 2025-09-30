@@ -911,7 +911,7 @@ void ValidateVertex( srfVert_t* vertex, int vertexID, shader_t* shader ) {
 				VertexToString( vertex ), shader->name );
 			vertex->normal[i] = 0.0f;
 
-			VectorNormalize( vertex->normal );
+			VectorNormalizeFast( vertex->normal );
 		}
 	}
 
@@ -4667,7 +4667,7 @@ void RE_LoadWorldMap( const char *name )
 	tr.sunDirection[ 1 ] = 0.3f;
 	tr.sunDirection[ 2 ] = 0.9f;
 
-	VectorNormalize( tr.sunDirection );
+	VectorNormalizeFast( tr.sunDirection );
 
 	tr.worldMapLoaded = true;
 

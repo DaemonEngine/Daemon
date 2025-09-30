@@ -1142,7 +1142,7 @@ void RB_RunVisTests( )
 		Tess_MapVBOs( false );
 		VectorSubtract( backEnd.orientation.viewOrigin,
 				test->position, diff );
-		VectorNormalize( diff );
+		VectorNormalizeFast( diff );
 		VectorMA( test->position, test->depthAdjust, diff, center );
 
 		VectorScale( backEnd.viewParms.orientation.axis[ 1 ],

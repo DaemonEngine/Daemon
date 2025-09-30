@@ -596,12 +596,12 @@ static void Autosprite2Deform( uint32_t numVertexes )
 			vec3_t quadCenter;
 			VectorMA( sides[ 2 ].firstVert, 0.5f, sides[ 2 ].vector, quadCenter );
 			VectorSubtract( quadCenter, backEnd.viewParms.orientation.origin, forward );
-			VectorNormalize( forward );
+			VectorNormalizeFast( forward );
 		}
 
 		vec3_t newMinorAxis;
 		CrossProduct( sides[ 1 ].vector, forward, newMinorAxis);
-		VectorNormalize( newMinorAxis );
+		VectorNormalizeFast( newMinorAxis );
 		plane_t projection;
 		VectorNormalize2( sides[ 0 ].vector, projection.normal );
 		projection.dist = DotProduct( sides[ 0 ].firstVert, projection.normal )
@@ -628,7 +628,7 @@ static void Autosprite2Deform( uint32_t numVertexes )
 			{
 				VectorNegate( normal, normal );
 			}
-			VectorNormalize( normal );
+			VectorNormalizeFast( normal );
 			// What the fuck are tangent and binormal even for?
 			// I'll just put in zeroes and let R_TBNtoQtangents make some up for me.
 			R_TBNtoQtangents( vec3_origin, vec3_origin, normal, qtangents );

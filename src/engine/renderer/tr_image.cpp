@@ -1120,7 +1120,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 						n[ 1 ] = Tex_ByteToFloat( scaledBuffer[ j * 4 + 1 ] );
 						n[ 2 ] = Tex_ByteToFloat( scaledBuffer[ j * 4 + 2 ] );
 
-						VectorNormalize( n );
+						VectorNormalizeFast( n );
 
 						scaledBuffer[ j * 4 + 0 ] = Tex_FloatToByte( n[ 0 ] );
 						scaledBuffer[ j * 4 + 1 ] = Tex_FloatToByte( n[ 1 ] );

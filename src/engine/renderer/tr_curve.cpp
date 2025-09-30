@@ -559,7 +559,7 @@ srfGridMesh_t  *R_SubdividePatchToGrid( int width, int height, srfVert_t points[
 				// dist-from-midpoint
 				VectorSubtract( midxyz, gridctrl[ i ][ j ].xyz, midxyz );
 				VectorSubtract( gridctrl[ i ][ j + 2 ].xyz, gridctrl[ i ][ j ].xyz, direction );
-				VectorNormalize( direction );
+				VectorNormalizeFast( direction );
 
 				d = DotProduct( midxyz, direction );
 				VectorScale( direction, d, projected );
