@@ -33,8 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Instance.cpp
 
-// #define VK_NO_PROTOTYPES
-
 #include <SDL3/SDL_vulkan.h>
 
 #include "../Math/NumberTypes.h"
@@ -112,12 +110,6 @@ void Instance::Init( const char* engineName, const char* appName ) {
 
 	vkEnumeratePhysicalDevices( instance, &deviceCount, availableDevices.memory );
 
-	VkPhysicalDeviceFeatures2 f {};
-	VkPhysicalDeviceProperties2 p {};
-
-	vkGetPhysicalDeviceFeatures2( availableDevices[1], &f );
-	vkGetPhysicalDeviceProperties2( availableDevices[1], &p );
-
 	if ( !SelectPhysicalDevice( availableDevices, &engineConfig, &physicalDevice ) ) {
 		return;
 	}
@@ -142,19 +134,19 @@ void Instance::Init( const char* engineName, const char* appName ) {
 		return;
 	}
 
-	if( queuesConfig.computeQueue.queues ) {
-		computeQueue.Init(  device,  queuesConfig.computeQueue.id, queuesConfig.computeQueue.queues );
+	if( queuesConfig.computeQueue.unique ) {
+		computeQueue.Init(  device, queuesConfig.computeQueue.id,  queuesConfig.computeQueue.queues );
 		vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, computeQueue.id, mainSwapChain.surface, &presentSupported );
 		foundQueues += Str::Format( ", async compute (present: %s)", ( bool ) presentSupported );
 	}
 
-	if ( queuesConfig.transferQueue.queues ) {
+	if ( queuesConfig.transferQueue.unique ) {
 		transferQueue.Init( device, queuesConfig.transferQueue.id, queuesConfig.transferQueue.queues );
 		foundQueues += Str::Format( ", async transfer" );
 	}
 
-	if ( queuesConfig.sparseQueue.queues ) {
-		sparseQueue.Init(   device,   queuesConfig.sparseQueue.id, queuesConfig.sparseQueue.queues );
+	if ( queuesConfig.sparseQueue.unique ) {
+		sparseQueue.Init(   device, queuesConfig.sparseQueue.id,   queuesConfig.sparseQueue.queues );
 		foundQueues += Str::Format( ", async sparse binding" );
 	}
 

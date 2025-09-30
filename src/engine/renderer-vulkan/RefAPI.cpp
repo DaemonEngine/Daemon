@@ -200,13 +200,13 @@ namespace TempAPI {
 	void BeginFrame() {
 		threadUplink.ExecuteCommands();
 
-		TestTask();
+		/* TestTask();
 
 		printCount++;
 
 		if ( printCount >= 32 ) {
-			Sys::Quit( "" );
-		}
+			 Sys::Quit( "" );
+		} */
 	}
 
 	void EndFrame( int*, int* ) {

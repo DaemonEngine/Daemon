@@ -149,15 +149,15 @@ void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config,
 		VkDeviceQueueCreateInfo& queueInfo = queueInfos[i];
 
 		queueInfo.queueFamilyIndex = i;
-		queueInfo.queueCount = queuesConfig[i].queues;
+		queueInfo.queueCount       = queuesConfig[i].queues;
 		queueInfo.pQueuePriorities = priorities.memory;
 	}
 
 	VkDeviceCreateInfo info {
-		.pNext = &features,
-		.queueCreateInfoCount = queuesConfig.count,
-		.pQueueCreateInfos = queueInfos.memory,
-		.enabledExtensionCount = extensionCount,
+		.pNext                   = &features,
+		.queueCreateInfoCount    = queuesConfig.count,
+		.pQueueCreateInfos       = queueInfos.memory,
+		.enabledExtensionCount   = extensionCount,
 		.ppEnabledExtensionNames = requiredExtensions
 	};
 

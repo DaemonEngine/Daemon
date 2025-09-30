@@ -176,9 +176,9 @@ void SwapChain::Init( const VkInstance instance ) {
 
 		.surface = surface,
 
-		.minImageCount   = imageCount,
-		.imageFormat     = format.surfaceFormat.format,
-		.imageColorSpace = format.surfaceFormat.colorSpace,
+		.minImageCount    = imageCount,
+		.imageFormat      = format.surfaceFormat.format,
+		.imageColorSpace  = format.surfaceFormat.colorSpace,
 
 		.imageExtent      = capabilities.minImageExtent,
 		.imageArrayLayers = 1,
@@ -188,9 +188,9 @@ void SwapChain::Init( const VkInstance instance ) {
 		.preTransform     = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
 		.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 
-		.presentMode = presentMode,
+		.presentMode      = presentMode,
 
-		.clipped = VK_TRUE,
+		.clipped          = VK_TRUE,
 
 		.oldSwapchain = nullptr
 	};
