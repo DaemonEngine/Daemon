@@ -38,7 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SDL3/SDL_vulkan.h>
 
 #include "Vulkan.h"
-#include "../VulkanLoader/vk_enum_string_helper.h"
 
 #include "../Surface/Surface.h"
 

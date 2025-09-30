@@ -99,6 +99,7 @@ set(VULKANLOADERLIST
     ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/Vulkan.cpp
     ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/VulkanLoadFunctions.cpp
     ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/VulkanLoadFunctions.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/Vulkan.h
 )
 
 set(GRAPHICSLIST

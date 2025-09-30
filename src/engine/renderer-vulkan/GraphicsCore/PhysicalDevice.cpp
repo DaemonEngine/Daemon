@@ -162,4 +162,6 @@ void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config,
 	};
 
 	VkResult res = vkCreateDevice( physicalDevice, &info, nullptr, device );
+	Q_UNUSED( res );
+	Q_UNUSED( config );
 }

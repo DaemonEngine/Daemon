@@ -71,7 +71,7 @@ void Instance::Init( const char* engineName, const char* appName ) {
 	uint32 count;
 	const char* const* sdlext = SDL_Vulkan_GetInstanceExtensions( &count );
 
-	for ( int i = 0; i < count; i++ ) {
+	for ( uint32 i = 0; i < count; i++ ) {
 		Log::Notice( sdlext[i] );
 	}
 
@@ -100,6 +100,7 @@ void Instance::Init( const char* engineName, const char* appName ) {
 	};
 
 	VkResult res = vkCreateInstance( &createInfo, nullptr, &instance );
+	Q_UNUSED( res );
 
 	VulkanLoadInstanceFunctions( instance );
 
@@ -126,7 +127,7 @@ void Instance::Init( const char* engineName, const char* appName ) {
 	CreateDevice( physicalDevice, engineConfig, queuesConfig,
 		capabilityPackMinimal.requiredExtensions.memory, capabilityPackMinimal.requiredExtensions.size, &device );
 
-	VulkanLoadDeviceFunctions( device, instance );
+	VulkanLoadDeviceFunctions( device );
 
 	mainSwapChain.Init( instance );
 
