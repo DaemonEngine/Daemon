@@ -33,6 +33,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // VulkanLoadFunctions.h
 
+#ifndef VULKAN_LOAD_FUNCTIONS_H
+#define VULKAN_LOAD_FUNCTIONS_H
+
 #include "Vulkan.h"
 
 void VulkanLoaderInit();
@@ -41,3 +44,5 @@ void VulkanLoaderFree();
 void VulkanLoadInstanceFunctions( VkInstance instance );
 
 void VulkanLoadDeviceFunctions( VkDevice device );
+
+#endif // VULKAN_LOAD_FUNCTIONS_H
