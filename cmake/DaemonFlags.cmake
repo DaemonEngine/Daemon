@@ -370,6 +370,13 @@ else()
 		endif()
 	endif()
 
+	if (NOT NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP))
+		try_cxx_flag(FOPENMP "-fopenmp")
+		if (FLAG_FOPENMP)
+			add_definitions(-DUSE_OPENMP)
+		endif()
+	endif()
+
 	if (NACL AND USE_NACL_SAIGO AND SAIGO_ARCH STREQUAL "arm")
 		# This should be set for every build type because build type flags
 		# are set after the other custom flags and then have the last word.
