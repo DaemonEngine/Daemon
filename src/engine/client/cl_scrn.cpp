@@ -37,6 +37,10 @@ Maryland 20850 USA.
 #include "client.h"
 #include "qcommon/q_unicode.h"
 
+#if defined(__APPLE__) && defined(BUILD_GRAPHICAL_CLIENT)
+#include <SDL3/SDL.h>
+#endif
+
 bool scr_initialized; // ready to draw
 
 /*
@@ -255,7 +259,7 @@ void SCR_DrawScreenField()
 
 				// also draw the connection information, so it doesn't
 				// flash away too briefly on local or LAN games
-				//if (!com_sv_running->value || Cvar_VariableIntegerValue("sv_cheats")) // Ridah, don't draw useless text if not in dev mode
+				//if (!com_sv_running.Get() || Cvar_VariableIntegerValue("sv_cheats")) // Ridah, don't draw useless text if not in dev mode
 				break;
 
 			case connstate_t::CA_ACTIVE:
@@ -299,6 +303,16 @@ void SCR_UpdateScreen()
 
 	recursive = 1;
 
+#if defined(__APPLE__) && defined(BUILD_GRAPHICAL_CLIENT)
+	if ( cls.state == connstate_t::CA_LOADING )
+	{
+		// Mitigate #1812. Calling SDL_PumpEvents 3 times makes the loading screen frames show up,
+		// except the first one.
+		SDL_PumpEvents();
+		SDL_PumpEvents();
+		SDL_PumpEvents();
+	}
+#endif
 	// If there is no VM, there are also no rendering commands issued. Stop the renderer in
 	// that case.
 	if ( cgvm.IsActive() )

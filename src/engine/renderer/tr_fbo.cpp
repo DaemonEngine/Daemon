@@ -263,6 +263,14 @@ void R_InitFBOs()
 	R_AttachFBOTexturePackedDepthStencil( tr.currentDepthImage->texnum );
 	R_CheckFBO( tr.mainFBO[1] );
 
+	if ( glConfig.usingReadonlyDepth )
+	{
+		tr.readonlyDepthFBO = R_CreateFBO( "_depthReadonly", width, height );
+		R_BindFBO( tr.readonlyDepthFBO );
+		R_AttachFBOTexturePackedDepthStencil( tr.depthSamplerImage->texnum );
+		glConfig.usingReadonlyDepth = R_CheckFBO( tr.readonlyDepthFBO );
+	}
+
 	if ( glConfig.realtimeLighting )
 	{
 		/* It's only required to create frame buffers only used by the

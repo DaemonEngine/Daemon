@@ -891,9 +891,10 @@ void BindShaderGeneric3D( Material* material ) {
 	gl_genericShaderMaterial->SetTCGenEnvironment( material->tcGenEnvironment );
 	gl_genericShaderMaterial->SetTCGenLightmap( material->tcGen_Lightmap );
 	gl_genericShaderMaterial->SetDepthFade( material->hasDepthFade );
+	gl_genericShaderMaterial->SetDeform( material->deformIndex );
 
 	// Bind shader program.
-	gl_genericShaderMaterial->BindProgram( material->deformIndex );
+	gl_genericShaderMaterial->BindProgram();
 
 	// Set shader uniforms.
 	if ( material->tcGenEnvironment ) {
@@ -903,7 +904,7 @@ void BindShaderGeneric3D( Material* material ) {
 	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
-	gl_genericShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.currentDepthImage ) );
+	gl_genericShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.depthSamplerImage ) );
 
 	// u_DeformGen
 	gl_genericShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
@@ -926,9 +927,10 @@ void BindShaderLightMapping( Material* material ) {
 	because we don't have cubemaps built yet at this point, but for the purposes of the material ordering there's no difference */
 	gl_lightMappingShaderMaterial->SetReflectiveSpecular( glConfig.reflectionMapping && material->enableSpecularMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) );
 	gl_lightMappingShaderMaterial->SetPhysicalShading( material->enablePhysicalMapping );
+	gl_lightMappingShaderMaterial->SetDeform( material->deformIndex );
 
 	// Bind shader program.
-	gl_lightMappingShaderMaterial->BindProgram( material->deformIndex );
+	gl_lightMappingShaderMaterial->BindProgram();
 
 	// Set shader uniforms.
 	if ( tr.world ) {
@@ -1011,9 +1013,10 @@ void BindShaderReflection( Material* material ) {
 	// Select shader permutation.
 	gl_reflectionShaderMaterial->SetHeightMapInNormalMap( material->hasHeightMapInNormalMap );
 	gl_reflectionShaderMaterial->SetReliefMapping( material->enableReliefMapping );
+	gl_reflectionShaderMaterial->SetDeform( material->deformIndex );
 
 	// Bind shader program.
-	gl_reflectionShaderMaterial->BindProgram( material->deformIndex );
+	gl_reflectionShaderMaterial->BindProgram();
 
 	// Set shader uniforms.
 	gl_reflectionShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
@@ -1021,17 +1024,17 @@ void BindShaderReflection( Material* material ) {
 	gl_reflectionShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
-void BindShaderSkybox( Material* material ) {
+void BindShaderSkybox( Material* ) {
 	// Bind shader program.
-	gl_skyboxShaderMaterial->BindProgram( material->deformIndex );
+	gl_skyboxShaderMaterial->BindProgram();
 
 	// Set shader uniforms.
 	gl_skyboxShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
-void BindShaderScreen( Material* material ) {
+void BindShaderScreen( Material* ) {
 	// Bind shader program.
-	gl_screenShaderMaterial->BindProgram( material->deformIndex );
+	gl_screenShaderMaterial->BindProgram();
 
 	// Set shader uniforms.
 	gl_screenShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
@@ -1039,7 +1042,8 @@ void BindShaderScreen( Material* material ) {
 
 void BindShaderHeatHaze( Material* material ) {
 	// Bind shader program.
-	gl_heatHazeShaderMaterial->BindProgram( material->deformIndex );
+	gl_heatHazeShaderMaterial->SetDeform( material->deformIndex );
+	gl_heatHazeShaderMaterial->BindProgram();
 
 	// Set shader uniforms.
 	gl_heatHazeShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
@@ -1067,7 +1071,7 @@ void BindShaderLiquid( Material* material ) {
 	gl_liquidShaderMaterial->SetGridLighting( material->enableGridLighting );
 
 	// Bind shader program.
-	gl_liquidShaderMaterial->BindProgram( material->deformIndex );
+	gl_liquidShaderMaterial->BindProgram();
 
 	// Set shader uniforms.
 	gl_liquidShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
@@ -1076,7 +1080,7 @@ void BindShaderLiquid( Material* material ) {
 	gl_liquidShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
 	// depth texture
-	gl_liquidShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.currentDepthImage ) );
+	gl_liquidShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.depthSamplerImage ) );
 
 	// bind u_PortalMap
 	gl_liquidShaderMaterial->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
@@ -1084,7 +1088,8 @@ void BindShaderLiquid( Material* material ) {
 
 void BindShaderFog( Material* material ) {
 	// Bind shader program.
-	gl_fogQuake3ShaderMaterial->BindProgram( 0 );
+	gl_fogQuake3ShaderMaterial->SetDeform( material->deformIndex );
+	gl_fogQuake3ShaderMaterial->BindProgram();
 
 	// Set shader uniforms.
 	const fog_t* fog = tr.world->fogs + material->fog;
@@ -1140,7 +1145,9 @@ void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, Materi
 	material->hasDepthFade = hasDepthFade;
 	gl_genericShaderMaterial->SetDepthFade( hasDepthFade );
 
-	material->program = gl_genericShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
+	gl_genericShaderMaterial->SetDeform( pStage->deformIndex );
+
+	material->program = gl_genericShaderMaterial->GetProgram( materialSystem.buildOneShader );
 }
 
 void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, MaterialSurface* surface ) {
@@ -1181,7 +1188,9 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, Mat
 
 	gl_lightMappingShaderMaterial->SetPhysicalShading( pStage->enablePhysicalMapping );
 
-	material->program = gl_lightMappingShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
+	gl_lightMappingShaderMaterial->SetDeform( pStage->deformIndex );
+
+	material->program = gl_lightMappingShaderMaterial->GetProgram( materialSystem.buildOneShader );
 }
 
 void ProcessMaterialReflection( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ ) {
@@ -1195,7 +1204,9 @@ void ProcessMaterialReflection( Material* material, shaderStage_t* pStage, Mater
 
 	gl_reflectionShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
 
-	material->program = gl_reflectionShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
+	gl_reflectionShaderMaterial->SetDeform( pStage->deformIndex );
+
+	material->program = gl_reflectionShaderMaterial->GetProgram(  materialSystem.buildOneShader );
 }
 
 void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ ) {
@@ -1203,7 +1214,7 @@ void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage, MaterialS
 
 	material->deformIndex = pStage->deformIndex;
 
-	material->program = gl_skyboxShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
+	material->program = gl_skyboxShaderMaterial->GetProgram( materialSystem.buildOneShader );
 }
 
 void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ ) {
@@ -1211,7 +1222,7 @@ void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, MaterialS
 
 	material->deformIndex = pStage->deformIndex;
 
-	material->program = gl_screenShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
+	material->program = gl_screenShaderMaterial->GetProgram( materialSystem.buildOneShader );
 }
 
 void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, MaterialSurface* ) {
@@ -1219,7 +1230,9 @@ void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, Materia
 
 	material->deformIndex = pStage->deformIndex;
 
-	material->program = gl_heatHazeShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
+	gl_heatHazeShaderMaterial->SetDeform( pStage->deformIndex );
+
+	material->program = gl_heatHazeShaderMaterial->GetProgram( materialSystem.buildOneShader );
 }
 
 void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, MaterialSurface* surface ) {
@@ -1243,14 +1256,16 @@ void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, MaterialS
 
 	gl_liquidShaderMaterial->SetGridLighting( lightMode == lightMode_t::GRID );
 
-	material->program = gl_liquidShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
+	material->program = gl_liquidShaderMaterial->GetProgram( materialSystem.buildOneShader );
 }
 
 void ProcessMaterialFog( Material* material, shaderStage_t* pStage, MaterialSurface* surface ) {
 	material->shader = gl_fogQuake3ShaderMaterial;
 	material->fog = surface->fog;
 
-	material->program = gl_fogQuake3ShaderMaterial->GetProgram( pStage->deformIndex, materialSystem.buildOneShader );
+	gl_fogQuake3ShaderMaterial->SetDeform( pStage->deformIndex );
+
+	material->program = gl_fogQuake3ShaderMaterial->GetProgram( materialSystem.buildOneShader );
 }
 
 void MaterialSystem::AddStage( MaterialSurface* surface, shaderStage_t* pStage, uint32_t stage,
@@ -1607,7 +1622,7 @@ void MaterialSystem::UpdateDynamicSurfaces() {
 }
 
 void MaterialSystem::UpdateFrameData() {
-	gl_clearSurfacesShader->BindProgram( 0 );
+	gl_clearSurfacesShader->BindProgram();
 	gl_clearSurfacesShader->SetUniform_Frame( nextFrame );
 	gl_clearSurfacesShader->DispatchCompute( MAX_VIEWS, 1, 1 );
 
@@ -1632,7 +1647,7 @@ void MaterialSystem::DepthReduction() {
 	int width = depthImage->width;
 	int height = depthImage->height;
 
-	gl_depthReductionShader->BindProgram( 0 );
+	gl_depthReductionShader->BindProgram();
 
 	uint32_t globalWorkgroupX = ( width + 7 ) / 8;
 	uint32_t globalWorkgroupY = ( height + 7 ) / 8;
@@ -1690,7 +1705,7 @@ void MaterialSystem::CullSurfaces() {
 			MatrixCopy( backEnd.viewParms.world.modelViewMatrix, viewMatrix );
 		}
 
-		gl_cullShader->BindProgram( 0 );
+		gl_cullShader->BindProgram();
 		uint32_t globalWorkGroupX = surfaceDescriptorsCount % MAX_COMMAND_COUNTERS == 0 ?
 			surfaceDescriptorsCount / MAX_COMMAND_COUNTERS : surfaceDescriptorsCount / MAX_COMMAND_COUNTERS + 1;
 		GL_Bind( depthImage );
@@ -1733,7 +1748,7 @@ void MaterialSystem::CullSurfaces() {
 
 		gl_cullShader->DispatchCompute( globalWorkGroupX, 1, 1 );
 
-		gl_processSurfacesShader->BindProgram( 0 );
+		gl_processSurfacesShader->BindProgram();
 		gl_processSurfacesShader->SetUniform_Frame( nextFrame );
 		gl_processSurfacesShader->SetUniform_ViewID( view );
 		gl_processSurfacesShader->SetUniform_SurfaceCommandsOffset( surfaceCommandsCount * ( MAX_VIEWS * nextFrame + view ) );

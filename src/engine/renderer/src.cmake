@@ -1,5 +1,6 @@
+
 set(RENDERERLIST
-    ${CMAKE_CURRENT_BINARY_DIR}/GeneratedSource/shaders.cpp
+    ${DAEMON_GENERATED_DIR}/shaders.cpp
     ${ENGINE_DIR}/renderer/BufferBind.h
     ${ENGINE_DIR}/renderer/DetectGLVendors.cpp
     ${ENGINE_DIR}/renderer/DetectGLVendors.h
@@ -49,7 +50,6 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/tr_model_skel.cpp
     ${ENGINE_DIR}/renderer/tr_model_skel.h
     ${ENGINE_DIR}/renderer/tr_noise.cpp
-    ${ENGINE_DIR}/renderer/tr_public.h
     ${ENGINE_DIR}/renderer/tr_scene.cpp
     ${ENGINE_DIR}/renderer/tr_shade.cpp
     ${ENGINE_DIR}/renderer/tr_shader.cpp

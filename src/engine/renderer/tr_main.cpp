@@ -57,7 +57,7 @@ void R_CalcFaceNormal( vec3_t normal,
 	VectorSubtract( v1, v0, v );
 	CrossProduct( u, v, normal );
 
-	VectorNormalize( normal );
+	VectorNormalizeFast( normal );
 }
 
 
@@ -94,8 +94,8 @@ void R_CalcTangents( vec3_t tangent, vec3_t binormal,
 	binormal[1] = dtx[0] * dpy[1] - dpx[1] * dty[0];
 	binormal[2] = dtx[0] * dpy[2] - dpx[2] * dty[0];
 
-	VectorNormalize( tangent );
-	VectorNormalize( binormal );
+	VectorNormalizeFast( tangent );
+	VectorNormalizeFast( binormal );
 }
 
 void R_CalcTangents( vec3_t tangent, vec3_t binormal,
@@ -135,8 +135,8 @@ void R_CalcTangents( vec3_t tangent, vec3_t binormal,
 	binormal[1] = dtx[0] * dpy[1] - dpx[1] * dty[0];
 	binormal[2] = dtx[0] * dpy[2] - dpx[2] * dty[0];
 
-	VectorNormalize( tangent );
-	VectorNormalize( binormal );
+	VectorNormalizeFast( tangent );
+	VectorNormalizeFast( binormal );
 }
 
 
@@ -168,7 +168,7 @@ void R_QtangentsToNormal( const i16vec4_t qtangent, vec3_t normal )
 }
 
 void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
-		       const vec3_t normal, i16vec4_t qtangent )
+	const vec3_t normal, i16vec4_t qtangent, bool fast )
 {
 	vec3_t tangent2, binormal2, normal2;
 	vec4_t q;
@@ -292,7 +292,15 @@ void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
 	}
 
 	i16vec4_t resqtangent;
-	floatToSnorm16( q, resqtangent );
+
+	if ( fast )
+	{
+		floatToSnorm16_fast( q, resqtangent );
+	}
+	else
+	{
+		floatToSnorm16( q, resqtangent );
+	}
 
 	if( resqtangent[ 3 ] == 0 )
 	{

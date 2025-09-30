@@ -40,11 +40,7 @@ Maryland 20850 USA.
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
 
-#if defined( DAEMON_RENDERER_VULKAN )
-	#include "renderer-vulkan/RefAPI.h"
-#else
-	#include "renderer/tr_public.h"
-#endif
+#include "RefAPI.h"
 
 #include "keys.h"
 #include "audio/Audio.h"

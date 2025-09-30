@@ -320,7 +320,7 @@ void SV_Startup()
 
 	svs.initialized = true;
 
-	Cvar_Set( "sv_running", "1" );
+	Cvar::SetValueForce( "sv_running", "1" );
 #ifndef BUILD_SERVER
 	// For clients, reconfigure to open server ports.
 	NET_EnableNetworking( true );
@@ -419,7 +419,6 @@ SV_SpawnServer
 
 Change the server to a new map, taking all connected
 clients along with it.
-This is NOT called for map_restart, UNLESS the number of client slots changed
 ================
 */
 void SV_SpawnServer(std::string pakname, std::string mapname)
@@ -488,13 +487,13 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	CM_LoadMap(mapname);
 
 	// set serverinfo visible name
-	Cvar_Set( "mapname", mapname.c_str() );
+	Cvar::SetValueForce( "mapname", mapname );
 	Cvar::SetValueForce( cvar_pakname.Name(), pakname );
 
 	// serverid should be different each time
 	sv.serverId = com_frameTime;
 	sv.restartedServerId = sv.serverId;
-	Cvar_Set( "sv_serverid", va( "%i", sv.serverId ) );
+	Cvar::SetValueForce( "sv_serverid", va( "%i", sv.serverId ) );
 
 	// media configstring setting should be done during
 	// the loading stage, so connected clients don't have
@@ -606,40 +605,13 @@ void SV_Init()
 	SV_AddOperatorCommands();
 
 	// serverinfo vars
-	sv_mapname = Cvar_Get( "mapname", "nomap", CVAR_SERVERINFO | CVAR_ROM );
-	sv_hostname = Cvar_Get( "sv_hostname", UNNAMED_SERVER, CVAR_SERVERINFO  );
 	Cvar::Latch( sv_maxClients );
-	sv_maxRate = Cvar_Get( "sv_maxRate", "0",  CVAR_SERVERINFO );
-	sv_floodProtect = Cvar_Get( "sv_floodProtect", "0",  CVAR_SERVERINFO );
 	Cvar::SetValue( "layout", "" ); // TODO: declare in sgame
 	Cvar::AddFlags( "layout", Cvar::SERVERINFO );
 
-	sv_statsURL = Cvar_Get( "sv_statsURL", "", CVAR_SERVERINFO  );
-
-	// systeminfo
-	sv_serverid = Cvar_Get( "sv_serverid", "0", CVAR_SYSTEMINFO | CVAR_ROM );
-
 	// server vars
-	sv_privatePassword = Cvar_Get( "sv_privatePassword", "", CVAR_TEMP );
-	sv_fps = Cvar_Get( "sv_fps", "40", CVAR_TEMP );
-	sv_timeout = Cvar_Get( "sv_timeout", "240", CVAR_TEMP );
-	sv_zombietime = Cvar_Get( "sv_zombietime", "2", CVAR_TEMP );
 
-	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", 0 );
-	sv_reconnectlimit = Cvar_Get( "sv_reconnectlimit", "3", 0 );
-	sv_padPackets = Cvar_Get( "sv_padPackets", "0", 0 );
 	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );
-
-	sv_lanForceRate = Cvar_Get( "sv_lanForceRate", "1", 0 );
-
-	sv_showAverageBPS = Cvar_Get( "sv_showAverageBPS", "0", 0 );  // NERVE - SMF - net debugging
-
-	// the download netcode tops at 18/20 kb/s, no need to make you think you can go above
-	sv_dl_maxRate = Cvar_Get( "sv_dl_maxRate", "42000", 0 );
-
-	// fretn - note: redirecting of clients to other servers relies on this,
-	// ET://someserver.com
-	sv_fullmsg = Cvar_Get( "sv_fullmsg", "Server is full.", 0 );
 
 	svs.serverLoad = -1;
 }
@@ -693,7 +665,7 @@ void SV_FinalCommand( char *cmd, bool disconnect )
 // Used instead of SV_Shutdown when Daemon is exiting
 void SV_QuickShutdown( const char *finalmsg )
 {
-	if ( !com_sv_running || !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		return;
 	}
@@ -718,7 +690,7 @@ Called to shut down the sgame VM, or to clean up after the VM shut down on its o
 */
 void SV_Shutdown( const char *finalmsg )
 {
-	if ( !com_sv_running || !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		return;
 	}
@@ -753,7 +725,7 @@ void SV_Shutdown( const char *finalmsg )
 	svs.serverLoad = -1;
 	ChallengeManager::Clear();
 
-	Cvar_Set( "sv_running", "0" );
+	Cvar::SetValueForce( "sv_running", "0" );
 #ifndef BUILD_SERVER
 	// For clients, reconfigure to close server ports.
 	NET_EnableNetworking( false );

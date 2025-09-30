@@ -31,8 +31,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "qcommon/qfiles.h"
 #include "qcommon/qcommon.h"
 #include "botlib/bot_debug.h"
-#include "tr_public.h"
+#include "engine/RefAPI.h"
+#include "GLUtils.h"
 #include "iqm.h"
+#include "DetectGLVendors.h"
 #include "TextureManager.h"
 #include "VBO.h"
 
@@ -114,6 +116,15 @@ static inline void floatToSnorm16( const vec4_t in, i16vec4_t out )
 	out[ 1 ] = floatToSnorm16( in[ 1 ] );
 	out[ 2 ] = floatToSnorm16( in[ 2 ] );
 	out[ 3 ] = floatToSnorm16( in[ 3 ] );
+}
+
+static inline void floatToSnorm16_fast( const vec4_t in, i16vec4_t out )
+{
+	// Just truncate them all.
+	out[ 0 ] = in[ 0 ] * 32767.0f;
+	out[ 1 ] = in[ 1 ] * 32767.0f;
+	out[ 2 ] = in[ 2 ] * 32767.0f;
+	out[ 3 ] = in[ 3 ] * 32767.0f;
 }
 
 static inline void snorm16ToFloat( const i16vec4_t in, vec4_t out )
@@ -2454,6 +2465,7 @@ enum
 		image_t    *bloomRenderFBOImage[ 2 ];
 		image_t    *currentRenderImage[ 2 ];
 		image_t    *currentDepthImage;
+		image_t    *depthSamplerImage;
 		image_t    *depthtile1RenderImage;
 		image_t    *depthtile2RenderImage;
 		image_t    *lighttileRenderImage;
@@ -2465,6 +2477,7 @@ enum
 
 		// framebuffer objects
 		FBO_t *mainFBO[ 2 ];
+		FBO_t *readonlyDepthFBO;
 		FBO_t *depthtile1FBO;
 		FBO_t *depthtile2FBO;
 		FBO_t *lighttileFBO;
@@ -2868,7 +2881,13 @@ inline bool checkGLErrors()
 	 *   minimal error.
 	 */
 	void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
-			       const vec3_t normal, i16vec4_t qtangent );
+		const vec3_t normal, i16vec4_t qtangent, bool fast = false );
+
+	inline void R_TBNtoQtangentsFast( const vec3_t tangent, const vec3_t binormal,
+		const vec3_t normal, i16vec4_t qtangent )
+	{
+		R_TBNtoQtangents( tangent, binormal, normal, qtangent, true );
+	}
 
 	void R_QtangentsToTBN( const i16vec4_t qtangent, vec3_t tangent,
 			       vec3_t binormal, vec3_t normal );

@@ -988,10 +988,7 @@ static bool GLimp_RecreateWindowWhenChange( const bool fullscreen, const bool bo
 
 	if ( fullscreen != currentFullscreen )
 	{
-		Uint32 flags = fullscreen ? SDL_WINDOW_FULLSCREEN : 0;
-		int sdlToggled = SDL_SetWindowFullscreen( window, flags );
-
-		if ( sdlToggled < 0 )
+		if ( !SDL_SetWindowFullscreen( window, fullscreen ) )
 		{
 			GLimp_DestroyWindowIfExists();
 
@@ -2024,6 +2021,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_shading_language_420pack );
 	Cvar::Latch( r_arb_shader_storage_buffer_object );
 	Cvar::Latch( r_arb_sync );
+	Cvar::Latch( r_arb_texture_barrier );
 	Cvar::Latch( r_arb_texture_gather );
 	Cvar::Latch( r_arb_uniform_buffer_object );
 	Cvar::Latch( r_arb_vertex_attrib_binding );
@@ -2913,7 +2911,6 @@ void GLimp_HandleCvars()
 
 	if ( Util::optional<bool> wantFullscreen = r_fullscreen.GetModifiedValue() )
 	{
-		int sdlToggled = false;
 		bool needToToggle = true;
 		bool fullscreen = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN );
 
@@ -2922,10 +2919,7 @@ void GLimp_HandleCvars()
 
 		if ( needToToggle )
 		{
-			Uint32 flags = *wantFullscreen ? SDL_WINDOW_FULLSCREEN : 0;
-			sdlToggled = SDL_SetWindowFullscreen( window, flags );
-
-			if ( sdlToggled < 0 )
+			if ( !SDL_SetWindowFullscreen( window, *wantFullscreen ) )
 			{
 				Log::Warn( "SDL_SetWindowFullscreen failed: %s", SDL_GetError() );
 				Log::Warn( "Trying vid_restart" );

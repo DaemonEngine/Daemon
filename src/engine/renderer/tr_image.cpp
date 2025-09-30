@@ -1509,7 +1509,7 @@ image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height
 
 	image->uploadWidth = width;
 	image->uploadHeight = height;
-	image->internalFormat = GL_RGBA;
+	image->internalFormat = GL_RGBA8;
 
 	GL_TexImage2D( GL_TEXTURE_2D, 0, image->internalFormat, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic, false );
 
@@ -2472,6 +2472,12 @@ static void R_CreateCurrentRenderImage()
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.currentDepthImage = R_CreateImage( "*currentDepth", nullptr, width, height, 1, imageParams );
+
+	if ( glConfig.usingReadonlyDepth )
+	{
+		// For use with glBlitFramebuffer, format must be the same as currentDepthImage
+		tr.depthSamplerImage = R_CreateImage( "*readonlyDepth", nullptr, width, height, 1, imageParams );
+	}
 
 	if ( glConfig.usingMaterialSystem ) {
 		materialSystem.GenerateDepthImages( width, height, imageParams );

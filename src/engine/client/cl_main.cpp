@@ -689,7 +689,7 @@ void CL_ShutdownAll()
 	// Gordon: stop recording on map change etc, demos aren't valid over map changes anyway
 	CL_StopRecord();
 
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		void SV_ShutdownGameProgs();
 		SV_ShutdownGameProgs();
@@ -1014,7 +1014,7 @@ void CL_Connect_f()
 	// clear any previous "server full" type messages
 	clc.serverMessage[ 0 ] = 0;
 
-	if ( com_sv_running->integer && !strcmp( server, "loopback" ) )
+	if ( com_sv_running.Get() && !strcmp( server, "loopback" ) )
 	{
 		// if running a local server, kill it
 		SV_Shutdown( "Server quit" );
@@ -2375,7 +2375,7 @@ void CL_Init()
 	cl_altTab = Cvar_Get( "cl_altTab", "1", 0 );
 
 	// userinfo
-	cl_rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE );
+	cl_rate = Cvar_Get( "rate", XSTRING(NETWORK_DEFAULT_RATE), CVAR_USERINFO | CVAR_ARCHIVE);
 
 #if defined(USE_MUMBLE)
 	cl_useMumble = Cvar_Get( "cl_useMumble", "0",  CVAR_LATCH );

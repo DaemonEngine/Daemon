@@ -98,6 +98,9 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Cvar<bool> r_overbrightIgnoreMapSettings("r_overbrightIgnoreMapSettings", "force usage of r_overbrightDefaultClamp / r_overbrightDefaultExponent, ignoring worldspawn", Cvar::NONE, false);
 	Cvar::Range<Cvar::Cvar<int>> r_lightMode("r_lightMode", "lighting mode: 0: fullbright (cheat), 1: vertex light, 2: grid light (cheat), 3: light map", Cvar::NONE, Util::ordinal(lightMode_t::MAP), Util::ordinal(lightMode_t::FULLBRIGHT), Util::ordinal(lightMode_t::MAP));
 	Cvar::Cvar<bool> r_colorGrading( "r_colorGrading", "Use color grading", Cvar::NONE, true );
+	static Cvar::Range<Cvar::Cvar<int>> r_readonlyDepthBuffer(
+		"r_readonlyDepthBuffer", "sample depth from a copy of the depth texture: 0 = no (unsafe), 1 = if necessary depending on GL features, 2 = yes",
+		Cvar::NONE, 1, 0, 2);
 	Cvar::Cvar<bool> r_preferBindlessTextures( "r_preferBindlessTextures", "use bindless textures even when material system is off", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_materialSystem( "r_materialSystem", "Use Material System", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_gpuFrustumCulling( "r_gpuFrustumCulling", "Use frustum culling on the GPU for the Material System", Cvar::NONE, true );
@@ -1199,6 +1202,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Cvar::Latch( r_realtimeLighting );
 		Cvar::Latch( r_realtimeLightLayers );
+		Cvar::Latch( r_readonlyDepthBuffer );
 		Cvar::Latch( r_preferBindlessTextures );
 		Cvar::Latch( r_materialSystem );
 
@@ -1413,11 +1417,36 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			backEndData[ 1 ] = nullptr;
 		}
 
+		switch ( r_readonlyDepthBuffer.Get() )
+		{
+		case 0:
+			glConfig.usingReadonlyDepth = false;
+			break;
+		case 1:
+			glConfig.usingReadonlyDepth = !glConfig.textureBarrierAvailable;
+			break;
+		case 2:
+			glConfig.usingReadonlyDepth = true;
+			break;
+		}
+
+		if ( glConfig.usingReadonlyDepth && !r_depthShaders.Get() )
+		{
+			Log::Warn( "Disabling read-only depth buffer because depth pre-pass is disabled" );
+			glConfig.usingReadonlyDepth = false;
+		}
+
 		R_ToggleSmpFrame();
 
 		R_InitImages();
 
 		R_InitFBOs();
+
+		// This is here in case creating the depth-only FBO failed.
+		if ( !glConfig.usingReadonlyDepth )
+		{
+			tr.depthSamplerImage = tr.currentDepthImage;
+		}
 
 		R_InitVBOs();
 
@@ -1502,7 +1531,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 				for ( uint32_t i = 0; i < 3; i++ ) {
 					gl_fogQuake3Shader->SetVertexSkinning( i & 1 );
 					gl_fogQuake3Shader->SetVertexAnimation( i & 2 );
-					gl_fogQuake3Shader->MarkProgramForBuilding( 0 );
+					gl_fogQuake3Shader->SetDeform( 0 );
+					gl_fogQuake3Shader->MarkProgramForBuilding();
 				}
 			}
 
