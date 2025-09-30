@@ -36,6 +36,84 @@ if( NOT Vulkan_FOUND )
 	message( FATAL_ERROR "Could NOT find libVulkan" )
 endif()
 
+set( generatorPath ${CMAKE_SOURCE_DIR}/cmake/DaemonVulkan/VulkanHeaders/ )
+set( vulkanLoaderPath ${CMAKE_SOURCE_DIR}/src/engine/renderer-vulkan/VulkanLoader/vulkan/ )
+
+macro( GenerateVulkanHeader target mode )
+	add_custom_command(
+		COMMAND ${PYTHON_EXECUTABLE} ${Python_EXECUTABLE} ${generatorPath}/genvk.py -registry ${generatorPath}/vk.xml -o ${vulkanLoaderPath} -apiname vulkan -mode ${mode} ${target}.h
+		DEPENDS
+			${generatorPath}/vk.xml
+			${generatorPath}/genvk.py
+			${generatorPath}/reg.py
+			${generatorPath}/generator.py
+			${generatorPath}/cgenerator.py
+		OUTPUT
+			${vulkanLoaderPath}/${target}.h
+		COMMENT "Generating Vulkan header: ${target}.h"
+	)
+endmacro()
+
+set( vulkanHeaders
+	# vulkan_core
+	"vulkan_beta"
+	"vulkan_win32"
+	"vulkan_wayland"
+	"vulkan_xlib"
+	"vulkan_xlib_xrandr"
+)
+
+function( GenerateVulkanHeaders )
+	find_package( Python REQUIRED )
+
+	if( EXISTS ${generatorPath}/vulkan_core.h )
+		configure_file( ${vulkanLoaderPath}/vulkan_core.h ${generatorPath}/vulkan_core.h.tmp COPYONLY )
+	else()
+		set( REGENERATE )
+	endif()
+
+	foreach( header ${vulkanHeaders} )
+		if( EXISTS ${vulkanLoaderPath}/${header}.h )
+			configure_file( ${vulkanLoaderPath}/${header}.h ${generatorPath}/${header}.h.tmp COPYONLY )
+		else()
+			set( REGENERATE )
+		endif()
+	endforeach()
+	
+	if( REGENERATE OR ${generatorPath}/vk.xml IS_NEWER_THAN ${generatorPath}/vk.xml.tmp OR NOT EXISTS ${generatorPath}/vk.xml.tmp )
+		configure_file( ${generatorPath}/vk.xml ${generatorPath}/vk.xml.tmp COPYONLY )
+		
+		GenerateVulkanHeader( "vulkan_core" "w" )
+		
+		foreach( header ${vulkanHeaders} )
+			GenerateVulkanHeader( ${header} "a" )
+		endforeach()
+
+		add_custom_target(vht ALL
+			DEPENDS ${vulkanLoaderPath}/vulkan_core.h ${vulkanHeaders}
+		)
+	endif()
+endfunction()
+
+function( GenerateVulkanHeaders2 )
+	GenerateVulkanHeader( "vulkan_core" "w" )
+	GenerateVulkanHeader( "vulkan_beta" "a" )
+	GenerateVulkanHeader( "vulkan_win32" "a" )
+	GenerateVulkanHeader( "vulkan_wayland" "a" )
+	GenerateVulkanHeader( "vulkan_xlib" "a" )
+	GenerateVulkanHeader( "vulkan_xlib_xrandr" "a" )
+	
+	foreach( header ${vulkanHeaders} )
+		GenerateVulkanHeader( ${header} "a" )
+	endforeach()
+
+	add_custom_target(vht ALL
+		DEPENDS ${vulkanLoaderPath}/vulkan_core.h ${vulkanHeaders}
+	)
+endfunction()
+
+# GenerateVulkanHeaders()
+
 #try_compile( BUILD_RESULT
 #	"${CMAKE_BINARY_DIR}"
 #	"${DAEMON_DIR}/cmake/DaemonVulkan/VulkanHeaderParser.cpp"
@@ -56,9 +134,9 @@ endif()
 #	string( REPLACE "/" "\\" vulkanLoaderPath ${vulkanHeaderPath} )
 #endif()
 
-option( BUILD_VULKAN_HEADER_PARSER "Build Vulkan header parser for default sType and function declarations/definitions." OFF )
-mark_as_advanced( BUILD_VULKAN_HEADER_PARSER )
+# option( BUILD_VULKAN_HEADER_PARSER "Build Vulkan header parser for default sType and function declarations/definitions." OFF )
+# mark_as_advanced( BUILD_VULKAN_HEADER_PARSER )
 
-add_executable( VulkanHeaderParser "${DAEMON_DIR}/cmake/DaemonVulkan/VulkanHeaderParser.cpp" )
-target_compile_definitions( VulkanHeaderParser PRIVATE "-DDAEMON_VULKAN_HEADER_PATH=\"${DAEMON_DIR}/cmake/DaemonVulkan/\"" )
-target_compile_definitions( VulkanHeaderParser PRIVATE "-DDAEMON_VULKAN_LOADER_PATH=\"${DAEMON_DIR}/src/engine/renderer-vulkan/VulkanLoader/\"" )
+# add_executable( VulkanHeaderParser "${DAEMON_DIR}/cmake/DaemonVulkan/VulkanHeaderParser.cpp" )
+# target_compile_definitions( VulkanHeaderParser PRIVATE "-DDAEMON_VULKAN_HEADER_PATH=\"${DAEMON_DIR}/cmake/DaemonVulkan/\"" )
+# target_compile_definitions( VulkanHeaderParser PRIVATE "-DDAEMON_VULKAN_LOADER_PATH=\"${DAEMON_DIR}/src/engine/renderer-vulkan/VulkanLoader/\"" )

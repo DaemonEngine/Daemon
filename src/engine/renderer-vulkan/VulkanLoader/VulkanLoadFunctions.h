@@ -33,11 +33,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // VulkanLoadFunctions.h
 
-#include "../GraphicsCore/Vulkan.h"
+#include "Vulkan.h"
 
 void VulkanLoaderInit();
 void VulkanLoaderFree();
 
 void VulkanLoadInstanceFunctions( VkInstance instance );
 
-void VulkanLoadDeviceFunctions( VkDevice device, VkInstance instance );
+void VulkanLoadDeviceFunctions( VkDevice device );
