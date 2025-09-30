@@ -1362,6 +1362,7 @@ class OutputGenerator:
         # For each child element, if it is a <name> wrap in appropriate
         # declaration. Otherwise append its contents and tail contents.
         functionName = None
+        deviceFunction = True
         for elem in proto:
             text = noneStr(elem.text)
             tail = noneStr(elem.tail)
@@ -1375,6 +1376,9 @@ class OutputGenerator:
                 
                 if not text.endswith( ( 'vkGetInstanceProcAddr', 'vkEnumerateInstanceVersion', 'vkEnumerateInstanceExtensionProperties', 'vkEnumerateInstanceLayerProperties', 'vkCreateInstance', 'vkDestroyInstance' ) ):
                     functionName = text
+
+                    if text == 'vkGetDeviceProcAddr':
+                        deviceFunction = False
             else:
                 pdecl += text + tail
                 tdecl += text + tail
@@ -1394,11 +1398,9 @@ class OutputGenerator:
         n = len(params)
 
         if n > 0 and functionName:
-            deviceFunction = True
-
             for p in params:
                 for elem in p:
-                    if noneStr( elem.text ).endswith( ( 'VkInstance', 'VkPhysicalDevice', 'VkPhysicalDeviceGroup' ) ):
+                    if deviceFunction and noneStr( elem.text ).endswith( ( 'VkInstance', 'VkPhysicalDevice', 'VkPhysicalDeviceGroup' ) ):
                         deviceFunction = False
                         break
 

@@ -57,6 +57,8 @@ void VulkanLoadInstanceFunctions( VkInstance instance ) {
 
 	vkGetPhysicalDeviceMemoryProperties = ( PFN_vkGetPhysicalDeviceMemoryProperties ) vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceMemoryProperties" );
 
+	vkGetDeviceProcAddr = ( PFN_vkGetDeviceProcAddr ) vkGetInstanceProcAddr( instance, "vkGetDeviceProcAddr" );
+
 	vkCreateDevice = ( PFN_vkCreateDevice ) vkGetInstanceProcAddr( instance, "vkCreateDevice" );
 
 	vkEnumerateDeviceExtensionProperties = ( PFN_vkEnumerateDeviceExtensionProperties ) vkGetInstanceProcAddr( instance, "vkEnumerateDeviceExtensionProperties" );
@@ -251,8 +253,6 @@ void VulkanLoadInstanceFunctions( VkInstance instance ) {
 }
 
 void VulkanLoadDeviceFunctions( VkDevice device ) {
-	vkGetDeviceProcAddr = ( PFN_vkGetDeviceProcAddr ) vkGetDeviceProcAddr( device, "vkGetDeviceProcAddr" );
-
 	vkDestroyDevice = ( PFN_vkDestroyDevice ) vkGetDeviceProcAddr( device, "vkDestroyDevice" );
 
 	vkGetDeviceQueue = ( PFN_vkGetDeviceQueue ) vkGetDeviceProcAddr( device, "vkGetDeviceQueue" );
