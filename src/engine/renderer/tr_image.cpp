@@ -163,7 +163,9 @@ public:
 			"If internalformat is specified as a base internal format, the GL stores the resulting texture with
 			 internal component resolutions of its own choosing, referred to as the effective internal format."
 			 Use 4 bytes as an estimate: */
+			{ GL_RGB, { "RGB", 3 } },
 			{ GL_RGBA, { "RGBA", 4 } },
+			{ GL_RED, { "RED", 1 } },
 
 			{ GL_RGB8, { "RGB8", 3 } },
 			{ GL_RGBA8, { "RGBA8", 4 } },
@@ -176,10 +178,12 @@ public:
 			{ GL_RGBA32UI, { "RGBA32UI", 16 } },
 			{ GL_ALPHA16F_ARB, { "A16F", 2 } },
 			{ GL_ALPHA32F_ARB, { "A32F", 4 } },
+			{ GL_R8, { "R8", 1 } },
 			{ GL_R16F, { "R16F", 2 } },
 			{ GL_R32F, { "R32F", 4 } },
 			{ GL_LUMINANCE_ALPHA16F_ARB, { "LA16F", 4 } },
 			{ GL_LUMINANCE_ALPHA32F_ARB, { "LA32F", 8 } },
+			{ GL_RG8, { "RG8", 2 } },
 			{ GL_RG16F, { "RG16F", 4 } },
 			{ GL_RG32F, { "RG32F", 8 } },
 
@@ -846,12 +850,14 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	const byte *data;
 	byte       *scaledBuffer = nullptr;
 	int        mipWidth, mipHeight, mipLayers, mipSize, blockSize = 0;
-	int        i, c;
 	const byte *scan;
+
+	bool isSRGB = image->bits & IF_SRGB;
+	bool isAlpha = !( image->bits & IF_NOALPHA );
+
 	GLenum     target;
 	GLenum     format = GL_RGBA;
-	GLenum     internalFormat = GL_RGB;
-	bool isSRGB = image->bits & IF_SRGB;
+	GLenum internalFormat = isAlpha ? GL_RGBA : GL_RGB;
 
 	static const vec4_t oneClampBorder = { 1, 1, 1, 1 };
 	static const vec4_t zeroClampBorder = { 0, 0, 0, 1 };
@@ -1041,31 +1047,151 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	}
 	else
 	{
-		// scan the texture for each channel's max values
-		// and verify if the alpha channel is being used or not
+		internalFormat = GL_RGBA8;
+	}
 
-		c = image->width * image->height;
-		scan = dataArray[0];
-
-		// lightmap does not have alpha channel
-
-		// normalmap may have the heightmap in the alpha channel
-		// opaque alpha channel means no displacement, so we can enable
-		// alpha channel everytime it is used, even for normalmap
-
+	if ( internalFormat == GL_RGBA8 && !isAlpha )
+	{
 		internalFormat = GL_RGB8;
+	}
 
-		if ( !( image->bits & IF_LIGHTMAP ) )
+	// Detect formats.
+	if ( dataArray )
+	{
+		if ( internalFormat == GL_RGBA8 )
 		{
-			for ( i = 0; i < c; i++ )
+			/* Scan the texture for alpha channel's max values
+			and verify if the alpha channel is being used or not. */
+
+			internalFormat = GL_RGB8;
+
+			int c = image->width * image->height;
+
+			/* A normalmap may have the heightmap in the alpha channel,
+			an opaque alpha channel means no displacement, so we can enable
+			the alpha channel everytime it is used, even for normalmap. */
+
+			for ( int l = 0; l < numLayers; l++ )
 			{
-				if ( scan[ i * 4 + 3 ] != 255 )
+				scan = dataArray[ l ];
+
+				for ( int i = 0; i < c * 4; i += 4 )
 				{
-					internalFormat = GL_RGBA8;
+					if ( scan[ i + 3 ] != 255 )
+					{
+						internalFormat = GL_RGBA8;
+						break;
+					}
+				}
+
+				if ( internalFormat == GL_RGBA8 )
+				{
 					break;
 				}
 			}
 		}
+
+		if ( internalFormat == GL_RGB8 )
+		{
+			/* Scan the texture for green and blue channels' max values
+			and verify if the green and blue channels are being used or not. */
+
+			bool hasGreen = false;
+			bool hasBlue = false;
+
+			int c = image->width * image->height;
+
+			for ( int l = 0; l < numLayers; l++ )
+			{
+				scan = dataArray[ l ];
+
+				for ( int i = 0; i < c * 4; i += 4 )
+				{
+					if ( scan[ i + 2 ] != 0 )
+					{
+						// We need GL_RGB8.
+						hasBlue = true;
+						break;
+					}
+
+					if ( scan[ i + 1 ] != 0 )
+					{
+						hasGreen = true;
+
+						if ( !glConfig.textureRGAvailable )
+						{
+							// We can't store RG so we can stop there and use GL_RGB8.
+							break;
+						}
+						// Else continue to make sure there is no blue at all.
+					}
+
+					// Else use GL_RED or GL_R8.
+				}
+
+				if ( hasBlue || ( hasGreen && !glConfig.textureRGAvailable ) )
+				{
+					break;
+				}
+			}
+
+			if ( hasBlue )
+			{
+				// Keep GL_RGB8.
+			}
+			else if ( hasGreen )
+			{
+				if ( !glConfig.textureRGAvailable )
+				{
+					// Keep GL_RGB8.
+				}
+				else
+				{
+					if ( isSRGB && !glConfig.textureSrgbRG8Available )
+					{
+						// Keep GL_RGB8.
+					}
+					else
+					{
+						internalFormat = GL_RG8;
+					}
+				}
+			}
+			else
+			{
+				if ( isSRGB && !glConfig.textureSrgbR8Available )
+				{
+					// Keep GL_RGB8.
+				}
+				else
+				{
+					internalFormat = glConfig.textureRGAvailable ? GL_R8 : GL_RED;
+				}
+			}
+		}
+	}
+
+	// Make sure we prefer GL_R8 when ARB_texture_rg is available.
+	ASSERT( !( internalFormat == GL_RED && glConfig.textureRGAvailable ) );
+	// Make sure we only use GL_R8 when ARB_texture_rg is available.
+	ASSERT( !( internalFormat == GL_R8 && !glConfig.textureRGAvailable ) );
+	// Make sure we only use GL_RG8 when ARB_texture_rg is available.
+	ASSERT( !( internalFormat == GL_RG8 && !glConfig.textureRGAvailable ) );
+	// Make sure we only use GL_SR8_EXT when EXT_texture_sRGB_R8 is available.
+	ASSERT( !( internalFormat == GL_R8 && isSRGB && !glConfig.textureSrgbR8Available ) );
+	// Make sure we only use GL_SRG8_EXT when EXT_texture_sRGB_RG8 is available.
+	ASSERT( !( internalFormat == GL_RG8 && isSRGB && !glConfig.textureSrgbRG8Available ) );
+
+	// Make sure we prefer GL_RGB but don't enforce it. GL_RGB is used when we don't set a format.
+	if ( internalFormat == GL_RGBA )
+	{
+		Log::Warn( "An explicit format should be used instead of GL_RGB for image %s", name );
+	}
+
+	// Make sure we prefer GL_RGBA but don't enforce it. GL_RGBA is used when we don't set a format.
+	if ( internalFormat == GL_RGBA )
+	{
+		Log::Warn( "An explicit format should be used instead of GL_RGBA for image %s", name );
 	}
 
 	Log::Debug( "Uploading image %s (%d×%d, %d layers, %0#x type, %0#x format)", name, scaledWidth, scaledHeight, numLayers, image->type, internalFormat );
@@ -1077,7 +1203,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		mipHeight = scaledHeight;
 		mipLayers = numLayers;
 
-		for( i = 0; i < numMips; i++ ) {
+		for( int i = 0; i < numMips; i++ ) {
 			GL_TexImage3D( GL_TEXTURE_3D, i, internalFormat, scaledWidth, scaledHeight, mipLayers, 0, format, GL_UNSIGNED_BYTE, nullptr, isSRGB );
 
 			if( mipWidth  > 1 ) mipWidth  >>= 1;
@@ -1090,7 +1216,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		if( dataArray )
 			scaledBuffer = (byte*) ri.Hunk_AllocateTempMemory( sizeof( byte ) * scaledWidth * scaledHeight * 4 );
 
-		for ( i = 0; i < numLayers; i++ )
+		for ( int i = 0; i < numLayers; i++ )
 		{
 			if( dataArray )
 				data = dataArray[ i ];
@@ -1111,7 +1237,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 				}
 
 				if( image->bits & IF_NORMALMAP ) {
-					c = scaledWidth * scaledHeight;
+					int c = scaledWidth * scaledHeight;
 					for ( int j = 0; j < c; j++ )
 					{
 						vec3_t n;
@@ -1179,7 +1305,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		mipHeight = scaledHeight;
 		mipLayers = numLayers;
 
-		for ( i = 0; i < numMips; i++ )
+		for ( int i = 0; i < numMips; i++ )
 		{
 			mipSize = ((mipWidth + 3) >> 2)
 			  * ((mipHeight + 3) >> 2) * blockSize;
@@ -1501,7 +1627,7 @@ image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height
 	image->texture->target = GL_TEXTURE_2D;
 	image->width = width;
 	image->height = height;
-	image->bits = IF_NOPICMIP;
+	image->bits = IF_NOPICMIP | IF_ALPHA;
 	image->filterType = filterType_t::FT_LINEAR;
 	image->wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -2366,23 +2492,18 @@ R_CreateDefaultImage
 static void R_CreateDefaultImage()
 {
 	constexpr int DEFAULT_SIZE = 128;
-	int  x;
 	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
 	byte *dataPtr = &data[0][0][0];
 
 	// the default image will be a box, to allow you to see the mapping coordinates
 	memset( data, 32, sizeof( data ) );
 
-	for ( x = 0; x < DEFAULT_SIZE; x++ )
+	for ( int x = 0; x < DEFAULT_SIZE; x++ )
 	{
-		data[ 0 ][ x ][ 0 ] = data[ 0 ][ x ][ 1 ] = data[ 0 ][ x ][ 2 ] = data[ 0 ][ x ][ 3 ] = 255;
-		data[ x ][ 0 ][ 0 ] = data[ x ][ 0 ][ 1 ] = data[ x ][ 0 ][ 2 ] = data[ x ][ 0 ][ 3 ] = 255;
-
-		data[ DEFAULT_SIZE - 1 ][ x ][ 0 ] =
-		  data[ DEFAULT_SIZE - 1 ][ x ][ 1 ] = data[ DEFAULT_SIZE - 1 ][ x ][ 2 ] = data[ DEFAULT_SIZE - 1 ][ x ][ 3 ] = 255;
-
-		data[ x ][ DEFAULT_SIZE - 1 ][ 0 ] =
-		  data[ x ][ DEFAULT_SIZE - 1 ][ 1 ] = data[ x ][ DEFAULT_SIZE - 1 ][ 2 ] = data[ x ][ DEFAULT_SIZE - 1 ][ 3 ] = 255;
+		Vector4Set( data[ 0 ][ x ], 255, 255, 255, 255 );
+		Vector4Set( data[ x ][ 0 ], 255, 255, 255, 255 );
+		Vector4Set( data[ DEFAULT_SIZE - 1 ][ x ], 255, 255, 255, 255 );
+		Vector4Set( data[ x ][ DEFAULT_SIZE - 1 ], 255, 255, 255, 255 );
 	}
 
 	imageParams_t imageParams = {};
@@ -2554,7 +2675,7 @@ static void R_CreateBlackCubeImage()
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -2581,7 +2702,7 @@ static void R_CreateWhiteCubeImage()
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -2624,7 +2745,7 @@ static void R_CreateColorGradeImage()
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -2649,7 +2770,7 @@ void R_CreateBuiltinImages()
 	memset( data, 255, sizeof( data ) );
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
@@ -2663,15 +2784,17 @@ void R_CreateBuiltinImages()
 	// generate a default normalmap with a fully opaque heightmap (no displacement)
 	Vector4Set( data, 128, 128, 255, 255 );
 
-	imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA | IF_NORMALMAP;
 
 	tr.flatImage = R_CreateImage( "$flat", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
 
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-
-	// Don't reuse previously set data, we test the values for selecting the upload format.
+	/* Generate cinematic frames.
+	It is empty data to be filled by the cinematic code, but
+	we fill it with non-zero values so the format detector keeps all color channels. */
 	memset( data, 255, sizeof( data ) );
+
+	imageParams.bits = IF_NOPICMIP | IF_NOALPHA;
+	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	size_t numCinematicImages = 0;
 	for ( image_t * &image : tr.cinematicImage )
