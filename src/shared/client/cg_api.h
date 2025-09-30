@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SHARED_CLIENT_API_H_
 
 #include "engine/qcommon/q_shared.h"
-#include "engine/renderer/tr_types.h"
+#include "engine/RefAPI.h"
 #include "engine/client/cg_api.h"
 #include "common/KeyIdentification.h"
 #include "shared/CommonProxies.h"

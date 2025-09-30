@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "GLMemory.h"
 #include "VertexSpecification.h"
-#include "tr_types.h"
+#include "engine/RefAPI.h"
 
 struct VBO_t
 {
