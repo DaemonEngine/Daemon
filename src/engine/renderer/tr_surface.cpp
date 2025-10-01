@@ -1290,57 +1290,70 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 			byte *modelBlendIndex = model->blendIndexes + 4 * firstVertex;
 			byte *modelBlendWeight = model->blendWeights + 4 * firstVertex;
 
+			size_t num_threads = Com_GetOmpThreads();
 			std::vector<size_t> indexes;
-			indexes.resize( surf->num_vertexes );
+			indexes.resize( num_threads );
 			for ( size_t i = 0; i < indexes.size(); i++ ) { indexes[ i ] = i; }
+
+			int chunk_size = surf->num_vertexes / num_threads;
 
 			auto process = [&]( const size_t& i ) -> void
 			{
-				shaderVertex_t *tessVertex_ = tessVertex + i;
-				float *modelPosition_ = modelPosition + 3 * i;
-				float *modelNormal_ = modelNormal + 3 * i;
-				float *modelTangent_ = modelTangent + 3 * i;
-				float *modelBitangent_ = modelBitangent + 3 * i;
-				float *modelTexcoord_ = modelTexcoord + 2 * i;
-				byte *modelBlendIndex_ = modelBlendIndex + 4 * i;
-				byte *modelBlendWeight_ = modelBlendWeight + 4 * i;
+				int j = i * chunk_size;
 
-				vec3_t position = {}, tangent = {}, binormal = {}, normal = {};
+				shaderVertex_t *tessVertex_ = tessVertex + j;
+				float *modelPosition_ = modelPosition + 3 * j;
+				float *modelNormal_ = modelNormal + 3 * j;
+				float *modelTangent_ = modelTangent + 3 * j;
+				float *modelBitangent_ = modelBitangent + 3 * j;
+				float *modelTexcoord_ = modelTexcoord + 2 * j;
+				byte *modelBlendIndex_ = modelBlendIndex + 4 * j;
+				byte *modelBlendWeight_ = modelBlendWeight + 4 * j;
 
-				byte *lastBlendIndex = modelBlendIndex_ + 4;
+				shaderVertex_t *lastVertex_ = i == num_threads - 1 ? lastVertex : tessVertex_ + chunk_size;
 
-				for ( ; modelBlendIndex_ < lastBlendIndex; modelBlendIndex_++,
-					modelBlendWeight_++ )
+				for ( ; tessVertex_ < lastVertex_; tessVertex_++,
+					modelPosition_ += 3, modelNormal_ += 3,
+					modelTangent_ += 3, modelBitangent_ += 3,
+					modelTexcoord_ += 2 )
 				{
-					if ( *modelBlendWeight_ == 0 )
+					vec3_t position = {}, tangent = {}, binormal = {}, normal = {};
+
+					byte *lastBlendIndex = modelBlendIndex_ + 4;
+
+					for ( ; modelBlendIndex_ < lastBlendIndex; modelBlendIndex_++,
+						modelBlendWeight_++ )
 					{
-						continue;
+						if ( *modelBlendWeight_ == 0 )
+						{
+							continue;
+						}
+
+						float weight = *modelBlendWeight_ * weightFactor;
+						vec3_t tmp;
+
+						TransformPoint( &bones[ *modelBlendIndex_ ], modelPosition_, tmp );
+						VectorMA( position, weight, tmp, position );
+
+						TransformNormalVector( &bones[ *modelBlendIndex_ ], modelNormal_, tmp );
+						VectorMA( normal, weight, tmp, normal );
+
+						TransformNormalVector( &bones[ *modelBlendIndex_ ], modelTangent_, tmp );
+						VectorMA( tangent, weight, tmp, tangent );
+
+						TransformNormalVector( &bones[ *modelBlendIndex_ ], modelBitangent_, tmp );
+						VectorMA( binormal, weight, tmp, binormal );
 					}
 
-					float weight = *modelBlendWeight_ * weightFactor;
-					vec3_t tmp;
+					VectorNormalizeFast( normal );
+					VectorNormalizeFast( tangent );
+					VectorNormalizeFast( binormal );
+					VectorCopy( position, tessVertex_->xyz );
 
-					TransformPoint( &bones[ *modelBlendIndex_ ], modelPosition_, tmp );
-					VectorMA( position, weight, tmp, position );
+					R_TBNtoQtangentsFast( tangent, binormal, normal, tessVertex_->qtangents );
 
-					TransformNormalVector( &bones[ *modelBlendIndex_ ], modelNormal_, tmp );
-					VectorMA( normal, weight, tmp, normal );
-
-					TransformNormalVector( &bones[ *modelBlendIndex_ ], modelTangent_, tmp );
-					VectorMA( tangent, weight, tmp, tangent );
-
-					TransformNormalVector( &bones[ *modelBlendIndex_ ], modelBitangent_, tmp );
-					VectorMA( binormal, weight, tmp, binormal );
+					Vector2Copy( modelTexcoord_, tessVertex_->texCoords );
 				}
-
-				VectorNormalizeFast( normal );
-				VectorNormalizeFast( tangent );
-				VectorNormalizeFast( binormal );
-				VectorCopy( position, tessVertex_->xyz );
-
-				R_TBNtoQtangentsFast( tangent, binormal, normal, tessVertex_->qtangents );
-
-				Vector2Copy( modelTexcoord_, tessVertex_->texCoords );
 			};
 
 #if defined(__GNUC__) && defined(USE_OPENMP)

@@ -598,6 +598,7 @@ void   Com_Frame();
 void Com_ReadOmpMaxThreads();
 void Com_ReadOmpThreads();
 void Com_ApplyOmpThreads();
+int Com_GetOmpThreads();
 
 /*
 ==============================================================

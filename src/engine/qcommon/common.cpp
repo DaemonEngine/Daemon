@@ -799,6 +799,11 @@ void Com_ApplyOmpThreads()
 #endif
 }
 
+int Com_GetOmpThreads()
+{
+	return ompThreads;
+}
+
 /*
 =================
 Com_Frame
