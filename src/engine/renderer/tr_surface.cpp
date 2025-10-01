@@ -1291,9 +1291,12 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 			byte *modelBlendWeight = model->blendWeights + 4 * firstVertex;
 
 			size_t num_threads = Com_GetOmpThreads();
+
+/*
 			std::vector<size_t> indexes;
 			indexes.resize( num_threads );
 			for ( size_t i = 0; i < indexes.size(); i++ ) { indexes[ i ] = i; }
+*/
 
 			int chunk_size = surf->num_vertexes / num_threads;
 
@@ -1359,7 +1362,13 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 #if defined(__GNUC__) && defined(USE_OPENMP)
 			Com_ApplyOmpThreads();
 
-			__gnu_parallel::for_each( indexes.cbegin(), indexes.cend(), process );
+			#pragma omp parallel for
+			for ( size_t i = 0; i < num_threads; i++ )
+			{
+				process( i );
+			}
+
+//			__gnu_parallel::for_each( indexes.cbegin(), indexes.cend(), process );
 #else
 			std::for_each( indexes.cbegin(), indexes.cend(), process );
 #endif
