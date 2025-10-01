@@ -1358,7 +1358,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 			};
 
 			for ( int i = 0; i < num_threads; i++ ) {
-				threads.emplace_back( std::thread( process, i ) );
+				threads.emplace_back( process, i );
 			}
 
 			for ( auto& thread : threads ) {
