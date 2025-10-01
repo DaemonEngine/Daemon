@@ -1311,7 +1311,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 
 				shaderVertex_t *lastVertex_ = i == num_threads - 1 ? lastVertex : tessVertex_ + chunk_size;
 
-//				Log::Warn("thread: %d/%d, chunk size: %d (%d), start: %d", i, num_threads, lastVertex_ - tessVertex_, chunk_size, j);
+				Log::Warn("thread: %d/%d, chunk size: %d (%d), start: %d", i, num_threads, lastVertex_ - tessVertex_, chunk_size, j);
 
 				for ( ; tessVertex_ < lastVertex_; tessVertex_++,
 					modelPosition_ += 3, modelNormal_ += 3,
