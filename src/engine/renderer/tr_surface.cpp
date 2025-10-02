@@ -1056,6 +1056,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 	// Deform the vertices by the lerped bones.
 	if ( tess.skipTangents )
 	{
+		#pragma omp parallel for
 		for ( int i = 0; i < static_cast<int>( srf->numVerts ); i++ )
 		{
 			shaderVertex_t *tessVertex = modelTessVertex + i;
@@ -1084,6 +1085,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 	}
 	else
 	{
+		#pragma omp parallel for
 		for ( int i = 0; i < static_cast<int>( srf->numVerts ); i++ )
 		{
 			shaderVertex_t *tessVertex = modelTessVertex + i;
