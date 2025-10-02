@@ -1051,66 +1051,69 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 		tessIndex[ 2 ] = tess.numVertexes + surfaceTriangle->indexes[ 2 ];
 	}
 
-	shaderVertex_t *tessVertex = tess.verts + tess.numVertexes;
-	shaderVertex_t *lastVertex = tessVertex + srf->numVerts;
+	shaderVertex_t *modelTessVertex = tess.verts + tess.numVertexes;
 
 	// Deform the vertices by the lerped bones.
 	if ( tess.skipTangents )
 	{
-		for ( ; tessVertex < lastVertex; tessVertex++,
-			surfaceVertex++ )
+		for ( int i = 0; i < static_cast<int>( srf->numVerts ); i++ )
 		{
+			shaderVertex_t *tessVertex = modelTessVertex + i;
+			md5Vertex_t *vertex = surfaceVertex + i;
+
+			vec4_t *vertexPosition = &vertex->position;
+
+			float *boneWeight = vertex->boneWeights;
+			float *lastWeight = boneWeight + vertex->numWeights;
+			uint32_t *boneIndex = vertex->boneIndexes;
+
 			vec3_t position = {};
 
-			float *boneWeight = surfaceVertex->boneWeights;
-			float *lastWeight = boneWeight + surfaceVertex->numWeights;
-			uint32_t *boneIndex = surfaceVertex->boneIndexes;
-			vec4_t *surfacePosition = &surfaceVertex->position;
-
-			for ( ; boneWeight < lastWeight; boneWeight++,
-				boneIndex++ )
+			for ( ; boneWeight < lastWeight; boneWeight++, boneIndex++ )
 			{
 				vec3_t tmp;
 
-				TransformPoint( &bones[ *boneIndex ], *surfacePosition, tmp );
+				TransformPoint( &bones[ *boneIndex ], *vertexPosition, tmp );
 				VectorMA( position, *boneWeight, tmp, position );
 			}
 
 			VectorCopy( position, tessVertex->xyz );
 
-			Vector2Copy( surfaceVertex->texCoords, tessVertex->texCoords );
+			Vector2Copy( vertex->texCoords, tessVertex->texCoords );
 		}
 	}
 	else
 	{
-		for ( ; tessVertex < lastVertex; tessVertex++,
-			surfaceVertex++ )
+		for ( int i = 0; i < static_cast<int>( srf->numVerts ); i++ )
 		{
+			shaderVertex_t *tessVertex = modelTessVertex + i;
+			md5Vertex_t *vertex = surfaceVertex + i;
+
+			vec4_t *vertexPosition = &vertex->position;
+			vec4_t *vertexNormal = &vertex->normal;
+			vec4_t *vertexTangent = &vertex->tangent;
+			vec4_t *vertexBinormal = &vertex->binormal;
+
+			float *boneWeight = vertex->boneWeights;
+			float *lastWeight = boneWeight + vertex->numWeights;
+			uint32_t *boneIndex = vertex->boneIndexes;
+
 			vec3_t tangent = {}, binormal = {}, normal = {}, position = {};
 
-			float *boneWeight = surfaceVertex->boneWeights;
-			float *lastWeight = boneWeight + surfaceVertex->numWeights;
-			uint32_t *boneIndex = surfaceVertex->boneIndexes;
-			vec4_t *surfacePosition = &surfaceVertex->position;
-			vec4_t *surfaceNormal = &surfaceVertex->normal;
-			vec4_t *surfaceTangent = &surfaceVertex->tangent;
-			vec4_t *surfaceBinormal = &surfaceVertex->binormal;
-
-			for ( ; boneWeight < lastWeight; boneWeight++,
-				boneIndex++ )
+			for ( ; boneWeight < lastWeight; boneWeight++, boneIndex++ )
 			{
 				vec3_t tmp;
 
-				TransformPoint( &bones[ *boneIndex ], *surfacePosition, tmp );
+				TransformPoint( &bones[ *boneIndex ], *vertexPosition, tmp );
 				VectorMA( position, *boneWeight, tmp, position );
 
-				TransformNormalVector( &bones[ *boneIndex ], *surfaceNormal, tmp );
+				TransformNormalVector( &bones[ *boneIndex ], *vertexNormal, tmp );
 				VectorMA( normal, *boneWeight, tmp, normal );
 
-				TransformNormalVector( &bones[ *boneIndex ], *surfaceTangent, tmp );
+				TransformNormalVector( &bones[ *boneIndex ], *vertexTangent, tmp );
 				VectorMA( tangent, *boneWeight, tmp, tangent );
 
-				TransformNormalVector( &bones[ *boneIndex ], *surfaceBinormal, tmp );
+				TransformNormalVector( &bones[ *boneIndex ], *vertexBinormal, tmp );
 				VectorMA( binormal, *boneWeight, tmp, binormal );
 			}
 
@@ -1121,7 +1124,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 
 			R_TBNtoQtangentsFast( tangent, binormal, normal, tessVertex->qtangents );
 
-			Vector2Copy( surfaceVertex->texCoords, tessVertex->texCoords );
+			Vector2Copy( vertex->texCoords, tessVertex->texCoords );
 		}
 	}
 
