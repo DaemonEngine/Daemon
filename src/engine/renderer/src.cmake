@@ -1,6 +1,7 @@
 
 set(RENDERERLIST
-    ${DAEMON_GENERATED_DIR}/shaders.cpp
+    ${DAEMON_EMBEDDED_DIR}/EngineShaders.cpp
+    ${DAEMON_EMBEDDED_DIR}/EngineShaders.h
     ${ENGINE_DIR}/renderer/BufferBind.h
     ${ENGINE_DIR}/renderer/DetectGLVendors.cpp
     ${ENGINE_DIR}/renderer/DetectGLVendors.h
