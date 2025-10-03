@@ -41,6 +41,7 @@ Maryland 20850 USA.
 #include "qcommon/qcommon.h"
 #include "qcommon/sys.h"
 #include "framework/CommandSystem.h"
+#include "framework/CvarSystem.h"
 #include "sys/sys_events.h"
 
 static Log::Logger mouseLog("client.mouse", "");
@@ -55,7 +56,7 @@ static cvar_t       *in_nograb;
 
 static cvar_t       *in_joystick = nullptr;
 static cvar_t       *in_joystickThreshold = nullptr;
-static cvar_t       *in_joystickNo = nullptr;
+static Cvar::Cvar<int> in_joystickNo("in_joystickNo", "which game controller to use", Cvar::NONE, 0);
 static cvar_t       *in_joystickUseAnalog = nullptr;
 static cvar_t       *in_gameControllerTriggerDeadzone = nullptr;
 
@@ -565,6 +566,8 @@ IN_InitJoystick
 */
 static void IN_InitJoystick()
 {
+	Cvar::Latch( in_joystickNo );
+
 	if ( stick != nullptr )
 	{
 		SDL_CloseJoystick( stick );
@@ -599,7 +602,6 @@ static void IN_InitJoystick()
 		controllerLog.Notice( "[%d] %s", i, JoystickNameForID( ids[i] ) );
 	}
 
-	in_joystickNo = Cvar_Get( "in_joystickNo", "0", 0 );
 	in_joystickUseAnalog = Cvar_Get( "in_joystickUseAnalog", "0", 0 );
 
 	if ( total <= 0 )
@@ -608,12 +610,13 @@ static void IN_InitJoystick()
 		return;
 	}
 
-	if ( in_joystickNo->integer < 0 || in_joystickNo->integer >= total )
+	int stickIndex = in_joystickNo.Get();
+	if ( stickIndex < 0 || stickIndex >= total )
 	{
-		Cvar_Set( "in_joystickNo", "0" );
+		stickIndex = 0;
 	}
 
-	SDL_JoystickID id = ids[ in_joystickNo->integer ];
+	SDL_JoystickID id = ids[ stickIndex ];
 	SDL_free( ids );
 
 	stick = SDL_OpenJoystick( id );
@@ -634,7 +637,7 @@ static void IN_InitJoystick()
 		}
 	}
 
-	controllerLog.Notice( "Joystick %d opened", in_joystickNo->integer );
+	controllerLog.Notice( "Joystick %d opened", stickIndex );
 	controllerLog.Verbose( "Name:    %s", JoystickNameForID( id ) );
 	controllerLog.Verbose( "Axes:    %d", SDL_GetNumJoystickAxes( stick ) );
 	controllerLog.Verbose( "Hats:    %d", SDL_GetNumJoystickHats( stick ) );
