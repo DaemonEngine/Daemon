@@ -47,18 +47,18 @@ Maryland 20850 USA.
 static Log::Logger mouseLog("client.mouse", "");
 static Log::Logger controllerLog = Log::Logger("client.controller", "", Log::Level::NOTICE);
 
-static cvar_t       *in_keyboardDebug = nullptr;
+static Cvar::Cvar<bool> in_keyboardDebug("in_keyboardDebug", "log debug info about key presses", Cvar::NONE, false);
 
 static SDL_Joystick *stick = nullptr;
 static SDL_Gamepad *gamepad = nullptr;
 
-static cvar_t       *in_nograb;
+static Cvar::Cvar<bool> in_nograb("in_nograb", "disable mouse grabbing and cursor hiding", Cvar::NONE, false);
 
-static cvar_t       *in_joystick = nullptr;
-static cvar_t       *in_joystickThreshold = nullptr;
+static Cvar::Cvar<bool> in_joystick("in_joystick", "enable game controller", Cvar::NONE, false);
+static Cvar::Cvar<float> in_joystickThreshold("in_joystickThreshold", "ignore analog stick deflections less than this", Cvar::NONE, 0.15);
 static Cvar::Cvar<int> in_joystickNo("in_joystickNo", "which game controller to use", Cvar::NONE, 0);
-static cvar_t       *in_joystickUseAnalog = nullptr;
-static cvar_t       *in_gameControllerTriggerDeadzone = nullptr;
+static Cvar::Cvar<bool> in_joystickUseAnalog("in_joystickUseAnalog", "something about joystick control style", Cvar::NONE, false);
+static Cvar::Cvar<float> in_gameControllerTriggerDeadzone("in_gameControllerTriggerDeadzone", "how far trigger must be pulled for key down event", Cvar::NONE, 0.5);
 
 static SDL_Window *window = nullptr;
 
@@ -392,7 +392,7 @@ static Keyboard::Key IN_TranslateSDLToQ3Key( SDL_KeyboardEvent *event, bool down
 		}
 	}
 
-	if ( in_keyboardDebug->integer )
+	if ( in_keyboardDebug.Get() )
 	{
 		IN_PrintKey( event->mod, event->scancode, event->key, key, down );
 	}
@@ -434,7 +434,7 @@ static bool MouseModeAllowed( MouseMode mode )
  */
 void IN_SetMouseMode(MouseMode newMode)
 {
-	if ( in_nograb->integer && newMode == MouseMode::Deltas )
+	if ( in_nograb.Get() && newMode == MouseMode::Deltas )
 	{
 		newMode = MouseMode::SystemCursor;
 	}
@@ -566,6 +566,7 @@ IN_InitJoystick
 */
 static void IN_InitJoystick()
 {
+	Cvar::Latch( in_joystick );
 	Cvar::Latch( in_joystickNo );
 
 	if ( stick != nullptr )
@@ -576,7 +577,7 @@ static void IN_InitJoystick()
 	stick = nullptr;
 	stick_state = {};
 
-	if ( !in_joystick->integer )
+	if ( !in_joystick.Get() )
 	{
 		controllerLog.Verbose( "Game controllers disabled" );
 		return;
@@ -601,8 +602,6 @@ static void IN_InitJoystick()
 	{
 		controllerLog.Notice( "[%d] %s", i, JoystickNameForID( ids[i] ) );
 	}
-
-	in_joystickUseAnalog = Cvar_Get( "in_joystickUseAnalog", "0", 0 );
 
 	if ( total <= 0 )
 	{
@@ -643,7 +642,7 @@ static void IN_InitJoystick()
 	controllerLog.Verbose( "Hats:    %d", SDL_GetNumJoystickHats( stick ) );
 	controllerLog.Verbose( "Buttons: %d", SDL_GetNumJoystickButtons( stick ) );
 	controllerLog.Verbose( "Balls: %d", SDL_GetNumJoystickBalls( stick ) );
-	controllerLog.Verbose( "Use Analog: %s", in_joystickUseAnalog->integer ? "Yes" : "No" );
+	controllerLog.Verbose( "Use Analog: %s", in_joystickUseAnalog.Get() ? "Yes" : "No" );
 	controllerLog.Verbose( "Use SDL GameController mappings: %s", gamepad ? "Yes" : "No" );
 
 	SDL_GamepadEventsEnabled();
@@ -896,15 +895,15 @@ static void IN_JoyMove()
 		{
 			Sint16 axis = SDL_GetJoystickAxis( stick, i );
 
-			if ( !in_joystickUseAnalog->integer )
+			if ( !in_joystickUseAnalog.Get() )
 			{
 				float f = ( ( float ) axis ) / 32767.0f;
 
-				if ( f < -in_joystickThreshold->value )
+				if ( f < -in_joystickThreshold.Get() )
 				{
 					axes |= ( 1 << ( i * 2 ) );
 				}
-				else if ( f > in_joystickThreshold->value )
+				else if ( f > in_joystickThreshold.Get() )
 				{
 					axes |= ( 1 << ( ( i * 2 ) + 1 ) );
 				}
@@ -913,7 +912,7 @@ static void IN_JoyMove()
 			{
 				float f = ( ( float ) abs( axis ) ) / 32767.0f;
 
-				if ( f < in_joystickThreshold->value ) { axis = 0; }
+				if ( f < in_joystickThreshold.Get() ) { axis = 0; }
 
 				if ( axis != stick_state.oldaaxes[ i ] )
 				{
@@ -951,7 +950,7 @@ static void IN_GameControllerAxis( SDL_GamepadAxis controllerAxis, joystickAxis_
 	Sint16 axis = SDL_GetGamepadAxis( gamepad, controllerAxis );
 	float  f = ( ( float ) axis ) / 32767.0f;
 
-	if ( f > -in_joystickThreshold->value && f < in_joystickThreshold->value )
+	if ( f > -in_joystickThreshold.Get() && f < in_joystickThreshold.Get() )
 	{
 		Com_QueueEvent( Util::make_unique<Sys::JoystickEvent>(Util::ordinal(gameAxis), 0) );
 	}
@@ -970,7 +969,7 @@ static int IN_GameControllerAxisToButton( SDL_GamepadAxis controllerAxis, keyNum
 	Sint16       axis = SDL_GetGamepadAxis( gamepad, controllerAxis );
 	float        f = ( ( float ) axis ) / 32767.0f;
 
-	if ( f > in_gameControllerTriggerDeadzone->value )
+	if ( f > in_gameControllerTriggerDeadzone.Get() )
 	{
 		axes |= ( 1 << ( controllerAxis ) );
 	}
@@ -1300,15 +1299,6 @@ void IN_Init( void *windowData )
 	window = (SDL_Window*) windowData;
 
 	Log::Debug( "------- Input Initialization -------" );
-
-	in_keyboardDebug = Cvar_Get( "in_keyboardDebug", "0", CVAR_TEMP );
-
-	// mouse variables
-	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
-
-	in_joystick = Cvar_Get( "in_joystick", "0",  CVAR_LATCH );
-	in_joystickThreshold = Cvar_Get( "in_joystickThreshold", "0.15", 0 );
-	in_gameControllerTriggerDeadzone = Cvar_Get( "in_gameControllerTriggerDeadzone", "0.5", 0);
 
 	SDL_StartTextInput( window );
 	IN_SetMouseMode( MouseMode::SystemCursor );
