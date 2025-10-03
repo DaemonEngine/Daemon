@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_init.c -- functions that are not called every frame
 #include "tr_local.h"
 #include "framework/CvarSystem.h"
+#include "framework/OmpSystem.h"
 #include "DetectGLVendors.h"
 #include "Material.h"
 #include "GeometryCache.h"
@@ -1058,6 +1059,21 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		{
 			Log::Notice("Using dual processor acceleration." );
 		}
+
+#if defined(_OPENMP)
+		int ompThreads = Omp::GetThreads();
+
+		if ( ompThreads == 1 )
+		{
+			Log::Notice("%sNot using OpenMP parallelism: only one thread.", Color::ToString( Color::Yellow ) );
+		}
+		else
+		{
+			Log::Notice("%sUsing OpenMP parallelism with %d threads.", Color::ToString( Color::Green ), ompThreads );
+		}
+#else
+		Log::Notice("%sNot using OpenMP parallelism: unavailable.", Color::ToString( Color::Yellow ) );
+#endif
 
 		if ( r_finish->integer )
 		{
