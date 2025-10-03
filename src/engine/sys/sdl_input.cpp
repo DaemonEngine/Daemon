@@ -660,7 +660,7 @@ static void IN_InitJoystick()
 IN_ShutdownJoystick
 ===============
 */
-static void IN_ShutdownJoystick()
+void IN_ShutdownJoystick()
 {
 	if ( gamepad )
 	{

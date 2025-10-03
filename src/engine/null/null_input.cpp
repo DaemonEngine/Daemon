@@ -50,6 +50,10 @@ void IN_Shutdown()
 {
 }
 
+void IN_ShutdownJoystick()
+{
+}
+
 void IN_CenterMouse()
 {
 }

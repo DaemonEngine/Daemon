@@ -2444,6 +2444,10 @@ void CL_Shutdown()
 		CL_SendDisconnect();
 		CL_StopRecord();
 		StopVideo();
+
+		// Just to avoid the SDL nag message "Leaked SDL_Gamepad (0x123456)" making us look bad
+		IN_ShutdownJoystick();
+
 		// TODO: call DL_StopDownload when deleting the temp file is implemented
 		return;
 	}
