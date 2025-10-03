@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <common/FileSystem.h>
 #include "gl_shader.h"
 #include "Material.h"
+#include "DaemonEmbeddedFiles/EngineShaders.h"
 
 // We currently write GLBinaryHeader to a file and memcpy all over it.
 // Make sure it's a pod, so we don't put a std::string in it or something
@@ -41,7 +42,6 @@ static Cvar::Cvar<bool> r_logUnmarkedGLSLBuilds(
 	"r_logUnmarkedGLSLBuilds", "Log building information for GLSL shaders that are built after the map is loaded",
 	Cvar::NONE, true );
 
-extern const std::unordered_map<std::string, std::string> shadermap;
 // shaderKind's value will be determined later based on command line setting or absence of.
 ShaderKind shaderKind = ShaderKind::Unknown;
 
@@ -92,8 +92,8 @@ namespace // Implementation details
 
 	const char* GetInternalShader(Str::StringRef filename)
 	{
-		auto it = shadermap.find(filename);
-		if (it != shadermap.end())
+		auto it = EngineShaders::FileMap.find(filename);
+		if (it != EngineShaders::FileMap.end())
 			return it->second.c_str();
 		return nullptr;
 	}
