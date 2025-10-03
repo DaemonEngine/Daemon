@@ -94,8 +94,8 @@ void R_CalcTangents( vec3_t tangent, vec3_t binormal,
 	binormal[1] = dtx[0] * dpy[1] - dpx[1] * dty[0];
 	binormal[2] = dtx[0] * dpy[2] - dpx[2] * dty[0];
 
-	VectorNormalizeFast( tangent );
-	VectorNormalizeFast( binormal );
+	VectorNormalize( tangent );
+	VectorNormalize( binormal );
 }
 
 void R_CalcTangents( vec3_t tangent, vec3_t binormal,
