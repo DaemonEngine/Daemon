@@ -57,5 +57,8 @@ external_deps/*
 .vs
 .vscode
 
+#ignore python cache
+*.pyc
+
 #ignore removed recastnavigation submodule
 libs/recastnavigation

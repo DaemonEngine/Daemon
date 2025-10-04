@@ -67,6 +67,37 @@ macro(daemon_write_buildinfo name)
 	endforeach()
 endmacro()
 
+function(GenerateEmbedFilesConstexpr srcPaths dstPath format target)
+	set(first TRUE)
+	foreach(srcPath IN LISTS srcPaths)
+		get_filename_component(filename "${srcPath}" NAME_WE)
+
+		if(first)
+			set(mode WRITE)
+			set(first FALSE)
+		else()
+			set(mode APPEND)
+		endif()
+		
+		set(cmd ${CMAKE_COMMAND}
+			"-DINPUT_FILE=${srcPath}"
+			"-DOUTPUT_FILE=${dstPath}"
+			"-DFILE_FORMAT=${format}"
+			"-DVARIABLE_NAME=${filename}"
+			"-DEMBED_MODE=${mode}"
+			-P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedText.cmake" )
+		list(APPEND cmdList ${cmd})
+	endforeach()
+
+	add_custom_command(
+		OUTPUT ${dstPath}
+		COMMAND ${cmdList}
+		DEPENDS ${srcPath} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonEmbed.cmake
+	)
+
+	target_sources(${target} PRIVATE ${dstPath})
+endfunction()
+
 macro(daemon_embed_files basename dir list format targetname)
 	set(embed_subdir "${DAEMON_EMBEDDED_SUBDIR}/${basename}")
 	set(embed_dir "${DAEMON_GENERATED_DIR}/${embed_subdir}")
@@ -109,7 +140,8 @@ macro(daemon_embed_files basename dir list format targetname)
 				"-DOUTPUT_FILE=${outpath}"
 				"-DFILE_FORMAT=${format}"
 				"-DVARIABLE_NAME=${filename_symbol}"
-				-P "${DAEMON_FILE_EMBEDDER}"
+				"-DEMBED_MODE=WRITE"
+				-P "${DAEMON_TEXT_EMBEDDER}"
 			MAIN_DEPENDENCY ${inpath}
 			DEPENDS
 				"${DAEMON_FILE_EMBEDDER}"
