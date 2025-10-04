@@ -132,14 +132,14 @@ set_property( CACHE VULKAN_SPIRV_DEBUG PROPERTY STRINGS default remove non-seman
 
 macro( GenerateVulkanShaders target )
 	# Pre-processing for #insert/#include
-	foreach( src IN LISTS GRAPHICSENGINELIST )
+	foreach( src IN LISTS graphicsEngineList )
 		set( graphicsProcessedList ${graphicsProcessedList} ${src} )
 		list( APPEND graphicsEngineOutputList ${GRAPHICS_ENGINE_PROCESSED_PATH}${src} )
 	endforeach()
 
 	add_custom_command(
 		COMMAND VulkanShaderParser ${graphicsProcessedList}
-		DEPENDS ${GRAPHICSENGINEIDELIST}
+		DEPENDS ${graphicsEngineIDEList}
 		OUTPUT ${graphicsEngineOutputList}
 		COMMENT "Generating Vulkan graphics engine: ${graphicsProcessedList}"
 	)
@@ -170,7 +170,7 @@ macro( GenerateVulkanShaders target )
 		set( spirvOptions ${spirvOptions} -gV )
 	endif()
 
-	foreach( src IN LISTS GRAPHICSENGINELIST )
+	foreach( src IN LISTS graphicsEngineList )
 		set( srcPath ${GRAPHICS_ENGINE_PROCESSED_PATH}${src} )
 
 		# set( spirvAsmPath ${GRAPHICS_ENGINE_PROCESSED_PATH}spirv/${src} )

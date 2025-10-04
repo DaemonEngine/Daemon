@@ -1,9 +1,9 @@
-set(MATHLIST
+set( mathList
     ${ENGINE_DIR}/renderer-vulkan/Math/Bit.h
     ${ENGINE_DIR}/renderer-vulkan/Math/NumberTypes.h
 )
 
-set(MEMORYLIST
+set( memoryList
     ${ENGINE_DIR}/renderer-vulkan/Memory/Allocator.cpp
     ${ENGINE_DIR}/renderer-vulkan/Memory/Allocator.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/Array.h
@@ -21,7 +21,7 @@ set(MEMORYLIST
     ${ENGINE_DIR}/renderer-vulkan/Memory/RingBuffer.h
 )
 
-set(SYNCLIST
+set( syncList
     ${ENGINE_DIR}/renderer-vulkan/Sync/AccessLock.cpp
     ${ENGINE_DIR}/renderer-vulkan/Sync/AccessLock.h
     ${ENGINE_DIR}/renderer-vulkan/Sync/AlignedAtomic.h
@@ -31,14 +31,14 @@ set(SYNCLIST
     ${ENGINE_DIR}/renderer-vulkan/Sync/SyncPoint.h
 )
 
-set(SYSLIST
+set( sysList
     ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.cpp
     ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.h
     ${ENGINE_DIR}/renderer-vulkan/Sys/MemoryInfo.cpp
     ${ENGINE_DIR}/renderer-vulkan/Sys/MemoryInfo.h
 )
 
-set(THREADLIST
+set( threadList
     ${ENGINE_DIR}/renderer-vulkan/Thread/GlobalMemory.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/GlobalMemory.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/SyncTask.cpp
@@ -61,15 +61,14 @@ set(THREADLIST
     ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadUplink.h
 )
 
-set(UTILSLIST
+set( utilsList
     ${ENGINE_DIR}/renderer-vulkan/SrcDebug/LogExtend.h
     ${ENGINE_DIR}/renderer-vulkan/SrcDebug/Tag.cpp
     ${ENGINE_DIR}/renderer-vulkan/SrcDebug/Tag.h
 )
 
 # Graphics core
-
-set(GRAPHICSCORELIST
+set( graphicsCoreList
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineConfig.cpp
@@ -96,36 +95,36 @@ set(GRAPHICSCORELIST
 )
 
 # Graphics Engine
-
-set(GRAPHICSENGINELIST
+set( graphicsEngineList
+    depthReduction.glsl
+    cull.glsl
 )
 
-set( GRAPHICSENGINEIDELIST ${GRAPHICSENGINELIST} )
-list( TRANSFORM GRAPHICSENGINEIDELIST PREPEND ${ENGINE_DIR}/renderer-vulkan/GraphicsEngine/ )
+set( graphicsEngineIDEList ${graphicsEngineList} )
+list( TRANSFORM graphicsEngineIDEList PREPEND ${ENGINE_DIR}/renderer-vulkan/GraphicsEngine/ )
 
 # Vulkan Loader
-
-set(VULKANLOADERLIST
+set( vulkanLoaderList
     ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/Vulkan.cpp
     ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/VulkanLoadFunctions.cpp
     ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/VulkanLoadFunctions.h
     ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/Vulkan.h
 )
 
-set(GRAPHICSLIST
-    ${GRAPHICSCORELIST}
-    ${GRAPHICSENGINEIDELIST}
-    ${VULKANLOADERLIST}
+set( graphicsList
+    ${graphicsCoreList}
+    ${graphicsEngineIDEList}
+    ${vulkanLoaderList}
 )
 
-set(RENDERERLIST
-    ${MATHLIST}
-    ${MEMORYLIST}
-    ${SYNCLIST}
-    ${SYSLIST}
-    ${THREADLIST}
-    ${UTILSLIST}
-    ${GRAPHICSLIST}
+set( RENDERERLIST
+    ${mathList}
+    ${memoryList}
+    ${syncList}
+    ${sysList}
+    ${threadList}
+    ${utilsList}
+    ${graphicsList}
     ${ENGINE_DIR}/renderer-vulkan/Surface/Surface.cpp
     ${ENGINE_DIR}/renderer-vulkan/Surface/Surface.h
     ${ENGINE_DIR}/renderer-vulkan/Error.cpp
