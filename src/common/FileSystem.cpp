@@ -129,6 +129,35 @@ static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "also load pk3s, ignoring
 static Cvar::Cvar<int> fs_maxSymlinkDepth("fs_maxSymlinkDepth", "max depth of symlinks in zip paks (0 means disabled)", Cvar::NONE, 1);
 static Cvar::Cvar<std::string> fs_pakprefixes("fs_pakprefixes", "prefixes to look for paks to load", 0, "");
 
+builtinPakMap_t builtinPakMap = {};
+
+std::vector<PakInfo> builtinPaks = {};
+
+void ClearBuiltinPaks()
+{
+	builtinPakMap.clear();
+
+	builtinPaks.clear();
+	builtinPaks.shrink_to_fit();
+}
+
+void AddBuiltinPak(const std::string& name, const std::string& version, const embeddedFileMap_t& map)
+{
+	PakInfo *pak = new PakInfo();
+	pak->name = Str::Format( "*%s", name );
+	pak->version = version;
+	pak->checksum = 0;
+	pak->type = pakType_t::PAK_ZIP;
+	pak->path = Str::Format( "*%s_%s", name, version );
+
+	builtinPaks.push_back(*pak);
+
+	Log::Debug("Adding builtin pak with %d files: %s", map.size(), pak->name);
+	builtinPakMap[pak->name] = map;
+
+	PakPath::LoadPak(*pak);
+}
+
 bool UseLegacyPaks()
 {
 	return fs_legacypaks.Get();
@@ -1257,7 +1286,12 @@ static void InternalLoadPak(
 	bool hasDeps = false;
 	offset_t depsOffset = 0;
 	ZipArchive zipFile;
+
 	bool isLegacy = pak.version.empty();
+
+	bool isBuiltin = pak.type == pakType_t::PAK_ZIP && pak.name[ 0 ] == '*';
+	bool isDir = pak.type == pakType_t::PAK_DIR;
+	bool isZip = pak.type == pakType_t::PAK_ZIP && !isBuiltin;
 
 	// Check if this pak has already been loaded to avoid recursive dependencies
 	for (auto& x: loadedPaks) {
@@ -1267,13 +1301,15 @@ static void InternalLoadPak(
 			return;
 	}
 
-	if (pak.type == pakType_t::PAK_ZIP) {
+	if (isBuiltin) {
+		fsLogs.WithoutSuppression().Notice("Loading builtin pak '%s'...", pak.path.c_str());
+	} else if (isZip) {
 		if (!isLegacy) {
 			fsLogs.WithoutSuppression().Notice("Loading pak '%s'...", pak.path.c_str());
 		} else {
 			fsLogs.WithoutSuppression().Notice("Loading legacy pak '%s'...", pak.path.c_str());
 		}
-	} else if (pak.type == pakType_t::PAK_DIR) {
+	} else if (isDir) {
 		if (!isLegacy) {
 			fsLogs.WithoutSuppression().Notice("Loading pakdir '%s'...", pak.path.c_str());
 		} else {
@@ -1292,7 +1328,14 @@ static void InternalLoadPak(
 	loadedPak.path = pak.path;
 
 	// Update the list of files, but don't overwrite existing files, so the sort order is preserved
-	if (pak.type == pakType_t::PAK_DIR) {
+	if (isBuiltin) {
+		loadedPak.fd = -1;
+		for (auto& it : builtinPakMap[pak.name])
+		{
+			Log::Debug("Adding file from builtin pak %s: %s", pak.name, it.first);
+			fileMap.emplace(it.first, std::pair<uint32_t, offset_t>(loadedPaks.size() - 1, 0));
+		}
+	} else if (isDir) {
 		loadedPak.fd = -1;
 		auto dirRange = RawPath::ListFilesRecursive(pak.path, err);
 		if (err)
@@ -1316,7 +1359,7 @@ static void InternalLoadPak(
 			if (err)
 				return;
 		}
-	} else if (pak.type == pakType_t::PAK_ZIP) {
+	} else if (isZip) {
 		// Open file
 		loadedPak.fd = my_open(pak.path, openMode_t::MODE_READ);
 		if (loadedPak.fd == -1) {
@@ -1380,7 +1423,7 @@ static void InternalLoadPak(
 	// Directories (aka a dpkdir) don't need timestamp.
 	// Fixes Windows bug where calling _wstat64i with trailing slash causes "file not found" error.
 	// For future stat calls on directories, trim the trailing slash (if exists)
-	if (pak.type == pakType_t::PAK_ZIP) {
+	if (isZip) {
 		loadedPak.timestamp = FS::RawPath::FileTimestamp(pak.path, err);
 		if (err)
 			return;
@@ -1388,8 +1431,8 @@ static void InternalLoadPak(
 
 	loadedPak.pathPrefix = pathPrefix;
 
-	// Legacy paks don't have version neither checksum
-	if (!isLegacy) {
+	// Legacy and builtin paks don't have version neither checksum
+	if (!isLegacy && !isBuiltin) {
 		// If an explicit checksum was requested, verify that the pak we loaded is the one we are expecting
 		if (expectedChecksum && realChecksum != *expectedChecksum) {
 			SetErrorCodeFilesystem(err, filesystem_error::wrong_pak_checksum, pak.path);
@@ -1406,14 +1449,16 @@ static void InternalLoadPak(
 	if (!isLegacy) {
 		if (hasDeleted) {
 			std::string deletedData;
-			if (pak.type == pakType_t::PAK_DIR) {
+			if (isBuiltin) {
+				// Not implemented.
+			} else if (isDir) {
 				File depsFile = RawPath::OpenRead(Path::Build(pak.path, PAK_DELETED_FILE), err);
 				if (err)
 					return;
 				deletedData = depsFile.ReadAll(err);
 				if (err)
 					return;
-			} else if (pak.type == pakType_t::PAK_ZIP) {
+			} else if (isZip) {
 				zipFile.OpenFile(deletedOffset, err);
 				if (err)
 					return;
@@ -1434,14 +1479,16 @@ static void InternalLoadPak(
 		// Load dependencies (non-legacy paks (pk3) only)
 		if (loadDeps && hasDeps) {
 			std::string depsData;
-			if (pak.type == pakType_t::PAK_DIR) {
+			if (isBuiltin) {
+				// Not implemented.
+			} else if (isDir) {
 				File depsFile = RawPath::OpenRead(Path::Build(pak.path, PAK_DEPS_FILE), err);
 				if (err)
 					return;
 				depsData = depsFile.ReadAll(err);
 				if (err)
 					return;
-			} else if (pak.type == pakType_t::PAK_ZIP) {
+			} else if (isZip) {
 				zipFile.OpenFile(depsOffset, err);
 				if (err)
 					return;
@@ -1491,6 +1538,7 @@ void ClearPaks()
 			close(x.fd);
 	}
 	loadedPaks.clear();
+	FS::ClearBuiltinPaks();
 	FS::RefreshPaks();
 }
 #else // BUILD_VM
@@ -1549,7 +1597,18 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 	}
 
 	const LoadedPakInfo& pak = loadedPaks[it->second.first];
-	if (pak.type == pakType_t::PAK_DIR) {
+
+	bool isBuiltin = pak.type == pakType_t::PAK_ZIP && pak.name[0] == '*';
+	bool isDir = pak.type == pakType_t::PAK_DIR;
+	bool isZip = pak.type == pakType_t::PAK_ZIP && !isBuiltin;
+
+	if (isBuiltin) {
+		const embeddedFileMapEntry_t& entry = builtinPakMap[pak.name][path];
+		std::string out;
+		out.resize(entry.size);
+		memcpy(&out[0], entry.data, entry.size);
+		return out;
+	} else if (isDir) {
 		// Open file
 		File file = RawPath::OpenRead(Path::Build(pak.path, it->first), err);
 		if (err)
@@ -1565,7 +1624,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 		out.resize(length);
 		file.Read(&out[0], length, err);
 		return out;
-	} else if (pak.type == pakType_t::PAK_ZIP) {
+	} else if (isZip) {
 		// Open zip
 		ZipArchive zipFile = ZipArchive::Open(pak.fd, err);
 		if (err)
@@ -1604,12 +1663,19 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 	}
 
 	const LoadedPakInfo& pak = loadedPaks[it->second.first];
-	if (pak.type == pakType_t::PAK_DIR) {
+
+	bool isBuiltin = pak.type == pakType_t::PAK_ZIP && pak.name[0] == '*';
+	bool isDir = pak.type == pakType_t::PAK_DIR;
+	bool isZip = pak.type == pakType_t::PAK_ZIP && !isBuiltin;
+
+	if (isBuiltin) {
+		// Not implemented
+	} else if (isDir) {
 		File file = RawPath::OpenRead(Path::Build(pak.path, it->first), err);
 		if (err)
 			return;
 		file.CopyTo(dest, err);
-	} else if (pak.type == pakType_t::PAK_ZIP) {
+	} else if (isZip) {
 		// Open zip
 		ZipArchive zipFile = ZipArchive::Open(pak.fd, err);
 		if (err)
@@ -1672,7 +1738,15 @@ std::chrono::system_clock::time_point FileTimestamp(Str::StringRef path, std::er
 	}
 
 	const LoadedPakInfo& pak = loadedPaks[it->second.first];
-	if (pak.type == pakType_t::PAK_DIR) {
+
+	bool isBuiltin = pak.type == pakType_t::PAK_ZIP && pak.name[0] == '*';
+	bool isDir = pak.type == pakType_t::PAK_DIR;
+	bool isZip = pak.type == pakType_t::PAK_ZIP && !isBuiltin;
+
+	if (isBuiltin) {
+		// Not implemented.
+		return {};
+	} else if (isDir) {
 #ifdef BUILD_VM
 		Util::optional<uint64_t> result;
 		VM::SendMsg<VM::FSPakPathTimestampMsg>(it->second.first, it->first, result);
@@ -1686,7 +1760,7 @@ std::chrono::system_clock::time_point FileTimestamp(Str::StringRef path, std::er
 #else
 		return RawPath::FileTimestamp(Path::Build(pak.path, it->first), err);
 #endif
-	} else if (pak.type == pakType_t::PAK_ZIP) {
+	} else if (isZip) {
 		return pak.timestamp;
 	}
 
@@ -2636,6 +2710,10 @@ void RefreshPaks()
 		if (a.checksum != b.checksum)
 			return a.checksum > b.checksum;
 
+		// Prefer builtin packages to zip packages.
+		if (b.type == pakType_t::PAK_ZIP && a.type == pakType_t::PAK_ZIP && b.name[0] == '*')
+			return true;
+
 		// Prefer zip packages to directory packages
 		if (b.type == pakType_t::PAK_ZIP && a.type != pakType_t::PAK_ZIP)
 			return true;
@@ -2660,6 +2738,16 @@ static const PakInfo* FindPakNoPrefix(Str::StringRef name)
 
 const PakInfo* FindPak(Str::StringRef name)
 {
+#if defined(BUILD_ENGINE)
+	for ( auto& builtinPak : builtinPaks)
+	{
+		if ( builtinPak.name == name )
+		{
+			return &builtinPak;
+		}
+	}
+#endif
+
 	Cmd::Args pakprefixes(Cvar::GetValue("fs_pakprefixes"));
 	for (const std::string &pakprefix: pakprefixes)
 	{
@@ -2715,7 +2803,12 @@ const PakInfo* FindPak(Str::StringRef name, Str::StringRef version, uint32_t che
 		return checksum > pakInfo.checksum;
 	});
 
-	if (iter == availablePaks.begin() || (iter - 1)->name != name || (iter - 1)->version != version || !(iter - 1)->checksum || *(iter - 1)->checksum != checksum) {
+	if (iter == availablePaks.begin()
+		|| (iter - 1)->name != name
+		|| (iter - 1)->version != version
+		|| !(iter - 1)->checksum
+		|| *(iter - 1)->checksum != checksum) {
+
 		// Try again, but this time look for the pak without a checksum. We will verify the checksum later.
 		iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [version](Str::StringRef name1, const PakInfo& pakInfo) -> bool {
 			int result = name1.compare(pakInfo.name);
@@ -2728,7 +2821,23 @@ const PakInfo* FindPak(Str::StringRef name, Str::StringRef version, uint32_t che
 		});
 
 		// Only allow zip packages because directories don't have a checksum
-		if (iter == availablePaks.begin() || (iter - 1)->type == pakType_t::PAK_DIR || (iter - 1)->name != name || (iter - 1)->version != version || (iter - 1)->checksum)
+		if (iter == availablePaks.begin())
+			return nullptr;
+
+		PakInfo& pak = (iter - 1)[0];
+
+		bool isBuiltin = pak.type == pakType_t::PAK_ZIP && pak.name[ 0 ] == '*';
+		bool isDir = pak.type == pakType_t::PAK_DIR;
+
+		if (isBuiltin)
+			return nullptr;
+		if (isDir)
+			return nullptr;
+		if (pak.name != name)
+			return nullptr;
+		if (pak.version != version)
+			return nullptr;
+		if (pak.checksum)
 			return nullptr;
 	}
 
@@ -2944,12 +3053,19 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 	case VM::FS_PAKPATH_TIMESTAMP:
 		IPC::HandleMsg<VM::FSPakPathTimestampMsg>(channel, std::move(reader), [](uint32_t pakIndex, std::string path, Util::optional<uint64_t>& out) {
 			auto& loadedPaks = FS::PakPath::GetLoadedPaks();
+
 			if (loadedPaks.size() <= pakIndex)
 				return;
-			if (loadedPaks[pakIndex].type == pakType_t::PAK_ZIP)
+
+			const LoadedPakInfo& pak = loadedPaks[pakIndex];
+			bool isDir = pak.type == pakType_t::PAK_DIR;
+
+			if (!isDir)
 				return;
+
 			if (!Path::IsValid(path, false))
 				return;
+
 			std::error_code err;
 			std::chrono::system_clock::time_point t = RawPath::FileTimestamp(Path::Build(loadedPaks[pakIndex].path, path), err);
 			if (!err)

@@ -37,6 +37,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IPC/Channel.h"
 #endif
 
+#if defined(BUILD_ENGINE)
+#include DAEMON_EMBEDDED_FILES_HEADER
+#endif
+
 namespace FS {
 
 bool UseLegacyPaks();
@@ -265,7 +269,7 @@ private:
 // Type of pak
 enum class pakType_t {
 	PAK_ZIP, // Zip archive
-	PAK_DIR // Directory
+	PAK_DIR, // Directory
 };
 
 // Information about a package
@@ -307,6 +311,12 @@ struct LoadedPakInfo: public PakInfo {
 	// pak to only those that start with the prefix.
 	std::string pathPrefix;
 };
+
+#if defined(BUILD_ENGINE)
+using builtinPakMap_t = std::unordered_map<std::string, embeddedFileMap_t>;
+
+void AddBuiltinPak(const std::string& name, const std::string& version, const embeddedFileMap_t& map);
+#endif
 
 // Operations which work on files that are in packages. Packages should be used
 // for read-only assets which can be distributed by auto-download.

@@ -103,6 +103,7 @@ macro(daemon_embed_files basename dir list format targetname)
 
 		set(embed_header_file "${DAEMON_GENERATED_DIR}/${DAEMON_EMBEDDED_FILES_HEADER}")
 		file(GENERATE OUTPUT "${embed_header_file}" CONTENT "${embed_header_text}")
+		add_definitions(-DDAEMON_EMBEDDED_FILES_HEADER="${DAEMON_EMBEDDED_FILES_HEADER}")
 	endif()
 
 	string(APPEND embed_CPP_text
