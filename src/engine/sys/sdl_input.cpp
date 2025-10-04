@@ -631,10 +631,11 @@ static void IN_InitJoystick()
 		gamepad = SDL_OpenGamepad( id );
 		if ( gamepad )
 		{
-			Cvar_Set( "in_gameControllerAvailable", "1" );
 			SDL_GamepadEventsEnabled();
 		}
 	}
+
+	Cvar::SetValueForce( "in_gameControllerAvailable", gamepad ? "1" : "0" );
 
 	controllerLog.Notice( "Joystick %d opened", stickIndex );
 	controllerLog.Verbose( "Name:    %s", JoystickNameForID( id ) );
