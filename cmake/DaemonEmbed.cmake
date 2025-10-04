@@ -56,7 +56,6 @@ endfunction()
 function(GenerateEmbedFileH srcPaths dstPath format target)
 	set(first TRUE)
 	foreach(srcPath IN LISTS srcPaths)
-		message( STATUS "processing ${srcPath}")
 		get_filename_component(filename "${srcPath}" NAME_WE)
 
 		if(first)
