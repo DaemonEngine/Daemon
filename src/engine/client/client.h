@@ -410,16 +410,16 @@ extern cvar_t *m_forward;
 extern cvar_t *m_side;
 extern cvar_t *m_filter;
 
-extern cvar_t *j_pitch;
-extern cvar_t *j_yaw;
-extern cvar_t *j_forward;
-extern cvar_t *j_side;
-extern cvar_t *j_up;
-extern cvar_t *j_pitch_axis;
-extern cvar_t *j_yaw_axis;
-extern cvar_t *j_forward_axis;
-extern cvar_t *j_side_axis;
-extern cvar_t *j_up_axis;
+extern Cvar::Cvar<float> j_pitch;
+extern Cvar::Cvar<float> j_yaw;
+extern Cvar::Cvar<float> j_forward;
+extern Cvar::Cvar<float> j_side;
+extern Cvar::Cvar<float> j_up;
+extern Cvar::Range<Cvar::Cvar<int>> j_pitch_axis;
+extern Cvar::Range<Cvar::Cvar<int>> j_yaw_axis;
+extern Cvar::Range<Cvar::Cvar<int>> j_forward_axis;
+extern Cvar::Range<Cvar::Cvar<int>> j_side_axis;
+extern Cvar::Range<Cvar::Cvar<int>> j_up_axis;
 
 extern Cvar::Cvar<bool> cvar_demo_timedemo;
 
