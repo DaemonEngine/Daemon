@@ -655,6 +655,10 @@ bool FS_LoadPak(const Str::StringRef name)
 
 void FS_LoadBasePak()
 {
+#if defined(BUILD_GRAPHICAL_CLIENT)
+	FS_LoadPak(FS::builtinPak.name);
+#endif
+
 	Cmd::Args extrapaks(fs_extrapaks.Get());
 	for (auto& x: extrapaks) {
 		if (!FS_LoadPak(x)) {

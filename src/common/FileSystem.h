@@ -265,7 +265,8 @@ private:
 // Type of pak
 enum class pakType_t {
 	PAK_ZIP, // Zip archive
-	PAK_DIR // Directory
+	PAK_DIR, // Directory
+	PAK_BUILTIN, // Embedded in the executable
 };
 
 // Information about a package
@@ -287,6 +288,8 @@ struct PakInfo {
 	// Full path to the pak
 	std::string path;
 };
+
+extern const PakInfo builtinPak;
 
 // Information about a package that has been loaded
 struct LoadedPakInfo: public PakInfo {
