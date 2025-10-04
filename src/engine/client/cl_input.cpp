@@ -40,6 +40,10 @@ Maryland 20850 USA.
 #include "engine/qcommon/sys.h"
 #include "framework/CommandSystem.h"
 
+static Cvar::Cvar<bool> in_gameControllerAvailable(
+	"in_gameControllerAvailable", "whether controller is a gamepad (as opposed to joystick)",
+	Cvar::ROM, false);
+
 unsigned frame_msec;
 int      old_com_frameTime;
 
@@ -716,7 +720,7 @@ usercmd_t CL_CreateCmd()
 	CL_MouseMove( &cmd );
 
 	// get basic movement from joystick or controller
-	if ( cl_gameControllerAvailable->integer )
+	if ( in_gameControllerAvailable.Get() )
 	{
 		CL_GameControllerMove( &cmd );
 	}

@@ -399,8 +399,6 @@ extern cvar_t *cl_doubletapdelay;
 extern cvar_t *cl_sensitivity;
 extern cvar_t *cl_freelook;
 
-extern cvar_t *cl_gameControllerAvailable;
-
 extern cvar_t *cl_mouseAccel;
 extern cvar_t *cl_mouseAccelOffset;
 extern cvar_t *cl_mouseAccelStyle;

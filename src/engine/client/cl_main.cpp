@@ -95,7 +95,6 @@ cvar_t *cl_aviFrameRate;
 
 cvar_t *cl_freelook;
 cvar_t *cl_sensitivity;
-cvar_t *cl_gameControllerAvailable;
 
 cvar_t *cl_mouseAccelOffset;
 cvar_t *cl_mouseAccel;
@@ -2333,8 +2332,6 @@ void CL_Init()
 	cl_sensitivity = Cvar_Get( "sensitivity", "5", CVAR_ARCHIVE );
 	cl_mouseAccel = Cvar_Get( "cl_mouseAccel", "0", 0 );
 	cl_freelook = Cvar_Get( "cl_freelook", "1", CVAR_ARCHIVE );
-
-	cl_gameControllerAvailable = Cvar_Get( "in_gameControllerAvailable", "0", CVAR_ROM );
 
 	// 0: legacy mouse acceleration
 	// 1: new implementation
