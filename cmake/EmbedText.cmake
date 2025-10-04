@@ -1,7 +1,7 @@
 # Converts a text file into a C-language char array definition.
 # For use in CMake script mode (cmake -P).
 # Required definitions on command line:
-# INPUT_FILE, OUTPUT_FILE, FILE_FORMAT, VARIABLE_NAME
+# Required definitions on command line: INPUT_FILE, OUTPUT_FILE, VARIABLE_NAME, FILE_FORMAT, EMBED_MODE
 
 # Inspired by:
 # https://stackoverflow.com/questions/11813271/embed-resources-eg-shader-code-images-into-executable-library-with-cmake/27206982#27206982
@@ -28,7 +28,7 @@ string(REGEX REPLACE
 
 string(REGEX REPLACE ",$" ",\n" contents "${contents}")
 
-file(WRITE ${OUTPUT_FILE}
+file(${EMBED_MODE} ${OUTPUT_FILE}
 	"constexpr unsigned char ${VARIABLE_NAME}[] =\n"
 	"{\n"
 	"${contents}"

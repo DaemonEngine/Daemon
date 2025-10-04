@@ -641,6 +641,7 @@ endif()
 if (USE_VULKAN)
     add_definitions("-DDAEMON_RENDERER_VULKAN=1")
     add_definitions("-DVK_NO_PROTOTYPES=1")
+    include(DaemonVulkan)
 else()
     add_definitions("-DDAEMON_RENDERER_OPENGL=1")
 
@@ -1038,8 +1039,12 @@ if (BUILD_CLIENT)
         Tests ${CLIENTTESTLIST}
     )
 
-    # Generate GLSL include files.
-    daemon_embed_files("EngineShaders" "GLSL" "TEXT" "client-objects")
+    if (USE_VULKAN)
+        GenerateVulkanShaders( client-objects )
+    else()
+        # Generate GLSL include files.
+        daemon_embed_files("EngineShaders" "GLSL" "TEXT" "client-objects")
+    endif()
 endif()
 
 if (BUILD_SERVER)
