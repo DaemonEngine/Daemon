@@ -657,8 +657,16 @@ bool FS_LoadPak(const Str::StringRef name)
 	}
 }
 
+/* Empty base pak available on all engines.
+It makes possible to run the engine without a game,
+this way:
+./daemon -set fs_basepak '*daemon' */
+embeddedFileMap_t engineBasePak = {};
+
 void FS_LoadBasePak()
 {
+	FS::AddBuiltinPak("daemon", ENGINE_VERSION, engineBasePak);
+
 	Cmd::Args extrapaks(fs_extrapaks.Get());
 	for (auto& x: extrapaks) {
 		if (!FS_LoadPak(x)) {
