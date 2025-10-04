@@ -27,6 +27,10 @@ along with Daemon Source Code.  If not, see <http://www.gnu.org/licenses/>.
 #include "qcommon.h"
 #include "common/Defs.h"
 
+#if defined(BUILD_GRAPHICAL_CLIENT) || defined(BUILD_TTY_CLIENT)
+#include "DaemonEmbeddedFiles/EngineMedia.h"
+#endif
+
 extern Log::Logger fsLogs;
 
 // There must be some limit for the APIs in this file since they use 'int' for lengths which can be overflowed by large files.
@@ -666,6 +670,10 @@ embeddedFileMap_t engineBasePak = {};
 void FS_LoadBasePak()
 {
 	FS::AddBuiltinPak("daemon", ENGINE_VERSION, engineBasePak);
+
+#if defined(BUILD_GRAPHICAL_CLIENT) || defined(BUILD_TTY_CLIENT)
+	FS::AddBuiltinPak("daemon-client", ENGINE_VERSION, EngineMedia::FileMap);
+#endif
 
 	Cmd::Args extrapaks(fs_extrapaks.Get());
 	for (auto& x: extrapaks) {
