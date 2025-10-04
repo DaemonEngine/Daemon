@@ -1010,6 +1010,9 @@ if (NOT NACL)
             Tests ${ENGINETESTLIST}
         )
     endif()
+
+    # Generate media include files.
+    daemon_embed_files("EngineMedia" "MEDIA" "BINARY" "engine-lib")
 endif()
 
 if (BUILD_CLIENT)
