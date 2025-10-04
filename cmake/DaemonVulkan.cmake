@@ -130,6 +130,8 @@ option( VULKAN_SPIRV_LTO "Enable link-time SPIR-V optimisations." ON )
 set( VULKAN_SPIRV_DEBUG "default" CACHE STRING "glslangValidator debug options (remove: g0, non-semantic: gV)")
 set_property( CACHE VULKAN_SPIRV_DEBUG PROPERTY STRINGS default remove non-semantic )
 
+include( DaemonEmbed )
+
 macro( GenerateVulkanShaders target )
 	# Pre-processing for #insert/#include
 	foreach( src IN LISTS graphicsEngineList )
@@ -169,15 +171,16 @@ macro( GenerateVulkanShaders target )
 	elseif( VULKAN_SPIRV_DEBUG STREQUAL "non-semantic" )
 		set( spirvOptions ${spirvOptions} -gV )
 	endif()
-
+	
 	foreach( src IN LISTS graphicsEngineList )
 		set( srcPath ${GRAPHICS_ENGINE_PROCESSED_PATH}${src} )
 
 		# set( spirvAsmPath ${GRAPHICS_ENGINE_PROCESSED_PATH}spirv/${src} )
 		# string( REGEX REPLACE "[.]glsl$" ".spirv" spirvAsmPath ${spirvAsmPath} )
-		get_filename_component( spirvAsmPath "${src}" NAME_WE )
+		get_filename_component( name "${src}" NAME_WE )
+		
+		set( spirvAsmPath ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/spirv/${name}.spirv )
 		message( STATUS ${spirvAsmPath} )
-		set( spirvAsmPath ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/spirv/${spirvAsmPath}.spirv )
 
 		set( spirvBinPath ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/bin/${src} )
 		string( REGEX REPLACE "[.]glsl$" ".spirvBin" spirvBinPath ${spirvBinPath} )
@@ -190,13 +193,17 @@ macro( GenerateVulkanShaders target )
 			DEPENDS ${srcPath}
 			COMMENT "Generating Vulkan graphics engine binaries: ${src}"
 		)
+
+		file( REMOVE ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/spirv/spirv.h )
 		
 		list( APPEND spirvBinList ${spirvBinPath} )
 	endforeach()
+	
+	GenerateEmbedFileH( "${spirvBinList}" ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/spirv/spirv.h TEXT client-objects )
 
 	add_custom_target( VulkanShaderBinTarget ALL
 		DEPENDS ${spirvBinList}
 	)
-
+	
 	target_sources( ${target} PRIVATE ${graphicsEngineOutputList} )
 endmacro()
