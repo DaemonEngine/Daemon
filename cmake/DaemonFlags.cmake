@@ -259,6 +259,10 @@ if (USE_FLOAT_EXCEPTIONS)
     add_definitions(-DDAEMON_USE_FLOAT_EXCEPTIONS)
 endif()
 
+if (NOT NACL AND BUILD_CLIENT)
+	option(USE_OPENMP "Use OpenMP to parallelize some tasks" OFF)
+endif()
+
 if (MSVC)
     set_c_cxx_flag("/MP")
 
@@ -266,6 +270,14 @@ if (MSVC)
     if (USE_CPP23 AND USE_RECOMMENDED_CXX_STANDARD)
         set_cxx_flag("/std:c++23preview")
     endif()
+
+	if (NOT NACL AND BUILD_CLIENT AND USE_OPENMP)
+		try_cxx_flag(OPENMP "/openmp")
+
+		if (NOT FLAG_OPENMP)
+			message(WARNING "Missing OpenMP")
+		endif()
+	endif()
 
     if (USE_FAST_MATH)
         set_c_cxx_flag("/fp:fast")
@@ -359,6 +371,14 @@ else()
 					message(FATAL_ERROR "GNU++14 is not supported by the compiler")
 				endif()
 			endif()
+		endif()
+	endif()
+
+	if (NOT NACL AND BUILD_CLIENT AND USE_OPENMP)
+		try_cxx_flag(FOPENMP "-fopenmp")
+
+		if (NOT FLAG_FOPENMP)
+			message(WARNING "Missing OpenMP")
 		endif()
 	endif()
 
