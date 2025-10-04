@@ -107,12 +107,6 @@ static glyphInfo_t *Glyph( int ch )
 
 void SCR_DrawConsoleFontUnichar( float x, float y, int ch )
 {
-	if ( cls.useLegacyConsoleFont )
-	{
-		SCR_DrawSmallUnichar( ( int ) x, ( int ) y, ch );
-		return;
-	}
-
 	if ( ch != ' ' )
 	{
 		glyphInfo_t *glyph = Glyph( ch );
@@ -123,53 +117,6 @@ void SCR_DrawConsoleFontUnichar( float x, float y, int ch )
 		                   glyph->s, glyph->t,
 		                   glyph->s2, glyph->t2,
 		                   glyph->glyph );
-	}
-}
-
-/*
-** SCR_DrawSmallUnichar
-** small chars are drawn at native screen resolution
-*/
-void SCR_DrawSmallUnichar( int x, int y, int ch )
-{
-	int   row, col;
-	float frow, fcol;
-	float size;
-
-	if ( ch < 0x100 || cls.useLegacyConsoleFont )
-	{
-		if ( ch == ' ' ) {
-			return;
-		}
-
-		if ( y < -SMALLCHAR_HEIGHT ) {
-			return;
-		}
-
-		if ( ch >= 0x100 ) { ch = 0; }
-
-		row = ch>>4;
-		col = ch&15;
-
-		frow = row*0.0625;
-		fcol = col*0.0625;
-		size = 0.0625;
-
-		// adjust for baseline
-		re.DrawStretchPic( x, y - (int)( SMALLCHAR_HEIGHT / ( CONSOLE_FONT_VPADDING + 1 ) ),
-		                SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT,
-				fcol, frow,
-				fcol + size, frow + size,
-				cls.charSetShader );
-	} else {
-		glyphInfo_t *glyph = Glyph( ch );
-
-		re.DrawStretchPic( x, y, SMALLCHAR_WIDTH, glyph->imageHeight,
-				glyph->s,
-				glyph->t,
-				glyph->s2,
-				glyph->t2,
-				glyph->glyph );
 	}
 }
 
@@ -335,9 +282,7 @@ void SCR_UpdateScreen()
 
 float SCR_ConsoleFontUnicharWidth( int ch )
 {
-	return cls.useLegacyConsoleFont
-	       ? SMALLCHAR_WIDTH
-	       : Glyph( ch )->xSkip + cl_consoleFontKerning->value;
+	return Glyph( ch )->xSkip + cl_consoleFontKerning->value;
 }
 
 float SCR_ConsoleFontCharWidth( const char *s )
@@ -347,43 +292,17 @@ float SCR_ConsoleFontCharWidth( const char *s )
 
 float SCR_ConsoleFontCharHeight()
 {
-	return cls.useLegacyConsoleFont
-	       ? SMALLCHAR_HEIGHT
-	       : cls.consoleFont->glyphBlock[0][(unsigned)'I'].imageHeight + CONSOLE_FONT_VPADDING * cl_consoleFontSize->value;
+	return cls.consoleFont->glyphBlock[0][(unsigned)'I'].imageHeight + CONSOLE_FONT_VPADDING * cl_consoleFontSize->value;
 }
 
 float SCR_ConsoleFontCharVPadding()
 {
-	return cls.useLegacyConsoleFont
-	       ? 0
-	       : std::max( 0, -cls.consoleFont->glyphBlock[0][(unsigned)'g'].bottom >> 6);
+	return std::max( 0, -cls.consoleFont->glyphBlock[0][(unsigned)'g'].bottom >> 6);
 }
 
 float SCR_ConsoleFontStringWidth( const char* s, int len )
 {
 	float width = 0;
-
-	if( cls.useLegacyConsoleFont )
-	{
-		if( cls.useLegacyConsoleFace )
-		{
-			return len * SMALLCHAR_WIDTH;
-		}
-		else
-		{
-			int l = 0;
-			const char *str = s;
-
-			while( *str && len > 0 )
-			{
-				l++;
-				str += Q_UTF8_Width( str );
-				len--;
-			}
-
-			return l * SMALLCHAR_WIDTH;
-		}
-	}
 
 	while( *s && len > 0 )
 	{

@@ -89,7 +89,6 @@ endif()
 set(MEDIA_EMBED_DIR ${ENGINE_DIR}/media)
 set(MEDIA_EMBED_LIST
 	fonts/unifont.ttf
-	gfx/2d/bigchars.png
 	scripts/engine.shader
 )
 
