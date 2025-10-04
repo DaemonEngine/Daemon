@@ -112,11 +112,11 @@ Cvar::Cvar<float> j_yaw("j_yaw", "joystick move scale for yaw axis", Cvar::NONE,
 Cvar::Cvar<float> j_forward("j_forward", "joystick move scale for forward axis", Cvar::NONE, -0.25);
 Cvar::Cvar<float> j_side("j_side", "joystick move scale for side (strafe) axis", Cvar::NONE, 0.25);
 Cvar::Cvar<float> j_up("j_up", "joystick move scale for up axis", Cvar::NONE, 1.0);
-Cvar::Range<Cvar::Cvar<int>> j_pitch_axis("j_pitch_axis", "joystick pitch axis number", Cvar::NONE, 3, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
-Cvar::Range<Cvar::Cvar<int>> j_yaw_axis("j_yaw_axis", "joystick yaw axis number", Cvar::NONE, 4, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
-Cvar::Range<Cvar::Cvar<int>> j_forward_axis("j_forward_axis", "joystick forward axis number", Cvar::NONE, 1, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
-Cvar::Range<Cvar::Cvar<int>> j_side_axis("j_side_axis", "joystick side (strafe) axis number", Cvar::NONE, 0, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
-Cvar::Range<Cvar::Cvar<int>> j_up_axis("j_up_axis", "joystick up axis number", Cvar::NONE, 2, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_pitchAxis("j_pitchAxis", "joystick pitch axis number", Cvar::NONE, 3, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_yawAxis("j_yawAxis", "joystick yaw axis number", Cvar::NONE, 4, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_forwardAxis("j_forwardAxis", "joystick forward axis number", Cvar::NONE, 1, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_sideAxis("j_sideAxis", "joystick side (strafe) axis number", Cvar::NONE, 0, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_upAxis("j_upAxis", "joystick up axis number", Cvar::NONE, 2, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
 
 cvar_t *cl_activeAction;
 

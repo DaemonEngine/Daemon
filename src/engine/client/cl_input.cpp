@@ -448,27 +448,27 @@ void CL_JoystickMove( usercmd_t *cmd )
 
 	if ( !kb[ KB_STRAFE ].active )
 	{
-		cl.viewangles[ YAW ] += anglespeed * j_yaw.Get() * cl.joystickAxis[ j_yaw_axis.Get() ];
-		cmd->rightmove = ClampChar( cmd->rightmove + ( int )( j_side.Get() * cl.joystickAxis[ j_side_axis.Get() ] ) );
+		cl.viewangles[ YAW ] += anglespeed * j_yaw.Get() * cl.joystickAxis[ j_yawAxis.Get() ];
+		cmd->rightmove = ClampChar( cmd->rightmove + ( int )( j_side.Get() * cl.joystickAxis[ j_sideAxis.Get() ] ) );
 	}
 	else
 	{
-		cl.viewangles[ YAW ] += anglespeed * j_side.Get() * cl.joystickAxis[ j_side_axis.Get() ];
-		cmd->rightmove = ClampChar( cmd->rightmove + ( int )( j_yaw.Get() * cl.joystickAxis[ j_yaw_axis.Get() ] ) );
+		cl.viewangles[ YAW ] += anglespeed * j_side.Get() * cl.joystickAxis[ j_sideAxis.Get() ];
+		cmd->rightmove = ClampChar( cmd->rightmove + ( int )( j_yaw.Get() * cl.joystickAxis[ j_yawAxis.Get() ] ) );
 	}
 
 	if ( kb[ KB_MLOOK ].active )
 	{
-		cl.viewangles[ PITCH ] += anglespeed * j_forward.Get() * cl.joystickAxis[ j_forward_axis.Get() ];
-		cmd->forwardmove = ClampChar( cmd->forwardmove + ( int )( j_pitch.Get() * cl.joystickAxis[ j_pitch_axis.Get() ] ) );
+		cl.viewangles[ PITCH ] += anglespeed * j_forward.Get() * cl.joystickAxis[ j_forwardAxis.Get() ];
+		cmd->forwardmove = ClampChar( cmd->forwardmove + ( int )( j_pitch.Get() * cl.joystickAxis[ j_pitchAxis.Get() ] ) );
 	}
 	else
 	{
-		cl.viewangles[ PITCH ] += anglespeed * j_pitch.Get() * cl.joystickAxis[ j_pitch_axis.Get() ];
-		cmd->forwardmove = ClampChar( cmd->forwardmove + ( int )( j_forward.Get() * cl.joystickAxis[ j_forward_axis.Get() ] ) );
+		cl.viewangles[ PITCH ] += anglespeed * j_pitch.Get() * cl.joystickAxis[ j_pitchAxis.Get() ];
+		cmd->forwardmove = ClampChar( cmd->forwardmove + ( int )( j_forward.Get() * cl.joystickAxis[ j_forwardAxis.Get() ] ) );
 	}
 
-	cmd->upmove = ClampChar( cmd->upmove + ( int ) ( j_up.Get() * cl.joystickAxis[ j_up_axis.Get() ] ) );
+	cmd->upmove = ClampChar( cmd->upmove + ( int ) ( j_up.Get() * cl.joystickAxis[ j_upAxis.Get() ] ) );
 }
 
 /*
