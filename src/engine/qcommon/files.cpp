@@ -626,6 +626,8 @@ const char* FS_LoadedPaks()
 	static char info[BIG_INFO_STRING];
 	info[0] = '\0';
 	for (const FS::LoadedPakInfo& x: FS::PakPath::GetLoadedPaks()) {
+		if (x.type == FS::pakType_t::PAK_BUILTIN)
+			continue;
 		if (!x.pathPrefix.empty())
 			continue;
 		if (info[0])
