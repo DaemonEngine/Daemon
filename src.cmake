@@ -88,7 +88,7 @@ endif()
 
 set(MEDIA_EMBED_DIR ${ENGINE_DIR}/media)
 set(MEDIA_EMBED_LIST
-	gfx/2d/bigchars.png
+	gfx/2d/bigchars.webp
 	scripts/engine.shader
 	sound/null.wav
 )
