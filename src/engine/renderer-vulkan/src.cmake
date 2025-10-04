@@ -67,7 +67,7 @@ set(UTILSLIST
     ${ENGINE_DIR}/renderer-vulkan/SrcDebug/Tag.h
 )
 
-# Graphics engine
+# Graphics core
 
 set(GRAPHICSCORELIST
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.cpp
@@ -95,6 +95,16 @@ set(GRAPHICSCORELIST
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Vulkan.h
 )
 
+# Graphics Engine
+
+set(GRAPHICSENGINELIST
+)
+
+set( GRAPHICSENGINEIDELIST ${GRAPHICSENGINELIST} )
+list( TRANSFORM GRAPHICSENGINEIDELIST PREPEND ${ENGINE_DIR}/renderer-vulkan/GraphicsEngine/ )
+
+# Vulkan Loader
+
 set(VULKANLOADERLIST
     ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/Vulkan.cpp
     ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/VulkanLoadFunctions.cpp
@@ -104,6 +114,7 @@ set(VULKANLOADERLIST
 
 set(GRAPHICSLIST
     ${GRAPHICSCORELIST}
+    ${GRAPHICSENGINEIDELIST}
     ${VULKANLOADERLIST}
 )
 

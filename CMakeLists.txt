@@ -649,6 +649,7 @@ endif()
 if (USE_VULKAN)
     add_definitions("-DDAEMON_RENDERER_VULKAN=1")
     add_definitions("-DVK_NO_PROTOTYPES=1")
+    include(DaemonVulkan)
 else()
     add_definitions("-DDAEMON_RENDERER_OPENGL=1")
 
@@ -1072,6 +1073,10 @@ if (BUILD_CLIENT)
         string(APPEND SHADERMAP_TEXT "std::string(reinterpret_cast<const char *>( ${filename_no_ext}_glsl ), ")
         string(APPEND SHADERMAP_TEXT "sizeof( ${filename_no_ext}_glsl )) },\n")
     endforeach()
+
+    if (USE_VULKAN)
+        GenerateVulkanShaders( client-objects )
+    endif()       
 
     string(APPEND SHADERS_CPP_TEXT "\nextern const std::unordered_map<std::string, std::string> shadermap\n{\n")
     string(APPEND SHADERS_CPP_TEXT "${SHADERMAP_TEXT}")

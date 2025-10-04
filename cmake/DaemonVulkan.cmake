@@ -114,29 +114,89 @@ endfunction()
 
 # GenerateVulkanHeaders()
 
-#try_compile( BUILD_RESULT
-#	"${CMAKE_BINARY_DIR}"
-#	"${DAEMON_DIR}/cmake/DaemonVulkan/VulkanHeaderParser.cpp"
-#	CMAKE_FLAGS ""
-#	OUTPUT_VARIABLE BUILD_LOG
-#)
+add_executable( VulkanShaderParser "${DAEMON_DIR}/cmake/DaemonVulkan/VulkanShaderParser.cpp" )
 
-#if ( NOT BUILD_RESULT )
-#	message( FATAL
-#		"Failed to build VulkanHeaderParser.cpp\n"
-#	)
-#endif()
+set( GRAPHICS_ENGINE_PATH ${DAEMON_DIR}/src/engine/renderer-vulkan/GraphicsEngine/ )
+set( GRAPHICS_ENGINE_PROCESSED_PATH ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngineProcessed/ )
+target_compile_definitions( VulkanShaderParser PRIVATE "-DDAEMON_VULKAN_GRAPHICS_ENGINE_PATH=\"${GRAPHICS_ENGINE_PATH}\"" )
+target_compile_definitions( VulkanShaderParser PRIVATE "-DDAEMON_VULKAN_GRAPHICS_ENGINE_PROCESSED_PATH=\"${GRAPHICS_ENGINE_PROCESSED_PATH}\"" )
 
-#set( vulkanHeaderPath "${DAEMON_DIR}/cmake/DaemonVulkan/" )
-#set( vulkanLoaderPath "${DAEMON_DIR}/src/engine/renderer-vulkan/VulkanLoader/" )
-#if( MSVC )
-#	string( REPLACE "/" "\\" vulkanHeaderPath ${vulkanHeaderPath} )
-#	string( REPLACE "/" "\\" vulkanLoaderPath ${vulkanHeaderPath} )
-#endif()
+file( MAKE_DIRECTORY ${GRAPHICS_ENGINE_PROCESSED_PATH} )
 
-# option( BUILD_VULKAN_HEADER_PARSER "Build Vulkan header parser for default sType and function declarations/definitions." OFF )
-# mark_as_advanced( BUILD_VULKAN_HEADER_PARSER )
+option( VULKAN_SPIRV_OUT "Output human-readable SPIR-V files alongside the binary format." ON )
+option( VULKAN_SPIRV_OPTIMISE "Enable SPIR-V optimisations." ON )
+option( VULKAN_SPIRV_LTO "Enable link-time SPIR-V optimisations." ON )
 
-# add_executable( VulkanHeaderParser "${DAEMON_DIR}/cmake/DaemonVulkan/VulkanHeaderParser.cpp" )
-# target_compile_definitions( VulkanHeaderParser PRIVATE "-DDAEMON_VULKAN_HEADER_PATH=\"${DAEMON_DIR}/cmake/DaemonVulkan/\"" )
-# target_compile_definitions( VulkanHeaderParser PRIVATE "-DDAEMON_VULKAN_LOADER_PATH=\"${DAEMON_DIR}/src/engine/renderer-vulkan/VulkanLoader/\"" )
+set( VULKAN_SPIRV_DEBUG "default" CACHE STRING "glslangValidator debug options (remove: g0, non-semantic: gV)")
+set_property( CACHE VULKAN_SPIRV_DEBUG PROPERTY STRINGS default remove non-semantic )
+
+macro( GenerateVulkanShaders target )
+	# Pre-processing for #insert/#include
+	foreach( src IN LISTS GRAPHICSENGINELIST )
+		set( graphicsProcessedList ${graphicsProcessedList} ${src} )
+		list( APPEND graphicsEngineOutputList ${GRAPHICS_ENGINE_PROCESSED_PATH}${src} )
+	endforeach()
+
+	add_custom_command(
+		COMMAND VulkanShaderParser ${graphicsProcessedList}
+		DEPENDS ${GRAPHICSENGINEIDELIST}
+		OUTPUT ${graphicsEngineOutputList}
+		COMMENT "Generating Vulkan graphics engine: ${graphicsProcessedList}"
+	)
+
+	add_custom_target( VulkanShaderParserTarget ALL
+		DEPENDS ${graphicsEngineOutputList}
+	)
+
+	# glslangValidator
+	find_program( glslangV glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/ )
+
+	file( MAKE_DIRECTORY ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/spirv/ )
+	file( MAKE_DIRECTORY ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/bin/ )
+
+	set( spirvOptions --target-env vulkan1.3 --glsl-version 460 -e main -l -t )
+
+	if( NOT VULKAN_SPIRV_OPTIMISE )
+		set( spirvOptions ${spirvOptions} -Od )
+	endif()
+
+	if( VULKAN_SPIRV_LTO )
+		set( spirvOptions ${spirvOptions} --lto )
+	endif()
+
+	if( VULKAN_SPIRV_DEBUG STREQUAL "remove" )
+		set( spirvOptions ${spirvOptions} -g0 )
+	elseif( VULKAN_SPIRV_DEBUG STREQUAL "non-semantic" )
+		set( spirvOptions ${spirvOptions} -gV )
+	endif()
+
+	foreach( src IN LISTS GRAPHICSENGINELIST )
+		set( srcPath ${GRAPHICS_ENGINE_PROCESSED_PATH}${src} )
+
+		# set( spirvAsmPath ${GRAPHICS_ENGINE_PROCESSED_PATH}spirv/${src} )
+		# string( REGEX REPLACE "[.]glsl$" ".spirv" spirvAsmPath ${spirvAsmPath} )
+		get_filename_component( spirvAsmPath "${src}" NAME_WE )
+		message( STATUS ${spirvAsmPath} )
+		set( spirvAsmPath ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/spirv/${spirvAsmPath}.spirv )
+
+		set( spirvBinPath ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/bin/${src} )
+		string( REGEX REPLACE "[.]glsl$" ".spirvBin" spirvBinPath ${spirvBinPath} )
+
+		#message(STATUS
+		#	"${spirvOptions} -S comp -V ${srcPath} -o ${spirvBinPath} -H > ${spirvAsmPath}" )
+		add_custom_command(
+			OUTPUT ${spirvBinPath}
+			COMMAND ${glslangV} ${spirvOptions} -S comp -V ${srcPath} -o ${spirvBinPath} -H > ${spirvAsmPath}
+			DEPENDS ${srcPath}
+			COMMENT "Generating Vulkan graphics engine binaries: ${src}"
+		)
+		
+		list( APPEND spirvBinList ${spirvBinPath} )
+	endforeach()
+
+	add_custom_target( VulkanShaderBinTarget ALL
+		DEPENDS ${spirvBinList}
+	)
+
+	target_sources( ${target} PRIVATE ${graphicsEngineOutputList} )
+endmacro()
