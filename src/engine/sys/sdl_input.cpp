@@ -57,7 +57,7 @@ static Cvar::Cvar<bool> in_nograb("in_nograb", "disable mouse grabbing and curso
 static Cvar::Cvar<bool> in_joystick("in_joystick", "enable game controller", Cvar::NONE, false);
 static Cvar::Cvar<float> in_joystickThreshold("in_joystickThreshold", "ignore analog stick deflections less than this", Cvar::NONE, 0.15);
 static Cvar::Cvar<int> in_joystickNo("in_joystickNo", "which game controller to use", Cvar::NONE, 0);
-static Cvar::Cvar<bool> in_joystickUseAnalog("in_joystickUseAnalog", "something about joystick control style", Cvar::NONE, false);
+static Cvar::Cvar<bool> j_useAnalog("j_useAnalog", "something about joystick control style", Cvar::NONE, false);
 static Cvar::Cvar<float> in_gameControllerTriggerDeadzone("in_gameControllerTriggerDeadzone", "how far trigger must be pulled for key down event", Cvar::NONE, 0.5);
 
 static SDL_Window *window = nullptr;
@@ -642,7 +642,7 @@ static void IN_InitJoystick()
 	controllerLog.Verbose( "Hats:    %d", SDL_GetNumJoystickHats( stick ) );
 	controllerLog.Verbose( "Buttons: %d", SDL_GetNumJoystickButtons( stick ) );
 	controllerLog.Verbose( "Balls: %d", SDL_GetNumJoystickBalls( stick ) );
-	controllerLog.Verbose( "Use Analog: %s", in_joystickUseAnalog.Get() ? "Yes" : "No" );
+	controllerLog.Verbose( "Use Analog: %s", j_useAnalog.Get() ? "Yes" : "No" );
 	controllerLog.Verbose( "Use SDL GameController mappings: %s", gamepad ? "Yes" : "No" );
 
 	SDL_GamepadEventsEnabled();
@@ -895,7 +895,7 @@ static void IN_JoyMove()
 		{
 			Sint16 axis = SDL_GetJoystickAxis( stick, i );
 
-			if ( !in_joystickUseAnalog.Get() )
+			if ( !j_useAnalog.Get() )
 			{
 				float f = ( ( float ) axis ) / 32767.0f;
 
