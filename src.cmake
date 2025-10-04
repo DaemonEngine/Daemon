@@ -300,9 +300,11 @@ if (APPLE)
     set(CLIENTLIST ${CLIENTLIST} ${ENGINE_DIR}/sys/DisableAccentMenu.m)
 endif()
 
-set(CLIENTTESTLIST ${ENGINETESTLIST}
-    ${ENGINE_DIR}/renderer/gl_shader_test.cpp
-)
+if( NOT USE_VULKAN )
+    set(CLIENTTESTLIST ${ENGINETESTLIST}
+        ${ENGINE_DIR}/renderer/gl_shader_test.cpp
+    )
+endif()
 
 set(TTYCLIENTLIST
     ${ENGINE_DIR}/null/NullAudio.cpp
