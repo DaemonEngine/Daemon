@@ -2093,8 +2093,6 @@ bool CL_InitRenderer()
 		return false;
 	}
 
-	fileHandle_t f;
-
 	// this sets up the renderer and calls R_Init
 	if ( !re.BeginRegistration( &cls.windowConfig ) )
 	{
@@ -2104,6 +2102,9 @@ bool CL_InitRenderer()
 	cl_consoleFont = Cvar_Get( "cl_consoleFont", "fonts/unifont.ttf",  CVAR_LATCH );
 	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
 	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
+
+#if defined(BUILD_GRAPHICAL_CLIENT)
+	fileHandle_t f;
 
 	// Register console font specified by cl_consoleFont, if any
 	// filehandle is unused but forces FS_FOpenFileRead() to heed purecheck because it does not when filehandle is nullptr
@@ -2144,6 +2145,7 @@ bool CL_InitRenderer()
 
 		FS_FCloseFile( f );
 	}
+#endif
 
 	cls.whiteShader = re.RegisterShader( "white", RSF_NOMIP );
 
