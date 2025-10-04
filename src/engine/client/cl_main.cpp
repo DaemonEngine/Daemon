@@ -95,7 +95,6 @@ cvar_t *cl_aviFrameRate;
 
 cvar_t *cl_freelook;
 cvar_t *cl_sensitivity;
-cvar_t *cl_gameControllerAvailable;
 
 cvar_t *cl_mouseAccelOffset;
 cvar_t *cl_mouseAccel;
@@ -108,16 +107,16 @@ cvar_t *m_forward;
 cvar_t *m_side;
 cvar_t *m_filter;
 
-cvar_t *j_pitch;
-cvar_t *j_yaw;
-cvar_t *j_forward;
-cvar_t *j_side;
-cvar_t *j_up;
-cvar_t *j_pitch_axis;
-cvar_t *j_yaw_axis;
-cvar_t *j_forward_axis;
-cvar_t *j_side_axis;
-cvar_t *j_up_axis;
+Cvar::Cvar<float> j_pitch("j_pitch", "joystick move scale for pitch axis", Cvar::NONE, 0.022);
+Cvar::Cvar<float> j_yaw("j_yaw", "joystick move scale for yaw axis", Cvar::NONE, -0.022);
+Cvar::Cvar<float> j_forward("j_forward", "joystick move scale for forward axis", Cvar::NONE, -0.25);
+Cvar::Cvar<float> j_side("j_side", "joystick move scale for side (strafe) axis", Cvar::NONE, 0.25);
+Cvar::Cvar<float> j_up("j_up", "joystick move scale for up axis", Cvar::NONE, 1.0);
+Cvar::Range<Cvar::Cvar<int>> j_pitchAxis("j_pitchAxis", "joystick pitch axis number", Cvar::NONE, 3, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_yawAxis("j_yawAxis", "joystick yaw axis number", Cvar::NONE, 4, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_forwardAxis("j_forwardAxis", "joystick forward axis number", Cvar::NONE, 1, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_sideAxis("j_sideAxis", "joystick side (strafe) axis number", Cvar::NONE, 0, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_upAxis("j_upAxis", "joystick up axis number", Cvar::NONE, 2, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
 
 cvar_t *cl_activeAction;
 
@@ -2335,8 +2334,6 @@ void CL_Init()
 	cl_mouseAccel = Cvar_Get( "cl_mouseAccel", "0", 0 );
 	cl_freelook = Cvar_Get( "cl_freelook", "1", CVAR_ARCHIVE );
 
-	cl_gameControllerAvailable = Cvar_Get( "in_gameControllerAvailable", "0", CVAR_ROM );
-
 	// 0: legacy mouse acceleration
 	// 1: new implementation
 
@@ -2355,18 +2352,6 @@ void CL_Init()
 	m_forward = Cvar_Get( "m_forward", "0.25", 0 );
 	m_side = Cvar_Get( "m_side", "0.25", 0 );
 	m_filter = Cvar_Get( "m_filter", "0", CVAR_ARCHIVE );
-
-	j_pitch = Cvar_Get( "j_pitch", "0.022", 0 );
-	j_yaw = Cvar_Get( "j_yaw", "-0.022", 0 );
-	j_forward = Cvar_Get( "j_forward", "-0.25", 0 );
-	j_side = Cvar_Get( "j_side", "0.25", 0 );
-	j_up = Cvar_Get ("j_up", "1", 0);
-
-	j_pitch_axis = Cvar_Get( "j_pitch_axis", "3", 0 );
-	j_yaw_axis = Cvar_Get( "j_yaw_axis", "4", 0 );
-	j_forward_axis = Cvar_Get( "j_forward_axis", "1", 0 );
-	j_side_axis = Cvar_Get( "j_side_axis", "0", 0 );
-	j_up_axis = Cvar_Get( "j_up_axis", "2", 0 );
 
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
 

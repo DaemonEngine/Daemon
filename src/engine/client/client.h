@@ -399,8 +399,6 @@ extern cvar_t *cl_doubletapdelay;
 extern cvar_t *cl_sensitivity;
 extern cvar_t *cl_freelook;
 
-extern cvar_t *cl_gameControllerAvailable;
-
 extern cvar_t *cl_mouseAccel;
 extern cvar_t *cl_mouseAccelOffset;
 extern cvar_t *cl_mouseAccelStyle;
@@ -412,16 +410,16 @@ extern cvar_t *m_forward;
 extern cvar_t *m_side;
 extern cvar_t *m_filter;
 
-extern cvar_t *j_pitch;
-extern cvar_t *j_yaw;
-extern cvar_t *j_forward;
-extern cvar_t *j_side;
-extern cvar_t *j_up;
-extern cvar_t *j_pitch_axis;
-extern cvar_t *j_yaw_axis;
-extern cvar_t *j_forward_axis;
-extern cvar_t *j_side_axis;
-extern cvar_t *j_up_axis;
+extern Cvar::Cvar<float> j_pitch;
+extern Cvar::Cvar<float> j_yaw;
+extern Cvar::Cvar<float> j_forward;
+extern Cvar::Cvar<float> j_side;
+extern Cvar::Cvar<float> j_up;
+extern Cvar::Range<Cvar::Cvar<int>> j_pitchAxis;
+extern Cvar::Range<Cvar::Cvar<int>> j_yawAxis;
+extern Cvar::Range<Cvar::Cvar<int>> j_forwardAxis;
+extern Cvar::Range<Cvar::Cvar<int>> j_sideAxis;
+extern Cvar::Range<Cvar::Cvar<int>> j_upAxis;
 
 extern Cvar::Cvar<bool> cvar_demo_timedemo;
 

@@ -40,6 +40,10 @@ Maryland 20850 USA.
 #include "engine/qcommon/sys.h"
 #include "framework/CommandSystem.h"
 
+static Cvar::Cvar<bool> in_gameControllerAvailable(
+	"in_gameControllerAvailable", "whether controller is a gamepad (as opposed to joystick)",
+	Cvar::ROM, false);
+
 unsigned frame_msec;
 int      old_com_frameTime;
 
@@ -442,35 +446,29 @@ void CL_JoystickMove( usercmd_t *cmd )
 		anglespeed = 0.001f * cls.frametime;
 	}
 
-#ifdef __MACOS__
-	cmd->rightmove = ClampChar( cmd->rightmove + cl.joystickAxis[ AXIS_SIDE ] );
-#else
-
 	if ( !kb[ KB_STRAFE ].active )
 	{
-		cl.viewangles[ YAW ] += anglespeed * j_yaw->value * cl.joystickAxis[ j_yaw_axis->integer ];
-		cmd->rightmove = ClampChar( cmd->rightmove + ( int )( j_side->value * cl.joystickAxis[ j_side_axis->integer ] ) );
+		cl.viewangles[ YAW ] += anglespeed * j_yaw.Get() * cl.joystickAxis[ j_yawAxis.Get() ];
+		cmd->rightmove = ClampChar( cmd->rightmove + ( int )( j_side.Get() * cl.joystickAxis[ j_sideAxis.Get() ] ) );
 	}
 	else
 	{
-		cl.viewangles[ YAW ] += anglespeed * j_side->value * cl.joystickAxis[ j_side_axis->integer ];
-		cmd->rightmove = ClampChar( cmd->rightmove + ( int )( j_yaw->value * cl.joystickAxis[ j_yaw_axis->integer ] ) );
+		cl.viewangles[ YAW ] += anglespeed * j_side.Get() * cl.joystickAxis[ j_sideAxis.Get() ];
+		cmd->rightmove = ClampChar( cmd->rightmove + ( int )( j_yaw.Get() * cl.joystickAxis[ j_yawAxis.Get() ] ) );
 	}
-
-#endif
 
 	if ( kb[ KB_MLOOK ].active )
 	{
-		cl.viewangles[ PITCH ] += anglespeed * j_forward->value * cl.joystickAxis[ j_forward_axis->integer ];
-		cmd->forwardmove = ClampChar( cmd->forwardmove + ( int )( j_pitch->value * cl.joystickAxis[ j_pitch_axis->integer ] ) );
+		cl.viewangles[ PITCH ] += anglespeed * j_forward.Get() * cl.joystickAxis[ j_forwardAxis.Get() ];
+		cmd->forwardmove = ClampChar( cmd->forwardmove + ( int )( j_pitch.Get() * cl.joystickAxis[ j_pitchAxis.Get() ] ) );
 	}
 	else
 	{
-		cl.viewangles[ PITCH ] += anglespeed * j_pitch->value * cl.joystickAxis[ j_pitch_axis->integer ];
-		cmd->forwardmove = ClampChar( cmd->forwardmove + ( int )( j_forward->value * cl.joystickAxis[ j_forward_axis->integer ] ) );
+		cl.viewangles[ PITCH ] += anglespeed * j_pitch.Get() * cl.joystickAxis[ j_pitchAxis.Get() ];
+		cmd->forwardmove = ClampChar( cmd->forwardmove + ( int )( j_forward.Get() * cl.joystickAxis[ j_forwardAxis.Get() ] ) );
 	}
 
-	cmd->upmove = ClampChar( cmd->upmove + ( int ) ( j_up->value * cl.joystickAxis[ j_up_axis->integer ] ) );
+	cmd->upmove = ClampChar( cmd->upmove + ( int ) ( j_up.Get() * cl.joystickAxis[ j_upAxis.Get() ] ) );
 }
 
 /*
@@ -716,7 +714,7 @@ usercmd_t CL_CreateCmd()
 	CL_MouseMove( &cmd );
 
 	// get basic movement from joystick or controller
-	if ( cl_gameControllerAvailable->integer )
+	if ( in_gameControllerAvailable.Get() )
 	{
 		CL_GameControllerMove( &cmd );
 	}
