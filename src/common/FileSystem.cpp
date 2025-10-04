@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(BUILD_ENGINE)
 #include "minizip/unzip.h"
+#include "DaemonEmbedded/EngineMedia.h"
 #endif
 
 #ifdef BUILD_VM
@@ -128,6 +129,15 @@ namespace FS {
 static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "also load pk3s, ignoring version", Cvar::NONE, false);
 static Cvar::Cvar<int> fs_maxSymlinkDepth("fs_maxSymlinkDepth", "max depth of symlinks in zip paks (0 means disabled)", Cvar::NONE, 1);
 static Cvar::Cvar<std::string> fs_pakprefixes("fs_pakprefixes", "prefixes to look for paks to load", 0, "");
+
+const PakInfo builtinPak =
+{
+	"*builtin",
+	ENGINE_VERSION,
+	0,
+	pakType_t::PAK_BUILTIN,
+	"*builtin",
+};
 
 bool UseLegacyPaks()
 {
@@ -1258,6 +1268,7 @@ static void InternalLoadPak(
 	offset_t depsOffset = 0;
 	ZipArchive zipFile;
 	bool isLegacy = pak.version.empty();
+	bool isBuiltin = pak.type == pakType_t::PAK_BUILTIN;
 
 	// Check if this pak has already been loaded to avoid recursive dependencies
 	for (auto& x: loadedPaks) {
@@ -1279,6 +1290,8 @@ static void InternalLoadPak(
 		} else {
 			fsLogs.WithoutSuppression().Notice("Loading legacy pakdir '%s'...", pak.path.c_str());
 		}
+	} else if (pak.type == pakType_t::PAK_BUILTIN ) {
+		fsLogs.WithoutSuppression().Notice("Loading builtin pak '%s'...", pak.path.c_str());
 	} else {
 		ASSERT_UNREACHABLE();
 	}
@@ -1369,6 +1382,10 @@ static void InternalLoadPak(
 		}, err);
 		if (err)
 			return;
+	} else if (pak.type == pakType_t::PAK_BUILTIN) {
+		for ( auto it : EngineMedia::FileMap ) {
+			fileMap.emplace(it.first, std::pair<uint32_t, offset_t>(loadedPaks.size() - 1, 0));
+		}
 	} else {
 		ASSERT_UNREACHABLE();
 	}
@@ -1388,8 +1405,8 @@ static void InternalLoadPak(
 
 	loadedPak.pathPrefix = pathPrefix;
 
-	// Legacy paks don't have version neither checksum
-	if (!isLegacy) {
+	// Legacy and builtin paks don't have version neither checksum
+	if (!isLegacy && !isBuiltin) {
 		// If an explicit checksum was requested, verify that the pak we loaded is the one we are expecting
 		if (expectedChecksum && realChecksum != *expectedChecksum) {
 			SetErrorCodeFilesystem(err, filesystem_error::wrong_pak_checksum, pak.path);
@@ -1589,6 +1606,8 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 			return "";
 
 		return out;
+	} else if (pak.type == pakType_t::PAK_BUILTIN) {
+		return EngineMedia::ReadFile(it->first);
 	}
 
 	ASSERT_UNREACHABLE();
@@ -2660,6 +2679,13 @@ static const PakInfo* FindPakNoPrefix(Str::StringRef name)
 
 const PakInfo* FindPak(Str::StringRef name)
 {
+#if defined(BUILD_ENGINE)
+	if (name == builtinPak.name)
+	{
+		return &builtinPak;
+	}
+#endif
+
 	Cmd::Args pakprefixes(Cvar::GetValue("fs_pakprefixes"));
 	for (const std::string &pakprefix: pakprefixes)
 	{

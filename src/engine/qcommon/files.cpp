@@ -626,6 +626,8 @@ const char* FS_LoadedPaks()
 	static char info[BIG_INFO_STRING];
 	info[0] = '\0';
 	for (const FS::LoadedPakInfo& x: FS::PakPath::GetLoadedPaks()) {
+		if (x.type == FS::pakType_t::PAK_BUILTIN)
+			continue;
 		if (!x.pathPrefix.empty())
 			continue;
 		if (info[0])
@@ -655,6 +657,10 @@ bool FS_LoadPak(const Str::StringRef name)
 
 void FS_LoadBasePak()
 {
+#if defined(BUILD_GRAPHICAL_CLIENT)
+	FS_LoadPak(FS::builtinPak.name);
+#endif
+
 	Cmd::Args extrapaks(fs_extrapaks.Get());
 	for (auto& x: extrapaks) {
 		if (!FS_LoadPak(x)) {

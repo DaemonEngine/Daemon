@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <common/FileSystem.h>
 #include "gl_shader.h"
 #include "Material.h"
+#include "DaemonEmbedded/EngineShaders.h"
 
 // We currently write GLBinaryHeader to a file and memcpy all over it.
 // Make sure it's a pod, so we don't put a std::string in it or something
@@ -41,7 +42,6 @@ static Cvar::Cvar<bool> r_logUnmarkedGLSLBuilds(
 	"r_logUnmarkedGLSLBuilds", "Log building information for GLSL shaders that are built after the map is loaded",
 	Cvar::NONE, true );
 
-extern const std::unordered_map<std::string, std::string> shadermap;
 // shaderKind's value will be determined later based on command line setting or absence of.
 ShaderKind shaderKind = ShaderKind::Unknown;
 
@@ -88,14 +88,6 @@ namespace // Implementation details
 	NORETURN inline void ThrowShaderError(Str::StringRef msg)
 	{
 		throw ShaderException(msg.c_str());
-	}
-
-	const char* GetInternalShader(Str::StringRef filename)
-	{
-		auto it = shadermap.find(filename);
-		if (it != shadermap.end())
-			return it->second.c_str();
-		return nullptr;
 	}
 
 	void CRLFToLF(std::string& source)
@@ -160,10 +152,9 @@ namespace // Implementation details
 		{
 			// Look for the shader internally. If not found, look for it externally.
 			// If found neither internally or externally of if empty, then Error.
-			auto text_ptr = GetInternalShader(filename);
-			if (text_ptr == nullptr)
+			if (!EngineShaders::HasFile(filename))
 				ThrowShaderError(Str::Format("No shader found for shader: %s", filename));
-			return text_ptr;
+			return EngineShaders::ReadFile(filename);
 		}
 		else if (shaderKind == ShaderKind::External)
 		{
@@ -182,10 +173,9 @@ namespace // Implementation details
 			if (err)
 				ThrowShaderError(Str::Format("Failed to read shader from file %s: %s", shaderFilename, err.message()));
 
-			auto textPtr = GetInternalShader(filename);
 			std::string internalShaderText;
-			if (textPtr != nullptr)
-				internalShaderText = textPtr;
+			if (!EngineShaders::HasFile(filename))
+				internalShaderText = EngineShaders::ReadFile(filename);
 
 			// Alert the user when a file does not match its built-in version.
 			// When testing shader file changes this is an expected message
