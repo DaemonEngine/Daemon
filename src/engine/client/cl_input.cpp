@@ -446,10 +446,6 @@ void CL_JoystickMove( usercmd_t *cmd )
 		anglespeed = 0.001f * cls.frametime;
 	}
 
-#ifdef __MACOS__
-	cmd->rightmove = ClampChar( cmd->rightmove + cl.joystickAxis[ AXIS_SIDE ] );
-#else
-
 	if ( !kb[ KB_STRAFE ].active )
 	{
 		cl.viewangles[ YAW ] += anglespeed * j_yaw->value * cl.joystickAxis[ j_yaw_axis->integer ];
@@ -460,8 +456,6 @@ void CL_JoystickMove( usercmd_t *cmd )
 		cl.viewangles[ YAW ] += anglespeed * j_side->value * cl.joystickAxis[ j_side_axis->integer ];
 		cmd->rightmove = ClampChar( cmd->rightmove + ( int )( j_yaw->value * cl.joystickAxis[ j_yaw_axis->integer ] ) );
 	}
-
-#endif
 
 	if ( kb[ KB_MLOOK ].active )
 	{
