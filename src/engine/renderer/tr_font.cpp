@@ -583,7 +583,7 @@ static void RE_FreeFontFile( void *data )
 fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize )
 {
 	FT_Face       face;
-	void          *faceData;
+	void          *faceData = nullptr;
 	int           i, len, fontNo;
 	char          fileName[ MAX_QPATH ];
 	char          strippedName[ MAX_QPATH ];
