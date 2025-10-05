@@ -1105,6 +1105,10 @@ if __name__ == '__main__':
                         help='generate MISRA C++-friendly headers')
     parser.add_argument('--iscts', action='store_true', dest='isCTS',
                         help='Specify if this should generate CTS compatible code')
+    parser.add_argument('-mode', action='store',
+                        help='w - write, a - append')
+    parser.add_argument('-define', action='store',
+                        help='Pe-processor define to use')
 
     args = parser.parse_args()
 
@@ -1148,12 +1152,16 @@ if __name__ == '__main__':
         logDiag('* Dumping registry to regdump.txt')
         reg.dumpReg(filehandle=open('regdump.txt', 'w', encoding='utf-8'))
 
+    if not args.mode in ( 'w', 'a' ):
+        print( 'Unknown mode: ' + args.mode + '\nAvailable modes: w, a' )
+        exit( -1 )
+
     # Finally, use the output generator to create the requested target
     if args.debug:
         pdb.run('reg.apiGen()')
     else:
         startTimer(args.time)
-        reg.apiGen()
+        reg.apiGen( args.registry.removesuffix( 'vk.xml' ), args.directory, args.mode, args.define )
         endTimer(args.time, f"* Time to generate {options.filename} =")
 
     if not args.quiet:
