@@ -301,7 +301,6 @@ if (APPLE)
 endif()
 
 set(CLIENTTESTLIST ${ENGINETESTLIST}
-    ${ENGINE_DIR}/renderer/gl_shader_test.cpp
 )
 
 set(TTYCLIENTLIST

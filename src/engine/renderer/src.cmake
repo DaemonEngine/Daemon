@@ -66,3 +66,7 @@ set(RENDERERLIST
     ${ENGINE_DIR}/sys/sdl_glimp.cpp
     ${ENGINE_DIR}/sys/sdl_icon.h
 )
+
+set(RENDERERTESTLIST
+    ${ENGINE_DIR}/renderer/gl_shader_test.cpp
+)
