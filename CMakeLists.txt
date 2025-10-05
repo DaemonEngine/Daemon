@@ -1024,6 +1024,7 @@ if (BUILD_CLIENT)
         set(CLIENT_EXECUTABLE_NAME daemon-vulkan)
     else()
         set(CLIENT_EXECUTABLE_NAME daemon)
+        set(CLIENTTESTLIST ${CLIENTTESTLIST} ${RENDERERTESTLIST})
     endif()
 
     AddApplication(
