@@ -2154,9 +2154,6 @@ union OpaquePlayerState {
 
 // font support
 
-#define GLYPH_START     0
-#define GLYPH_END       255
-#define GLYPHS_PER_FONT ( GLYPH_END - GLYPH_START + 1 )
 struct glyphInfo_t
 {
 	int       height; // number of scan lines
