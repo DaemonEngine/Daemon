@@ -2156,8 +2156,6 @@ union OpaquePlayerState {
 
 #define GLYPH_START     0
 #define GLYPH_END       255
-#define GLYPH_CHARSTART 32
-#define GLYPH_CHAREND   127
 #define GLYPHS_PER_FONT ( GLYPH_END - GLYPH_START + 1 )
 struct glyphInfo_t
 {
@@ -2186,8 +2184,6 @@ struct fontInfo_t
 	void         *face, *faceData;
 	glyphInfo_t  *glyphBlock[0x110000 / 256]; // glyphBlock_t
 	int           pointSize;
-	int           height;
-	float         glyphScale;
 	char          name[ MAX_QPATH ];
 };
 
