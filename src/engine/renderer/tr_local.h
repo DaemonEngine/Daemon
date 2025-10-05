@@ -3668,7 +3668,6 @@ void GLimp_LogComment_( std::string comment );
 	void       R_DoneFreeType();
 	fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize );
 	void       RE_UnregisterFont( fontInfo_t *font );
-	void       RE_Glyph(fontInfo_t *font, const char *str, glyphInfo_t *glyph);
 	void       RE_GlyphChar(fontInfo_t *font, int ch, glyphInfo_t *glyph);
 
 	void       R_SetAltShaderTokens( const char * );

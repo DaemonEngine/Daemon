@@ -360,11 +360,6 @@ void RE_GlyphChar( fontInfo_t *font, int ch, glyphInfo_t *glyph )
 	*glyph = font->glyphBlock[ ch / 256][ ch % 256 ];
 }
 
-void RE_Glyph( fontInfo_t *font, const char *str, glyphInfo_t *glyph )
-{
-	RE_GlyphChar( font, Q_UTF8_CodePoint( str ), glyph );
-}
-
 static void RE_StoreImage( fontInfo_t *font, int chunk, int page, int from, int to, const unsigned char *bitmap, int yEnd )
 {
 	int           scaledSize = FONT_SIZE * FONT_SIZE;
@@ -642,7 +637,6 @@ fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize )
 	if ( len > 0x5004 && len <= 0x5004 + MAX_QPATH ) // 256 glyphs, scale info, and the bitmap name
 	{
 		glyphInfo_t *glyphs;
-		int height = 0;
 
 		ri.FS_ReadFile( fileName, &faceData );
 		fdOffset = 0;
@@ -652,13 +646,7 @@ fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize )
 
 		for ( i = 0; i < GLYPHS_PER_FONT; i++ )
 		{
-			glyphs[ i ].height = readInt();
-
-			if ( glyphs[ i ].height > height )
-			{
-				height = glyphs[ i ].height;
-			}
-
+			/* height */ readInt();
 			glyphs[ i ].top = readInt();
 			glyphs[ i ].bottom = readInt();
 			glyphs[ i ].pitch = readInt();
@@ -675,8 +663,7 @@ fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize )
 		}
 
 		font->pointSize = pointSize;
-		font->height = height;
-		font->glyphScale = readFloat();
+		/* glyphScale */ readFloat();
 		Q_strncpyz( font->name, registeredName, sizeof( font->name ) );
 
 		ri.FS_FreeFile( faceData );
@@ -728,8 +715,6 @@ fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize )
 	font->face = face;
 	font->faceData = faceData;
 	font->pointSize = pointSize;
-	font->glyphScale = 64.0f / pointSize;
-	font->height = ceil( ( face->height / 64.0 ) * ( face->size->metrics.y_scale / 65536.0 ) * font->glyphScale );
 
 	RE_RenderChunk( font, 0 );
 

@@ -54,7 +54,7 @@ fontInfo_t* RE_RegisterFont( const char *, int )
 {
 	return nullptr;
 }
-void RE_Glyph( fontInfo_t *, const char *, glyphInfo_t *glyph )
+void RE_GlyphChar( fontInfo_t *, int, glyphInfo_t *glyph )
 {
 	glyph->height = 1;
 	glyph->top = 1;
@@ -69,10 +69,6 @@ void RE_Glyph( fontInfo_t *, const char *, glyphInfo_t *glyph )
 	glyph->t2 = 1.0f;
 	glyph->glyph = 1;
 	glyph->shaderName[0] = '\0';
-}
-void RE_GlyphChar( fontInfo_t *font, int, glyphInfo_t *glyph )
-{
-	RE_Glyph( font, nullptr, glyph );
 }
 void RE_UnregisterFont( fontInfo_t* ) { }
 void RE_LoadWorldMap( const char * ) { }
@@ -205,7 +201,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.RegisterSkin = RE_RegisterSkin;
     re.RegisterShader = RE_RegisterShader;
     re.RegisterFont = RE_RegisterFont;
-    re.Glyph = RE_Glyph;
     re.GlyphChar = RE_GlyphChar;
     re.UnregisterFont = RE_UnregisterFont;
     re.LoadWorld = RE_LoadWorldMap;

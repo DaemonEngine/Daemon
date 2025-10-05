@@ -77,7 +77,6 @@ struct refexport_t {
 	qhandle_t( *RegisterShader )( const char* name, int flags );
 	fontInfo_t* ( *RegisterFont )( const char* fontName, int pointSize );
 	void   ( *UnregisterFont )( fontInfo_t* font );
-	void   ( *Glyph )( fontInfo_t* font, const char* str, glyphInfo_t* glyph );
 	void   ( *GlyphChar )( fontInfo_t* font, int ch, glyphInfo_t* glyph );
 
 	void ( *LoadWorld )( const char* name );
