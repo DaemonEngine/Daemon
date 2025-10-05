@@ -425,21 +425,29 @@ static int RE_LoadFontFile( const char *name, void **buffer )
 		return ConsoleFont::unifont_otf.size;
 	}
 
-	void *tmp;
-	int  length = ri.FS_ReadFile( name, &tmp );
+	std::string tmp;
 
-	if ( length <= 0 )
+	try
+	{
+		tmp = FS::HomePath::OpenRead( name ).ReadAll();
+	}
+	catch ( const std::system_error &exc )
+	{
+		Log::Warn( "Failed to read font file: %s", exc.what() );
+		return 0;
+	}
+
+	if ( tmp.size() > 1000 * 1000 * 1000 )
 	{
 		return 0;
 	}
 
-	void *data = Z_AllocUninit( length );
+	void *data = Z_AllocUninit( tmp.size() );
 	*buffer = data;
 
-	memcpy( data, tmp, length );
-	ri.FS_FreeFile( tmp );
+	memcpy( data, tmp.data(), tmp.size() );
 
-	return length;
+	return tmp.size();
 }
 
 static void RE_FreeFontFile( void *data )
