@@ -2103,28 +2103,37 @@ bool CL_InitRenderer()
 	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
 	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
 
-	// load character sets
-	cls.charSetShader = re.RegisterShader( "gfx/2d/bigchars", RSF_2D );
-	cls.useLegacyConsoleFont = cls.useLegacyConsoleFace = true;
-
 	// Register console font specified by cl_consoleFont. Empty string means use the embbed Unifont
 
-	if ( cl_consoleFontScaling->value == 0 )
-	{
-		cls.consoleFont = re.RegisterFont( cl_consoleFont->string, cl_consoleFontSize->integer );
-	}
-	else
+	int fontSize = cl_consoleFontSize->integer;
+
+	if ( cl_consoleFontScaling->integer )
 	{
 		// This gets 12px on 1920×1080 screen, which is libRocket default for 1em
 		int fontScale = std::min(cls.windowConfig.vidWidth, cls.windowConfig.vidHeight) / 90;
 
 		// fontScale / 12px gets 1px on 1920×1080 screen
-		cls.consoleFont = re.RegisterFont( cl_consoleFont->string, cl_consoleFontSize->integer * fontScale / 12 );
+		fontSize = cl_consoleFontSize->integer * fontScale / 12;
 	}
 
-	if ( cls.consoleFont != nullptr )
+	if ( cl_consoleFont->string[ 0 ] )
 	{
-		cls.useLegacyConsoleFont = false;
+		cls.consoleFont = re.RegisterFont( cl_consoleFont->string, fontSize );
+		if ( cls.consoleFont == nullptr )
+		{
+			Log::Warn( "Couldn't load font file '%s', falling back to default console font",
+			            cl_consoleFont->string );
+		}
+	}
+
+	if ( cls.consoleFont == nullptr )
+	{
+		cls.consoleFont = re.RegisterFont( "", fontSize );
+
+		if ( cls.consoleFont == nullptr )
+		{
+			Sys::Error( "Failed to load built-in console font" );
+		}
 	}
 
 	cls.whiteShader = re.RegisterShader( "white", RSF_NOMIP );

@@ -315,10 +315,7 @@ struct clientStatic_t
 
 	// rendering info
 	WindowConfig windowConfig;
-	qhandle_t   charSetShader;
 	qhandle_t   whiteShader;
-	bool    useLegacyConsoleFont;
-	bool    useLegacyConsoleFace;
 	fontInfo_t *consoleFont;
 
 	// www downloading
@@ -650,7 +647,6 @@ void  SCR_AdjustFrom640( float *x, float *y, float *w, float *h );
 void  SCR_FillRect( float x, float y, float width, float height, const Color::Color& color );
 
 void  SCR_DrawSmallStringExt( int x, int y, const char *string, const Color::Color& setColor, bool forceColor, bool noColorEscape );
-void  SCR_DrawSmallUnichar( int x, int y, int ch );
 void  SCR_DrawConsoleFontUnichar( float x, float y, int ch );
 float SCR_ConsoleFontCharWidth( const char *s );
 float SCR_ConsoleFontUnicharWidth( int ch );
