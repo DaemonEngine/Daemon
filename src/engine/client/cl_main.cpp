@@ -2093,15 +2093,13 @@ bool CL_InitRenderer()
 		return false;
 	}
 
-	fileHandle_t f;
-
 	// this sets up the renderer and calls R_Init
 	if ( !re.BeginRegistration( &cls.windowConfig ) )
 	{
 		return false;
 	}
 
-	cl_consoleFont = Cvar_Get( "cl_consoleFont", "fonts/unifont.ttf",  CVAR_LATCH );
+	cl_consoleFont = Cvar_Get( "cl_consoleFont", "",  CVAR_LATCH );
 	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
 	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
 
@@ -2109,34 +2107,24 @@ bool CL_InitRenderer()
 	cls.charSetShader = re.RegisterShader( "gfx/2d/bigchars", RSF_2D );
 	cls.useLegacyConsoleFont = cls.useLegacyConsoleFace = true;
 
-	// Register console font specified by cl_consoleFont, if any
-	// filehandle is unused but forces FS_FOpenFileRead() to heed purecheck because it does not when filehandle is nullptr
-	if ( cl_consoleFont->string[0] )
+	// Register console font specified by cl_consoleFont. Empty string means use the embbed Unifont
+
+	if ( cl_consoleFontScaling->value == 0 )
 	{
-		if ( FS_FOpenFileRead( cl_consoleFont->string, &f ) >= 0 )
-		{
-			if ( cl_consoleFontScaling->value == 0 )
-			{
-				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, cl_consoleFontSize->integer );
-			}
-			else
-			{
-				// This gets 12px on 1920×1080 screen, which is libRocket default for 1em
-				int fontScale = std::min(cls.windowConfig.vidWidth, cls.windowConfig.vidHeight) / 90;
+		cls.consoleFont = re.RegisterFont( cl_consoleFont->string, cl_consoleFontSize->integer );
+	}
+	else
+	{
+		// This gets 12px on 1920×1080 screen, which is libRocket default for 1em
+		int fontScale = std::min(cls.windowConfig.vidWidth, cls.windowConfig.vidHeight) / 90;
 
-				// fontScale / 12px gets 1px on 1920×1080 screen
-				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, cl_consoleFontSize->integer * fontScale / 12 );
-			}
+		// fontScale / 12px gets 1px on 1920×1080 screen
+		cls.consoleFont = re.RegisterFont( cl_consoleFont->string, cl_consoleFontSize->integer * fontScale / 12 );
+	}
 
-			if ( cls.consoleFont != nullptr )
-				cls.useLegacyConsoleFont = false;
-		}
-		else
-		{
-			Log::Warn("Font file '%s' not found", cl_consoleFont->string);
-		}
-
-		FS_FCloseFile( f );
+	if ( cls.consoleFont != nullptr )
+	{
+		cls.useLegacyConsoleFont = false;
 	}
 
 	cls.whiteShader = re.RegisterShader( "white", RSF_NOMIP );
