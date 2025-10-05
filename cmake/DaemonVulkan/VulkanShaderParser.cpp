@@ -169,7 +169,9 @@ int main( int argc, char** argv ) {
 
 	const std::string baseSpirvOptions = argv[1];
 
-	for( int i = 2; i < argc; i++ ) {
+	const bool spirvAsm = !stricmp( argv[2], "ON" );
+
+	for( int i = 3; i < argc; i++ ) {
 		std::string path = argv[i];
 
 		FILE* glslSource = fopen( ( graphicsEnginePath + path ).c_str(), "r" );
@@ -224,7 +226,10 @@ int main( int argc, char** argv ) {
 		fclose( glslSource );
 		fclose( processedGLSL );
 
-		spirvOptions += " -V " + srcPath + name + " -o " + spirvBinPath + nameNoExt + ".spirvBin -H > " + spirvPath + name + ".spirv";
+		spirvOptions += " -V " + srcPath + name + " -o " + spirvBinPath + nameNoExt + ".spirvBin";
+		if ( spirvAsm ) {
+			spirvOptions += " -H > " + spirvPath + nameNoExt + ".spirv";
+		}
 
 		int r = system( spirvOptions.c_str() );
 
