@@ -1440,8 +1440,7 @@ void CL_Vid_Restart_f()
 	Audio::StopAllSounds();
 	// shutdown the CGame
 	CL_ShutdownCGame();
-	// clear the font cache
-	re.UnregisterFont( nullptr );
+	re.UnregisterFont( cls.consoleFont );
 	cls.consoleFont = nullptr;
 	// shutdown the renderer and clear the renderer interface
 	CL_ShutdownRef();
@@ -2461,7 +2460,7 @@ void CL_Shutdown()
 
 	if ( re.UnregisterFont )
 	{
-		re.UnregisterFont( nullptr );
+		re.UnregisterFont( cls.consoleFont );
 		cls.consoleFont = nullptr;
 	}
 
