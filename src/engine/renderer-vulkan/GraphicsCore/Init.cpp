@@ -33,10 +33,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Init.cpp
 
+#include "engine/qcommon/qcommon.h"
+
+#include "GraphicsCoreStore.h"
 #include "Instance.h"
 
 #include "Init.h"
 
 void InitGraphicsEngine() {
-	coreInstance.Init( "Daemon-vulkan", CLIENT_WINDOW_TITLE );
+	instance.Init( "Daemon-vulkan", CLIENT_WINDOW_TITLE );
 }

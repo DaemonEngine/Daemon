@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef QUEUE_H
 #define QUEUE_H
 
-#include "Vulkan.h"
+#include "Decls.h"
 
 #include "../Math/NumberTypes.h"
 

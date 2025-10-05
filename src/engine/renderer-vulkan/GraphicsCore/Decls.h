@@ -31,18 +31,34 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Instance.h
+// Decls.h
 
-#ifndef INSTANCE_H
-#define INSTANCE_H
+#ifndef GRAPHICS_CORE_DECLS_H
+#define GRAPHICS_CORE_DECLS_H
 
-#include "Decls.h"
+#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
+#define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
 
-class Instance {
-	public:
-	VkInstance instance;
+class Instance;
+class Surface;
+struct SwapChain;
 
-	void Init( const char* engineName, const char* appName );
-};
+struct EngineConfig;
+struct QueuesConfig;
 
-#endif // INSTANCE_H
+VK_DEFINE_HANDLE( VkInstance );
+VK_DEFINE_HANDLE( VkPhysicalDevice );
+VK_DEFINE_HANDLE( VkDevice );
+VK_DEFINE_HANDLE( VkQueue );
+
+VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSurfaceKHR )
+VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSwapchainKHR )
+
+struct GraphicsQueueRingBuffer;
+
+extern GraphicsQueueRingBuffer graphicsQueue;
+extern GraphicsQueueRingBuffer computeQueue;
+extern GraphicsQueueRingBuffer transferQueue;
+extern GraphicsQueueRingBuffer sparseQueue;
+
+#endif // GRAPHICS_CORE_DECLS_H

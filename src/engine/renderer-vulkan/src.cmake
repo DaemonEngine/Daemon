@@ -69,6 +69,7 @@ set( utilsList
 
 # Graphics core
 set( graphicsCoreList
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Decls.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineConfig.cpp

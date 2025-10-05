@@ -36,12 +36,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PHYSICAL_DEVICE_H
 #define PHYSICAL_DEVICE_H
 
-#include "Vulkan.h"
+#include "Decls.h"
 
 #include "../Memory/DynamicArray.h"
-
-struct EngineConfig;
-struct QueuesConfig;
 
 class PhysicalDevice {
 	public:

@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SWAP_CHAIN_H
 #define SWAP_CHAIN_H
 
-#include "Vulkan.h"
+#include "Decls.h"
 
 #include "../Math/NumberTypes.h"
 

@@ -37,6 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Surface/Surface.h"
 
+#include "Instance.h"
+
 #include "SwapChain.h"
 
 #include "EngineConfig.h"
@@ -46,6 +48,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GraphicsCoreStore.h"
 
 Surface mainSurface;
+
+Instance instance;
 
 SwapChain mainSwapChain;
 
