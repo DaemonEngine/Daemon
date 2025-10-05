@@ -1053,7 +1053,7 @@ if (BUILD_CLIENT)
 
         add_custom_command(
             OUTPUT ${outpath}
-            COMMAND ${CMAKE_COMMAND} "-DINPUT_FILE=${res}" "-DOUTPUT_FILE=${outpath}"
+            COMMAND ${CMAKE_COMMAND} "-DINPUT_FILE=${res}" "-DOUTPUT_FILE=${outpath}" -DTEXT_MODE=1
                 "-DVARIABLE_NAME=${filename_no_ext}_glsl" -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedText.cmake
             MAIN_DEPENDENCY ${res}
         )
