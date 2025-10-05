@@ -57,7 +57,7 @@ include( DaemonEmbed )
 macro( GenerateVulkanShaders target )
 	# Pre-processing for #insert/#include
 	foreach( src IN LISTS graphicsEngineList )
-		set( graphicsProcessedList ${graphicsProcessedList} ${src} )
+		set( graphicsEngineProcessedList ${graphicsEngineProcessedList} ${src} )
 		list( APPEND graphicsEngineOutputList ${GRAPHICS_ENGINE_PROCESSED_PATH}processed/${src} )
 		
 		get_filename_component( name "${src}" NAME_WE )
@@ -104,10 +104,10 @@ macro( GenerateVulkanShaders target )
 	endif()
 
 	add_custom_command(
-		COMMAND VulkanShaderParser \"${glslangV} ${spirvOptions}\" ${spirvOut} ${graphicsProcessedList}
+		COMMAND VulkanShaderParser \"${glslangV} ${spirvOptions}\" ${spirvOut} ${graphicsEngineProcessedList}
 		DEPENDS ${graphicsEngineIDEList}
 		OUTPUT ${graphicsEngineOutputList}
-		COMMENT "Generating Vulkan Graphics Engine: ${graphicsProcessedList}"
+		COMMENT "Generating Vulkan Graphics Engine: ${graphicsEngineProcessedList}"
 	)
 
 	add_custom_target( VulkanShaderParserTarget ALL
