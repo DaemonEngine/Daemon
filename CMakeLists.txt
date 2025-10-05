@@ -1071,6 +1071,15 @@ if (BUILD_CLIENT)
     string(APPEND SHADERS_CPP_TEXT "};\n")
 
     daemon_write_generated("shaders.cpp" "${SHADERS_CPP_TEXT}")
+
+    add_custom_command(
+        OUTPUT ${EMBED_INCLUDE_DIR}/daemon_unifont.h
+        COMMAND ${CMAKE_COMMAND} "-DINPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/libs/unifont/unifont.otf" "-DOUTPUT_FILE=${EMBED_INCLUDE_DIR}/daemon_unifont.h"
+            -DTEXT_MODE=0 -DVARIABLE_NAME=daemon_unifont_bin -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedText.cmake
+        MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/libs/unifont/unifont.otf
+    )
+    set_property(TARGET client-objects APPEND PROPERTY SOURCES ${EMBED_INCLUDE_DIR}/daemon_unifont.h)
+    include_directories(${EMBED_INCLUDE_DIR})
 endif()
 
 if (BUILD_SERVER)
