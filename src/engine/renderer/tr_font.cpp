@@ -39,6 +39,8 @@ Maryland 20850 USA.
 #include "qcommon/qcommon.h"
 #include "qcommon/q_unicode.h"
 
+#include "DaemonEmbeddedFiles/ConsoleFont.h"
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_ERRORS_H
@@ -417,6 +419,12 @@ void RE_RenderChunk( fontInfo_t *font, const int chunk )
 
 static int RE_LoadFontFile( const char *name, void **buffer )
 {
+	if ( !*name )
+	{
+		*buffer = (void *)( ConsoleFont::unifont_otf.data );
+		return ConsoleFont::unifont_otf.size;
+	}
+
 	void *tmp;
 	int  length = ri.FS_ReadFile( name, &tmp );
 
@@ -436,9 +444,13 @@ static int RE_LoadFontFile( const char *name, void **buffer )
 
 static void RE_FreeFontFile( void *data )
 {
-	Z_Free( data );
+	if ( data != ConsoleFont::unifont_otf.data )
+	{
+		Z_Free( data );
+	}
 }
 
+// If name is the empty string, load the embedded Unifont
 fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize )
 {
 	FT_Face       face;

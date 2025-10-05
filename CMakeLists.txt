@@ -929,6 +929,8 @@ if (BUILD_CLIENT)
 
     # Generate GLSL include files.
     daemon_embed_files("EngineShaders" "${GLSL_EMBED_DIR}" "${GLSL_EMBED_LIST}" "TEXT" "client-objects")
+
+    daemon_embed_files(ConsoleFont "${CMAKE_CURRENT_SOURCE_DIR}/libs/unifont" unifont.otf BINARY client-objects)
 endif()
 
 if (BUILD_SERVER)
