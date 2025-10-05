@@ -21,6 +21,7 @@ except ImportError:
 
 from spec_tools.util import getElemName, getElemType
 
+import Globals
 
 def write(*args, **kwargs):
     file = kwargs.pop('file', sys.stdout)
@@ -1124,6 +1125,14 @@ class OutputGenerator:
             text = noneStr(elem.text)
             tail = noneStr(elem.tail)
 
+            if text == "sType":
+                sType = param.get( "values" )
+                
+                if sType:
+                    text += " = " + sType
+            elif text == "VkStructureType":
+                text = "const VkStructureType"
+
             if self.should_insert_may_alias_macro and self.genOpts.conventions.is_voidpointer_alias(elem.tag, text, tail):
                 # OpenXR-specific macro insertion - but not in apiinc for the spec
                 tail = self.genOpts.conventions.make_voidpointer_alias(tail)
@@ -1173,6 +1182,9 @@ class OutputGenerator:
         for elem in param:
             text = noneStr(elem.text)
             tail = noneStr(elem.tail)
+            
+            if text == "VkStructureType":
+                text = "const VkStructureType"
 
             if self.should_insert_may_alias_macro and self.genOpts.conventions.is_voidpointer_alias(elem.tag, text, tail):
                 # OpenXR-specific macro insertion
@@ -1351,14 +1363,27 @@ class OutputGenerator:
         # Leading text
         pdecl += noneStr(proto.text)
         tdecl += noneStr(proto.text)
+
         # For each child element, if it is a <name> wrap in appropriate
         # declaration. Otherwise append its contents and tail contents.
+        functionName = None
+        deviceFunction = True
         for elem in proto:
             text = noneStr(elem.text)
             tail = noneStr(elem.tail)
+
             if elem.tag == 'name':
                 pdecl += self.makeProtoName(text, tail)
                 tdecl += self.makeTypedefName(text, tail)
+
+                Globals.headerText              += 'extern PFN_' + text + ' ' + text + ';\n\n'
+                Globals.functionDefinitionsText +=        'PFN_' + text + ' ' + text + ';\n\n'
+                
+                if not text.endswith( ( 'vkGetInstanceProcAddr', 'vkEnumerateInstanceVersion', 'vkEnumerateInstanceExtensionProperties', 'vkEnumerateInstanceLayerProperties', 'vkCreateInstance', 'vkDestroyInstance' ) ):
+                    functionName = text
+
+                    if text == 'vkGetDeviceProcAddr':
+                        deviceFunction = False
             else:
                 pdecl += text + tail
                 tdecl += text + tail
@@ -1376,6 +1401,22 @@ class OutputGenerator:
         # self.indentFuncPointer
         # self.alignFuncParam
         n = len(params)
+
+        if n > 0 and functionName:
+            for p in params:
+                for elem in p:
+                    if deviceFunction and noneStr( elem.text ).endswith( ( 'VkInstance', 'VkPhysicalDevice', 'VkPhysicalDeviceGroup' ) ):
+                        deviceFunction = False
+                        break
+
+                if not deviceFunction:
+                    break
+                    
+            if deviceFunction:
+                Globals.functionLoadDeviceText    += '\t' + functionName + ' = ( PFN_' + functionName + ' ) vkGetDeviceProcAddr( device, "'     + functionName + '" );\n\n'
+            else:
+                Globals.functionLoadInstanceText  += '\t' + functionName + ' = ( PFN_' + functionName + ' ) vkGetInstanceProcAddr( instance, "' + functionName + '" );\n\n'
+
         # Indented parameters
         if n > 0:
             indentdecl = '(\n'
