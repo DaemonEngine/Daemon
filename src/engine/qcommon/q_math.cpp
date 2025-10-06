@@ -159,7 +159,7 @@ float Q_crandom( int *seed )
 
 //=======================================================
 
-byte ClampByte( int i )
+WARN_UNUSED_RESULT byte ClampByte( int i )
 {
 	if ( i < 0 )
 	{
@@ -174,7 +174,7 @@ byte ClampByte( int i )
 	return i;
 }
 
-signed char ClampChar( int i )
+WARN_UNUSED_RESULT signed char ClampChar( int i )
 {
 	if ( i < -128 )
 	{
@@ -190,7 +190,7 @@ signed char ClampChar( int i )
 }
 
 // this isn't a real cheap function to call!
-int DirToByte( vec3_t const dir )
+WARN_UNUSED_RESULT int DirToByte( vec3_t const dir )
 {
 	int best;
 	float d, bestd;
@@ -597,7 +597,7 @@ void ExponentialFade( float *value, float target, float lambda, float timedelta 
  *
  * ===============
  */
-float LerpAngle( float from, float to, float frac )
+WARN_UNUSED_RESULT float LerpAngle( float from, float to, float frac )
 {
 	if ( to - from > 180 )
 	{
@@ -619,7 +619,7 @@ float LerpAngle( float from, float to, float frac )
  * Always returns a value from -180 to 180
  * =================
  */
-float AngleSubtract( float a1, float a2 )
+WARN_UNUSED_RESULT float AngleSubtract( float a1, float a2 )
 {
 	float a = a1 - a2;
 
@@ -627,14 +627,14 @@ float AngleSubtract( float a1, float a2 )
 	return a - 360.0f * floor( ( a + 180.0f ) / 360.0f );
 }
 
-void AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 )
+void AnglesSubtract( const vec3_t v1, const vec3_t v2, vec3_t v3 )
 {
 	v3[ 0 ] = AngleSubtract( v1[ 0 ], v2[ 0 ] );
 	v3[ 1 ] = AngleSubtract( v1[ 1 ], v2[ 1 ] );
 	v3[ 2 ] = AngleSubtract( v1[ 2 ], v2[ 2 ] );
 }
 
-DEPRECATED float AngleMod( float a )
+WARN_UNUSED_RESULT DEPRECATED float AngleMod( float a )
 {
 	return AngleNormalize360( a );
 }
@@ -646,7 +646,7 @@ DEPRECATED float AngleMod( float a )
  * returns angle normalized to the range [0 <= angle < 360]
  * =================
  */
-float AngleNormalize360( float angle )
+WARN_UNUSED_RESULT float AngleNormalize360( float angle )
 {
 	return ( 360.0f / 65536 ) * ( ( int )( angle * ( 65536 / 360.0f ) ) & 65535 );
 }
@@ -658,7 +658,7 @@ float AngleNormalize360( float angle )
  * returns angle normalized to the range [-180 < angle <= 180]
  * =================
  */
-float AngleNormalize180( float angle )
+WARN_UNUSED_RESULT float AngleNormalize180( float angle )
 {
 	angle = AngleNormalize360( angle );
 
@@ -677,7 +677,7 @@ float AngleNormalize180( float angle )
  * returns the normalized delta from angle1 to angle2
  * =================
  */
-float AngleDelta( float angle1, float angle2 )
+WARN_UNUSED_RESULT float AngleDelta( float angle1, float angle2 )
 {
 	return AngleNormalize180( angle1 - angle2 );
 }
@@ -689,7 +689,7 @@ float AngleDelta( float angle1, float angle2 )
  * returns the angle between two vectors normalized to the range [0 <= angle <= 180]
  * =================
  */
-float AngleBetweenVectors( const vec3_t a, const vec3_t b )
+WARN_UNUSED_RESULT float AngleBetweenVectors( const vec3_t a, const vec3_t b )
 {
 	vec_t alen, blen;
 
@@ -741,7 +741,7 @@ void SetPlaneSignbits( cplane_t *out )
  * ==================
  */
 
-int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
+WARN_UNUSED_RESULT int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 {
 #if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
 	auto mins = sseLoadVec3( emins );
@@ -815,7 +815,7 @@ int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
  * RadiusFromBounds
  * =================
  */
-float RadiusFromBounds( const vec3_t mins, const vec3_t maxs )
+WARN_UNUSED_RESULT float RadiusFromBounds( const vec3_t mins, const vec3_t maxs )
 {
 	int    i;
 	vec3_t corner;
@@ -909,7 +909,7 @@ void BoundsAdd( vec3_t mins, vec3_t maxs, const vec3_t mins2, const vec3_t maxs2
 	}
 }
 
-bool BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 )
+WARN_UNUSED_RESULT bool BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 )
 {
 	if ( maxs[ 0 ] < mins2[ 0 ] ||
 	        maxs[ 1 ] < mins2[ 1 ] || maxs[ 2 ] < mins2[ 2 ] || mins[ 0 ] > maxs2[ 0 ] || mins[ 1 ] > maxs2[ 1 ] || mins[ 2 ] > maxs2[ 2 ] )
@@ -919,7 +919,7 @@ bool BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, 
 
 	return true;
 }
-bool BoundsIntersectSphere( const vec3_t mins, const vec3_t maxs, const vec3_t origin, vec_t radius )
+WARN_UNUSED_RESULT bool BoundsIntersectSphere( const vec3_t mins, const vec3_t maxs, const vec3_t origin, vec_t radius )
 {
 	if ( origin[ 0 ] - radius > maxs[ 0 ] ||
 	        origin[ 0 ] + radius < mins[ 0 ] ||
@@ -932,7 +932,7 @@ bool BoundsIntersectSphere( const vec3_t mins, const vec3_t maxs, const vec3_t o
 	return true;
 }
 
-bool BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t origin )
+WARN_UNUSED_RESULT bool BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t origin )
 {
 	if ( origin[ 0 ] > maxs[ 0 ] ||
 	        origin[ 0 ] < mins[ 0 ] || origin[ 1 ] > maxs[ 1 ] || origin[ 1 ] < mins[ 1 ] || origin[ 2 ] > maxs[ 2 ] || origin[ 2 ] < mins[ 2 ] )
@@ -943,7 +943,7 @@ bool BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t or
 	return true;
 }
 
-float BoundsMaxExtent( const vec3_t mins, const vec3_t maxs ) {
+WARN_UNUSED_RESULT float BoundsMaxExtent( const vec3_t mins, const vec3_t maxs ) {
 	float result = Q_fabs( mins[0] );
 
 	result = std::max( result, Q_fabs( mins[ 1 ] ) );
@@ -955,7 +955,7 @@ float BoundsMaxExtent( const vec3_t mins, const vec3_t maxs ) {
 	return result;
 }
 
-int NearestPowerOfTwo( int val )
+WARN_UNUSED_RESULT int NearestPowerOfTwo( int val )
 {
 	int answer;
 
@@ -1287,7 +1287,7 @@ void ProjectPointOntoVectorBounded( const vec3_t point, const vec3_t vStart, con
  * DistanceFromLineSquared
  * ================
  */
-float DistanceFromLineSquared( const vec3_t p, const vec3_t lp1, const vec3_t lp2 )
+WARN_UNUSED_RESULT float DistanceFromLineSquared( const vec3_t p, const vec3_t lp1, const vec3_t lp2 )
 {
 	vec3_t proj, t;
 	int    j;
@@ -1424,7 +1424,7 @@ void MatrixCopy( const matrix_t in, matrix_t out )
 	memcpy( out, in, sizeof( matrix_t ) );
 }
 
-bool MatrixCompare( const matrix_t a, const matrix_t b )
+WARN_UNUSED_RESULT bool MatrixCompare( const matrix_t a, const matrix_t b )
 {
 	return ( a[ 0 ] == b[ 0 ] && a[ 4 ] == b[ 4 ] && a[ 8 ] == b[ 8 ] && a[ 12 ] == b[ 12 ] &&
 	         a[ 1 ] == b[ 1 ] && a[ 5 ] == b[ 5 ] && a[ 9 ] == b[ 9 ] && a[ 13 ] == b[ 13 ] &&
@@ -1453,7 +1453,7 @@ void MatrixTranspose( const matrix_t in, matrix_t out )
 }
 
 // helper functions for MatrixInverse from GtkRadiant C mathlib
-static float m3_det( matrix3x3_t mat )
+WARN_UNUSED_RESULT static float m3_det( const matrix3x3_t mat )
 {
 	float det;
 
@@ -1489,7 +1489,7 @@ static float m3_det( matrix3x3_t mat )
  *  return 0;
  * }*/
 
-static void m4_submat( matrix_t mr, matrix3x3_t mb, int i, int j )
+static void m4_submat( const matrix_t mr, matrix3x3_t mb, int i, int j )
 {
 	int ti, tj, idst = 0, jdst = 0;
 
@@ -1525,7 +1525,7 @@ static void m4_submat( matrix_t mr, matrix3x3_t mb, int i, int j )
 	}
 }
 
-static float m4_det( matrix_t mr )
+WARN_UNUSED_RESULT static float m4_det( const matrix_t mr )
 {
 	float       det, result = 0, i = 1;
 	matrix3x3_t msub3;
