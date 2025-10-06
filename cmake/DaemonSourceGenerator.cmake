@@ -63,7 +63,17 @@ macro(daemon_embed_files BASENAME SLUG FORMAT TARGETNAME)
 		set(EMBED_${kind}_TEXT "${DAEMON_GENERATED_HEADER}")
 	endforeach()
 
-	string(APPEND EMBED_CPP_TEXT "#include \"${EMBED_H_FILE}\"\n\n")
+	string(APPEND EMBED_CPP_TEXT
+		"#include \"${EMBED_H_FILE}\"\n"
+		"\n"
+		"namespace ${BASENAME} {\n"
+	)
+
+	string(APPEND EMBED_H_TEXT
+		"#include \"common/Common.h\"\n"
+		"\n"
+		"namespace ${BASENAME} {\n"
+	)
 
 	set(EMBED_MAP_TEXT "")
 
@@ -87,16 +97,22 @@ macro(daemon_embed_files BASENAME SLUG FORMAT TARGETNAME)
 		set_property(TARGET "${TARGETNAME}" APPEND PROPERTY SOURCES "${outpath}")
 
 		string(APPEND EMBED_CPP_TEXT
-			"#include \"${BASENAME}/${filename_symbol}.h\"\n")
+			"#include \"${BASENAME}/${filename_symbol}.h\"\n"
+		)
+
+		string(APPEND EMBED_H_TEXT
+			"extern const unsigned char ${filename_symbol}[];\n"
+		)
+
 		string(APPEND EMBED_MAP_TEXT
 			"\t{ \"${filename}\", "
 			"std::string(reinterpret_cast<const char *>( ${filename_symbol} ), "
-			"sizeof( ${filename_symbol} )) },\n")
+			"sizeof( ${filename_symbol} )) },\n"
+		)
 	endforeach()
 
 	string(APPEND EMBED_CPP_TEXT
 		"\n"
-		"namespace ${BASENAME} {\n"
 		"const std::unordered_map<std::string, std::string> FileMap\n{\n"
 		"${EMBED_MAP_TEXT}"
 		"};\n"
@@ -104,9 +120,6 @@ macro(daemon_embed_files BASENAME SLUG FORMAT TARGETNAME)
 	)
 
 	string(APPEND EMBED_H_TEXT
-		"#include \"common/Common.h\"\n"
-		"\n"
-		"namespace ${BASENAME} {\n"
 		"extern const std::unordered_map<std::string, std::string> FileMap;\n"
 		"};\n"
 	)
