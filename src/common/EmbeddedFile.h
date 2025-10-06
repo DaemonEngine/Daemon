@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 Daemon BSD Source Code
-Copyright (c) 2013-2016, Daemon Developers
+Copyright (c) 2025, Daemon Developers
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,30 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#ifndef COMMON_COMMON_H_
-#define COMMON_COMMON_H_
+#ifndef COMMON_EMBEDDEDFILE_H_
+#define COMMON_EMBEDDEDFILE_H_
+struct embeddedFileMapEntry_t
+{
+	const unsigned char* data;
+	size_t size;
+};
 
-// Compiler.h, Platform.h and Endian.h are included by q_shared.h
-#include "engine/qcommon/q_shared.h"
-
-// Common headers
-#include "String.h"
-#include "Util.h"
-#include "Optional.h"
-#include "Command.h"
-#include "Cvar.h"
-#include "Log.h"
-#include "LineEditData.h"
-#include "System.h"
-#include "Assert.h"
-#include "Math.h"
-#include "Color.h"
-#include "Serialize.h"
-#include "DisjointSets.h"
-#include "EmbeddedFile.h"
-
-using Math::Vec2;
-using Math::Vec3;
-using Math::Vec4;
-
-#endif // COMMON_COMMON_H_
+using embeddedFileMap_t = std::unordered_map<std::string, const embeddedFileMapEntry_t>;
+#endif // COMMON_EMBEDDEDFILE_H_
