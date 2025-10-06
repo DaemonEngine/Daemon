@@ -110,22 +110,20 @@ macro(daemon_embed_files basename slug format targetname)
 		)
 
 		string(APPEND embed_map_text
-			"\t{ \"${filename}\", "
-			"std::string(reinterpret_cast<const char *>( ${filename_symbol} ), "
-			"sizeof( ${filename_symbol} )) },\n"
+			"\t{ \"${filename}\", { ${filename_symbol}, sizeof( ${filename_symbol}) - 1 } },\n"
 		)
 	endforeach()
 
 	string(APPEND embed_CPP_text
 		"\n"
-		"const std::unordered_map<std::string, std::string> FileMap\n{\n"
+		"const embeddedFileMap_t FileMap\n{\n"
 		"${embed_map_text}"
 		"};\n"
 		"}"
 	)
 
 	string(APPEND embed_H_text
-		"extern const std::unordered_map<std::string, std::string> FileMap;\n"
+		"extern const embeddedFileMap_t FileMap;\n"
 		"};\n"
 	)
 
