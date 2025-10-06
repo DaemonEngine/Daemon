@@ -23,111 +23,111 @@ foreach(kind CPP H)
 	set(DAEMON_BUILDINFO_${kind}_TEXT "${DAEMON_GENERATED_HEADER}")
 endforeach()
 
-macro(daemon_add_buildinfo TYPE NAME VALUE)
-	string(APPEND DAEMON_BUILDINFO_CPP_TEXT "const ${TYPE} ${NAME}=${VALUE};\n")
-	string(APPEND DAEMON_BUILDINFO_H_TEXT "extern const ${TYPE} ${NAME};\n")
+macro(daemon_add_buildinfo type name value)
+	string(APPEND DAEMON_BUILDINFO_CPP_TEXT "const ${type} ${name}=${value};\n")
+	string(APPEND DAEMON_BUILDINFO_H_TEXT "extern const ${type} ${name};\n")
 endmacro()
 
-macro(daemon_write_generated GENERATED_PATH GENERATED_CONTENT)
-	set(DAEMON_GENERATED_FILE ${DAEMON_GENERATED_DIR}/${GENERATED_PATH})
+macro(daemon_write_generated generated_path generated_content)
+	set(DAEMON_GENERATED_FILE ${DAEMON_GENERATED_DIR}/${generated_path})
 
 	if (EXISTS "${DAEMON_GENERATED_FILE}")
-		file(READ "${DAEMON_GENERATED_FILE}" GENERATED_CONTENT_READ)
+		file(READ "${DAEMON_GENERATED_FILE}" generated_content_read)
 	endif()
 
-	if (NOT "${GENERATED_CONTENT}" STREQUAL "${GENERATED_CONTENT_READ}")
-		message(STATUS "Generating ${GENERATED_PATH}")
-		file(WRITE "${DAEMON_GENERATED_FILE}" "${GENERATED_CONTENT}")
+	if (NOT "${generated_content}" STREQUAL "${generated_content_read}")
+		message(STATUS "Generating ${generated_path}")
+		file(WRITE "${DAEMON_GENERATED_FILE}" "${generated_content}")
 	endif()
 endmacro()
 
-macro(daemon_write_buildinfo NAME)
+macro(daemon_write_buildinfo name)
 	foreach(kind CPP H)
-		set(DAEMON_BUILDINFO_${kind}_NAME "${NAME}${DAEMON_GENERATED_${kind}_EXT}")
-		set(DAEMON_BUILDINFO_${kind}_PATH "${DAEMON_BUILDINFO_SUBDIR}/${DAEMON_BUILDINFO_${kind}_NAME}")
+		set(daemon_buildinfo_${kind}_name "${name}${DAEMON_GENERATED_${kind}_EXT}")
+		set(daemon_buildinfo_${kind}_path "${DAEMON_BUILDINFO_SUBDIR}/${daemon_buildinfo_${kind}_name}")
 
-		daemon_write_generated("${DAEMON_BUILDINFO_${kind}_PATH}" "${DAEMON_BUILDINFO_${kind}_TEXT}")
+		daemon_write_generated("${daemon_buildinfo_${kind}_path}" "${DAEMON_BUILDINFO_${kind}_TEXT}")
 		list(APPEND BUILDINFOLIST "${DAEMON_GENERATED_FILE}")
 	endforeach()
 endmacro()
 
-macro(daemon_embed_files BASENAME SLUG FORMAT TARGETNAME)
-	set(EMBED_SOURCE_DIR "${SLUG}_EMBED_DIR")
-	set(EMBED_SOURCE_LIST "${SLUG}_EMBED_LIST")
+macro(daemon_embed_files basename slug format targetname)
+	set(embed_source_dir "${slug}_EMBED_DIR")
+	set(embed_source_list "${slug}_EMBED_LIST")
 
-	set(EMBED_SUBDIR "${DAEMON_EMBEDDED_SUBDIR}/${BASENAME}")
-	set(EMBED_DIR "${DAEMON_GENERATED_DIR}/${EMBED_SUBDIR}")
+	set(embed_subdir "${DAEMON_EMBEDDED_SUBDIR}/${basename}")
+	set(embed_dir "${DAEMON_GENERATED_DIR}/${embed_subdir}")
 
 	foreach(kind CPP H)
-		set(EMBED_${kind}_BASENAME "${BASENAME}${DAEMON_GENERATED_${kind}_EXT}")
-		set(EMBED_${kind}_SRC_FILE "${DAEMON_EMBEDDED_DIR}/${EMBED_${kind}_BASENAME}")
-		set(EMBED_${kind}_FILE "${DAEMON_EMBEDDED_SUBDIR}/${EMBED_${kind}_BASENAME}")
-		set(EMBED_${kind}_TEXT "${DAEMON_GENERATED_HEADER}")
-		set_property(TARGET "${TARGETNAME}" APPEND PROPERTY SOURCES "${EMBED_${kind}_SRC_FILE}")
+		set(embed_${kind}_basename "${basename}${DAEMON_GENERATED_${kind}_EXT}")
+		set(embed_${kind}_src_file "${DAEMON_EMBEDDED_DIR}/${embed_${kind}_basename}")
+		set(embed_${kind}_file "${DAEMON_EMBEDDED_SUBDIR}/${embed_${kind}_basename}")
+		set(embed_${kind}_text "${DAEMON_GENERATED_HEADER}")
+		set_property(TARGET "${targetname}" APPEND PROPERTY SOURCES "${embed_${kind}_src_file}")
 	endforeach()
 
-	string(APPEND EMBED_CPP_TEXT
-		"#include \"${EMBED_H_FILE}\"\n"
+	string(APPEND embed_CPP_text
+		"#include \"${embed_H_file}\"\n"
 		"\n"
-		"namespace ${BASENAME} {\n"
+		"namespace ${basename} {\n"
 	)
 
-	string(APPEND EMBED_H_TEXT
+	string(APPEND embed_H_text
 		"#include \"common/Common.h\"\n"
 		"\n"
-		"namespace ${BASENAME} {\n"
+		"namespace ${basename} {\n"
 	)
 
-	set(EMBED_MAP_TEXT "")
+	set(embed_map_text "")
 
-	foreach(filename ${${EMBED_SOURCE_LIST}})
+	foreach(filename ${${embed_source_list}})
 		string(REGEX REPLACE "[^A-Za-z0-9]" "_" filename_symbol "${filename}")
 
-		set(inpath "${${EMBED_SOURCE_DIR}}/${filename}")
-		set(outpath "${EMBED_DIR}/${filename_symbol}${DAEMON_GENERATED_H_EXT}")
+		set(inpath "${${embed_source_dir}}/${filename}")
+		set(outpath "${embed_dir}/${filename_symbol}${DAEMON_GENERATED_H_EXT}")
 
 		add_custom_command(
 			OUTPUT "${outpath}"
 			COMMAND ${CMAKE_COMMAND}
 				"-DINPUT_FILE=${inpath}"
 				"-DOUTPUT_FILE=${outpath}"
-				"-DFILE_FORMAT=${FORMAT}"
+				"-DFILE_FORMAT=${format}"
 				"-DVARIABLE_NAME=${filename_symbol}"
 				-P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedText.cmake"
 			MAIN_DEPENDENCY ${inpath}
 		)
 
-		set_property(TARGET "${TARGETNAME}" APPEND PROPERTY SOURCES "${outpath}")
+		set_property(TARGET "${targetname}" APPEND PROPERTY SOURCES "${outpath}")
 
-		string(APPEND EMBED_CPP_TEXT
-			"#include \"${BASENAME}/${filename_symbol}.h\"\n"
+		string(APPEND embed_CPP_text
+			"#include \"${basename}/${filename_symbol}.h\"\n"
 		)
 
-		string(APPEND EMBED_H_TEXT
+		string(APPEND embed_H_text
 			"extern const unsigned char ${filename_symbol}[];\n"
 		)
 
-		string(APPEND EMBED_MAP_TEXT
+		string(APPEND embed_map_text
 			"\t{ \"${filename}\", "
 			"std::string(reinterpret_cast<const char *>( ${filename_symbol} ), "
 			"sizeof( ${filename_symbol} )) },\n"
 		)
 	endforeach()
 
-	string(APPEND EMBED_CPP_TEXT
+	string(APPEND embed_CPP_text
 		"\n"
 		"const std::unordered_map<std::string, std::string> FileMap\n{\n"
-		"${EMBED_MAP_TEXT}"
+		"${embed_map_text}"
 		"};\n"
 		"}"
 	)
 
-	string(APPEND EMBED_H_TEXT
+	string(APPEND embed_H_text
 		"extern const std::unordered_map<std::string, std::string> FileMap;\n"
 		"};\n"
 	)
 
 	foreach(kind CPP H)
-		daemon_write_generated("${EMBED_${kind}_FILE}" "${EMBED_${kind}_TEXT}")
+		daemon_write_generated("${embed_${kind}_file}" "${embed_${kind}_text}")
 	endforeach()
 endmacro()
