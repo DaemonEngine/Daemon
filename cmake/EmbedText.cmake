@@ -11,12 +11,15 @@ file(READ ${INPUT_FILE} contents HEX)
 # Translate the file content.
 if ("${FILE_FORMAT}" STREQUAL "TEXT")
 	# Strip \r for consistency.
-	string(REGEX REPLACE "(0d)?(..)" "0x\\2," contents "${contents}")
+	string(REGEX REPLACE "(0d)?(..)" "0x\\2," contents "${contents}") 
 elseif("${FILE_FORMAT}" STREQUAL "BINARY")
 	string(REGEX REPLACE "(..)" "0x\\1," contents "${contents}")
 else()
 	message(FATAL_ERROR "Unknown file format: ${FILE_FORMAT}")
 endif()
+
+# Add null terminator.
+set(contents "${contents}0x00,") 
 
 # Split long lines.
 string(REGEX REPLACE
@@ -28,7 +31,7 @@ string(REGEX REPLACE
 string(REGEX REPLACE ",$" ",\n" contents "${contents}")
 
 file(WRITE ${OUTPUT_FILE}
-	"const unsigned char ${VARIABLE_NAME}[] =\n"
+	"constexpr unsigned char ${VARIABLE_NAME}[] =\n"
 	"{\n"
 	"${contents}"
 	"};\n"
