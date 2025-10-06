@@ -78,6 +78,7 @@ macro(daemon_embed_files BASENAME SLUG FORMAT TARGETNAME)
 			COMMAND ${CMAKE_COMMAND}
 				"-DINPUT_FILE=${inpath}"
 				"-DOUTPUT_FILE=${outpath}"
+				"-DFILE_FORMAT=${FORMAT}"
 				"-DVARIABLE_NAME=${filename_symbol}"
 				-P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedText.cmake"
 			MAIN_DEPENDENCY ${inpath}
