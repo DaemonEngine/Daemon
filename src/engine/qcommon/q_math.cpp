@@ -634,9 +634,9 @@ void AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 )
 	v3[ 2 ] = AngleSubtract( v1[ 2 ], v2[ 2 ] );
 }
 
-float AngleMod( float a )
+DEPRECATED float AngleMod( float a )
 {
-	return ( ( 360.0f / 65536 ) * ( ( int )( a * ( 65536 / 360.0f ) ) & 65535 ) );
+	return AngleNormalize360( a );
 }
 
 /*
