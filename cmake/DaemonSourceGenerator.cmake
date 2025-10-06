@@ -1,23 +1,27 @@
-set(DAEMON_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/GeneratedSource")
+set(DAEMON_GENERATED_SUBDIR "GeneratedSource")
+set(DAEMON_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/${DAEMON_GENERATED_SUBDIR}")
 
-set(DAEMON_BUILDINFO_DIR "DaemonBuildInfo")
-set(DAEMON_BUILDINFO_HEADER "// Automatically generated, do not modify!\n")
-set(DAEMON_BUILDINFO_CPP_EXT ".cpp")
-set(DAEMON_BUILDINFO_H_EXT ".h")
-set(BUILDINFOLIST)
+set(DAEMON_BUILDINFO_SUBDIR "DaemonBuildInfo")
+set(DAEMON_BUILDINFO_DIR "${DAEMON_GENERATED_DIR}/${DAEMON_BUILDINFO_SUBDIR}")
 
 file(MAKE_DIRECTORY "${DAEMON_GENERATED_DIR}")
 include_directories("${DAEMON_GENERATED_DIR}")
 
-file(MAKE_DIRECTORY "${DAEMON_GENERATED_DIR}/${DAEMON_BUILDINFO_DIR}")
+file(MAKE_DIRECTORY "${DAEMON_BUILDINFO_DIR}")
+
+set(DAEMON_GENERATED_HEADER "// Automatically generated, do not modify!\n")
+set(DAEMON_GENERATED_CPP_EXT ".cpp")
+set(DAEMON_GENERATED_H_EXT ".h")
+
+set(BUILDINFOLIST)
 
 foreach(kind CPP H)
-	set(DAEMON_BUILDINFO_${kind} "${DAEMON_BUILDINFO_HEADER}")
+	set(DAEMON_BUILDINFO_${kind}_TEXT "${DAEMON_GENERATED_HEADER}")
 endforeach()
 
 macro(daemon_add_buildinfo TYPE NAME VALUE)
-	set(DAEMON_BUILDINFO_CPP "${DAEMON_BUILDINFO_CPP}const ${TYPE} ${NAME}=${VALUE};\n")
-	set(DAEMON_BUILDINFO_H "${DAEMON_BUILDINFO_H}extern const ${TYPE} ${NAME};\n")
+	string(APPEND DAEMON_BUILDINFO_CPP_TEXT "const ${TYPE} ${NAME}=${VALUE};\n")
+	string(APPEND DAEMON_BUILDINFO_H_TEXT "extern const ${TYPE} ${NAME};\n")
 endmacro()
 
 macro(daemon_write_generated GENERATED_PATH GENERATED_CONTENT)
@@ -35,10 +39,10 @@ endmacro()
 
 macro(daemon_write_buildinfo NAME)
 	foreach(kind CPP H)
-		set(DAEMON_BUILDINFO_${kind}_NAME "${NAME}${DAEMON_BUILDINFO_${kind}_EXT}")
-		set(DAEMON_BUILDINFO_${kind}_PATH "${DAEMON_BUILDINFO_DIR}/${DAEMON_BUILDINFO_${kind}_NAME}")
+		set(DAEMON_BUILDINFO_${kind}_NAME "${NAME}${DAEMON_GENERATED_${kind}_EXT}")
+		set(DAEMON_BUILDINFO_${kind}_PATH "${DAEMON_BUILDINFO_SUBDIR}/${DAEMON_BUILDINFO_${kind}_NAME}")
 
-		daemon_write_generated("${DAEMON_BUILDINFO_${kind}_PATH}" "${DAEMON_BUILDINFO_${kind}}")
+		daemon_write_generated("${DAEMON_BUILDINFO_${kind}_PATH}" "${DAEMON_BUILDINFO_${kind}_TEXT}")
 		list(APPEND BUILDINFOLIST "${DAEMON_GENERATED_FILE}")
 	endforeach()
 endmacro()
