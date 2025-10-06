@@ -759,7 +759,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	void  SetPlaneSignbits( struct cplane_t *out );
 	int   BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const struct cplane_t *plane );
 
-	float AngleMod( float a );
+	DEPRECATED float AngleMod( float a );
 	float LerpAngle( float from, float to, float frac );
 	float AngleSubtract( float a1, float a2 );
 	void  AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 );
