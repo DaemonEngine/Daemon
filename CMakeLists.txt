@@ -75,7 +75,7 @@ if (Daemon_OUT)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Daemon_OUT})
 endif()
 
-include(DaemonBuildInfo)
+include(DaemonSourceGenerator)
 include(DaemonPlatform)
 
 ################################################################################
