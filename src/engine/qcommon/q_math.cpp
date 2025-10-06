@@ -627,7 +627,7 @@ float AngleSubtract( float a1, float a2 )
 	return a - 360.0f * floor( ( a + 180.0f ) / 360.0f );
 }
 
-void AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 )
+void AnglesSubtract( const vec3_t v1, const vec3_t v2, vec3_t v3 )
 {
 	v3[ 0 ] = AngleSubtract( v1[ 0 ], v2[ 0 ] );
 	v3[ 1 ] = AngleSubtract( v1[ 1 ], v2[ 1 ] );
@@ -1453,7 +1453,7 @@ void MatrixTranspose( const matrix_t in, matrix_t out )
 }
 
 // helper functions for MatrixInverse from GtkRadiant C mathlib
-static float m3_det( matrix3x3_t mat )
+WARN_UNUSED_RESULT static float m3_det( const matrix3x3_t mat )
 {
 	float det;
 
@@ -1489,7 +1489,7 @@ static float m3_det( matrix3x3_t mat )
  *  return 0;
  * }*/
 
-static void m4_submat( matrix_t mr, matrix3x3_t mb, int i, int j )
+static void m4_submat( const matrix_t mr, matrix3x3_t mb, int i, int j )
 {
 	int ti, tj, idst = 0, jdst = 0;
 
@@ -1525,7 +1525,7 @@ static void m4_submat( matrix_t mr, matrix3x3_t mb, int i, int j )
 	}
 }
 
-static float m4_det( matrix_t mr )
+WARN_UNUSED_RESULT static float m4_det( const matrix_t mr )
 {
 	float       det, result = 0, i = 1;
 	matrix3x3_t msub3;
