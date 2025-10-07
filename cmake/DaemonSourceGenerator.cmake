@@ -58,6 +58,8 @@ macro(daemon_embed_files basename slug format targetname)
 	set(embed_subdir "${DAEMON_EMBEDDED_SUBDIR}/${basename}")
 	set(embed_dir "${DAEMON_GENERATED_DIR}/${embed_subdir}")
 
+	file(MAKE_DIRECTORY "${embed_dir}")
+
 	foreach(kind CPP H)
 		set(embed_${kind}_basename "${basename}${DAEMON_GENERATED_${kind}_EXT}")
 		set(embed_${kind}_src_file "${DAEMON_EMBEDDED_DIR}/${embed_${kind}_basename}")
