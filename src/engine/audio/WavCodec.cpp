@@ -114,7 +114,8 @@ AudioData LoadWavCodec(std::string filename)
 	}
 
 	AudioData out { sampleRate, byteDepth, numChannels };
-	out.rawSamples.assign( audioFile.data() + dataOffset + 8, audioFile.data() + size );
+	auto firstSample = audioFile.data() + dataOffset + 8;
+	out.rawSamples.assign( firstSample, firstSample + size );
 
 	return out;
 }
