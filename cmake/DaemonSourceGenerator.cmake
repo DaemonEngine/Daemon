@@ -1,6 +1,6 @@
 set(DAEMON_SOURCE_GENERATOR "${CMAKE_CURRENT_LIST_FILE}")
 get_filename_component(current_list_dir "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
-set(DAEMON_TEXT_EMBEDDER "${current_list_dir}/DaemonFileEmbedder.cmake")
+set(DAEMON_FILE_EMBEDDER "${current_list_dir}/DaemonFileEmbedder.cmake")
 
 set(DAEMON_GENERATED_SUBDIR "GeneratedSource")
 set(DAEMON_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/${DAEMON_GENERATED_SUBDIR}")
