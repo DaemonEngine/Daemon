@@ -44,8 +44,22 @@ namespace Audio {
         audioLogs.Debug("Deleting Sample '%s'", GetName());
     }
 
+	static AudioData GenerateNullSample() {
+		// 8KHz 16bit mono.
+		AudioData out { 8000, 2, 1 };
+		// 1 sample, silence.
+		out.rawSamples.resize( 2 );
+		return out;
+	}
+
     bool Sample::Load() {
         audioLogs.Debug("Loading Sample '%s'", GetName());
+
+		if ( GetName() == "sound/null" || GetName() == "sound/null.wav" ) {
+			buffer.Feed( GenerateNullSample() );
+			return true;
+		}
+
 	    AudioData audioData = LoadSoundCodec(GetName());
 
 	    if ( !audioData.rawSamples.size() ) {
