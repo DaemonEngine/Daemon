@@ -24,17 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required (VERSION 3.12)
-
-# Choose Python versions by location instead of getting whatever is in PYTHON_EXECUTABLE
-# Can be removed once we require CMake 3.15
-if (POLICY CMP0094)
-    cmake_policy(SET CMP0094 NEW)
-endif()
-
-if (POLICY CMP0072)
-    cmake_policy(SET CMP0072 NEW)
-endif()
+cmake_minimum_required(VERSION 3.18.4)
 
 if(NOT DAEMON_DIR)
     set(DAEMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
