@@ -1,6 +1,6 @@
 set(DAEMON_SOURCE_GENERATOR "${CMAKE_CURRENT_LIST_FILE}")
 get_filename_component(current_list_dir "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
-set(DAEMON_TEXT_EMBEDDER "${current_list_dir}/cmake/EmbedText.cmake")
+set(DAEMON_FILE_EMBEDDER "${current_list_dir}/DaemonFileEmbedder.cmake")
 
 set(DAEMON_GENERATED_SUBDIR "GeneratedSource")
 set(DAEMON_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/${DAEMON_GENERATED_SUBDIR}")
@@ -100,7 +100,7 @@ macro(daemon_embed_files basename slug format targetname)
 				"-DOUTPUT_FILE=${outpath}"
 				"-DFILE_FORMAT=${format}"
 				"-DVARIABLE_NAME=${filename_symbol}"
-				-P "${DAEMON_TEXT_EMBEDDER}"
+				-P "${DAEMON_FILE_EMBEDDER}"
 			MAIN_DEPENDENCY ${inpath}
 			DEPENDS
 				"${DAEMON_FILE_EMBEDDER}"
