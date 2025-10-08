@@ -50,6 +50,46 @@ static const soundExtToLoaderMap_t soundLoaders[] =
 
 static int numSoundLoaders = ARRAY_LEN(soundLoaders);
 
+static bool IsNullSample(std::string& filename)
+{
+	if (!Str::IsPrefix("sound/null", filename)) {
+		return false;
+	}
+
+	if (filename == "sound/null") {
+		return true;
+	}
+
+	std::string basename = FS::Path::StripExtension(filename);
+
+	if (basename != "sound/null") {
+		return false;
+	}
+
+	std::string ext = FS::Path::Extension(filename);
+
+	if (ext.empty()) {
+		return true;
+	}
+
+	for (int i = 0; i < numSoundLoaders; i++) {
+		if (ext == soundLoaders[i].ext) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static AudioData LoadNullSample()
+{
+	// 16bit mono 8KHz, 1 sample, silence.
+	unsigned char *null_wav = (unsigned char*) calloc( 1, 2 );
+	AudioData out { 8000, 2, 1 };
+	out.rawSamples.assign( null_wav, null_wav + 2 );
+	return out;
+}
+
 static int FindSoundLoader(std::string filename)
 {
 	const FS::PakInfo* bestPak = nullptr;
@@ -77,6 +117,9 @@ static int FindSoundLoader(std::string filename)
 
 AudioData LoadSoundCodec(std::string filename)
 {
+	if (IsNullSample(filename)) {
+		return LoadNullSample();
+	}
 
 	std::string ext = FS::Path::Extension(filename);
 
