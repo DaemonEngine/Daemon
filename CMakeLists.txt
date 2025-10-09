@@ -1070,7 +1070,7 @@ if (BUILD_CLIENT)
     string(APPEND SHADERS_CPP_TEXT "${SHADERMAP_TEXT}")
     string(APPEND SHADERS_CPP_TEXT "};\n")
 
-    daemon_write_generated("shaders.cpp" "${SHADERS_CPP_TEXT}")
+    file(GENERATE OUTPUT "${DAEMON_GENERATED_DIR}/shaders.cpp" CONTENT "${SHADERS_CPP_TEXT}")
 endif()
 
 if (BUILD_SERVER)
