@@ -87,6 +87,14 @@ static Cvar::Cvar<float> r_portalDefaultRange(
 Cvar::Cvar<bool> r_depthShaders(
 	"r_depthShaders", "use depth pre-pass shaders", Cvar::CHEAT, true);
 
+struct delayedStageTexture_t {
+	bool active;
+	stageType_t type;
+	char path[ MAX_QPATH ];
+};
+
+delayedStageTexture_t delayedStageTextures[ MAX_TEXTURE_BUNDLES ];
+
 /*
 ================
 return a hash value for the filename
@@ -1591,6 +1599,14 @@ static bool ParseClampType( const char *token, wrapType_t *clamp )
 	return true;
 }
 
+static void DelayStageTexture( const char* texturePath, const stageType_t stageType, const int bundleIndex )
+{
+	Log::Debug("Delaying the loading of stage texture %s", texturePath );
+	Q_strncpyz( delayedStageTextures[ bundleIndex ].path, texturePath, MAX_QPATH - 1 );
+	delayedStageTextures[ bundleIndex ].type = stageType;
+	delayedStageTextures[ bundleIndex ].active = true;
+}
+
 /*
 ===================
 ParseDifuseMap
@@ -1603,7 +1619,16 @@ static void ParseDiffuseMap( shaderStage_t *stage, const char **text, const int 
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, stageType_t::ST_DIFFUSEMAP, bundleIndex );
+		stageType_t stageType = stageType_t::ST_DIFFUSEMAP;
+
+		if ( bundleIndex == TB_DIFFUSEMAP )
+		{
+			DelayStageTexture( buffer, stageType, bundleIndex );
+		}
+		else
+		{
+			LoadMap( stage, buffer, stageType, bundleIndex );
+		}
 	}
 }
 
@@ -1632,7 +1657,16 @@ static void ParseNormalMap( shaderStage_t *stage, const char **text, const int b
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, stageType_t::ST_NORMALMAP, bundleIndex );
+		stageType_t stageType = stageType_t::ST_NORMALMAP;
+
+		if ( bundleIndex == TB_NORMALMAP )
+		{
+			DelayStageTexture( buffer, stageType, bundleIndex );
+		}
+		else
+		{
+			LoadMap( stage, buffer, stageType, bundleIndex );
+		}
 	}
 }
 
@@ -1697,7 +1731,16 @@ static void ParseHeightMap( shaderStage_t *stage, const char **text, const int b
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, stageType_t::ST_HEIGHTMAP, bundleIndex );
+		stageType_t stageType = stageType_t::ST_HEIGHTMAP;
+
+		if ( bundleIndex == TB_HEIGHTMAP )
+		{
+			DelayStageTexture( buffer, stageType, bundleIndex );
+		}
+		else
+		{
+			LoadMap( stage, buffer, stageType, bundleIndex );
+		}
 	}
 }
 
@@ -1709,7 +1752,16 @@ static void ParseSpecularMap( shaderStage_t *stage, const char **text, const int
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, stageType_t::ST_SPECULARMAP, bundleIndex );
+		stageType_t stageType = stageType_t::ST_SPECULARMAP;
+
+		if ( bundleIndex == TB_SPECULARMAP )
+		{
+			DelayStageTexture( buffer, stageType, bundleIndex );
+		}
+		else
+		{
+			LoadMap( stage, buffer, stageType, bundleIndex );
+		}
 	}
 }
 
@@ -1733,7 +1785,16 @@ static void ParsePhysicalMap( shaderStage_t *stage, const char **text, const int
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, stageType_t::ST_PHYSICALMAP, bundleIndex );
+		stageType_t stageType = stageType_t::ST_PHYSICALMAP;
+
+		if ( bundleIndex == TB_PHYSICALMAP )
+		{
+			DelayStageTexture( buffer, stageType, bundleIndex );
+		}
+		else
+		{
+			LoadMap( stage, buffer, stageType, bundleIndex );
+		}
 	}
 }
 
@@ -1745,7 +1806,16 @@ static void ParseGlowMap( shaderStage_t *stage, const char **text, const int bun
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, stageType_t::ST_GLOWMAP, bundleIndex );
+		stageType_t stageType = stageType_t::ST_GLOWMAP;
+
+		if ( bundleIndex == TB_GLOWMAP )
+		{
+			DelayStageTexture( buffer, stageType, bundleIndex );
+		}
+		else
+		{
+			LoadMap( stage, buffer, stageType, bundleIndex );
+		}
 	}
 }
 
@@ -2009,6 +2079,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	filterType_t filterType;
 	char         buffer[ 1024 ] = "";
 	bool     loadMap = false;
+
+	memset( delayedStageTextures, 0, sizeof( delayedStageTextures ) );
 
 	while ( true )
 	{
@@ -3273,8 +3345,40 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		return true;
 	}
 
-	// load image
-	if ( loadMap && !LoadMap( stage, buffer, stage->type ) )
+	/* If there is more than one colormap, it's a mistake anyway,
+	so we don't care about the possibility it overwrites one. */
+	if ( loadMap )
+	{
+		DelayStageTexture( buffer, stage->type, TB_COLORMAP );
+	}
+
+	/* Make sure we report for the successful loading of all kind
+	of colormaps like diffusemap… */
+	loadMap = delayedStageTextures[ TB_COLORMAP ].active;
+
+	for ( int bundleIndex = 0; bundleIndex < MAX_TEXTURE_BUNDLES; bundleIndex++ )
+	{
+		auto& delayedStageTexture = delayedStageTextures[ bundleIndex ];
+
+		if ( !delayedStageTexture.active )
+		{
+			continue;
+		}
+
+		Log::Debug("Loading delayed stage texture %s", delayedStageTexture.path );
+
+		if ( !LoadMap( stage, delayedStageTexture.path, delayedStageTexture.type, bundleIndex ) )
+		{
+			Log::Warn("Failed to load delayed stage texture from shader '%s': %s",
+				shader.name, delayedStageTexture.path );
+
+			// Remember the texture wasn't sucessfully loaded.
+			delayedStageTexture.active = false;
+		}
+	}
+
+	// Check if the colormap loaded, if it is required for it to be loaded.
+	if ( loadMap && !delayedStageTextures[ TB_COLORMAP ].active )
 	{
 		return false;
 	}
