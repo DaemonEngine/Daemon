@@ -1287,7 +1287,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	}
 
 	static float convertFloatFromSRGB_NOP( float f ) { return f; }
-	static Color::Color convertColorFromSRGB_NOP( Color::Color c ) { return c; }
+	Color::Color convertColorFromSRGB_NOP( Color::Color c ) { return c; }
 
 	/*
 	===============

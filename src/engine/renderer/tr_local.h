@@ -979,6 +979,11 @@ enum
 		ALL = BIT( 3 )
 	};
 
+	using floatProcessor_t = float(*)(float);
+	using colorProcessor_t = Color::Color(*)(Color::Color);
+
+	Color::Color convertColorFromSRGB_NOP( Color::Color c );
+
 	struct shaderStage_t
 	{
 		stageType_t     type;
@@ -997,6 +1002,8 @@ enum
 		surfaceDataUpdater_t surfaceDataUpdater;
 		stageShaderBinder_t shaderBinder;
 		stageMaterialProcessor_t materialProcessor;
+
+		colorProcessor_t convertColorFromSRGB;
 
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
 
@@ -1021,6 +1028,7 @@ enum
 		Color::Color32Bit constantColor; // for CGEN_CONST and AGEN_CONST
 
 		uint32_t        stateBits; // GLS_xxxx mask
+		uint8_t colorspaceBits; // LINEAR_xxxx mask
 
 		bool            isCubeMap;
 
@@ -1270,6 +1278,12 @@ enum
 	                       | GLS_ALPHAMASK_FALSE,
 
 	  GLS_DEFAULT = GLS_DEPTHMASK_TRUE
+	};
+
+	enum {
+		LINEAR_RGBGEN = ( 1 << 0 ),
+		LINEAR_COLORMAP = ( 1 << 1 ),
+		LINEAR_SPECULARMAP = ( 1 << 2 ),
 	};
 
 // *INDENT-ON*
@@ -2396,9 +2410,6 @@ enum
 		int       w;
 		int       h;
 	};
-
-	using floatProcessor_t = float(*)(float);
-	using colorProcessor_t = Color::Color(*)(Color::Color);
 
 	/*
 	** trGlobals_t

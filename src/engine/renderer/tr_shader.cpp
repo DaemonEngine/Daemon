@@ -1491,15 +1491,22 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 		to use any shader in UI, so we better take care of more than ST_COLORMAP. */
 		if ( ! ( shader.registerFlags & RSF_2D ) )
 		{
+			stage->convertColorFromSRGB = stage->colorspaceBits & LINEAR_RGBGEN ?
+				convertColorFromSRGB_NOP : stage->convertColorFromSRGB;
+
 			switch ( type )
 			{
 				case stageType_t::ST_COLORMAP:
 				case stageType_t::ST_DIFFUSEMAP:
+					imageParams.bits |= stage->colorspaceBits & LINEAR_COLORMAP ? 0 : IF_SRGB;
+					break;
 				case stageType_t::ST_GLOWMAP:
 				case stageType_t::ST_REFLECTIONMAP:
 				case stageType_t::ST_SKYBOXMAP:
-				case stageType_t::ST_SPECULARMAP:
 					imageParams.bits |= IF_SRGB;
+					break;
+				case stageType_t::ST_SPECULARMAP:
+					imageParams.bits |= stage->colorspaceBits & LINEAR_SPECULARMAP ? 0 : IF_SRGB;
 					break;
 				default:
 					break;
@@ -2095,6 +2102,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	bool     loadMap = false;
 	bool loadAnimMap = false;
 
+	stage->convertColorFromSRGB = convertColorFromSRGB_NOP;
+
 	memset( delayedStageTextures, 0, sizeof( delayedStageTextures ) );
 	memset( delayedAnimationTextures, 0, sizeof( delayedAnimationTextures ) );
 
@@ -2640,6 +2649,45 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				depthMaskBits = 0;
 			}
+		}
+		else if ( !Q_stricmp( token, "rawRgbGen" ) )
+		{
+			stage->colorspaceBits |= LINEAR_RGBGEN;
+		}
+		else if ( !Q_stricmp( token, "linearRgbGen" ) )
+		{
+			if ( !tr.worldLinearizeTexture )
+			{
+				Log::Warn("Usage of linearRgbGen in naive pipeline, assuming rawRgbGen");
+			}
+
+			stage->colorspaceBits |= LINEAR_RGBGEN;
+		}
+		else if ( !Q_stricmp( token, "rawColorMap" ) )
+		{
+			stage->colorspaceBits |= LINEAR_COLORMAP;
+		}
+		else if ( !Q_stricmp( token, "linearColorMap" ) )
+		{
+			if ( !tr.worldLinearizeTexture )
+			{
+				Log::Warn("Usage of linearColorMap in naive pipeline, assuming rawColorMap");
+			}
+
+			stage->colorspaceBits |= LINEAR_COLORMAP;
+		}
+		else if ( !Q_stricmp( token, "rawSpecularMap" ) )
+		{
+			stage->colorspaceBits |= LINEAR_SPECULARMAP;
+		}
+		else if ( !Q_stricmp( token, "linearSpecularMap" ) )
+		{
+			if ( !tr.worldLinearizeTexture )
+			{
+				Log::Warn("Usage of linearSpecularMap in naive pipeline, assuming rawSpecularMap");
+			}
+
+			stage->colorspaceBits |= LINEAR_SPECULARMAP;
 		}
 		// stage <type>
 		else if ( !Q_stricmp( token, "stage" ) )
