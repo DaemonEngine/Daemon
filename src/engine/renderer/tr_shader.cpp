@@ -1495,6 +1495,21 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 			{
 				case stageType_t::ST_COLORMAP:
 				case stageType_t::ST_DIFFUSEMAP:
+					{
+						bool linearColorMap = stage->linearBits & LINEAR_COLORMAP;
+						bool linearColor = stage->linearBits & LINEAR_COLOR;
+
+						if ( !linearColorMap )
+						{
+							imageParams.bits |= IF_SRGB;
+						}
+
+						if ( !linearColor )
+						{
+							stage->convertColorFromSRGB = tr.convertColorFromSRGB;
+						}
+					}
+					break;
 				case stageType_t::ST_GLOWMAP:
 				case stageType_t::ST_REFLECTIONMAP:
 				case stageType_t::ST_SKYBOXMAP:
@@ -2095,6 +2110,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	bool     loadMap = false;
 	bool loadAnimMap = false;
 
+	stage->convertColorFromSRGB = convertColorFromSRGB_NOP;
+
 	memset( delayedStageTextures, 0, sizeof( delayedStageTextures ) );
 	memset( delayedAnimationTextures, 0, sizeof( delayedAnimationTextures ) );
 
@@ -2640,6 +2657,14 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				depthMaskBits = 0;
 			}
+		}
+		else if ( !Q_stricmp( token, "linearColorMap" ) )
+		{
+			stage->linearBits |= LINEAR_COLORMAP;
+		}
+		else if ( !Q_stricmp( token, "linearColor" ) )
+		{
+			stage->linearBits |= LINEAR_COLOR;
 		}
 		// stage <type>
 		else if ( !Q_stricmp( token, "stage" ) )
