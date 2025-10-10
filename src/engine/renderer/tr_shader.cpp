@@ -1488,6 +1488,16 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 			{
 				case stageType_t::ST_COLORMAP:
 				case stageType_t::ST_DIFFUSEMAP:
+					{
+						bool naiveBlend = stage->stateBits & GLS_NAIVEBLEND;
+
+						if ( !naiveBlend )
+						{
+							imageParams.bits |= IF_SRGB;
+							stage->convertColorFromSRGB = tr.convertColorFromSRGB;
+						}
+					}
+					break;
 				case stageType_t::ST_GLOWMAP:
 				case stageType_t::ST_REFLECTIONMAP:
 				case stageType_t::ST_SKYBOXMAP:
@@ -2074,11 +2084,14 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	const char *token;
 	int          colorMaskBits = 0;
 	int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0, polyModeBits = 0;
+	int naiveBlendBits = 0;
 	bool     depthMaskExplicit = false;
 	int          imageBits = 0;
 	filterType_t filterType;
 	char         buffer[ 1024 ] = "";
 	bool     loadMap = false;
+
+	stage->convertColorFromSRGB = convertColorFromSRGB_NOP;
 
 	memset( delayedStageTextures, 0, sizeof( delayedStageTextures ) );
 
@@ -2647,6 +2660,10 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				depthMaskBits = 0;
 			}
+		}
+		else if ( !Q_stricmp( token, "naiveBlend" ) )
+		{
+			naiveBlendBits |= GLS_NAIVEBLEND;
 		}
 		// stage <type>
 		else if ( !Q_stricmp( token, "stage" ) )
@@ -3336,7 +3353,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	}
 
 	// compute state bits
-	stage->stateBits = colorMaskBits | depthMaskBits | blendSrcBits | blendDstBits | atestBits | depthFuncBits | polyModeBits;
+	stage->stateBits = colorMaskBits | depthMaskBits | blendSrcBits | blendDstBits | atestBits | depthFuncBits | polyModeBits | naiveBlendBits;
 
 	// Do not load heatHaze maps when r_heatHaze is disabled.
 	if ( stage->type == stageType_t::ST_HEATHAZEMAP && !r_heatHaze->integer )
