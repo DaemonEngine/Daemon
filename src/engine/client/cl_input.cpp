@@ -43,6 +43,8 @@ Maryland 20850 USA.
 static Cvar::Cvar<bool> in_gameControllerAvailable(
 	"in_gameControllerAvailable", "whether controller is a gamepad (as opposed to joystick)",
 	Cvar::ROM, false);
+static Cvar::Cvar<float> cvar_sensitivity(
+	"sensitivity", "mouse sensitivity (global movement scale)", Cvar::NONE, 5);
 
 unsigned frame_msec;
 int      old_com_frameTime;
@@ -543,7 +545,7 @@ void CL_MouseMove( usercmd_t *cmd )
 
 			rate = sqrt( mx * mx + my * my ) / ( float ) frame_msec;
 
-			accelSensitivity = cl_sensitivity->value + rate * cl_mouseAccel->value;
+			accelSensitivity = cvar_sensitivity.Get() + rate * cl_mouseAccel->value;
 			mx *= accelSensitivity;
 			my *= accelSensitivity;
 
@@ -567,8 +569,8 @@ void CL_MouseMove( usercmd_t *cmd )
 			power[ 0 ] = powf( rate[ 0 ] / cl_mouseAccelOffset->value, cl_mouseAccel->value );
 			power[ 1 ] = powf( rate[ 1 ] / cl_mouseAccelOffset->value, cl_mouseAccel->value );
 
-			mx = cl_sensitivity->value * ( mx + ( ( mx < 0 ) ? -power[ 0 ] : power[ 0 ] ) * cl_mouseAccelOffset->value );
-			my = cl_sensitivity->value * ( my + ( ( my < 0 ) ? -power[ 1 ] : power[ 1 ] ) * cl_mouseAccelOffset->value );
+			mx = cvar_sensitivity.Get() * ( mx + ( ( mx < 0 ) ? -power[ 0 ] : power[ 0 ] ) * cl_mouseAccelOffset->value );
+			my = cvar_sensitivity.Get() * ( my + ( ( my < 0 ) ? -power[ 1 ] : power[ 1 ] ) * cl_mouseAccelOffset->value );
 
 			if ( cl_showMouseRate->integer )
 			{
@@ -577,8 +579,8 @@ void CL_MouseMove( usercmd_t *cmd )
 		}
 	}
 
-	mx *= cl_sensitivity->value;
-	my *= cl_sensitivity->value;
+	mx *= cvar_sensitivity.Get();
+	my *= cvar_sensitivity.Get();
 
 	// ingame FOV
 	mx *= cl.cgameSensitivity;

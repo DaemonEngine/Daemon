@@ -94,7 +94,6 @@ Cvar::Cvar<std::string> cvar_demo_status_filename(
 cvar_t *cl_aviFrameRate;
 
 cvar_t *cl_freelook;
-cvar_t *cl_sensitivity;
 
 cvar_t *cl_mouseAccelOffset;
 cvar_t *cl_mouseAccel;
@@ -2329,7 +2328,6 @@ void CL_Init()
 	cl_packetdup = Cvar_Get( "cl_packetdup", "1", 0 );
 
 	cl_run = Cvar_Get( "cl_run", "1", 0 );
-	cl_sensitivity = Cvar_Get( "sensitivity", "5", CVAR_ARCHIVE );
 	cl_mouseAccel = Cvar_Get( "cl_mouseAccel", "0", 0 );
 	cl_freelook = Cvar_Get( "cl_freelook", "1", CVAR_ARCHIVE );
 
