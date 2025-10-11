@@ -389,15 +389,15 @@ extern cvar_t *cl_showSend;
 extern cvar_t *cl_timeNudge;
 extern cvar_t *cl_showTimeDelta;
 
-extern cvar_t *cl_yawspeed;
-extern cvar_t *cl_pitchspeed;
-extern cvar_t *cl_run;
-extern cvar_t *cl_anglespeedkey;
+extern Cvar::Cvar<float> cl_yawspeed;
+extern Cvar::Cvar<float> cl_pitchspeed;
+extern Cvar::Cvar<bool> cl_run;
+extern Cvar::Cvar<float> cl_anglespeedkey;
 
-extern cvar_t *cl_doubletapdelay;
+extern Cvar::Range<Cvar::Cvar<int>> cl_doubletapdelay;
 
 extern cvar_t *cl_sensitivity;
-extern cvar_t *cl_freelook;
+extern Cvar::Cvar<bool> cl_freelook;
 
 extern cvar_t *cl_mouseAccel;
 extern cvar_t *cl_mouseAccelOffset;
