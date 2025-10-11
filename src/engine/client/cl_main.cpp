@@ -98,7 +98,6 @@ cvar_t *cl_freelook;
 cvar_t *cl_mouseAccelOffset;
 cvar_t *cl_mouseAccel;
 cvar_t *cl_mouseAccelStyle;
-cvar_t *cl_showMouseRate;
 
 Cvar::Cvar<float> m_pitch("m_pitch", "mouse sensitivity modifier for looking up/down", Cvar::NONE, 0.022);
 Cvar::Cvar<float> m_yaw("m_yaw", "mouse sensitivity modifier for looking left/right", Cvar::NONE, 0.022);
@@ -2338,8 +2337,6 @@ void CL_Init()
 	// offset for the power function (for style 1, ignored otherwise)
 	// this should be set to the max rate value
 	cl_mouseAccelOffset = Cvar_Get( "cl_mouseAccelOffset", "5", 0 );
-
-	cl_showMouseRate = Cvar_Get( "cl_showmouserate", "0", 0 );
 
 	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", 0 );
 
