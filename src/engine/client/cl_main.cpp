@@ -101,11 +101,11 @@ cvar_t *cl_mouseAccel;
 cvar_t *cl_mouseAccelStyle;
 cvar_t *cl_showMouseRate;
 
-cvar_t *m_pitch;
-cvar_t *m_yaw;
-cvar_t *m_forward;
-cvar_t *m_side;
-cvar_t *m_filter;
+Cvar::Cvar<float> m_pitch("m_pitch", "mouse sensitivity modifier for looking up/down", Cvar::NONE, 0.022);
+Cvar::Cvar<float> m_yaw("m_yaw", "mouse sensitivity modifier for looking left/right", Cvar::NONE, 0.022);
+Cvar::Cvar<float> m_forward("m_forward", "mouse sensitivity modifier for (mlook off) walking", Cvar::NONE, 0.25);
+Cvar::Cvar<float> m_side("m_side", "mouse sensitivity modifier for +strafe", Cvar::NONE, 0.25);
+Cvar::Cvar<bool> m_filter("m_filter", "smooth mouse inputs over 2 frames", Cvar::NONE, false);
 
 Cvar::Cvar<float> j_pitch("j_pitch", "joystick move scale for pitch axis", Cvar::NONE, 0.022);
 Cvar::Cvar<float> j_yaw("j_yaw", "joystick move scale for yaw axis", Cvar::NONE, -0.022);
@@ -2346,11 +2346,6 @@ void CL_Init()
 	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", 0 );
 
 	cl_doubletapdelay = Cvar_Get( "cl_doubletapdelay", "250", 0 );  // Arnout: double tap
-	m_pitch = Cvar_Get( "m_pitch", "0.022", CVAR_ARCHIVE );
-	m_yaw = Cvar_Get( "m_yaw", "0.022", 0 );
-	m_forward = Cvar_Get( "m_forward", "0.25", 0 );
-	m_side = Cvar_Get( "m_side", "0.25", 0 );
-	m_filter = Cvar_Get( "m_filter", "0", CVAR_ARCHIVE );
 
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
 
