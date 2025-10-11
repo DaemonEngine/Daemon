@@ -404,11 +404,11 @@ extern cvar_t *cl_mouseAccelOffset;
 extern cvar_t *cl_mouseAccelStyle;
 extern cvar_t *cl_showMouseRate;
 
-extern cvar_t *m_pitch;
-extern cvar_t *m_yaw;
-extern cvar_t *m_forward;
-extern cvar_t *m_side;
-extern cvar_t *m_filter;
+extern Cvar::Cvar<float> m_pitch;
+extern Cvar::Cvar<float> m_yaw;
+extern Cvar::Cvar<float> m_forward;
+extern Cvar::Cvar<float> m_side;
+extern Cvar::Cvar<bool> m_filter;
 
 extern Cvar::Cvar<float> j_pitch;
 extern Cvar::Cvar<float> j_yaw;

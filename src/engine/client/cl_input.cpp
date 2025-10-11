@@ -514,7 +514,7 @@ void CL_MouseMove( usercmd_t *cmd )
 	float mx, my;
 
 	// allow mouse smoothing
-	if ( m_filter->integer )
+	if ( m_filter.Get() )
 	{
 		mx = ( cl.mouseDx[ 0 ] + cl.mouseDx[ 1 ] ) * 0.5f;
 		my = ( cl.mouseDy[ 0 ] + cl.mouseDy[ 1 ] ) * 0.5f;
@@ -587,21 +587,21 @@ void CL_MouseMove( usercmd_t *cmd )
 	// add mouse X/Y movement to cmd
 	if ( kb[ KB_STRAFE ].active )
 	{
-		cmd->rightmove = ClampChar( cmd->rightmove + m_side->value * mx );
+		cmd->rightmove = ClampChar( cmd->rightmove + m_side.Get() * mx );
 	}
 	else
 	{
-		cl.viewangles[ YAW ] -= m_yaw->value * mx;
+		cl.viewangles[ YAW ] -= m_yaw.Get() * mx;
 	}
 
 	if ( ( kb[ KB_MLOOK ].active || cl_freelook->integer ) && !kb[ KB_STRAFE ].active )
 	{
-		cl.viewangles[ PITCH ] += m_pitch->value * my;
+		cl.viewangles[ PITCH ] += m_pitch.Get() * my;
 	}
 
 	else
 	{
-		cmd->forwardmove = ClampChar( cmd->forwardmove - m_forward->value * my );
+		cmd->forwardmove = ClampChar( cmd->forwardmove - m_forward.Get() * my );
 	}
 }
 
