@@ -568,9 +568,11 @@ void CL_MouseMove( usercmd_t *cmd )
 			my = cvar_sensitivity.Get() * ( my + ( ( my < 0 ) ? -power[ 1 ] : power[ 1 ] ) * cl_mouseAccelOffset->value );
 		}
 	}
-
-	mx *= cvar_sensitivity.Get();
-	my *= cvar_sensitivity.Get();
+	else
+	{
+		mx *= cvar_sensitivity.Get();
+		my *= cvar_sensitivity.Get();
+	}
 
 	// ingame FOV
 	mx *= cl.cgameSensitivity;
