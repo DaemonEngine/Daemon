@@ -548,11 +548,6 @@ void CL_MouseMove( usercmd_t *cmd )
 			accelSensitivity = cvar_sensitivity.Get() + rate * cl_mouseAccel->value;
 			mx *= accelSensitivity;
 			my *= accelSensitivity;
-
-			if ( cl_showMouseRate->integer )
-			{
-				Log::Notice( "rate: %f, accelSensitivity: %f", rate, accelSensitivity );
-			}
 		}
 		else
 		{
@@ -571,11 +566,6 @@ void CL_MouseMove( usercmd_t *cmd )
 
 			mx = cvar_sensitivity.Get() * ( mx + ( ( mx < 0 ) ? -power[ 0 ] : power[ 0 ] ) * cl_mouseAccelOffset->value );
 			my = cvar_sensitivity.Get() * ( my + ( ( my < 0 ) ? -power[ 1 ] : power[ 1 ] ) * cl_mouseAccelOffset->value );
-
-			if ( cl_showMouseRate->integer )
-			{
-				Log::Notice( "ratex: %f, ratey: %f, powx: %f, powy: %f", rate[ 0 ], rate[ 1 ], power[ 0 ], power[ 1 ] );
-			}
 		}
 	}
 

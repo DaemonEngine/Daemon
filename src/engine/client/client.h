@@ -402,7 +402,6 @@ extern cvar_t *cl_freelook;
 extern cvar_t *cl_mouseAccel;
 extern cvar_t *cl_mouseAccelOffset;
 extern cvar_t *cl_mouseAccelStyle;
-extern cvar_t *cl_showMouseRate;
 
 extern Cvar::Cvar<float> m_pitch;
 extern Cvar::Cvar<float> m_yaw;
