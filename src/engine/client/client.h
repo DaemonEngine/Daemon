@@ -399,10 +399,6 @@ extern Cvar::Range<Cvar::Cvar<int>> cl_doubletapdelay;
 extern cvar_t *cl_sensitivity;
 extern Cvar::Cvar<bool> cl_freelook;
 
-extern cvar_t *cl_mouseAccel;
-extern cvar_t *cl_mouseAccelOffset;
-extern cvar_t *cl_mouseAccelStyle;
-
 extern Cvar::Cvar<float> m_pitch;
 extern Cvar::Cvar<float> m_yaw;
 extern Cvar::Cvar<float> m_forward;

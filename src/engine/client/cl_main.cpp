@@ -2322,16 +2322,6 @@ void CL_Init()
 	cl_maxpackets = Cvar_Get( "cl_maxpackets", "125", 0 );
 	cl_packetdup = Cvar_Get( "cl_packetdup", "1", 0 );
 
-	cl_mouseAccel = Cvar_Get( "cl_mouseAccel", "0", 0 );
-
-	// 0: legacy mouse acceleration
-	// 1: new implementation
-
-	cl_mouseAccelStyle = Cvar_Get( "cl_mouseAccelStyle", "0", 0 );
-	// offset for the power function (for style 1, ignored otherwise)
-	// this should be set to the max rate value
-	cl_mouseAccelOffset = Cvar_Get( "cl_mouseAccelOffset", "5", 0 );
-
 	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", 0 );
 
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );

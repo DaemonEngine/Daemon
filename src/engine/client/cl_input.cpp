@@ -40,6 +40,15 @@ Maryland 20850 USA.
 #include "engine/qcommon/sys.h"
 #include "framework/CommandSystem.h"
 
+static Cvar::Cvar<float> cl_mouseAccel(
+	"cl_mouseAccel", "mouse acceleration strength", Cvar::NONE, 0);
+static Cvar::Range<Cvar::Cvar<int>> cl_mouseAccelStyle(
+	"cl_mouseAccelStyle", "mouse acceleration - 0: 'legacy' quadratic, 1: 'new' exponential",
+	Cvar::NONE, 0, 0, 1);
+static Cvar::Range<Cvar::Cvar<float>> cl_mouseAccelOffset(
+	"cl_mouseAccelOffset", "accel style 1 characteristic mouse speed (higher = less accel)",
+	Cvar::NONE, 5, 0.001, 999);
+
 static Cvar::Cvar<bool> in_gameControllerAvailable(
 	"in_gameControllerAvailable", "whether controller is a gamepad (as opposed to joystick)",
 	Cvar::ROM, false);
@@ -536,16 +545,16 @@ void CL_MouseMove( usercmd_t *cmd )
 		return;
 	}
 
-	if ( cl_mouseAccel->value != 0.0f )
+	if ( cl_mouseAccel.Get() != 0.0f )
 	{
-		if ( cl_mouseAccelStyle->integer == 0 )
+		if ( cl_mouseAccelStyle.Get() == 0 )
 		{
 			float accelSensitivity;
 			float rate;
 
 			rate = sqrt( mx * mx + my * my ) / ( float ) frame_msec;
 
-			accelSensitivity = cvar_sensitivity.Get() + rate * cl_mouseAccel->value;
+			accelSensitivity = cvar_sensitivity.Get() + rate * cl_mouseAccel.Get();
 			mx *= accelSensitivity;
 			my *= accelSensitivity;
 		}
@@ -557,15 +566,16 @@ void CL_MouseMove( usercmd_t *cmd )
 			// sensitivity remains pretty much unchanged at low speeds
 			// cl_mouseAccel is a power value to how the acceleration is shaped
 			// cl_mouseAccelOffset is the rate for which the acceleration will have doubled the non accelerated amplification
+			// cl_mouseAccelOffset should be set to the max rate value
 			// NOTE: decouple the config cvars for independent acceleration setup along X and Y?
 
 			rate[ 0 ] = fabsf( mx ) / ( float ) frame_msec;
 			rate[ 1 ] = fabsf( my ) / ( float ) frame_msec;
-			power[ 0 ] = powf( rate[ 0 ] / cl_mouseAccelOffset->value, cl_mouseAccel->value );
-			power[ 1 ] = powf( rate[ 1 ] / cl_mouseAccelOffset->value, cl_mouseAccel->value );
+			power[ 0 ] = powf( rate[ 0 ] / cl_mouseAccelOffset.Get(), cl_mouseAccel.Get() );
+			power[ 1 ] = powf( rate[ 1 ] / cl_mouseAccelOffset.Get(), cl_mouseAccel.Get());
 
-			mx = cvar_sensitivity.Get() * ( mx + ( ( mx < 0 ) ? -power[ 0 ] : power[ 0 ] ) * cl_mouseAccelOffset->value );
-			my = cvar_sensitivity.Get() * ( my + ( ( my < 0 ) ? -power[ 1 ] : power[ 1 ] ) * cl_mouseAccelOffset->value );
+			mx = cvar_sensitivity.Get() * ( mx + ( ( mx < 0 ) ? -power[ 0 ] : power[ 0 ] ) * cl_mouseAccelOffset.Get() );
+			my = cvar_sensitivity.Get() * ( my + ( ( my < 0 ) ? -power[ 1 ] : power[ 1 ] ) * cl_mouseAccelOffset.Get() );
 		}
 	}
 	else
