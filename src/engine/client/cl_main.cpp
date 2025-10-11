@@ -93,7 +93,7 @@ Cvar::Cvar<std::string> cvar_demo_status_filename(
 
 cvar_t *cl_aviFrameRate;
 
-cvar_t *cl_freelook;
+Cvar::Cvar<bool> cl_freelook("cl_freelook", "vertical mouse movement always controls pitch", Cvar::NONE, true);
 
 cvar_t *cl_mouseAccelOffset;
 cvar_t *cl_mouseAccel;
@@ -2319,16 +2319,10 @@ void CL_Init()
 	cl_aviMotionJpeg = Cvar_Get( "cl_aviMotionJpeg", "1", 0 );
 	// XreaL END
 
-	cl_yawspeed = Cvar_Get( "cl_yawspeed", "140", 0 );
-	cl_pitchspeed = Cvar_Get( "cl_pitchspeed", "140", 0 );
-	cl_anglespeedkey = Cvar_Get( "cl_anglespeedkey", "1.5", 0 );
-
 	cl_maxpackets = Cvar_Get( "cl_maxpackets", "125", 0 );
 	cl_packetdup = Cvar_Get( "cl_packetdup", "1", 0 );
 
-	cl_run = Cvar_Get( "cl_run", "1", 0 );
 	cl_mouseAccel = Cvar_Get( "cl_mouseAccel", "0", 0 );
-	cl_freelook = Cvar_Get( "cl_freelook", "1", CVAR_ARCHIVE );
 
 	// 0: legacy mouse acceleration
 	// 1: new implementation
@@ -2339,8 +2333,6 @@ void CL_Init()
 	cl_mouseAccelOffset = Cvar_Get( "cl_mouseAccelOffset", "5", 0 );
 
 	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", 0 );
-
-	cl_doubletapdelay = Cvar_Get( "cl_doubletapdelay", "250", 0 );  // Arnout: double tap
 
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
 

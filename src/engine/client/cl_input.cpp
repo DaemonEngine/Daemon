@@ -208,14 +208,14 @@ void IN_CenterView ()
 
 //==========================================================================
 
-cvar_t *cl_yawspeed;
-cvar_t *cl_pitchspeed;
+Cvar::Cvar<float> cl_yawspeed("cl_yawspeed", "speed of turning left/right using keys", Cvar::NONE, 140);
+Cvar::Cvar<float> cl_pitchspeed("cl_pitchspeed", "speed of looking up/down using keys", Cvar::NONE, 140);
 
-cvar_t *cl_run;
+Cvar::Cvar<bool> cl_run("cl_run", "run rather than walk by default (without +speed)", Cvar::NONE, true);
 
-cvar_t *cl_anglespeedkey;
+Cvar::Cvar<float> cl_anglespeedkey("cl_anglespeedkey", "+speed keyboard view rotation modifier", Cvar::NONE, 1.5);
 
-cvar_t *cl_doubletapdelay;
+Cvar::Range<Cvar::Cvar<int>> cl_doubletapdelay("cl_doubletapdelay", "maximum delay (ms) between key presses for double-tap", Cvar::NONE, 250, 0, 1000);
 
 /*
 ================
@@ -230,7 +230,7 @@ void CL_AdjustAngles()
 
 	if ( kb[ KB_SPEED ].active )
 	{
-		speed = 0.001f * cls.frametime * cl_anglespeedkey->value;
+		speed = 0.001f * cls.frametime * cl_anglespeedkey.Get();
 	}
 	else
 	{
@@ -239,12 +239,12 @@ void CL_AdjustAngles()
 
 	if ( !kb[ KB_STRAFE ].active )
 	{
-		cl.viewangles[ YAW ] -= speed * cl_yawspeed->value * CL_KeyState( &kb[ KB_RIGHT ] );
-		cl.viewangles[ YAW ] += speed * cl_yawspeed->value * CL_KeyState( &kb[ KB_LEFT ] );
+		cl.viewangles[ YAW ] -= speed * cl_yawspeed.Get() * CL_KeyState( &kb[ KB_RIGHT ] );
+		cl.viewangles[ YAW ] += speed * cl_yawspeed.Get() * CL_KeyState( &kb[ KB_LEFT ] );
 	}
 
-	cl.viewangles[ PITCH ] -= speed * cl_pitchspeed->value * CL_KeyState( &kb[ KB_LOOKUP ] );
-	cl.viewangles[ PITCH ] += speed * cl_pitchspeed->value * CL_KeyState( &kb[ KB_LOOKDOWN ] );
+	cl.viewangles[ PITCH ] -= speed * cl_pitchspeed.Get() * CL_KeyState( &kb[ KB_LOOKUP ] );
+	cl.viewangles[ PITCH ] += speed * cl_pitchspeed.Get() * CL_KeyState( &kb[ KB_LOOKDOWN ] );
 }
 
 /*
@@ -264,7 +264,7 @@ void CL_KeyMove( usercmd_t *cmd )
 	// the walking flag is to keep animations consistent
 	// even during acceleration and deceleration
 	//
-	if ( kb[ KB_SPEED ].active != (cl_run->integer != 0) )
+	if ( kb[ KB_SPEED ].active != cl_run.Get() )
 	{
 		movespeed = 127;
 		usercmdReleaseButton( cmd->buttons, BUTTON_WALKING );
@@ -301,7 +301,7 @@ void CL_KeyMove( usercmd_t *cmd )
 	// Arnout: double tap
 	cmd->doubleTap = dtType_t::DT_NONE; // reset
 
-	if ( !cl.doubleTap.lastdoubleTap || com_frameTime - cl.doubleTap.lastdoubleTap > cl_doubletapdelay->integer + cls.frametime )
+	if ( !cl.doubleTap.lastdoubleTap || com_frameTime - cl.doubleTap.lastdoubleTap > cl_doubletapdelay.Get() + cls.frametime )
 	{
 		int      i;
 		bool key_down;
@@ -347,15 +347,15 @@ void CL_KeyMove( usercmd_t *cmd )
 			else if ( !key_down &&
 			          cl.doubleTap.pressedTime[ i ] &&
 			          !cl.doubleTap.releasedTime[ i ] &&
-			          com_frameTime - cl.doubleTap.pressedTime[ i ] < cl_doubletapdelay->integer + cls.frametime )
+			          com_frameTime - cl.doubleTap.pressedTime[ i ] < cl_doubletapdelay.Get() + cls.frametime )
 			{
 				cl.doubleTap.releasedTime[ i ] = com_frameTime;
 			}
 			else if ( key_down &&
 			          cl.doubleTap.pressedTime[ i ] &&
 			          cl.doubleTap.releasedTime[ i ] &&
-			          com_frameTime - cl.doubleTap.pressedTime[ i ] < cl_doubletapdelay->integer + cls.frametime &&
-			          com_frameTime - cl.doubleTap.releasedTime[ i ] < cl_doubletapdelay->integer + cls.frametime )
+			          com_frameTime - cl.doubleTap.pressedTime[ i ] < cl_doubletapdelay.Get() + cls.frametime &&
+			          com_frameTime - cl.doubleTap.releasedTime[ i ] < cl_doubletapdelay.Get() + cls.frametime )
 			{
 				cl.doubleTap.pressedTime[ i ] = cl.doubleTap.releasedTime[ i ] = 0;
 				cmd->doubleTap = Util::enum_cast<dtType_t>(i);
@@ -363,7 +363,7 @@ void CL_KeyMove( usercmd_t *cmd )
 			}
 			else if ( !key_down && ( cl.doubleTap.pressedTime[ i ] || cl.doubleTap.releasedTime[ i ] ) )
 			{
-				if ( com_frameTime - cl.doubleTap.pressedTime[ i ] >= ( cl_doubletapdelay->integer + cls.frametime ) )
+				if ( com_frameTime - cl.doubleTap.pressedTime[ i ] >= ( cl_doubletapdelay.Get() + cls.frametime ) )
 				{
 					cl.doubleTap.pressedTime[ i ] = cl.doubleTap.releasedTime[ i ] = 0;
 				}
@@ -434,14 +434,14 @@ void CL_JoystickMove( usercmd_t *cmd )
 //	int             movespeed;
 	float anglespeed;
 
-	if ( kb[ KB_SPEED ].active == (cl_run->integer != 0) )
+	if ( kb[ KB_SPEED ].active == cl_run.Get() )
 	{
 		usercmdPressButton( cmd->buttons, BUTTON_WALKING );
 	}
 
 	if ( kb[ KB_SPEED ].active )
 	{
-		anglespeed = 0.001f * cls.frametime * cl_anglespeedkey->value;
+		anglespeed = 0.001f * cls.frametime * cl_anglespeedkey.Get();
 	}
 	else
 	{
@@ -484,22 +484,22 @@ void CL_GameControllerMove( usercmd_t *cmd )
 //	int     movespeed;
 	float anglespeed;
 
-	if ( kb[ KB_SPEED ].active == (cl_run->integer != 0) )
+	if ( kb[ KB_SPEED ].active == cl_run.Get() )
 	{
 		usercmdPressButton( cmd->buttons, BUTTON_WALKING );
 	}
 
 	if ( kb[ KB_SPEED ].active )
 	{
-		anglespeed = 0.001f * cls.frametime * cl_anglespeedkey->value;
+		anglespeed = 0.001f * cls.frametime * cl_anglespeedkey.Get();
 	}
 	else
 	{
 		anglespeed = 0.001f * cls.frametime;
 	}
 
-	cl.viewangles[ PITCH ] += anglespeed * cl_pitchspeed->value * ( cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_PITCH) ] / 127.0f );
-	cl.viewangles[ YAW ] += anglespeed * cl_yawspeed->value * ( cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_YAW) ] / 127.0f );
+	cl.viewangles[ PITCH ] += anglespeed * cl_pitchspeed.Get() * ( cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_PITCH) ] / 127.0f );
+	cl.viewangles[ YAW ] += anglespeed * cl_yawspeed.Get() * ( cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_YAW) ] / 127.0f );
 
 	cmd->rightmove = ClampChar( cmd->rightmove + cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_SIDE) ] );
 	cmd->forwardmove = ClampChar( cmd->forwardmove + cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_FORWARD) ] );
@@ -586,7 +586,7 @@ void CL_MouseMove( usercmd_t *cmd )
 		cl.viewangles[ YAW ] -= m_yaw.Get() * mx;
 	}
 
-	if ( ( kb[ KB_MLOOK ].active || cl_freelook->integer ) && !kb[ KB_STRAFE ].active )
+	if ( ( kb[ KB_MLOOK ].active || cl_freelook.Get() ) && !kb[ KB_STRAFE ].active )
 	{
 		cl.viewangles[ PITCH ] += m_pitch.Get() * my;
 	}
