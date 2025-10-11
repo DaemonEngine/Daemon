@@ -40,9 +40,20 @@ Maryland 20850 USA.
 #include "engine/qcommon/sys.h"
 #include "framework/CommandSystem.h"
 
+static Cvar::Cvar<float> cl_mouseAccel(
+	"cl_mouseAccel", "mouse acceleration strength", Cvar::NONE, 0);
+static Cvar::Range<Cvar::Cvar<int>> cl_mouseAccelStyle(
+	"cl_mouseAccelStyle", "mouse acceleration - 0: 'legacy' quadratic, 1: 'new' exponential",
+	Cvar::NONE, 0, 0, 1);
+static Cvar::Range<Cvar::Cvar<float>> cl_mouseAccelOffset(
+	"cl_mouseAccelOffset", "accel style 1 characteristic mouse speed (higher = less accel)",
+	Cvar::NONE, 5, 0.001, 999);
+
 static Cvar::Cvar<bool> in_gameControllerAvailable(
 	"in_gameControllerAvailable", "whether controller is a gamepad (as opposed to joystick)",
 	Cvar::ROM, false);
+static Cvar::Cvar<float> cvar_sensitivity(
+	"sensitivity", "mouse sensitivity (global movement scale)", Cvar::NONE, 5);
 
 unsigned frame_msec;
 int      old_com_frameTime;
@@ -206,14 +217,14 @@ void IN_CenterView ()
 
 //==========================================================================
 
-cvar_t *cl_yawspeed;
-cvar_t *cl_pitchspeed;
+Cvar::Cvar<float> cl_yawspeed("cl_yawspeed", "speed of turning left/right using keys", Cvar::NONE, 140);
+Cvar::Cvar<float> cl_pitchspeed("cl_pitchspeed", "speed of looking up/down using keys", Cvar::NONE, 140);
 
-cvar_t *cl_run;
+Cvar::Cvar<bool> cl_run("cl_run", "run rather than walk by default (without +speed)", Cvar::NONE, true);
 
-cvar_t *cl_anglespeedkey;
+Cvar::Cvar<float> cl_anglespeedkey("cl_anglespeedkey", "+speed keyboard view rotation modifier", Cvar::NONE, 1.5);
 
-cvar_t *cl_doubletapdelay;
+Cvar::Range<Cvar::Cvar<int>> cl_doubletapdelay("cl_doubletapdelay", "maximum delay (ms) between key presses for double-tap", Cvar::NONE, 250, 0, 1000);
 
 /*
 ================
@@ -228,7 +239,7 @@ void CL_AdjustAngles()
 
 	if ( kb[ KB_SPEED ].active )
 	{
-		speed = 0.001f * cls.frametime * cl_anglespeedkey->value;
+		speed = 0.001f * cls.frametime * cl_anglespeedkey.Get();
 	}
 	else
 	{
@@ -237,12 +248,12 @@ void CL_AdjustAngles()
 
 	if ( !kb[ KB_STRAFE ].active )
 	{
-		cl.viewangles[ YAW ] -= speed * cl_yawspeed->value * CL_KeyState( &kb[ KB_RIGHT ] );
-		cl.viewangles[ YAW ] += speed * cl_yawspeed->value * CL_KeyState( &kb[ KB_LEFT ] );
+		cl.viewangles[ YAW ] -= speed * cl_yawspeed.Get() * CL_KeyState( &kb[ KB_RIGHT ] );
+		cl.viewangles[ YAW ] += speed * cl_yawspeed.Get() * CL_KeyState( &kb[ KB_LEFT ] );
 	}
 
-	cl.viewangles[ PITCH ] -= speed * cl_pitchspeed->value * CL_KeyState( &kb[ KB_LOOKUP ] );
-	cl.viewangles[ PITCH ] += speed * cl_pitchspeed->value * CL_KeyState( &kb[ KB_LOOKDOWN ] );
+	cl.viewangles[ PITCH ] -= speed * cl_pitchspeed.Get() * CL_KeyState( &kb[ KB_LOOKUP ] );
+	cl.viewangles[ PITCH ] += speed * cl_pitchspeed.Get() * CL_KeyState( &kb[ KB_LOOKDOWN ] );
 }
 
 /*
@@ -262,7 +273,7 @@ void CL_KeyMove( usercmd_t *cmd )
 	// the walking flag is to keep animations consistent
 	// even during acceleration and deceleration
 	//
-	if ( kb[ KB_SPEED ].active != (cl_run->integer != 0) )
+	if ( kb[ KB_SPEED ].active != cl_run.Get() )
 	{
 		movespeed = 127;
 		usercmdReleaseButton( cmd->buttons, BUTTON_WALKING );
@@ -299,7 +310,7 @@ void CL_KeyMove( usercmd_t *cmd )
 	// Arnout: double tap
 	cmd->doubleTap = dtType_t::DT_NONE; // reset
 
-	if ( !cl.doubleTap.lastdoubleTap || com_frameTime - cl.doubleTap.lastdoubleTap > cl_doubletapdelay->integer + cls.frametime )
+	if ( !cl.doubleTap.lastdoubleTap || com_frameTime - cl.doubleTap.lastdoubleTap > cl_doubletapdelay.Get() + cls.frametime )
 	{
 		int      i;
 		bool key_down;
@@ -345,15 +356,15 @@ void CL_KeyMove( usercmd_t *cmd )
 			else if ( !key_down &&
 			          cl.doubleTap.pressedTime[ i ] &&
 			          !cl.doubleTap.releasedTime[ i ] &&
-			          com_frameTime - cl.doubleTap.pressedTime[ i ] < cl_doubletapdelay->integer + cls.frametime )
+			          com_frameTime - cl.doubleTap.pressedTime[ i ] < cl_doubletapdelay.Get() + cls.frametime )
 			{
 				cl.doubleTap.releasedTime[ i ] = com_frameTime;
 			}
 			else if ( key_down &&
 			          cl.doubleTap.pressedTime[ i ] &&
 			          cl.doubleTap.releasedTime[ i ] &&
-			          com_frameTime - cl.doubleTap.pressedTime[ i ] < cl_doubletapdelay->integer + cls.frametime &&
-			          com_frameTime - cl.doubleTap.releasedTime[ i ] < cl_doubletapdelay->integer + cls.frametime )
+			          com_frameTime - cl.doubleTap.pressedTime[ i ] < cl_doubletapdelay.Get() + cls.frametime &&
+			          com_frameTime - cl.doubleTap.releasedTime[ i ] < cl_doubletapdelay.Get() + cls.frametime )
 			{
 				cl.doubleTap.pressedTime[ i ] = cl.doubleTap.releasedTime[ i ] = 0;
 				cmd->doubleTap = Util::enum_cast<dtType_t>(i);
@@ -361,7 +372,7 @@ void CL_KeyMove( usercmd_t *cmd )
 			}
 			else if ( !key_down && ( cl.doubleTap.pressedTime[ i ] || cl.doubleTap.releasedTime[ i ] ) )
 			{
-				if ( com_frameTime - cl.doubleTap.pressedTime[ i ] >= ( cl_doubletapdelay->integer + cls.frametime ) )
+				if ( com_frameTime - cl.doubleTap.pressedTime[ i ] >= ( cl_doubletapdelay.Get() + cls.frametime ) )
 				{
 					cl.doubleTap.pressedTime[ i ] = cl.doubleTap.releasedTime[ i ] = 0;
 				}
@@ -432,14 +443,14 @@ void CL_JoystickMove( usercmd_t *cmd )
 //	int             movespeed;
 	float anglespeed;
 
-	if ( kb[ KB_SPEED ].active == (cl_run->integer != 0) )
+	if ( kb[ KB_SPEED ].active == cl_run.Get() )
 	{
 		usercmdPressButton( cmd->buttons, BUTTON_WALKING );
 	}
 
 	if ( kb[ KB_SPEED ].active )
 	{
-		anglespeed = 0.001f * cls.frametime * cl_anglespeedkey->value;
+		anglespeed = 0.001f * cls.frametime * cl_anglespeedkey.Get();
 	}
 	else
 	{
@@ -482,22 +493,22 @@ void CL_GameControllerMove( usercmd_t *cmd )
 //	int     movespeed;
 	float anglespeed;
 
-	if ( kb[ KB_SPEED ].active == (cl_run->integer != 0) )
+	if ( kb[ KB_SPEED ].active == cl_run.Get() )
 	{
 		usercmdPressButton( cmd->buttons, BUTTON_WALKING );
 	}
 
 	if ( kb[ KB_SPEED ].active )
 	{
-		anglespeed = 0.001f * cls.frametime * cl_anglespeedkey->value;
+		anglespeed = 0.001f * cls.frametime * cl_anglespeedkey.Get();
 	}
 	else
 	{
 		anglespeed = 0.001f * cls.frametime;
 	}
 
-	cl.viewangles[ PITCH ] += anglespeed * cl_pitchspeed->value * ( cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_PITCH) ] / 127.0f );
-	cl.viewangles[ YAW ] += anglespeed * cl_yawspeed->value * ( cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_YAW) ] / 127.0f );
+	cl.viewangles[ PITCH ] += anglespeed * cl_pitchspeed.Get() * ( cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_PITCH) ] / 127.0f );
+	cl.viewangles[ YAW ] += anglespeed * cl_yawspeed.Get() * ( cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_YAW) ] / 127.0f );
 
 	cmd->rightmove = ClampChar( cmd->rightmove + cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_SIDE) ] );
 	cmd->forwardmove = ClampChar( cmd->forwardmove + cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_FORWARD) ] );
@@ -514,7 +525,7 @@ void CL_MouseMove( usercmd_t *cmd )
 	float mx, my;
 
 	// allow mouse smoothing
-	if ( m_filter->integer )
+	if ( m_filter.Get() )
 	{
 		mx = ( cl.mouseDx[ 0 ] + cl.mouseDx[ 1 ] ) * 0.5f;
 		my = ( cl.mouseDy[ 0 ] + cl.mouseDy[ 1 ] ) * 0.5f;
@@ -534,23 +545,18 @@ void CL_MouseMove( usercmd_t *cmd )
 		return;
 	}
 
-	if ( cl_mouseAccel->value != 0.0f )
+	if ( cl_mouseAccel.Get() != 0.0f )
 	{
-		if ( cl_mouseAccelStyle->integer == 0 )
+		if ( cl_mouseAccelStyle.Get() == 0 )
 		{
 			float accelSensitivity;
 			float rate;
 
 			rate = sqrt( mx * mx + my * my ) / ( float ) frame_msec;
 
-			accelSensitivity = cl_sensitivity->value + rate * cl_mouseAccel->value;
+			accelSensitivity = cvar_sensitivity.Get() + rate * cl_mouseAccel.Get();
 			mx *= accelSensitivity;
 			my *= accelSensitivity;
-
-			if ( cl_showMouseRate->integer )
-			{
-				Log::Notice( "rate: %f, accelSensitivity: %f", rate, accelSensitivity );
-			}
 		}
 		else
 		{
@@ -560,25 +566,23 @@ void CL_MouseMove( usercmd_t *cmd )
 			// sensitivity remains pretty much unchanged at low speeds
 			// cl_mouseAccel is a power value to how the acceleration is shaped
 			// cl_mouseAccelOffset is the rate for which the acceleration will have doubled the non accelerated amplification
+			// cl_mouseAccelOffset should be set to the max rate value
 			// NOTE: decouple the config cvars for independent acceleration setup along X and Y?
 
 			rate[ 0 ] = fabsf( mx ) / ( float ) frame_msec;
 			rate[ 1 ] = fabsf( my ) / ( float ) frame_msec;
-			power[ 0 ] = powf( rate[ 0 ] / cl_mouseAccelOffset->value, cl_mouseAccel->value );
-			power[ 1 ] = powf( rate[ 1 ] / cl_mouseAccelOffset->value, cl_mouseAccel->value );
+			power[ 0 ] = powf( rate[ 0 ] / cl_mouseAccelOffset.Get(), cl_mouseAccel.Get() );
+			power[ 1 ] = powf( rate[ 1 ] / cl_mouseAccelOffset.Get(), cl_mouseAccel.Get());
 
-			mx = cl_sensitivity->value * ( mx + ( ( mx < 0 ) ? -power[ 0 ] : power[ 0 ] ) * cl_mouseAccelOffset->value );
-			my = cl_sensitivity->value * ( my + ( ( my < 0 ) ? -power[ 1 ] : power[ 1 ] ) * cl_mouseAccelOffset->value );
-
-			if ( cl_showMouseRate->integer )
-			{
-				Log::Notice( "ratex: %f, ratey: %f, powx: %f, powy: %f", rate[ 0 ], rate[ 1 ], power[ 0 ], power[ 1 ] );
-			}
+			mx = cvar_sensitivity.Get() * ( mx + ( ( mx < 0 ) ? -power[ 0 ] : power[ 0 ] ) * cl_mouseAccelOffset.Get() );
+			my = cvar_sensitivity.Get() * ( my + ( ( my < 0 ) ? -power[ 1 ] : power[ 1 ] ) * cl_mouseAccelOffset.Get() );
 		}
 	}
-
-	mx *= cl_sensitivity->value;
-	my *= cl_sensitivity->value;
+	else
+	{
+		mx *= cvar_sensitivity.Get();
+		my *= cvar_sensitivity.Get();
+	}
 
 	// ingame FOV
 	mx *= cl.cgameSensitivity;
@@ -587,21 +591,21 @@ void CL_MouseMove( usercmd_t *cmd )
 	// add mouse X/Y movement to cmd
 	if ( kb[ KB_STRAFE ].active )
 	{
-		cmd->rightmove = ClampChar( cmd->rightmove + m_side->value * mx );
+		cmd->rightmove = ClampChar( cmd->rightmove + m_side.Get() * mx );
 	}
 	else
 	{
-		cl.viewangles[ YAW ] -= m_yaw->value * mx;
+		cl.viewangles[ YAW ] -= m_yaw.Get() * mx;
 	}
 
-	if ( ( kb[ KB_MLOOK ].active || cl_freelook->integer ) && !kb[ KB_STRAFE ].active )
+	if ( ( kb[ KB_MLOOK ].active || cl_freelook.Get() ) && !kb[ KB_STRAFE ].active )
 	{
-		cl.viewangles[ PITCH ] += m_pitch->value * my;
+		cl.viewangles[ PITCH ] += m_pitch.Get() * my;
 	}
 
 	else
 	{
-		cmd->forwardmove = ClampChar( cmd->forwardmove - m_forward->value * my );
+		cmd->forwardmove = ClampChar( cmd->forwardmove - m_forward.Get() * my );
 	}
 }
 

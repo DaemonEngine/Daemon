@@ -93,19 +93,17 @@ Cvar::Cvar<std::string> cvar_demo_status_filename(
 
 cvar_t *cl_aviFrameRate;
 
-cvar_t *cl_freelook;
-cvar_t *cl_sensitivity;
+Cvar::Cvar<bool> cl_freelook("cl_freelook", "vertical mouse movement always controls pitch", Cvar::NONE, true);
 
 cvar_t *cl_mouseAccelOffset;
 cvar_t *cl_mouseAccel;
 cvar_t *cl_mouseAccelStyle;
-cvar_t *cl_showMouseRate;
 
-cvar_t *m_pitch;
-cvar_t *m_yaw;
-cvar_t *m_forward;
-cvar_t *m_side;
-cvar_t *m_filter;
+Cvar::Cvar<float> m_pitch("m_pitch", "mouse sensitivity modifier for looking up/down", Cvar::NONE, 0.022);
+Cvar::Cvar<float> m_yaw("m_yaw", "mouse sensitivity modifier for looking left/right", Cvar::NONE, 0.022);
+Cvar::Cvar<float> m_forward("m_forward", "mouse sensitivity modifier for (mlook off) walking", Cvar::NONE, 0.25);
+Cvar::Cvar<float> m_side("m_side", "mouse sensitivity modifier for +strafe", Cvar::NONE, 0.25);
+Cvar::Cvar<bool> m_filter("m_filter", "smooth mouse inputs over 2 frames", Cvar::NONE, false);
 
 Cvar::Cvar<float> j_pitch("j_pitch", "joystick move scale for pitch axis", Cvar::NONE, 0.022);
 Cvar::Cvar<float> j_yaw("j_yaw", "joystick move scale for yaw axis", Cvar::NONE, -0.022);
@@ -2321,36 +2319,10 @@ void CL_Init()
 	cl_aviMotionJpeg = Cvar_Get( "cl_aviMotionJpeg", "1", 0 );
 	// XreaL END
 
-	cl_yawspeed = Cvar_Get( "cl_yawspeed", "140", 0 );
-	cl_pitchspeed = Cvar_Get( "cl_pitchspeed", "140", 0 );
-	cl_anglespeedkey = Cvar_Get( "cl_anglespeedkey", "1.5", 0 );
-
 	cl_maxpackets = Cvar_Get( "cl_maxpackets", "125", 0 );
 	cl_packetdup = Cvar_Get( "cl_packetdup", "1", 0 );
 
-	cl_run = Cvar_Get( "cl_run", "1", 0 );
-	cl_sensitivity = Cvar_Get( "sensitivity", "5", CVAR_ARCHIVE );
-	cl_mouseAccel = Cvar_Get( "cl_mouseAccel", "0", 0 );
-	cl_freelook = Cvar_Get( "cl_freelook", "1", CVAR_ARCHIVE );
-
-	// 0: legacy mouse acceleration
-	// 1: new implementation
-
-	cl_mouseAccelStyle = Cvar_Get( "cl_mouseAccelStyle", "0", 0 );
-	// offset for the power function (for style 1, ignored otherwise)
-	// this should be set to the max rate value
-	cl_mouseAccelOffset = Cvar_Get( "cl_mouseAccelOffset", "5", 0 );
-
-	cl_showMouseRate = Cvar_Get( "cl_showmouserate", "0", 0 );
-
 	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", 0 );
-
-	cl_doubletapdelay = Cvar_Get( "cl_doubletapdelay", "250", 0 );  // Arnout: double tap
-	m_pitch = Cvar_Get( "m_pitch", "0.022", CVAR_ARCHIVE );
-	m_yaw = Cvar_Get( "m_yaw", "0.022", 0 );
-	m_forward = Cvar_Get( "m_forward", "0.25", 0 );
-	m_side = Cvar_Get( "m_side", "0.25", 0 );
-	m_filter = Cvar_Get( "m_filter", "0", CVAR_ARCHIVE );
 
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
 
