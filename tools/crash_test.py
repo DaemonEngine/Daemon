@@ -63,10 +63,11 @@ class BreakpadCrashTest(Test):
 
     def Do(self):
         vmtype = "0" if SYMBOL_ZIPS else "1"
-        print("Running daemon...")
+        print("Running Daemon...")
         p = subprocess.run([self.engine,
                             "-set", "vm.sgame.type", vmtype,
                             "-set", "vm.cgame.type", vmtype,
+                            "-set", "vm.timeout", "500",
                             "-set", "sv_fps", "1000",
                             "-set", "common.framerate.max", "0",
                             "-set", "client.errorPopup", "0",
@@ -92,9 +93,8 @@ class BreakpadCrashTest(Test):
             subprocess.run(Virtualize([PathJoin(BREAKPAD_DIR, "src/processor/minidump_stackwalk"), dump, SYMBOL_DIR]), check=True, stdout=sw_f, stderr=subprocess.STDOUT)
             sw_f.seek(0)
             sw = sw_f.read()
-        # Check both function names and filenames. With the Unvanquished 0.55.2 release on Linux,
-        # we get file:line info but not function names...
-        self.Verify("CommandSystem.cpp" in sw, "source file names not found in trace")
+        # Check both function names and filenames. On Linux it seems like only one of them works at a time??
+        self.Verify("Command.cpp" in sw, "source file names not found in trace")
         self.Verify("InjectFaultCmd::Run" in sw, "function names not found in trace")
 
 def Virtualize(cmdline):
