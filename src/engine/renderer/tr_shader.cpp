@@ -95,6 +95,13 @@ struct delayedStageTexture_t {
 
 delayedStageTexture_t delayedStageTextures[ MAX_TEXTURE_BUNDLES ];
 
+struct delayedAnimationTexture_t {
+	bool active;
+	char path[ MAX_QPATH ];
+};
+
+delayedAnimationTexture_t delayedAnimationTextures[ MAX_IMAGE_ANIMATIONS ];
+
 /*
 ================
 return a hash value for the filename
@@ -1607,6 +1614,13 @@ static void DelayStageTexture( const char* texturePath, const stageType_t stageT
 	delayedStageTextures[ bundleIndex ].active = true;
 }
 
+static void DelayAnimationTexture( const char* texturePath, const size_t animationIndex )
+{
+	Log::Debug("Delaying the loading of animation texture %s", texturePath );
+	strncpy( delayedAnimationTextures[ animationIndex ].path, texturePath, MAX_QPATH - 1 );
+	delayedAnimationTextures[ animationIndex ].active = true;
+}
+
 /*
 ===================
 ParseDifuseMap
@@ -2079,8 +2093,10 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	filterType_t filterType;
 	char         buffer[ 1024 ] = "";
 	bool     loadMap = false;
+	bool loadAnimMap = false;
 
 	memset( delayedStageTextures, 0, sizeof( delayedStageTextures ) );
+	memset( delayedAnimationTextures, 0, sizeof( delayedAnimationTextures ) );
 
 	while ( true )
 	{
@@ -2294,11 +2310,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			stage->bundle[ 0 ].imageAnimationSpeed = atof( token );
 
-			// parse up to MAX_IMAGE_ANIMATIONS animations
-			while ( true )
-			{
-				int num;
+			loadAnimMap = true;
 
+			// Parse up to MAX_IMAGE_ANIMATIONS animation frames, skip extraneous ones.
+			for ( size_t animationIndex = 0; ; animationIndex++ )
+			{
 				token = COM_ParseExt2( text, false );
 
 				if ( !token[ 0 ] )
@@ -2306,32 +2322,9 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 					break;
 				}
 
-				num = stage->bundle[ 0 ].numImages;
-
-				if ( num < MAX_IMAGE_ANIMATIONS )
+				if ( animationIndex < MAX_IMAGE_ANIMATIONS )
 				{
-					imageParams_t imageParams = {};
-					imageParams.bits = IF_NONE;
-					imageParams.filterType = filterType_t::FT_DEFAULT;
-					imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
-					imageParams.minDimension = shader.imageMinDimension;
-					imageParams.maxDimension = shader.imageMaxDimension;
-
-					if ( tr.worldLinearizeTexture )
-					{
-						imageParams.bits |= IF_SRGB;
-					}
-
-					stage->bundle[ 0 ].image[ num ] = R_FindImageFile( token, imageParams );
-
-					if ( !stage->bundle[ 0 ].image[ num ] )
-					{
-						Log::Warn("R_FindImageFile could not find '%s' in shader '%s'", token,
-						           shader.name );
-						return false;
-					}
-
-					stage->bundle[ 0 ].numImages++;
+					DelayAnimationTexture( token, animationIndex );
 				}
 			}
 		}
@@ -3342,6 +3335,49 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	if ( stage->type == stageType_t::ST_HEATHAZEMAP && !r_heatHaze->integer )
 	{
 		stage->active = false;
+		return true;
+	}
+
+	if ( loadAnimMap )
+	{
+		for ( size_t animationIndex = 0; animationIndex < MAX_IMAGE_ANIMATIONS; animationIndex++ )
+		{
+			auto& delayedAnimationTexture = delayedAnimationTextures[ animationIndex ];
+
+			if ( delayedAnimationTexture.active )
+			{
+				auto& numImages = stage->bundle[ 0 ].numImages;
+
+				imageParams_t imageParams = {};
+				imageParams.bits = IF_NONE;
+				imageParams.filterType = filterType_t::FT_DEFAULT;
+				imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
+				imageParams.minDimension = shader.imageMinDimension;
+				imageParams.maxDimension = shader.imageMaxDimension;
+
+				if ( tr.worldLinearizeTexture )
+				{
+					imageParams.bits |= IF_SRGB;
+				}
+
+				Log::Debug("Loading delayed animation texture %s", delayedAnimationTexture.path );
+
+				stage->bundle[ 0 ].image[ numImages ] =
+					R_FindImageFile( delayedAnimationTexture.path, imageParams );
+
+				if ( !stage->bundle[ 0 ].image[ numImages ] )
+				{
+					Log::Warn("Failed to load delayed animation texture %d from shader '%s': %s",
+						animationIndex, shader.name, delayedAnimationTexture.path );
+
+					return false;
+				}
+
+				numImages++;
+			}
+		}
+
+		// If there is also a colormap it's a mistake, so we can stop now.
 		return true;
 	}
 
