@@ -30,93 +30,12 @@
 #
 # ===========================================================================
 
-find_package( Vulkan REQUIRED COMPONENTS glslangValidator glslang )
-
-if( NOT Vulkan_FOUND )
-	message( FATAL_ERROR "Could NOT find libVulkan" )
-endif()
-
-set( generatorPath ${CMAKE_SOURCE_DIR}/cmake/DaemonVulkan/VulkanHeaders/ )
-set( vulkanLoaderPath ${CMAKE_SOURCE_DIR}/src/engine/renderer-vulkan/VulkanLoader/vulkan/ )
-
-macro( GenerateVulkanHeader target mode )
-	add_custom_command(
-		COMMAND ${PYTHON_EXECUTABLE} ${Python_EXECUTABLE} ${generatorPath}/genvk.py -registry ${generatorPath}/vk.xml -o ${vulkanLoaderPath} -apiname vulkan -mode ${mode} ${target}.h
-		DEPENDS
-			${generatorPath}/vk.xml
-			${generatorPath}/genvk.py
-			${generatorPath}/reg.py
-			${generatorPath}/generator.py
-			${generatorPath}/cgenerator.py
-		OUTPUT
-			${vulkanLoaderPath}/${target}.h
-		COMMENT "Generating Vulkan header: ${target}.h"
-	)
-endmacro()
-
-set( vulkanHeaders
-	# vulkan_core
-	"vulkan_beta"
-	"vulkan_win32"
-	"vulkan_wayland"
-	"vulkan_xlib"
-	"vulkan_xlib_xrandr"
-)
-
-function( GenerateVulkanHeaders )
-	find_package( Python REQUIRED )
-
-	if( EXISTS ${generatorPath}/vulkan_core.h )
-		configure_file( ${vulkanLoaderPath}/vulkan_core.h ${generatorPath}/vulkan_core.h.tmp COPYONLY )
-	else()
-		set( REGENERATE )
-	endif()
-
-	foreach( header ${vulkanHeaders} )
-		if( EXISTS ${vulkanLoaderPath}/${header}.h )
-			configure_file( ${vulkanLoaderPath}/${header}.h ${generatorPath}/${header}.h.tmp COPYONLY )
-		else()
-			set( REGENERATE )
-		endif()
-	endforeach()
-	
-	if( REGENERATE OR ${generatorPath}/vk.xml IS_NEWER_THAN ${generatorPath}/vk.xml.tmp OR NOT EXISTS ${generatorPath}/vk.xml.tmp )
-		configure_file( ${generatorPath}/vk.xml ${generatorPath}/vk.xml.tmp COPYONLY )
-		
-		GenerateVulkanHeader( "vulkan_core" "w" )
-		
-		foreach( header ${vulkanHeaders} )
-			GenerateVulkanHeader( ${header} "a" )
-		endforeach()
-
-		add_custom_target(vht ALL
-			DEPENDS ${vulkanLoaderPath}/vulkan_core.h ${vulkanHeaders}
-		)
-	endif()
-endfunction()
-
-function( GenerateVulkanHeaders2 )
-	GenerateVulkanHeader( "vulkan_core" "w" )
-	GenerateVulkanHeader( "vulkan_beta" "a" )
-	GenerateVulkanHeader( "vulkan_win32" "a" )
-	GenerateVulkanHeader( "vulkan_wayland" "a" )
-	GenerateVulkanHeader( "vulkan_xlib" "a" )
-	GenerateVulkanHeader( "vulkan_xlib_xrandr" "a" )
-	
-	foreach( header ${vulkanHeaders} )
-		GenerateVulkanHeader( ${header} "a" )
-	endforeach()
-
-	add_custom_target(vht ALL
-		DEPENDS ${vulkanLoaderPath}/vulkan_core.h ${vulkanHeaders}
-	)
-endfunction()
-
-# GenerateVulkanHeaders()
-
 option( VULKAN_SPIRV_OUT "Output text SPIR-V files alongside the binary format." ON )
 option( VULKAN_SPIRV_OPTIMISE "Enable SPIR-V optimisations." ON )
 option( VULKAN_SPIRV_LTO "Enable link-time SPIR-V optimisations." ON )
+
+set( VULKAN_SPIRV_DEBUG "default" CACHE STRING "glslangValidator debug options (remove: g0, non-semantic: gV)")
+set_property( CACHE VULKAN_SPIRV_DEBUG PROPERTY STRINGS default remove non-semantic )
 
 if( USE_VULKAN )
 	add_executable( VulkanShaderParser "${DAEMON_DIR}/cmake/DaemonVulkan/VulkanShaderParser.cpp" )
@@ -131,9 +50,6 @@ if( USE_VULKAN )
 	file( MAKE_DIRECTORY ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/processed/ )
 	file( MAKE_DIRECTORY ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/spirv/ )
 	file( MAKE_DIRECTORY ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/bin/ )
-
-	set( VULKAN_SPIRV_DEBUG "default" CACHE STRING "glslangValidator debug options (remove: g0, non-semantic: gV)")
-	set_property( CACHE VULKAN_SPIRV_DEBUG PROPERTY STRINGS default remove non-semantic )
 endif()
 
 include( DaemonEmbed )
@@ -141,7 +57,7 @@ include( DaemonEmbed )
 macro( GenerateVulkanShaders target )
 	# Pre-processing for #insert/#include
 	foreach( src IN LISTS graphicsEngineList )
-		set( graphicsProcessedList ${graphicsProcessedList} ${src} )
+		set( graphicsEngineProcessedList ${graphicsEngineProcessedList} ${src} )
 		list( APPEND graphicsEngineOutputList ${GRAPHICS_ENGINE_PROCESSED_PATH}processed/${src} )
 		
 		get_filename_component( name "${src}" NAME_WE )
@@ -160,6 +76,10 @@ macro( GenerateVulkanShaders target )
 
 	# glslangValidator
 	find_program( glslangV glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/ )
+
+	if( glslangV STREQUAL "glslangValidator-NOTFOUND" )
+		message( FATAL_ERROR "glslangValidator not found; make sure you have the Vulkan SDK installed" )
+	endif()
 
 	set( spirvOptions --target-env vulkan1.3 --glsl-version 460 -e main -l -t )
 
@@ -184,10 +104,10 @@ macro( GenerateVulkanShaders target )
 	endif()
 
 	add_custom_command(
-		COMMAND VulkanShaderParser \"${glslangV} ${spirvOptions}\" ${spirvOut} ${graphicsProcessedList}
-		DEPENDS ${graphicsEngineIDEList}
+		COMMAND VulkanShaderParser \"${glslangV} ${spirvOptions}\" ${spirvOut} ${graphicsEngineProcessedList}
+		DEPENDS ${graphicsEngineIDEList} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake
 		OUTPUT ${graphicsEngineOutputList}
-		COMMENT "Generating Vulkan graphics engine: ${graphicsProcessedList}"
+		COMMENT "Generating Vulkan Graphics Engine: ${graphicsEngineProcessedList}"
 	)
 
 	add_custom_target( VulkanShaderParserTarget ALL
@@ -217,10 +137,10 @@ macro( GenerateVulkanShaders target )
 		list( APPEND spirvBinList ${spirvBinPath} )
 	endforeach()
 	
-	GenerateEmbedFileH( "${spirvBinList}" ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/spirv/spirv.h BINARY client-objects )
+	GenerateEmbedFilesConstexpr( "${spirvBinList}" ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/spirv/spirv.h BINARY client-objects )
 
 	add_custom_target( VulkanShaderBin ALL
-		DEPENDS ${spirvBinList}
+		DEPENDS ${spirvBinList} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake
 	)
 
 	target_sources( ${target} PRIVATE ${graphicsEngineOutputList} )

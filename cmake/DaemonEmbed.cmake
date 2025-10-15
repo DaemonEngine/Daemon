@@ -53,7 +53,7 @@ function(GenerateEmbedFile srcPath dstPath filename_symbol format target mode sr
 		"sizeof( ${filename_symbol} )) },\n")
 endfunction()
 
-function(GenerateEmbedFileH srcPaths dstPath format target)
+function(GenerateEmbedFilesConstexpr srcPaths dstPath format target)
 	set(first TRUE)
 	foreach(srcPath IN LISTS srcPaths)
 		get_filename_component(filename "${srcPath}" NAME_WE)
@@ -78,7 +78,7 @@ function(GenerateEmbedFileH srcPaths dstPath format target)
 	add_custom_command(
 		OUTPUT ${dstPath}
 		COMMAND ${cmdList}
-		MAIN_DEPENDENCY ${srcPath}
+		DEPENDS ${srcPath} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonEmbed.cmake
 	)
 
 	target_sources(${target} PRIVATE ${dstPath})
