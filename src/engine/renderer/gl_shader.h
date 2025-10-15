@@ -705,6 +705,12 @@ class GLUniform1Bool : protected GLUniform {
 		return sizeof( int );
 	}
 
+	uint32_t *WriteToBuffer( uint32_t *buffer ) override
+	{
+		memcpy( buffer, &currentValue, sizeof( int ) );
+		return buffer + _std430Size;
+	}
+
 	private:
 	int currentValue = 0;
 };
