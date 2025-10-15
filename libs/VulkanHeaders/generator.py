@@ -623,117 +623,14 @@ class OutputGenerator:
                 self.logMsg('error', 'Invalid value for bitwidth attribute (', groupElem.get('bitwidth'), ') for ', groupName, ' - must be an integer value\n')
                 exit(1)
 
-        usebitmask = False
-        usedefine = False
-
-        # Bitmask flags can be generated as either "static const uint{32,64}_t" values,
-        # or as 32-bit C enums. 64-bit types must use uint64_t values.
-        if groupElem.get('type') == 'bitmask':
-            if bitwidth > 32 or self.misracppstyle():
-                usebitmask = True
-            if self.misracstyle():
-                usedefine = True
-
-        if usedefine or usebitmask:
-            # Validate the bitwidth and generate values appropriately
-            if bitwidth > 64:
-                self.logMsg('error', 'Invalid value for bitwidth attribute (', groupElem.get('bitwidth'), ') for bitmask type ', groupName, ' - must be less than or equal to 64\n')
-                exit(1)
-            else:
-                return self.buildEnumCDecl_BitmaskOrDefine(groupinfo, groupName, bitwidth, usedefine)
+        # Validate the bitwidth and generate values appropriately
+        if bitwidth > 64:
+            self.logMsg('error', 'Invalid value for bitwidth attribute (', groupElem.get('bitwidth'), ') for enum type ', groupName, ' - must be less than or equal to 64\n')
+            exit(1)
         else:
-            # Validate the bitwidth and generate values appropriately
-            if bitwidth > 32:
-                self.logMsg('error', 'Invalid value for bitwidth attribute (', groupElem.get('bitwidth'), ') for enum type ', groupName, ' - must be less than or equal to 32\n')
-                exit(1)
-            else:
-                return self.buildEnumCDecl_Enum(expand, groupinfo, groupName)
+            return self.buildEnumCDecl_Enum(expand, groupinfo, groupName, bitwidth)
 
-    def buildEnumCDecl_BitmaskOrDefine(self, groupinfo, groupName, bitwidth, usedefine):
-        """Generate the C declaration for an "enum" that is actually a
-        set of flag bits"""
-        groupElem = groupinfo.elem
-        flagTypeName = groupElem.get('name')
-
-        # Prefix
-        body = f"// Flag bits for {flagTypeName}\n"
-
-        if bitwidth == 64:
-            body += f"typedef VkFlags64 {flagTypeName};\n";
-        else:
-            body += f"typedef VkFlags {flagTypeName};\n";
-
-        # Maximum allowable value for a flag (unsigned 64-bit integer)
-        maxValidValue = 2**(64) - 1
-        minValidValue = 0
-
-        # Get a list of nested 'enum' tags.
-        enums = groupElem.findall('enum')
-
-        # Check for and report duplicates, and return a list with them
-        # removed.
-        enums = self.checkDuplicateEnums(enums)
-
-        # Accumulate non-numeric enumerant values separately and append
-        # them following the numeric values, to allow for aliases.
-        # NOTE: this does not do a topological sort yet, so aliases of
-        # aliases can still get in the wrong order.
-        aliasText = ''
-
-        # Loop over the nested 'enum' tags.
-        for elem in enums:
-            # Convert the value to an integer and use that to track min/max.
-            # Values of form -(number) are accepted but nothing more complex.
-            # Should catch exceptions here for more complex constructs. Not yet.
-            (numVal, strVal) = self.enumToValue(elem, True, bitwidth, True)
-            name = elem.get('name')
-
-            # Range check for the enum value
-            if numVal is not None and (numVal > maxValidValue or numVal < minValidValue):
-                self.logMsg('error', 'Allowable range for flag types in C is [', minValidValue, ',', maxValidValue, '], but', name, 'flag has a value outside of this (', strVal, ')\n')
-                exit(1)
-
-            decl = self.genRequirements(name, mustBeFound = False)
-
-            if self.isEnumRequired(elem):
-                protect = elem.get('protect')
-                if protect is not None:
-                    body += f'#ifdef {protect}\n'
-
-                body += self.deprecationComment(elem, indent = 0)
-
-                if usedefine:
-                    decl += f"#define {name} {strVal}\n"
-                elif self.misracppstyle():
-                    decl += f"static constexpr {flagTypeName} {name} {{{strVal}}};\n"
-                else:
-                    # Some C compilers only allow initializing a 'static const' variable with a literal value.
-                    # So initializing an alias from another 'static const' value would fail to compile.
-                    # Work around this by chasing the aliases to get the actual value.
-                    while numVal is None:
-                        alias = self.registry.tree.find(f"enums/enum[@name='{strVal}']")
-                        if alias is not None:
-                            (numVal, strVal) = self.enumToValue(alias, True, bitwidth, True)
-                        else:
-                            self.logMsg('error', f'No such alias {strVal} for enum {name}')
-                    decl += f"static const {flagTypeName} {name} = {strVal};\n"
-
-                if numVal is not None:
-                    body += decl
-                else:
-                    aliasText += decl
-
-                if protect is not None:
-                    body += '#endif\n'
-
-        # Now append the non-numeric enumerant values
-        body += aliasText
-
-        # Postfix
-
-        return ("bitmask", body)
-
-    def buildEnumCDecl_Enum(self, expand, groupinfo, groupName):
+    def buildEnumCDecl_Enum(self, expand, groupinfo, groupName, bitwidth):
         """Generate the C declaration for an enumerated type"""
         groupElem = groupinfo.elem
 
@@ -749,13 +646,12 @@ class OutputGenerator:
             expandPrefix = expandName.rsplit(expandSuffix, 1)[0]
 
         # Prefix
-        body = ["typedef enum %s {" % groupName]
+        body = ["typedef enum %s : %s {" % ( groupName, "uint32_t" if bitwidth == 32 else "uint64_t" )]
 
         # @@ Should use the type="bitmask" attribute instead
         isEnum = ('FLAG_BITS' not in expandPrefix)
 
-        # Allowable range for a C enum - which is that of a signed 32-bit integer
-        maxValidValue = 2**(32 - 1) - 1
+        maxValidValue = 2**(bitwidth - 1) - 1
         minValidValue = (maxValidValue * -1) - 1
 
         # Get a list of nested 'enum' tags.
