@@ -25,7 +25,7 @@ extern "C" {
 #define VK_KHR_XLIB_SURFACE_EXTENSION_NAME "VK_KHR_xlib_surface"
 typedef VkFlags VkXlibSurfaceCreateFlagsKHR;
 typedef struct VkXlibSurfaceCreateInfoKHR {
-    VkStructureType                sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+    const VkStructureType          sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
     const void*                    pNext;
     VkXlibSurfaceCreateFlagsKHR    flags;
     Display*                       dpy;

@@ -25,7 +25,7 @@ extern "C" {
 #define VK_KHR_WIN32_SURFACE_EXTENSION_NAME "VK_KHR_win32_surface"
 typedef VkFlags VkWin32SurfaceCreateFlagsKHR;
 typedef struct VkWin32SurfaceCreateInfoKHR {
-    VkStructureType                 sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    const VkStructureType           sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     const void*                     pNext;
     VkWin32SurfaceCreateFlagsKHR    flags;
     HINSTANCE                       hinstance;
@@ -57,7 +57,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vkGetPhysicalDeviceWin32PresentationSupportKHR(
 #define VK_KHR_EXTERNAL_MEMORY_WIN32_SPEC_VERSION 1
 #define VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME "VK_KHR_external_memory_win32"
 typedef struct VkImportMemoryWin32HandleInfoKHR {
-    VkStructureType                       sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
+    const VkStructureType                 sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
     const void*                           pNext;
     VkExternalMemoryHandleTypeFlagBits    handleType;
     HANDLE                                handle;
@@ -65,7 +65,7 @@ typedef struct VkImportMemoryWin32HandleInfoKHR {
 } VkImportMemoryWin32HandleInfoKHR;
 
 typedef struct VkExportMemoryWin32HandleInfoKHR {
-    VkStructureType               sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
+    const VkStructureType         sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
     const void*                   pNext;
     const SECURITY_ATTRIBUTES*    pAttributes;
     DWORD                         dwAccess;
@@ -73,13 +73,13 @@ typedef struct VkExportMemoryWin32HandleInfoKHR {
 } VkExportMemoryWin32HandleInfoKHR;
 
 typedef struct VkMemoryWin32HandlePropertiesKHR {
-    VkStructureType    sType = VK_STRUCTURE_TYPE_MEMORY_WIN32_HANDLE_PROPERTIES_KHR;
-    void*              pNext;
-    uint32_t           memoryTypeBits;
+    const VkStructureType    sType = VK_STRUCTURE_TYPE_MEMORY_WIN32_HANDLE_PROPERTIES_KHR;
+    void*                    pNext;
+    uint32_t                 memoryTypeBits;
 } VkMemoryWin32HandlePropertiesKHR;
 
 typedef struct VkMemoryGetWin32HandleInfoKHR {
-    VkStructureType                       sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+    const VkStructureType                 sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
     const void*                           pNext;
     VkDeviceMemory                        memory;
     VkExternalMemoryHandleTypeFlagBits    handleType;
@@ -111,7 +111,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryWin32HandlePropertiesKHR(
 #define VK_KHR_WIN32_KEYED_MUTEX_SPEC_VERSION 1
 #define VK_KHR_WIN32_KEYED_MUTEX_EXTENSION_NAME "VK_KHR_win32_keyed_mutex"
 typedef struct VkWin32KeyedMutexAcquireReleaseInfoKHR {
-    VkStructureType          sType = VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_KHR;
+    const VkStructureType    sType = VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_KHR;
     const void*              pNext;
     uint32_t                 acquireCount;
     const VkDeviceMemory*    pAcquireSyncs;
@@ -129,7 +129,7 @@ typedef struct VkWin32KeyedMutexAcquireReleaseInfoKHR {
 #define VK_KHR_EXTERNAL_SEMAPHORE_WIN32_SPEC_VERSION 1
 #define VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME "VK_KHR_external_semaphore_win32"
 typedef struct VkImportSemaphoreWin32HandleInfoKHR {
-    VkStructureType                          sType = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR;
+    const VkStructureType                    sType = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR;
     const void*                              pNext;
     VkSemaphore                              semaphore;
     VkSemaphoreImportFlags                   flags;
@@ -139,7 +139,7 @@ typedef struct VkImportSemaphoreWin32HandleInfoKHR {
 } VkImportSemaphoreWin32HandleInfoKHR;
 
 typedef struct VkExportSemaphoreWin32HandleInfoKHR {
-    VkStructureType               sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR;
+    const VkStructureType         sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR;
     const void*                   pNext;
     const SECURITY_ATTRIBUTES*    pAttributes;
     DWORD                         dwAccess;
@@ -147,16 +147,16 @@ typedef struct VkExportSemaphoreWin32HandleInfoKHR {
 } VkExportSemaphoreWin32HandleInfoKHR;
 
 typedef struct VkD3D12FenceSubmitInfoKHR {
-    VkStructureType    sType = VK_STRUCTURE_TYPE_D3D12_FENCE_SUBMIT_INFO_KHR;
-    const void*        pNext;
-    uint32_t           waitSemaphoreValuesCount;
-    const uint64_t*    pWaitSemaphoreValues;
-    uint32_t           signalSemaphoreValuesCount;
-    const uint64_t*    pSignalSemaphoreValues;
+    const VkStructureType    sType = VK_STRUCTURE_TYPE_D3D12_FENCE_SUBMIT_INFO_KHR;
+    const void*              pNext;
+    uint32_t                 waitSemaphoreValuesCount;
+    const uint64_t*          pWaitSemaphoreValues;
+    uint32_t                 signalSemaphoreValuesCount;
+    const uint64_t*          pSignalSemaphoreValues;
 } VkD3D12FenceSubmitInfoKHR;
 
 typedef struct VkSemaphoreGetWin32HandleInfoKHR {
-    VkStructureType                          sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR;
+    const VkStructureType                    sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR;
     const void*                              pNext;
     VkSemaphore                              semaphore;
     VkExternalSemaphoreHandleTypeFlagBits    handleType;
@@ -186,7 +186,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetSemaphoreWin32HandleKHR(
 #define VK_KHR_EXTERNAL_FENCE_WIN32_SPEC_VERSION 1
 #define VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME "VK_KHR_external_fence_win32"
 typedef struct VkImportFenceWin32HandleInfoKHR {
-    VkStructureType                      sType = VK_STRUCTURE_TYPE_IMPORT_FENCE_WIN32_HANDLE_INFO_KHR;
+    const VkStructureType                sType = VK_STRUCTURE_TYPE_IMPORT_FENCE_WIN32_HANDLE_INFO_KHR;
     const void*                          pNext;
     VkFence                              fence;
     VkFenceImportFlags                   flags;
@@ -196,7 +196,7 @@ typedef struct VkImportFenceWin32HandleInfoKHR {
 } VkImportFenceWin32HandleInfoKHR;
 
 typedef struct VkExportFenceWin32HandleInfoKHR {
-    VkStructureType               sType = VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR;
+    const VkStructureType         sType = VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR;
     const void*                   pNext;
     const SECURITY_ATTRIBUTES*    pAttributes;
     DWORD                         dwAccess;
@@ -204,7 +204,7 @@ typedef struct VkExportFenceWin32HandleInfoKHR {
 } VkExportFenceWin32HandleInfoKHR;
 
 typedef struct VkFenceGetWin32HandleInfoKHR {
-    VkStructureType                      sType = VK_STRUCTURE_TYPE_FENCE_GET_WIN32_HANDLE_INFO_KHR;
+    const VkStructureType                sType = VK_STRUCTURE_TYPE_FENCE_GET_WIN32_HANDLE_INFO_KHR;
     const void*                          pNext;
     VkFence                              fence;
     VkExternalFenceHandleTypeFlagBits    handleType;
@@ -234,14 +234,14 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetFenceWin32HandleKHR(
 #define VK_NV_EXTERNAL_MEMORY_WIN32_SPEC_VERSION 1
 #define VK_NV_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME "VK_NV_external_memory_win32"
 typedef struct VkImportMemoryWin32HandleInfoNV {
-    VkStructureType                      sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV;
+    const VkStructureType                sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV;
     const void*                          pNext;
     VkExternalMemoryHandleTypeFlagsNV    handleType;
     HANDLE                               handle;
 } VkImportMemoryWin32HandleInfoNV;
 
 typedef struct VkExportMemoryWin32HandleInfoNV {
-    VkStructureType               sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV;
+    const VkStructureType         sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV;
     const void*                   pNext;
     const SECURITY_ATTRIBUTES*    pAttributes;
     DWORD                         dwAccess;
@@ -265,7 +265,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryWin32HandleNV(
 #define VK_NV_WIN32_KEYED_MUTEX_SPEC_VERSION 2
 #define VK_NV_WIN32_KEYED_MUTEX_EXTENSION_NAME "VK_NV_win32_keyed_mutex"
 typedef struct VkWin32KeyedMutexAcquireReleaseInfoNV {
-    VkStructureType          sType = VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV;
+    const VkStructureType    sType = VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV;
     const void*              pNext;
     uint32_t                 acquireCount;
     const VkDeviceMemory*    pAcquireSyncs;
@@ -291,21 +291,21 @@ typedef enum VkFullScreenExclusiveEXT : uint32_t {
     VK_FULL_SCREEN_EXCLUSIVE_MAX_ENUM_EXT = 0x7FFFFFFF
 } VkFullScreenExclusiveEXT;
 typedef struct VkSurfaceFullScreenExclusiveInfoEXT {
-    VkStructureType             sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT;
+    const VkStructureType       sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT;
     void*                       pNext;
     VkFullScreenExclusiveEXT    fullScreenExclusive;
 } VkSurfaceFullScreenExclusiveInfoEXT;
 
 typedef struct VkSurfaceCapabilitiesFullScreenExclusiveEXT {
-    VkStructureType    sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT;
-    void*              pNext;
-    VkBool32           fullScreenExclusiveSupported;
+    const VkStructureType    sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT;
+    void*                    pNext;
+    VkBool32                 fullScreenExclusiveSupported;
 } VkSurfaceCapabilitiesFullScreenExclusiveEXT;
 
 typedef struct VkSurfaceFullScreenExclusiveWin32InfoEXT {
-    VkStructureType    sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT;
-    const void*        pNext;
-    HMONITOR           hmonitor;
+    const VkStructureType    sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT;
+    const void*              pNext;
+    HMONITOR                 hmonitor;
 } VkSurfaceFullScreenExclusiveWin32InfoEXT;
 
 typedef VkResult (VKAPI_PTR *PFN_vkGetPhysicalDeviceSurfacePresentModes2EXT)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSurfaceInfo2KHR* pSurfaceInfo, uint32_t* pPresentModeCount, VkPresentModeKHR* pPresentModes);
