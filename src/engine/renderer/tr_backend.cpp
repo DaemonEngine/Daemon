@@ -178,7 +178,7 @@ GLuint64 GL_BindToTMU( int unit, image_t *image )
 		image = tr.defaultImage;
 	}
 
-	if ( glConfig.usingBindlessTextures && !( image->bits & IF_AMD_SKIP_BINDLESS ) ) {
+	if ( glConfig.usingBindlessTextures ) {
 		return tr.textureManager.BindTexture( 0, image->texture );
 	}
 

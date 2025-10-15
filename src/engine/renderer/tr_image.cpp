@@ -1471,15 +1471,6 @@ image_t *R_CreateImage( const char *name, const byte **pic, int width, int heigh
 	image->height = height;
 
 	image->bits = imageParams.bits;
-
-	const bool skipAMDBindless =
-		( glConfig.driverVendor == glDriverVendor_t::ATI || glConfig.driverVendor == glDriverVendor_t::MESA )
-		&& workaround_glDriver_amd_mesa_skipBindlessDepthTarget.Get();
-
-	if ( !skipAMDBindless ) {
-		image->bits &= ~IF_AMD_SKIP_BINDLESS;
-	}
-
 	image->filterType = imageParams.filterType;
 	image->wrapType = imageParams.wrapType;
 
@@ -2476,7 +2467,7 @@ static void R_CreateCurrentRenderImage()
 	tr.currentRenderImage[1] = R_CreateImage( "*currentRender1", nullptr, width, height, 1, imageParams );
 
 	imageParams = {};
-	imageParams.bits = IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8 | IF_AMD_SKIP_BINDLESS;
+	imageParams.bits = IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8;
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 

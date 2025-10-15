@@ -562,10 +562,6 @@ static std::string GenVertexHeader() {
 			"#define OUT(mode) varying\n";
 	}
 
-	if ( glConfig.driverVendor == glDriverVendor_t::ATI || glConfig.driverVendor == glDriverVendor_t::MESA ) {
-		AddDefine( str, "DRIVER_AMD_MESA", 1 );
-	}
-
 	if ( glConfig.shaderDrawParametersAvailable ) {
 		str += "OUT(flat) int in_drawID;\n";
 		str += "OUT(flat) int in_baseInstance;\n";
@@ -603,10 +599,6 @@ static std::string GenFragmentHeader() {
 			"#define DECLARE_OUTPUT(type) /* empty*/\n";
 	}
 
-	if ( glConfig.driverVendor == glDriverVendor_t::ATI || glConfig.driverVendor == glDriverVendor_t::MESA ) {
-		AddDefine( str, "DRIVER_AMD_MESA", 1 );
-	}
-
 	if ( glConfig.usingBindlessTextures ) {
 		str += "layout(bindless_sampler) uniform;\n";
 	}
@@ -634,10 +626,6 @@ static std::string GenFragmentHeader() {
 
 static std::string GenComputeHeader() {
 	std::string str;
-
-	if ( glConfig.driverVendor == glDriverVendor_t::ATI || glConfig.driverVendor == glDriverVendor_t::MESA ) {
-		AddDefine( str, "DRIVER_AMD_MESA", 1 );
-	}
 
 	// Compute shader compatibility defines
 	if ( glConfig.usingMaterialSystem ) {
@@ -2221,13 +2209,6 @@ std::vector<GLUniform*> GLShaderManager::ProcessUniforms( const GLUniform::Updat
 	for ( GLUniform* uniform : uniforms ) {
 		if ( uniform->_updateType >= minType && uniform->_updateType <= maxType
 			&& ( !uniform->_isTexture || !skipTextures ) ) {
-
-			if ( uniform->_isTexture && uniform->_AMDSkipBindless
-				&& ( glConfig.driverVendor == glDriverVendor_t::ATI || glConfig.driverVendor == glDriverVendor_t::MESA )
-				&& workaround_glDriver_amd_mesa_skipBindlessDepthTarget.Get() ){
-				continue;
-			}
-
 			tmp.emplace_back( uniform );
 		}
 	}
