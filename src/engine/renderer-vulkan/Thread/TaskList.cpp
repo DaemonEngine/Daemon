@@ -232,7 +232,7 @@ void TaskList::AddToThreadQueue( Task& task ) {
 	if ( SM.taskTimes.contains( task.Execute ) ) {
 		GlobalTaskTime& SMTaskTime = SM.taskTimes[task.Execute];
 		taskTime.count = SMTaskTime.count.load( std::memory_order_relaxed );
-		taskTime.time = SMTaskTime.time.load( std::memory_order_relaxed );
+		taskTime.time  = SMTaskTime.time.load( std::memory_order_relaxed );
 	} else {
 		TLM.unknownTaskCount++;
 	}
@@ -251,11 +251,17 @@ void TaskList::AddToThreadQueue( Task& task ) {
 		return;
 	}
 
+	/* Nodes correspond to TLM.currentMaxThreads active ThreadQueues
+	Whenever a task is added it either goes to the currentThreadExecutionNode or ~thread that is most free of work
+	currentThreadExecutionNode contains either an idle thread that has most recently finished execution,
+	unless no tasks have been executed yet,
+	or a task was already added to the latest idle thread
+	threadExecutionNodes is kept sorted in a non-decreasing order when tasks are added */
 	for ( node = 0; node < TLM.currentMaxThreads; node++ ) {
 		uint32 baseThreadTime = threadExecutionNodes[node].fetch_add( projectedTime, std::memory_order_relaxed );
-		uint32 nextNodeTime = node == TLM.currentMaxThreads - 1 ?
-			UINT32_MAX
-			: threadExecutionNodes[node + 1].load( std::memory_order_relaxed );
+		uint32 nextNodeTime   = node == TLM.currentMaxThreads - 1 ?
+		                            UINT32_MAX
+		                          : threadExecutionNodes[node + 1].load( std::memory_order_relaxed );
 
 		if ( node == TLM.currentMaxThreads - 1
 			|| baseThreadTime + projectedTime <= nextNodeTime ) {
@@ -263,14 +269,17 @@ void TaskList::AddToThreadQueue( Task& task ) {
 			return;
 		}
 
+		// We overflowed the current node, so move to the next one
 		if ( baseThreadTime + projectedTime > nextNodeTime ) {
 			threadExecutionNodes[node].fetch_sub( projectedTime, std::memory_order_relaxed );
 			continue;
 		}
 
+		/* Current node is overflowed but we don't know if we overflowed it or if another thread did
+		Another thread is guaranteed to have overflowed it so we wait until it moves to the next node*/
 		do {
-			baseThreadTime = threadExecutionNodes[node].load( std::memory_order_relaxed );
-			nextNodeTime = threadExecutionNodes[node + 1].load( std::memory_order_relaxed );
+			baseThreadTime = threadExecutionNodes[node    ].load( std::memory_order_relaxed );
+			nextNodeTime   = threadExecutionNodes[node + 1].load( std::memory_order_relaxed );
 		} while ( baseThreadTime - projectedTime > nextNodeTime );
 
 		if ( baseThreadTime <= nextNodeTime ) {
@@ -278,6 +287,7 @@ void TaskList::AddToThreadQueue( Task& task ) {
 			return;
 		}
 
+		// We still overflowed
 		threadExecutionNodes[node].fetch_sub( projectedTime, std::memory_order_relaxed );
 	}
 }
@@ -288,11 +298,11 @@ Task* TaskList::GetTaskMemory( Task& task ) {
 	}
 
 	Task* taskMemory = tasks.GetNextElementMemory();
-	taskMemory->data = task.data;
+	taskMemory->data     = task.data;
 	taskMemory->dataSize = task.dataSize;
 
 	taskMemory->active = true;
-	task.active = true;
+	task.active        = true;
 
 	task.bufferID = taskMemory - tasks.memory;
 
@@ -420,15 +430,15 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 	Q_UNUSED( longestTask );
 
 	ThreadQueue& threadQueue = threadQueues[TLM.id];
-	uint8 current = threadQueue.current;
-	uint16 id = threadQueue.tasks[current];
+	uint8  current = threadQueue.current;
+	uint16 id      = threadQueue.tasks[current];
 	if ( id == ThreadQueue::TASK_NONE ) {
 		currentThreadExecutionNode.store( TLM.id, std::memory_order_relaxed );
 		return nullptr;
 	}
 
 	threadQueue.tasks[current] = ThreadQueue::TASK_NONE;
-	threadQueue.current = ( current + 1 ) % ThreadQueue::MAX_TASKS;
+	threadQueue.current        = ( current + 1 ) % ThreadQueue::MAX_TASKS;
 
 	executingThreads.fetch_add( 1, std::memory_order_relaxed );
 	taskCount.fetch_sub( 1, std::memory_order_relaxed );
@@ -438,7 +448,7 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 
 bool TaskList::ThreadFinished( const bool hadTask ) {
 	const uint32 threadCount = executingThreads.fetch_sub( hadTask, std::memory_order_relaxed ) - hadTask;
-	const bool exit = exiting.load( std::memory_order_relaxed );
+	const bool   exit        = exiting.load( std::memory_order_relaxed );
 
 	if ( exit ) {
 		TLM.exitTimer.Start();
