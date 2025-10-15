@@ -1276,7 +1276,7 @@ enum
 	                       | GLS_BLUEMASK_FALSE
 	                       | GLS_ALPHAMASK_FALSE,
 
-	  GLS_NAIVEBLEND = ( 1 << 30 ),
+	  GLS_NAIVECOLORS = ( 1 << 30 ),
 
 	  GLS_DEFAULT = GLS_DEPTHMASK_TRUE
 	};
