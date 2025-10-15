@@ -1021,11 +1021,13 @@ class OutputGenerator:
             text = noneStr(elem.text)
             tail = noneStr(elem.tail)
 
-            if text.endswith( 'sType' ):
-                sType = param.get( 'values' )
+            if text == "sType":
+                sType = param.get( "values" )
                 
                 if sType:
-                    text += ' = ' + sType
+                    text += " = " + sType
+            elif text == "VkStructureType":
+                text = "const VkStructureType"
 
             if self.should_insert_may_alias_macro and self.genOpts.conventions.is_voidpointer_alias(elem.tag, text, tail):
                 # OpenXR-specific macro insertion - but not in apiinc for the spec
@@ -1076,6 +1078,9 @@ class OutputGenerator:
         for elem in param:
             text = noneStr(elem.text)
             tail = noneStr(elem.tail)
+            
+            if text == "VkStructureType":
+                text = "const VkStructureType"
 
             if self.should_insert_may_alias_macro and self.genOpts.conventions.is_voidpointer_alias(elem.tag, text, tail):
                 # OpenXR-specific macro insertion
