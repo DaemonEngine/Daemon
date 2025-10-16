@@ -58,26 +58,12 @@ macro(daemon_add_buildinfo type name value)
 	string(APPEND DAEMON_BUILDINFO_H_TEXT "extern const ${type} ${name};\n")
 endmacro()
 
-macro(daemon_write_generated generated_path generated_content)
-	set(DAEMON_GENERATED_FILE ${DAEMON_GENERATED_DIR}/${generated_path})
-
-	if (EXISTS "${DAEMON_GENERATED_FILE}")
-		file(READ "${DAEMON_GENERATED_FILE}" generated_content_read)
-	endif()
-
-	if (NOT "${generated_content}" STREQUAL "${generated_content_read}")
-		message(STATUS "Generating ${generated_path}")
-		file(WRITE "${DAEMON_GENERATED_FILE}" "${generated_content}")
-	endif()
-endmacro()
-
 macro(daemon_write_buildinfo name)
 	foreach(kind CPP H)
-		set(daemon_buildinfo_${kind}_name "${name}${DAEMON_GENERATED_${kind}_EXT}")
-		set(daemon_buildinfo_${kind}_path "${DAEMON_BUILDINFO_SUBDIR}/${daemon_buildinfo_${kind}_name}")
+		set(buildinfo_file_path "${DAEMON_BUILDINFO_DIR}/${name}${DAEMON_GENERATED_${kind}_EXT}")
 
-		daemon_write_generated("${daemon_buildinfo_${kind}_path}" "${DAEMON_BUILDINFO_${kind}_TEXT}")
-		list(APPEND BUILDINFOLIST "${DAEMON_GENERATED_FILE}")
+		file(GENERATE OUTPUT "${buildinfo_file_path}" CONTENT "${DAEMON_BUILDINFO_${kind}_TEXT}")
+		list(APPEND BUILDINFOLIST "${buildinfo_file_path}")
 	endforeach()
 endmacro()
 
@@ -162,6 +148,7 @@ macro(daemon_embed_files basename slug format targetname)
 	)
 
 	foreach(kind CPP H)
-		daemon_write_generated("${embed_${kind}_file}" "${embed_${kind}_text}")
+		set(embed_file "${DAEMON_GENERATED_DIR}/${embed_${kind}_file}")
+		file(GENERATE OUTPUT "${embed_file}" CONTENT "${embed_${kind}_text}")
 	endforeach()
 endmacro()
