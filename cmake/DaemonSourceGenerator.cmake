@@ -67,10 +67,7 @@ macro(daemon_write_buildinfo name)
 	endforeach()
 endmacro()
 
-macro(daemon_embed_files basename slug format targetname)
-	set(embed_source_dir "${slug}_EMBED_DIR")
-	set(embed_source_list "${slug}_EMBED_LIST")
-
+macro(daemon_embed_files basename dir list format targetname)
 	set(embed_subdir "${DAEMON_EMBEDDED_SUBDIR}/${basename}")
 	set(embed_dir "${DAEMON_GENERATED_DIR}/${embed_subdir}")
 
@@ -99,10 +96,10 @@ macro(daemon_embed_files basename slug format targetname)
 
 	set(embed_map_text "")
 
-	foreach(filename ${${embed_source_list}})
+	foreach(filename ${list})
 		string(REGEX REPLACE "[^A-Za-z0-9]" "_" filename_symbol "${filename}")
 
-		set(inpath "${${embed_source_dir}}/${filename}")
+		set(inpath "${dir}/${filename}")
 		set(outpath "${embed_dir}/${filename_symbol}${DAEMON_GENERATED_H_EXT}")
 
 		add_custom_command(
