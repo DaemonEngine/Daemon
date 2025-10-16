@@ -52,7 +52,11 @@ qhandle_t RE_RegisterShader( const char *, int )
 }
 fontInfo_t* RE_RegisterFont( const char *, int )
 {
-	return nullptr;
+	return new fontInfo_t{};
+}
+void RE_UnregisterFont( fontInfo_t* p )
+{
+	delete p;
 }
 void RE_GlyphChar( fontInfo_t *, int, glyphInfo_t *glyph )
 {
@@ -70,7 +74,6 @@ void RE_GlyphChar( fontInfo_t *, int, glyphInfo_t *glyph )
 	glyph->glyph = 1;
 	glyph->shaderName[0] = '\0';
 }
-void RE_UnregisterFont( fontInfo_t* ) { }
 void RE_LoadWorldMap( const char * ) { }
 void RE_SetWorldVisData( const byte * ) { }
 void RE_EndRegistration() { }
