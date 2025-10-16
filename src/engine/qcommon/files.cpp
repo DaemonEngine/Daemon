@@ -27,6 +27,10 @@ along with Daemon Source Code.  If not, see <http://www.gnu.org/licenses/>.
 #include "qcommon.h"
 #include "common/Defs.h"
 
+#if defined(BUILD_GRAPHICAL_CLIENT) || defined(BUILD_TTY_CLIENT)
+#include "DaemonEmbeddedFiles/EngineMedia.h"
+#endif
+
 extern Log::Logger fsLogs;
 
 // There must be some limit for the APIs in this file since they use 'int' for lengths which can be overflowed by large files.
@@ -626,6 +630,10 @@ const char* FS_LoadedPaks()
 	static char info[BIG_INFO_STRING];
 	info[0] = '\0';
 	for (const FS::LoadedPakInfo& x: FS::PakPath::GetLoadedPaks()) {
+		bool isBuiltin = x.type == FS::pakType_t::PAK_ZIP && x.name[0] == '*';
+
+		if (isBuiltin)
+			continue;
 		if (!x.pathPrefix.empty())
 			continue;
 		if (info[0])
@@ -653,8 +661,20 @@ bool FS_LoadPak(const Str::StringRef name)
 	}
 }
 
+/* Empty base pak available on all engines.
+It makes possible to run the engine without a game,
+this way:
+./daemon -set fs_basepak '*daemon' */
+embeddedFileMap_t engineBasePak = {};
+
 void FS_LoadBasePak()
 {
+	FS::AddBuiltinPak("daemon", ENGINE_VERSION, engineBasePak);
+
+#if defined(BUILD_GRAPHICAL_CLIENT) || defined(BUILD_TTY_CLIENT)
+	FS::AddBuiltinPak("daemon-client", ENGINE_VERSION, EngineMedia::FileMap);
+#endif
+
 	Cmd::Args extrapaks(fs_extrapaks.Get());
 	for (auto& x: extrapaks) {
 		if (!FS_LoadPak(x)) {
