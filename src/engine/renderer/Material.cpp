@@ -776,12 +776,14 @@ static std::string GetStageInfo( const shaderStage_t* pStage, const uint32_t dyn
 		"base variant                           ",
 		"vertex overbright                      ",
 		"vertex-lit                             ",
-		"fullbright                             ",
 		"vertex overbright vertex-lit           ",
+		"fullbright                             ",
 		"vertex overbright fullbright           ",
 		"vertex-lit fullbright                  ",
 		"vertex overbright vertex-lit fullbright"
 	};
+	static_assert( ARRAY_LEN( stageVariants ) == ShaderStageVariant::ALL,
+	               "update stage variant text descriptions" );
 
 	uint32_t variants = 0;
 	for ( int i = 0; i < ShaderStageVariant::ALL && variants < pStage->variantOffset; i++ ) {
