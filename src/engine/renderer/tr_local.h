@@ -964,6 +964,8 @@ enum
 	// TODO(0.56): move to the public RegisterShaderFlags_t interface
 #define RSF_3D ( BIT( 30 ) )
 
+#define RSF_BSP ( BIT ( 29 ) )
+
 	using stageRenderer_t = void(*)(shaderStage_t *);
 	using stageShaderBuildMarker_t = void(*)(const shaderStage_t*);
 	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
@@ -1032,6 +1034,8 @@ enum
 
 		bool        highQuality;
 		bool        forceHighQuality;
+
+		bool forceVertexLighting;
 
 		bool        hasDepthFade; // for soft particles
 		float           depthFadeValue;

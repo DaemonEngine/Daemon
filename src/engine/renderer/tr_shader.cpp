@@ -5202,6 +5202,14 @@ static void FinishStages()
 				lightStageFound = true;
 				break;
 
+			case stageType_t::ST_COLORMAP:
+				if ( stage->rgbGen == colorGen_t::CGEN_VERTEX && shader.registerFlags & RSF_BSP )
+				{
+					// vertex colors used as lighting detected. Enable overbright and realtime lights
+					stage->type = stageType_t::ST_DIFFUSEMAP;
+					stage->forceVertexLighting = true; // use vertex lighting even if there is a lightmap
+				}
+
 			default:
 				break;
 		}
@@ -6453,6 +6461,7 @@ public:
 				shader->registerFlags & RSF_FORCE_LIGHTMAP ? 'L' : '_',
 				shader->registerFlags & RSF_SPRITE ? 'S' : '_',
 				shader->registerFlags & RSF_3D ? '3' : '_',
+				shader->registerFlags & RSF_BSP ? 'B' : '_',
 			};
 
 			if ( !shaderSortName.count( (shaderSort_t) shader->sort ) )
