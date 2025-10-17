@@ -680,7 +680,8 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 			surfaceCommand.drawCommand.baseInstance |= surface.texDataDynamic[stage]
 				? ( surface.texDataIDs[stage] + texData.size() ) << TEX_BUNDLE_BITS
 				: surface.texDataIDs[stage] << TEX_BUNDLE_BITS;
-			surfaceCommand.drawCommand.baseInstance |= ( HasLightMap( &surface ) ? GetLightMapNum( &surface ) : 255 ) << LIGHTMAP_BITS;
+			surfaceCommand.drawCommand.baseInstance |=
+				( !pStage->forceVertexLighting && HasLightMap( &surface ) ? GetLightMapNum( &surface ) : 255 ) << LIGHTMAP_BITS;
 			surfaceCommands[cmdID] = surfaceCommand;
 
 			material->drawCommandCount++;

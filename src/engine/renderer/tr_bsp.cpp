@@ -871,7 +871,7 @@ static shader_t* ShaderForShaderNum( int shaderNum ) {
 
 	dshader_t* dsh = &s_worldData.shaders[shaderNum];
 
-	shader_t* shader = R_FindShader( dsh->shader, RSF_3D );
+	shader_t* shader = R_FindShader( dsh->shader, RSF_3D | RSF_BSP );
 
 	// If the shader had errors, just use default shader
 	if ( shader->defaultShader ) {
