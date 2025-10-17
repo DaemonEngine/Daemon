@@ -41,24 +41,24 @@ Maryland 20850 USA.
 #include "qcommon/qcommon.h"
 #include "qcommon/sys.h"
 #include "framework/CommandSystem.h"
+#include "framework/CvarSystem.h"
 #include "sys/sys_events.h"
 
 static Log::Logger mouseLog("client.mouse", "");
+static Log::Logger controllerLog = Log::Logger("client.controller", "", Log::Level::NOTICE);
 
-static cvar_t       *in_keyboardDebug = nullptr;
+static Cvar::Cvar<bool> in_keyboardDebug("in_keyboardDebug", "log debug info about key presses", Cvar::NONE, false);
 
 static SDL_Joystick *stick = nullptr;
 static SDL_Gamepad *gamepad = nullptr;
 
-static cvar_t       *in_nograb;
+static Cvar::Cvar<bool> in_nograb("in_nograb", "disable mouse grabbing and cursor hiding", Cvar::NONE, false);
 
-static cvar_t       *in_joystick = nullptr;
-static cvar_t       *in_joystickThreshold = nullptr;
-static cvar_t       *in_joystickNo = nullptr;
-static cvar_t       *in_joystickUseAnalog = nullptr;
-static cvar_t       *in_gameControllerTriggerDeadzone = nullptr;
-
-static cvar_t *in_gameControllerDebug = nullptr;
+static Cvar::Cvar<bool> in_joystick("in_joystick", "enable game controller", Cvar::NONE, false);
+static Cvar::Cvar<float> in_joystickThreshold("in_joystickThreshold", "ignore analog stick deflections less than this", Cvar::NONE, 0.15);
+static Cvar::Cvar<int> in_joystickNo("in_joystickNo", "which game controller to use", Cvar::NONE, 0);
+static Cvar::Cvar<bool> j_useAnalog("j_useAnalog", "something about joystick control style", Cvar::NONE, false);
+static Cvar::Cvar<float> in_gameControllerTriggerDeadzone("in_gameControllerTriggerDeadzone", "how far trigger must be pulled for key down event", Cvar::NONE, 0.5);
 
 static SDL_Window *window = nullptr;
 
@@ -392,7 +392,7 @@ static Keyboard::Key IN_TranslateSDLToQ3Key( SDL_KeyboardEvent *event, bool down
 		}
 	}
 
-	if ( in_keyboardDebug->integer )
+	if ( in_keyboardDebug.Get() )
 	{
 		IN_PrintKey( event->mod, event->scancode, event->key, key, down );
 	}
@@ -434,7 +434,7 @@ static bool MouseModeAllowed( MouseMode mode )
  */
 void IN_SetMouseMode(MouseMode newMode)
 {
-	if ( in_nograb->integer && newMode == MouseMode::Deltas )
+	if ( in_nograb.Get() && newMode == MouseMode::Deltas )
 	{
 		newMode = MouseMode::SystemCursor;
 	}
@@ -566,6 +566,9 @@ IN_InitJoystick
 */
 static void IN_InitJoystick()
 {
+	Cvar::Latch( in_joystick );
+	Cvar::Latch( in_joystickNo );
+
 	if ( stick != nullptr )
 	{
 		SDL_CloseJoystick( stick );
@@ -574,42 +577,31 @@ static void IN_InitJoystick()
 	stick = nullptr;
 	stick_state = {};
 
-	if ( !in_joystick->integer )
+	if ( !in_joystick.Get() )
 	{
-		Log::Debug( "Joystick is not active." );
-
-		if ( !gamepad )
-		{
-			Log::Debug( "Gamepad is not active." );
-		}
-
+		controllerLog.Verbose( "Game controllers disabled" );
 		return;
 	}
 
 	if ( !SDL_WasInit( SDL_INIT_JOYSTICK ) )
 	{
-		Log::Debug( "Calling SDL_Init(SDL_INIT_JOYSTICK)..." );
+		controllerLog.Verbose( "Calling SDL_Init(SDL_INIT_JOYSTICK)..." );
 
 		if ( !SDL_Init( SDL_INIT_JOYSTICK ) )
 		{
-			Log::Warn( "SDL_Init(SDL_INIT_JOYSTICK) failed: %s", SDL_GetError() );
+			controllerLog.Warn( "SDL_Init(SDL_INIT_JOYSTICK) failed: %s", SDL_GetError() );
 			return;
 		}
-
-		Log::Debug( "SDL_Init(SDL_INIT_JOYSTICK) passed." );
 	}
 
 	int total = 0;
 	SDL_JoystickID* ids = SDL_GetJoysticks( &total );
-	Log::Debug( "%d possible joysticks", total );
+	controllerLog.Notice( "%d possible joystick(s):", total );
 
 	for ( int i = 0; i < total; i++ )
 	{
-		Log::Debug( "[%d] %s", i, JoystickNameForID( ids[i] ) );
+		controllerLog.Notice( "[%d] %s", i, JoystickNameForID( ids[i] ) );
 	}
-
-	in_joystickNo = Cvar_Get( "in_joystickNo", "0", 0 );
-	in_joystickUseAnalog = Cvar_Get( "in_joystickUseAnalog", "0", 0 );
 
 	if ( total <= 0 )
 	{
@@ -617,19 +609,20 @@ static void IN_InitJoystick()
 		return;
 	}
 
-	if ( in_joystickNo->integer < 0 || in_joystickNo->integer >= total )
+	int stickIndex = in_joystickNo.Get();
+	if ( stickIndex < 0 || stickIndex >= total )
 	{
-		Cvar_Set( "in_joystickNo", "0" );
+		stickIndex = 0;
 	}
 
-	SDL_JoystickID id = ids[ in_joystickNo->integer ];
+	SDL_JoystickID id = ids[ stickIndex ];
 	SDL_free( ids );
 
 	stick = SDL_OpenJoystick( id );
 
 	if ( stick == nullptr )
 	{
-		Log::Debug( "No joystick opened: %s.", SDL_GetError() );
+		controllerLog.Warn( "No joystick opened: %s", SDL_GetError() );
 		return;
 	}
 
@@ -638,19 +631,20 @@ static void IN_InitJoystick()
 		gamepad = SDL_OpenGamepad( id );
 		if ( gamepad )
 		{
-			Cvar_Set( "in_gameControllerAvailable", "1" );
 			SDL_GamepadEventsEnabled();
 		}
 	}
 
-	Log::Debug( "Joystick %d opened", in_joystickNo->integer );
-	Log::Debug( "Name:    %s", JoystickNameForID( id ) );
-	Log::Debug( "Axes:    %d", SDL_GetNumJoystickAxes( stick ) );
-	Log::Debug( "Hats:    %d", SDL_GetNumJoystickHats( stick ) );
-	Log::Debug( "Buttons: %d", SDL_GetNumJoystickButtons( stick ) );
-	Log::Debug( "Balls: %d", SDL_GetNumJoystickBalls( stick ) );
-	Log::Debug( "Use Analog: %s", in_joystickUseAnalog->integer ? "Yes" : "No" );
-	Log::Debug( "Use SDL2 GameController mappings: %s", gamepad ? "Yes" : "No" );
+	Cvar::SetValueForce( "in_gameControllerAvailable", gamepad ? "1" : "0" );
+
+	controllerLog.Notice( "Joystick %d opened", stickIndex );
+	controllerLog.Verbose( "Name:    %s", JoystickNameForID( id ) );
+	controllerLog.Verbose( "Axes:    %d", SDL_GetNumJoystickAxes( stick ) );
+	controllerLog.Verbose( "Hats:    %d", SDL_GetNumJoystickHats( stick ) );
+	controllerLog.Verbose( "Buttons: %d", SDL_GetNumJoystickButtons( stick ) );
+	controllerLog.Verbose( "Balls: %d", SDL_GetNumJoystickBalls( stick ) );
+	controllerLog.Verbose( "Use Analog: %s", j_useAnalog.Get() ? "Yes" : "No" );
+	controllerLog.Verbose( "Use SDL GameController mappings: %s", gamepad ? "Yes" : "No" );
 
 	SDL_GamepadEventsEnabled();
 }
@@ -660,7 +654,7 @@ static void IN_InitJoystick()
 IN_ShutdownJoystick
 ===============
 */
-static void IN_ShutdownJoystick()
+void IN_ShutdownJoystick()
 {
 	if ( gamepad )
 	{
@@ -902,15 +896,15 @@ static void IN_JoyMove()
 		{
 			Sint16 axis = SDL_GetJoystickAxis( stick, i );
 
-			if ( !in_joystickUseAnalog->integer )
+			if ( !j_useAnalog.Get() )
 			{
 				float f = ( ( float ) axis ) / 32767.0f;
 
-				if ( f < -in_joystickThreshold->value )
+				if ( f < -in_joystickThreshold.Get() )
 				{
 					axes |= ( 1 << ( i * 2 ) );
 				}
-				else if ( f > in_joystickThreshold->value )
+				else if ( f > in_joystickThreshold.Get() )
 				{
 					axes |= ( 1 << ( ( i * 2 ) + 1 ) );
 				}
@@ -919,7 +913,7 @@ static void IN_JoyMove()
 			{
 				float f = ( ( float ) abs( axis ) ) / 32767.0f;
 
-				if ( f < in_joystickThreshold->value ) { axis = 0; }
+				if ( f < in_joystickThreshold.Get() ) { axis = 0; }
 
 				if ( axis != stick_state.oldaaxes[ i ] )
 				{
@@ -957,17 +951,13 @@ static void IN_GameControllerAxis( SDL_GamepadAxis controllerAxis, joystickAxis_
 	Sint16 axis = SDL_GetGamepadAxis( gamepad, controllerAxis );
 	float  f = ( ( float ) axis ) / 32767.0f;
 
-	if ( f > -in_joystickThreshold->value && f < in_joystickThreshold->value )
+	if ( f > -in_joystickThreshold.Get() && f < in_joystickThreshold.Get() )
 	{
 		Com_QueueEvent( Util::make_unique<Sys::JoystickEvent>(Util::ordinal(gameAxis), 0) );
 	}
 	else
 	{
-		if ( in_gameControllerDebug->integer )
-		{
-			Log::Notice( "GameController axis %i = %f", controllerAxis, f );
-		}
-
+		controllerLog.Debug( "GameController axis %i = %f", controllerAxis, f );
 		Com_QueueEvent( Util::make_unique<Sys::JoystickEvent>(Util::ordinal(gameAxis), static_cast<int>(f * scale)) );
 	}
 }
@@ -980,7 +970,7 @@ static int IN_GameControllerAxisToButton( SDL_GamepadAxis controllerAxis, keyNum
 	Sint16       axis = SDL_GetGamepadAxis( gamepad, controllerAxis );
 	float        f = ( ( float ) axis ) / 32767.0f;
 
-	if ( f > in_gameControllerTriggerDeadzone->value )
+	if ( f > in_gameControllerTriggerDeadzone.Get() )
 	{
 		axes |= ( 1 << ( controllerAxis ) );
 	}
@@ -988,23 +978,21 @@ static int IN_GameControllerAxisToButton( SDL_GamepadAxis controllerAxis, keyNum
 	if ( ( axes & ( 1 << controllerAxis ) ) && !( stick_state.oldaxes & ( 1 << controllerAxis ) ) )
 	{
 		QueueKeyEvent( key, true );
-		if ( in_gameControllerDebug->integer )
-		{
-			Log::Notice( "GameController axis = %s to key = Q:0x%02x(%s), value = %f",
-						 SDL_GetGamepadStringForAxis( controllerAxis ), key,
-						 Keyboard::KeyToString( Key(key) ), f );
-		}
+		controllerLog.DoDebugCode( [&] {
+			controllerLog.Debug( "GameController axis = %s to key = Q:0x%02x(%s), value = %f",
+			                     SDL_GetGamepadStringForAxis( controllerAxis ), key,
+			                     Keyboard::KeyToString( Key(key) ), f );
+		});
 	}
 
 	if ( !( axes & ( 1 << controllerAxis ) ) && ( stick_state.oldaxes & ( 1 << controllerAxis ) ) )
 	{
 		QueueKeyEvent( key, false );
-		if ( in_gameControllerDebug->integer )
-		{
-			Log::Notice( "GameController axis = %s to key = Q:0x%02x(%s), value = %f",
-				SDL_GetGamepadStringForAxis( controllerAxis ), key,
-						 Keyboard::KeyToString( Key(key) ), f );
-		}
+		controllerLog.DoDebugCode( [&] {
+			controllerLog.Debug( "GameController axis = %s to key = Q:0x%02x(%s), value = %f",
+			                     SDL_GetGamepadStringForAxis( controllerAxis ), key,
+			                     Keyboard::KeyToString( Key(key) ), f );
+		});
 	}
 
 	return axes;
@@ -1036,12 +1024,11 @@ static void IN_GameControllerMove()
 		{
 			QueueKeyEvent( Util::enum_cast<keyNum_t>(K_CONTROLLER_A + i), pressed );
 
-			if ( in_gameControllerDebug->integer )
-			{
-				Log::Notice( "GameController button %s = %s",
-							 SDL_GetGamepadStringForButton( Util::enum_cast< SDL_GamepadButton >(i) ),
-							 pressed ? "Pressed" : "Released" );
-			}
+			controllerLog.DoDebugCode([&] {
+				controllerLog.Debug( "GameController button %s = %s",
+				                     SDL_GetGamepadStringForButton( Util::enum_cast< SDL_GamepadButton >(i) ),
+				                     pressed ? "Pressed" : "Released" );
+			});
 
 			stick_state.buttons[ i ] = pressed;
 		}
@@ -1314,16 +1301,6 @@ void IN_Init( void *windowData )
 
 	Log::Debug( "------- Input Initialization -------" );
 
-	in_keyboardDebug = Cvar_Get( "in_keyboardDebug", "0", CVAR_TEMP );
-
-	// mouse variables
-	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
-
-	in_joystick = Cvar_Get( "in_joystick", "0",  CVAR_LATCH );
-	in_joystickThreshold = Cvar_Get( "in_joystickThreshold", "0.15", 0 );
-	in_gameControllerTriggerDeadzone = Cvar_Get( "in_gameControllerTriggerDeadzone", "0.5", 0);
-
-	in_gameControllerDebug = Cvar_Get( "in_gameControllerDebug", "0", CVAR_TEMP );
 	SDL_StartTextInput( window );
 	IN_SetMouseMode( MouseMode::SystemCursor );
 

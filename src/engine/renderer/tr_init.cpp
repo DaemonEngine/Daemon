@@ -1657,7 +1657,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.SetMatrixTransform = RE_SetMatrixTransform;
 		re.ResetMatrixTransform = RE_ResetMatrixTransform;
 
-		re.Glyph = RE_Glyph;
 		re.GlyphChar = RE_GlyphChar;
 		re.RegisterFont = RE_RegisterFont;
 		re.UnregisterFont = RE_UnregisterFont;

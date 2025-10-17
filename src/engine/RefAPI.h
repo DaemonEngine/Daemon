@@ -45,6 +45,32 @@ Maryland 20850 USA.
 
 extern Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen;
 
+// font support
+struct glyphInfo_t
+{
+	int       height; // number of scan lines
+	int       top; // top of glyph in buffer
+	int       bottom; // bottom of glyph in buffer
+	int       pitch; // width for copying
+	int       xSkip; // x adjustment
+	int       imageWidth; // width of actual image
+	int       imageHeight; // height of actual image
+	float     s; // x offset in image where glyph starts
+	float     t; // y offset in image where glyph starts
+	float     s2;
+	float     t2;
+	qhandle_t glyph; // handle to the shader with the glyph
+	char      shaderName[ 32 ];
+};
+
+struct fontInfo_t
+{
+	void         *face, *faceData;
+	glyphInfo_t  *glyphBlock[0x110000 / 256]; // glyphBlock_t
+	int           pointSize;
+	char          name[ MAX_QPATH ];
+};
+
 //
 // these are the functions exported by the refresh module
 //
@@ -71,7 +97,6 @@ struct refexport_t {
 	qhandle_t( *RegisterShader )( const char* name, int flags );
 	fontInfo_t* ( *RegisterFont )( const char* fontName, int pointSize );
 	void   ( *UnregisterFont )( fontInfo_t* font );
-	void   ( *Glyph )( fontInfo_t* font, const char* str, glyphInfo_t* glyph );
 	void   ( *GlyphChar )( fontInfo_t* font, int ch, glyphInfo_t* glyph );
 
 	void ( *LoadWorld )( const char* name );

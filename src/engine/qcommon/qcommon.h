@@ -451,6 +451,7 @@ void IN_Frame();
 void IN_FrameEnd();
 void IN_Restart();
 void IN_Shutdown();
+void IN_ShutdownJoystick();
 bool IN_IsNumLockOn();
 void IN_DropInputsForFrame();
 void IN_CenterMouse();

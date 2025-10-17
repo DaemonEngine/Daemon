@@ -380,39 +380,32 @@ extern cvar_t *cl_showSend;
 extern cvar_t *cl_timeNudge;
 extern cvar_t *cl_showTimeDelta;
 
-extern cvar_t *cl_yawspeed;
-extern cvar_t *cl_pitchspeed;
-extern cvar_t *cl_run;
-extern cvar_t *cl_anglespeedkey;
+extern Cvar::Cvar<float> cl_yawspeed;
+extern Cvar::Cvar<float> cl_pitchspeed;
+extern Cvar::Cvar<bool> cl_run;
+extern Cvar::Cvar<float> cl_anglespeedkey;
 
-extern cvar_t *cl_doubletapdelay;
+extern Cvar::Range<Cvar::Cvar<int>> cl_doubletapdelay;
 
 extern cvar_t *cl_sensitivity;
-extern cvar_t *cl_freelook;
+extern Cvar::Cvar<bool> cl_freelook;
 
-extern cvar_t *cl_gameControllerAvailable;
+extern Cvar::Cvar<float> m_pitch;
+extern Cvar::Cvar<float> m_yaw;
+extern Cvar::Cvar<float> m_forward;
+extern Cvar::Cvar<float> m_side;
+extern Cvar::Cvar<bool> m_filter;
 
-extern cvar_t *cl_mouseAccel;
-extern cvar_t *cl_mouseAccelOffset;
-extern cvar_t *cl_mouseAccelStyle;
-extern cvar_t *cl_showMouseRate;
-
-extern cvar_t *m_pitch;
-extern cvar_t *m_yaw;
-extern cvar_t *m_forward;
-extern cvar_t *m_side;
-extern cvar_t *m_filter;
-
-extern cvar_t *j_pitch;
-extern cvar_t *j_yaw;
-extern cvar_t *j_forward;
-extern cvar_t *j_side;
-extern cvar_t *j_up;
-extern cvar_t *j_pitch_axis;
-extern cvar_t *j_yaw_axis;
-extern cvar_t *j_forward_axis;
-extern cvar_t *j_side_axis;
-extern cvar_t *j_up_axis;
+extern Cvar::Cvar<float> j_pitch;
+extern Cvar::Cvar<float> j_yaw;
+extern Cvar::Cvar<float> j_forward;
+extern Cvar::Cvar<float> j_side;
+extern Cvar::Cvar<float> j_up;
+extern Cvar::Range<Cvar::Cvar<int>> j_pitch_axis;
+extern Cvar::Range<Cvar::Cvar<int>> j_yaw_axis;
+extern Cvar::Range<Cvar::Cvar<int>> j_forward_axis;
+extern Cvar::Range<Cvar::Cvar<int>> j_side_axis;
+extern Cvar::Range<Cvar::Cvar<int>> j_up_axis;
 
 extern Cvar::Cvar<bool> cvar_demo_timedemo;
 

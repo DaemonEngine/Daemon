@@ -24,17 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required (VERSION 3.12)
-
-# Choose Python versions by location instead of getting whatever is in PYTHON_EXECUTABLE
-# Can be removed once we require CMake 3.15
-if (POLICY CMP0094)
-    cmake_policy(SET CMP0094 NEW)
-endif()
-
-if (POLICY CMP0072)
-    cmake_policy(SET CMP0072 NEW)
-endif()
+cmake_minimum_required(VERSION 3.18.4)
 
 if(NOT DAEMON_DIR)
     set(DAEMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -135,25 +125,7 @@ option(USE_HARDENING "Use stack protection and other hardening flags" OFF)
 option(USE_WERROR "Tell the compiler to make the build fail when warnings are present" OFF)
 option(USE_PEDANTIC "Tell the compiler to be pedantic" OFF)
 option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" ON)
-
-if (CMAKE_GENERATOR MATCHES "^Ninja" OR APPLE)
-    # It isn't currently supported with Ninja yet:
-    #
-    # > Note that the IMPLICIT_DEPENDS option is currently supported only for
-    # > Makefile generators and will be ignored by other generators. Note that
-    # > the IMPLICIT_DEPENDS option is currently supported only for Makefile
-    # > generators and will be ignored by other generators.
-    # > -- https://cmake.org/cmake/help/latest/command/add_custom_command.html
-    #
-    # It would be better to be able to know if IMPLICIT_DEPENDS is supported
-    # by the current generator instead of comparing generator name.
-
-	# It is broken on macOS.
-	# See: https://github.com/DaemonEngine/Daemon/issues/1549
-    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" OFF)
-else()
-    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" ON)
-endif()
+option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" ON)
 option(USE_ADDRESS_SANITIZER "Try to use the address sanitizer" OFF)
 option(BE_VERBOSE "Tell the compiler to report all warnings" OFF)
 option(USE_STATIC_LIBS "Tries to use static libs where possible. Only works for Linux" OFF)
@@ -371,92 +343,9 @@ endif()
 # Support for precompiled headers
 ################################################################################
 
-# MSVC requires that an extra file be added to a project
-if (USE_PRECOMPILED_HEADER AND MSVC)
-    file(WRITE ${OBJ_DIR}/PrecompiledHeader.cpp "")
-    set(PCH_FILE ${OBJ_DIR}/PrecompiledHeader.cpp)
-    if (DAEMON_PARENT_SCOPE_DIR)
-        set(PCH_FILE ${PCH_FILE} PARENT_SCOPE)
-    endif()
-endif()
-
 function(ADD_PRECOMPILED_HEADER Target)
-    if (NOT USE_PRECOMPILED_HEADER OR CMAKE_VERSION VERSION_LESS 2.8.10)
-        return()
-    endif()
-
-    # Get the common compile flags
-    set(Flags ${CMAKE_CXX_FLAGS} ${WARNINGS})
-    get_target_property(Type ${Target} TYPE)
-    if (Type STREQUAL MODULE_LIBRARY)
-        set(Flags ${Flags} ${CMAKE_SHARED_MODULE_CXX_FLAGS})
-    endif()
-    separate_arguments(Flags)
-
-    # Get the per-configuration compile flags
-    foreach(Config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
-        set(ConfigFlags ${CMAKE_CXX_FLAGS_${Config}})
-        separate_arguments(ConfigFlags)
-        foreach(Flag ${ConfigFlags})
-            set(Flags ${Flags} $<${${Config}_GENEXP_COND}:${Flag}>)
-        endforeach()
-    endforeach()
-
-    # Get preprocessor options for the target and directory (global)
-    get_directory_property(DirCompileDefs COMPILE_DEFINITIONS)
-    get_directory_property(DirIncludeDirs INCLUDE_DIRECTORIES)
-    get_target_property(TargetCompileDefs ${Target} COMPILE_DEFINITIONS)
-    get_target_property(TargetIncludeDirs ${Target} INCLUDE_DIRECTORIES)
-    set(Defs)
-    foreach(Def ${TargetCompileDefs})
-        set(Defs ${Defs} -D${Def})
-    endforeach()
-    foreach(Def ${DirCompileDefs})
-        set(Defs ${Defs} -D${Def})
-    endforeach()
-    foreach(Def ${DirIncludeDirs})
-        set(Defs ${Defs} -I${Def})
-    endforeach()
-    foreach(Def ${TargetIncludeDirs})
-        set(Defs ${Defs} -I${Def})
-    endforeach()
-
-    # Specify minimum OSX version
-    if (APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET)
-        set(Flags ${Flags} -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
-    endif()
-
-    set(Header ${COMMON_DIR}/Common.h)
-
-    # Compiler-specific PCH support
-    if ((DAEMON_CXX_COMPILER_GCC_COMPATIBILITY OR DAEMON_CXX_COMPILER_Clang_COMPATIBILITY)
-    AND NOT DAEMON_CXX_COMPILER_ICC)
-        # CMAKE_CXX_COMPILER_ARG1 is used with compilers using subcommands.
-        # For example when doing: cmake -D'CMAKE_CXX_COMPILER'='zig;c++'
-        # CMAKE_CXX_COMPILER will be "zig",
-        # CMAKE_CXX_COMPILER_ARG1 will be "c++".
-        add_custom_command(OUTPUT "${OBJ_DIR}/${Target}.h.gch"
-            COMMAND ${PNACLPYTHON_PREFIX2} ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ARG1}
-                ${Defs} ${Flags} -x c++-header ${Header} -o "${OBJ_DIR}/${Target}.h.gch"
-            DEPENDS ${Header}
-            IMPLICIT_DEPENDS CXX ${Header}
-        )
-
-        add_custom_target(${Target}-pch DEPENDS "${OBJ_DIR}/${Target}.h.gch")
-        add_dependencies(${Target} ${Target}-pch)
-
-        # PNaCl clang doesn't support -include-pch properly
-        if (DAEMON_CXX_COMPILER_Clang_COMPATIBILITY
-        AND NOT DAEMON_CXX_COMPILER_PNaCl)
-            set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include-pch;${OBJ_DIR}/${Target}.h.gch")
-        else()
-            set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include;${OBJ_DIR}/${Target}.h;-Winvalid-pch")
-        endif()
-    elseif (MSVC)
-        # /Fp sets the PCH path used by either of the /Yc and /Yu options.
-        # /Yc overrides /Yu.
-        set_source_files_properties(${PCH_FILE} PROPERTIES COMPILE_FLAGS "/Yc${Header}")
-        target_compile_options(${Target} PRIVATE "/Yu${Header}" "/Fp${OBJ_DIR}/${Target}_$<CONFIG>.pch" "/FI${Header}")
+    if (USE_PRECOMPILED_HEADER)
+        target_precompile_headers(${Target} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:\"${COMMON_DIR}/Common.h\">")
     endif()
 endfunction()
 
@@ -1024,6 +913,7 @@ if (BUILD_CLIENT)
         set(CLIENT_EXECUTABLE_NAME daemon-vulkan)
     else()
         set(CLIENT_EXECUTABLE_NAME daemon)
+        set(CLIENTTESTLIST ${CLIENTTESTLIST} ${RENDERERTESTLIST})
     endif()
 
     AddApplication(

@@ -93,31 +93,28 @@ Cvar::Cvar<std::string> cvar_demo_status_filename(
 
 cvar_t *cl_aviFrameRate;
 
-cvar_t *cl_freelook;
-cvar_t *cl_sensitivity;
-cvar_t *cl_gameControllerAvailable;
+Cvar::Cvar<bool> cl_freelook("cl_freelook", "vertical mouse movement always controls pitch", Cvar::NONE, true);
 
 cvar_t *cl_mouseAccelOffset;
 cvar_t *cl_mouseAccel;
 cvar_t *cl_mouseAccelStyle;
-cvar_t *cl_showMouseRate;
 
-cvar_t *m_pitch;
-cvar_t *m_yaw;
-cvar_t *m_forward;
-cvar_t *m_side;
-cvar_t *m_filter;
+Cvar::Cvar<float> m_pitch("m_pitch", "mouse sensitivity modifier for looking up/down", Cvar::NONE, 0.022);
+Cvar::Cvar<float> m_yaw("m_yaw", "mouse sensitivity modifier for looking left/right", Cvar::NONE, 0.022);
+Cvar::Cvar<float> m_forward("m_forward", "mouse sensitivity modifier for (mlook off) walking", Cvar::NONE, 0.25);
+Cvar::Cvar<float> m_side("m_side", "mouse sensitivity modifier for +strafe", Cvar::NONE, 0.25);
+Cvar::Cvar<bool> m_filter("m_filter", "smooth mouse inputs over 2 frames", Cvar::NONE, false);
 
-cvar_t *j_pitch;
-cvar_t *j_yaw;
-cvar_t *j_forward;
-cvar_t *j_side;
-cvar_t *j_up;
-cvar_t *j_pitch_axis;
-cvar_t *j_yaw_axis;
-cvar_t *j_forward_axis;
-cvar_t *j_side_axis;
-cvar_t *j_up_axis;
+Cvar::Cvar<float> j_pitch("j_pitch", "joystick move scale for pitch axis", Cvar::NONE, 0.022);
+Cvar::Cvar<float> j_yaw("j_yaw", "joystick move scale for yaw axis", Cvar::NONE, -0.022);
+Cvar::Cvar<float> j_forward("j_forward", "joystick move scale for forward axis", Cvar::NONE, -0.25);
+Cvar::Cvar<float> j_side("j_side", "joystick move scale for side (strafe) axis", Cvar::NONE, 0.25);
+Cvar::Cvar<float> j_up("j_up", "joystick move scale for up axis", Cvar::NONE, 1.0);
+Cvar::Range<Cvar::Cvar<int>> j_pitch_axis("j_pitch_axis", "joystick pitch axis number", Cvar::NONE, 3, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_yaw_axis("j_yaw_axis", "joystick yaw axis number", Cvar::NONE, 4, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_forward_axis("j_forward_axis", "joystick forward axis number", Cvar::NONE, 1, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_side_axis("j_side_axis", "joystick side (strafe) axis number", Cvar::NONE, 0, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_up_axis("j_up_axis", "joystick up axis number", Cvar::NONE, 2, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
 
 cvar_t *cl_activeAction;
 
@@ -1440,8 +1437,7 @@ void CL_Vid_Restart_f()
 	Audio::StopAllSounds();
 	// shutdown the CGame
 	CL_ShutdownCGame();
-	// clear the font cache
-	re.UnregisterFont( nullptr );
+	re.UnregisterFont( cls.consoleFont );
 	cls.consoleFont = nullptr;
 	// shutdown the renderer and clear the renderer interface
 	CL_ShutdownRef();
@@ -2323,50 +2319,10 @@ void CL_Init()
 	cl_aviMotionJpeg = Cvar_Get( "cl_aviMotionJpeg", "1", 0 );
 	// XreaL END
 
-	cl_yawspeed = Cvar_Get( "cl_yawspeed", "140", 0 );
-	cl_pitchspeed = Cvar_Get( "cl_pitchspeed", "140", 0 );
-	cl_anglespeedkey = Cvar_Get( "cl_anglespeedkey", "1.5", 0 );
-
 	cl_maxpackets = Cvar_Get( "cl_maxpackets", "125", 0 );
 	cl_packetdup = Cvar_Get( "cl_packetdup", "1", 0 );
 
-	cl_run = Cvar_Get( "cl_run", "1", 0 );
-	cl_sensitivity = Cvar_Get( "sensitivity", "5", CVAR_ARCHIVE );
-	cl_mouseAccel = Cvar_Get( "cl_mouseAccel", "0", 0 );
-	cl_freelook = Cvar_Get( "cl_freelook", "1", CVAR_ARCHIVE );
-
-	cl_gameControllerAvailable = Cvar_Get( "in_gameControllerAvailable", "0", CVAR_ROM );
-
-	// 0: legacy mouse acceleration
-	// 1: new implementation
-
-	cl_mouseAccelStyle = Cvar_Get( "cl_mouseAccelStyle", "0", 0 );
-	// offset for the power function (for style 1, ignored otherwise)
-	// this should be set to the max rate value
-	cl_mouseAccelOffset = Cvar_Get( "cl_mouseAccelOffset", "5", 0 );
-
-	cl_showMouseRate = Cvar_Get( "cl_showmouserate", "0", 0 );
-
 	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", 0 );
-
-	cl_doubletapdelay = Cvar_Get( "cl_doubletapdelay", "250", 0 );  // Arnout: double tap
-	m_pitch = Cvar_Get( "m_pitch", "0.022", CVAR_ARCHIVE );
-	m_yaw = Cvar_Get( "m_yaw", "0.022", 0 );
-	m_forward = Cvar_Get( "m_forward", "0.25", 0 );
-	m_side = Cvar_Get( "m_side", "0.25", 0 );
-	m_filter = Cvar_Get( "m_filter", "0", CVAR_ARCHIVE );
-
-	j_pitch = Cvar_Get( "j_pitch", "0.022", 0 );
-	j_yaw = Cvar_Get( "j_yaw", "-0.022", 0 );
-	j_forward = Cvar_Get( "j_forward", "-0.25", 0 );
-	j_side = Cvar_Get( "j_side", "0.25", 0 );
-	j_up = Cvar_Get ("j_up", "1", 0);
-
-	j_pitch_axis = Cvar_Get( "j_pitch_axis", "3", 0 );
-	j_yaw_axis = Cvar_Get( "j_yaw_axis", "4", 0 );
-	j_forward_axis = Cvar_Get( "j_forward_axis", "1", 0 );
-	j_side_axis = Cvar_Get( "j_side_axis", "0", 0 );
-	j_up_axis = Cvar_Get( "j_up_axis", "2", 0 );
 
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
 
@@ -2444,6 +2400,10 @@ void CL_Shutdown()
 		CL_SendDisconnect();
 		CL_StopRecord();
 		StopVideo();
+
+		// Just to avoid the SDL nag message "Leaked SDL_Gamepad (0x123456)" making us look bad
+		IN_ShutdownJoystick();
+
 		// TODO: call DL_StopDownload when deleting the temp file is implemented
 		return;
 	}
@@ -2457,7 +2417,7 @@ void CL_Shutdown()
 
 	if ( re.UnregisterFont )
 	{
-		re.UnregisterFont( nullptr );
+		re.UnregisterFont( cls.consoleFont );
 		cls.consoleFont = nullptr;
 	}
 
