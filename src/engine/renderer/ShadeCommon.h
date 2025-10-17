@@ -121,7 +121,12 @@ template<typename Obj> void SetLightDeluxeMode(
 	lightMode = lightMode_t::FULLBRIGHT;
 	deluxeMode = deluxeMode_t::NONE;
 
-	if ( hasExplicitelyDisabledLightMap( stage->shader ) && !isExplicitelyVertexLitSurface( stage->shader ) )
+	if ( stage->forceVertexLighting )
+	{
+		lightMode = lightMode_t::VERTEX;
+		deluxeMode = deluxeMode_t::NONE;
+	}
+	else if ( hasExplicitelyDisabledLightMap( stage->shader ) && !isExplicitelyVertexLitSurface( stage->shader ) )
 	{
 		// Use fullbright on “surfaceparm nolightmap” materials.
 	}
