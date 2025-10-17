@@ -114,18 +114,18 @@ template<typename Obj> bool isExplicitelyVertexLitSurface( Obj* obj )
 	return lastStage != stages && stages[0].rgbGen == colorGen_t::CGEN_VERTEX;
 }
 
-template<typename Obj> void SetLightDeluxeMode( Obj* obj, shader_t* shader,
-	stageType_t stageType,
+template<typename Obj> void SetLightDeluxeMode(
+	const Obj *obj, const shaderStage_t *stage,
 	lightMode_t& lightMode, deluxeMode_t& deluxeMode )
 {
 	lightMode = lightMode_t::FULLBRIGHT;
 	deluxeMode = deluxeMode_t::NONE;
 
-	if ( hasExplicitelyDisabledLightMap( shader ) && !isExplicitelyVertexLitSurface( shader ) )
+	if ( hasExplicitelyDisabledLightMap( stage->shader ) && !isExplicitelyVertexLitSurface( stage->shader ) )
 	{
 		// Use fullbright on “surfaceparm nolightmap” materials.
 	}
-	else if ( stageType == stageType_t::ST_COLLAPSE_COLORMAP )
+	else if ( stage->type == stageType_t::ST_COLLAPSE_COLORMAP )
 	{
 		/* Use fullbright for collapsed stages without lightmaps,
 		for example:
@@ -137,7 +137,7 @@ template<typename Obj> void SetLightDeluxeMode( Obj* obj, shader_t* shader,
 
 		This is doable for some complex multi-stage materials. */
 	}
-	else if( stageType == stageType_t::ST_LIQUIDMAP )
+	else if( stage->type == stageType_t::ST_LIQUIDMAP )
 	{
 		lightMode = tr.modelLight;
 		deluxeMode = tr.modelDeluxe;
