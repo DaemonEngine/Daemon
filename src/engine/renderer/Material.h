@@ -376,7 +376,7 @@ class MaterialSystem {
 
 	void AddStageTextures( MaterialSurface* surface, shaderStage_t* pStage, const uint32_t stage, Material* material );
 	void AddStage( MaterialSurface* surface, shaderStage_t* pStage, uint32_t stage,
-		const bool mayUseVertexOverbright, const bool vertexLit, const bool fullbright );
+		const bool vertexLit, const bool fullbright );
 	void ProcessStage( MaterialSurface* surface, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage,
 		uint32_t& previousMaterialID, bool skipStageSync = false );
 	void GenerateMaterial( MaterialSurface* surface, int globalFog );
@@ -451,16 +451,16 @@ extern GLSSBO debugSSBO; // Global
 
 extern MaterialSystem materialSystem;
 
-void UpdateSurfaceDataNONE( uint32_t*, shaderStage_t*, bool, bool, bool );
-void UpdateSurfaceDataNOP( uint32_t*, shaderStage_t*, bool, bool, bool );
-void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage, bool mayUseVertexOverbright, bool, bool );
-void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, bool, bool vertexLit, bool fullbright );
-void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool );
-void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool );
-void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool );
-void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool );
-void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool );
-void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool );
+void UpdateSurfaceDataNONE( uint32_t*, shaderStage_t*, bool, bool );
+void UpdateSurfaceDataNOP( uint32_t*, shaderStage_t*, bool, bool );
+void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage, bool, bool );
+void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, bool vertexLit, bool fullbright );
+void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage, bool, bool );
+void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage, bool, bool );
+void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage, bool, bool );
+void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool, bool );
+void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, bool );
+void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage, bool, bool );
 
 void BindShaderNONE( Material* );
 void BindShaderNOP( Material* );
