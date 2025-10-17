@@ -1159,7 +1159,7 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, Mat
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( surface, pStage->shader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( surface, pStage, lightMode, deluxeMode );
 
 	bool enableDeluxeMapping = ( deluxeMode == deluxeMode_t::MAP );
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
@@ -1242,7 +1242,7 @@ void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, MaterialS
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( surface, pStage->shader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( surface, pStage, lightMode, deluxeMode );
 
 	material->hasHeightMapInNormalMap = pStage->hasHeightMapInNormalMap;
 	material->enableReliefMapping = pStage->enableReliefMapping;
@@ -1390,7 +1390,7 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 	uint32_t& previousMaterialID, bool skipStageSync ) {
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( surface, shader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( surface, pStage, lightMode, deluxeMode );
 	const bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP
 		&& surface->bspSurface && pStage->shaderBinder == BindShaderGeneric3D;
 	const bool vertexLit = lightMode == lightMode_t::VERTEX && pStage->shaderBinder == BindShaderLightMapping;
@@ -1479,7 +1479,7 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 	pStage->initialized = true;
 
 	AddStage( surface, pStage, stage, mayUseVertexOverbright, vertexLit, fullbright );
-	AddStageTextures( surface, shader, pStage, stage, &materials[previousMaterialID] );
+	AddStageTextures( surface, pStage, stage, &materials[previousMaterialID] );
 
 	surface->materialIDs[stage] = previousMaterialID;
 	surface->materialPackIDs[stage] = materialPack;
@@ -1539,7 +1539,7 @@ void MaterialSystem::GLSLRestart() {
 	}
 }
 
-void MaterialSystem::AddStageTextures( MaterialSurface* surface, shader_t* shader, shaderStage_t* pStage, const uint32_t stage, Material* material ) {
+void MaterialSystem::AddStageTextures( MaterialSurface* surface, shaderStage_t* pStage, const uint32_t stage, Material* material ) {
 	TextureData textureData;
 
 	int bundleNum = 0;
@@ -1570,7 +1570,7 @@ void MaterialSystem::AddStageTextures( MaterialSurface* surface, shader_t* shade
 	// Add lightmap and deluxemap for this surface to the material as well
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( surface, shader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( surface, pStage, lightMode, deluxeMode );
 
 	// u_Map, u_DeluxeMap
 	image_t* lightmap = SetLightMap( surface, lightMode );

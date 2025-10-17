@@ -374,7 +374,7 @@ class MaterialSystem {
 		return texData.size();
 	}
 
-	void AddStageTextures( MaterialSurface* surface, shader_t* shader, shaderStage_t* pStage, const uint32_t stage, Material* material );
+	void AddStageTextures( MaterialSurface* surface, shaderStage_t* pStage, const uint32_t stage, Material* material );
 	void AddStage( MaterialSurface* surface, shaderStage_t* pStage, uint32_t stage,
 		const bool mayUseVertexOverbright, const bool vertexLit, const bool fullbright );
 	void ProcessStage( MaterialSurface* surface, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage,

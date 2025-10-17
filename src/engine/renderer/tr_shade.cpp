@@ -795,7 +795,7 @@ void ProcessShaderGeneric3D( const shaderStage_t* pStage ) {
 void ProcessShaderLightMapping( const shaderStage_t* pStage ) {
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( &tess, pStage, lightMode, deluxeMode );
 
 	bool enableDeluxeMapping = ( deluxeMode == deluxeMode_t::MAP );
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
@@ -845,7 +845,7 @@ void ProcessShaderHeatHaze( const shaderStage_t* pStage ) {
 void ProcessShaderLiquid( const shaderStage_t* pStage ) {
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( &tess, pStage, lightMode, deluxeMode );
 
 	gl_liquidShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
@@ -1000,7 +1000,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( &tess, pStage, lightMode, deluxeMode );
 
 	// u_Map, u_DeluxeMap
 	image_t *lightmap = SetLightMap( &tess, lightMode );
@@ -1507,7 +1507,7 @@ void Render_liquid( shaderStage_t *pStage )
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( &tess, pStage, lightMode, deluxeMode );
 
 	// choose right shader program
 	ProcessShaderLiquid( pStage );
