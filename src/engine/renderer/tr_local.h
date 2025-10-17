@@ -968,15 +968,14 @@ enum
 
 	using stageRenderer_t = void(*)(shaderStage_t *);
 	using stageShaderBuildMarker_t = void(*)(const shaderStage_t*);
-	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
+	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool);
 	using stageShaderBinder_t = void(*)(Material*);
 	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, MaterialSurface*);
 
 	enum ShaderStageVariant {
-		VERTEX_OVERBRIGHT = 1,
-		VERTEX_LIT = BIT( 1 ),
-		FULLBRIGHT = BIT( 2 ),
-		ALL = BIT( 3 )
+		VERTEX_LIT = BIT( 0 ),
+		FULLBRIGHT = BIT( 1 ),
+		ALL = BIT( 2 )
 	};
 
 	struct shaderStage_t

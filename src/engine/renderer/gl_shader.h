@@ -2737,13 +2737,11 @@ struct colorModulation_t {
 	float colorGen = 0.0f;
 	float alphaGen = 0.0f;
 	float lightFactor = 1.0f;
-	bool useVertexLightFactor = false;
 };
 
 static colorModulation_t ColorModulateColorGen(
 	const colorGen_t colorGen,
 	const alphaGen_t alphaGen,
-	const bool vertexOverbright,
 	const bool useMapLightFactor )
 {
 	colorModulation_t colorModulation = {};
@@ -2751,17 +2749,7 @@ static colorModulation_t ColorModulateColorGen(
 	switch ( colorGen )
 	{
 		case colorGen_t::CGEN_VERTEX:
-			if ( vertexOverbright )
-			{
-				// vertexOverbright is only needed for non-lightmapped cases. When there is a
-				// lightmap, this is done by multiplying with the overbright-scaled white image
-				colorModulation.useVertexLightFactor = true;
-				colorModulation.lightFactor = tr.mapLightFactor;
-			}
-			else
-			{
-				colorModulation.colorGen = 1.0f;
-			}
+			colorModulation.colorGen = 1.0f;
 			break;
 
 		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
@@ -2774,7 +2762,6 @@ static colorModulation_t ColorModulateColorGen(
 
 	if ( useMapLightFactor )
 	{
-		DAEMON_ASSERT_EQ( vertexOverbright, false );
 		colorModulation.lightFactor = tr.mapLightFactor;
 	}
 
@@ -2807,7 +2794,6 @@ public:
 	void SetUniform_ColorModulateColorGen_Float(
 		const colorGen_t colorGen,
 		const alphaGen_t alphaGen,
-		const bool vertexOverbright = false,
 		const bool useMapLightFactor = false )
 	{
 		GLIMP_LOGCOMMENT( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Float( "
@@ -2815,12 +2801,11 @@ public:
 			_shader->_name.c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
 
 		colorModulation_t colorModulation = ColorModulateColorGen(
-			colorGen, alphaGen, vertexOverbright, useMapLightFactor );
+			colorGen, alphaGen, useMapLightFactor );
 
 		vec4_t colorModulate_Float;
 		colorModulate_Float[ 0 ] = colorModulation.colorGen;
 		colorModulate_Float[ 1 ] = colorModulation.lightFactor;
-		colorModulate_Float[ 1 ] *= colorModulation.useVertexLightFactor ? -1.0f : 1.0f;
 		colorModulate_Float[ 2 ] = {};
 		colorModulate_Float[ 3 ] = colorModulation.alphaGen;
 
@@ -2838,7 +2823,6 @@ class u_ColorModulateColorGen_Uint :
 	void SetUniform_ColorModulateColorGen_Uint(
 		const colorGen_t colorGen,
 		const alphaGen_t alphaGen,
-		const bool vertexOverbright = false,
 		const bool useMapLightFactor = false )
 	{
 		GLIMP_LOGCOMMENT( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Uint( "
@@ -2846,7 +2830,7 @@ class u_ColorModulateColorGen_Uint :
 			_shader->_name.c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
 
 		colorModulation_t colorModulation = ColorModulateColorGen(
-			colorGen, alphaGen, vertexOverbright, useMapLightFactor );
+			colorGen, alphaGen, useMapLightFactor );
 
 		enum class ColorModulate_Bit {
 			COLOR_ONE = 0,
@@ -2854,7 +2838,6 @@ class u_ColorModulateColorGen_Uint :
 			ALPHA_ONE = 2,
 			ALPHA_MINUS_ONE = 3,
 			// <-- Insert new bits there.
-			IS_LIGHT_STYLE = 27,
 			LIGHTFACTOR_BIT0 = 28,
 			LIGHTFACTOR_BIT1 = 29,
 			LIGHTFACTOR_BIT2 = 30,
@@ -2872,8 +2855,6 @@ class u_ColorModulateColorGen_Uint :
 			<< Util::ordinal( ColorModulate_Bit::ALPHA_ONE );
 		colorModulate_Uint |= ( colorModulation.alphaGen == -1.0f )
 			<< Util::ordinal( ColorModulate_Bit::ALPHA_MINUS_ONE );
-		colorModulate_Uint |= colorModulation.useVertexLightFactor
-			<< Util::ordinal( ColorModulate_Bit::IS_LIGHT_STYLE );
 		colorModulate_Uint |= uint32_t( colorModulation.lightFactor )
 			<< Util::ordinal( ColorModulate_Bit::LIGHTFACTOR_BIT0 );
 
@@ -2885,16 +2866,15 @@ template<typename Shader> void SetUniform_ColorModulateColorGen(
 		Shader* shader,
 		const colorGen_t colorGen,
 		const alphaGen_t alphaGen,
-		const bool vertexOverbright = false,
 		const bool useMapLightFactor = false )
 {
 	if( glConfig.gpuShader4Available )
 	{
-		shader->SetUniform_ColorModulateColorGen_Uint( colorGen, alphaGen, vertexOverbright, useMapLightFactor );
+		shader->SetUniform_ColorModulateColorGen_Uint( colorGen, alphaGen, useMapLightFactor );
 	}
 	else
 	{
-		shader->SetUniform_ColorModulateColorGen_Float( colorGen, alphaGen, vertexOverbright, useMapLightFactor );
+		shader->SetUniform_ColorModulateColorGen_Float( colorGen, alphaGen, useMapLightFactor );
 	}
 }
 
