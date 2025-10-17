@@ -1430,6 +1430,11 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			break;
 		}
 
+		if ( glConfig.usingBindlessTextures && glConfig.hardwareVendor == glHardwareVendor_t::ATI ) {
+			glConfig.usingReadonlyDepth = true;
+			Log::Notice( "Using read-only depth buffer copy because bindless textures are being used on AMD hardware" );
+		}
+
 		if ( glConfig.usingReadonlyDepth && !r_depthShaders.Get() )
 		{
 			Log::Warn( "Disabling read-only depth buffer because depth pre-pass is disabled" );
