@@ -904,9 +904,8 @@ void Render_generic3D( shaderStage_t *pStage )
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
-	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && tess.bspSurface;
 	const bool styleLightMap = pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP;
-	SetUniform_ColorModulateColorGen( gl_genericShader, rgbGen, alphaGen, mayUseVertexOverbright, styleLightMap );
+	SetUniform_ColorModulateColorGen( gl_genericShader, rgbGen, alphaGen, styleLightMap );
 
 	// u_Color
 	SetUniform_Color( gl_genericShader, tess.svars.color );
@@ -1083,7 +1082,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 	gl_lightMappingShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// u_ColorModulate
-	SetUniform_ColorModulateColorGen( gl_lightMappingShader, rgbGen, alphaGen, false, lightMode != lightMode_t::FULLBRIGHT );
+	SetUniform_ColorModulateColorGen( gl_lightMappingShader, rgbGen, alphaGen, lightMode != lightMode_t::FULLBRIGHT );
 
 	// u_Color
 	SetUniform_Color( gl_lightMappingShader, tess.svars.color );
