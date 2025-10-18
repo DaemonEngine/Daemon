@@ -68,8 +68,8 @@ colorMod << 0: color * 1
 colorMod << 1: color * ( -1 )
 colorMod << 2: alpha * 1
 colorMod << 3: alpha * ( -1 )
-colorMod << 4-27: available for future usage
-colorMod << 28-31: lightFactor
+colorMod << 4-10: available for future usage
+colorMod << 11-31: lightFactor
 
 colorMod float format:
 
@@ -98,7 +98,7 @@ vec4 ColorModulateToColor( const in colorModulatePack colorMod )
 float ColorModulateToLightFactor( const in colorModulatePack colorMod )
 {
 #if defined(HAVE_EXT_gpu_shader4)
-	return float( colorMod >> 28u );
+	return float( colorMod >> 11u ) * ( 1.0 / 16384 );
 #else
 	return colorMod.g;
 #endif
