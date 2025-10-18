@@ -83,9 +83,7 @@ void	main()
 	outputColor = color;
 
 // Debugging.
-#if defined(r_showVertexColors)
-	outputColor = vec4(0.0, 0.0, 0.0, 0.0);
-#elif defined(USE_MATERIAL_SYSTEM) && defined(r_showGlobalMaterials)
+if defined(USE_MATERIAL_SYSTEM) && defined(r_showGlobalMaterials)
 	outputColor.rgb = u_MaterialColour;
 #endif
 }
