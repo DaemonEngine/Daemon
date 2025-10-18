@@ -2431,8 +2431,8 @@ enum
 		bool   worldLightMapping;
 		bool   worldDeluxeMapping;
 		bool   worldHDR_RGBE;
-		bool worldLinearizeTexture;
-		bool worldLinearizeLightMap;
+		bool worldLinearizeTexture; // this determines whether linear or naive blending is used
+		bool worldLinearizeLightMap; // this is only used to decide the overbright behavior
 
 		floatProcessor_t convertFloatFromSRGB;
 		colorProcessor_t convertColorFromSRGB;
@@ -2649,6 +2649,7 @@ enum
 	extern Cvar::Range<Cvar::Cvar<int>> r_overbrightBits;
 	extern Cvar::Cvar<bool> r_overbrightQ3;
 	extern Cvar::Cvar<bool> r_overbrightIgnoreMapSettings;
+	extern Cvar::Range<Cvar::Cvar<int>> r_forceBlendRegime;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
 	extern Cvar::Cvar<bool> r_colorGrading;
 	extern Cvar::Cvar<bool> r_preferBindlessTextures;
