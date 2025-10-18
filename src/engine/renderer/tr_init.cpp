@@ -96,6 +96,8 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Cvar<bool> r_overbrightQ3("r_overbrightQ3", "brighten entire color buffer like Quake 3 (incompatible with newer assets)", Cvar::NONE, false);
 
 	Cvar::Cvar<bool> r_overbrightIgnoreMapSettings("r_overbrightIgnoreMapSettings", "force usage of r_overbrightDefaultClamp / r_overbrightDefaultExponent, ignoring worldspawn", Cvar::NONE, false);
+	Cvar::Range<Cvar::Cvar<int>> r_forceBlendRegime(
+		"r_forceBlendRegime", "override map settings to use: 1 = naive blending, 2 = linear blending", Cvar::NONE, 0, 0, 2);
 	Cvar::Range<Cvar::Cvar<int>> r_lightMode("r_lightMode", "lighting mode: 0: fullbright (cheat), 1: vertex light, 2: grid light (cheat), 3: light map", Cvar::NONE, Util::ordinal(lightMode_t::MAP), Util::ordinal(lightMode_t::FULLBRIGHT), Util::ordinal(lightMode_t::MAP));
 	Cvar::Cvar<bool> r_colorGrading( "r_colorGrading", "Use color grading", Cvar::NONE, true );
 	static Cvar::Range<Cvar::Cvar<int>> r_readonlyDepthBuffer(
@@ -1342,6 +1344,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		{
 			return false;
 		}
+
+		Cvar::Latch( r_forceBlendRegime );
+		tr.worldLinearizeTexture = r_forceBlendRegime.Get() == 2;
 
 		tr.lightMode = lightMode_t( r_lightMode.Get() );
 

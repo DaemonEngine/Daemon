@@ -69,9 +69,9 @@ colorMod << 1: color * ( -1 )
 colorMod << 2: alpha * 1
 colorMod << 3: alpha * ( -1 )
 colorMod << 4: alpha = 1
-colorMod << 5-26: available for future usage
-colorMod << 27: color += lightFactor
-colorMod << 28-31: lightFactor
+colorMod << 5-9: available for future usage
+colorMod << 10: color += lightFactor
+colorMod << 11-31: lightFactor
 
 colorMod float format:
 
@@ -123,7 +123,7 @@ ModBits_t ColorModulateToBits( const in colorModulatePack colorMod )
 float ColorModulateToLightFactor( const in colorModulatePack colorMod )
 {
 #if defined(HAVE_EXT_gpu_shader4)
-	return float( colorMod >> 28u );
+	return float( colorMod >> 11u ) * ( 1.0 / 16384 );
 #else
 	return abs( colorMod.g );
 #endif
