@@ -1698,7 +1698,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 			{
 				tess.svars.color = pStage->constantColor;
 				tess.svars.color.Clamp();
-				tess.svars.color = tr.convertColorFromSRGB( tess.svars.color );
+				tess.svars.color = pStage->convertColorFromSRGB( tess.svars.color );
 				break;
 			}
 
@@ -1708,7 +1708,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 				{
 					tess.svars.color = backEnd.currentEntity->e.shaderRGBA;
 					tess.svars.color.Clamp();
-					tess.svars.color = tr.convertColorFromSRGB( tess.svars.color );
+					tess.svars.color = pStage->convertColorFromSRGB( tess.svars.color );
 				}
 				else
 				{
@@ -1724,7 +1724,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 				{
 					tess.svars.color = backEnd.currentEntity->e.shaderRGBA;
 					tess.svars.color.Clamp();
-					tess.svars.color = tr.convertColorFromSRGB( tess.svars.color );
+					tess.svars.color = pStage->convertColorFromSRGB( tess.svars.color );
 				}
 				else
 				{
@@ -1757,7 +1757,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 
 				tess.svars.color = Color::White * glow;
 				tess.svars.color.Clamp();
-				tess.svars.color = tr.convertColorFromSRGB( tess.svars.color );
+				tess.svars.color = pStage->convertColorFromSRGB( tess.svars.color );
 				break;
 			}
 
