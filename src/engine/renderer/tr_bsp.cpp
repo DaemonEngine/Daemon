@@ -486,7 +486,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 	int lightMapBits = IF_LIGHTMAP | IF_NOPICMIP;
 	int deluxeMapBits = IF_NORMALMAP | IF_NOPICMIP;
 
-	if ( tr.worldLinearizeLightMap )
+	if ( tr.worldLinearizeTexture )
 	{
 		lightMapBits |= IF_SRGB;
 	}
@@ -3917,15 +3917,18 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 				tr.worldLinearizeLightMap = true;
 			}
 
-			if ( sRGBcolor && sRGBtex )
+			if ( !r_forceBlendRegime.Get() )
 			{
-				Log::Debug( "Map features lights computed with linear colors and textures." );
-				tr.worldLinearizeTexture = true;
-			}
-			else if ( sRGBcolor != sRGBtex )
-			{
-				Log::Warn( "Map features lights computed with a mix of linear and non-linear colors or textures, acting like both colors and textures were linear when lights were computed." );
-				tr.worldLinearizeTexture = true;
+				if ( sRGBcolor && sRGBtex )
+				{
+					Log::Debug( "Map features lights computed with linear colors and textures." );
+					tr.worldLinearizeTexture = true;
+				}
+				else if ( sRGBcolor != sRGBtex )
+				{
+					Log::Warn( "Map features lights computed with a mix of linear and non-linear colors or textures, acting like both colors and textures were linear when lights were computed." );
+					tr.worldLinearizeTexture = true;
+				}
 			}
 
 			continue;
@@ -4631,12 +4634,23 @@ static void SetWorldLight() {
 
 	/* Set GLSL overbright parameters if the lighting mode is not fullbright. */
 	if ( tr.lightMode != lightMode_t::FULLBRIGHT ) {
+		float factor = float( 1 << tr.overbrightBits );
+
+		if ( tr.worldLinearizeLightMap && !tr.worldLinearizeTexture )
+		{
+			factor = powf( factor, 1.0f / 2.2f );
+		}
+		else if ( !tr.worldLinearizeLightMap && tr.worldLinearizeTexture )
+		{
+			factor = powf( factor, 2.2f );
+		}
+
 		if ( r_overbrightQ3.Get() ) {
 			// light factor is applied to entire color buffer; identityLight can be used to cancel it
-			tr.identityLight = 1.0f / float( 1 << tr.overbrightBits );
+			tr.identityLight = 1.0f / factor;
 		} else {
 			// light factor is applied wherever a precomputed light is sampled
-			tr.mapLightFactor = float( 1 << tr.overbrightBits );
+			tr.mapLightFactor = factor;
 		}
 	}
 }
@@ -4693,7 +4707,6 @@ void RE_LoadWorldMap( const char *name )
 	tr.overbrightBits = std::min( tr.mapOverBrightBits, r_overbrightBits.Get() ); // set by RE_LoadWorldMap
 	tr.mapLightFactor = 1.0f; // set by RE_LoadWorldMap
 	tr.identityLight = 1.0f; // set by RE_LoadWorldMap
-	tr.worldLinearizeTexture = false;
 	tr.worldLinearizeLightMap = false;
 
 	s_worldData = {};
