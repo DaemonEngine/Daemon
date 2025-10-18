@@ -39,7 +39,7 @@ option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for 
 option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
 
 include(ExternalProject)
-include(DaemonBuildInfo)
+include(DaemonSourceGenerator)
 include(DaemonPlatform)
 
 # Do not report unused native compiler if native vms are not built.
