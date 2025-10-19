@@ -83,7 +83,7 @@ void	main()
 	outputColor = color;
 
 // Debugging.
-if defined(USE_MATERIAL_SYSTEM) && defined(r_showGlobalMaterials)
+#if defined(USE_MATERIAL_SYSTEM) && defined(r_showGlobalMaterials)
 	outputColor.rgb = u_MaterialColour;
 #endif
 }
