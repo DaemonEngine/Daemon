@@ -55,7 +55,7 @@ struct VkFormatHasher {
 };
 
 static std::unordered_map<VkFormat, int, VkFormatHasher> surfaceFormatPriorities {
-	{ VK_FORMAT_UNDEFINED,                -1 },
+	{ VK_FORMAT_UNDEFINED,               -1 },
 
 	{ VK_FORMAT_B8G8R8A8_SRGB,            2 },
 	{ VK_FORMAT_B8G8R8A8_UNORM,           1 },

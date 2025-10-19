@@ -55,15 +55,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Instance.h"
 
-Instance coreInstance;
 
 void Instance::Init( const char* engineName, const char* appName ) {
-	VkApplicationInfo appInfo{
-		.pApplicationName = appName,
+	VkApplicationInfo appInfo {
+		.pApplicationName   = appName,
 		.applicationVersion = 0,
-		.pEngineName = engineName,
-		.engineVersion = 0,
-		.apiVersion = VK_MAKE_API_VERSION( 0, 1, 3, 0 )
+		.pEngineName        = engineName,
+		.engineVersion      = 0,
+		.apiVersion         = VK_MAKE_API_VERSION( 0, 1, 3, 0 )
 	};
 
 	uint32 count;
@@ -90,10 +89,10 @@ void Instance::Init( const char* engineName, const char* appName ) {
 		capabilityPackMinimal.requiredInstanceExtensions.size * sizeof( const char* ) );
 
 	VkInstanceCreateInfo createInfo {
-		.pApplicationInfo = &appInfo,
-		.enabledLayerCount = 0,
-		.ppEnabledLayerNames = nullptr,
-		.enabledExtensionCount = count, // ( uint32 ) extensions.elements,
+		.pApplicationInfo        = &appInfo,
+		.enabledLayerCount       = 0,
+		.ppEnabledLayerNames     = nullptr,
+		.enabledExtensionCount   = count, // ( uint32 ) extensions.elements,
 		.ppEnabledExtensionNames = sdlext // extensions.memory
 	};
 
@@ -124,7 +123,7 @@ void Instance::Init( const char* engineName, const char* appName ) {
 	mainSwapChain.Init( instance );
 
 	std::string foundQueues = "Found queues: graphics (present: true)";
-	graphicsQueue.Init(     device, queuesConfig.graphicsQueue.id, queuesConfig.graphicsQueue.queues );
+	graphicsQueue.Init( device, queuesConfig.graphicsQueue.id, queuesConfig.graphicsQueue.queues );
 
 	uint32 presentSupported;
 	vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, graphicsQueue.id, mainSwapChain.surface, &presentSupported );
