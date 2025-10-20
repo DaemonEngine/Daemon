@@ -134,14 +134,14 @@ All of these functions must write stage material data regardless of whether pSta
 because stages here are combined into as few as possible,
 and the stage chosen for storage might not have all of those enabled */
 
-void UpdateSurfaceDataNONE( uint32_t*, shaderStage_t*, bool, bool, bool ) {
+void UpdateSurfaceDataNONE( uint32_t*, shaderStage_t*, bool, bool ) {
 	ASSERT_UNREACHABLE();
 }
 
-void UpdateSurfaceDataNOP( uint32_t*, shaderStage_t*, bool, bool, bool ) {
+void UpdateSurfaceDataNOP( uint32_t*, shaderStage_t*, bool, bool ) {
 }
 
-void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage, bool mayUseVertexOverbright, bool, bool ) {
+void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage, bool, bool ) {
 	// shader_t* shader = pStage->shader;
 
 	materials += pStage->bufferOffset;
@@ -154,7 +154,7 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage, boo
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
 	const bool styleLightMap = pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP;
-	gl_genericShaderMaterial->SetUniform_ColorModulateColorGen_Uint( rgbGen, alphaGen, mayUseVertexOverbright, styleLightMap );
+	gl_genericShaderMaterial->SetUniform_ColorModulateColorGen_Uint( rgbGen, alphaGen, styleLightMap );
 
 	Tess_ComputeColor( pStage );
 	gl_genericShaderMaterial->SetUniform_Color_Uint( tess.svars.color );
@@ -164,7 +164,7 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage, boo
 	gl_genericShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, bool, bool vertexLit, bool fullbright ) {
+void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, bool vertexLit, bool fullbright ) {
 	shader_t* shader = pStage->shader;
 
 	materials += pStage->bufferOffset;
@@ -181,7 +181,7 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, 
 	}
 
 	// u_ColorModulate
-	gl_lightMappingShaderMaterial->SetUniform_ColorModulateColorGen_Uint( rgbGen, alphaGen, false, !fullbright );
+	gl_lightMappingShaderMaterial->SetUniform_ColorModulateColorGen_Uint( rgbGen, alphaGen, !fullbright );
 
 	// u_Color
 	gl_lightMappingShaderMaterial->SetUniform_Color_Uint( tess.svars.color );
@@ -210,7 +210,7 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, 
 	gl_lightMappingShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
+void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage, bool, bool ) {
 	shader_t* shader = pStage->shader;
 
 	materials += pStage->bufferOffset;
@@ -247,7 +247,7 @@ void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage, bo
 	gl_reflectionShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
+void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage, bool, bool ) {
 	// shader_t* shader = pStage->shader;
 
 	materials += pStage->bufferOffset;
@@ -258,7 +258,7 @@ void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage, bool, 
 	gl_skyboxShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
+void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage, bool, bool ) {
 	// shader_t* shader = pStage->shader;
 
 	materials += pStage->bufferOffset;
@@ -271,7 +271,7 @@ void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage, bool, 
 	gl_screenShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
+void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool, bool ) {
 	// shader_t* shader = pStage->shader;
 
 	materials += pStage->bufferOffset;
@@ -288,7 +288,7 @@ void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool
 	gl_heatHazeShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
+void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, bool ) {
 	// shader_t* shader = pStage->shader;
 
 	materials += pStage->bufferOffset;
@@ -334,7 +334,7 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, 
 	gl_liquidShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage, bool, bool, bool ) {
+void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage, bool, bool ) {
 	// shader_t* shader = pStage->shader;
 
 	materials += pStage->bufferOffset;
@@ -436,14 +436,13 @@ void MaterialSystem::GenerateMaterialsBuffer( std::vector<shaderStage_t*>& stage
 		uint32_t variants = 0;
 		for ( int i = 0; i < ShaderStageVariant::ALL && variants < pStage->variantOffset; i++ ) {
 			if ( pStage->variantOffsets[i] != -1 ) {
-				const bool mayUseVertexOverbright = i & ShaderStageVariant::VERTEX_OVERBRIGHT;
 				const bool vertexLit = i & ShaderStageVariant::VERTEX_LIT;
 				const bool fullbright = i & ShaderStageVariant::FULLBRIGHT;
 
 				const uint32_t variantOffset = pStage->variantOffsets[i] * pStage->paddedSize;
 				pStage->bufferOffset += variantOffset;
 
-				pStage->surfaceDataUpdater( materialsData, pStage, mayUseVertexOverbright, vertexLit, fullbright );
+				pStage->surfaceDataUpdater( materialsData, pStage, vertexLit, fullbright );
 
 				pStage->bufferOffset -= variantOffset;
 				variants++;
@@ -680,7 +679,8 @@ void MaterialSystem::GenerateWorldCommandBuffer( std::vector<MaterialSurface>& s
 			surfaceCommand.drawCommand.baseInstance |= surface.texDataDynamic[stage]
 				? ( surface.texDataIDs[stage] + texData.size() ) << TEX_BUNDLE_BITS
 				: surface.texDataIDs[stage] << TEX_BUNDLE_BITS;
-			surfaceCommand.drawCommand.baseInstance |= ( HasLightMap( &surface ) ? GetLightMapNum( &surface ) : 255 ) << LIGHTMAP_BITS;
+			surfaceCommand.drawCommand.baseInstance |=
+				( !pStage->forceVertexLighting && HasLightMap( &surface ) ? GetLightMapNum( &surface ) : 255 ) << LIGHTMAP_BITS;
 			surfaceCommands[cmdID] = surfaceCommand;
 
 			material->drawCommandCount++;
@@ -773,15 +773,13 @@ static std::string GetStageInfo( const shaderStage_t* pStage, const uint32_t dyn
 		stageShaderNames.at( pStage->shaderBinder ), pStage->materialOffset, pStage->bufferOffset );
 
 	static const char* stageVariants[] = {
-		"base variant                           ",
-		"vertex overbright                      ",
-		"vertex-lit                             ",
-		"fullbright                             ",
-		"vertex overbright vertex-lit           ",
-		"vertex overbright fullbright           ",
-		"vertex-lit fullbright                  ",
-		"vertex overbright vertex-lit fullbright"
+		"base variant         ",
+		"vertex-lit           ",
+		"fullbright           ",
+		"vertex-lit fullbright",
 	};
+	static_assert( ARRAY_LEN( stageVariants ) == ShaderStageVariant::ALL,
+	               "update stage variant text descriptions" );
 
 	uint32_t variants = 0;
 	for ( int i = 0; i < ShaderStageVariant::ALL && variants < pStage->variantOffset; i++ ) {
@@ -1157,7 +1155,7 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, Mat
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( surface, pStage->shader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( surface, pStage, lightMode, deluxeMode );
 
 	bool enableDeluxeMapping = ( deluxeMode == deluxeMode_t::MAP );
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
@@ -1240,7 +1238,7 @@ void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, MaterialS
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( surface, pStage->shader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( surface, pStage, lightMode, deluxeMode );
 
 	material->hasHeightMapInNormalMap = pStage->hasHeightMapInNormalMap;
 	material->enableReliefMapping = pStage->enableReliefMapping;
@@ -1269,9 +1267,8 @@ void ProcessMaterialFog( Material* material, shaderStage_t* pStage, MaterialSurf
 }
 
 void MaterialSystem::AddStage( MaterialSurface* surface, shaderStage_t* pStage, uint32_t stage,
-	const bool mayUseVertexOverbright, const bool vertexLit, const bool fullbright ) {
-	const int variant = ( mayUseVertexOverbright ? ShaderStageVariant::VERTEX_OVERBRIGHT : 0 )
-		| ( vertexLit ? ShaderStageVariant::VERTEX_LIT : 0 )
+	const bool vertexLit, const bool fullbright ) {
+	const int variant = ( vertexLit ? ShaderStageVariant::VERTEX_LIT : 0 )
 		| ( fullbright ? ShaderStageVariant::FULLBRIGHT : 0 );
 
 	if ( pStage->variantOffsets[variant] == -1 ) {
@@ -1388,9 +1385,7 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 	uint32_t& previousMaterialID, bool skipStageSync ) {
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( surface, shader, pStage->type, lightMode, deluxeMode );
-	const bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP
-		&& surface->bspSurface && pStage->shaderBinder == BindShaderGeneric3D;
+	SetLightDeluxeMode( surface, pStage, lightMode, deluxeMode );
 	const bool vertexLit = lightMode == lightMode_t::VERTEX && pStage->shaderBinder == BindShaderLightMapping;
 	const bool fullbright = lightMode == lightMode_t::FULLBRIGHT && pStage->shaderBinder == BindShaderLightMapping;
 
@@ -1476,8 +1471,8 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 	pStage->useMaterialSystem = true;
 	pStage->initialized = true;
 
-	AddStage( surface, pStage, stage, mayUseVertexOverbright, vertexLit, fullbright );
-	AddStageTextures( surface, shader, pStage, stage, &materials[previousMaterialID] );
+	AddStage( surface, pStage, stage, vertexLit, fullbright );
+	AddStageTextures( surface, pStage, stage, &materials[previousMaterialID] );
 
 	surface->materialIDs[stage] = previousMaterialID;
 	surface->materialPackIDs[stage] = materialPack;
@@ -1537,7 +1532,7 @@ void MaterialSystem::GLSLRestart() {
 	}
 }
 
-void MaterialSystem::AddStageTextures( MaterialSurface* surface, shader_t* shader, shaderStage_t* pStage, const uint32_t stage, Material* material ) {
+void MaterialSystem::AddStageTextures( MaterialSurface* surface, shaderStage_t* pStage, const uint32_t stage, Material* material ) {
 	TextureData textureData;
 
 	int bundleNum = 0;
@@ -1568,7 +1563,7 @@ void MaterialSystem::AddStageTextures( MaterialSurface* surface, shader_t* shade
 	// Add lightmap and deluxemap for this surface to the material as well
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( surface, shader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( surface, pStage, lightMode, deluxeMode );
 
 	// u_Map, u_DeluxeMap
 	image_t* lightmap = SetLightMap( surface, lightMode );

@@ -964,17 +964,18 @@ enum
 	// TODO(0.56): move to the public RegisterShaderFlags_t interface
 #define RSF_3D ( BIT( 30 ) )
 
+#define RSF_BSP ( BIT ( 29 ) )
+
 	using stageRenderer_t = void(*)(shaderStage_t *);
 	using stageShaderBuildMarker_t = void(*)(const shaderStage_t*);
-	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
+	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool);
 	using stageShaderBinder_t = void(*)(Material*);
 	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, MaterialSurface*);
 
 	enum ShaderStageVariant {
-		VERTEX_OVERBRIGHT = 1,
-		VERTEX_LIT = BIT( 1 ),
-		FULLBRIGHT = BIT( 2 ),
-		ALL = BIT( 3 )
+		VERTEX_LIT = BIT( 0 ),
+		FULLBRIGHT = BIT( 1 ),
+		ALL = BIT( 2 )
 	};
 
 	struct shaderStage_t
@@ -1032,6 +1033,8 @@ enum
 
 		bool        highQuality;
 		bool        forceHighQuality;
+
+		bool forceVertexLighting;
 
 		bool        hasDepthFade; // for soft particles
 		float           depthFadeValue;
