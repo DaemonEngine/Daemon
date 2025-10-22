@@ -2738,7 +2738,6 @@ struct colorModulation_t {
 	float alphaGen = 0.0f;
 	float lightFactor = 1.0f;
 	bool useVertexLightFactor = false;
-	bool alphaAddOne = true;
 };
 
 static colorModulation_t ColorModulateColorGen(
@@ -2752,8 +2751,6 @@ static colorModulation_t ColorModulateColorGen(
 	switch ( colorGen )
 	{
 		case colorGen_t::CGEN_VERTEX:
-			colorModulation.alphaAddOne = false;
-
 			if ( vertexOverbright )
 			{
 				// vertexOverbright is only needed for non-lightmapped cases. When there is a
@@ -2768,7 +2765,6 @@ static colorModulation_t ColorModulateColorGen(
 			break;
 
 		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorModulation.alphaAddOne = false;
 			colorModulation.colorGen = -1.0f;
 			break;
 
@@ -2785,12 +2781,10 @@ static colorModulation_t ColorModulateColorGen(
 	switch ( alphaGen )
 	{
 		case alphaGen_t::AGEN_VERTEX:
-			colorModulation.alphaAddOne = false;;
 			colorModulation.alphaGen = 1.0f;
 			break;
 
 		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			colorModulation.alphaAddOne = false;;
 			colorModulation.alphaGen = -1.0f;
 			break;
 
@@ -2827,7 +2821,7 @@ public:
 		colorModulate_Float[ 0 ] = colorModulation.colorGen;
 		colorModulate_Float[ 1 ] = colorModulation.lightFactor;
 		colorModulate_Float[ 1 ] *= colorModulation.useVertexLightFactor ? -1.0f : 1.0f;
-		colorModulate_Float[ 2 ] = colorModulation.alphaAddOne;
+		colorModulate_Float[ 2 ] = {};
 		colorModulate_Float[ 3 ] = colorModulation.alphaGen;
 
 		this->SetValue( colorModulate_Float );
@@ -2859,7 +2853,6 @@ class u_ColorModulateColorGen_Uint :
 			COLOR_MINUS_ONE = 1,
 			ALPHA_ONE = 2,
 			ALPHA_MINUS_ONE = 3,
-			ALPHA_ADD_ONE = 4,
 			// <-- Insert new bits there.
 			IS_LIGHT_STYLE = 27,
 			LIGHTFACTOR_BIT0 = 28,
@@ -2879,8 +2872,6 @@ class u_ColorModulateColorGen_Uint :
 			<< Util::ordinal( ColorModulate_Bit::ALPHA_ONE );
 		colorModulate_Uint |= ( colorModulation.alphaGen == -1.0f )
 			<< Util::ordinal( ColorModulate_Bit::ALPHA_MINUS_ONE );
-		colorModulate_Uint |= colorModulation.alphaAddOne
-			<< Util::ordinal( ColorModulate_Bit::ALPHA_ADD_ONE );
 		colorModulate_Uint |= colorModulation.useVertexLightFactor
 			<< Util::ordinal( ColorModulate_Bit::IS_LIGHT_STYLE );
 		colorModulate_Uint |= uint32_t( colorModulation.lightFactor )
