@@ -176,6 +176,14 @@ static float GetOpValue( const expOperation_t *op )
 			value = 1.0;
 			break;
 
+		case opcode_t::OP_NAIVE_BLENDING:
+			value = float( !tr.worldLinearizeTexture );
+			break;
+
+		case opcode_t::OP_LINEAR_BLENDING:
+			value = float( tr.worldLinearizeTexture );
+			break;
+
 		case opcode_t::OP_FRAGMENTSHADERS:
 			value = 1.0;
 			break;
@@ -272,6 +280,8 @@ static float EvalExpression( const expression_t *exp, float defaultValue )
 			case opcode_t::OP_GLOBAL5:
 			case opcode_t::OP_GLOBAL6:
 			case opcode_t::OP_GLOBAL7:
+			case opcode_t::OP_NAIVE_BLENDING:
+			case opcode_t::OP_LINEAR_BLENDING:
 			case opcode_t::OP_FRAGMENTSHADERS:
 			case opcode_t::OP_FRAMEBUFFEROBJECTS:
 			case opcode_t::OP_SOUND:
