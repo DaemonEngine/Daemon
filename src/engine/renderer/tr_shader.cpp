@@ -290,6 +290,8 @@ const opstring_t opStrings[] = {
 	{"global5",            opcode_t::OP_GLOBAL5},
 	{"global6",            opcode_t::OP_GLOBAL6},
 	{"global7",            opcode_t::OP_GLOBAL7},
+	{"naiveBlending",      opcode_t::OP_NAIVE_BLENDING},
+	{"linearBlending",     opcode_t::OP_LINEAR_BLENDING},
 	{"fragmentShaders",    opcode_t::OP_FRAGMENTSHADERS},
 	{"frameBufferObjects", opcode_t::OP_FRAMEBUFFEROBJECTS},
 	{"sound",              opcode_t::OP_SOUND},
@@ -373,6 +375,8 @@ static bool IsOperand( opcode_t oc )
 		case opcode_t::OP_GLOBAL5:
 		case opcode_t::OP_GLOBAL6:
 		case opcode_t::OP_GLOBAL7:
+		case opcode_t::OP_NAIVE_BLENDING:
+		case opcode_t::OP_LINEAR_BLENDING:
 		case opcode_t::OP_FRAGMENTSHADERS:
 		case opcode_t::OP_FRAMEBUFFEROBJECTS:
 		case opcode_t::OP_SOUND:
