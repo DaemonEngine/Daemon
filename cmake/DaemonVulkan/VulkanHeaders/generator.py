@@ -646,7 +646,7 @@ class OutputGenerator:
             expandPrefix = expandName.rsplit(expandSuffix, 1)[0]
 
         # Prefix
-        body = ["typedef enum %s : %s {" % ( groupName, "uint32_t" if bitwidth == 32 else "uint64_t" )]
+        body = ["typedef enum %s%s {" % ( groupName, "" if bitwidth == 32 else ": uint64_t" )]
 
         # @@ Should use the type="bitmask" attribute instead
         isEnum = ('FLAG_BITS' not in expandPrefix)
