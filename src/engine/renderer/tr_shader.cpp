@@ -2013,6 +2013,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	filterType_t filterType;
 	char         buffer[ 1024 ] = "";
 	bool     loadMap = false;
+	bool staticEnabled = true;
 
 	while ( true )
 	{
@@ -2032,6 +2033,12 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "if" ) )
 		{
 			ParseExpression( text, &stage->ifExp );
+		}
+		else if ( !Q_stricmp( token, "ifStatic" ) )
+		{
+			expression_t expr;
+			ParseExpression( text, &expr );
+			staticEnabled = !!RB_EvalExpression( &expr, 1.0f );
 		}
 		// map <name>
 		else if ( !Q_stricmp( token, "map" ) )
@@ -3224,6 +3231,12 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			SkipRestOfLine( text );
 			continue;
 		}
+	}
+
+	if ( !staticEnabled )
+	{
+		// parsing succeeded, but stage disabled
+		return true;
 	}
 
 	// parsing succeeded
