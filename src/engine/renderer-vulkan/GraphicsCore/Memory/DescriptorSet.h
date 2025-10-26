@@ -31,32 +31,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// GraphicsCoreStore.h
+// DescriptorSet.h
 
-#ifndef GRAPHICS_CORE_STORE_H
-#define GRAPHICS_CORE_STORE_H
+#ifndef DESCRIPTOR_SET_H
+#define DESCRIPTOR_SET_H
 
-#include "Decls.h"
+#include "../Decls.h"
 
-extern Surface mainSurface;
+#include "../../Math/NumberTypes.h"
 
-extern Instance instance;
+void AllocDescriptors( const uint32 imageCount, const uint32 storageImageCount );
+void FreeDescriptors();
 
-extern SwapChain mainSwapChain;
-
-extern EngineConfig engineConfig;
-extern QueuesConfig queuesConfig;
-
-extern VkPhysicalDevice physicalDevice;
-
-extern VkDevice device;
-
-extern GraphicsQueueRingBuffer graphicsQueue;
-extern GraphicsQueueRingBuffer computeQueue;
-extern GraphicsQueueRingBuffer transferQueue;
-extern GraphicsQueueRingBuffer sparseQueue;
-
-extern VkDescriptorSetLayout descriptorSetLayout;
-extern VkDescriptorSet descriptorSet;
-
-#endif // GRAPHICS_CORE_STORE_H
+#endif // DESCRIPTOR_SET_H

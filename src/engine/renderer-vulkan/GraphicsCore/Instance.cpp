@@ -53,6 +53,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GraphicsCoreStore.h"
 
+#include "Memory/DescriptorSet.h"
+
 #include "Instance.h"
 
 
@@ -150,4 +152,6 @@ void Instance::Init( const char* engineName, const char* appName ) {
 	}
 
 	Log::Notice( foundQueues );
+
+	AllocDescriptors( engineConfig.maxImages, engineConfig.maxStorageImages );
 }

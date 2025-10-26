@@ -54,6 +54,9 @@ VK_DEFINE_HANDLE( VkQueue );
 VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSurfaceKHR )
 VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSwapchainKHR )
 
+VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkDescriptorSetLayout )
+VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkDescriptorSet )
+
 struct GraphicsQueueRingBuffer;
 
 extern GraphicsQueueRingBuffer graphicsQueue;

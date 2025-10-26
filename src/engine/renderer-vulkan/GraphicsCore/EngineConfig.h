@@ -99,6 +99,9 @@ struct EngineConfig {
 	bool filterMinmaxSingleComponentFormats;
 	bool filterMinmaxImageComponentMapping;
 
+	uint32 maxImages;
+	uint32 maxStorageImages;
+
 	uint32 maxImageSize2D;
 	uint32 maxImageSize3D;
 	uint32 maxImageSizeCube;

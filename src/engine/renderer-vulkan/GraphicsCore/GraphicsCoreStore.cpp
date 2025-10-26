@@ -64,3 +64,6 @@ GraphicsQueueRingBuffer graphicsQueue;
 GraphicsQueueRingBuffer computeQueue;
 GraphicsQueueRingBuffer transferQueue;
 GraphicsQueueRingBuffer sparseQueue;
+
+VkDescriptorSetLayout descriptorSetLayout;
+VkDescriptorSet descriptorSet;

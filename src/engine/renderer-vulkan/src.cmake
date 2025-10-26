@@ -67,8 +67,14 @@ set( utilsList
     ${ENGINE_DIR}/renderer-vulkan/SrcDebug/Tag.h
 )
 
-# Graphics core
+# Graphics Core
+set( graphicsCoreMemory
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Memory/DescriptorSet.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Memory/DescriptorSet.h
+)
+
 set( graphicsCoreList
+    ${graphicsCoreMemory}
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Decls.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.h

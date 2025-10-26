@@ -98,6 +98,9 @@ EngineConfig GetEngineConfigForDevice( const VkPhysicalDevice& device ) {
 		.filterMinmaxSingleComponentFormats = ( bool ) properties12.filterMinmaxSingleComponentFormats,
 		.filterMinmaxImageComponentMapping  = ( bool ) properties12.filterMinmaxImageComponentMapping,
 
+		.maxImages        = properties12.maxPerStageDescriptorUpdateAfterBindSampledImages,
+		.maxStorageImages = properties12.maxPerStageDescriptorUpdateAfterBindStorageImages,
+
 		.maxImageSize2D      = limits.maxImageDimension2D,
 		.maxImageSize3D      = limits.maxImageDimension3D,
 		.maxImageSizeCube    = limits.maxImageDimensionCube,
