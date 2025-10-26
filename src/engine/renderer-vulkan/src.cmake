@@ -99,10 +99,19 @@ set( graphicsCoreList
 set( graphicsEngineList
     depthReduction.glsl
     cull.glsl
+    MsgStream.glsl
 )
 
 set( graphicsEngineIDEList ${graphicsEngineList} )
 list( TRANSFORM graphicsEngineIDEList PREPEND ${ENGINE_DIR}/renderer-vulkan/GraphicsEngine/ )
+
+# Graphics Shared
+set( graphicsSharedList
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/Bindings.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/MemoryPool.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/MsgStreamAPI.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/NumberTypes.h
+)
 
 # Vulkan Loader
 set( vulkanLoaderList
@@ -115,6 +124,7 @@ set( vulkanLoaderList
 set( graphicsList
     ${graphicsCoreList}
     ${graphicsEngineIDEList}
+    ${graphicsSharedList}
     ${vulkanLoaderList}
 )
 
