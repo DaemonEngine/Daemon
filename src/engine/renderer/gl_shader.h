@@ -2861,11 +2861,8 @@ class u_ColorModulateColorGen_Uint :
 			ALPHA_MINUS_ONE = 3,
 			ALPHA_ADD_ONE = 4,
 			// <-- Insert new bits there.
-			IS_LIGHT_STYLE = 27,
-			LIGHTFACTOR_BIT0 = 28,
-			LIGHTFACTOR_BIT1 = 29,
-			LIGHTFACTOR_BIT2 = 30,
-			LIGHTFACTOR_BIT3 = 31,
+			IS_LIGHT_STYLE = 10,
+			LIGHTFACTOR_BIT0 = 11,
 			// There should be not bit higher than the light factor.
 		};
 
@@ -2883,8 +2880,11 @@ class u_ColorModulateColorGen_Uint :
 			<< Util::ordinal( ColorModulate_Bit::ALPHA_ADD_ONE );
 		colorModulate_Uint |= colorModulation.useVertexLightFactor
 			<< Util::ordinal( ColorModulate_Bit::IS_LIGHT_STYLE );
-		colorModulate_Uint |= uint32_t( colorModulation.lightFactor )
-			<< Util::ordinal( ColorModulate_Bit::LIGHTFACTOR_BIT0 );
+
+		// Light factor unit is 128 / ( 1 << 21 )
+		// needs to go up to pow( 8, 2.2 ) = 97.006
+		uint32_t lightFactorBits = lrintf( colorModulation.lightFactor * 16384.0f );
+		colorModulate_Uint |= lightFactorBits << Util::ordinal( ColorModulate_Bit::LIGHTFACTOR_BIT0 );
 
 		this->SetValue( colorModulate_Uint );
 	}
