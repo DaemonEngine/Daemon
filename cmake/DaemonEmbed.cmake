@@ -78,7 +78,7 @@ function(GenerateEmbedFilesConstexpr srcPaths dstPath format target)
 	add_custom_command(
 		OUTPUT ${dstPath}
 		COMMAND ${cmdList}
-		DEPENDS ${srcPath} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonEmbed.cmake
+		DEPENDS ${srcPaths} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonEmbed.cmake
 	)
 
 	target_sources(${target} PRIVATE ${dstPath})

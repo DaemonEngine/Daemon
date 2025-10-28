@@ -71,8 +71,6 @@ macro( GenerateVulkanShaders target )
 		list( APPEND graphicsEngineOutputList ${spirvAsmPath} )
 		list( APPEND graphicsEngineOutputList ${spirvBinPath} )
 	endforeach()
-	
-	list( APPEND graphicsEngineOutputList ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/spirv/spirv.h )
 
 	# glslangValidator
 	find_program( glslangV glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/ )
@@ -137,11 +135,11 @@ macro( GenerateVulkanShaders target )
 		list( APPEND spirvBinList ${spirvBinPath} )
 	endforeach()
 	
-	GenerateEmbedFilesConstexpr( "${spirvBinList}" ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/spirv/spirv.h BINARY client-objects )
+	GenerateEmbedFilesConstexpr( "${spirvBinList}" ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/bin/spirv.h BINARY client-objects )
 
 	add_custom_target( VulkanShaderBin ALL
-		DEPENDS ${spirvBinList} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake
+		DEPENDS "${spirvBinList}" ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/bin/spirv.h ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake
 	)
 
-	target_sources( ${target} PRIVATE ${graphicsEngineOutputList} )
+	target_sources( ${target} PRIVATE ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/bin/spirv.h )
 endmacro()
