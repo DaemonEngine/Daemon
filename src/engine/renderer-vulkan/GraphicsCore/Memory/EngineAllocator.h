@@ -31,34 +31,76 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// GraphicsCoreStore.h
+// EngineAllocator.h
 
-#ifndef GRAPHICS_CORE_STORE_H
-#define GRAPHICS_CORE_STORE_H
+#ifndef ENGINE_ALLOCATOR_H
+#define ENGINE_ALLOCATOR_H
 
-#include "Decls.h"
+#include "../../Math/NumberTypes.h"
 
-extern Surface mainSurface;
+#include "../../GraphicsShared/MemoryPool.h"
 
-extern Instance instance;
+struct MemoryHeap {
+	enum MemoryType {
+		ENGINE,
+		CORE_TO_ENGINE,
+		ENGINE_TO_CORE
+	};
 
-extern SwapChain mainSwapChain;
+	uint64 size;
+	uint64 maxSize;
+	MemoryType type;
 
-extern EngineConfig engineConfig;
-extern QueuesConfig queuesConfig;
+	uint32 id;
+};
 
-extern VkPhysicalDevice physicalDevice;
+struct MemoryRequirements {
+	uint64 size;
+	uint64 alignment;
+	uint32 type;
+	bool dedicated;
+};
 
-extern VkDevice device;
+struct MemoryRegionUsage {
+	uint64 allocated;
+	uint64 size;
+};
 
-extern GraphicsQueueRingBuffer graphicsQueue;
-extern GraphicsQueueRingBuffer computeQueue;
-extern GraphicsQueueRingBuffer transferQueue;
-extern GraphicsQueueRingBuffer sparseQueue;
+class EngineAllocator {
+	public:
+	static constexpr uint32 maxMemoryPools = 32;
 
-extern VkDescriptorSetLayout descriptorSetLayout;
-extern VkDescriptorSet descriptorSet;
+	// In megabytes
+	static constexpr int minGraphicsMemorySize = 1024;
+	static constexpr int maxGraphicsMemorySize = 16384;
 
-extern EngineAllocator engineAllocator;
+	MemoryHeap memoryHeapImages;
+	MemoryHeap memoryHeapStorageImages;
+	MemoryHeap memoryHeapStagingBuffer;
 
-#endif // GRAPHICS_CORE_STORE_H
+	void Init();
+	void Free();
+
+	MemoryHeap MemoryHeapForUsage( const MemoryHeap::MemoryType type, const MemoryRequirements& reqs );
+
+	private:
+	uint32 memoryPoolCount;
+	MemoryPool memoryPools[maxMemoryPools];
+
+	uint32 memoryRegionEngine;
+	uint32 memoryRegionBAR;
+	uint32 memoryRegionCore;
+
+	uint32 memoryTypeEngine;
+	uint32 memoryTypeCoreToEngine;
+	uint32 memoryTypeEngineToCore;
+
+	uint32 memoryIDEngine;
+	uint32 memoryIDCoreToEngine;
+	uint32 memoryIDEngineToCore;
+
+	bool rebar;
+	bool unifiedMemory;
+};
+
+#endif // ENGINE_ALLOCATOR_H

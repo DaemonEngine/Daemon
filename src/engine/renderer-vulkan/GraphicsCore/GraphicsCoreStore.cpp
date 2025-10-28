@@ -45,6 +45,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "QueuesConfig.h"
 #include "Queue.h"
 
+#include "Memory/EngineAllocator.h"
+
 #include "GraphicsCoreStore.h"
 
 Surface mainSurface;
@@ -67,3 +69,5 @@ GraphicsQueueRingBuffer sparseQueue;
 
 VkDescriptorSetLayout descriptorSetLayout;
 VkDescriptorSet descriptorSet;
+
+EngineAllocator engineAllocator;

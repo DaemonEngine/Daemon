@@ -64,4 +64,6 @@ extern GraphicsQueueRingBuffer computeQueue;
 extern GraphicsQueueRingBuffer transferQueue;
 extern GraphicsQueueRingBuffer sparseQueue;
 
+class EngineAllocator;
+
 #endif // GRAPHICS_CORE_DECLS_H

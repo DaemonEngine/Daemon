@@ -71,6 +71,8 @@ set( utilsList
 set( graphicsCoreMemory
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Memory/DescriptorSet.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Memory/DescriptorSet.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Memory/EngineAllocator.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Memory/EngineAllocator.h
 )
 
 set( graphicsCoreList
