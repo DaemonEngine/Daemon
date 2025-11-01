@@ -52,6 +52,11 @@ namespace Str {
             : ptr(other.c_str()), len(other.size()) {}
         BasicStringRef(const T* other)
             : ptr(other), len(std::char_traits<T>::length(other)) {}
+        BasicStringRef(const T* start, size_t len)
+            : ptr(start), len(len)
+        {
+            DAEMON_ASSERT_EQ(start[len], '\0');
+        }
 
         const T& operator[](size_t pos) const
         {
