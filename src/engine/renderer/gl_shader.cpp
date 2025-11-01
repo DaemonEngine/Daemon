@@ -94,7 +94,7 @@ namespace // Implementation details
 	{
 		auto it = EngineShaders::FileMap.find(filename);
 		if (it != EngineShaders::FileMap.end())
-			return (const char*) it->second.data;
+			return it->second.data;
 		return nullptr;
 	}
 
