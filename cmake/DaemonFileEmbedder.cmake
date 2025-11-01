@@ -29,10 +29,16 @@ string(REGEX REPLACE
 
 # A bit more of beautification.
 string(REGEX REPLACE ",$" ",\n" contents "${contents}")
+set(DATA_VARIABLE_NAME "data_${VARIABLE_NAME}")
 
 file(WRITE ${OUTPUT_FILE}
-	"constexpr unsigned char ${VARIABLE_NAME}[] =\n"
+	"constexpr unsigned char ${DATA_VARIABLE_NAME}[] =\n"
 	"{\n"
 	"${contents}"
+	"};\n"
+	"const embeddedFileMapEntry_t ${VARIABLE_NAME} =\n"
+	"{\n"
+	"reinterpret_cast<const char*>( ${DATA_VARIABLE_NAME} ),\n"
+	"sizeof( ${DATA_VARIABLE_NAME} ) - 1,\n"
 	"};\n"
 )

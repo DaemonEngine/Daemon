@@ -82,6 +82,29 @@ macro(daemon_embed_files basename dir list format targetname)
 		set_property(TARGET "${targetname}" APPEND PROPERTY SOURCES "${embed_${kind}_src_file}")
 	endforeach()
 
+	if (NOT DAEMON_EMBEDDED_FILES_HEADER)
+		set(DAEMON_EMBEDDED_FILES_HEADER "${DAEMON_EMBEDDED_SUBDIR}/DaemonEmbeddedFiles.h")
+
+		string(APPEND embed_header_text
+			"#ifndef DAEMON_EMBEDDED_FILES_H_\n"
+			"#define DAEMON_EMBEDDED_FILES_H_\n"
+			"#include <unordered_map>\n"
+			"#include <string>\n"
+			"\n"
+			"struct embeddedFileMapEntry_t\n"
+			"{\n"
+			"	const char* data;\n"
+			"	size_t size;\n"
+			"};\n"
+			"\n"
+			"using embeddedFileMap_t = std::unordered_map<std::string, const embeddedFileMapEntry_t>;\n"
+			"#endif // DAEMON_EMBEDDED_FILES_H_\n"
+		)
+
+		set(embed_header_file "${DAEMON_GENERATED_DIR}/${DAEMON_EMBEDDED_FILES_HEADER}")
+		file(GENERATE OUTPUT "${embed_header_file}" CONTENT "${embed_header_text}")
+	endif()
+
 	string(APPEND embed_CPP_text
 		"#include \"${embed_H_file}\"\n"
 		"\n"
@@ -89,7 +112,7 @@ macro(daemon_embed_files basename dir list format targetname)
 	)
 
 	string(APPEND embed_H_text
-		"#include \"common/Common.h\"\n"
+		"#include \"${DAEMON_EMBEDDED_FILES_HEADER}\"\n"
 		"\n"
 		"namespace ${basename} {\n"
 	)
@@ -123,11 +146,11 @@ macro(daemon_embed_files basename dir list format targetname)
 		)
 
 		string(APPEND embed_H_text
-			"extern const unsigned char ${filename_symbol}[];\n"
+			"extern const embeddedFileMapEntry_t ${filename_symbol};\n"
 		)
 
 		string(APPEND embed_map_text
-			"\t{ \"${filename}\", { ${filename_symbol}, sizeof( ${filename_symbol}) - 1 } },\n"
+			"\t{ \"${filename}\", ${filename_symbol} },\n"
 		)
 	endforeach()
 
