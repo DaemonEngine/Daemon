@@ -403,7 +403,7 @@ float Q_rsqrt( float n )
 The relative error bound is: 6.50196699×10⁻⁴ */
 
 // Compute approximate inverse square root.
-inline float Q_rsqrt_fast( const float n )
+WARN_UNUSED_RESULT inline float Q_rsqrt_fast( const float n )
 {
 #if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
 	float o;
@@ -422,7 +422,7 @@ inline float Q_rsqrt_fast( const float n )
 	return o;
 }
 
-inline float Q_rsqrt( const float n )
+WARN_UNUSED_RESULT inline float Q_rsqrt( const float n )
 {
 	/* When using the magic constants, the relative error bound after the
 	iteration is expected to be at most 5×10⁻⁶. It was achieved with the
@@ -440,19 +440,19 @@ inline float Q_rsqrt( const float n )
 	return o;
 }
 
-inline float Q_fabs( float x )
+WARN_UNUSED_RESULT inline float Q_fabs( float x )
 {
 	return fabsf( x );
 }
 
-byte         ClampByte( int i );
-signed char  ClampChar( int i );
+WARN_UNUSED_RESULT byte         ClampByte( int i );
+WARN_UNUSED_RESULT signed char  ClampChar( int i );
 
 // this isn't a real cheap function to call!
-int          DirToByte( vec3_t const dir );
+WARN_UNUSED_RESULT int DirToByte( vec3_t const dir );
 void         ByteToDir( int b, vec3_t dir );
 
-inline vec_t DotProduct( const vec3_t x, const vec3_t y )
+WARN_UNUSED_RESULT inline vec_t DotProduct( const vec3_t x, const vec3_t y )
 {
 	return x[ 0 ] * y[ 0 ] + x[ 1 ] * y[ 1 ] + x[ 2 ] * y[ 2 ];
 }
@@ -465,7 +465,7 @@ inline void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross )
 }
 
 template<typename A>
-decltype(std::declval<A>() * std::declval<A>()) Square( const A &a )
+WARN_UNUSED_RESULT decltype(std::declval<A>() * std::declval<A>()) Square( const A &a )
 {
 	return a * a;
 }
@@ -587,16 +587,16 @@ void SnapVector( V &&v )
                                       ( r )[ 1 ] = ( s )[ 1 ] + ( f ) * (( e )[ 1 ] - ( s )[ 1 ] ), \
                                       ( r )[ 2 ] = ( s )[ 2 ] + ( f ) * (( e )[ 2 ] - ( s )[ 2 ] ))
 
-	float    RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
+	WARN_UNUSED_RESULT float RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
 	void     ZeroBounds( vec3_t mins, vec3_t maxs );
 	void     ClearBounds( vec3_t mins, vec3_t maxs );
 	void     AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs );
 
 	void     BoundsAdd( vec3_t mins, vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
-	bool BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
-	bool BoundsIntersectSphere( const vec3_t mins, const vec3_t maxs, const vec3_t origin, vec_t radius );
-	bool BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t origin );
-	float BoundsMaxExtent( const vec3_t mins, const vec3_t maxs );
+	WARN_UNUSED_RESULT bool BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
+	WARN_UNUSED_RESULT bool BoundsIntersectSphere( const vec3_t mins, const vec3_t maxs, const vec3_t origin, vec_t radius );
+	WARN_UNUSED_RESULT bool BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t origin );
+	WARN_UNUSED_RESULT float BoundsMaxExtent( const vec3_t mins, const vec3_t maxs );
 
 	inline void BoundsToCorners( const vec3_t mins, const vec3_t maxs, vec3_t corners[ 8 ] )
 	{
@@ -617,7 +617,7 @@ void SnapVector( V &&v )
 		out[ 2 ] = from[ 2 ] + ( ( to[ 2 ] - from[ 2 ] ) * frac );
 	}
 
-	inline int VectorCompareEpsilon( const vec3_t v1, const vec3_t v2, float epsilon )
+	WARN_UNUSED_RESULT inline int VectorCompareEpsilon( const vec3_t v1, const vec3_t v2, float epsilon )
 	{
 		vec3_t d;
 
@@ -648,29 +648,29 @@ void SnapVector( V &&v )
 		out[2] = a[2] > b[2] ? a[2] : b[2];
 	}
 
-inline int VectorCompare( const vec3_t v1, const vec3_t v2 )
+WARN_UNUSED_RESULT inline bool VectorCompare( const vec3_t v1, const vec3_t v2 )
 {
 	return !( v1[ 0 ] != v2[ 0 ] || v1[ 1 ] != v2[ 1 ] || v1[ 2 ] != v2[ 2 ] );
 }
 
-inline vec_t VectorLengthSquared( const vec3_t v )
+WARN_UNUSED_RESULT inline vec_t VectorLengthSquared( const vec3_t v )
 {
 	return v[ 0 ] * v[ 0 ] + v[ 1 ] * v[ 1 ] + v[ 2 ] * v[ 2 ];
 }
 
-inline vec_t VectorLength( const vec3_t v )
+WARN_UNUSED_RESULT inline vec_t VectorLength( const vec3_t v )
 {
 	return sqrtf( VectorLengthSquared( v ) );
 }
 
-inline vec_t Distance( const vec3_t p1, const vec3_t p2 )
+WARN_UNUSED_RESULT inline vec_t Distance( const vec3_t p1, const vec3_t p2 )
 {
 	vec3_t v;
 	VectorSubtract( p2, p1, v );
 	return VectorLength( v );
 }
 
-inline vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 )
+WARN_UNUSED_RESULT inline vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 )
 {
 	vec3_t v;
 	VectorSubtract( p2, p1, v );
@@ -735,7 +735,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	return length;
 }
 
-	int   NearestPowerOfTwo( int val );
+	WARN_UNUSED_RESULT int NearestPowerOfTwo( int val );
 
 	int   Q_rand( int *seed );
 	float Q_random( int *seed );
@@ -757,17 +757,17 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	void  AxisCopy( const vec3_t in[ 3 ], vec3_t out[ 3 ] );
 
 	void  SetPlaneSignbits( struct cplane_t *out );
-	int   BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const struct cplane_t *plane );
+	WARN_UNUSED_RESULT int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const struct cplane_t *plane );
 
-	float AngleMod( float a );
-	float LerpAngle( float from, float to, float frac );
-	float AngleSubtract( float a1, float a2 );
-	void  AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 );
+	WARN_UNUSED_RESULT DEPRECATED float AngleMod( float a );
+	WARN_UNUSED_RESULT float LerpAngle( float from, float to, float frac );
+	WARN_UNUSED_RESULT float AngleSubtract( float a1, float a2 );
+	void  AnglesSubtract( const vec3_t v1, const vec3_t v2, vec3_t v3 );
 
-	float AngleNormalize360( float angle );
-	float AngleNormalize180( float angle );
-	float AngleDelta( float angle1, float angle2 );
-	float AngleBetweenVectors( const vec3_t a, const vec3_t b );
+	WARN_UNUSED_RESULT float AngleNormalize360( float angle );
+	WARN_UNUSED_RESULT float AngleNormalize180( float angle );
+	WARN_UNUSED_RESULT float AngleDelta( float angle1, float angle2 );
+	WARN_UNUSED_RESULT float AngleBetweenVectors( const vec3_t a, const vec3_t b );
 	void  AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up );
 
 	void PlaneSet( plane_t &out, const vec_t x, const vec_t y, const vec_t z, const vec_t dist );
@@ -804,13 +804,10 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	void  AxisMultiply( const float in1[ 3 ][ 3 ], const float in2[ 3 ][ 3 ], float out[ 3 ][ 3 ] );
 	void  PerpendicularVector( vec3_t dst, const vec3_t src );
 
-// Ridah
 	void  GetPerpendicularViewVector( const vec3_t point, const vec3_t p1, const vec3_t p2, vec3_t up );
 	void  ProjectPointOntoVector( const vec3_t point, const vec3_t vStart, const vec3_t vEnd, vec3_t vProj );
 	void  ProjectPointOntoVectorBounded( const vec3_t point, const vec3_t vStart, const vec3_t vEnd, vec3_t vProj );
-	float DistanceFromLineSquared( const vec3_t p, const vec3_t lp1, const vec3_t lp2 );
-
-// done.
+	WARN_UNUSED_RESULT float DistanceFromLineSquared( const vec3_t p, const vec3_t lp1, const vec3_t lp2 );
 
 	vec_t DistanceBetweenLineSegmentsSquared( const vec3_t sP0, const vec3_t sP1,
 	    const vec3_t tP0, const vec3_t tP1, float *s, float *t );
@@ -822,7 +819,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	void     MatrixIdentity( matrix_t m );
 	void     MatrixClear( matrix_t m );
 	void     MatrixCopy( const matrix_t in, matrix_t out );
-	bool MatrixCompare( const matrix_t a, const matrix_t b );
+	WARN_UNUSED_RESULT bool MatrixCompare( const matrix_t a, const matrix_t b );
 	void     MatrixTransposeIntoXMM( const matrix_t m );
 	void     MatrixTranspose( const matrix_t in, matrix_t out );
 
@@ -961,7 +958,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		q[ 3 ] = -q[ 3 ];
 	}
 
-	inline vec_t QuatLength( const quat_t q )
+	WARN_UNUSED_RESULT inline vec_t QuatLength( const quat_t q )
 	{
 		return ( vec_t ) sqrt( q[ 0 ] * q[ 0 ] + q[ 1 ] * q[ 1 ] + q[ 2 ] * q[ 2 ] + q[ 3 ] * q[ 3 ] );
 	}
