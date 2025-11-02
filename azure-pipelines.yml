@@ -61,7 +61,7 @@ jobs:
       displayName: 'Build'
     - bash: |
         set -e
-        build/test-ttyclient -pakpath pkg -set fs_basepak daemon -set vm.cgame.type 3
+        build/test-ttyclient -pakpath pkg -set fs_basepak '*daemon' -set vm.cgame.type 3
       displayName: 'Test'
 
   - job: Linux
@@ -130,6 +130,6 @@ jobs:
       displayName: 'Build'
     - bash: |
         set -e
-        SDL_VIDEODRIVER=offscreen ALSOFT_DRIVERS=null build/test-client -pakpath pkg -set fs_basepak daemon -set vm.cgame.type 3
+        SDL_VIDEODRIVER=offscreen ALSOFT_DRIVERS=null build/test-client -pakpath pkg -set fs_basepak '*daemon' -set vm.cgame.type 3
       condition: "and(succeeded(), eq(variables.TOOLCHAIN_FILE, ''))"
       displayName: 'Test'
