@@ -86,68 +86,68 @@ else()
     include (${ENGINE_DIR}/renderer/src.cmake)
 endif()
 
-set(GLSLSOURCELIST
+set(GLSL_EMBED_DIR "${ENGINE_DIR}/renderer/glsl_source")
+set(GLSL_EMBED_LIST
     # Common shader libraries
-    ${ENGINE_DIR}/renderer/glsl_source/common.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/common_cp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fogEquation_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/shaderProfiler_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/shaderProfiler_fp.glsl
-    
+    common.glsl
+    common_cp.glsl
+    fogEquation_fp.glsl
+    shaderProfiler_vp.glsl
+    shaderProfiler_fp.glsl
     # Material system shaders
-    ${ENGINE_DIR}/renderer/glsl_source/material_cp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/material_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/material_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/clearSurfaces_cp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/cull_cp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/depthReduction_cp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/processSurfaces_cp.glsl
+    material_cp.glsl
+    material_vp.glsl
+    material_fp.glsl
+    clearSurfaces_cp.glsl
+    cull_cp.glsl
+    depthReduction_cp.glsl
+    processSurfaces_cp.glsl
     
     # Screen-space shaders
-    ${ENGINE_DIR}/renderer/glsl_source/screenSpace_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/blur_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/cameraEffects_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/contrast_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fogGlobal_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fxaa_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fxaa3_11_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/motionblur_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/ssao_fp.glsl
+    screenSpace_vp.glsl
+    blur_fp.glsl
+    cameraEffects_fp.glsl
+    contrast_fp.glsl
+    fogGlobal_fp.glsl
+    fxaa_fp.glsl
+    fxaa3_11_fp.glsl
+    motionblur_fp.glsl
+    ssao_fp.glsl
     
     # Lighting shaders
-    ${ENGINE_DIR}/renderer/glsl_source/depthtile1_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/depthtile1_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/depthtile2_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/lighttile_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/lighttile_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/computeLight_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/reliefMapping_fp.glsl
+    depthtile1_vp.glsl
+    depthtile1_fp.glsl
+    depthtile2_fp.glsl
+    lighttile_vp.glsl
+    lighttile_fp.glsl
+    computeLight_fp.glsl
+    reliefMapping_fp.glsl
 
     # Common vertex shader libraries
-    ${ENGINE_DIR}/renderer/glsl_source/deformVertexes_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/vertexAnimation_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/vertexSimple_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/vertexSkinning_vp.glsl
+    deformVertexes_vp.glsl
+    vertexAnimation_vp.glsl
+    vertexSimple_vp.glsl
+    vertexSkinning_vp.glsl
 
     # Regular shaders
-    ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/generic_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/generic_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/heatHaze_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/heatHaze_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/lightMapping_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/lightMapping_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/liquid_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/liquid_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/portal_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/portal_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/reflection_CB_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/reflection_CB_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/screen_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/screen_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/skybox_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/skybox_fp.glsl
+    fogQuake3_vp.glsl
+    fogQuake3_fp.glsl
+    generic_vp.glsl
+    generic_fp.glsl
+    heatHaze_vp.glsl
+    heatHaze_fp.glsl
+    lightMapping_vp.glsl
+    lightMapping_fp.glsl
+    liquid_vp.glsl
+    liquid_fp.glsl
+    portal_vp.glsl
+    portal_fp.glsl
+    reflection_CB_vp.glsl
+    reflection_CB_fp.glsl
+    screen_vp.glsl
+    screen_fp.glsl
+    skybox_vp.glsl
+    skybox_fp.glsl
 )
 
 set(SERVERLIST
