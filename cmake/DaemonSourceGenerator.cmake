@@ -86,15 +86,17 @@ macro(daemon_embed_files basename dir list format targetname)
 		set(DAEMON_EMBEDDED_FILES_HEADER "${DAEMON_EMBEDDED_SUBDIR}/DaemonEmbeddedFiles.h")
 
 		string(APPEND embed_header_text
+			"// Automatically generated, do not modify!\n"
 			"#ifndef DAEMON_EMBEDDED_FILES_H_\n"
 			"#define DAEMON_EMBEDDED_FILES_H_\n"
+			"#include <cstddef>\n"
 			"#include <unordered_map>\n"
 			"#include <string>\n"
 			"\n"
 			"struct embeddedFileMapEntry_t\n"
 			"{\n"
-			"	const char* data;\n"
-			"	size_t size;\n"
+			"\tconst char* data;\n"
+			"\tsize_t size;\n"
 			"};\n"
 			"\n"
 			"using embeddedFileMap_t = std::unordered_map<std::string, const embeddedFileMapEntry_t>;\n"
