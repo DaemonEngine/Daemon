@@ -69,7 +69,8 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 	Log::Notice( "Found Vulkan devices:" );
 
 	const VkPhysicalDevice* bestDevice = &devices[0];
-	EngineConfig bestCFG = GetEngineConfigForDevice( *bestDevice );
+
+	EngineConfig bestCFG   = GetEngineConfigForDevice( *bestDevice );
 	bestCFG.capabilityPack = GetHighestSuppportedCapabilityPack( bestCFG );
 
 	PrintDeviceInfo( bestCFG );
@@ -79,7 +80,7 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 			continue;
 		}
 
-		EngineConfig cfg = GetEngineConfigForDevice( device );
+		EngineConfig cfg   = GetEngineConfigForDevice( device );
 		cfg.capabilityPack = GetHighestSuppportedCapabilityPack( cfg );
 
 		PrintDeviceInfo( cfg );
@@ -91,14 +92,15 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 
 		if ( cfg.deviceType < bestCFG.deviceType ) {
 			bestDevice = &device;
-			bestCFG = cfg;
+			bestCFG    = cfg;
 			Log::Notice( "Selecting %s because it has a better GPU type", cfg.deviceName );
 			continue;
 		}
 
 		if ( cfg.capabilityPack > bestCFG.capabilityPack ) {
 			bestDevice = &device;
-			bestCFG = cfg;
+			bestCFG    = cfg;
+
 			Log::Notice( "Selecting %s because it supports a higher capability pack", cfg.deviceName );
 			continue;
 		}
@@ -106,9 +108,11 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 
 	if ( r_vkDevice.Get() != -1 ) {
 		if ( r_vkDevice.Get() < devices.size ) {
-			bestDevice = &devices[r_vkDevice.Get()];
-			bestCFG = GetEngineConfigForDevice( *bestDevice );
+			bestDevice             = &devices[r_vkDevice.Get()];
+			bestCFG                = GetEngineConfigForDevice( *bestDevice );
 			bestCFG.capabilityPack = GetHighestSuppportedCapabilityPack( bestCFG );
+
+			Log::Notice( "Selecting %s because device was overridden with r_vkDevice = %i", bestCFG.deviceName, r_vkDevice.Get() );
 		} else {
 			Log::Warn( "r_vkDevice out of range, using default instead" );
 		}
@@ -119,7 +123,7 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 		return false;
 	}
 
-	*config = bestCFG;
+	*config    =  bestCFG;
 
 	*deviceOut = *bestDevice;
 
