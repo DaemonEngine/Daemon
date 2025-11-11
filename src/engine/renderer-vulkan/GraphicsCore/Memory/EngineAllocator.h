@@ -38,6 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../Math/NumberTypes.h"
 
+#include "../Decls.h"
+
 #include "../../GraphicsShared/MemoryPool.h"
 
 struct MemoryHeap {
@@ -47,23 +49,47 @@ struct MemoryHeap {
 		ENGINE_TO_CORE
 	};
 
-	uint64 size;
-	uint64 maxSize;
+	uint64     size;
+	uint64     maxSize;
+
 	MemoryType type;
 
-	uint32 id;
+	uint32     id;
 };
 
 struct MemoryRequirements {
 	uint64 size;
 	uint64 alignment;
 	uint32 type;
-	bool dedicated;
+	bool   dedicated;
 };
 
 struct MemoryRegionUsage {
 	uint64 allocated;
 	uint64 size;
+};
+
+struct Buffer {
+	VkBuffer buffer;
+
+	uint32   memoryPoolID;
+
+	uint32   offset;
+	uint32   size;
+
+	uint32*  memory;
+	uint64   engineMemory;
+};
+
+struct Data {
+	uint32* memory;
+
+	Data( Buffer& buffer ) {
+		memory = buffer.memory;
+	}
+
+	~Data() {
+	}
 };
 
 class EngineAllocator {
@@ -77,15 +103,26 @@ class EngineAllocator {
 	MemoryHeap memoryHeapImages;
 	MemoryHeap memoryHeapStorageImages;
 	MemoryHeap memoryHeapStagingBuffer;
+	MemoryHeap memoryHeapEngineToCoreBuffer;
 
 	void Init();
 	void Free();
 
 	MemoryHeap MemoryHeapForUsage( const MemoryHeap::MemoryType type, const MemoryRequirements& reqs );
 
+	MemoryPool AllocMemoryPool( const uint32 id, const uint32 size, const bool image,
+		const bool engineAccess, const void* dedicatedResource = nullptr );
+	Buffer AllocBuffer( MemoryPool& pool, const MemoryRequirements& reqs, const VkBufferUsageFlags flags,
+		const bool engineAccess );
+	Buffer AllocDedicatedBuffer( const uint32 id, const uint32 size, const VkBufferUsageFlags flags,
+		const bool engineAccess );
+
 	private:
-	uint32 memoryPoolCount;
+	uint32     memoryPoolCount;
 	MemoryPool memoryPools[maxMemoryPools];
+
+	int memoryRegionFlags[32];
+	int memoryIDFlags[32];
 
 	uint32 memoryRegionEngine;
 	uint32 memoryRegionBAR;
@@ -102,5 +139,7 @@ class EngineAllocator {
 	bool rebar;
 	bool unifiedMemory;
 };
+
+MemoryRequirements GetBufferRequirements( const VkBufferUsageFlags type, const uint64 size, const bool engineAccess );
 
 #endif // ENGINE_ALLOCATOR_H
