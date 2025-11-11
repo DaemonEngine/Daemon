@@ -25,7 +25,7 @@ extern "C" {
 #define VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME "VK_KHR_wayland_surface"
 typedef VkFlags VkWaylandSurfaceCreateFlagsKHR;
 typedef struct VkWaylandSurfaceCreateInfoKHR {
-    const VkStructureType             sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+    VkStructureType                   sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
     const void*                       pNext;
     VkWaylandSurfaceCreateFlagsKHR    flags;
     struct wl_display*                display;

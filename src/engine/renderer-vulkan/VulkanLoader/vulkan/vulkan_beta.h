@@ -24,7 +24,7 @@ extern "C" {
 #define VK_KHR_PORTABILITY_SUBSET_SPEC_VERSION 1
 #define VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME "VK_KHR_portability_subset"
 typedef struct VkPhysicalDevicePortabilitySubsetFeaturesKHR {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR;
     void*                    pNext;
     VkBool32                 constantAlphaColorBlendFactors;
     VkBool32                 events;
@@ -44,7 +44,7 @@ typedef struct VkPhysicalDevicePortabilitySubsetFeaturesKHR {
 } VkPhysicalDevicePortabilitySubsetFeaturesKHR;
 
 typedef struct VkPhysicalDevicePortabilitySubsetPropertiesKHR {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_PROPERTIES_KHR;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_PROPERTIES_KHR;
     void*                    pNext;
     uint32_t                 minVertexInputBindingStrideAlignment;
 } VkPhysicalDevicePortabilitySubsetPropertiesKHR;
@@ -57,14 +57,14 @@ typedef struct VkPhysicalDevicePortabilitySubsetPropertiesKHR {
 #define VK_AMDX_SHADER_ENQUEUE_EXTENSION_NAME "VK_AMDX_shader_enqueue"
 #define VK_SHADER_INDEX_UNUSED_AMDX       (~0U)
 typedef struct VkPhysicalDeviceShaderEnqueueFeaturesAMDX {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ENQUEUE_FEATURES_AMDX;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ENQUEUE_FEATURES_AMDX;
     void*                    pNext;
     VkBool32                 shaderEnqueue;
     VkBool32                 shaderMeshEnqueue;
 } VkPhysicalDeviceShaderEnqueueFeaturesAMDX;
 
 typedef struct VkPhysicalDeviceShaderEnqueuePropertiesAMDX {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ENQUEUE_PROPERTIES_AMDX;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ENQUEUE_PROPERTIES_AMDX;
     void*                    pNext;
     uint32_t                 maxExecutionGraphDepth;
     uint32_t                 maxExecutionGraphShaderOutputNodes;
@@ -76,7 +76,7 @@ typedef struct VkPhysicalDeviceShaderEnqueuePropertiesAMDX {
 } VkPhysicalDeviceShaderEnqueuePropertiesAMDX;
 
 typedef struct VkExecutionGraphPipelineScratchSizeAMDX {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_EXECUTION_GRAPH_PIPELINE_SCRATCH_SIZE_AMDX;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_EXECUTION_GRAPH_PIPELINE_SCRATCH_SIZE_AMDX;
     void*                    pNext;
     VkDeviceSize             minSize;
     VkDeviceSize             maxSize;
@@ -84,7 +84,7 @@ typedef struct VkExecutionGraphPipelineScratchSizeAMDX {
 } VkExecutionGraphPipelineScratchSizeAMDX;
 
 typedef struct VkExecutionGraphPipelineCreateInfoAMDX {
-    const VkStructureType                     sType = VK_STRUCTURE_TYPE_EXECUTION_GRAPH_PIPELINE_CREATE_INFO_AMDX;
+    VkStructureType                           sType = VK_STRUCTURE_TYPE_EXECUTION_GRAPH_PIPELINE_CREATE_INFO_AMDX;
     const void*                               pNext;
     VkPipelineCreateFlags                     flags;
     uint32_t                                  stageCount;
@@ -114,7 +114,7 @@ typedef struct VkDispatchGraphCountInfoAMDX {
 } VkDispatchGraphCountInfoAMDX;
 
 typedef struct VkPipelineShaderStageNodeCreateInfoAMDX {
-      const VkStructureType    sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_NODE_CREATE_INFO_AMDX;
+      VkStructureType          sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_NODE_CREATE_INFO_AMDX;
     const void*                pNext;
     const char*                pName;
     uint32_t                   index;
@@ -195,21 +195,21 @@ VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkCudaFunctionNV)
 #define VK_NV_CUDA_KERNEL_LAUNCH_SPEC_VERSION 2
 #define VK_NV_CUDA_KERNEL_LAUNCH_EXTENSION_NAME "VK_NV_cuda_kernel_launch"
 typedef struct VkCudaModuleCreateInfoNV {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_CUDA_MODULE_CREATE_INFO_NV;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_CUDA_MODULE_CREATE_INFO_NV;
     const void*              pNext;
     size_t                   dataSize;
     const void*              pData;
 } VkCudaModuleCreateInfoNV;
 
 typedef struct VkCudaFunctionCreateInfoNV {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_CUDA_FUNCTION_CREATE_INFO_NV;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_CUDA_FUNCTION_CREATE_INFO_NV;
     const void*              pNext;
     VkCudaModuleNV           module;
     const char*              pName;
 } VkCudaFunctionCreateInfoNV;
 
 typedef struct VkCudaLaunchInfoNV {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_CUDA_LAUNCH_INFO_NV;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_CUDA_LAUNCH_INFO_NV;
     const void*              pNext;
     VkCudaFunctionNV         function;
     uint32_t                 gridDimX;
@@ -226,13 +226,13 @@ typedef struct VkCudaLaunchInfoNV {
 } VkCudaLaunchInfoNV;
 
 typedef struct VkPhysicalDeviceCudaKernelLaunchFeaturesNV {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CUDA_KERNEL_LAUNCH_FEATURES_NV;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CUDA_KERNEL_LAUNCH_FEATURES_NV;
     void*                    pNext;
     VkBool32                 cudaKernelLaunchFeatures;
 } VkPhysicalDeviceCudaKernelLaunchFeaturesNV;
 
 typedef struct VkPhysicalDeviceCudaKernelLaunchPropertiesNV {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CUDA_KERNEL_LAUNCH_PROPERTIES_NV;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CUDA_KERNEL_LAUNCH_PROPERTIES_NV;
     void*                    pNext;
     uint32_t                 computeCapabilityMinor;
     uint32_t                 computeCapabilityMajor;
@@ -304,19 +304,19 @@ typedef enum VkDisplacementMicromapFormatNV {
     VK_DISPLACEMENT_MICROMAP_FORMAT_MAX_ENUM_NV = 0x7FFFFFFF
 } VkDisplacementMicromapFormatNV;
 typedef struct VkPhysicalDeviceDisplacementMicromapFeaturesNV {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DISPLACEMENT_MICROMAP_FEATURES_NV;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DISPLACEMENT_MICROMAP_FEATURES_NV;
     void*                    pNext;
     VkBool32                 displacementMicromap;
 } VkPhysicalDeviceDisplacementMicromapFeaturesNV;
 
 typedef struct VkPhysicalDeviceDisplacementMicromapPropertiesNV {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DISPLACEMENT_MICROMAP_PROPERTIES_NV;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DISPLACEMENT_MICROMAP_PROPERTIES_NV;
     void*                    pNext;
     uint32_t                 maxDisplacementMicromapSubdivisionLevel;
 } VkPhysicalDeviceDisplacementMicromapPropertiesNV;
 
 typedef struct VkAccelerationStructureTrianglesDisplacementMicromapNV {
-    const VkStructureType               sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_TRIANGLES_DISPLACEMENT_MICROMAP_NV;
+    VkStructureType                     sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_TRIANGLES_DISPLACEMENT_MICROMAP_NV;
     void*                               pNext;
     VkFormat                            displacementBiasAndScaleFormat;
     VkFormat                            displacementVectorFormat;
@@ -350,13 +350,13 @@ typedef enum VkCompressedTriangleFormatAMDX {
     VK_COMPRESSED_TRIANGLE_FORMAT_MAX_ENUM_AMDX = 0x7FFFFFFF
 } VkCompressedTriangleFormatAMDX;
 typedef struct VkPhysicalDeviceDenseGeometryFormatFeaturesAMDX {
-    const VkStructureType    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DENSE_GEOMETRY_FORMAT_FEATURES_AMDX;
+    VkStructureType          sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DENSE_GEOMETRY_FORMAT_FEATURES_AMDX;
     void*                    pNext;
     VkBool32                 denseGeometryFormat;
 } VkPhysicalDeviceDenseGeometryFormatFeaturesAMDX;
 
 typedef struct VkAccelerationStructureDenseGeometryFormatTrianglesDataAMDX {
-    const VkStructureType             sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DENSE_GEOMETRY_FORMAT_TRIANGLES_DATA_AMDX;
+    VkStructureType                   sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DENSE_GEOMETRY_FORMAT_TRIANGLES_DATA_AMDX;
     const void*                       pNext;
     VkDeviceOrHostAddressConstKHR     compressedData;
     VkDeviceSize                      dataSize;
