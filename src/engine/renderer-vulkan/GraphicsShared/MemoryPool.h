@@ -38,10 +38,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NumberTypes.h"
 
+#ifdef __cplusplus
+	#define MemoryAddress byte*
+#else
+	#define MemoryAddress uint64
+#endif
+
 struct MemoryPool {
-	uint32 size;
-	uint32 count;
-	uint64 memory;
+	uint32        id;
+	uint32        size;
+	uint32        offset;
+	bool          dedicatedAlloc;
+	MemoryAddress memory;
 };
 
 #endif // MEMORY_POOL_H
