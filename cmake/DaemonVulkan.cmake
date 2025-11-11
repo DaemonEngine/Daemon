@@ -76,11 +76,11 @@ macro( GenerateVulkanShaders target )
 		list( APPEND graphicsEngineOutputList ${spirvBinPath} )
 	endforeach()
 
-	# glslangValidator
-	find_program( glslangV glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/ )
+	# glslang
+	find_program( glslangV glslang HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/ )
 
-	if( glslangV STREQUAL "glslangValidator-NOTFOUND" )
-		message( FATAL_ERROR "glslangValidator not found; make sure you have the Vulkan SDK installed" )
+	if( glslangV STREQUAL "glslang-NOTFOUND" )
+		message( FATAL_ERROR "glslang not found; make sure you have the Vulkan SDK installed or build glslang from source" )
 	endif()
 
 	set( spirvOptions --target-env vulkan1.3 --glsl-version 460 -e main -l -t )
@@ -104,6 +104,8 @@ macro( GenerateVulkanShaders target )
 	elseif( VULKAN_SPIRV_DEBUG STREQUAL "non-semantic" )
 		set( spirvOptions ${spirvOptions} -gV )
 	endif()
+
+	message( STATUS \"${glslangV} ${spirvOptions}\" ${spirvOut} ${graphicsEngineProcessedList} )
 
 	add_custom_command(
 		COMMAND VulkanShaderParser \"${glslangV} ${spirvOptions}\" ${spirvOut} ${graphicsEngineProcessedList}
