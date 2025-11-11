@@ -141,6 +141,7 @@ void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config,
 
 	DynamicArray<VkDeviceQueueCreateInfo> queueInfos;
 	queueInfos.Resize( queuesConfig.count );
+	queueInfos.Init();
 
 	for ( uint32 i = 0; i < queuesConfig.count; i++ ) {
 		DynamicArray<float> priorities;

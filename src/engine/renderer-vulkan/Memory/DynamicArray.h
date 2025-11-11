@@ -145,6 +145,16 @@ class DynamicArray :
 		memset( memory, 0, size );
 	}
 
+	void Init() {
+		for ( T* current = memory; current < memory + elements; current++ ) {
+			if constexpr ( true || std::is_trivially_constructible<T>() ) {
+				*current = {};
+			} else {
+				current->T();
+			}
+		}
+	}
+
 	const T& operator[]( const uint64 index ) const {
 		ASSERT_LT( index, elements );
 		return memory[index];

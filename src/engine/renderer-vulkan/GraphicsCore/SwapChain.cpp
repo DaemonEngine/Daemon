@@ -141,6 +141,7 @@ void SwapChain::Init( const VkInstance instance ) {
 
 	DynamicArray<VkSurfaceFormat2KHR> formats;
 	formats.Resize( count );
+	formats.Init();
 
 	vkGetPhysicalDeviceSurfaceFormats2KHR( physicalDevice, &surfaceInfo, &count, formats.memory );
 
