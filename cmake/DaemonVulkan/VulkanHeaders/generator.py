@@ -1027,7 +1027,7 @@ class OutputGenerator:
                 if sType:
                     text += " = " + sType
             elif text == "VkStructureType":
-                text = "const VkStructureType"
+                text = "VkStructureType"
 
             if self.should_insert_may_alias_macro and self.genOpts.conventions.is_voidpointer_alias(elem.tag, text, tail):
                 # OpenXR-specific macro insertion - but not in apiinc for the spec
