@@ -95,8 +95,8 @@ void Instance::Init( const char* engineName, const char* appName ) {
 		.pApplicationInfo        = &appInfo,
 		.enabledLayerCount       = 0,
 		.ppEnabledLayerNames     = nullptr,
-		.enabledExtensionCount   = count, // ( uint32 ) extensions.elements,
-		.ppEnabledExtensionNames = sdlext // extensions.memory
+		.enabledExtensionCount   = ( uint32 ) extensions.elements,
+		.ppEnabledExtensionNames = extensions.memory
 	};
 
 	VkResult res = vkCreateInstance( &createInfo, nullptr, &instance );

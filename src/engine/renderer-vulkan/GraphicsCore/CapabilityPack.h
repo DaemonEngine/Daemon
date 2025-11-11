@@ -74,7 +74,7 @@ namespace CapabilityPackType {
 }
 
 constexpr Array instanceExtensions {
-	"VK_LAYER_KHRONOS_validation",
+	// "VK_LAYER_KHRONOS_validation",
 	"VK_KHR_get_physical_device_properties2",
 	"VK_KHR_get_surface_capabilities2"
 };
