@@ -104,13 +104,15 @@ set( graphicsCoreList
 )
 
 # Graphics Engine
+set( graphicsEngineListH
+)
+
 set( graphicsEngineList
-    depthReduction.glsl
-    cull.glsl
     MsgStream.glsl
 )
 
 set( graphicsEngineIDEList ${graphicsEngineList} )
+list( APPEND graphicsEngineIDEList ${graphicsEngineListH} )
 list( TRANSFORM graphicsEngineIDEList PREPEND ${ENGINE_DIR}/renderer-vulkan/GraphicsEngine/ )
 
 # Graphics Shared
