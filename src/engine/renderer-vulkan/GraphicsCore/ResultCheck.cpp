@@ -31,16 +31,40 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// DescriptorSet.h
+// ResultCheck.cpp
 
-#ifndef DESCRIPTOR_SET_H
-#define DESCRIPTOR_SET_H
+// #include "../Error.h"
 
-#include "../Decls.h"
+#include "ResultCheck.h"
 
-#include "../../Math/NumberTypes.h"
+thread_local VkResult resultCheck;
 
-void AllocDescriptors( uint32 imageCount, uint32 storageImageCount );
-void FreeDescriptors();
+/* ResultCheck::ResultCheck( const VkResult skipRes, const VkResult res ) {
+	if ( res & resultSuccess ) {
+		return;
+	}
 
-#endif // DESCRIPTOR_SET_H
+	if ( res & skipRes ) {
+		return;
+	}
+}
+
+ResultCheck& ResultCheck::operator=( const VkResult res ) {
+	if ( res & resultSuccess ) {
+		return;
+	}
+
+	Err( "Vulkan function failed: %s", string_VkResult( res ) );
+}
+
+int ResCheck( const VkResult skipRes, const VkResult res ) {
+	if ( res & resultSuccess ) {
+		return 0;
+	}
+
+	if ( res & skipRes ) {
+		return 1;
+	}
+
+	return -1;
+} */

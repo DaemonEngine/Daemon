@@ -31,16 +31,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// DescriptorSet.h
+// ResultCheck.h
 
-#ifndef DESCRIPTOR_SET_H
-#define DESCRIPTOR_SET_H
+#ifndef RESULT_CHECK_H
+#define RESULT_CHECK_H
 
-#include "../Decls.h"
+#include "../Error.h"
 
-#include "../../Math/NumberTypes.h"
+#include "Vulkan.h"
 
-void AllocDescriptors( uint32 imageCount, uint32 storageImageCount );
-void FreeDescriptors();
+constexpr int resultSuccess = VK_SUCCESS | VK_NOT_READY | VK_TIMEOUT | VK_EVENT_SET | VK_EVENT_RESET | VK_INCOMPLETE
+	| VK_SUBOPTIMAL_KHR | VK_THREAD_IDLE_KHR | VK_THREAD_DONE_KHR | VK_OPERATION_DEFERRED_KHR | VK_OPERATION_NOT_DEFERRED_KHR
+	| VK_PIPELINE_COMPILE_REQUIRED | VK_PIPELINE_BINARY_MISSING_KHR | VK_INCOMPATIBLE_SHADER_BINARY_EXT;
 
-#endif // DESCRIPTOR_SET_H
+/* struct ResultCheck {
+	ResultCheck( const VkResult skipRes, const VkResult res );
+	ResultCheck& operator=( const VkResult res );
+};
+
+int ResCheck( const VkResult skipRes, const VkResult res );
+
+#define ResCheckExt( skipRes, res ) \
+if ( !( res & ( resultSuccess | skipRes ) ) ) { \
+	Err( "Vulkan function failed: %s (%s:%u)", string_VkResult( res ), __FILE__, __LINE__ ); \
+	return; \
+} */
+
+#define ResultCheckExt( res, skipRes ) \
+resultCheck = res; \
+if ( resultCheck && !( resultCheck & ( resultSuccess | skipRes ) ) ) { \
+	Err( "Vulkan function failed: %s (%s:%u)", string_VkResult( res ), __FILE__, __LINE__ ); \
+	return; \
+}
+
+#define ResultCheck( res ) ResultCheckExt( res, 0 )
+
+// Here so it's not a "hidden" local variable
+extern thread_local VkResult resultCheck;
+
+#endif // RESULT_CHECK_H

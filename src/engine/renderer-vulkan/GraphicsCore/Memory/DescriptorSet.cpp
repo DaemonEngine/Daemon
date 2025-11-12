@@ -33,9 +33,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // DescriptorSet.cpp
 
+#include "common/Log.h"
+
 #include "../Vulkan.h"
 
 #include "../GraphicsCoreStore.h"
+#include "../ResultCheck.h"
 
 #include "../../GraphicsShared/Bindings.h"
 
@@ -43,26 +46,51 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static VkDescriptorPool descriptorPool;
 
-void AllocDescriptors( const uint32 imageCount, const uint32 storageImageCount ) {
-	VkDescriptorPoolSize imagePools[] {
-		{
-			.type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			.descriptorCount = imageCount
-		},
-		{
-			.type            = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-			.descriptorCount = storageImageCount
+void AllocDescriptors( uint32 imageCount, uint32 storageImageCount ) {
+	const uint32 initialImageCount        = imageCount;
+	const uint32 initialStorageImageCount = storageImageCount;
+
+	while ( true ) {
+		VkDescriptorPoolSize imagePools[] {
+			{
+				.type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.descriptorCount = imageCount
+			},
+			{
+				.type            = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				.descriptorCount = storageImageCount
+			}
+		};
+
+		VkDescriptorPoolCreateInfo info {
+			.flags         = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
+			.maxSets       = 1,
+			.poolSizeCount = 2,
+			.pPoolSizes    = imagePools
+		};
+
+		ResultCheckExt( vkCreateDescriptorPool( device, &info, nullptr, &descriptorPool ), VK_ERROR_FRAGMENTATION );
+
+		// This can happen on Intel
+		if ( resultCheck == VK_ERROR_FRAGMENTATION ) {
+			imageCount        >>= 2;
+			storageImageCount >>= 2;
+		} else {
+			if ( imageCount != initialImageCount ) {
+				Log::Notice( "Decreasing descriptor size due to memory fragmentation "
+					"(sampled images: %u -> %u, storage images: %u -> %u",
+					initialImageCount, imageCount, initialStorageImageCount, storageImageCount );
+			}
+			break;
 		}
-	};
 
-	VkDescriptorPoolCreateInfo info {
-		.flags         = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
-		.maxSets       = 1,
-		.poolSizeCount = 2,
-		.pPoolSizes    = imagePools
-	};
+		static constexpr uint32 minImages = 16384;
 
-	vkCreateDescriptorPool( device, &info, nullptr, &descriptorPool );
+		if ( imageCount < minImages || storageImageCount < minImages ) {
+			Err( "DescriptorPool: not enough or fragmented memory for min images: %u sampled and storage", minImages );
+			return;
+		}
+	}
 
 	VkDescriptorSetLayoutBinding imageBinds[] {
 		{
@@ -98,7 +126,7 @@ void AllocDescriptors( const uint32 imageCount, const uint32 storageImageCount )
 		.pBindings    = imageBinds
 	};
 
-	vkCreateDescriptorSetLayout( device, &descriptorLayoutInfo, nullptr, &descriptorSetLayout );
+	ResultCheck( vkCreateDescriptorSetLayout( device, &descriptorLayoutInfo, nullptr, &descriptorSetLayout ) );
 
 	VkDescriptorSetAllocateInfo allocInfo {
 		.descriptorPool     = descriptorPool,
@@ -106,9 +134,9 @@ void AllocDescriptors( const uint32 imageCount, const uint32 storageImageCount )
 		.pSetLayouts        = &descriptorSetLayout
 	};
 
-	vkAllocateDescriptorSets( device, &allocInfo, &descriptorSet );
+	ResultCheck( vkAllocateDescriptorSets( device, &allocInfo, &descriptorSet ) );
 }
 
 void FreeDescriptors() {
-	vkResetDescriptorPool( device, descriptorPool, 0 );
+	ResultCheck( vkResetDescriptorPool( device, descriptorPool, 0 ) );
 }
