@@ -110,12 +110,12 @@ macro( GenerateVulkanShaders target )
 	add_custom_command(
 		COMMAND VulkanShaderParser \"${glslangV} ${spirvOptions}\" ${spirvOut} ${graphicsEngineProcessedList}
 		DEPENDS ${graphicsEngineIDEList} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake VulkanShaderParser
-		OUTPUT ${graphicsEngineOutputList} ${GRAPHICS_CORE_PATH}/RenderGraph/SPIRVBin.h ${GRAPHICS_CORE_PATH}/RenderGraph/SPIRV.h
+		OUTPUT ${graphicsEngineOutputList} ${GRAPHICS_CORE_PATH}/ExecutionGraph/SPIRVBin.h ${GRAPHICS_CORE_PATH}/ExecutionGraph/SPIRV.h
 		COMMENT "Generating Vulkan Graphics Engine: ${graphicsEngineProcessedList}"
 	)
 
 	#add_custom_target( VulkanShaderParserTarget ALL
-	#	DEPENDS "${graphicsEngineOutputList}" ${GRAPHICS_CORE_PATH}/RenderGraph/SPIRVBin.h ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake
+	#	DEPENDS "${graphicsEngineOutputList}" ${GRAPHICS_CORE_PATH}/ExecutionGraph/SPIRVBin.h ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake
 	#)
 
 	# file( STRINGS ${GRAPHICS_ENGINE_PROCESSED_PATH}ShaderStages stagesList )
@@ -144,8 +144,8 @@ macro( GenerateVulkanShaders target )
 	#GenerateEmbedFilesConstexpr( "${spirvBinList}" ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/bin/spirv.h BINARY client-objects )
 
 	#add_custom_target( VulkanShaderBin ALL
-	#	DEPENDS "${graphicsEngineOutputList}" ${GRAPHICS_CORE_PATH}/RenderGraph/SPIRVBin.h  ${GRAPHICS_CORE_PATH}/RenderGraph/SPIRV.h ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake
+	#	DEPENDS "${graphicsEngineOutputList}" ${GRAPHICS_CORE_PATH}/ExecutionGraph/SPIRVBin.h  ${GRAPHICS_CORE_PATH}/ExecutionGraph/SPIRV.h ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake
 	#)
 
-	target_sources( ${target} PRIVATE ${GRAPHICS_CORE_PATH}/RenderGraph/SPIRVBin.h ${GRAPHICS_CORE_PATH}/RenderGraph/SPIRV.h )
+	target_sources( ${target} PRIVATE ${GRAPHICS_CORE_PATH}/ExecutionGraph/SPIRVBin.h ${GRAPHICS_CORE_PATH}/ExecutionGraph/SPIRV.h )
 endmacro()

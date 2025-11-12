@@ -22,8 +22,8 @@ build
 *.a
 
 #ignore daemon-vulkan generated Graphics Engine files
-src/engine/renderer-vulkan/GraphicsCore/RenderGraph/SPIRV.h
-src/engine/renderer-vulkan/GraphicsCore/RenderGraph/SPIRVBin.h
+src/engine/renderer-vulkan/GraphicsCore/ExecutionGraph/SPIRV.h
+src/engine/renderer-vulkan/GraphicsCore/ExecutionGraph/SPIRVBin.h
 src/engine/renderer-vulkan/GraphicsShared/SPIRVIDs.h
 
 #ignore editor temporary files

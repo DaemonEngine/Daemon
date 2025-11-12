@@ -188,8 +188,8 @@ int main( int argc, char** argv ) {
 		std::replace( spirvBinPath.begin(),                spirvBinPath.end(),                '/', '\\' );
 	#endif
 
-	File spirvBinH { graphicsCorePath   + "RenderGraph/SPIRVBin.h", "w" };
-	File spirvH    { graphicsCorePath   + "RenderGraph/SPIRV.h",    "w" };
+	File spirvBinH { graphicsCorePath   + "ExecutionGraph/SPIRVBin.h", "w" };
+	File spirvH    { graphicsCorePath   + "ExecutionGraph/SPIRV.h",    "w" };
 	File spirvIDs  { graphicsSharedPath + "SPIRVIDs.h",             "w" };
 
 	fprintf( spirvBinH.file,
