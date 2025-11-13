@@ -194,11 +194,9 @@ inline int my_open(Str::StringRef path, openMode_t mode)
 		CloseHandle(h);
 #elif defined(__linux__) && defined(__GLIBC__)
 	int fd = open64(path.c_str(), modes[mode_] | O_CLOEXEC | O_LARGEFILE, 0666);
-#elif defined(__native_client__)
-	// This doesn't actually work, but it's not used anyways
-	int fd = open(path.c_str(), modes[mode_], 0666);
 #else
-	// O_CLOEXEC is supported in macOS from 10.7 onwards
+	// This doesn't actually work in Native Client, but it's not used anyways.
+	// O_CLOEXEC is supported in macOS from 10.7 onwards.
 	int fd = open(path.c_str(), modes[mode_] | O_CLOEXEC, 0666);
 #endif
 
