@@ -32,6 +32,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "minizip/unzip.h"
 #endif
 
+#if defined(__GLIBC__)
+#if !defined(_FILE_OFFSET_BITS) || (_FILE_OFFSET_BITS != 64)
+#error _FILE_OFFSET_BITS should be set to 64 on glibc
+#endif
+#endif
+
 #ifdef BUILD_VM
 #include "shared/VMMain.h"
 #else
@@ -175,6 +181,7 @@ enum class openMode_t {
 	MODE_APPEND,
 	MODE_EDIT
 };
+
 inline int my_open(Str::StringRef path, openMode_t mode)
 {
 	int mode_ = Util::ordinal(mode);
@@ -192,14 +199,10 @@ inline int my_open(Str::StringRef path, openMode_t mode)
 	int fd = _open_osfhandle(reinterpret_cast<intptr_t>(h), modes[mode_] | O_BINARY | O_NOINHERIT);
 	if (fd == -1)
 		CloseHandle(h);
-#elif defined(__FreeBSD__) || defined(__APPLE__)
-	// O_CLOEXEC is supported in macOS from 10.7 onwards
+#else
+	// This doesn't actually work in Native Client, but it's not used anyways.
+	// O_CLOEXEC is supported in macOS from 10.7 onwards.
 	int fd = open(path.c_str(), modes[mode_] | O_CLOEXEC, 0666);
-#elif defined(__linux__)
-	int fd = open64(path.c_str(), modes[mode_] | O_CLOEXEC | O_LARGEFILE, 0666);
-#elif defined(__native_client__)
-	// This doesn't actually work, but it's not used anyways
-	int fd = open(path.c_str(), modes[mode_], 0666);
 #endif
 
 #ifndef _WIN32
@@ -238,47 +241,37 @@ inline offset_t my_ftell(FILE* fd)
 {
 #ifdef _WIN32
 	return _ftelli64(fd);
-#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
+#else
 	return ftello(fd);
-#elif defined(__linux__)
-	return ftello64(fd);
 #endif
 }
 inline int my_fseek(FILE* fd, offset_t off, int whence)
 {
 #ifdef _WIN32
 	return _fseeki64(fd, off, whence);
-#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
+#else
 	return fseeko(fd, off, whence);
-#elif defined(__linux__)
-	return fseeko64(fd, off, whence);
 #endif
 }
 #ifdef _WIN32
 typedef struct _stati64 my_stat_t;
-#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
+#else
 using my_stat_t = struct stat;
-#elif defined(__linux__)
-using my_stat_t = struct stat64;
 #endif
 inline int my_fstat(int fd, my_stat_t* st)
 {
 #ifdef _WIN32
 	return _fstati64(fd, st);
-#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
+#else
 	return fstat(fd, st);
-#elif defined(__linux__)
-	return fstat64(fd, st);
 #endif
 }
 inline int my_stat(Str::StringRef path, my_stat_t* st)
 {
 #ifdef _WIN32
 	return _wstati64(Str::UTF8To16(path).c_str(), st);
-#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
+#else
 	return stat(path.c_str(), st);
-#elif defined(__linux__)
-	return stat64(path.c_str(), st);
 #endif
 }
 inline intptr_t my_pread(int fd, void* buf, size_t count, offset_t offset)
@@ -294,10 +287,8 @@ inline intptr_t my_pread(int fd, void* buf, size_t count, offset_t offset)
 		return -1;
 	}
 	return bytesRead;
-#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
+#else
 	return pread(fd, buf, count, offset);
-#elif defined(__linux__)
-	return pread64(fd, buf, count, offset);
 #endif
 }
 

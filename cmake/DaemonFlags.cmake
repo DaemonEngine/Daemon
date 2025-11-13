@@ -700,6 +700,13 @@ if (APPLE)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 endif()
 
+# Glibc-specific definitions
+if (LINUX)
+	# QUIRK: It does nothing when it is not needed on non-glibc Linux
+	# systems so it's harmless to always set it.
+	add_definitions(-D_FILE_OFFSET_BITS=64)
+endif()
+
 # Configuration specific definitions
 
 set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS $<${DEBUG_GENEXP_COND}:DEBUG_BUILD>)
