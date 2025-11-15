@@ -48,7 +48,7 @@ std::string spirvPath    = graphicsEngineProcessedPath + "spirv/";
 std::string spirvBinPath = graphicsEngineProcessedPath + "bin/";
 
 struct File {
-	FILE* file;
+	FILE*    file;
 	uint32_t size;
 
 	File( const std::string& path, const char* mode ) {
@@ -58,6 +58,25 @@ struct File {
 			printf( "Failed to open file: %s, mode: %s", path.c_str(), mode );
 			printf( strerror( errno ) );
 			exit( 1 );
+		}
+
+		fseek( file, 0, SEEK_END );
+		size = ftell( file );
+
+		fseek( file, 0, 0 );
+	}
+
+	File( const std::string& path, const std::string& path2, const char* mode ) {
+		file = fopen( path.c_str(), mode );
+
+		if ( !file ) {
+			file = fopen( path2.c_str(), mode );
+
+			if( !file ) {
+				printf( "Failed to open file: %s, mode: %s", path.c_str(), mode );
+				printf( strerror( errno ) );
+				exit( 1 );
+			}
 		}
 
 		fseek( file, 0, SEEK_END );
@@ -127,9 +146,24 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, int ins
 	std::string line;
 
 	int insertStartCount = insertCount;
+	bool skip = false;
 
 	while ( std::getline( shaderTextStream, line, '\n' ) ) {
-		++lineCount;
+		lineCount++;
+
+		if ( line.find( "#ifdef __cplusplus" ) != std::string::npos ) {
+			skip = true;
+			continue;
+		}
+
+		if ( skip ) {
+			if ( line.find( "#endif" ) != std::string::npos ) {
+				skip = false;
+			}
+
+			continue;
+		}
+
 		const std::string::size_type posInsert = line.find( "#insert" );
 		const std::string::size_type position  = posInsert == std::string::npos ? line.find( "#include" ) : posInsert;
 
@@ -158,11 +192,11 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, int ins
 		}
 
 		// Inserted shader lines will start at 10000, 20000 etc. to easily tell them apart from the main shader code
-		++insertCount;
+		insertCount++;
 		out += "#line " + std::to_string( insertCount * 10000 ) + "\n";
 		out += "/**************************************************/\n";
 
-		File glslSource { graphicsEnginePath + shaderInsertPath, "r" };
+		File glslSource { graphicsEnginePath + shaderInsertPath, graphicsSharedPath + shaderInsertPath, "r" };
 
 		std::string glslSrc = glslSource.ReadAll();
 		glslSrc.resize( strlen( glslSrc.c_str() ) );
