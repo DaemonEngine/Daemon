@@ -33,7 +33,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // DescriptorSet.cpp
 
-#include "common/Log.h"
+#include "common/Common.h"
+
+#include "../../Math/NumberTypes.h"
 
 #include "../Vulkan.h"
 

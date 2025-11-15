@@ -64,7 +64,16 @@ if ( resultCheck && !( resultCheck & ( resultSuccess | skipRes ) ) ) { \
 	return; \
 }
 
+#define ResultCheckExtRet( res, skipRes ) \
+resultCheck = res; \
+if ( resultCheck && !( resultCheck & ( resultSuccess | skipRes ) ) ) { \
+	Err( "Vulkan function failed: %s (%s:%u)", string_VkResult( res ), __FILE__, __LINE__ ); \
+	return 0; \
+}
+
 #define ResultCheck( res ) ResultCheckExt( res, 0 )
+
+#define ResultCheckRet( res ) ResultCheckExtRet( res, 0 )
 
 // Here so it's not a "hidden" local variable
 extern thread_local VkResult resultCheck;
