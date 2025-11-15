@@ -107,6 +107,7 @@ set( graphicsCoreList
 
 # Graphics Engine
 set( graphicsEngineListH
+    Common.glsl
 )
 
 set( graphicsEngineList
