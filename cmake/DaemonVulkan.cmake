@@ -109,7 +109,7 @@ macro( GenerateVulkanShaders target )
 
 	add_custom_command(
 		COMMAND VulkanShaderParser \"${glslangV} ${spirvOptions}\" ${spirvOut} ${graphicsEngineProcessedList}
-		DEPENDS ${graphicsEngineIDEList} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake VulkanShaderParser
+		DEPENDS ${graphicsEngineIDEList} ${graphicsSharedList} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake VulkanShaderParser
 		OUTPUT ${graphicsEngineOutputList} ${GRAPHICS_CORE_PATH}/ExecutionGraph/SPIRVBin.h ${GRAPHICS_CORE_PATH}/ExecutionGraph/SPIRV.h
 		COMMENT "Generating Vulkan Graphics Engine: ${graphicsEngineProcessedList}"
 	)
