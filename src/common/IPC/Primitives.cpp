@@ -234,7 +234,8 @@ static void InternalSendMsg(Sys::OSHandle handle, bool more, const FileDesc* han
 	}
 #else
 	size_t descBytes = 0;
-	std::unique_ptr<unsigned char[]> descBuffer;
+	static std::unique_ptr<unsigned char[]> descBuffer;
+	static size_t descBufferSize = 0;
 	if (numHandles != 0) {
 		for (size_t i = 0; i < numHandles; i++) {
 			// tag: 1 byte
@@ -250,7 +251,10 @@ static void InternalSendMsg(Sys::OSHandle handle, bool more, const FileDesc* han
 		// Add 1 byte end tag and round to 16 bytes
 		descBytes = (descBytes + 1 + 0xf) & ~0xf;
 
-		descBuffer.reset(new unsigned char[descBytes]);
+		if (descBufferSize < descBytes) {
+			descBufferSize = descBytes;
+			descBuffer.reset(new unsigned char[descBytes]);
+		}
 		unsigned char* descBuffer_ptr = &descBuffer[0];
 		for (size_t i = 0; i < numHandles; i++) {
 			*descBuffer_ptr++ = handles[i].type;
@@ -336,11 +340,15 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 	NaClIOVec iov[2];
 	NaClHandle h[NACL_ABI_IMC_DESC_MAX];
 	if (!recvBuffer) {
-		recvBuffer.reset(new char[NACL_ABI_IMC_BYTES_MAX]);
+		//while using malloc in combination with delete[] or delete is
+		//a bad idea in theory, in this case, we are freeing an array of
+		//bytes, there is NOTHING special to clean in a string of bytes.
+		//This does, however, avoid new[] or new to initilialise data,
+		//those functions being actually closer to calloc than malloc.
+		recvBuffer.reset( static_cast<char*>( malloc( NACL_ABI_IMC_BYTES_MAX ) ) );
 	}
 
-	for (size_t i = 0; i < NACL_ABI_IMC_DESC_MAX; i++)
-		h[i] = NACL_INVALID_HANDLE;
+	std::fill(std::begin(h), std::end(h),NACL_INVALID_HANDLE)
 
 #ifdef __native_client__
 	hdr.iov = iov;
@@ -361,6 +369,8 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 	if (hdr.flags & (NACL_MESSAGE_TRUNCATED | NACL_HANDLES_TRUNCATED))
 		Sys::Drop("IPC: Recieved truncated message");
 
+	// NACL_ABI_IMC_DESC_MAX == 8 anyway, so let's avoid useless loops and reallocs
+	reader.GetHandles().reserve(reader.GetHandles().size() + NACL_ABI_IMC_DESC_MAX);
 	for (size_t i = 0; i < NACL_ABI_IMC_DESC_MAX; i++) {
 		if (h[i] != NACL_INVALID_HANDLE) {
 			reader.GetHandles().emplace_back();
