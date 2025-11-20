@@ -236,6 +236,10 @@ MemoryPool EngineAllocator::AllocMemoryPool( const uint32 id, const uint32 size,
 	};
 
 	vkAllocateMemory( device, &memoryInfo, nullptr, ( VkDeviceMemory* ) &memoryPool.memory );
+
+	if ( memoryIDFlags[id] & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
+		vkMapMemory( device, ( VkDeviceMemory ) memoryPool.memory, 0, size, 0, ( void** ) &memoryPool.mappedMemory );
+	}
 	
 	return memoryPool;
 }
@@ -278,7 +282,7 @@ Buffer EngineAllocator::AllocBuffer( MemoryPool& pool, const MemoryRequirements&
 	};
 
 	if ( memoryIDFlags[pool.id] & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
-		vkMapMemory( device, ( VkDeviceMemory ) pool.memory, 0, reqs.size, 0, ( void** ) &res.memory );
+		res.memory = pool.mappedMemory;
 	}
 
 	if ( engineAccess ) {

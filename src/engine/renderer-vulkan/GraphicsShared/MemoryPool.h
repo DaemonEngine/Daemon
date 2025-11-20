@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NumberTypes.h"
 
 #ifdef __cplusplus
-	#define MemoryAddress byte*
+	#define MemoryAddress uint32*
 #else
 	#define MemoryAddress uint64
 #endif
@@ -50,6 +50,7 @@ struct MemoryPool {
 	uint32        offset;
 	bool          dedicatedAlloc;
 	MemoryAddress memory;
+	uint32*       mappedMemory;
 };
 
 #endif // MEMORY_POOL_H
