@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConsoleHistory.h"
 #include "CommandSystem.h"
 #include "LogSystem.h"
+#include "Omp.h"
 #include "System.h"
 #include "CrashDump.h"
 #include "CvarSystem.h"
@@ -829,6 +830,8 @@ static void SetCvarsWithInitFlag(cmdlineArgs_t& cmdlineArgs)
 // Initialize the engine
 static void Init(int argc, char** argv)
 {
+	Omp::Init();
+
 	cmdlineArgs_t cmdlineArgs;
 
 #ifdef _WIN32
