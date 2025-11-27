@@ -199,7 +199,7 @@ inline int my_open(Str::StringRef path, openMode_t mode)
 	if (fd == -1)
 		CloseHandle(h);
 #elif defined(DAEMON_OPEN64)
-	int fd = open64(path.c_str(), modes[mode_] | O_CLOEXEC | O_LARGEFILE, 0666);
+	int fd = open64(path.c_str(), modes[mode_] | O_CLOEXEC, 0666);
 #else
 	// This doesn't actually work in Native Client, but it's not used anyways.
 	// O_CLOEXEC is supported in macOS from 10.7 onwards.
