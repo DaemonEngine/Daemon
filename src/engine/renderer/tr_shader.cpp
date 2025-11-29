@@ -275,6 +275,8 @@ const opstring_t opStrings[] = {
 	{"global5",            opcode_t::OP_GLOBAL5},
 	{"global6",            opcode_t::OP_GLOBAL6},
 	{"global7",            opcode_t::OP_GLOBAL7},
+	{"naiveBlending",      opcode_t::OP_NAIVE_BLENDING},
+	{"linearBlending",     opcode_t::OP_LINEAR_BLENDING},
 	{"fragmentShaders",    opcode_t::OP_FRAGMENTSHADERS},
 	{"frameBufferObjects", opcode_t::OP_FRAMEBUFFEROBJECTS},
 	{"sound",              opcode_t::OP_SOUND},
@@ -358,6 +360,8 @@ static bool IsOperand( opcode_t oc )
 		case opcode_t::OP_GLOBAL5:
 		case opcode_t::OP_GLOBAL6:
 		case opcode_t::OP_GLOBAL7:
+		case opcode_t::OP_NAIVE_BLENDING:
+		case opcode_t::OP_LINEAR_BLENDING:
 		case opcode_t::OP_FRAGMENTSHADERS:
 		case opcode_t::OP_FRAMEBUFFEROBJECTS:
 		case opcode_t::OP_SOUND:
@@ -2009,6 +2013,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	filterType_t filterType;
 	char         buffer[ 1024 ] = "";
 	bool     loadMap = false;
+	bool staticEnabled = true;
 
 	while ( true )
 	{
@@ -2028,6 +2033,12 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "if" ) )
 		{
 			ParseExpression( text, &stage->ifExp );
+		}
+		else if ( !Q_stricmp( token, "ifStatic" ) )
+		{
+			expression_t expr;
+			ParseExpression( text, &expr );
+			staticEnabled = !!RB_EvalExpression( &expr, 1.0f );
 		}
 		// map <name>
 		else if ( !Q_stricmp( token, "map" ) )
@@ -3220,6 +3231,12 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			SkipRestOfLine( text );
 			continue;
 		}
+	}
+
+	if ( !staticEnabled )
+	{
+		// parsing succeeded, but stage disabled
+		return true;
 	}
 
 	// parsing succeeded
@@ -6049,6 +6066,11 @@ shader_t       *R_FindShader( const char *name, int flags )
 	// make sure the render thread is stopped, because we are probably
 	// going to have to upload an image
 	R_SyncRenderThread();
+
+	if ( !( flags & RSF_2D ) && !tr.worldMapLoaded )
+	{
+		Log::Warn( "non-2D shader '%s' registered before map colorspace is known, assuming naive blending", name );
+	}
 
 	ClearGlobalShader();
 
