@@ -44,8 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct GraphicsQueue {
 	QueueType type;
-	uint32 index;
-	VkQueue queue;
+	uint32    index;
+	VkQueue   queue;
 };
 
 struct GraphicsQueueRingBuffer {
