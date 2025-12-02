@@ -81,6 +81,8 @@ set( graphicsCoreMemory
 
 set( graphicsCoreList
     ${graphicsCoreMemory}
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ExecutionGraph/ExecutionGraph.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ExecutionGraph/ExecutionGraph.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Decls.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.h
