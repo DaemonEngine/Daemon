@@ -7,6 +7,8 @@ set( memoryList
     ${ENGINE_DIR}/renderer-vulkan/Memory/Allocator.cpp
     ${ENGINE_DIR}/renderer-vulkan/Memory/Allocator.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/Array.h
+    ${ENGINE_DIR}/renderer-vulkan/Memory/BitStream.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Memory/BitStream.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/DynamicArray.h
     ${ENGINE_DIR}/renderer-vulkan/Memory/Memory.cpp
     ${ENGINE_DIR}/renderer-vulkan/Memory/Memory.h
