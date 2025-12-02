@@ -70,6 +70,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		return FindLSB( value );
 	}
 
+	inline uint32 CountBits( const uint16 value ) {
+		return __builtin_popcount( value );
+	}
+
+	inline uint32 CountBits( const uint32 value ) {
+		return __builtin_popcountl( value );
+	}
+
+	inline uint32 CountBits( const uint64 value ) {
+		return __builtin_popcountll( value );
+	}
+
 #elif defined(DAEMON_USE_COMPILER_INTRINSICS) && defined(_MSC_VER)
 
 	inline uint32 FindLSB( const uint32 value ) {
@@ -108,58 +120,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		return __lzcnt64( value );
 	}
 
-#else
-
-	inline uint32 FindLSB( const uint32 value ) {
-		for ( int i = 0; i < 32; i++ ) {
-			if ( value & ( 1u << i ) ) {
-				return i;
-			}
-		}
-
-		return 32;
+	inline uint16 CountBits( const uint16 value ) {
+		return __popcnt16( value );
 	}
 
-	inline uint32 FindLSB( const uint64 value ) {
-		for ( int i = 0; i < 64; i++ ) {
-			if ( value & ( 1ull << i ) ) {
-				return i;
-			}
-		}
-
-		return 64;
+	inline uint32 CountBits( const uint32 value ) {
+		return __popcnt( value );
 	}
 
-	inline uint32 FindMSB( const uint32 value ) {
-		for ( int i = 31; i >= 0; i-- ) {
-			if ( value & ( 1u << i ) ) {
-				return i;
-			}
-		}
-
-		return 32;
-	}
-
-	inline uint32 FindMSB( const uint64 value ) {
-		for ( int i = 63; i >= 0; i-- ) {
-			if ( value & ( 1ull << i ) ) {
-				return i;
-			}
-		}
-
-		return 63;
-	}
-
-	inline uint16 CountLeadingZeroes( const uint16 value ) {
-		return value ? FindLSB( value ) - 1 : 0;
-	}
-
-	inline uint32 CountLeadingZeroes( const uint32 value ) {
-		return value ? FindLSB( value ) - 1 : 0;
-	}
-
-	inline uint64 CountLeadingZeroes( const uint64 value ) {
-		return value ? FindLSB( value ) - 1 : 0;
+	inline uint64 CountBits( const uint64 value ) {
+		return __popcnt64( value );
 	}
 
 #endif
@@ -283,23 +253,6 @@ inline uint32 FindZeroBitFast( const uint64 value ) {
 
 	const uint32 bit = FindLSB( value );
 	return bit ? bit - 1 : FindLSB( ~value );
-}
-
-inline uint32 CountSetBits( uint64 value ) {
-	uint32 count = 0;
-	while ( value ) {
-		const uint32 forward = FindLSB( value );
-		const uint32 back = FindLSB( ~value );
-
-		if ( forward ) {
-			value >>= forward;
-		} else {
-			value >>= back;
-			count += back;
-		}
-	}
-
-	return count;
 }
 
 #endif // BIT_H
