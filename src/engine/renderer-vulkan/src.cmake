@@ -124,6 +124,7 @@ set( graphicsSharedList
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/MemoryPool.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/MsgStreamAPI.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/NumberTypes.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/PushLayout.h
 )
 
 # Vulkan Loader
