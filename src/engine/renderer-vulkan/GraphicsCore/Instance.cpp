@@ -116,7 +116,7 @@ void Instance::Init( const char* engineName, const char* appName ) {
 		return;
 	}
 
-	QueuesConfig queuesConfig = GetQueuesConfigForDevice( physicalDevice );
+	queuesConfig = GetQueuesConfigForDevice( physicalDevice );
 
 	CreateDevice( physicalDevice, engineConfig, queuesConfig,
 		capabilityPackMinimal.requiredExtensions.memory, capabilityPackMinimal.requiredExtensions.size, &device );
