@@ -134,7 +134,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-[[nodiscard]] inline uint8 SetBit( const uint8 value, const uint32 bit ) {
+// Set a single bit to 1
+
+[[nodiscard]] inline uint8 SetBit(  const uint8 value, const uint32 bit ) {
 	return value | ( 1u << bit );
 }
 
@@ -150,7 +152,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	return value | ( 1ull << bit );
 }
 
-inline void SetBit( uint8* value, const uint32 bit ) {
+inline void SetBit( uint8* value,  const uint32 bit ) {
 	*value |= ( 1u << bit );
 }
 
@@ -166,7 +168,99 @@ inline void SetBit( uint64* value, const uint32 bit ) {
 	*value |= ( 1ull << bit );
 }
 
-[[nodiscard]] inline uint8 UnSetBit( const uint8 value, const uint32 bit ) {
+// Return a uint with only bits in range [start, start + count) set to 1
+
+[[nodiscard]] inline uint8 BitMask8(   const uint32 start, const uint32 count ) {
+	return ( UINT8_MAX  >> ( 8 - count ) ) << start;
+}
+
+[[nodiscard]] inline uint16 BitMask16( const uint32 start, const uint32 count ) {
+	return ( UINT16_MAX >> ( 16 - count ) ) << start;
+}
+
+[[nodiscard]] inline uint32 BitMask32( const uint32 start, const uint32 count ) {
+	return ( UINT32_MAX >> ( 32 - count ) ) << start;
+}
+
+[[nodiscard]] inline uint64 BitMask64( const uint32 start, const uint32 count ) {
+	return ( UINT64_MAX >> ( 64 - count ) ) << start;
+}
+
+// Set bits in range [start, start + count) to 1
+
+[[nodiscard]] inline uint8 SetBits( const uint8 value,  const uint32 start, const uint32 count ) {
+	return value | BitMask8(  start, count );
+}
+
+[[nodiscard]] inline uint16 SetBits( const uint16 value, const uint32 start, const uint32 count ) {
+	return value | BitMask16( start, count );
+}
+
+[[nodiscard]] inline uint32 SetBits( const uint32 value, const uint32 start, const uint32 count ) {
+	return value | BitMask32( start, count );
+}
+
+[[nodiscard]] inline uint64 SetBits( const uint64 value, const uint32 start, const uint32 count ) {
+	return value | BitMask64( start, count );
+}
+
+inline void SetBits( uint8* value, const uint32 start,  const uint32 count ) {
+	*value |= BitMask8(  start,  count );
+}
+
+inline void SetBits( uint16* value, const uint32 start, const uint32 count ) {
+	*value |= BitMask16( start, count );
+}
+
+inline void SetBits( uint32* value, const uint32 start, const uint32 count ) {
+	*value |= BitMask32( start, count );
+}
+
+inline void SetBits( uint64* value, const uint32 start, const uint32 count ) {
+	*value |= BitMask64( start, count );
+}
+
+// Set bits in range [start, start + count) to a given value
+
+[[nodiscard]] inline uint8 SetBits(  const uint8 value,  const uint8 bits, const uint32 start, const uint32 count ) {
+	return ( value & ~BitMask8(  start, count ) )
+		| ( ( bits & BitMask8( 0, count ) ) << start );
+}
+
+[[nodiscard]] inline uint16 SetBits( const uint16 value, const uint16 bits, const uint32 start, const uint32 count ) {
+	return ( value & ~BitMask16( start, count ) )
+	     | ( ( bits & BitMask16( 0, count ) ) << start );
+}
+
+[[nodiscard]] inline uint32 SetBits( const uint32 value, const uint32 bits, const uint32 start, const uint32 count ) {
+	return ( value & ~BitMask32( start, count ) )
+	     | ( ( bits & BitMask32( 0, count ) ) << start );
+}
+
+[[nodiscard]] inline uint64 SetBits( const uint64 value, const uint64 bits, const uint32 start, const uint32 count ) {
+	return ( value & ~BitMask64( start, count ) )
+	     | ( ( bits & BitMask64( 0, count ) ) << start );
+}
+
+inline void SetBits( uint8* value,  const uint8 bits,  const uint32 start, const uint32 count ) {
+	*value = SetBits( *value, bits, start, count );
+}
+
+inline void SetBits( uint16* value, const uint16 bits, const uint32 start, const uint32 count ) {
+	*value = SetBits( *value, bits, start, count );
+}
+
+inline void SetBits( uint32* value, const uint32 bits, const uint32 count, const uint32 start ) {
+	*value = SetBits( *value, bits, start, count );
+}
+
+inline void SetBits( uint64* value, const uint64 bits, const uint32 start, const uint32 count ) {
+	*value = SetBits( *value, bits, start, count );
+}
+
+// Set a single bit to 0
+
+[[nodiscard]] inline uint8 UnSetBit( const uint8 value,   const uint32 bit ) {
 	return value & ~( 1u << bit );
 }
 
@@ -182,7 +276,7 @@ inline void SetBit( uint64* value, const uint32 bit ) {
 	return value & ~( 1ull << bit );
 }
 
-inline void UnSetBit( uint8* value, const uint32 bit ) {
+inline void UnSetBit( uint8* value,  const uint32 bit ) {
 	*value &= ~( 1u << bit );
 }
 
@@ -198,7 +292,25 @@ inline void UnSetBit( uint64* value, const uint32 bit ) {
 	*value &= ~( 1ull << bit );
 }
 
-inline int CompareBit( const uint8 lhs, const uint8 rhs, const uint32 bit ) {
+// Return bits in range [start, start + count) in the lowest bits
+
+[[nodiscard]] inline uint8 GetBits( const uint8 value,   const uint32 start, const uint32 count ) {
+	return ( value >> start ) & BitMask8( 0, count );
+}
+
+[[nodiscard]] inline uint16 GetBits( const uint16 value, const uint32 start, const uint32 count ) {
+	return ( value >> start ) & BitMask16( 0, count );
+}
+
+[[nodiscard]] inline uint32 GetBits( const uint32 value, const uint32 start, const uint32 count ) {
+	return ( value >> start ) & BitMask32( 0, count );
+}
+
+[[nodiscard]] inline uint64 GetBits( const uint64 value, const uint32 start, const uint32 count ) {
+	return ( value >> start ) & BitMask64( 0, count );
+}
+
+inline int CompareBit( const uint8 lhs,  const uint8 rhs, const uint32 bit ) {
 	const uint8 lhsBit = lhs & ( 1u << bit );
 	const uint8 rhsBit = rhs & ( 1u << bit );
 	return lhsBit < rhsBit ? -1 : ( lhsBit > rhsBit ? 1 : 0 );
