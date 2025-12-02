@@ -56,14 +56,14 @@ QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device ) {
 	vkGetPhysicalDeviceQueueFamilyProperties2( device, &config.count, propertiesArray );
 
 	for ( uint32 i = 0; i < config.count; i++ ) {
-		QueueConfig* cfg = &config.queues[i];
+		QueueConfig* cfg                        = &config.queues[i];
 		VkQueueFamilyProperties& coreProperties = propertiesArray[i].queueFamilyProperties;
 		
 		cfg->id = i;
 
-		cfg->type = ( QueueType ) coreProperties.queueFlags;
-		cfg->queues = coreProperties.queueCount;
-		cfg->timestampValidBits = coreProperties.timestampValidBits;
+		cfg->type                        = ( QueueType ) coreProperties.queueFlags;
+		cfg->queues                      = coreProperties.queueCount;
+		cfg->timestampValidBits          = coreProperties.timestampValidBits;
 		cfg->minImageTransferGranularity = coreProperties.minImageTransferGranularity;
 
 		if (          cfg->type & GRAPHICS ) {
@@ -71,13 +71,13 @@ QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device ) {
 			config.graphicsQueue.unique = true;
 		} else if ( ( cfg->type & COMPUTE )  && cfg->queues > config.computeQueue.queues ) {
 			config.computeQueue         = *cfg;
-			config.computeQueue.unique  =  true;
+			config.computeQueue.unique  = true;
 		} else if ( ( cfg->type & TRANSFER ) && cfg->queues > config.transferQueue.queues ) {
 			config.transferQueue        = *cfg;
 			config.transferQueue.unique = true;
 		} else if ( ( cfg->type & SPARSE )   && cfg->queues > config.sparseQueue.queues ) {
 			config.sparseQueue          = *cfg;
-			config.sparseQueue.unique   =   true;
+			config.sparseQueue.unique   = true;
 		}
 	}
 
