@@ -116,6 +116,8 @@ set( graphicsEngineListH
 
 set( graphicsEngineList
     MsgStream.glsl
+    TestV.glsl
+    TestF.glsl
 )
 
 set( graphicsEngineIDEList ${graphicsEngineList} )
