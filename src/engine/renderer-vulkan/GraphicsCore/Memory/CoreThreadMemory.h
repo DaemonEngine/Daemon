@@ -31,48 +31,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Decls.h
+// CoreThreadMemory.h
 
-#ifndef GRAPHICS_CORE_DECLS_H
-#define GRAPHICS_CORE_DECLS_H
+#ifndef CORE_THREAD_MEMORY_H
+#define CORE_THREAD_MEMORY_H
 
-#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
-#define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
+#include "../../Math/NumberTypes.h"
 
-class Instance;
-class Surface;
-struct SwapChain;
+#include "../Decls.h"
 
-struct EngineConfig;
-struct QueuesConfig;
+#include "../QueuesConfig.h"
+#include "../Queue.h"
+#include "../GraphicsCoreStore.h"
 
-VK_DEFINE_HANDLE( VkInstance );
-VK_DEFINE_HANDLE( VkPhysicalDevice );
-VK_DEFINE_HANDLE( VkDevice );
-VK_DEFINE_HANDLE( VkQueue );
+struct GrphicsCoreMemory {
+	VkCommandPool graphicsCmdPool;
+	VkCommandPool computeCmdPool;
+	VkCommandPool transferCmdPool;
+	VkCommandPool sparseCmdPool;
+};
 
-VK_DEFINE_HANDLE( VkCommandBuffer );
+void InitCmdPools();
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSurfaceKHR )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSwapchainKHR )
+extern thread_local GrphicsCoreMemory GMEM;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkDescriptorSetLayout )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkDescriptorSet )
-
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkBuffer )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkImage )
-
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkPipelineLayout )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkPipeline )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkCommandPool )
-
-struct GraphicsQueueRingBuffer;
-
-extern GraphicsQueueRingBuffer graphicsQueue;
-extern GraphicsQueueRingBuffer computeQueue;
-extern GraphicsQueueRingBuffer transferQueue;
-extern GraphicsQueueRingBuffer sparseQueue;
-
-class EngineAllocator;
-
-#endif // GRAPHICS_CORE_DECLS_H
+#endif // CORE_THREAD_MEMORY_H

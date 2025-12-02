@@ -31,48 +31,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Decls.h
+// CoreThreadMemory.cpp
 
-#ifndef GRAPHICS_CORE_DECLS_H
-#define GRAPHICS_CORE_DECLS_H
+#include "CoreThreadMemory.h"
 
-#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
-#define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
+void InitCmdPools() {
+	struct QueuePair {
+		QueueConfig*   cfg;
+		VkCommandPool* cmd;
+	} queues[] {
+		{ &queuesConfig.graphicsQueue, &GMEM.graphicsCmdPool },
+		{ &queuesConfig.computeQueue,  &GMEM.computeCmdPool  },
+		{ &queuesConfig.transferQueue, &GMEM.transferCmdPool },
+		{ &queuesConfig.sparseQueue,   &GMEM.sparseCmdPool   },
+	};
 
-class Instance;
-class Surface;
-struct SwapChain;
+	for ( QueuePair& queuePair : queues ) {
+		if ( queuePair.cfg->unique ) {
+			VkCommandPoolCreateInfo info {
+				.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+				.queueFamilyIndex = queuePair.cfg->id
+			};
 
-struct EngineConfig;
-struct QueuesConfig;
+			vkCreateCommandPool( device, &info, nullptr, queuePair.cmd );
+		}
+	}
+}
 
-VK_DEFINE_HANDLE( VkInstance );
-VK_DEFINE_HANDLE( VkPhysicalDevice );
-VK_DEFINE_HANDLE( VkDevice );
-VK_DEFINE_HANDLE( VkQueue );
-
-VK_DEFINE_HANDLE( VkCommandBuffer );
-
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSurfaceKHR )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSwapchainKHR )
-
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkDescriptorSetLayout )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkDescriptorSet )
-
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkBuffer )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkImage )
-
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkPipelineLayout )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkPipeline )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkCommandPool )
-
-struct GraphicsQueueRingBuffer;
-
-extern GraphicsQueueRingBuffer graphicsQueue;
-extern GraphicsQueueRingBuffer computeQueue;
-extern GraphicsQueueRingBuffer transferQueue;
-extern GraphicsQueueRingBuffer sparseQueue;
-
-class EngineAllocator;
-
-#endif // GRAPHICS_CORE_DECLS_H
+thread_local GrphicsCoreMemory GMEM;
