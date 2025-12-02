@@ -278,7 +278,8 @@ Buffer EngineAllocator::AllocBuffer( MemoryPool& pool, const MemoryRequirements&
 		.buffer       = buffer,
 		.memoryPoolID = pool.id,
 		.offset       = ( uint32 ) ( address - ( uint64 ) pool.memory ),
-		.size         = ( uint32 ) reqs.size
+		.size         = ( uint32 ) reqs.size,
+		.usage        = bufferInfo.usage
 	};
 
 	if ( memoryIDFlags[pool.id] & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {

@@ -77,6 +77,8 @@ struct Buffer {
 	uint32   offset;
 	uint32   size;
 
+	uint32   usage;
+
 	uint32*  memory;
 	uint64   engineMemory;
 };
