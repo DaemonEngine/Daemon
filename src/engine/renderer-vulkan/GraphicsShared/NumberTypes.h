@@ -41,18 +41,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef __cplusplus
-	#define int8   int8_t
-	#define int16  int16_t
-	#define int32  int32_t
-	#define int64  int64_t
+	#define int8    int8_t
+	#define int16   int16_t
+	#define int32   int32_t
+	#define int64   int64_t
 
-	#define uint8  uint8_t
-	#define uint16 uint16_t
-	#define uint32 uint32_t
-	#define uint64 uint64_t
+	#define uint8   uint8_t
+	#define uint16  uint16_t
+	#define uint32  uint32_t
+	#define uint64  uint64_t
 
-	#define byte   uint8_t
-	#define uint   uint32_t
+	#define byte    uint8_t
+	#define uint    uint32_t
 
 	#define float16 float16_t
 	#define float32 float32_t
