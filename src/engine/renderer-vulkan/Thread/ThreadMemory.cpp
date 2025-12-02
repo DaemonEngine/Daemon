@@ -229,7 +229,7 @@ void ThreadMemory::PrintChunkInfo( MemoryChunkRecord* memoryChunk ) {
 			allocs++;
 		}
 
-		if ( offset + record->size > memoryChunk->chunk.size ) {
+		if ( offset + record->size > memoryChunk->chunk.size || !record->size ) {
 			Log::WarnTagT( "Chunk corrupted, allocation out of bounds (offset: %u, allocation size: %u, chunk size: %u),"
 				" aborting chunk info print",
 				offset, record->size, memoryChunk->chunk.size );
