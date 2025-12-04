@@ -80,9 +80,8 @@ static int AshmemCreateRegion(size_t size) {
 int NaClWouldBlock(void) {
   return errno == EAGAIN;
 }
-
 int NaClGetLastErrorString(char* buffer, size_t length) {
-#if NACL_LINUX && !NACL_ANDROID
+#if NACL_LINUX && defined(__GLIBC__)
   char* message;
   /*
    * Note some Linux distributions provide only GNU version of strerror_r().

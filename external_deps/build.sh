@@ -249,7 +249,7 @@ cmake_build() {
 	cmake --install build --strip
 }
 
-# Build pkg-config, needed for opusfile and SDL3.
+# Build pkg-config, needed for opusfile.
 # As a host-mode dependency it must be provided by the system when cross-compiling.
 build_pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
@@ -262,7 +262,12 @@ build_pkgconfig() {
 
 	cd "${dir_name}"
 
-	CFLAGS="${CFLAGS} -Wno-error=int-conversion" \
+	# Reset the environment variables, we don't cross-compile this,
+	# it is part of the cross-compilation toolchain.
+	# CXXFLAGS is unused.
+	CFLAGS='-Wno-error=int-conversion' \
+	LDFLAGS='' \
+	HOST='' \
 	configure_build \
 		--with-internal-glib
 }
@@ -765,6 +770,7 @@ build_openal() {
 		cd "${dir_name}"
 
 		cmake_build \
+			-DALSOFT_UTILS=OFF \
 			"${openal_cmake_args[@]}"
 		;;
 	esac
@@ -1416,7 +1422,7 @@ setup_macos-amd64-default() {
 	MACOS_ARCH=x86_64
 	# OpenAL requires 10.14.
 	export MACOSX_DEPLOYMENT_TARGET=10.14 # works with CMake
-	common_setup macos x86_64-apple-darwin11
+	common_setup macos "x86_64-apple-macos${MACOSX_DEPLOYMENT_TARGET}"
 }
 
 # Set up environment for 32-bit i686 Linux
