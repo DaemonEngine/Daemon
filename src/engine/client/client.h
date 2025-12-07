@@ -430,7 +430,7 @@ extern cvar_t *cl_consoleFontScaling;
 extern cvar_t *cl_consoleFontKerning;
 extern cvar_t *cl_consoleCommand;
 
-extern cvar_t *con_scrollLock;
+extern Cvar::Range<Cvar::Cvar<int>> con_scrollLock;
 
 // XreaL BEGIN
 extern cvar_t *cl_aviFrameRate;
