@@ -39,7 +39,9 @@ void InitCmdPools() {
 	struct QueuePair {
 		QueueConfig*   cfg;
 		VkCommandPool* cmd;
-	} queues[] {
+	};
+	
+	QueuePair queues[] {
 		{ &queuesConfig.graphicsQueue, &GMEM.graphicsCmdPool },
 		{ &queuesConfig.computeQueue,  &GMEM.computeCmdPool  },
 		{ &queuesConfig.transferQueue, &GMEM.transferCmdPool },
@@ -50,6 +52,24 @@ void InitCmdPools() {
 		if ( queuePair.cfg->unique ) {
 			VkCommandPoolCreateInfo info {
 				.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+				.queueFamilyIndex = queuePair.cfg->id
+			};
+
+			vkCreateCommandPool( device, &info, nullptr, queuePair.cmd );
+		}
+	}
+
+	QueuePair instantQueues[] {
+		{ &queuesConfig.graphicsQueue, &GMEM.instantGraphicsCmdPool },
+		{ &queuesConfig.computeQueue,  &GMEM.instantComputeCmdPool  },
+		{ &queuesConfig.transferQueue, &GMEM.instantTransferCmdPool },
+		{ &queuesConfig.sparseQueue,   &GMEM.instantSparseCmdPool   },
+	};
+
+	for ( QueuePair& queuePair : instantQueues ) {
+		if ( queuePair.cfg->unique ) {
+			VkCommandPoolCreateInfo info {
+				.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
 				.queueFamilyIndex = queuePair.cfg->id
 			};
 

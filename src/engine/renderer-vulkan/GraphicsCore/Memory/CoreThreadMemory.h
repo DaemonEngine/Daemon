@@ -49,6 +49,11 @@ struct GrphicsCoreMemory {
 	VkCommandPool computeCmdPool;
 	VkCommandPool transferCmdPool;
 	VkCommandPool sparseCmdPool;
+
+	VkCommandPool instantGraphicsCmdPool;
+	VkCommandPool instantComputeCmdPool;
+	VkCommandPool instantTransferCmdPool;
+	VkCommandPool instantSparseCmdPool;
 };
 
 void InitCmdPools();
