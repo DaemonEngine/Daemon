@@ -223,7 +223,7 @@ namespace Cvar {
         cvar->description = std::move(realDescription);
     }
 
-    void InternalSetValue(const std::string& cvarName, std::string value, int flags, bool rom, bool warnRom) {
+    void InternalSetValue(const std::string& cvarName, std::string value, bool rom, bool warnRom) {
         CvarMap& cvars = GetCvarMap();
 
         auto it = cvars.find(cvarName);
@@ -235,7 +235,7 @@ namespace Cvar {
             }
 
             //The user creates a new cvar through a command.
-            cvars[cvarName] = new cvarRecord_t{value, value, Util::nullopt, flags | CVAR_USER_CREATED, "user created", nullptr, {}};
+            cvars[cvarName] = new cvarRecord_t{value, value, Util::nullopt, CVAR_USER_CREATED, "user created", nullptr, {}};
             Cmd::AddCommand(cvarName, cvarCommand, "cvar - user created");
             GetCCvar(cvarName, *cvars[cvarName]);
 
@@ -262,8 +262,6 @@ namespace Cvar {
                     return;
                 }
             }
-
-            cvar->flags |= flags;
 
             // mark for archival if flagged as archive-on-change
             if (cvar->flags & ARCHIVE) {
@@ -302,11 +300,11 @@ namespace Cvar {
 
     // Simple proxies for InternalSetValue
     void SetValue(const std::string& cvarName, const std::string& value) {
-        InternalSetValue(cvarName, value, 0, false, true);
+        InternalSetValue(cvarName, value, false, true);
     }
 
     void SetValueForce(const std::string& cvarName, const std::string& value) {
-        InternalSetValue(cvarName, value, 0, true, true);
+        InternalSetValue(cvarName, value, true, true);
     }
 
     std::string GetValue(const std::string& cvarName) {
@@ -578,7 +576,7 @@ namespace Cvar {
     }
 
     void SetValueCProxy(const std::string& cvarName, const std::string& value) {
-        InternalSetValue(cvarName, value, 0, true, false);
+        InternalSetValue(cvarName, value, true, false);
     }
 
     /*
