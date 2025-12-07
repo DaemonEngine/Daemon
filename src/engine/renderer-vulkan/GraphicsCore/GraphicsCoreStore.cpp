@@ -68,6 +68,6 @@ GraphicsQueueRingBuffer transferQueue;
 GraphicsQueueRingBuffer sparseQueue;
 
 VkDescriptorSetLayout descriptorSetLayout;
-VkDescriptorSet descriptorSet;
+VkDescriptorSet       descriptorSet;
 
 EngineAllocator engineAllocator;

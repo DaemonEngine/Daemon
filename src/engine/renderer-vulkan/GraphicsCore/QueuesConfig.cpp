@@ -50,48 +50,48 @@ static const QueueConfig* GetQueueConfigForType( QueuesConfig& config, const Que
 }
 
 QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device ) {
-	QueuesConfig config { .count = 8 };
+	QueuesConfig config;
 
 	VkQueueFamilyProperties2 propertiesArray[8] {};
 	vkGetPhysicalDeviceQueueFamilyProperties2( device, &config.count, propertiesArray );
 
 	for ( uint32 i = 0; i < config.count; i++ ) {
-		QueueConfig* cfg                        = &config.queues[i];
+		QueueConfig& cfg                        = config.queues[i];
 		VkQueueFamilyProperties& coreProperties = propertiesArray[i].queueFamilyProperties;
 		
-		cfg->id = i;
+		cfg.id = i;
 
-		cfg->type                        = ( QueueType ) coreProperties.queueFlags;
-		cfg->queues                      = coreProperties.queueCount;
-		cfg->timestampValidBits          = coreProperties.timestampValidBits;
-		cfg->minImageTransferGranularity = coreProperties.minImageTransferGranularity;
+		cfg.type                        = ( QueueType ) coreProperties.queueFlags;
+		cfg.queueCount                  = coreProperties.queueCount;
+		cfg.timestampValidBits          = coreProperties.timestampValidBits;
+		cfg.minImageTransferGranularity = coreProperties.minImageTransferGranularity;
 
-		if (          cfg->type & GRAPHICS ) {
-			config.graphicsQueue        = *cfg;
+		if (          cfg.type & GRAPHICS ) {
+			config.graphicsQueue        = cfg;
 			config.graphicsQueue.unique = true;
-		} else if ( ( cfg->type & COMPUTE )  && cfg->queues > config.computeQueue.queues ) {
-			config.computeQueue         = *cfg;
+		} else if ( ( cfg.type & COMPUTE )  && !config.computeQueue.queueCount ) {
+			config.computeQueue         = cfg;
 			config.computeQueue.unique  = true;
-		} else if ( ( cfg->type & TRANSFER ) && cfg->queues > config.transferQueue.queues ) {
-			config.transferQueue        = *cfg;
+		} else if ( ( cfg.type & TRANSFER ) && !config.transferQueue.queueCount ) {
+			config.transferQueue        = cfg;
 			config.transferQueue.unique = true;
-		} else if ( ( cfg->type & SPARSE )   && cfg->queues > config.sparseQueue.queues ) {
-			config.sparseQueue          = *cfg;
+		} else if ( ( cfg.type & SPARSE )   && !config.sparseQueue.queueCount ) {
+			config.sparseQueue          = cfg;
 			config.sparseQueue.unique   = true;
 		}
 	}
 
-	if ( !config.computeQueue.queues ) {
+	if ( !config.computeQueue.queueCount ) {
 		config.computeQueue         = *GetQueueConfigForType( config, COMPUTE );
 		config.computeQueue.unique  = false;
 	}
 
-	if ( !config.transferQueue.queues ) {
+	if ( !config.transferQueue.queueCount ) {
 		config.transferQueue        = *GetQueueConfigForType( config, TRANSFER );
 		config.transferQueue.unique = false;
 	}
 
-	if ( !config.sparseQueue.queues ) {
+	if ( !config.sparseQueue.queueCount ) {
 		config.sparseQueue          = *GetQueueConfigForType( config, SPARSE );
 		config.sparseQueue.unique   = false;
 	}

@@ -36,10 +36,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef QUEUES_CONFIG_H
 #define QUEUES_CONFIG_H
 
-#include "Vulkan.h"
-
 #include "../Math/NumberTypes.h"
 #include "../Memory/IteratorSeq.h"
+
+#include "Vulkan.h"
 
 enum QueueType {
 	GRAPHICS = VK_QUEUE_GRAPHICS_BIT,
@@ -49,12 +49,12 @@ enum QueueType {
 };
 
 struct QueueConfig {
-	uint32 id;
-	bool unique;
+	uint32     id;
+	bool       unique;
 
-	QueueType type;
-	uint32 queues = 0;
-	uint32 timestampValidBits;
+	QueueType  type;
+	uint32     queueCount = 0;
+	uint32     timestampValidBits;
 	VkExtent3D minImageTransferGranularity;
 };
 
@@ -64,7 +64,7 @@ struct QueuesConfig {
 	QueueConfig transferQueue;
 	QueueConfig sparseQueue;
 
-	uint32 count;
+	uint32      count = 8;
 	QueueConfig queues[8];
 
 	constexpr QueueConfig& operator[]( const uint32 index ) {

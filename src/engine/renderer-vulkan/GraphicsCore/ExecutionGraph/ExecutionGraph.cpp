@@ -623,7 +623,7 @@ void TestCmd() {
 			.pSignalSemaphores = &semaphore
 		};
 
-		vkQueueSubmit( graphicsQueue.queues[0].queue, 1, &qInfo, nullptr );
+		vkQueueSubmit( graphicsQueue.queues[0], 1, &qInfo, nullptr );
 
 		vkWaitSemaphores( device, &waitInfo, UINT64_MAX );
 
@@ -651,7 +651,7 @@ void TestCmd() {
 		presentInfo.pImageIndices = &index;
 		presentInfo.pResults = nullptr;
 
-		vkQueuePresentKHR( graphicsQueue.queues[0].queue, &presentInfo );
+		vkQueuePresentKHR( graphicsQueue.queues[0], &presentInfo );
 
 		vkDeviceWaitIdle( device );
 

@@ -42,20 +42,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "QueuesConfig.h"
 
-struct GraphicsQueue {
-	QueueType type;
-	uint32    index;
-	VkQueue   queue;
-};
-
 struct GraphicsQueueRingBuffer {
 	static constexpr uint32 maxQueues = 64;
 
-	uint32 id;
+	VkQueue queues[maxQueues] {};
 
-	GraphicsQueue queues[maxQueues] {};
-
-	void Init( const VkDevice device, const uint32 queueGroup, uint32 count );
+	void Init( const VkDevice device, const uint32 id, uint32 count );
 };
 
 #endif // QUEUE_H

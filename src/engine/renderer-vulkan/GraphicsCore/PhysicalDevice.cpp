@@ -145,7 +145,7 @@ void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config,
 
 	for ( uint32 i = 0; i < queuesConfig.count; i++ ) {
 		DynamicArray<float> priorities;
-		priorities.Resize( queuesConfig[i].queues );
+		priorities.Resize( queuesConfig[i].queueCount );
 
 		for ( float* value = priorities.memory; value < priorities.memory + priorities.size; value++ ) {
 			*value = 1.0f;
@@ -154,7 +154,7 @@ void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config,
 		VkDeviceQueueCreateInfo& queueInfo = queueInfos[i];
 
 		queueInfo.queueFamilyIndex = i;
-		queueInfo.queueCount       = queuesConfig[i].queues;
+		queueInfo.queueCount       = queuesConfig[i].queueCount;
 		queueInfo.pQueuePriorities = priorities.memory;
 	}
 

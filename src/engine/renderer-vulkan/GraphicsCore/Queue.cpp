@@ -37,18 +37,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Queue.h"
 
-void GraphicsQueueRingBuffer::Init( const VkDevice device, const uint32 queueGroup, uint32 count ) {
-	id    = queueGroup;
+void GraphicsQueueRingBuffer::Init( const VkDevice device, const uint32 id, uint32 count ) {
 	count = count > maxQueues ? maxQueues : count;
 
-	for ( GraphicsQueue* queue = queues; queue < queues + count; queue++ ) {
+	for ( VkQueue* queue = queues; queue < queues + count; queue++ ) {
 		VkDeviceQueueInfo2 info {
 			.queueFamilyIndex = id,
 			.queueIndex       = ( uint32 ) ( queue - queues )
 		};
 
-		vkGetDeviceQueue2( device, &info, &queue->queue );
-
-		queue->index = info.queueIndex;
+		vkGetDeviceQueue2( device, &info, queue );
 	}
 }

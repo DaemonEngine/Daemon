@@ -126,10 +126,10 @@ void Instance::Init( const char* engineName, const char* appName ) {
 	mainSwapChain.Init( instance );
 
 	std::string foundQueues = "Found queues: graphics (present: true)";
-	graphicsQueue.Init( device, queuesConfig.graphicsQueue.id, queuesConfig.graphicsQueue.queues );
+	graphicsQueue.Init( device, queuesConfig.graphicsQueue.id, queuesConfig.graphicsQueue.queueCount );
 
 	uint32 presentSupported;
-	vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, graphicsQueue.id, mainSwapChain.surface, &presentSupported );
+	vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, queuesConfig.graphicsQueue.id, mainSwapChain.surface, &presentSupported );
 
 	if ( !presentSupported ) {
 		Err( "Graphics queue doesn't support present" );
@@ -137,18 +137,18 @@ void Instance::Init( const char* engineName, const char* appName ) {
 	}
 
 	if( queuesConfig.computeQueue.unique ) {
-		computeQueue.Init(  device, queuesConfig.computeQueue.id,  queuesConfig.computeQueue.queues );
-		vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, computeQueue.id, mainSwapChain.surface, &presentSupported );
+		computeQueue.Init(  device, queuesConfig.computeQueue.id,  queuesConfig.computeQueue.queueCount );
+		vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, queuesConfig.computeQueue.id, mainSwapChain.surface, &presentSupported );
 		foundQueues += Str::Format( ", async compute (present: %s)", ( bool ) presentSupported );
 	}
 
 	if ( queuesConfig.transferQueue.unique ) {
-		transferQueue.Init( device, queuesConfig.transferQueue.id, queuesConfig.transferQueue.queues );
+		transferQueue.Init( device, queuesConfig.transferQueue.id, queuesConfig.transferQueue.queueCount );
 		foundQueues += Str::Format( ", async transfer" );
 	}
 
 	if ( queuesConfig.sparseQueue.unique ) {
-		sparseQueue.Init(   device, queuesConfig.sparseQueue.id,   queuesConfig.sparseQueue.queues );
+		sparseQueue.Init(   device, queuesConfig.sparseQueue.id,   queuesConfig.sparseQueue.queueCount );
 		foundQueues += Str::Format( ", async sparse binding" );
 	}
 
