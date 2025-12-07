@@ -416,8 +416,8 @@ namespace Cvar {
             }
 
             cvar->flags |= flags;
+            cvar->ccvar.flags |= flags;
 
-            //TODO: remove it, overkill ?
             //Make sure to trigger the event as if this variable was changed
             cvar_modifiedFlags |= flags;
             return true; // success
