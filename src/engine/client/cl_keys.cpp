@@ -331,7 +331,7 @@ static void Console_Key( Keyboard::Key key )
 	if (key == Key(K_ENTER) or key == Key(K_KP_ENTER)) {
 
 		//scroll lock state 1 or smaller will scroll down on own output
-		if (con_scrollLock->integer <= 1) {
+		if (con_scrollLock.Get() <= 1) {
 			consoleState.scrollLineIndex = consoleState.lines.size() - 1;
 		}
 
