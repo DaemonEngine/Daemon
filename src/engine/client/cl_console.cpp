@@ -307,6 +307,7 @@ bool Con_CheckResize()
 	{
 		int consoleVidWidth = cls.windowConfig.vidWidth - 2 * (consoleState.margin.sides + consoleState.padding.sides );
 		textWidthInChars = consoleVidWidth / SCR_ConsoleFontUnicharWidth( 'W' );
+		textWidthInChars = std::max( 1, textWidthInChars );
 	}
 	else
 	{
@@ -875,7 +876,7 @@ void Con_DrawConsoleContent()
 
 		re.SetColor( console_color_alpha );
 
-        for ( const auto& token : Color::Parser( consoleState.lines[row].c_str(), console_color_alpha ) )
+        for ( const auto& token : Color::Parser( consoleState.lines.at( row ).c_str(), console_color_alpha ) )
 		{
 			if ( token.Type() == Color::Token::TokenType::COLOR )
 			{
