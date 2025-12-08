@@ -66,20 +66,20 @@ Cvar::Range<Cvar::Cvar<int>> con_scrollLock("con_scrollLock",
 
 Cvar::Cvar<std::string> con_prompt("con_prompt", "text at start of console input line", Cvar::NONE, "^3->");
 
-cvar_t    *con_borderWidth;
-cvar_t    *con_borderColorAlpha;
-cvar_t    *con_borderColorRed;
-cvar_t    *con_borderColorBlue;
-cvar_t    *con_borderColorGreen;
+Cvar::Cvar<int> con_borderWidth("con_borderWidth", "thickness of console border and scrollbar", Cvar::NONE, 1);
+Cvar::Range<Cvar::Cvar<float>> con_borderColorAlpha("con_borderColorAlpha", "alpha component of console border color", Cvar::NONE, 0.2, 0.0, 1.0);
+Cvar::Range<Cvar::Cvar<float>> con_borderColorRed("con_borderColorRed", "red component of console border color", Cvar::NONE, 1, 0.0, 1.0);
+Cvar::Range<Cvar::Cvar<float>> con_borderColorBlue("con_borderColorBlue", "blue component of console border color", Cvar::NONE, 1, 0.0, 1.0);
+Cvar::Range<Cvar::Cvar<float>> con_borderColorGreen("con_borderColorGreen", "green component of console border color", Cvar::NONE, 1, 0.0, 1.0);
 
-cvar_t    *con_margin;
-cvar_t    *con_horizontalPadding;
+Cvar::Cvar<float> con_margin("con_margin", "distance between console and screen edges (sides only if negative)", Cvar::NONE, 10);
+Cvar::Cvar<float> con_horizontalPadding("con_horizontalPadding", "space between console edges and text (auto if 0)", Cvar::NONE, 0);
 
-cvar_t    *con_height;
-cvar_t    *con_colorAlpha;
-cvar_t    *con_colorRed;
-cvar_t    *con_colorBlue;
-cvar_t    *con_colorGreen;
+Cvar::Range<Cvar::Cvar<float>> con_height("con_height", "console height as percent of screen", Cvar::NONE, 55, 1, 100);
+Cvar::Range<Cvar::Cvar<float>> con_colorAlpha("con_colorAlpha", "alpha component of console background color", Cvar::NONE, 0.5, 0.0, 1.0);
+Cvar::Range<Cvar::Cvar<float>> con_colorRed("con_colorRed", "red component of console background color", Cvar::NONE, 0, 0.0, 1.0);
+Cvar::Range<Cvar::Cvar<float>> con_colorBlue("con_colorBlue", "blue component of console background color", Cvar::NONE, 0.3, 0.0, 1.0);
+Cvar::Range<Cvar::Cvar<float>> con_colorGreen("con_colorGreen", "green component of console background color", Cvar::NONE, 0.18, 0.0, 1.0);
 
 /**
  * allows for debugging the console without using the consoles scrollback,
@@ -394,21 +394,6 @@ Con_Init
 void Con_Init()
 {
 
-	con_height = Cvar_Get( "con_height", "55", 0 );
-	con_colorRed = Cvar_Get( "con_colorRed", "0", 0 );
-	con_colorBlue = Cvar_Get( "con_colorBlue", "0.3", 0 );
-	con_colorGreen = Cvar_Get( "con_colorGreen", "0.18", 0 );
-	con_colorAlpha = Cvar_Get( "con_colorAlpha", "0.5", 0 );
-
-	con_margin = Cvar_Get( "con_margin", "10", 0 );
-	con_horizontalPadding = Cvar_Get( "con_horizontalPadding", "0", 0 );
-
-	con_borderWidth = Cvar_Get( "con_borderWidth", "1", 0 );
-	con_borderColorRed = Cvar_Get( "con_borderColorRed", "1", 0 );
-	con_borderColorBlue = Cvar_Get( "con_borderColorBlue", "1", 0 );
-	con_borderColorGreen = Cvar_Get( "con_borderColorGreen", "1", 0 );
-	con_borderColorAlpha = Cvar_Get( "con_borderColorAlpha", "0.2", 0 );
-
 	// Done defining cvars for console colors
 
 	if ( !con_persistOnMapChange.Get() ) {
@@ -585,23 +570,23 @@ void Con_DrawBackground()
 
 	// draw the background
 	Color::Color color (
-		con_colorRed->value,
-		con_colorGreen->value,
-		con_colorBlue->value,
-		con_colorAlpha->value * consoleState.currentAlphaFactor
+		con_colorRed.Get(),
+		con_colorGreen.Get(),
+		con_colorBlue.Get(),
+		con_colorAlpha.Get() * consoleState.currentAlphaFactor
 	);
 
 	SCR_FillRect( consoleState.margin.sides, consoleState.margin.top, consoleWidth, consoleState.height, color );
 
 	// draw the backgrounds borders
 	Color::Color borderColor (
-		con_borderColorRed->value,
-		con_borderColorGreen->value,
-		con_borderColorBlue->value,
-		con_borderColorAlpha->value * consoleState.currentAlphaFactor
+		con_borderColorRed.Get(),
+		con_borderColorGreen.Get(),
+		con_borderColorBlue.Get(),
+		con_borderColorAlpha.Get() * consoleState.currentAlphaFactor
 	);
 
-	if ( con_margin->integer )
+	if ( con_margin.Get() != 0 )
 	{
 		//top border
 		SCR_FillRect( consoleState.margin.sides - consoleState.border.sides,
@@ -967,15 +952,15 @@ void Con_UpdateConsoleState()
 	 * different widths for horizontal and vertical borders due to different resolution-ratios
 	 * since that isn't as nice looking as with areas
 	 */
-	consoleState.border.bottom = std::max( 0, con_borderWidth->integer );
+	consoleState.border.bottom = std::max( 0, con_borderWidth.Get() );
 
-	if(con_margin->value > 0) {
-		horizontalMargin = con_margin->value;
-		verticalMargin = con_margin->value;
+	if(con_margin.Get() > 0) {
+		horizontalMargin = con_margin.Get();
+		verticalMargin = con_margin.Get();
 		consoleState.border.sides = consoleState.border.bottom;
 		consoleState.border.top = consoleState.border.bottom;
 	} else {
-		horizontalMargin = - con_margin->value;
+		horizontalMargin = - con_margin.Get();
 		verticalMargin = 0;
 		consoleState.border.sides = 0;
 		consoleState.border.top = 0;
@@ -994,9 +979,9 @@ void Con_UpdateConsoleState()
 	consoleState.padding.bottom = std::max( 3, consoleState.padding.top );
 
 	// on wide screens, this will lead to somewhat of a centering of the text
-	if(con_horizontalPadding->integer)
+	if(con_horizontalPadding.Get() > 0)
 	{
-		float horizontalVidPadding = con_horizontalPadding->value;
+		float horizontalVidPadding = con_horizontalPadding.Get();
 		SCR_AdjustFrom640( &horizontalVidPadding, nullptr, nullptr, nullptr );
 		consoleState.padding.sides = horizontalVidPadding;
 	}
@@ -1014,7 +999,7 @@ void Con_UpdateConsoleState()
 	/*
 	 * calculate current console height
 	 */
-	consoleState.height = con_height->integer * 0.01f * (cls.windowConfig.vidHeight
+	consoleState.height = con_height.Get() * 0.01f * (cls.windowConfig.vidHeight
 						- consoleState.margin.top - consoleState.margin.bottom
 						- consoleState.border.top - consoleState.border.bottom
 						);
@@ -1058,30 +1043,25 @@ void Con_RunAnimatedConsole()
 {
 	int consoleVidWidth;
 
-	if (con_height->value > 100.0f || con_height->value < 1.0f )
-	{
-		Cvar_Reset(con_height->name);
-	}
-
 	Con_UpdateConsoleState( );
 
 	//now check everything that is depending on the consolestate
-	if (con_height->value < con_margin->value || ( consoleState.visibleAmountOfLines < 1 && consoleState.currentAnimationFraction == 1.0f ) )
+	if (con_height.Get() < con_margin.Get() || ( consoleState.visibleAmountOfLines < 1 && consoleState.currentAnimationFraction == 1.0f ) )
 	{
-		Cvar_Reset(con_height->name);
-		Cvar_Reset(con_margin->name);
+		con_height.Reset();
+		con_margin.Reset();
 		Con_UpdateConsoleState( ); //recalculate
 	}
 
 	consoleVidWidth = cls.windowConfig.vidWidth - 2 * (consoleState.margin.sides + consoleState.padding.sides );
 
-	if( 2 * con_horizontalPadding->value >= consoleVidWidth )
+	if( 2 * con_horizontalPadding.Get() >= consoleVidWidth )
 	{
-		Cvar_Reset(con_horizontalPadding->name);
+		con_horizontalPadding.Reset();
 
 		//to be sure, its not the caus of this happening and resulting in a loop
-		Cvar_Reset(con_borderWidth->name);
-		Cvar_Reset(con_margin->name);
+		con_borderWidth.Reset();
+		con_margin.Reset();
 		Con_UpdateConsoleState( );  //recalculate
 	}
 
