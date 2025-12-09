@@ -592,18 +592,19 @@ void Con_DrawBackground()
 		//top border
 		SCR_FillRect( consoleState.margin.sides - consoleState.border.sides,
 		              consoleState.margin.top - consoleState.border.top,
-		              consoleWidth + consoleState.border.sides, consoleState.border.top, borderColor );
+		              consoleWidth + 2 * consoleState.border.sides, consoleState.border.top, borderColor );
+
 		//left border
 		SCR_FillRect( consoleState.margin.sides - consoleState.border.sides, consoleState.margin.top,
-		              consoleState.border.sides, consoleState.height + consoleState.border.bottom, borderColor );
+		              consoleState.border.sides, consoleState.height, borderColor );
 
 		//right border
-		SCR_FillRect( cls.windowConfig.vidWidth - consoleState.margin.sides, consoleState.margin.top - consoleState.border.top,
-		              consoleState.border.sides, consoleState.border.top + consoleState.height, borderColor );
+		SCR_FillRect( cls.windowConfig.vidWidth - consoleState.margin.sides, consoleState.margin.top,
+		              consoleState.border.sides, consoleState.height, borderColor );
 
 		//bottom border
-		SCR_FillRect( consoleState.margin.sides, consoleState.height + consoleState.margin.top + consoleState.border.top - consoleState.border.bottom,
-		              consoleWidth + consoleState.border.sides, consoleState.border.bottom, borderColor );
+		SCR_FillRect( consoleState.margin.sides - consoleState.border.sides, consoleState.height + consoleState.margin.top,
+		              consoleWidth + 2 * consoleState.border.sides, consoleState.border.bottom, borderColor );
 	}
 	else
 	{
@@ -963,7 +964,7 @@ void Con_UpdateConsoleState()
 	} else {
 		horizontalMargin = - con_margin.Get();
 		verticalMargin = 0;
-		consoleState.border.sides = 0;
+		consoleState.border.sides = con_margin.Get() != 0 ? consoleState.border.bottom : 0;
 		consoleState.border.top = 0;
 	}
 
