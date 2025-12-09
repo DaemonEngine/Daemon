@@ -36,16 +36,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <signal.h>
 #ifdef __linux__
-#include <linux/version.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0)
-#include <sys/syscall.h>
-#include <linux/random.h>
-#define HAS_GETRANDOM_SYSCALL 1
-#endif
+#include <sys/random.h>
 #endif
 #ifdef __native_client__
-#include <nacl/nacl_exception.h>
-#include <nacl/nacl_minidump.h>
+#include <nacl/native_client/src/include/nacl/nacl_minidump.h>
 #include <nacl/nacl_random.h>
 #else
 #include <dlfcn.h>
@@ -57,19 +51,77 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcommon/sys.h"
 #endif
 
+#include "StackTrace.h"
+
 namespace Sys {
 
 // https://devblogs.microsoft.com/oldnewthing/20120105-00/?p=8683
 // TODO: also use in VMs when cvars can be observed from multiple modules
 // This option can be turned on when debugging memory management
 #ifdef BUILD_ENGINE
-Cvar::Cvar<bool> pedanticShutdown("common.pedanticShutdown", "run useless shutdown procedures before exit", Cvar::NONE,
-#ifdef __SANITIZE_ADDRESS__
-	true);
+#ifdef USING_SANITIZER
+constexpr bool defaultPedanticShutdown = true;
 #else
-	false);
+constexpr bool defaultPedanticShutdown = false;
+#endif
+#if defined( DAEMON_RENDERER_VULKAN )
+static Cvar::Cvar<bool> pedanticShutdown( "common.pedanticShutdown", "Daemon-vulkan always does proper shutdown", Cvar::ROM, true );
+#else
+static Cvar::Cvar<bool> pedanticShutdown("common.pedanticShutdown", "run useless shutdown procedures before exit", Cvar::NONE, defaultPedanticShutdown);
 #endif
 #endif // BUILD_ENGINE
+
+#if defined(BUILD_ENGINE) && defined(_WIN32)
+bool isRunningOnWine()
+{
+	// See https://www.winehq.org/pipermail/wine-devel/2008-September/069387.html
+	HMODULE hNTDLL = GetModuleHandle( "ntdll.dll" );
+	return hNTDLL && (void*) GetProcAddress( hNTDLL, "wine_get_version" );
+}
+
+const char* getWineHostSystem()
+{
+	const char *system = nullptr;
+
+	// See https://forum.winehq.org/viewtopic.php?p=84448#p84448
+	HMODULE hNTDLL = GetModuleHandle( "ntdll.dll" );
+
+	if ( hNTDLL )
+	{
+		using wine_get_host_version_t = long long int(*)(const char**, const char**);
+
+		// HACK: C++ standard does not allow to cast function pointer to function pointer directly.
+		// See https://stackoverflow.com/a/56622668/9131399
+		wine_get_host_version_t wine_get_host_version = reinterpret_cast<wine_get_host_version_t>(
+			reinterpret_cast<uintptr_t>( GetProcAddress( hNTDLL, "wine_get_host_version" ) ) );
+
+		if ( wine_get_host_version )
+		{
+			wine_get_host_version( &system, nullptr );
+		}
+	}
+
+	return system;
+}
+#endif
+
+int SetEnv( const char* name, const char* value )
+{
+#ifdef _WIN32
+	return putenv( va( "%s=%s", name, value ) );
+#else
+	return setenv( name, value, true );
+#endif
+}
+
+int UnsetEnv( const char* name )
+{
+#ifdef _WIN32
+	return putenv( name );
+#else
+	return unsetenv( name );
+#endif
+}
 
 #ifdef _WIN32
 SteadyClock::time_point SteadyClock::now() NOEXCEPT
@@ -164,8 +216,22 @@ int Milliseconds() {
 #endif
 }
 
+#ifdef BUILD_VM_IN_PROCESS
+std::thread::id mainThread;
+#else
+static const std::thread::id mainThread = std::this_thread::get_id();
+#endif
+bool OnMainThread()
+{
+	return std::this_thread::get_id() == mainThread;
+}
+
 void Drop(Str::StringRef message)
 {
+	if (!OnMainThread()) {
+		Sys::Error(message);
+	}
+
 	// Transform into a fatal error if too many errors are generated in quick
 	// succession.
 	static Sys::SteadyClock::time_point lastError;
@@ -174,9 +240,12 @@ void Drop(Str::StringRef message)
 	if (now - lastError < std::chrono::milliseconds(100)) {
 		if (++errorCount > 3)
 			Sys::Error(message);
-	} else
+	} else {
 		errorCount = 0;
+	}
 	lastError = now;
+
+	PrintStackTrace();
 
 	throw DropErr(true, message);
 }
@@ -252,22 +321,38 @@ static const char *WindowsExceptionString(DWORD code)
 		return "Unknown exception";
 	}
 }
+
+#ifdef _MSC_VER
+// The standard library implements calling std::terminate with an exception filter
+static LPTOP_LEVEL_EXCEPTION_FILTER originalExceptionFilter;
+#endif
+
  ALIGN_STACK_FOR_MINGW static LONG WINAPI CrashHandler(PEXCEPTION_POINTERS ExceptionInfo)
 {
 	// Reset handler so that any future errors cause a crash
 	SetUnhandledExceptionFilter(nullptr);
 
-	// TODO: backtrace
+#ifdef _MSC_VER
+	constexpr DWORD CPP_EXCEPTION = 0xe06d7363;
+	if (ExceptionInfo->ExceptionRecord->ExceptionCode == CPP_EXCEPTION && originalExceptionFilter) {
+		return originalExceptionFilter(ExceptionInfo);
+	}
+#endif
 
 	Sys::Error("Crashed with exception 0x%lx: %s", ExceptionInfo->ExceptionRecord->ExceptionCode, WindowsExceptionString(ExceptionInfo->ExceptionRecord->ExceptionCode));
 }
 void SetupCrashHandler()
 {
+#ifdef _MSC_VER
+	originalExceptionFilter =
+#endif
 	SetUnhandledExceptionFilter(CrashHandler);
 }
 #elif defined(__native_client__)
 static void CrashHandler(const void* data, size_t n)
 {
+    // Note: this only works on the main thread. Otherwise we hit
+    // Sys::Error("SendMsg from non-main VM thread");
     VM::CrashDump(static_cast<const uint8_t*>(data), n);
     Sys::Error("Crashed with NaCl exception");
 }
@@ -351,15 +436,23 @@ intptr_t DynamicLib::InternalLoadSym(Str::StringRef sym, std::string& errorStrin
 #endif // __native_client__
 
 #ifdef BUILD_ENGINE
-bool processTerminating = false;
+static bool processTerminating = false;
 
 void OSExit(int exitCode) {
 	processTerminating = true;
 	if (PedanticShutdown()) {
 		exit(exitCode);
 	} else {
-		// mingw does not have std::quick_exit
+#ifdef _WIN32
+		// _exit runs full shutdown for DLLs including global destructors, ewww
+		TerminateProcess(GetCurrentProcess(), exitCode);
+		// There are rumors of TerminateProcess returning: https://crbug.com/820518. Crash to be sure
+		volatile auto p = (volatile char*)1;
+		*p = 123;
+		ASSERT_UNREACHABLE();
+#else
 		_exit(exitCode);
+#endif
 	}
 }
 
@@ -388,42 +481,44 @@ void GenRandomBytes(void* dest, size_t size)
 	size_t bytes_written;
 	if (nacl_secure_random(dest, size, &bytes_written) != 0 || bytes_written != size)
 		Sys::Error("nacl_secure_random failed");
-#elif defined(__linux__) && defined(HAS_GETRANDOM_SYSCALL)
-	if (syscall(SYS_getrandom, dest, size, GRND_NONBLOCK) == -1)
-		Sys::Error("Failed getrandom syscall: %s", strerror(errno));
 #elif defined(__linux__)
-	int fd = open("/dev/urandom", O_RDONLY);
-	if (fd == -1)
-		Sys::Error("Failed to open /dev/urandom: %s", strerror(errno));
-	if (read(fd, dest, size) != (ssize_t) size)
-		Sys::Error("Failed to read from /dev/urandom: %s", strerror(errno));
-	close(fd);
+	ssize_t ret = getrandom(dest, size, GRND_NONBLOCK);
+	if (ret == -1)
+	{
+		if (errno == ENOSYS)
+		{
+			Log::Warn("getrandom syscall is not supported");
+
+			int fd = open("/dev/urandom", O_RDONLY);
+			if (fd == -1)
+				Sys::Error("Failed to open /dev/urandom: %s", strerror(errno));
+			if (read(fd, dest, size) != (ssize_t) size)
+				Sys::Error("Failed to read from /dev/urandom: %s", strerror(errno));
+			close(fd);
+		}
+		else
+		{
+			Sys::Error("getrandom syscall failed: %s", strerror(errno));
+		}
+	}
+	else if (static_cast<size_t>(ret) != size)
+	{
+		Sys::Error("getrandom syscall returned insufficient data");
+	}
 #else
 	arc4random_buf(dest, size);
-
 #endif
 }
+
+// Do not throw an exception when out of
+// memory. Instead, it is preferable to simply crash with an error.
+static void ErrorOutOfMemory()
+{
+	Sys::Error("Out of memory");
+}
+static int dummy = [] {
+	std::set_new_handler(ErrorOutOfMemory);
+	return 0;
+}();
 
 } // namespace Sys
-
-#ifndef __SANITIZE_ADDRESS__
-// Global operator new/delete override to not throw an exception when out of
-// memory. Instead, it is preferable to simply crash with an error.
-void* operator new(size_t n)
-{
-	void* p = malloc(n);
-	if (!p)
-		Sys::Error("Out of memory");
-	return p;
-}
-
-void operator delete(void* p) NOEXCEPT
-{
-	free(p);
-}
-
-void operator delete(void* p, size_t) NOEXCEPT
-{
-	free(p);
-}
-#endif

@@ -67,7 +67,9 @@ static const int FRAGMENT_BIT  = ( 1 << 31 );
 
 cvar_t      *showpackets;
 cvar_t      *showdrop;
-cvar_t      *qport;
+static Cvar::Cvar<int> qport(
+	"net_qport", "random 16-bit value used to uniquely identify clients behind NAT",
+	Cvar::NONE, -1);
 
 static const char *const netsrcString[ 2 ] =
 {
@@ -83,10 +85,14 @@ Netchan_Init
 */
 void Netchan_Init( int port )
 {
-	port &= 0xffff;
 	showpackets = Cvar_Get( "showpackets", "0", CVAR_TEMP );
 	showdrop = Cvar_Get( "showdrop", "0", CVAR_TEMP );
-	qport = Cvar_Get( "net_qport", va( "%i", port ), CVAR_INIT );
+
+	if ( qport.Get() & ~0xffff )
+	{
+		qport.Set( port & 0xffff );
+	}
+	Cvar::AddFlags( qport.Name(), Cvar::INIT );
 }
 
 /*
@@ -98,7 +104,7 @@ called to open a channel to a remote system
 */
 void Netchan_Setup( netsrc_t sock, netchan_t *chan, const netadr_t& adr, int qport )
 {
-	memset( chan, 0, sizeof( *chan ) );
+	ResetStruct( *chan );
 
 	chan->sock = sock;
 	chan->remoteAddress = adr;
@@ -128,7 +134,7 @@ void Netchan_TransmitNextFragment( netchan_t *chan )
 	// send the qport if we are a client
 	if ( chan->sock == netsrc_t::NS_CLIENT )
 	{
-		MSG_WriteShort( &send, qport->integer );
+		MSG_WriteShort( &send, qport.Get() );
 	}
 
 	// copy the reliable message to the packet first
@@ -148,7 +154,7 @@ void Netchan_TransmitNextFragment( netchan_t *chan )
 
 	if ( showpackets->integer )
 	{
-		Log::Notice( "%s send %4i : s=%i fragment=%i,%i\n"
+		Log::Notice( "%s send %4i : s=%i fragment=%i,%i"
 		            , netsrcString[Util::ordinal(chan->sock)]
 		            , send.cursize
 		            , chan->outgoingSequence
@@ -210,7 +216,7 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data )
 	// send the qport if we are a client
 	if ( chan->sock == netsrc_t::NS_CLIENT )
 	{
-		MSG_WriteShort( &send, qport->integer );
+		MSG_WriteShort( &send, qport.Get() );
 	}
 
 	MSG_WriteData( &send, data, length );
@@ -220,7 +226,7 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data )
 
 	if ( showpackets->integer )
 	{
-		Log::Notice( "%s send %4i : s=%i ack=%i\n"
+		Log::Notice( "%s send %4i : s=%i ack=%i"
 		            , netsrcString[Util::ordinal(chan->sock)]
 		            , send.cursize
 		            , chan->outgoingSequence - 1
@@ -284,7 +290,7 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg )
 	{
 		if ( fragmented )
 		{
-			Log::Notice( "%s recv %4i : s=%i fragment=%i,%i\n"
+			Log::Notice( "%s recv %4i : s=%i fragment=%i,%i"
 			            , netsrcString[Util::ordinal(chan->sock)]
 			            , msg->cursize
 			            , sequence
@@ -292,7 +298,7 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg )
 		}
 		else
 		{
-			Log::Notice( "%s recv %4i : s=%i\n"
+			Log::Notice( "%s recv %4i : s=%i"
 			            , netsrcString[Util::ordinal(chan->sock)]
 			            , msg->cursize
 			            , sequence );
@@ -306,7 +312,7 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg )
 	{
 		if ( showdrop->integer || showpackets->integer )
 		{
-			Log::Notice( "%s: Out-of-order packet %i at %i\n"
+			Log::Notice( "%s: Out-of-order packet %i at %i"
 			            , NET_AdrToString( chan->remoteAddress )
 			            ,  sequence
 			            , chan->incomingSequence );
@@ -324,7 +330,7 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg )
 	{
 		if ( showdrop->integer || showpackets->integer )
 		{
-			Log::Notice( "%s: Dropped %i packets at %i\n"
+			Log::Notice( "%s: Dropped %i packets at %i"
 			            , NET_AdrToString( chan->remoteAddress )
 			            , chan->dropped
 			            , sequence );
@@ -353,7 +359,7 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg )
 		{
 			if ( showdrop->integer || showpackets->integer )
 			{
-				Log::Notice( "%s: Dropped a message fragment\n"
+				Log::Notice( "%s: Dropped a message fragment"
 				            , NET_AdrToString( chan->remoteAddress ) );
 			}
 
@@ -368,7 +374,7 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg )
 		{
 			if ( showdrop->integer || showpackets->integer )
 			{
-				Log::Notice( "%s: illegal fragment length\n"
+				Log::Notice( "%s: illegal fragment length"
 				            , NET_AdrToString( chan->remoteAddress ) );
 			}
 
@@ -388,7 +394,7 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg )
 
 		if ( chan->fragmentLength > msg->maxsize )
 		{
-			Log::Notice( "%s: fragmentLength %i > msg->maxsize\n"
+			Log::Notice( "%s: fragmentLength %i > msg->maxsize"
 			            , NET_AdrToString( chan->remoteAddress ),
 			            chan->fragmentLength );
 			return false;
@@ -470,7 +476,7 @@ bool        NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_mes
 
 	memcpy( net_message->data, loop->msgs[ i ].data, loop->msgs[ i ].datalen );
 	net_message->cursize = loop->msgs[ i ].datalen;
-	memset( net_from, 0, sizeof( *net_from ) );
+	*net_from = {};
 	net_from->type = netadrtype_t::NA_LOOPBACK;
 	return true;
 }
@@ -491,60 +497,12 @@ void NET_SendLoopPacket( netsrc_t sock, int length, const void *data )
 
 //=============================================================================
 
-struct packetQueue_t
-{
-	packetQueue_t *next;
-
-	int                  length;
-	byte                 *data;
-	netadr_t             to;
-	int                  release;
-};
-
-packetQueue_t *packetQueue = nullptr;
-
-static void NET_QueuePacket( int length, const void *data, const netadr_t& to,
-                             int offset )
-{
-	packetQueue_t *newp, *next = packetQueue;
-
-	if ( offset > 999 )
-	{
-		offset = 999;
-	}
-
-	newp = (packetQueue_t*) S_Malloc( sizeof( packetQueue_t ) );
-	newp->data = (byte*) S_Malloc( length );
-	memcpy( newp->data, data, length );
-	newp->length = length;
-	newp->to = to;
-	newp->release = Sys::Milliseconds() + ( int )( ( float ) offset / com_timescale->value );
-	newp->next = nullptr;
-
-	if ( !packetQueue )
-	{
-		packetQueue = newp;
-		return;
-	}
-
-	while ( next )
-	{
-		if ( !next->next )
-		{
-			next->next = newp;
-			return;
-		}
-
-		next = next->next;
-	}
-}
-
 void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t& to )
 {
 	// sequenced packets are shown in netchan, so just show oob
 	if ( showpackets->integer && * ( int * ) data == -1 )
 	{
-		Log::Notice( "send packet %4i\n", length );
+		Log::Notice( "send packet %4i", length );
 	}
 
 	if ( to.type == netadrtype_t::NA_LOOPBACK )
@@ -563,21 +521,7 @@ void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t
 		return;
 	}
 
-#ifndef BUILD_SERVER
-	if ( sock == netsrc_t::NS_CLIENT && cl_packetdelay->integer > 0 )
-	{
-		NET_QueuePacket( length, data, to, cl_packetdelay->integer );
-	}
-	else
-#endif
-	if ( sock == netsrc_t::NS_SERVER && sv_packetdelay->integer > 0 )
-	{
-		NET_QueuePacket( length, data, to, sv_packetdelay->integer );
-	}
-	else
-	{
-		Sys_SendPacket( length, data, to );
-	}
+	Sys_SendPacket( length, data, to );
 }
 
 /*

@@ -22,11 +22,22 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* reflection_CB_vp.glsl */
 
-uniform mat4		u_TextureMatrix;
+#insert vertexSimple_vp
+#insert vertexSkinning_vp
+#insert vertexAnimation_vp
+
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat3x2 u_TextureMatrix;
+#endif
+
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
 uniform float		u_Time;
+
+#if defined(r_showCubeProbes)
+	uniform vec3 u_CameraPosition;
+#endif
 
 OUT(smooth) vec3	var_Position;
 OUT(smooth) vec2	var_TexCoords;
@@ -42,6 +53,8 @@ void DeformVertex( inout vec4 pos,
 
 void	main()
 {
+	#insert material_vp
+
 	vec4 position;
 	localBasis LB;
 	vec2 texCoord, lmCoord;
@@ -59,13 +72,19 @@ void	main()
 	gl_Position = u_ModelViewProjectionMatrix * position;
 
 	// transform position into world space
-	var_Position = (u_ModelMatrix * position).xyz;
+	#if defined(r_showCubeProbes)
+		/* Hack: This is used for debug purposes only,
+		but it will break ST_REFLECTIONMAP and ST_COLLAPSE_REFLECTIONMAP stages */
+		var_Position = (u_ModelMatrix * ( position - vec4( u_CameraPosition, 0.0 ) )).xyz;
+	#else
+		var_Position = (u_ModelMatrix * position).xyz;
+	#endif
 
 	var_Tangent.xyz = (u_ModelMatrix * vec4(LB.tangent, 0.0)).xyz;
 	var_Binormal.xyz = (u_ModelMatrix * vec4(LB.binormal, 0.0)).xyz;
 	var_Normal.xyz = (u_ModelMatrix * vec4(LB.normal, 0.0)).xyz;
 
 	// transform normalmap texcoords
-	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec3(texCoord, 1.0)).st;
 }
 

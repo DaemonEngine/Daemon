@@ -14,10 +14,12 @@ set(MINIZIPLIST
     ${LIB_DIR}/minizip/unzip.h
 )
 
+if (USE_MUMBLE)
 set(MUMBLELINKLIST
     ${LIB_DIR}/mumblelink/libmumblelink.cpp
     ${LIB_DIR}/mumblelink/libmumblelink.h
 )
+endif()
 
 set(NACLLIST_MODULE
     ${LIB_DIR}/nacl/native_client/src/shared/imc/nacl/nacl_imc.cc
@@ -37,7 +39,7 @@ if (APPLE)
         ${LIB_DIR}/nacl/native_client/src/shared/imc/posix/nacl_imc_posix.cc
         ${LIB_DIR}/nacl/native_client/src/shared/imc/osx/nacl_imc.cc
     )
-elseif (LINUX)
+elseif (LINUX OR FREEBSD)
     set(NACLLIST_NATIVE
         ${LIB_DIR}/nacl/native_client/src/shared/imc/nacl_imc_common.cc
         ${LIB_DIR}/nacl/native_client/src/shared/imc/posix/nacl_imc_posix.cc
@@ -52,55 +54,78 @@ elseif (WIN32)
 endif()
 
 set(PDCURSESLIST
-    ${LIB_DIR}/pdcurses/pdcurses/addch.c
-    ${LIB_DIR}/pdcurses/pdcurses/addchstr.c
-    ${LIB_DIR}/pdcurses/pdcurses/addstr.c
-    ${LIB_DIR}/pdcurses/pdcurses/attr.c
-    ${LIB_DIR}/pdcurses/pdcurses/beep.c
-    ${LIB_DIR}/pdcurses/pdcurses/bkgd.c
-    ${LIB_DIR}/pdcurses/pdcurses/border.c
-    ${LIB_DIR}/pdcurses/pdcurses/clear.c
-    ${LIB_DIR}/pdcurses/pdcurses/color.c
-    ${LIB_DIR}/pdcurses/pdcurses/debug.c
-    ${LIB_DIR}/pdcurses/pdcurses/delch.c
-    ${LIB_DIR}/pdcurses/pdcurses/deleteln.c
-    ${LIB_DIR}/pdcurses/pdcurses/deprec.c
-    ${LIB_DIR}/pdcurses/pdcurses/getch.c
-    ${LIB_DIR}/pdcurses/pdcurses/getstr.c
-    ${LIB_DIR}/pdcurses/pdcurses/getyx.c
-    ${LIB_DIR}/pdcurses/pdcurses/inch.c
-    ${LIB_DIR}/pdcurses/pdcurses/inchstr.c
-    ${LIB_DIR}/pdcurses/pdcurses/initscr.c
-    ${LIB_DIR}/pdcurses/pdcurses/inopts.c
-    ${LIB_DIR}/pdcurses/pdcurses/insch.c
-    ${LIB_DIR}/pdcurses/pdcurses/insstr.c
-    ${LIB_DIR}/pdcurses/pdcurses/instr.c
-    ${LIB_DIR}/pdcurses/pdcurses/kernel.c
-    ${LIB_DIR}/pdcurses/pdcurses/mouse.c
-    ${LIB_DIR}/pdcurses/pdcurses/move.c
-    ${LIB_DIR}/pdcurses/pdcurses/outopts.c
-    ${LIB_DIR}/pdcurses/pdcurses/overlay.c
-    ${LIB_DIR}/pdcurses/pdcurses/pad.c
-    ${LIB_DIR}/pdcurses/pdcurses/panel.c
-    ${LIB_DIR}/pdcurses/pdcurses/printw.c
-    ${LIB_DIR}/pdcurses/pdcurses/refresh.c
-    ${LIB_DIR}/pdcurses/pdcurses/scanw.c
-    ${LIB_DIR}/pdcurses/pdcurses/scroll.c
-    ${LIB_DIR}/pdcurses/pdcurses/scr_dump.c
-    ${LIB_DIR}/pdcurses/pdcurses/slk.c
-    ${LIB_DIR}/pdcurses/pdcurses/termattr.c
-    ${LIB_DIR}/pdcurses/pdcurses/terminfo.c
-    ${LIB_DIR}/pdcurses/pdcurses/touch.c
-    ${LIB_DIR}/pdcurses/pdcurses/util.c
-    ${LIB_DIR}/pdcurses/pdcurses/window.c
-    ${LIB_DIR}/pdcurses/win32a/pdcclip.c
-    ${LIB_DIR}/pdcurses/win32a/pdcdisp.c
-    ${LIB_DIR}/pdcurses/win32a/pdcgetsc.c
-    ${LIB_DIR}/pdcurses/win32a/pdckbd.c
-    ${LIB_DIR}/pdcurses/win32a/pdcscrn.c
-    ${LIB_DIR}/pdcurses/win32a/pdcsetsc.c
-    ${LIB_DIR}/pdcurses/win32a/pdcutil.c
+    ${LIB_DIR}/pdcursesmod/curses.h
+    ${LIB_DIR}/pdcursesmod/curspriv.h
+    ${LIB_DIR}/pdcursesmod/panel.h
+    ${LIB_DIR}/pdcursesmod/term.h
+    ${LIB_DIR}/pdcursesmod/pdcurses/addch.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/addchstr.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/addstr.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/attr.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/beep.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/bkgd.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/border.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/clear.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/color.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/debug.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/delch.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/deleteln.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/getch.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/getstr.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/getyx.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/inch.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/inchstr.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/initscr.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/inopts.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/insch.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/insstr.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/instr.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/kernel.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/keyname.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/mouse.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/move.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/outopts.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/overlay.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/pad.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/panel.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/printw.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/refresh.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/scanw.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/scr_dump.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/scroll.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/slk.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/termattr.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/terminfo.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/touch.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/util.c
+    ${LIB_DIR}/pdcursesmod/pdcurses/window.c
 )
+
+if (WIN32)
+	set(PDCURSESLIST
+		${PDCURSESLIST}
+		${LIB_DIR}/pdcursesmod/wingui/pdcclip.c
+		${LIB_DIR}/pdcursesmod/wingui/pdcdisp.c
+		${LIB_DIR}/pdcursesmod/wingui/pdcgetsc.c
+		${LIB_DIR}/pdcursesmod/wingui/pdckbd.c
+		${LIB_DIR}/pdcursesmod/wingui/pdcscrn.c
+		${LIB_DIR}/pdcursesmod/wingui/pdcsetsc.c
+		${LIB_DIR}/pdcursesmod/wingui/pdcutil.c
+		${LIB_DIR}/pdcursesmod/wingui/pdcwin.h
+	)
+else()
+	set(PDCURSESLIST
+		${PDCURSESLIST}
+		${LIB_DIR}/pdcursesmod/vt/pdcclip.c
+		${LIB_DIR}/pdcursesmod/vt/pdcdisp.c
+		${LIB_DIR}/pdcursesmod/vt/pdcgetsc.c
+		${LIB_DIR}/pdcursesmod/vt/pdckbd.c
+		${LIB_DIR}/pdcursesmod/vt/pdcscrn.c
+		${LIB_DIR}/pdcursesmod/vt/pdcsetsc.c
+		${LIB_DIR}/pdcursesmod/vt/pdcutil.c
+		${LIB_DIR}/pdcursesmod/vt/pdcvt.h
+	)
+endif()
 
 set(TINYFORMATLIST
     ${LIB_DIR}/tinyformat/tinyformat.h
@@ -126,37 +151,6 @@ set(TINYGETTEXTLIST
     ${LIB_DIR}/tinygettext/po_parser.hpp
     ${LIB_DIR}/tinygettext/tinygettext.cpp
     ${LIB_DIR}/tinygettext/tinygettext.hpp
-)
-
-# This is only used for the NaCl modules. For all other targets, the host zlib
-# is used (sourced from external_deps if not available on target platform).
-set(ZLIBLIST
-    ${LIB_DIR}/zlib/adler32.c
-    ${LIB_DIR}/zlib/compress.c
-    ${LIB_DIR}/zlib/crc32.c
-    ${LIB_DIR}/zlib/crc32.h
-    ${LIB_DIR}/zlib/deflate.c
-    ${LIB_DIR}/zlib/deflate.h
-    ${LIB_DIR}/zlib/gzclose.c
-    ${LIB_DIR}/zlib/gzguts.h
-    ${LIB_DIR}/zlib/gzlib.c
-    ${LIB_DIR}/zlib/gzread.c
-    ${LIB_DIR}/zlib/gzwrite.c
-    ${LIB_DIR}/zlib/infback.c
-    ${LIB_DIR}/zlib/inffast.c
-    ${LIB_DIR}/zlib/inffast.h
-    ${LIB_DIR}/zlib/inffixed.h
-    ${LIB_DIR}/zlib/inflate.c
-    ${LIB_DIR}/zlib/inflate.h
-    ${LIB_DIR}/zlib/inftrees.c
-    ${LIB_DIR}/zlib/inftrees.h
-    ${LIB_DIR}/zlib/trees.c
-    ${LIB_DIR}/zlib/trees.h
-    ${LIB_DIR}/zlib/uncompr.c
-    ${LIB_DIR}/zlib/zconf.h
-    ${LIB_DIR}/zlib/zlib.h
-    ${LIB_DIR}/zlib/zutil.c
-    ${LIB_DIR}/zlib/zutil.h
 )
 
 if (WIN32)

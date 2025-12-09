@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_models.c -- model loading and caching
 #include "tr_local.h"
+#include "GLUtils.h"
 
 #define LL(x) x = LittleLong(x)
 #define LF(x) x = LittleFloat(x)
@@ -99,7 +100,7 @@ qhandle_t RE_RegisterModel( const char *name )
 
 	if ( strlen( name ) >= MAX_QPATH )
 	{
-		Log::Notice( "Model name exceeds MAX_QPATH\n" );
+		Log::Notice( "Model name exceeds MAX_QPATH" );
 		return 0;
 	}
 
@@ -147,7 +148,7 @@ qhandle_t RE_RegisterModel( const char *name )
 
 		if ( !err )
 		{
-			if ( Str::IsIPrefix( "MD5Version", buffer ) )
+			if ( Str::IsIPrefix( MD5_IDENTSTRING, buffer ) )
 			{
 				loaded = R_LoadMD5( mod, buffer.c_str(), name );
 			}
@@ -177,14 +178,14 @@ qhandle_t RE_RegisterModel( const char *name )
 				*strrchr( filename, '.' ) = 0;
 			}
 
-			sprintf( namebuf, "_%d.md3", lod );
+			Com_sprintf( namebuf, sizeof( namebuf ), "_%d.md3", lod );
 			strcat( filename, namebuf );
 		}
 
 		filename[ strlen( filename ) - 1 ] = '3';  // try MD3 first
 
 		std::error_code err;
-		std::string buffer = FS::PakPath::ReadFile( name, err );
+		std::string buffer = FS::PakPath::ReadFile( filename, err );
 
 		// LoDs are optional
 		if ( err )
@@ -254,15 +255,14 @@ fail:
 /*
 ** RE_BeginRegistration
 */
-bool RE_BeginRegistration( glconfig_t *glconfigOut, glconfig2_t *glconfig2Out )
+bool RE_BeginRegistration( WindowConfig* windowCfg )
 {
 	if ( !R_Init() )
 	{
 		return false;
 	}
 
-	*glconfigOut = glConfig;
-	*glconfig2Out = glConfig2;
+	*windowCfg = windowConfig;
 
 	R_SyncRenderThread();
 
@@ -272,8 +272,6 @@ bool RE_BeginRegistration( glconfig_t *glconfigOut, glconfig2_t *glconfig2Out )
 	{
 		tr.visClusters[i] = -1;
 	}
-
-	R_ClearFlares();
 
 	RE_ClearScene();
 
@@ -305,83 +303,86 @@ void R_ModelInit()
 	mod->type = modtype_t::MOD_BAD;
 }
 
-/*
-================
-R_Modellist_f
-================
-*/
-void R_Modellist_f()
+// shows MD3 per-frame info if there is an argument
+class ListModelsCmd : public Cmd::StaticCmd
 {
-	int      i, j, k;
-	model_t  *mod;
-	int      total;
-	int      totalDataSize;
-	bool showFrames;
+public:
+	ListModelsCmd() : StaticCmd("listModels", Cmd::RENDERER, "list loaded 3D models") {}
 
-	showFrames = !strcmp( ri.Cmd_Argv( 1 ), "frames" );
-
-	total = 0;
-	totalDataSize = 0;
-
-	for ( i = 1; i < tr.numModels; i++ )
+	void Run( const Cmd::Args &args ) const override
 	{
-		mod = tr.models[ i ];
+		int      i, j, k;
+		model_t  *mod;
+		int      total;
+		int      totalDataSize;
+		bool showFrames;
 
-		if ( mod->type == modtype_t::MOD_MESH )
+		showFrames = args.Argc() > 1;
+
+		total = 0;
+		totalDataSize = 0;
+
+		for ( i = 1; i < tr.numModels; i++ )
 		{
-			for ( j = 0; j < MD3_MAX_LODS; j++ )
+			mod = tr.models[ i ];
+
+			if ( mod->type == modtype_t::MOD_MESH )
 			{
-				if ( mod->mdv[ j ] && ( j == 0 || mod->mdv[ j ] != mod->mdv[ j - 1 ] ) )
+				for ( j = 0; j < MD3_MAX_LODS; j++ )
 				{
-					mdvModel_t   *mdvModel;
-					mdvSurface_t *mdvSurface;
-					mdvTagName_t *mdvTagName;
-
-					mdvModel = mod->mdv[ j ];
-
-					total++;
-					Log::Notice("%d.%02d MB '%s' LOD = %i",      mod->dataSize / ( 1024 * 1024 ),
-					           ( mod->dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ),
-					           mod->name, j );
-
-					if ( showFrames && mdvModel->numFrames > 1 )
+					if ( mod->mdv[ j ] && ( j == 0 || mod->mdv[ j ] != mod->mdv[ j - 1 ] ) )
 					{
-						Log::Notice("\tnumSurfaces = %i", mdvModel->numSurfaces );
-						Log::Notice("\tnumFrames = %i", mdvModel->numFrames );
+						mdvModel_t   *mdvModel;
+						mdvSurface_t *mdvSurface;
+						mdvTagName_t *mdvTagName;
 
-						for ( k = 0, mdvSurface = mdvModel->surfaces; k < mdvModel->numSurfaces; k++, mdvSurface++ )
+						mdvModel = mod->mdv[ j ];
+
+						total++;
+						Print( "%d.%02d MB '%s' LOD = %i",      mod->dataSize / ( 1024 * 1024 ),
+						       ( mod->dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ),
+						       mod->name, j );
+
+						if ( showFrames && mdvModel->numFrames > 1 )
 						{
-							Log::Notice("\t\tmesh = '%s'", mdvSurface->name );
-							Log::Notice("\t\t\tnumVertexes = %i", mdvSurface->numVerts );
-							Log::Notice("\t\t\tnumTriangles = %i", mdvSurface->numTriangles );
+							Print("    numSurfaces = %i", mdvModel->numSurfaces );
+							Print("    numFrames = %i", mdvModel->numFrames );
+
+							for ( k = 0, mdvSurface = mdvModel->surfaces; k < mdvModel->numSurfaces; k++, mdvSurface++ )
+							{
+								Print("        mesh = '%s'", mdvSurface->name );
+								Print("            numVertexes = %i", mdvSurface->numVerts );
+								Print("            numTriangles = %i", mdvSurface->numTriangles );
+							}
 						}
-					}
 
-					Log::Notice("\t\tnumTags = %i", mdvModel->numTags );
+						Print("        numTags = %i", mdvModel->numTags );
 
-					for ( k = 0, mdvTagName = mdvModel->tagNames; k < mdvModel->numTags; k++, mdvTagName++ )
-					{
-						Log::Notice("\t\t\ttagName = '%s'", mdvTagName->name );
+						for ( k = 0, mdvTagName = mdvModel->tagNames; k < mdvModel->numTags; k++, mdvTagName++ )
+						{
+							Print("            tagName = '%s'", mdvTagName->name );
+						}
 					}
 				}
 			}
-		}
-		else
-		{
-			Log::Notice("%d.%02d MB '%s'",       mod->dataSize / ( 1024 * 1024 ),
-			           ( mod->dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ),
-			           mod->name );
+			else
+			{
+				Print( "%d.%02d MB '%s'",       mod->dataSize / ( 1024 * 1024 ),
+				       ( mod->dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ),
+				       mod->name );
 
-			total++;
+				total++;
+			}
+
+			totalDataSize += mod->dataSize;
 		}
 
-		totalDataSize += mod->dataSize;
+		Print(" %d.%02d MB total model memory", totalDataSize / ( 1024 * 1024 ),
+					  ( totalDataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
+		Print(" %i total models", total );
 	}
-
-	Log::Notice(" %d.%02d MB total model memory", totalDataSize / ( 1024 * 1024 ),
-	           ( totalDataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
-	Log::Notice(" %i total models\n", total );
-}
+};
+static ListModelsCmd listModelsCmdRegistration;
 
 //=============================================================================
 

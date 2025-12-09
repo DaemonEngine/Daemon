@@ -42,8 +42,21 @@ Maryland 20850 USA.
 #include "server.h"
 #include "CryptoChallenge.h"
 #include "common/Defs.h"
+#include "framework/CvarSystem.h"
 #include "framework/Network.h"
 #include "qcommon/sys.h"
+
+static Cvar::Cvar<int> cvar_protocol(
+	"protocol", "network protocol version number", Cvar::SERVERINFO | Cvar::ROM, PROTOCOL_VERSION);
+static Cvar::Cvar<std::string> cvar_pakname(
+	"pakname", "pak containing current map", Cvar::SERVERINFO | Cvar::ROM, "");
+static Cvar::Cvar<std::string> sv_paks(
+	"sv_paks", "currently loaded paks", Cvar::SYSTEMINFO | Cvar::ROM, "");
+static Cvar::Cvar<std::string> cvar_contact(
+	"contact", "contact information to reach out to the server admin when needed: forum or chat nickname, mail address…",
+	Cvar::SERVERINFO, "" );
+static Cvar::Cvar<bool> sv_useBaseline(
+	"sv_useBaseline", "send entity baseline for non-snapshot delta compression", Cvar::NONE, true);
 
 /*
 ===============
@@ -74,11 +87,49 @@ void SV_SetConfigstring( int index, const char *val )
 	sv.configstringsmodified[ index ] = true;
 }
 
+static void SendConfigStringToClient( int cs, client_t *cl )
+{
+	char buf[ 1024 ]; // escaped characters, in a quoted context
+	// max command size for SV_SendServerCommand is 1022, leave a little overhead for the command
+	char *limit = buf + 990;
+
+	char *out = buf;
+	bool first = true;
+	
+	for ( const char *in = sv.configstrings[ cs ]; ; )
+	{
+		char c = *in++;
+
+		// '$' does not need to be escaped as it is not interpreted in the context of a server command
+		if ( c == '\\' || c == '"' )
+		{
+			*out++ = '\\';
+		}
+
+		*out++ = c;
+
+		if ( !c )
+		{
+			break;
+		}
+
+		if ( out >= limit )
+		{
+			*out = '\0';
+			SV_SendServerCommand( cl, "%s %d \"%s\"", first ? "bcs0" : "bcs1", cs, buf );
+			first = false;
+			out = buf;
+		}
+	}
+
+	*out = '\0';
+	SV_SendServerCommand( cl, "%s %d \"%s\"", first ? "cs" : "bcs2", cs, buf );
+}
+
 void SV_UpdateConfigStrings()
 {
-	int      len, i, index;
+	int i, index;
 	client_t *client;
-	int      maxChunkSize = MAX_STRING_CHARS - 64;
 
 	for ( index = 0; index < MAX_CONFIGSTRINGS; index++ )
 	{
@@ -93,10 +144,8 @@ void SV_UpdateConfigStrings()
 		// spawning a new server
 		if ( sv.state == serverState_t::SS_GAME || sv.restarting )
 		{
-			len = strlen( sv.configstrings[ index ] );
-
 			// send the data to all relevent clients
-			for ( i = 0, client = svs.clients; i < sv_maxclients->integer; i++, client++ )
+			for ( i = 0, client = svs.clients; i < sv_maxClients.Get(); i++, client++ )
 			{
 				if ( client->state < clientState_t::CS_PRIMED )
 				{
@@ -109,41 +158,7 @@ void SV_UpdateConfigStrings()
 					continue;
 				}
 
-				if ( len >= maxChunkSize )
-				{
-					int  sent = 0;
-					int  remaining = len;
-					const char *cmd;
-					char buf[ MAX_STRING_CHARS ];
-
-					while ( remaining > 0 )
-					{
-						if ( sent == 0 )
-						{
-							cmd = "bcs0";
-						}
-						else if ( remaining < maxChunkSize )
-						{
-							cmd = "bcs2";
-						}
-						else
-						{
-							cmd = "bcs1";
-						}
-
-						Q_strncpyz( buf, &sv.configstrings[ index ][ sent ], maxChunkSize );
-
-						SV_SendServerCommand( client, "%s %i %s\n", cmd, index, Cmd_QuoteString( buf ) );
-
-						sent += ( maxChunkSize - 1 );
-						remaining -= ( maxChunkSize - 1 );
-					}
-				}
-				else
-				{
-					// standard cs, just send it
-					SV_SendServerCommand( client, "cs %i %s\n", index, Cmd_QuoteString( sv.configstrings[ index ] ) );
-				}
+				SendConfigStringToClient( index, client );
 			}
 		}
 	}
@@ -184,7 +199,7 @@ SV_SetUserinfo
 */
 void SV_SetUserinfo( int index, const char *val )
 {
-	if ( index < 0 || index >= sv_maxclients->integer )
+	if ( index < 0 || index >= sv_maxClients.Get() )
 	{
 		Sys::Drop( "SV_SetUserinfo: bad index %i", index );
 	}
@@ -211,7 +226,7 @@ void SV_GetUserinfo( int index, char *buffer, int bufferSize )
 		Sys::Drop( "SV_GetUserinfo: bufferSize == %i", bufferSize );
 	}
 
-	if ( index < 0 || index >= sv_maxclients->integer )
+	if ( index < 0 || index >= sv_maxClients.Get() )
 	{
 		Sys::Drop( "SV_GetUserinfo: bad index %i", index );
 	}
@@ -233,7 +248,7 @@ void SV_GetPlayerPubkey( int clientNum, char *pubkey, int size )
 		Sys::Drop( "SV_GetPlayerPubkey: size == %i", size );
 	}
 
-	if ( clientNum < 0 || clientNum >= sv_maxclients->integer )
+	if ( clientNum < 0 || clientNum >= sv_maxClients.Get() )
 	{
 		Sys::Drop( "SV_GetPlayerPubkey: bad clientNum %i", clientNum );
 	}
@@ -253,12 +268,17 @@ baseline will be transmitted
 */
 void SV_CreateBaseline()
 {
-	sharedEntity_t *svent;
-	int            entnum;
+	Cvar::Latch( sv_useBaseline );
 
-	for ( entnum = 1; entnum < sv.num_entities; entnum++ )
+	if ( !sv_useBaseline.Get() )
 	{
-		svent = SV_GentityNum( entnum );
+		// make a baseline with no entities
+		return;
+	}
+
+	for ( int entnum = MAX_CLIENTS; entnum < sv.num_entities; entnum++ )
+	{
+		sharedEntity_t *svent = SV_GentityNum( entnum );
 
 		if ( !svent->r.linked )
 		{
@@ -271,29 +291,6 @@ void SV_CreateBaseline()
 		// take current state as baseline
 		//
 		sv.svEntities[ entnum ].baseline = svent->s;
-	}
-}
-
-/*
-===============
-SV_BoundMaxClients
-
-===============
-*/
-void SV_BoundMaxClients( int minimum )
-{
-	// get the current maxclients value
-	Cvar_Get( "sv_maxclients", "20", 0 ); // NERVE - SMF - changed to 20 from 8
-
-	sv_maxclients->modified = false;
-
-	if ( sv_maxclients->integer < minimum )
-	{
-		Cvar_Set( "sv_maxclients", va( "%i", minimum ) );
-	}
-	else if ( sv_maxclients->integer > MAX_CLIENTS )
-	{
-		Cvar_Set( "sv_maxclients", va( "%i", MAX_CLIENTS ) );
 	}
 }
 
@@ -314,23 +311,19 @@ void SV_Startup()
 		Sys::Error( "SV_Startup: svs.initialized" );
 	}
 
-	SV_BoundMaxClients( 1 );
+	Cvar::Latch( sv_maxClients );
 
 	// RF, avoid trying to allocate large chunk on a fragmented zone
-	svs.clients = ( client_t * ) calloc( sizeof( client_t ) * sv_maxclients->integer, 1 );
+	svs.clients = ( client_t * ) Z_Calloc( sizeof( client_t ) * sv_maxClients.Get() );
 
-	if ( !svs.clients )
-	{
-		Sys::Error( "SV_Startup: unable to allocate svs.clients" );
-	}
-
-	svs.numSnapshotEntities = sv_maxclients->integer * PACKET_BACKUP * 64;
+	svs.numSnapshotEntities = sv_maxClients.Get() * PACKET_BACKUP * 64;
 
 	svs.initialized = true;
 
-	Cvar_Set( "sv_running", "1" );
+	Cvar::SetValueForce( "sv_running", "1" );
 #ifndef BUILD_SERVER
-	NET_Config( true );
+	// For clients, reconfigure to open server ports.
+	NET_EnableNetworking( true );
 #endif
 
 	// Join the IPv6 multicast group now that a map is running, so clients can scan for us on the local network.
@@ -344,10 +337,14 @@ SV_ChangeMaxClients
 */
 void SV_ChangeMaxClients()
 {
+	int oldMaxClients = sv_maxClients.Get();
+	Cvar::Latch( sv_maxClients );
+	int desiredMaxClients = sv_maxClients.Get();
+
 	// get the highest client number in use
 	int count = 0;
 
-	for ( int i = 0; i < sv_maxclients->integer; i++ )
+	for ( int i = 0; i < oldMaxClients; i++ )
 	{
 		if ( svs.clients[ i ].state >= clientState_t::CS_CONNECTED )
 		{
@@ -357,12 +354,21 @@ void SV_ChangeMaxClients()
 
 	count++;
 
-	int oldMaxClients = sv_maxclients->integer;
 	// never go below the highest client number in use
-	SV_BoundMaxClients( count );
+	int newMaxClients = std::max( count, desiredMaxClients );
+
+	if ( newMaxClients != desiredMaxClients )
+	{
+		// keep trying to set the user-requested value until the high-numbered clients leave
+		sv_maxClients.Set( newMaxClients );
+		Cvar::Latch( sv_maxClients );
+		sv_maxClients.Set( desiredMaxClients );
+	}
+
+	ASSERT_EQ( newMaxClients, sv_maxClients.Get() );
 
 	// if still the same
-	if ( sv_maxclients->integer == oldMaxClients )
+	if ( newMaxClients == oldMaxClients )
 	{
 		return;
 	}
@@ -370,12 +376,7 @@ void SV_ChangeMaxClients()
 	client_t* oldClients = svs.clients;
 
 	// allocate new clients
-	svs.clients = ( client_t * ) calloc( sv_maxclients->integer, sizeof( client_t ) );
-
-	if ( !svs.clients )
-	{
-		Sys::Error( "SV_Startup: unable to allocate svs.clients" );
-	}
+	svs.clients = ( client_t * ) Z_Calloc( newMaxClients * sizeof( client_t ) );
 
 	// copy the clients over
 	for ( int i = 0; i < count; i++ )
@@ -387,9 +388,9 @@ void SV_ChangeMaxClients()
 	}
 
 	// free the old clients
-	free( oldClients );
+	Z_Free( oldClients );
 
-	svs.numSnapshotEntities = sv_maxclients->integer * PACKET_BACKUP * 64;
+	svs.numSnapshotEntities = newMaxClients * PACKET_BACKUP * 64;
 }
 
 /*
@@ -409,7 +410,7 @@ void SV_ClearServer()
 		}
 	}
 
-	memset( &sv, 0, sizeof( sv ) );
+	ResetStruct( sv );
 }
 
 /*
@@ -418,7 +419,6 @@ SV_SpawnServer
 
 Change the server to a new map, taking all connected
 clients along with it.
-This is NOT called for map_restart, UNLESS the number of client slots changed
 ================
 */
 void SV_SpawnServer(std::string pakname, std::string mapname)
@@ -430,6 +430,14 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	SV_ShutdownGameProgs();
 
 	PrintBanner( "Server Initialization" )
+
+	if ( !SV_Private(ServerPrivate::NoAdvertise)
+		&& sv_networkScope.Get() >= 2
+		&& cvar_contact.Get().empty() )
+	{
+		Log::Warn( "The contact information isn't set, it is requested for public servers." );
+	}
+
 	Log::Notice( "Map: %s", mapname );
 
 	// if not running a dedicated server CL_MapLoading will connect the client to the server
@@ -457,10 +465,7 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	else
 	{
 		// check for maxclients change
-		if ( sv_maxclients->modified )
-		{
-			SV_ChangeMaxClients();
-		}
+		SV_ChangeMaxClients();
 	}
 
 	// allocate the snapshot entities
@@ -471,25 +476,24 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	// server has changed
 	svs.snapFlagServerBit ^= SNAPFLAG_SERVERCOUNT;
 
-	// get a new checksum feed and restart the file system
+	// Seed the RNG
 	srand( Sys::Milliseconds() );
-	sv.checksumFeed = ( ( rand() << 16 ) ^ rand() ) ^ Sys::Milliseconds();
 
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
-	if (!FS_LoadPak(pakname.c_str()))
-		Sys::Drop("Could not load map pak '%s'\n", pakname);
+	if (!FS_LoadPak(pakname))
+		Sys::Drop("Could not load map pak '%s'", pakname);
 
 	CM_LoadMap(mapname);
 
 	// set serverinfo visible name
-	Cvar_Set( "mapname", mapname.c_str() );
-	Cvar_Set( "pakname", pakname.c_str() );
+	Cvar::SetValueForce( "mapname", mapname );
+	Cvar::SetValueForce( cvar_pakname.Name(), pakname );
 
 	// serverid should be different each time
 	sv.serverId = com_frameTime;
 	sv.restartedServerId = sv.serverId;
-	Cvar_Set( "sv_serverid", va( "%i", sv.serverId ) );
+	Cvar::SetValueForce( "sv_serverid", va( "%i", sv.serverId ) );
 
 	// media configstring setting should be done during
 	// the loading stage, so connected clients don't have
@@ -510,7 +514,7 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	// create a baseline for more efficient communications
 	SV_CreateBaseline();
 
-	for ( i = 0; i < sv_maxclients->integer; i++ )
+	for ( i = 0; i < sv_maxClients.Get(); i++ )
 	{
 		// send the new gamestate to all connected clients
 		if ( svs.clients[ i ].state >= clientState_t::CS_CONNECTED )
@@ -565,7 +569,7 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	// the server sends these to the clients so they can figure
 	// out which dpk/pk3s should be auto-downloaded
 
-	Cvar_Set( "sv_paks", FS_LoadedPaks() );
+	Cvar::SetValueForce( sv_paks.Name(), FS_LoadedPaks() );
 
 	// save systeminfo and serverinfo strings
 	cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
@@ -586,7 +590,7 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 
 	SV_AddOperatorCommands();
 
-	Log::Notice( "-----------------------------------\n" );
+	Log::Notice( "-----------------------------------" );
 }
 
 /*
@@ -601,48 +605,13 @@ void SV_Init()
 	SV_AddOperatorCommands();
 
 	// serverinfo vars
-	Cvar_Get( "timelimit", "0", CVAR_SERVERINFO );
-
-	Cvar_Get( "protocol", va( "%i", PROTOCOL_VERSION ), CVAR_SERVERINFO  );
-	sv_mapname = Cvar_Get( "mapname", "nomap", CVAR_SERVERINFO | CVAR_ROM );
-	Cvar_Get( "pakname", "", CVAR_SERVERINFO | CVAR_ROM );
-	Cvar_Get( "layout", "", CVAR_SERVERINFO );
-	Cvar_Get( "g_layouts", "", 0 ); // FIXME
-	sv_hostname = Cvar_Get( "sv_hostname", UNNAMED_SERVER, CVAR_SERVERINFO  );
-	sv_maxclients = Cvar_Get( "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH );  // NERVE - SMF - changed to 20 from 8
-	sv_maxRate = Cvar_Get( "sv_maxRate", "0",  CVAR_SERVERINFO );
-	sv_floodProtect = Cvar_Get( "sv_floodProtect", "0",  CVAR_SERVERINFO );
-
-	sv_statsURL = Cvar_Get( "sv_statsURL", "", CVAR_SERVERINFO  );
-
-	// systeminfo
-	sv_serverid = Cvar_Get( "sv_serverid", "0", CVAR_SYSTEMINFO | CVAR_ROM );
-	Cvar_Get( "sv_paks", "", CVAR_SYSTEMINFO | CVAR_ROM );
+	Cvar::Latch( sv_maxClients );
+	Cvar::SetValue( "layout", "" ); // TODO: declare in sgame
+	Cvar::AddFlags( "layout", Cvar::SERVERINFO );
 
 	// server vars
-	sv_privatePassword = Cvar_Get( "sv_privatePassword", "", CVAR_TEMP );
-	sv_fps = Cvar_Get( "sv_fps", "40", CVAR_TEMP );
-	sv_timeout = Cvar_Get( "sv_timeout", "240", CVAR_TEMP );
-	sv_zombietime = Cvar_Get( "sv_zombietime", "2", CVAR_TEMP );
 
-	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", 0 );
-	sv_reconnectlimit = Cvar_Get( "sv_reconnectlimit", "3", 0 );
-	sv_padPackets = Cvar_Get( "sv_padPackets", "0", 0 );
 	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );
-
-	sv_lanForceRate = Cvar_Get( "sv_lanForceRate", "1", 0 );
-
-	sv_showAverageBPS = Cvar_Get( "sv_showAverageBPS", "0", 0 );  // NERVE - SMF - net debugging
-
-	// the download netcode tops at 18/20 kb/s, no need to make you think you can go above
-	sv_dl_maxRate = Cvar_Get( "sv_dl_maxRate", "42000", 0 );
-
-	//bani
-	sv_packetdelay = Cvar_Get( "sv_packetdelay", "0", CVAR_CHEAT );
-
-	// fretn - note: redirecting of clients to other servers relies on this,
-	// ET://someserver.com
-	sv_fullmsg = Cvar_Get( "sv_fullmsg", "Server is full.", 0 );
 
 	svs.serverLoad = -1;
 }
@@ -665,7 +634,7 @@ void SV_FinalCommand( char *cmd, bool disconnect )
 	// send it twice, ignoring rate
 	for ( j = 0; j < 2; j++ )
 	{
-		for ( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
+		for ( i = 0, cl = svs.clients; i < sv_maxClients.Get(); i++, cl++ )
 		{
 			if ( cl->state >= clientState_t::CS_CONNECTED )
 			{
@@ -696,7 +665,7 @@ void SV_FinalCommand( char *cmd, bool disconnect )
 // Used instead of SV_Shutdown when Daemon is exiting
 void SV_QuickShutdown( const char *finalmsg )
 {
-	if ( !com_sv_running || !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		return;
 	}
@@ -721,7 +690,7 @@ Called to shut down the sgame VM, or to clean up after the VM shut down on its o
 */
 void SV_Shutdown( const char *finalmsg )
 {
-	if ( !com_sv_running || !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		return;
 	}
@@ -735,31 +704,35 @@ void SV_Shutdown( const char *finalmsg )
 	// free current level
 	SV_ClearServer();
 
+	// clear collision map data
+	CM_ClearMap();
+
 	// free server static data
 	if ( svs.clients )
 	{
 		int index;
 
-		for ( index = 0; index < sv_maxclients->integer; index++ )
+		for ( index = 0; index < sv_maxClients.Get(); index++ )
 		{
 			SV_FreeClient( &svs.clients[ index ] );
 		}
 
-		free( svs.clients );
+		Z_Free( svs.clients );
 	}
 
-	svs.~serverStatic_t();
-	new(&svs) serverStatic_t{};
+	ResetStruct( svs );
+
 	svs.serverLoad = -1;
 	ChallengeManager::Clear();
 
-	Cvar_Set( "sv_running", "0" );
+	Cvar::SetValueForce( "sv_running", "0" );
 #ifndef BUILD_SERVER
-	NET_Config( true );
+	// For clients, reconfigure to close server ports.
+	NET_EnableNetworking( false );
 #endif
 
 	SV_NET_Config(); // clear master server DNS queries
 	Net::ShutDownDNS();
 
-	Log::Notice( "---------------------------\n" );
+	Log::Notice( "---------------------------" );
 }

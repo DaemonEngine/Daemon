@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_fbo.c
 #include "tr_local.h"
+#include "GLUtils.h"
 
 /*
 =============
@@ -34,13 +35,13 @@ bool R_CheckFBO( const FBO_t *fbo )
 	int id;
 
 	glGetIntegerv( GL_FRAMEBUFFER_BINDING, &id );
-	GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, fbo->frameBuffer );
+	GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, fbo->frameBuffer );
 
-	code = GL_fboShim.glCheckFramebufferStatus( GL_FRAMEBUFFER );
+	code = GL_fboShim.glCheckFramebufferStatus( GL_DRAW_FRAMEBUFFER );
 
 	if ( code == GL_FRAMEBUFFER_COMPLETE )
 	{
-		GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, id );
+		GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, id );
 		return true;
 	}
 
@@ -84,7 +85,7 @@ bool R_CheckFBO( const FBO_t *fbo )
 			break;
 	}
 
-	GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, id );
+	GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, id );
 
 	return false;
 }
@@ -103,12 +104,12 @@ FBO_t          *R_CreateFBO( const char *name, int width, int height )
 		Sys::Drop( "R_CreateFBO: \"%s\" is too long", name );
 	}
 
-	if ( width <= 0 || width > glConfig2.maxRenderbufferSize )
+	if ( width <= 0 )
 	{
 		Sys::Drop( "R_CreateFBO: bad width %i", width );
 	}
 
-	if ( height <= 0 || height > glConfig2.maxRenderbufferSize )
+	if ( height <= 0 )
 	{
 		Sys::Drop( "R_CreateFBO: bad height %i", height );
 	}
@@ -120,7 +121,6 @@ FBO_t          *R_CreateFBO( const char *name, int width, int height )
 
 	fbo = tr.fbos[ tr.numFBOs ] = (FBO_t*) ri.Hunk_Alloc( sizeof( *fbo ), ha_pref::h_low );
 	Q_strncpyz( fbo->name, name, sizeof( fbo->name ) );
-	fbo->index = tr.numFBOs++;
 	fbo->width = width;
 	fbo->height = height;
 
@@ -130,170 +130,19 @@ FBO_t          *R_CreateFBO( const char *name, int width, int height )
 }
 
 /*
-================
-R_CreateFBOColorBuffer
-
-Framebuffer must be bound
-================
-*/
-void R_CreateFBOColorBuffer( FBO_t *fbo, int format, int index )
-{
-	bool absent;
-
-	if ( index < 0 || index >= glConfig2.maxColorAttachments )
-	{
-		Log::Warn("R_CreateFBOColorBuffer: invalid attachment index %i", index );
-		return;
-	}
-
-	fbo->colorFormat = format;
-
-	absent = fbo->colorBuffers[ index ] == 0;
-
-	if ( absent )
-	{
-		GL_fboShim.glGenRenderbuffers( 1, &fbo->colorBuffers[ index ] );
-	}
-
-	GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, fbo->colorBuffers[ index ] );
-	GL_fboShim.glRenderbufferStorage( GL_RENDERBUFFER, format, fbo->width, fbo->height );
-
-	if ( absent )
-	{
-		GL_fboShim.glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_RENDERBUFFER,
-					   fbo->colorBuffers[ index ] );
-	}
-
-	GL_CheckErrors();
-}
-
-/*
-================
-R_CreateFBODepthBuffer
-================
-*/
-void R_CreateFBODepthBuffer( FBO_t *fbo, int format )
-{
-	bool absent;
-
-	if ( format != GL_DEPTH_COMPONENT &&
-	     format != GL_DEPTH_COMPONENT16 && format != GL_DEPTH_COMPONENT24 && format != GL_DEPTH_COMPONENT32_ARB )
-	{
-		Log::Warn("R_CreateFBODepthBuffer: format %i is not depth-renderable", format );
-		return;
-	}
-
-	fbo->depthFormat = format;
-
-	absent = fbo->depthBuffer == 0;
-
-	if ( absent )
-	{
-		GL_fboShim.glGenRenderbuffers( 1, &fbo->depthBuffer );
-	}
-
-	GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, fbo->depthBuffer );
-	GL_fboShim.glRenderbufferStorage( GL_RENDERBUFFER, fbo->depthFormat, fbo->width, fbo->height );
-
-	if ( absent )
-	{
-		GL_fboShim.glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, fbo->depthBuffer );
-	}
-
-	GL_CheckErrors();
-}
-
-/*
-================
-R_CreateFBOStencilBuffer
-================
-*/
-void R_CreateFBOStencilBuffer( FBO_t *fbo, int format )
-{
-	bool absent;
-
-	if ( format != GL_STENCIL_INDEX &&
-	     format != GL_STENCIL_INDEX1_EXT &&
-	     format != GL_STENCIL_INDEX4_EXT && format != GL_STENCIL_INDEX8_EXT && format != GL_STENCIL_INDEX16_EXT )
-	{
-		Log::Warn("R_CreateFBOStencilBuffer: format %i is not stencil-renderable", format );
-		return;
-	}
-
-	fbo->stencilFormat = format;
-
-	absent = fbo->stencilBuffer == 0;
-
-	if ( absent )
-	{
-		GL_fboShim.glGenRenderbuffers( 1, &fbo->stencilBuffer );
-	}
-
-	GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, fbo->stencilBuffer );
-	GL_fboShim.glRenderbufferStorage( GL_RENDERBUFFER, fbo->stencilFormat, fbo->width, fbo->height );
-	GL_CheckErrors();
-
-	if ( absent )
-	{
-		GL_fboShim.glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, fbo->stencilBuffer );
-	}
-
-	GL_CheckErrors();
-}
-
-/*
-================
-R_CreateFBOPackedDepthStencilBuffer
-================
-*/
-void R_CreateFBOPackedDepthStencilBuffer( FBO_t *fbo, int format )
-{
-	bool absent;
-
-	if ( format != GL_DEPTH_STENCIL && format != GL_DEPTH24_STENCIL8 )
-	{
-		Log::Warn("R_CreateFBOPackedDepthStencilBuffer: format %i is not depth-stencil-renderable", format );
-		return;
-	}
-
-	fbo->packedDepthStencilFormat = format;
-
-	absent = fbo->packedDepthStencilBuffer == 0;
-
-	if ( absent )
-	{
-		GL_fboShim.glGenRenderbuffers( 1, &fbo->packedDepthStencilBuffer );
-	}
-
-	GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, fbo->packedDepthStencilBuffer );
-	GL_fboShim.glRenderbufferStorage( GL_RENDERBUFFER, fbo->packedDepthStencilFormat, fbo->width, fbo->height );
-	GL_CheckErrors();
-
-	if ( absent )
-	{
-		GL_fboShim.glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
-					   fbo->packedDepthStencilBuffer );
-		GL_fboShim.glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
-					   fbo->packedDepthStencilBuffer );
-	}
-
-	GL_CheckErrors();
-}
-
-/*
 =================
 R_AttachFBOTexture1D
 =================
 */
 void R_AttachFBOTexture1D( int texId, int index )
 {
-	if ( index < 0 || index >= glConfig2.maxColorAttachments )
+	if ( index < 0 || index >= glConfig.maxColorAttachments )
 	{
 		Log::Warn("R_AttachFBOTexture1D: invalid attachment index %i", index );
 		return;
 	}
 
-	glFramebufferTexture1D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_1D, texId, 0 );
+	GL_fboShim.glFramebufferTexture1D( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_1D, texId, 0 );
 }
 
 /*
@@ -309,13 +158,13 @@ void R_AttachFBOTexture2D( int target, int texId, int index )
 		return;
 	}
 
-	if ( index < 0 || index >= glConfig2.maxColorAttachments )
+	if ( index < 0 || index >= glConfig.maxColorAttachments )
 	{
 		Log::Warn("R_AttachFBOTexture2D: invalid attachment index %i", index );
 		return;
 	}
 
-	GL_fboShim.glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, target, texId, 0 );
+	GL_fboShim.glFramebufferTexture2D( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, target, texId, 0 );
 }
 
 /*
@@ -325,23 +174,13 @@ R_AttachFBOTexture3D
 */
 void R_AttachFBOTexture3D( int texId, int index, int zOffset )
 {
-	if ( index < 0 || index >= glConfig2.maxColorAttachments )
+	if ( index < 0 || index >= glConfig.maxColorAttachments )
 	{
 		Log::Warn("R_AttachFBOTexture3D: invalid attachment index %i", index );
 		return;
 	}
 
-	glFramebufferTexture3D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_3D, texId, 0, zOffset );
-}
-
-/*
-=================
-R_AttachFBOTextureDepth
-=================
-*/
-void R_AttachFBOTextureDepth( int texId )
-{
-	GL_fboShim.glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texId, 0 );
+	GL_fboShim.glFramebufferTexture3D( GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_3D, texId, 0, zOffset );
 }
 
 /*
@@ -351,8 +190,8 @@ R_AttachFBOTexturePackedDepthStencil
 */
 void R_AttachFBOTexturePackedDepthStencil( int texId )
 {
-	GL_fboShim.glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texId, 0 );
-	GL_fboShim.glFramebufferTexture2D( GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texId, 0 );
+	GL_fboShim.glFramebufferTexture2D( GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texId, 0 );
+	GL_fboShim.glFramebufferTexture2D( GL_DRAW_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texId, 0 );
 }
 
 /*
@@ -362,22 +201,20 @@ R_BindFBO
 */
 void R_BindFBO( FBO_t *fbo )
 {
-	if ( !fbo )
+	R_BindFBO( GL_DRAW_FRAMEBUFFER, fbo );
+}
+
+void R_BindFBO( GLenum target, FBO_t *fbo )
+{
+	GLuint handle = fbo == nullptr ? 0 : fbo->frameBuffer;
+
+	if ( target != GL_DRAW_FRAMEBUFFER )
 	{
-		R_BindNullFBO();
-		return;
+		GL_fboShim.glBindFramebuffer( target, handle );
 	}
-
-	if ( r_logFile->integer )
+	else if ( glState.currentFBO != fbo )
 	{
-		// don't just call LogComment, or we will get a call to va() every frame!
-		GLimp_LogComment( va( "--- R_BindFBO( %s ) ---\n", fbo->name ) );
-	}
-
-	if ( glState.currentFBO != fbo )
-	{
-		GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, fbo->frameBuffer );
-
+		GL_fboShim.glBindFramebuffer( target, handle );
 		glState.currentFBO = fbo;
 	}
 }
@@ -389,17 +226,7 @@ R_BindNullFBO
 */
 void R_BindNullFBO()
 {
-	if ( r_logFile->integer )
-	{
-		GLimp_LogComment( "--- R_BindNullFBO ---\n" );
-	}
-
-	if ( glState.currentFBO )
-	{
-		GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-		GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, 0 );
-		glState.currentFBO = nullptr;
-	}
+	R_BindFBO( nullptr );
 }
 
 /*
@@ -421,8 +248,8 @@ void R_InitFBOs()
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
 
-	width = glConfig.vidWidth;
-	height = glConfig.vidHeight;
+	width = windowConfig.vidWidth;
+	height = windowConfig.vidHeight;
 
 	tr.mainFBO[0] = R_CreateFBO( "_main[0]", width, height );
 	R_BindFBO( tr.mainFBO[0] );
@@ -436,7 +263,15 @@ void R_InitFBOs()
 	R_AttachFBOTexturePackedDepthStencil( tr.currentDepthImage->texnum );
 	R_CheckFBO( tr.mainFBO[1] );
 
-	if ( glConfig2.dynamicLight > 0 )
+	if ( glConfig.usingReadonlyDepth )
+	{
+		tr.readonlyDepthFBO = R_CreateFBO( "_depthReadonly", width, height );
+		R_BindFBO( tr.readonlyDepthFBO );
+		R_AttachFBOTexturePackedDepthStencil( tr.depthSamplerImage->texnum );
+		glConfig.usingReadonlyDepth = R_CheckFBO( tr.readonlyDepthFBO );
+	}
+
+	if ( glConfig.realtimeLighting )
 	{
 		/* It's only required to create frame buffers only used by the
 		tiled dynamic lighting renderer when this feature is enabled. */
@@ -457,59 +292,11 @@ void R_InitFBOs()
 		R_CheckFBO( tr.lighttileFBO );
 	}
 
-	if ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && glConfig2.textureFloatAvailable )
+	if ( r_liquidMapping->integer )
 	{
-		// shadowMap FBOs for shadow mapping offscreen rendering
-		for ( i = 0; i < MAX_SHADOWMAPS; i++ )
-		{
-			width = height = shadowMapResolutions[ i ];
+		width = windowConfig.vidWidth;
+		height = windowConfig.vidHeight;
 
-			tr.shadowMapFBO[ i ] = R_CreateFBO( va( "_shadowMap%d", i ), width, height );
-			R_BindFBO( tr.shadowMapFBO[ i ] );
-			R_AttachFBOTexture2D( GL_TEXTURE_2D,
-					      tr.shadowMapFBOImage[ i ]->texnum,
-					      0 );
-
-			R_CreateFBODepthBuffer( tr.shadowMapFBO[ i ], GL_DEPTH_COMPONENT24 );
-
-			R_CheckFBO( tr.shadowMapFBO[ i ] );
-		}
-
-		// sun requires different resolutions
-		for ( i = 0; i < MAX_SHADOWMAPS; i++ )
-		{
-			width = height = sunShadowMapResolutions[ i ];
-
-			tr.sunShadowMapFBO[ i ] = R_CreateFBO( va( "_sunShadowMap%d", i ), width, height );
-			R_BindFBO( tr.sunShadowMapFBO[ i ] );
-			R_AttachFBOTexture2D( GL_TEXTURE_2D,
-					      tr.sunShadowMapFBOImage[ i ]->texnum,
-					      0 );
-
-			R_CreateFBODepthBuffer( tr.sunShadowMapFBO[ i ], GL_DEPTH_COMPONENT24 );
-
-			if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_EVSM32) && r_evsmPostProcess->integer )
-			{
-				R_AttachFBOTextureDepth( tr.sunShadowMapFBOImage[ i ]->texnum );
-
-				/*
-				Since we don't have a color attachment, the framebuffer will be considered incomplete.
-				Consequently, we must inform the driver that we do not wish to render to the color buffer.
-				We do this with a call to set the draw-buffer and read-buffer to GL_NONE:
-				*/
-				glDrawBuffer( GL_NONE );
-				glReadBuffer( GL_NONE );
-			}
-
-			R_CheckFBO( tr.sunShadowMapFBO[ i ] );
-		}
-	}
-
-	{
-		width = glConfig.vidWidth;
-		height = glConfig.vidHeight;
-
-		// portalRender FBO for portals, mirrors, water, cameras et cetera
 		tr.portalRenderFBO = R_CreateFBO( "_portalRender", width, height );
 		R_BindFBO( tr.portalRenderFBO );
 
@@ -518,24 +305,10 @@ void R_InitFBOs()
 		R_CheckFBO( tr.portalRenderFBO );
 	}
 
+	if ( glConfig.bloom )
 	{
-		width = glConfig.vidWidth * 0.25f;
-		height = glConfig.vidHeight * 0.25f;
-
-		tr.downScaleFBO_quarter = R_CreateFBO( "_downScale_quarter", width, height );
-		R_BindFBO( tr.downScaleFBO_quarter );
-
-		R_AttachFBOTexture2D( GL_TEXTURE_2D, tr.downScaleFBOImage_quarter->texnum, 0 );
-		R_CheckFBO( tr.downScaleFBO_quarter );
-
-		tr.downScaleFBO_64x64 = R_CreateFBO( "_downScale_64x64", 64, 64 );
-		R_BindFBO( tr.downScaleFBO_64x64 );
-
-		R_AttachFBOTexture2D( GL_TEXTURE_2D, tr.downScaleFBOImage_64x64->texnum, 0 );
-		R_CheckFBO( tr.downScaleFBO_64x64 );
-
-		width = glConfig.vidWidth * 0.25f;
-		height = glConfig.vidHeight * 0.25f;
+		width = windowConfig.vidWidth * 0.25f;
+		height = windowConfig.vidHeight * 0.25f;
 
 		tr.contrastRenderFBO = R_CreateFBO( "_contrastRender", width, height );
 		R_BindFBO( tr.contrastRenderFBO );
@@ -567,34 +340,15 @@ R_ShutdownFBOs
 */
 void R_ShutdownFBOs()
 {
-	int   i, j;
 	FBO_t *fbo;
 
 	Log::Debug("------- R_ShutdownFBOs -------" );
 
 	R_BindNullFBO();
 
-	for ( i = 0; i < tr.numFBOs; i++ )
+	for ( int i = 0; i < tr.numFBOs; i++ )
 	{
 		fbo = tr.fbos[ i ];
-
-		for ( j = 0; j < glConfig2.maxColorAttachments; j++ )
-		{
-			if ( fbo->colorBuffers[ j ] )
-			{
-				GL_fboShim.glDeleteRenderbuffers( 1, &fbo->colorBuffers[ j ] );
-			}
-		}
-
-		if ( fbo->depthBuffer )
-		{
-			GL_fboShim.glDeleteRenderbuffers( 1, &fbo->depthBuffer );
-		}
-
-		if ( fbo->stencilBuffer )
-		{
-			GL_fboShim.glDeleteRenderbuffers( 1, &fbo->stencilBuffer );
-		}
 
 		if ( fbo->frameBuffer )
 		{
@@ -603,25 +357,27 @@ void R_ShutdownFBOs()
 	}
 }
 
-/*
-============
-R_FBOList_f
-============
-*/
-void R_FBOList_f()
+class ListFBOsCmd : public Cmd::StaticCmd
 {
-	int   i;
-	FBO_t *fbo;
+public:
+	ListFBOsCmd() : StaticCmd("listFBOs", Cmd::RENDERER, "list renderer's OpenGL framebuffer objects") {}
 
-	Log::Notice("             size       name" );
-	Log::Notice("----------------------------------------------------------" );
-
-	for ( i = 0; i < tr.numFBOs; i++ )
+	void Run( const Cmd::Args & ) const override
 	{
-		fbo = tr.fbos[ i ];
+		int   i;
+		FBO_t *fbo;
 
-		Log::Notice("  %4i: %4i %4i %s", i, fbo->width, fbo->height, fbo->name );
+		Print("             size       name" );
+		Print("----------------------------------------------------------" );
+
+		for ( i = 0; i < tr.numFBOs; i++ )
+		{
+			fbo = tr.fbos[ i ];
+
+			Print("  %4i: %4i %4i %s", i, fbo->width, fbo->height, fbo->name );
+		}
+
+		Print(" %i FBOs", tr.numFBOs );
 	}
-
-	Log::Notice(" %i FBOs", tr.numFBOs );
-}
+};
+static ListFBOsCmd listFBOsCmdRegistration;

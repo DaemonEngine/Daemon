@@ -22,12 +22,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* lightMapping_fp.glsl */
 
+#insert common
+#insert computeLight_fp
+#insert reliefMapping_fp
+
+#define LIGHTMAPPING_GLSL
+
 uniform sampler2D	u_DiffuseMap;
 uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_GlowMap;
 
 uniform float		u_AlphaThreshold;
 uniform vec3		u_ViewOrigin;
+
+uniform colorModulatePack u_ColorModulateColorGen;
 
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexCoords;
@@ -36,46 +44,41 @@ IN(smooth) vec3		var_Tangent;
 IN(smooth) vec3		var_Binormal;
 IN(smooth) vec3		var_Normal;
 
-#if defined(USE_BSP_SURFACE) && defined(USE_LIGHT_MAPPING) && !defined(USE_DELUXE_MAPPING)
-/* HACK: restore legacy behavior for bsp surface with lightmap
-but no deluxemap, do not use the lightgrid to compute the light
-direction, do not do normal mapping neither specular mapping
-with static lights.
-https://github.com/DaemonEngine/Daemon/issues/324
+uniform sampler2D u_LightMap;
+uniform sampler3D u_LightGrid1;
 
-Comment out this line to enable lightgrid light direction with
-lightmap light color when there is no deluxe map.
-*/
-	#define HACK_NO_BSP_GRID_LIGHTDIR
-#endif
-
-#if defined(USE_LIGHT_MAPPING)
-	uniform sampler2D u_LightMap;
-#else
-	uniform sampler3D u_LightMap;
-	#define u_LightGrid1 u_LightMap
-#endif
-
-#if defined(USE_DELUXE_MAPPING)
-	uniform sampler2D u_DeluxeMap;
-#else
-	uniform sampler3D u_DeluxeMap;
-	#define u_LightGrid2 u_DeluxeMap
-#endif
+uniform sampler2D u_DeluxeMap;
+uniform sampler3D u_LightGrid2;
 
 #if defined(USE_LIGHT_MAPPING) || defined(USE_DELUXE_MAPPING)
 	IN(smooth) vec2 var_TexLight;
 #endif
 
-#if !defined(USE_LIGHT_MAPPING) || !defined(USE_DELUXE_MAPPING)
+#if defined(USE_GRID_LIGHTING) || defined(USE_GRID_DELUXE_MAPPING)
 	uniform vec3 u_LightGridOrigin;
 	uniform vec3 u_LightGridScale;
 #endif
+
+#if defined(USE_MATERIAL_SYSTEM)
+	uniform bool u_ShowTris;
+	uniform vec3 u_MaterialColour;
+#endif
+
+#insert shaderProfiler_fp
 
 DECLARE_OUTPUT(vec4)
 
 void main()
 {
+	#insert material_fp
+
+	#if defined(USE_MATERIAL_SYSTEM)
+		if( u_ShowTris ) {
+			outputColor = vec4( 0.0, 0.0, 1.0, 1.0 );
+			return;
+		}
+	#endif
+
 	// Compute view direction in world space.
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
@@ -85,7 +88,11 @@ void main()
 
 	#if defined(USE_RELIEF_MAPPING)
 		// Compute texcoords offset from heightmap.
-		vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix);
+		#if defined(USE_HEIGHTMAP_IN_NORMALMAP)
+			vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix, u_NormalMap);
+		#else
+			vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix, u_HeightMap);
+		#endif
 
 		texCoords += texOffset;
 	#endif
@@ -103,52 +110,58 @@ void main()
 	}
 
 	// Compute normal in world space from normalmap.
-	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
+	#if defined(r_normalMapping)
+		vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix, u_NormalMap);
+	#else // !r_normalMapping
+		vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
+	#endif // !r_normalMapping
 
-	// Compute the material term.
-	vec4 material = texture2D(u_MaterialMap, texCoords);
+	#if defined(r_specularMapping) || defined(r_physicalMapping)
+		// Compute the material term.
+		vec4 material = texture2D(u_MaterialMap, texCoords);
+	#elif defined(r_realtimeLighting) \
+		|| defined( USE_DELUXE_MAPPING ) || defined(USE_GRID_DELUXE_MAPPING )
+		// The computeDynamicLights function requires this variable to exist.
+		vec4 material = vec4( 0.0, 0.0, 0.0, 1.0 );
+	#endif
 
 	// Compute final color.
 	vec4 color;
 	color.a = diffuse.a;
 
-	#if !defined(USE_LIGHT_MAPPING) || !defined(USE_DELUXE_MAPPING)
-		#if !defined(HACK_NO_BSP_GRID_LIGHTDIR)
-			// Compute light grid position.
-			vec3 lightGridPos = (var_Position - u_LightGridOrigin) * u_LightGridScale;
-		#endif
+	#if defined(USE_GRID_LIGHTING) || defined(USE_GRID_DELUXE_MAPPING)
+		// Compute light grid position.
+		vec3 lightGridPos = (var_Position - u_LightGridOrigin) * u_LightGridScale;
 	#endif
 
 	#if defined(USE_DELUXE_MAPPING)
 		// Compute light direction in world space from deluxe map.
 		vec4 deluxe = texture2D(u_DeluxeMap, var_TexLight);
 		vec3 lightDir = normalize(2.0 * deluxe.xyz - 1.0);
-	#else
-		#if !defined(HACK_NO_BSP_GRID_LIGHTDIR)
-			// Compute light direction in world space from light grid.
-			vec4 texel = texture3D(u_LightGrid2, lightGridPos);
-			vec3 lightDir = normalize(texel.xyz - (128.0 / 255.0));
-		#endif
+	#elif defined(USE_GRID_DELUXE_MAPPING)
+		// Compute light direction in world space from light grid.
+		vec4 texel = texture3D(u_LightGrid2, lightGridPos);
+		vec3 lightDir = normalize(texel.xyz - (128.0 / 255.0));
 	#endif
-
+	
+	float lightFactor = ColorModulateToLightFactor( u_ColorModulateColorGen );
 	#if defined(USE_LIGHT_MAPPING)
 		// Compute light color from world space lightmap.
+		// When doing vertex lighting with full-range overbright, this reads out
+		// 1<<overbrightBits and serves for the overbright shift for vertex colors.
 		vec3 lightColor = texture2D(u_LightMap, var_TexLight).rgb;
+		lightColor *= lightFactor;
 
-		#if !defined(HACK_NO_BSP_GRID_LIGHTDIR)
-			color.rgb = vec3(0.0);
-		#else
-			color.rgb = lightColor.rgb * diffuse.rgb;
-		#endif
+		color.rgb = vec3(0.0);
 	#else
 		// Compute light color from lightgrid.
 		vec3 ambientColor, lightColor;
-		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), ambientColor, lightColor);
+		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), lightFactor, ambientColor, lightColor);
 
 		color.rgb = ambientColor * r_AmbientScale * diffuse.rgb;
 	#endif
 
-	#if defined(USE_LIGHT_MAPPING)
+	#if defined(USE_LIGHT_MAPPING) && defined(USE_DELUXE_MAPPING)
 		/* Lightmaps generated by q3map2 don't store the raw light value, but
 		they store light premultiplied with the dot product of the light
 		direction and surface normal. The line is just an attempt to reverse
@@ -170,24 +183,29 @@ void main()
 		https://github.com/DaemonEngine/Daemon/issues/299#issuecomment-606186347
 		*/
 
-		#if !defined(HACK_NO_BSP_GRID_LIGHTDIR)
-			// Divide by cosine term to restore original light color.
-			lightColor /= clamp(dot(normalize(var_Normal), lightDir), 0.3, 1.0);
-		#endif
+		// Divide by cosine term to restore original light color.
+		lightColor /= clamp(dot(normalize(var_Normal), lightDir), 0.3, 1.0);
 	#endif
 
-	#if !defined(HACK_NO_BSP_GRID_LIGHTDIR)
-		// Blend static light.
-		computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
+	// Blend static light.
+	#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING)
+		#if defined(USE_REFLECTIVE_SPECULAR)
+			vec4 modifiedSpecular = material * EnvironmentalSpecularFactor(viewDir, normal);
+			computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, modifiedSpecular, color);
+		#else // !USE_REFLECTIVE_SPECULAR
+			computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
+		#endif // !USE_REFLECTIVE_SPECULAR
+	#else
+		computeLight(lightColor, diffuse, color);
 	#endif
 
-	#if defined(r_dynamicLight)
-		// Blend dynamic lights.
-		computeDLights(var_Position, normal, viewDir, diffuse, material, color);
+	// Blend dynamic lights.
+	#if defined(r_realtimeLighting)
+		computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color, u_LightTiles);
 	#endif
 
 	// Add Rim Lighting to highlight the edges on model entities.
-	#if defined(r_rimLighting) && !defined(USE_BSP_SURFACE) && !defined(USE_LIGHT_MAPPING)
+	#if defined(r_rimLighting) && defined(USE_MODEL_SURFACE) && defined(USE_GRID_LIGHTING)
 		float rim = pow(1.0 - clamp(dot(normal, viewDir), 0.0, 1.0), r_RimExponent);
 		vec3 emission = ambientColor * rim * rim * 0.2;
 		color.rgb += 0.7 * emission;
@@ -195,21 +213,42 @@ void main()
 
 	#if defined(r_glowMapping)
 		// Blend glow map.
-		color.rgb += texture2D(u_GlowMap, texCoords).rgb;
+		vec3 glow = texture2D(u_GlowMap, texCoords).rgb;
+
+		color.rgb += glow;
 	#endif
+	
+	SHADER_PROFILER_SET( color )
 
 	outputColor = color;
 
+
 	// Debugging.
-	#if defined(r_showLightMaps) && defined(USE_LIGHT_MAPPING)
-		outputColor = texture2D(u_LightMap, var_TexLight);
-	#elif defined(r_showDeluxeMaps) && defined(USE_DELUXE_MAPPING)
-		outputColor = texture2D(u_DeluxeMap, var_TexLight);
-	#elif defined(r_showNormalMaps)
+	#if defined(r_showNormalMaps)
 		// Convert normal to [0,1] color space.
 		normal = normal * 0.5 + 0.5;
 		outputColor = vec4(normal, 1.0);
 	#elif defined(r_showMaterialMaps)
 		outputColor = material;
+	#elif defined(r_showLightMaps) && defined(USE_LIGHT_MAPPING)
+		outputColor = texture2D(u_LightMap, var_TexLight);
+	#elif defined(r_showDeluxeMaps) && defined(USE_DELUXE_MAPPING)
+		outputColor = texture2D(u_DeluxeMap, var_TexLight);
+	#elif defined(USE_REFLECTIVE_SPECULAR) && defined(r_showReflectionMaps)
+		vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, normal));
+		vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal));
+
+		outputColor = vec4( mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb, 1.0 );
+	#elif defined(r_showVertexColors)
+		/* We need to keep the texture alpha channel so impact
+		marks like creep don't fully overwrite the world texture. */
+		#if defined(USE_BSP_SURFACE)
+			outputColor.rgb = vec3(1.0, 1.0, 1.0);
+			outputColor *= var_Color;
+		#else
+			outputColor.rgb = vec3(0.0, 0.0, 0.0);
+		#endif
+	#elif defined(USE_MATERIAL_SYSTEM) && defined(r_showGlobalMaterials)
+		outputColor.rgb = u_MaterialColour + lightColor.rgb * u_MaterialColour;
 	#endif
 }

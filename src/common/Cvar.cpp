@@ -41,7 +41,7 @@ namespace Cvar {
     }
 
     bool CvarProxy::Register(std::string description) {
-        return ::Cvar::Register(this, name, std::move(description), flags, std::move(defaultValue));
+        return ::Cvar::Register(this, name, std::move(description), flags, defaultValue);
     }
 
     bool ParseCvarValue(Str::StringRef value, bool& result) {
@@ -91,7 +91,9 @@ namespace Cvar {
 
 
     std::string SerializeCvarValue(float value) {
-        return std::to_string(value);
+        // You'd need %.9g to guarantee a round trip but with 8 or 9 digits of precision you get
+        // stuff like 0.65f -> "0.649999976"
+        return Str::Format("%.7g", value);
     }
 
     template<>

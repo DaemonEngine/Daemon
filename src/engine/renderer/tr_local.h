@@ -24,16 +24,19 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef TR_LOCAL_H
 #define TR_LOCAL_H
 
+#include <GL/glew.h>
+
 #include "common/FileSystem.h"
 #include "qcommon/q_shared.h"
 #include "qcommon/qfiles.h"
 #include "qcommon/qcommon.h"
 #include "botlib/bot_debug.h"
-#include "tr_public.h"
+#include "engine/RefAPI.h"
+#include "GLUtils.h"
 #include "iqm.h"
-
-#define GLEW_NO_GLU
-#include <GL/glew.h>
+#include "DetectGLVendors.h"
+#include "TextureManager.h"
+#include "VBO.h"
 
 #define DYN_BUFFER_SIZE ( 4 * 1024 * 1024 )
 #define DYN_BUFFER_SEGMENTS 4
@@ -115,6 +118,15 @@ static inline void floatToSnorm16( const vec4_t in, i16vec4_t out )
 	out[ 3 ] = floatToSnorm16( in[ 3 ] );
 }
 
+static inline void floatToSnorm16_fast( const vec4_t in, i16vec4_t out )
+{
+	// Just truncate them all.
+	out[ 0 ] = in[ 0 ] * 32767.0f;
+	out[ 1 ] = in[ 1 ] * 32767.0f;
+	out[ 2 ] = in[ 2 ] * 32767.0f;
+	out[ 3 ] = in[ 3 ] * 32767.0f;
+}
+
 static inline void snorm16ToFloat( const i16vec4_t in, vec4_t out )
 {
 	out[ 0 ] = snorm16ToFloat( in[ 0 ] );
@@ -123,13 +135,19 @@ static inline void snorm16ToFloat( const i16vec4_t in, vec4_t out )
 	out[ 3 ] = snorm16ToFloat( in[ 3 ] );
 }
 
+static inline uint32_t packUnorm4x8( const vec4_t in ) {
+	return uint32_t( floatToUnorm8( in[0] ) )
+		| ( uint32_t( floatToUnorm8( in[1] ) ) << 8 )
+		| ( uint32_t( floatToUnorm8( in[2] ) ) << 16 )
+		| ( uint32_t( floatToUnorm8( in[3] ) ) << 24 );
+}
+
 static inline f16_t floatToHalf( float in ) {
 	static float scale = powf(2.0f, 15 - 127);
-	floatint_t fi;
 
-	fi.f = in * scale;
+	uint32_t ui = Util::bit_cast<uint32_t>( in * scale );
 
-	return { uint16_t(((fi.ui & 0x80000000) >> 16) | ((fi.ui & 0x0fffe000) >> 13)) };
+	return { uint16_t(((ui & 0x80000000) >> 16) | ((ui & 0x0fffe000) >> 13)) };
 }
 static inline void floatToHalf( const vec4_t in, f16vec4_t out )
 {
@@ -140,10 +158,9 @@ static inline void floatToHalf( const vec4_t in, f16vec4_t out )
 }
 static inline float halfToFloat( f16_t in ) {
 	static float scale = powf(2.0f, 127 - 15);
-	floatint_t fi;
 
-	fi.ui = (((unsigned int)in.bits & 0x8000) << 16) | (((unsigned int)in.bits & 0x7fff) << 13);
-	return fi.f * scale;
+	uint32_t ui = (((unsigned int)in.bits & 0x8000) << 16) | (((unsigned int)in.bits & 0x7fff) << 13);
+	return Util::bit_cast<float>(ui) * scale;
 }
 static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 {
@@ -159,7 +176,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define SMP_FRAMES            2
 
 #define MAX_SHADERS           ( 1 << 12 )
-#define SHADERS_MASK          ( MAX_SHADERS - 1 )
 
 #define MAX_SHADER_TABLES     1024
 #define MAX_SHADER_STAGES     16
@@ -168,8 +184,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 #define MAX_VISCOUNTS         5
 #define MAX_VIEWS             10
-
-#define MAX_SHADOWMAPS        5
 
 #define MAX_TEXTURE_MIPS      16
 #define MAX_TEXTURE_LAYERS    256
@@ -185,20 +199,16 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define MAX_LIGHTMAPS      256
 #define MAX_SKINS          1024
 
+#define MAX_IN_GAME_VIDEOS 32
+
 #define MAX_DRAWSURFS      0x10000
 #define DRAWSURF_MASK      ( MAX_DRAWSURFS - 1 )
-
-#define MAX_INTERACTIONS   ( MAX_DRAWSURFS * 8 )
-#define INTERACTION_MASK   ( MAX_INTERACTIONS - 1 )
 
 // 16x16 pixels per tile
 #define TILE_SHIFT 4
 #define TILE_SIZE  (1 << TILE_SHIFT)
 #define TILE_SHIFT_STEP1 2
 #define TILE_SIZE_STEP1  (1 << TILE_SHIFT_STEP1)
-
-// max. 16 dynamic lights per plane
-#define LIGHT_PLANES ( MAX_REF_LIGHTS / 16 )
 
 struct glFboShim_t
 {
@@ -224,8 +234,12 @@ struct glFboShim_t
 	PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
 	// void (*glFramebufferRenderbuffer) (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
 	PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
+	// void (*glFramebufferTexture1D) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
+	PFNGLFRAMEBUFFERTEXTURE1DPROC glFramebufferTexture1D;
 	// void (*glFramebufferTexture2D) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
 	PFNGLFRAMEBUFFERTEXTURE2DPROC glFramebufferTexture2D;
+	// void (*glFramebufferTexture3D) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLint zoffset);
+	PFNGLFRAMEBUFFERTEXTURE3DPROC glFramebufferTexture3D;
 	// void (*glGenerateMipmap) (GLenum target);
 	PFNGLGENERATEMIPMAPPROC glGenerateMipmap;
 	// void (*glGenFramebuffers) (GLsizei n, GLuint *framebuffers);
@@ -234,6 +248,8 @@ struct glFboShim_t
 	PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
 	// void (*glRenderbufferStorage) (GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
 	PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
+	// void (*glBlitFramebuffer) (GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
+	PFNGLBLITFRAMEBUFFERPROC glBlitFramebuffer;
 
 	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	// void (*glRenderbufferStorageMultisample) (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
@@ -262,11 +278,14 @@ static inline void glFboSetArb()
 	GL_fboShim.glDeleteFramebuffers = glDeleteFramebuffers;
 	GL_fboShim.glDeleteRenderbuffers = glDeleteRenderbuffers;
 	GL_fboShim.glFramebufferRenderbuffer = glFramebufferRenderbuffer;
+	GL_fboShim.glFramebufferTexture1D = glFramebufferTexture1D;
 	GL_fboShim.glFramebufferTexture2D = glFramebufferTexture2D;
+	GL_fboShim.glFramebufferTexture3D = glFramebufferTexture3D;
 	GL_fboShim.glGenerateMipmap = glGenerateMipmap;
 	GL_fboShim.glGenFramebuffers = glGenFramebuffers;
 	GL_fboShim.glGenRenderbuffers = glGenRenderbuffers;
 	GL_fboShim.glRenderbufferStorage = glRenderbufferStorage;
+	GL_fboShim.glBlitFramebuffer = glBlitFramebuffer;
 
 	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisample; */
@@ -274,35 +293,66 @@ static inline void glFboSetArb()
 
 static inline void glFboSetExt()
 {
+	// EXT_framebuffer_object
 	GL_fboShim.glBindFramebuffer = glBindFramebufferEXT;
 	GL_fboShim.glBindRenderbuffer = glBindRenderbufferEXT;
 	GL_fboShim.glCheckFramebufferStatus = glCheckFramebufferStatusEXT;
 	GL_fboShim.glDeleteFramebuffers = glDeleteFramebuffersEXT;
 	GL_fboShim.glDeleteRenderbuffers = glDeleteRenderbuffersEXT;
 	GL_fboShim.glFramebufferRenderbuffer = glFramebufferRenderbufferEXT;
+	GL_fboShim.glFramebufferTexture1D = glFramebufferTexture1DEXT;
 	GL_fboShim.glFramebufferTexture2D = glFramebufferTexture2DEXT;
+	GL_fboShim.glFramebufferTexture3D = glFramebufferTexture3DEXT;
 	GL_fboShim.glGenerateMipmap = glGenerateMipmapEXT;
 	GL_fboShim.glGenFramebuffers = glGenFramebuffersEXT;
 	GL_fboShim.glGenRenderbuffers = glGenRenderbuffersEXT;
 	GL_fboShim.glRenderbufferStorage = glRenderbufferStorageEXT;
 
+	// EXT_framebuffer_blit
+	GL_fboShim.glBlitFramebuffer = glBlitFramebufferEXT;
+
 	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisampleEXT; */
 }
+
+enum class lightMode_t { FULLBRIGHT, VERTEX, GRID, MAP };
+enum class deluxeMode_t { NONE, GRID, MAP };
+
+enum class showCubeProbesMode {
+	DISABLED,
+	GRID,
+	UNIQUE
+};
+
+enum class cubeProbesAutoBuildMode {
+	DISABLED,
+	CACHED,
+	ALWAYS
+};
+
+enum class shaderProfilerRenderSubGroupsMode {
+	VS_OPAQUE,
+	VS_TRANSPARENT,
+	VS_ALL,
+	FS_OPAQUE,
+	FS_TRANSPARENT,
+	FS_ALL
+};
+
+enum class ssaoMode {
+	SHOW = -1,
+	DISABLED,
+	ENABLED,
+};
 
 	enum class renderSpeeds_t
 	{
 	  RSPEEDS_GENERAL = 1,
 	  RSPEEDS_CULLING,
 	  RSPEEDS_VIEWCLUSTER,
-	  RSPEEDS_LIGHTS,
-	  RSPEEDS_SHADOWCUBE_CULLING,
 	  RSPEEDS_FOG,
-	  RSPEEDS_FLARES,
-	  RSPEEDS_SHADING_TIMES,
 	  RSPEEDS_CHC,
 	  RSPEEDS_NEAR_FAR,
-	  RSPEEDS_DECALS
 	};
 
 	enum class glDebugModes_t
@@ -317,9 +367,7 @@ static inline void glFboSetExt()
 		GLDEBUG_ALL
 	};
 
-#define REF_CUBEMAP_SIZE       32
-#define REF_CUBEMAP_STORE_SIZE 1024
-#define REF_CUBEMAP_STORE_SIDE ( REF_CUBEMAP_STORE_SIZE / REF_CUBEMAP_SIZE )
+#define REF_CUBEMAP_SIZE 32
 
 #define REF_COLORGRADE_SLOTS   4
 #define REF_COLORGRADEMAP_SIZE 16
@@ -355,211 +403,31 @@ static inline void glFboSetExt()
 
 	using frustum_t = cplane_t[6];
 
-	enum
+	// FIXME: it is impossible for the game to create any type besides RL_OMNI
+	enum class refLightType_t
 	{
-	  CUBESIDE_PX = ( 1 << 0 ),
-	  CUBESIDE_PY = ( 1 << 1 ),
-	  CUBESIDE_PZ = ( 1 << 2 ),
-	  CUBESIDE_NX = ( 1 << 3 ),
-	  CUBESIDE_NY = ( 1 << 4 ),
-	  CUBESIDE_NZ = ( 1 << 5 ),
-	  CUBESIDE_CLIPALL = 1 | 2 | 4 | 8 | 16 | 32
+	  RL_OMNI, // point light
+	  RL_PROJ, // spot light
+	  RL_DIRECTIONAL, // sun light
+
+	  RL_MAX_REF_LIGHT_TYPE
 	};
 
-	struct link_t
+	struct refLight_t
 	{
-		void          *data;
-		int           numElements; // only used by sentinels
-		link_t *prev, *next;
-	};
+		refLightType_t rlType;
 
-	static inline void InitLink( link_t *l, void *data )
-	{
-		l->data = data;
-		l->prev = l->next = l;
-	}
+		vec3_t    origin;
+		vec3_t    color; // range from 0.0 to 1.0, should be color normalized
 
-	static inline void ClearLink( link_t *l )
-	{
-		l->data = nullptr;
-		l->prev = l->next = l;
-	}
+		float     scale; // r_lightScale if not set
 
-	static inline void RemoveLink( link_t *l )
-	{
-		l->next->prev = l->prev;
-		l->prev->next = l->next;
+		// omni-directional light specific
+		float     radius;
 
-		l->prev = l->next = nullptr;
-	}
-
-	static inline void InsertLink( link_t *l, link_t *sentinel )
-	{
-		l->next = sentinel->next;
-		l->prev = sentinel;
-
-		l->next->prev = l;
-		l->prev->next = l;
-	}
-
-	static inline bool StackEmpty( link_t *l )
-	{
-		return l->next == l;
-	}
-
-	static inline link_t *StackTop( link_t *l )
-	{
-		return l->next;
-	}
-
-	static inline void StackPush( link_t *sentinel, void *data )
-	{
-		link_t *l;
-
-		l = ( link_t * ) malloc( sizeof( *l ) );
-		InitLink( l, data );
-
-		InsertLink( l, sentinel );
-	}
-
-	static inline void *StackPop( link_t *l )
-	{
-		link_t *top;
-		void  *data;
-
-		if ( l->next == l )
-		{
-			return nullptr;
-		}
-
-		top = l->next;
-
-		RemoveLink( top );
-		data = top->data;
-		free( top );
-
-		return data;
-	}
-
-	static inline void QueueInit( link_t *l )
-	{
-		l->data = nullptr;
-		l->numElements = 0;
-		l->prev = l->next = l;
-	}
-
-	static inline int QueueSize( link_t *l )
-	{
-		return l->numElements;
-	}
-
-	static inline bool QueueEmpty( link_t *l )
-	{
-		return l->prev == l;
-	}
-
-	static inline void EnQueue( link_t *sentinel, void *data )
-	{
-		link_t *l;
-
-		l = ( link_t * ) malloc( sizeof( *l ) );
-		InitLink( l, data );
-
-		InsertLink( l, sentinel );
-
-		sentinel->numElements++;
-	}
-
-	static inline void *DeQueue( link_t *l )
-	{
-		link_t *tail;
-		void  *data;
-
-		tail = l->prev;
-
-		RemoveLink( tail );
-		data = tail->data;
-		free( tail );
-
-		l->numElements--;
-
-		return data;
-	}
-
-	static inline link_t *QueueFront( link_t *l )
-	{
-		return l->prev;
-	}
-
-// a trRefLight_t has all the information passed in by
-// the client game, as well as some locally derived info
-	struct trRefLight_t
-	{
-		// public from client game
-		refLight_t l;
-
-		// local
-		bool     isStatic; // loaded from the BSP entities lump
-		bool     noRadiosity; // this is a pure realtime light that was not considered by XMap2
-		bool     additive; // texture detail is lost tho when the lightmap is dark
-		vec3_t       origin; // l.origin + rotated l.center
-		vec3_t       transformed; // origin in local coordinate system
-		vec3_t       direction; // for directional lights (sun)
-
-		matrix_t     transformMatrix; // light to world
-		matrix_t     viewMatrix; // object to light
-		matrix_t     projectionMatrix; // light frustum
-
-		float        falloffLength;
-
-		matrix_t     shadowMatrices[ MAX_SHADOWMAPS ];
-		matrix_t     shadowMatricesBiased[ MAX_SHADOWMAPS ];
-		matrix_t     attenuationMatrix; // attenuation * (light view * entity transform)
-		matrix_t     attenuationMatrix2; // attenuation * tcMod matrices
-
-		cullResult_t cull;
-		vec3_t       localBounds[ 2 ];
-		vec3_t       worldBounds[ 2 ];
-		float        sphereRadius; // calculated from localBounds
-
-		int8_t       shadowLOD; // Level of Detail for shadow mapping
-
-		int                       restrictInteractionFirst;
-		int                       restrictInteractionLast;
-
-		frustum_t                 frustum;
-		vec4_t                    localFrustum[ 6 ];
-		struct VBO_t              *frustumVBO;
-
-		struct IBO_t              *frustumIBO;
-
-		uint16_t                  frustumIndexes;
-		uint16_t                  frustumVerts;
-
-		screenRect_t              scissor;
-
-		struct shader_t           *shader;
-
-		struct interactionCache_t *firstInteractionCache; // only used by static lights
-
-		struct interactionCache_t *lastInteractionCache; // only used by static lights
-
-		struct interactionVBO_t   *firstInteractionVBO; // only used by static lights
-
-		struct interactionVBO_t   *lastInteractionVBO; // only used by static lights
-
-		struct interaction_t      *firstInteraction;
-
-		struct interaction_t      *lastInteraction;
-
-		uint16_t                  numInteractions; // total interactions
-		uint16_t                  numShadowOnlyInteractions;
-		uint16_t                  numLightOnlyInteractions;
-		bool                  noSort; // don't sort interactions by material
-
-		link_t                    leafs;
-
-		int                       visCounts[ MAX_VISCOUNTS ]; // node needs to be traversed if current
+		// projective light specific
+		vec3_t   projTarget;
+		vec3_t   projUp;
 	};
 
 	// a structure matching the GLSL struct shaderLight in std140 layout
@@ -581,12 +449,7 @@ static inline void glFboSetExt()
 
 		// local
 		float        axisLength; // compensate for non-normalized axis
-		bool     lightingCalculated;
-		vec3_t       lightDir; // normalized direction towards light
-		vec3_t       ambientLight; // color normalized to 0-1
-		vec3_t       directedLight;
 
-		cullResult_t cull;
 		vec3_t       localBounds[ 2 ];
 		vec3_t       worldBounds[ 2 ];
 	};
@@ -602,15 +465,6 @@ static inline void glFboSetExt()
 		matrix_t modelViewMatrix; // only used by models, camera viewMatrix * transformMatrix
 	};
 
-// useful helper struct
-	struct vertexHash_t
-	{
-		vec3_t              xyz;
-		void                *data;
-
-		vertexHash_t *next;
-	};
-
 	enum
 	{
 		BIND_DIFFUSEMAP,
@@ -620,6 +474,8 @@ static inline void glFboSetExt()
 		BIND_LIGHTMAP,
 		BIND_DELUXEMAP,
 		BIND_GLOWMAP,
+		BIND_LIGHTGRID1,
+		BIND_LIGHTGRID2,
 		BIND_ENVIRONMENTMAP0,
 		BIND_ENVIRONMENTMAP1,
 		BIND_LIGHTTILES,
@@ -630,6 +486,7 @@ static inline void glFboSetExt()
 	{
 	  IF_NONE,
 	  IF_NOPICMIP = BIT( 0 ),
+	  IF_FITSCREEN = BIT( 1 ),
 	  IF_NORMALMAP = BIT( 2 ),
 	  IF_RGBA16F = BIT( 3 ),
 	  IF_RGBA32F = BIT( 4 ),
@@ -642,17 +499,17 @@ static inline void glFboSetExt()
 	  IF_DEPTH32 = BIT( 11 ),
 	  IF_PACKED_DEPTH24_STENCIL8 = BIT( 12 ),
 	  IF_LIGHTMAP = BIT( 13 ),
-	  IF_RGBA16 = BIT( 14 ),
 	  IF_RGBE = BIT( 15 ),
 	  IF_ALPHATEST = BIT( 16 ), // FIXME: this is unused
 	  IF_ALPHA = BIT( 17 ),
-	  IF_NOLIGHTSCALE = BIT( 18 ),
+	  IF_SRGB = BIT( 18 ),
 	  IF_BC1 = BIT( 19 ),
 	  IF_BC2 = BIT( 20 ),
 	  IF_BC3 = BIT( 21 ),
 	  IF_BC4 = BIT( 22 ),
 	  IF_BC5 = BIT( 23 ),
-	  IF_RGBA32UI = BIT( 24 )
+	  IF_RGBA32UI = BIT( 24 ),
+	  IF_HOMEPATH = BIT( 25 )
 	};
 
 	enum class filterType_t
@@ -694,16 +551,25 @@ static inline void glFboSetExt()
 		wrapType_t wrapType;
 		int minDimension = 0;
 		int maxDimension = 0;
+
+		bool operator==(const imageParams_t &o) const
+		{
+			return o.bits == bits && o.filterType == filterType && o.wrapType == wrapType
+				&& o.minDimension == minDimension && o.maxDimension == maxDimension;
+		}
 	};
 
 	struct image_t
 	{
 		char name[ MAX_QPATH ];
 
+		imageParams_t initialParams; // may not match final values
+
 		GLenum         type;
 		GLuint         texnum; // gl texture binding
+		Texture        *texture;
 
-		uint16_t       width, height; // source image
+		uint16_t width, height, numLayers; // source image
 		uint16_t       uploadWidth, uploadHeight; // after power of two and picmip but not including clamp to MAX_TEXTURE_SIZE
 
 		int            frameUsed; // for texture usage in frame statistics
@@ -723,147 +589,15 @@ static inline void glFboSetExt()
 	{
 		char     name[ MAX_QPATH ];
 
-		int      index;
-
 		uint32_t frameBuffer;
-
-		uint32_t colorBuffers[ 16 ];
-		int      colorFormat;
-
-		uint32_t depthBuffer;
-		int      depthFormat;
-
-		uint32_t stencilBuffer;
-		int      stencilFormat;
-
-		uint32_t packedDepthStencilBuffer;
-		int      packedDepthStencilFormat;
 
 		int      width;
 		int      height;
 	};
 
-	enum
-	{
-		ATTR_INDEX_POSITION = 0,
-		ATTR_INDEX_TEXCOORD,
-		ATTR_INDEX_QTANGENT,
-		ATTR_INDEX_COLOR,
-
-		// Sprites
-		ATTR_INDEX_ORIENTATION,
-
-		// GPU vertex skinning
-		ATTR_INDEX_BONE_FACTORS,
-
-		// GPU vertex animations
-		ATTR_INDEX_POSITION2,
-		ATTR_INDEX_QTANGENT2,
-		ATTR_INDEX_MAX
-	};
-
-	// must match order of ATTR_INDEX enums
-	static const char *const attributeNames[] =
-	{
-		"attr_Position",
-		"attr_TexCoord0",
-		"attr_QTangent",
-		"attr_Color",
-		"attr_Orientation",
-		"attr_BoneFactors",
-		"attr_Position2",
-		"attr_QTangent2"
-	};
-
-	enum
-	{
-	  ATTR_POSITION       = BIT( ATTR_INDEX_POSITION ),
-	  ATTR_TEXCOORD       = BIT( ATTR_INDEX_TEXCOORD ),
-	  ATTR_QTANGENT       = BIT( ATTR_INDEX_QTANGENT ),
-	  ATTR_COLOR          = BIT( ATTR_INDEX_COLOR ),
-
-	  ATTR_ORIENTATION    = BIT( ATTR_INDEX_ORIENTATION ),
-	  ATTR_BONE_FACTORS   = BIT( ATTR_INDEX_BONE_FACTORS ),
-
-	  // for .md3 interpolation
-	  ATTR_POSITION2      = BIT( ATTR_INDEX_POSITION2 ),
-	  ATTR_QTANGENT2      = BIT( ATTR_INDEX_QTANGENT2 ),
-
-	  ATTR_INTERP_BITS = ATTR_POSITION2 | ATTR_QTANGENT2,
-
-	  ATTR_BITS = ATTR_POSITION |
-	              ATTR_TEXCOORD |
-	              ATTR_QTANGENT |
-	              ATTR_COLOR // |
-
-	              //ATTR_BONE_INDEXES |
-	              //ATTR_BONE_WEIGHTS
-	};
-
-	struct vboAttributeLayout_t
-	{
-		GLint   numComponents; // how many components in a single attribute for a single vertex
-		GLenum  componentType; // the input type for a single component
-		GLboolean normalize; // convert signed integers to the floating point range [-1, 1], and unsigned integers to the range [0, 1]
-		GLsizei stride;
-		GLsizei realStride;
-		GLsizei ofs;
-		GLsizei frameOffset; // for vertex animation, real offset computed as ofs + frame * frameOffset
-	};
-
-	enum class vboLayout_t
-	{
-		VBO_LAYOUT_VERTEX_ANIMATION,
-		VBO_LAYOUT_SKELETAL,
-		VBO_LAYOUT_STATIC,
-		VBO_LAYOUT_POSITION,
-		VBO_LAYOUT_XYST
-	};
-
-	struct vboData_t
-	{
-		vec3_t *xyz;
-		i16vec4_t *qtangent;
-		u8vec4_t *color;
-		union { f16vec2_t *st; f16vec4_t *stpq; vec2_t *stf; };
-		int    (*boneIndexes)[ 4 ];
-		vec4_t *boneWeights;
-		f16vec4_t *spriteOrientation;
-
-		int	numFrames;
-		int     numVerts;
-		bool noLightCoords;
-	};
-
-	struct VBO_t
-	{
-		char     name[ MAX_QPATH ];
-
-		uint32_t vertexesVBO;
-
-		uint32_t vertexesSize; // total amount of memory data allocated for this vbo
-
-		uint32_t vertexesNum;
-		uint32_t framesNum; // number of frames for vertex animation
-
-		vboAttributeLayout_t attribs[ ATTR_INDEX_MAX ]; // info for buffer manipulation
-
-		vboLayout_t layout;
-		uint32_t attribBits;
-		GLenum      usage;
-	};
-
-	struct IBO_t
-	{
-		char     name[ MAX_QPATH ];
-
-		uint32_t indexesVBO;
-		uint32_t indexesSize; // amount of memory data allocated for all triangles in bytes
-		uint32_t indexesNum;
-	};
-
 //===============================================================================
 
+	// Sorts commented "keyword only" will never be used unless the shader text has a `sort` keyword specifying it.
 	enum class shaderSort_t
 	{
 	  SS_BAD,
@@ -878,30 +612,22 @@ static inline void glFboSetExt()
 	  SS_ENVIRONMENT_NOFOG, // Tr3B: moved skybox here so we can fog post process all SS_OPAQUE materials
 
 	  SS_DECAL, // scorch marks, etc.
-	  SS_SEE_THROUGH, // ladders, grates, grills that may have small blended edges
-	  // in addition to alpha test
-	  SS_BANNER,
-
+	  SS_SEE_THROUGH, // ladders, grates, grills that may have small blended edges in addition to alpha test
+	  SS_BANNER, // keyword only
 	  SS_FOG,
 
-	  SS_UNDERWATER, // for items that should be drawn in front of the water plane
-	  SS_WATER,
+	  SS_UNDERWATER, // keyword only
+	  SS_FAR, // keyword only
+	  SS_MEDIUM, // keyword only
+	  SS_CLOSE, // keyword only
 
-	  SS_FAR,
-	  SS_MEDIUM,
-	  SS_CLOSE,
+	  // Must have value 15 because binary.shader contains numerical sort values between 15 and 16
+	  SS_BLEND0 = 15, // regular transparency and filters
 
-	  SS_BLEND0, // regular transparency and filters
-	  SS_BLEND1, // generally only used for additive type effects
-	  SS_BLEND2,
-	  SS_BLEND3,
-
-	  SS_BLEND6,
-
-	  SS_ALMOST_NEAREST, // gun smoke puffs
-
-	  SS_NEAREST, // blood blobs
-	  SS_POST_PROCESS,
+	  SS_BLEND1, // Keyword only. Generally only used for additive type effects
+	  SS_ALMOST_NEAREST, // keyword only
+	  SS_NEAREST, // keyword only
+	  SS_POST_PROCESS, // keyword only
 
 	  SS_NUM_SORTS
 	};
@@ -951,6 +677,7 @@ static inline void glFboSetExt()
 	  AGEN_VERTEX,
 	  AGEN_ONE_MINUS_VERTEX,
 	  AGEN_WAVEFORM,
+	  AGEN_PORTAL,
 	  AGEN_CONST,
 	  AGEN_CUSTOM
 	};
@@ -958,7 +685,7 @@ static inline void glFboSetExt()
 	enum class colorGen_t
 	{
 	  CGEN_BAD,
-	  CGEN_IDENTITY_LIGHTING, // tr.identityLight
+	  CGEN_IDENTITY_LIGHTING, // Always (1,1,1,1) in Dæmon engine, unless you set r_overbrightQ3.
 	  CGEN_IDENTITY, // always (1,1,1,1)
 	  CGEN_ENTITY, // grabbed from entity's modulate field
 	  CGEN_ONE_MINUS_ENTITY, // grabbed from 1 - entity.modulate
@@ -1038,13 +765,38 @@ static inline void glFboSetExt()
 		float    value;
 	};
 
+
+enum
+{
+	EXP_NONE,
+	EXP_CLAMP = BIT( 0 ),
+	EXP_SRGB = BIT( 1 ),
+};
+
 #define MAX_EXPRESSION_OPS 32
 	struct expression_t
 	{
 		expOperation_t ops[ MAX_EXPRESSION_OPS ];
-		uint8_t        numOps;
+		size_t numOps;
+		int bits;
 
-		bool       active; // no parsing problems
+		bool operator==( const expression_t& other ) {
+			if ( numOps != other.numOps ) {
+				return false;
+			}
+
+			for ( size_t i = 0; i < numOps; i++ ) {
+				if ( ops[i].type != other.ops[i].type || ops[i].value != other.ops[i].value ) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool operator!=( const expression_t& other ) {
+			return !( *this == other );
+		}
 	};
 
 	struct waveForm_t
@@ -1055,6 +807,15 @@ static inline void glFboSetExt()
 		float     amplitude;
 		float     phase;
 		float     frequency;
+
+		bool operator==( const waveForm_t& other ) {
+			return func == other.func && base == other.base && amplitude == other.amplitude && phase == other.phase
+				&& frequency == other.frequency;
+		}
+
+		bool operator!=( const waveForm_t& other ) {
+			return !( *this == other );
+		}
 	};
 
 #define TR_MAX_TEXMODS 4
@@ -1078,8 +839,6 @@ static inline void glFboSetExt()
 	};
 
 #define MAX_SHADER_DEFORMS      3
-#define MAX_SHADER_DEFORM_STEPS	4
-#define MAX_SHADER_DEFORM_PARMS ( MAX_SHADER_DEFORMS * MAX_SHADER_DEFORM_STEPS )
 	struct deformStage_t
 	{
 		deform_t   deformation; // vertex coordinate modification type
@@ -1122,9 +881,20 @@ static inline void glFboSetExt()
 		expression_t sExp;
 		expression_t tExp;
 		expression_t rExp;
+
+		bool operator==( const texModInfo_t& other ) {
+			return type == other.type && wave == other.wave && MatrixCompare( matrix, other.matrix )
+				&& scale[0] == other.scale[0] && scale[1] == other.scale[1] && scroll[0] == other.scroll[0] && scroll[1] == other.scroll[1]
+				&& rotateSpeed == other.rotateSpeed
+				&& sExp == other.sExp && tExp == other.tExp && rExp == other.rExp;
+		}
+
+		bool operator!=( const texModInfo_t& other ) {
+			return !( *this == other );
+		}
 	};
 
-#define MAX_IMAGE_ANIMATIONS 24
+#define MAX_IMAGE_ANIMATIONS 32
 
 	enum
 	{
@@ -1146,8 +916,11 @@ static inline void glFboSetExt()
 		float        imageAnimationSpeed;
 		image_t      *image[ MAX_IMAGE_ANIMATIONS ];
 
-		uint8_t      numTexMods;
+		size_t numTexMods;
 		texModInfo_t *texMods;
+
+		int videoMapHandle;
+		bool isVideoMap;
 	};
 
 	enum class stageType_t
@@ -1161,30 +934,49 @@ static inline void glFboSetExt()
 	  ST_PHYSICALMAP,
 	  ST_SPECULARMAP,
 	  ST_REFLECTIONMAP, // cubeMap based reflection
-	  ST_REFRACTIONMAP,
-	  ST_DISPERSIONMAP,
 	  ST_SKYBOXMAP,
 	  ST_SCREENMAP, // 2d offscreen or portal rendering
 	  ST_PORTALMAP,
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
+	  ST_FOGMAP,
 	  ST_LIGHTMAP,
-	  ST_COLLAPSE_lighting_PBR,   // map|diffusemap + opt:normalmap + opt:glowmap + opt:physicalmap
-	  ST_COLLAPSE_lighting_PHONG, // map|diffusemap + opt:normalmap + opt:glowmap + specularmap
-	  ST_COLLAPSE_reflection_CB,  // color cubemap + normalmap
-
-	  // light shader stage types
-	  ST_ATTENUATIONMAP_XY,
-	  ST_ATTENUATIONMAP_Z
+	  ST_STYLELIGHTMAP,
+	  ST_STYLECOLORMAP,
+	  ST_COLLAPSE_COLORMAP,
+	  ST_COLLAPSE_DIFFUSEMAP,
+	  ST_COLLAPSE_REFLECTIONMAP,  // color cubemap + normalmap
 	};
 
 	enum class collapseType_t
 	{
 	  COLLAPSE_none,
 	  COLLAPSE_generic, // used before we know it's another one
-	  COLLAPSE_lighting_PHONG,
-	  COLLAPSE_lighting_PBR,
-	  COLLAPSE_reflection_CB,
+	  COLLAPSE_PHONG,
+	  COLLAPSE_PBR,
+	  COLLAPSE_REFLECTIONMAP,
+	};
+
+	struct shader_t;
+	struct shaderStage_t;
+	struct Material;
+	struct MaterialSurface;
+
+	// [implicit only] enable lightmapping, front-side culling, disable (non-BSP) vertex colors, disable blending
+	// TODO(0.56): move to the public RegisterShaderFlags_t interface
+#define RSF_3D ( BIT( 30 ) )
+
+	using stageRenderer_t = void(*)(shaderStage_t *);
+	using stageShaderBuildMarker_t = void(*)(const shaderStage_t*);
+	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
+	using stageShaderBinder_t = void(*)(Material*);
+	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, MaterialSurface*);
+
+	enum ShaderStageVariant {
+		VERTEX_OVERBRIGHT = 1,
+		VERTEX_LIT = BIT( 1 ),
+		FULLBRIGHT = BIT( 2 ),
+		ALL = BIT( 3 )
 	};
 
 	struct shaderStage_t
@@ -1196,6 +988,15 @@ static inline void glFboSetExt()
 		bool        active;
 
 		bool            dpMaterial;
+
+		// Core renderer (code path for when only OpenGL Core is available, or compatible OpenGL 2).
+		stageRenderer_t colorRenderer;
+		stageShaderBuildMarker_t shaderBuildMarker;
+
+		// Material renderer (code path for advanced OpenGL techniques like bindless textures).
+		surfaceDataUpdater_t surfaceDataUpdater;
+		stageShaderBinder_t shaderBinder;
+		stageMaterialProcessor_t materialProcessor;
 
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
 
@@ -1217,16 +1018,15 @@ static inline void glFboSetExt()
 		bool        tcGen_Environment;
 		bool        tcGen_Lightmap;
 
-		bool implicitLightmap;
-
 		Color::Color32Bit constantColor; // for CGEN_CONST and AGEN_CONST
 
 		uint32_t        stateBits; // GLS_xxxx mask
 
 		bool            isCubeMap;
 
-		int             deformIndex;
+		int deformIndex; // FIXME: should be on the shader level, not per-stage
 		bool        overrideNoPicMip; // for images that must always be full resolution
+		bool fitScreen; // For images that should be scaled to fit the screen size.
 		bool        overrideFilterType; // for console fonts, 2D elements, etc.
 		filterType_t    filterType;
 		bool        overrideWrapType;
@@ -1247,13 +1047,8 @@ static inline void glFboSetExt()
 		expression_t    fresnelScaleExp;
 		expression_t    fresnelBiasExp;
 
-		// Available textures.
-		bool hasNormalMap;
-		bool hasHeightMap;
-		bool isHeightMapInNormalMap;
-		bool hasMaterialMap;
-		bool isMaterialPhysical;
-		bool hasGlowMap;
+		// Texture storage variants.
+		bool hasHeightMapInNormalMap;
 
 		// Available features.
 		bool enableNormalMapping;
@@ -1264,15 +1059,10 @@ static inline void glFboSetExt()
 		bool enableGlowMapping;
 
 		// Normal map scale and format.
-		bool hasNormalFormat;
-		bool hasNormalScale;
-		vec3_t normalFormat;
-		vec3_t normalScale;
+		int8_t normalFormat[ 3 ];
+		vec3_t normalScale = { 1.0f, 1.0f, 1.0f };
 
 		expression_t    normalIntensityExp;
-
-		expression_t    etaExp;
-		expression_t    etaDeltaExp;
 
 		expression_t    fogDensityExp;
 
@@ -1280,12 +1070,26 @@ static inline void glFboSetExt()
 
 		expression_t    deformMagnitudeExp;
 
-		expression_t    wrapAroundLightingExp;
-
 		bool        noFog; // used only for shaders that have fog disabled, so we can enable it for individual stages
-	};
 
-	struct shaderCommands_t;
+		bool useMaterialSystem = false;
+		shader_t* shader;
+		shaderStage_t* materialRemappedStage = nullptr;
+
+		uint32_t paddedSize = 0;
+
+		uint32_t materialOffset = 0;
+		uint32_t bufferOffset = 0;
+		uint32_t dynamicBufferOffset = 0;
+
+		bool initialized = false;
+
+		bool dynamic = false;
+		bool colorDynamic = false;
+
+		int variantOffsets[ShaderStageVariant::ALL];
+		uint32_t variantOffset = 0;
+	};
 
 	enum cullType_t : int
 	{
@@ -1316,18 +1120,10 @@ static inline void glFboSetExt()
 		float  depthForOpaque;
 	};
 
-	enum class shaderType_t
-	{
-	  SHADER_2D, // surface material: shader is for 2D rendering (like GUI elements)
-	  SHADER_3D_DYNAMIC, // surface material: shader is for cGen diffuseLighting lighting
-	  SHADER_3D_STATIC, // surface material: pre-lit triangle models
-	  SHADER_LIGHT // light material: attenuation
-	};
-
 	struct shader_t
 	{
 		char         name[ MAX_QPATH ]; // game path, including extension
-		shaderType_t type;
+		int registerFlags; // RSF_
 
 		int          index; // this shader == tr.shaders[index]
 		int          sortedIndex; // this shader == tr.sortedShaders[sortedIndex]
@@ -1340,13 +1136,10 @@ static inline void glFboSetExt()
 		// something calls RE_RegisterShader again with
 		// the same name, we don't try looking for it again
 
-		bool       createdByGuide; // created using a shader .guide template
-
 		int            surfaceFlags;
 		int            contentFlags;
 
 		bool       entityMergable; // merge across entites optimizable (smoke, blood)
-		bool       alphaTest; // helps merging shadowmap generating surfaces
 
 		fogParms_t     fogParms;
 		fogPass_t      fogPass; // draw a blended pass, possibly with depth test equals
@@ -1354,11 +1147,8 @@ static inline void glFboSetExt()
 
 		bool       disableReliefMapping; // disable relief mapping for this material even if it's available
 		float      reliefOffsetBias; // offset the heightmap top relatively to the floor
-		float      reliefDepthScale; // per-shader relief depth scale
+		float reliefDepthScale = 1.0f; // per-shader relief depth scale
 
-		bool       noShadows;
-		bool       fogLight;
-		bool       blendLight;
 		bool       ambientLight;
 		bool       translucent;
 		bool       forceOpaque;
@@ -1373,22 +1163,25 @@ static inline void glFboSetExt()
 		float          polygonOffsetValue;
 
 		bool       noPicMip; // for images that must always be full resolution
+		bool fitScreen; // For images that should be scaled to fit the screen size.
 		int        imageMinDimension;   // for images that must not be loaded with smaller size
 		int        imageMaxDimension;   // for images that must not be loaded with larger size
 		filterType_t   filterType; // for console fonts, 2D elements, etc.
 		wrapType_t     wrapType;
 
-		bool        interactLight; // this shader can interact with light shaders
+		// For RT_SPRITE, face opposing the view direction rather than the viewer
+		bool entitySpriteFaceViewDirection;
 
 		int		autoSpriteMode;
+		bool autoSpriteWarned = false;
+
+		bool shaderRemapWarned;
 
 		uint8_t         numDeforms;
 		deformStage_t   deforms[ MAX_SHADER_DEFORMS ];
 
-		uint8_t         numStages;
-		shaderStage_t   *stages[ MAX_SHADER_STAGES ];
-
-		int             currentState; // current state index for cycle purposes
+		shaderStage_t *stages;
+		shaderStage_t *lastStage;
 
 		struct shader_t *remappedShader; // current shader this one is remapped too
 
@@ -1398,6 +1191,7 @@ static inline void glFboSetExt()
 		} altShader[ MAX_ALTSHADERS ]; // state-based remapping; note that index 0 is unused
 
 		struct shader_t *depthShader;
+		struct shader_t *fogShader;
 		struct shader_t *next;
 	};
 
@@ -1450,18 +1244,20 @@ static inline void glFboSetExt()
 
 	  GLS_DEPTHFUNC_LESS = ( 1 << 20 ),
 	  GLS_DEPTHFUNC_EQUAL = ( 1 << 21 ),
+	  GLS_DEPTHFUNC_ALWAYS = ( 1 << 22 ),
 
 	  GLS_DEPTHFUNC_BITS = GLS_DEPTHFUNC_LESS
-	                       | GLS_DEPTHFUNC_EQUAL,
+	                       | GLS_DEPTHFUNC_EQUAL
+	                       | GLS_DEPTHFUNC_ALWAYS,
 
-	  GLS_ATEST_NONE   = ( 0 << 22 ),
-	  GLS_ATEST_GT_0   = ( 1 << 22 ),
-	  GLS_ATEST_LT_128 = ( 2 << 22 ),
-	  GLS_ATEST_GE_128 = ( 3 << 22 ),
-	  GLS_ATEST_LT_ENT = ( 4 << 22 ),
-	  GLS_ATEST_GT_ENT = ( 5 << 22 ),
+	  GLS_ATEST_NONE   = ( 0 << 23 ),
+	  GLS_ATEST_GT_0   = ( 1 << 23 ),
+	  GLS_ATEST_LT_128 = ( 2 << 23 ),
+	  GLS_ATEST_GE_128 = ( 3 << 23 ),
+	  GLS_ATEST_LT_ENT = ( 4 << 23 ),
+	  GLS_ATEST_GT_ENT = ( 5 << 23 ),
 
-	  GLS_ATEST_BITS   = ( 7 << 22 ),
+	  GLS_ATEST_BITS   = ( 7 << 23 ),
 
 	  GLS_REDMASK_FALSE = ( 1 << 26 ),
 	  GLS_GREENMASK_FALSE = ( 1 << 27 ),
@@ -1477,18 +1273,7 @@ static inline void glFboSetExt()
 	};
 
 // *INDENT-ON*
-
-// Tr3B - shaderProgram_t represents a pair of one
-// GLSL vertex and one GLSL fragment shader
-	struct shaderProgram_t
-	{
-		GLuint    program;
-		GLuint    VS, FS;
-		uint32_t  attribs; // vertex array attributes
-		GLint    *uniformLocations;
-		GLuint   *uniformBlockIndexes;
-		byte     *uniformFirewall;
-	};
+	struct ShaderProgramDescriptor;
 
 // trRefdef_t holds everything that comes in refdef_t,
 // as well as the locally generated scene information
@@ -1513,24 +1298,13 @@ static inline void glFboSetExt()
 		trRefEntity_t           *entities;
 
 		int                     numLights;
-		int                     numShaderLights;
-		trRefLight_t            *lights;
+		refLight_t              *lights;
 
 		int                     numPolys;
 		struct srfPoly_t        *polys;
 
-		int                     decalBits; // ydnar: optimization
-		int                     numDecalProjectors;
-		struct decalProjector_t *decalProjectors;
-
-		int                     numDecals;
-		struct srfDecal_t       *decals;
-
 		int                     numDrawSurfs;
 		struct drawSurf_t       *drawSurfs;
-
-		int                     numInteractions;
-		struct interaction_t    *interactions;
 
 		byte                    *pixelTarget; //set this to Non Null to copy to a buffer after scene rendering
 		int                     pixelTargetWidth;
@@ -1542,38 +1316,11 @@ static inline void glFboSetExt()
 
 //=================================================================================
 
-// ydnar: decal projection
-	struct decalProjector_t
-	{
-		shader_t *shader;
-		Color::Color32Bit color;
-		int      fadeStartTime, fadeEndTime;
-		vec3_t   mins, maxs;
-		vec3_t   center;
-		float    radius, radius2;
-		bool omnidirectional;
-		int      numPlanes; // either 5 or 6, for quad or triangle projectors
-		vec4_t   planes[ 6 ];
-		vec4_t   texMat[ 3 ][ 2 ];
-	};
-
-//=================================================================================
-
 // skins allow models to be retextured without modifying the model file
 	struct skinSurface_t
 	{
 		char     name[ MAX_QPATH ];
 		shader_t *shader;
-	};
-
-//----(SA) modified
-#define MAX_PART_MODELS 5
-
-	struct skinModel_t
-	{
-		char type[ MAX_QPATH ]; // md3_lower, md3_lbelt, md3_rbelt, etc.
-		char model[ MAX_QPATH ]; // lower.md3, belt1.md3, etc.
-		int  hash;
 	};
 
 	struct skin_t
@@ -1582,7 +1329,6 @@ static inline void glFboSetExt()
 		int           numSurfaces;
 		int           numModels;
 		skinSurface_t *surfaces[ MD3_MAX_SURFACES ];
-		skinModel_t   *models[ MAX_PART_MODELS ];
 	};
 
 //----(SA) end
@@ -1608,9 +1354,13 @@ static inline void glFboSetExt()
 		orientationr_t orientation;
 		orientationr_t world;
 
+		uint viewID = 0;
+
 		vec3_t         pvsOrigin; // may be different than or.origin for portals
 
 		int            portalLevel; // number of portals this view is through
+		bool hasNestedViews = false;
+		int            mirrorLevel;
 		bool           isMirror; // the portal is a mirror, invert the face culling
 
 		int            frameSceneNum; // copied from tr.frameSceneNum
@@ -1625,12 +1375,10 @@ static inline void glFboSetExt()
 
 		float          fovX, fovY;
 		matrix_t       projectionMatrix;
+		matrix_t       projectionMatrixNonPortal; // For skybox rendering in portals
 		matrix_t       unprojectionMatrix; // transform pixel window space -> world space
 
-		float          parallelSplitDistances[ MAX_SHADOWMAPS + 1 ]; // distances in camera space
-
-		frustum_t      frustums[ MAX_SHADOWMAPS + 1 ]; // first frustum is the default one with complete zNear - zFar range
-		// and the other ones are for PSSM
+		frustum_t      frustum;
 
 		vec3_t               visBounds[ 2 ];
 		float                zNear;
@@ -1639,9 +1387,6 @@ static inline void glFboSetExt()
 		int                  numDrawSurfs;
 		struct drawSurf_t    *drawSurfs;
 		int                  firstDrawSurf[ Util::ordinal(shaderSort_t::SS_NUM_SORTS) + 1 ];
-
-		int                  numInteractions;
-		struct interaction_t *interactions;
 	};
 
 	/*
@@ -1665,13 +1410,11 @@ static inline void glFboSetExt()
 	  SF_TRIANGLES,
 
 	  SF_POLY,
-	  SF_DECAL, // ydnar: decal surfaces
 
 	  SF_MDV,
 	  SF_MD5,
 	  SF_IQM,
 
-	  SF_FLARE,
 	  SF_ENTITY, // beams, rails, lightning, etc that can be determined by entity
 
 	  SF_VBO_MESH,
@@ -1690,37 +1433,31 @@ static inline void glFboSetExt()
 	// 1. shaderNum
 	// 2. lightmapNum
 	// 3. entityNum
-	// 4. fogNum
-	// 5. index
+	// 4. index
 
-	static const uint64_t SORT_INDEX_BITS = 16;
-	static const uint64_t SORT_FOGNUM_BITS = 13;
-	static const uint64_t SORT_ENTITYNUM_BITS = 10;
+	static const uint64_t SORT_INDEX_BITS = 20;
+	static const uint64_t SORT_ENTITYNUM_BITS = 13;
 	static const uint64_t SORT_LIGHTMAP_BITS = 9;
 	static const uint64_t SORT_SHADER_BITS = 16;
+	static const uint64_t SORT_UNUSED_BITS = 6;
 
 	static_assert( SORT_SHADER_BITS +
 		SORT_LIGHTMAP_BITS +
 		SORT_ENTITYNUM_BITS +
-		SORT_FOGNUM_BITS +
-		SORT_INDEX_BITS == 64, "invalid number of drawSurface sort bits" );
+		SORT_INDEX_BITS +
+		SORT_UNUSED_BITS == 64, "invalid number of drawSurface sort bits" );
 
-	static const uint64_t SORT_FOGNUM_SHIFT = SORT_INDEX_BITS;
-	static const uint64_t SORT_ENTITYNUM_SHIFT = SORT_FOGNUM_BITS + SORT_FOGNUM_SHIFT;
+	static const uint64_t SORT_ENTITYNUM_SHIFT = SORT_INDEX_BITS;
 	static const uint64_t SORT_LIGHTMAP_SHIFT = SORT_ENTITYNUM_BITS + SORT_ENTITYNUM_SHIFT;
 	static const uint64_t SORT_SHADER_SHIFT = SORT_LIGHTMAP_BITS + SORT_LIGHTMAP_SHIFT;
 
 #define MASKBITS( b ) ( 1 << (b) ) - 1
 	static const uint32_t SORT_INDEX_MASK = MASKBITS( SORT_INDEX_BITS );
-	static const uint32_t SORT_FOGNUM_MASK = MASKBITS( SORT_FOGNUM_BITS );
 	static const uint32_t SORT_ENTITYNUM_MASK = MASKBITS( SORT_ENTITYNUM_BITS );
 	static const uint32_t SORT_LIGHTMAP_MASK = MASKBITS( SORT_LIGHTMAP_BITS );
 	static const uint32_t SORT_SHADER_MASK = MASKBITS( SORT_SHADER_BITS );
 
 	static_assert( SORT_INDEX_MASK >= MAX_DRAWSURFS - 1, "not enough index bits" );
-
-	// need space for 0 fog (no fog), in addition to MAX_MAP_FOGS
-	static_assert( SORT_FOGNUM_MASK >= MAX_MAP_FOGS, "not enough fognum bits" );
 
 	// need space for tr.worldEntity, in addition to MAX_REF_ENTITIES
 	static_assert( SORT_ENTITYNUM_MASK >= MAX_REF_ENTITIES, "not enough entity bits" );
@@ -1737,15 +1474,14 @@ static inline void glFboSetExt()
 		shader_t      *shader;
 		uint64_t      sort;
 		bool          bspSurface;
+		int fog;
+		int portalNum = -1;
 
 		inline int index() const {
 			return int( ( sort & SORT_INDEX_MASK ) );
 		}
 		inline int entityNum() const {
 			return int( ( sort >> SORT_ENTITYNUM_SHIFT ) & SORT_ENTITYNUM_MASK ) - 1;
-		}
-		inline int fogNum() const {
-			return int( ( sort >> SORT_FOGNUM_SHIFT ) & SORT_FOGNUM_MASK );
 		}
 		inline int lightmapNum() const {
 			return int( ( sort >> SORT_LIGHTMAP_SHIFT ) & SORT_LIGHTMAP_MASK ) - 1;
@@ -1754,76 +1490,15 @@ static inline void glFboSetExt()
 			return int( sort >> SORT_SHADER_SHIFT );
 		}
 
-		inline void setSort( int shaderNum, int lightmapNum, int entityNum, int fogNum, int index ) {
+		inline void setSort( int shaderNum, int lightmapNum, int entityNum, int index ) {
 			entityNum = entityNum + 1; //world entity is -1
 			lightmapNum = lightmapNum + 1; //no lightmap is -1
 			sort = uint64_t( index & SORT_INDEX_MASK ) |
-				( uint64_t( fogNum & SORT_FOGNUM_MASK ) << SORT_FOGNUM_SHIFT ) |
 				( uint64_t( entityNum & SORT_ENTITYNUM_MASK ) << SORT_ENTITYNUM_SHIFT ) |
 				( uint64_t( lightmapNum & SORT_LIGHTMAP_MASK ) << SORT_LIGHTMAP_SHIFT ) |
 				( uint64_t( shaderNum & SORT_SHADER_MASK ) << SORT_SHADER_SHIFT );
 		}
 	};
-
-	enum interactionType_t
-	{
-		IA_LIGHT = 1 << 0,		// the received light if not in shadow
-		IA_SHADOW = 1 << 1,		// the surface shadows the light
-		IA_SHADOWCLIP = 1 << 2,	// the surface clips the shadow
-
-		IA_DEFAULT = IA_LIGHT | IA_SHADOW, // lighting and shadowing
-		IA_DEFAULTCLIP = IA_LIGHT | IA_SHADOWCLIP
-	};
-
-// an interactionCache is a node between a light and a precached world surface
-	struct interactionCache_t
-	{
-		interactionType_t         type;
-
-		struct bspSurface_t       *surface;
-
-		byte                      cubeSideBits;
-		bool                  redundant;
-		bool                  mergedIntoVBO;
-
-		interactionCache_t *next;
-	};
-
-	struct interactionVBO_t
-	{
-		interactionType_t       type;
-
-		byte                    cubeSideBits;
-
-		struct shader_t         *shader;
-
-		struct srfVBOMesh_t     *vboLightMesh;
-
-		struct srfVBOMesh_t     *vboShadowMesh;
-
-		interactionVBO_t *next;
-	};
-
-// an interaction is a node between a light and any surface
-	struct interaction_t
-	{
-		interactionType_t    type;
-
-		trRefLight_t         *light;
-
-		trRefEntity_t        *entity;
-		surfaceType_t        *surface; // any of surface*_t
-		shader_t             *shader;
-		int                  shaderNum;
-
-		byte                 cubeSideBits;
-
-		int16_t              scissorX, scissorY, scissorWidth, scissorHeight;
-
-		interaction_t *next;
-	};
-
-#define MAX_FACE_POINTS 64
 
 #define MAX_PATCH_SIZE  64 // max dimensions of a patch mesh in map file
 #define MAX_GRID_SIZE   65 // max dimensions of a grid mesh in memory
@@ -1839,30 +1514,14 @@ static inline void glFboSetExt()
 		polyVert_t    *verts;
 	};
 
-// ydnar: decals
-#define MAX_DECAL_VERTS   10 // worst case is triangle clipped by 6 planes
-#define MAX_WORLD_DECALS  1024
-#define MAX_ENTITY_DECALS 128
-	struct srfDecal_t
-	{
-		surfaceType_t surfaceType;
-		int           numVerts;
-		polyVert_t    verts[ MAX_DECAL_VERTS ];
-	};
-
-	struct srfFlare_t
-	{
-		surfaceType_t surfaceType;
-		vec3_t        origin;
-		vec3_t        normal;
-		vec3_t        color;
-	};
-
 	struct srfVert_t
 	{
 		vec3_t xyz;
+
+		// HACK: st and lightmap must be adjacent for R_CreateWorldVBO
 		vec2_t st;
 		vec2_t lightmap;
+
 		vec3_t normal;
 		i16vec4_t qtangent;
 		Color::Color32Bit lightColor;
@@ -1871,104 +1530,53 @@ static inline void glFboSetExt()
 	struct srfTriangle_t
 	{
 		int      indexes[ 3 ];
-		bool facingLight;
 	};
 
 // ydnar: plain map drawsurfaces must match this header
-	struct srfGeneric_t
-	{
+	struct srfGeneric_t {
+		// v Valid in: SF_FACE, SF_GRID, SF_TRIANGLES, SF_VBO_MESH
 		surfaceType_t surfaceType;
 
-		// culling information
-		vec3_t   bounds[ 2 ];
-		vec3_t   origin;
-		float    radius;
+		// Culling information
+		vec3_t bounds[2];
+		vec3_t origin;
+		float radius;
+
+		// Static render data
+		VBO_t* vbo;
+		IBO_t* ibo;
+
+		// BSP VBO offset
+		int firstIndex;
+
+		int numVerts;
+
+		int numTriangles;
+		srfTriangle_t* triangles;
+		// ^ Valid in: SF_FACE, SF_GRID, SF_TRIANGLES, SF_VBO_MESH
+
+		cplane_t plane; // Valid in: SF_FACE, SF_TRIANGLES
+
+		srfVert_t* verts; // Valid in: SF_FACE, SF_GRID, SF_TRIANGLES
 	};
 
-	struct srfGridMesh_t : srfGeneric_t
-	{
+	struct srfGridMesh_t : srfGeneric_t {
 		// lod information, which may be different
 		// than the culling information to allow for
 		// groups of curves that LOD as a unit
 		vec3_t lodOrigin;
-		float  lodRadius;
-		int    lodFixed;
-		int    lodStitched;
+		float lodRadius;
+		int lodFixed;
+		int lodStitched;
 
 		// triangle definitions
-		int           width, height;
-		float         *widthLodError;
-		float         *heightLodError;
-
-		int           numTriangles;
-		srfTriangle_t *triangles;
-
-		int           numVerts;
-		srfVert_t     *verts;
-
-		// BSP VBO offsets
-		int firstVert;
-		int firstTriangle;
-
-		// static render data
-		VBO_t *vbo; // points to bsp model VBO
-		IBO_t *ibo;
+		int width, height;
+		float* widthLodError;
+		float* heightLodError;
 	};
 
-	struct srfSurfaceFace_t : srfGeneric_t
-	{
-		cplane_t     plane;
-
-		// triangle definitions
-		int           numTriangles;
-		srfTriangle_t *triangles;
-
-		int           numVerts;
-		srfVert_t     *verts;
-
-		// BSP VBO offsets
-		int firstVert;
-		int firstTriangle;
-
-		// static render data
-		VBO_t *vbo; // points to bsp model VBO
-		IBO_t *ibo;
-	};
-
-// misc_models in maps are turned into direct geometry by q3map
-	struct srfTriangles_t : srfGeneric_t
-	{
-		// triangle definitions
-		int           numTriangles;
-		srfTriangle_t *triangles;
-
-		int           numVerts;
-		srfVert_t     *verts;
-
-		// BSP VBO offsets
-		int firstVert;
-		int firstTriangle;
-
-		// static render data
-		VBO_t *vbo; // points to bsp model VBO
-		IBO_t *ibo;
-	};
-
-	struct srfVBOMesh_t : srfGeneric_t
-	{
-		struct shader_t *shader; // FIXME move this to somewhere else
-
-		int             lightmapNum; // FIXME get rid of this by merging all lightmaps at level load
-		int             fogIndex;
-
-		// backEnd stats
-		int firstIndex;
-		int numIndexes;
-		int numVerts;
-
-		// static render data
-		VBO_t *vbo;
-		IBO_t *ibo;
+	struct srfVBOMesh_t : srfGeneric_t {
+		int lightmapNum; // FIXME get rid of this by merging all lightmaps at level load
 	};
 
 	struct srfVBOMD5Mesh_t
@@ -2013,6 +1621,8 @@ static inline void glFboSetExt()
 
 	extern void ( *rb_surfaceTable[Util::ordinal(surfaceType_t::SF_NUM_SURFACE_TYPES)] )(void * );
 
+	void ValidateVertex( srfVert_t* vertex, int vertexID, shader_t* shader );
+
 	/*
 	==============================================================================
 	BRUSH MODELS - in memory representation
@@ -2021,26 +1631,20 @@ static inline void glFboSetExt()
 	struct bspSurface_t
 	{
 		int             viewCount; // if == tr.viewCount, already added
-		int             lightCount;
-		int             interactionBits;
+
+		int scratch1, scratch2;
 
 		struct shader_t *shader;
 
 		int16_t         lightmapNum; // -1 = no lightmap
 		int16_t         fogIndex;
+		int portalNum;
+
+		bool renderable = false;
+		bool BSPModel = false;
+		bool skyBrush = false;
 
 		surfaceType_t   *data; // any of srf*_t
-	};
-
-// ydnar: bsp model decal surfaces
-	struct decal_t
-	{
-		bspSurface_t *parent;
-		shader_t     *shader;
-		float        fadeStartTime, fadeEndTime;
-		int16_t      fogIndex;
-		int          numVerts;
-		polyVert_t   verts[ MAX_DECAL_VERTS ];
 	};
 
 #define CONTENTS_NODE -1
@@ -2071,9 +1675,6 @@ static inline void glFboSetExt()
 
 		uint32_t     numSurfaces;
 		bspSurface_t *firstSurface;
-
-		// ydnar: decals
-		decal_t *decals;
 	};
 
 	// The ambient and directional colors are packed into four bytes, the color[3] is the
@@ -2090,8 +1691,11 @@ static inline void glFboSetExt()
 		byte  unused;
 	};
 
-// ydnar: optimization
-#define WORLD_MAX_SKY_NODES 32
+	struct AABB {
+		vec3_t origin;
+		vec3_t mins;
+		vec3_t maxs;
+	};
 
 	struct world_t
 	{
@@ -2113,16 +1717,11 @@ static inline void glFboSetExt()
 		int           numDecisionNodes;
 		bspNode_t     *nodes;
 
-		int           numSkyNodes;
-		bspNode_t     **skyNodes; // ydnar: don't walk the entire bsp when rendering sky
+		int numPortals;
+		AABB *portals;
 
-		int           numVerts;
-		srfVert_t     *verts;
 		VBO_t         *vbo;
 		IBO_t         *ibo;
-
-		int           numTriangles;
-		srfTriangle_t *triangles;
 
 		int                numSurfaces;
 		bspSurface_t       *surfaces;
@@ -2139,11 +1738,6 @@ static inline void glFboSetExt()
 		fog_t              *fogs;
 
 		int                globalFog; // Arnout: index of global fog
-		vec4_t             globalOriginalFog; // Arnout: to be able to restore original global fog
-		vec4_t             globalTransStartFog; // Arnout: start fog for switch fog transition
-		vec4_t             globalTransEndFog; // Arnout: end fog for switch fog transition
-		int                globalFogTransStartTime;
-		int                globalFogTransEndTime;
 
 		vec3_t             lightGridOrigin;
 		vec3_t             lightGridSize;
@@ -2154,12 +1748,6 @@ static inline void glFboSetExt()
 		bspGridPoint1_t    *lightGridData1;
 		bspGridPoint2_t    *lightGridData2;
 		int                numLightGridPoints;
-
-		int                numLights;
-		trRefLight_t       *lights;
-
-		int                numInteractions;
-		interactionCache_t **interactions;
 
 		int                numClusters;
 
@@ -2173,6 +1761,8 @@ static inline void glFboSetExt()
 
 		bool hasSkyboxPortal;
 	};
+
+#define REFLECTION_CUBEMAP_VERSION 0
 
 	/*
 	==============================================================================
@@ -2265,19 +1855,20 @@ static inline void glFboSetExt()
 	};
 
 	// align for sse skinning
-	ALIGNED(16, struct md5Vertex_t
+	struct alignas(16) md5Vertex_t
 	{
 		vec4_t      position;
 		vec4_t      tangent;
 		vec4_t      binormal;
 		vec4_t      normal;
-		vec2_t      texCoordsF;
 
+		vec2_t texCoords;
 		uint32_t    firstWeight;
 		uint32_t    numWeights;
+
 		uint32_t    boneIndexes[ MAX_WEIGHTS ];
 		float       boneWeights[ MAX_WEIGHTS ];
-	});
+	};
 
 	struct md5Surface_t
 	{
@@ -2404,7 +1995,7 @@ static inline void glFboSetExt()
 		float           *normals;
 		float           *tangents;
 		float           *bitangents;
-		f16_t           *texcoords;
+		float           *texcoords;
 		byte            *blendIndexes;
 		byte            *blendWeights;
 		byte            *colors;
@@ -2499,8 +2090,6 @@ static inline void glFboSetExt()
 
 	void               R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs );
 
-	void               R_Modellist_f();
-
 //====================================================
 	extern refimport_t ri;
 
@@ -2514,25 +2103,9 @@ static inline void glFboSetExt()
 		int c_sphere_cull_mdv_in, c_sphere_cull_mdv_clip, c_sphere_cull_mdv_out;
 		int c_box_cull_mdv_in, c_box_cull_mdv_clip, c_box_cull_mdv_out;
 		int c_box_cull_md5_in, c_box_cull_md5_clip, c_box_cull_md5_out;
-		int c_box_cull_light_in, c_box_cull_light_clip, c_box_cull_light_out;
-		int c_pvs_cull_light_out;
-
-		int c_pyramidTests;
-		int c_pyramid_cull_ent_in, c_pyramid_cull_ent_clip, c_pyramid_cull_ent_out;
 
 		int c_nodes;
 		int c_leafs;
-
-		int c_slights;
-		int c_slightSurfaces;
-		int c_slightInteractions;
-
-		int c_dlights;
-		int c_dlightSurfaces;
-		int c_dlightSurfacesCulled;
-		int c_dlightInteractions;
-
-		int c_decalProjectors, c_decalTestSurfaces, c_decalClipSurfaces, c_decalSurfaces, c_decalSurfacesCreated;
 	};
 
 #define FOG_TABLE_SIZE  256
@@ -2550,7 +2123,6 @@ static inline void glFboSetExt()
 		double clearDepth;
 		int    clearStencil;
 		int    colorMaskRed, colorMaskGreen, colorMaskBlue, colorMaskAlpha;
-		int    cullFace;
 		int    depthFunc;
 		int    depthMask;
 		int    drawBuffer;
@@ -2561,7 +2133,6 @@ static inline void glFboSetExt()
 		float  polygonOffsetFactor, polygonOffsetUnits;
 		vec2_t tileStep;
 
-		int    currenttextures[ 32 ];
 		int    currenttmu;
 
 		int stackIndex;
@@ -2570,7 +2141,7 @@ static inline void glFboSetExt()
 		matrix_t        modelViewProjectionMatrix[ MAX_GLSTACK ];
 
 		bool        finishCalled;
-		cullType_t      faceCulling; // FIXME redundant cullFace
+		cullType_t      faceCulling;
 		uint32_t        glStateBits;
 		uint32_t        glStateBitsMask; // GLS_ bits set to 1 will not be changed in GL_State
 		uint32_t        vertexAttribsState;
@@ -2578,7 +2149,7 @@ static inline void glFboSetExt()
 		float           vertexAttribsInterpolation; // 0 = no interpolation, 1 = final position
 		uint32_t        vertexAttribsNewFrame; // offset for VBO vertex animations
 		uint32_t        vertexAttribsOldFrame; // offset for VBO vertex animations
-		shaderProgram_t *currentProgram;
+		ShaderProgramDescriptor* currentProgram;
 		FBO_t           *currentFBO;
 		VBO_t           *currentVBO;
 		IBO_t           *currentIBO;
@@ -2594,7 +2165,6 @@ static inline void glFboSetExt()
 		int   c_vertexes;
 		int   c_indexes;
 		int   c_drawElements;
-		float c_overDraw;
 		int   c_vboVertexBuffers;
 		int   c_vboIndexBuffers;
 		int   c_vboVertexes;
@@ -2602,13 +2172,6 @@ static inline void glFboSetExt()
 
 		int   c_fogSurfaces;
 		int   c_fogBatches;
-
-		int   c_flareAdds;
-		int   c_flareTests;
-		int   c_flareRenders;
-
-		int   c_forwardAmbientTime;
-		int   c_forwardLightingTime;
 
 		int   c_multiDrawElements;
 		int   c_multiDrawPrimitives;
@@ -2636,14 +2199,15 @@ static inline void glFboSetExt()
 		visTestQueries_t  visTestQueries[ MAX_VISTESTS ];
 		bool          isHyperspace;
 		trRefEntity_t     *currentEntity;
-		trRefLight_t      *currentLight; // only used when lighting interactions
-		bool          skyRenderedThisView; // flag for drawing sun
+		bool dirtyDepthBuffer;
+		bool postDepthLightTileRendered = false;
 
 		bool          projection2D; // if true, drawstretchpic doesn't need to change modes
 		Color::Color32Bit color2D;
 		trRefEntity_t     entity2D; // currentEntity will point at this when doing 2D rendering
 		int               currentMainFBO;
-		GLuint            currentVAO;
+		GLuint currentVAO;
+		GLuint defaultVAO;
 	};
 
 	struct visTest_t
@@ -2673,8 +2237,156 @@ static inline void glFboSetExt()
 		image_t *cubemap;
 	};
 
+	template<class T>
+	class Grid {
+		public:
+		uint32_t width;
+		uint32_t height;
+		uint32_t depth;
+		uint32_t size;
+		const bool clampToEdge;
+
+		Grid( const bool newClampToEdge ) :
+			clampToEdge( newClampToEdge ) {
+		}
+
+		Grid( const uint32_t newWidth, const uint32_t newHeight, const uint32_t newDepth, const bool newClampToEdge ) :
+			width( newWidth ),
+			height( newHeight ),
+			depth( newDepth ),
+			size( width * height * depth ),
+			clampToEdge( newClampToEdge ) {
+			grid = ( T* ) ri.Hunk_Alloc( size * sizeof( T ), ha_pref::h_low );
+		}
+
+		~Grid() {
+		}
+
+		T& operator()( uint32_t x, uint32_t  y, uint32_t z ) {
+			if ( clampToEdge ) {
+				x = Math::Clamp( x, 0u, width - 1 );
+				y = Math::Clamp( y, 0u, height - 1 );
+				z = Math::Clamp( z, 0u, depth - 1 );
+			}
+
+			DAEMON_ASSERT_GE( x, 0u );
+			DAEMON_ASSERT_GE( y, 0u );
+			DAEMON_ASSERT_GE( z, 0u );
+
+			DAEMON_ASSERT_LT( x, width );
+			DAEMON_ASSERT_LT( y, height );
+			DAEMON_ASSERT_LT( z, depth );
+
+			return grid[z * width * height + y * width + x];
+		}
+
+		T operator()( uint32_t x, uint32_t  y, uint32_t z ) const {
+			if ( clampToEdge ) {
+				x = Math::Clamp( x, 0u, width - 1 );
+				y = Math::Clamp( y, 0u, height - 1 );
+				z = Math::Clamp( z, 0u, depth - 1 );
+			}
+
+			return *grid[z * width * height + y * width + x];
+		}
+
+		T& operator()( uint32_t index ) {
+			if ( clampToEdge ) {
+				index = Math::Clamp( index, 0u, size - 1 );
+			}
+
+			DAEMON_ASSERT_GE( index, 0U );
+
+			DAEMON_ASSERT_LT( index, size );
+
+			return grid[index];
+		}
+
+		T operator()( uint32_t index ) const {
+			if ( clampToEdge ) {
+				index = Math::Clamp( index, 0u, size - 1 );
+			}
+
+			return *grid[index];
+		}
+
+		void SetSize( const uint32_t newWidth, const uint32_t newHeight, const uint32_t newDepth ) {
+			width = newWidth;
+			height = newHeight;
+			depth = newDepth;
+			size = width * height * depth;
+
+			grid = ( T* ) ri.Hunk_Alloc( size * sizeof( T ), ha_pref::h_low );
+		}
+
+		void Clear() {
+			memset( grid, 0, size * sizeof( T ) );
+		}
+
+		struct Iterator {
+			T* ptr;
+
+			Iterator( T* newPtr ) :
+				ptr( newPtr ) {
+			}
+
+			T& operator*() const {
+				return *ptr;
+			}
+
+			T* operator->() {
+				return ptr;
+			}
+
+			ptrdiff_t operator-( const Iterator& other ) const {
+				return ptr - other.ptr;
+			}
+
+			Iterator& operator++() {
+				ptr++;
+				return *this;
+			}
+
+			Iterator operator++( int ) {
+				Iterator current = *this;
+				++( *this );
+				return current;
+			}
+
+			friend bool operator==( const Iterator& lhs, const Iterator& rhs ) {
+				return lhs.ptr == rhs.ptr;
+			}
+
+			friend bool operator!=( const Iterator& lhs, const Iterator& rhs ) {
+				return lhs.ptr != rhs.ptr;
+			}
+		};
+
+		Iterator begin() {
+			return Iterator{ &grid[0] };
+		}
+
+		Iterator end() {
+			return Iterator{ &grid[size] };
+		}
+
+		void IndexToCoords( uint32_t index, uint32_t* x, uint32_t* y, uint32_t* z ) {
+			*z = index / ( width * height );
+			index %= width * height;
+			*y = index / width;
+			*x = index % width;
+		}
+
+		void IteratorToCoords( Iterator it, uint32_t* x, uint32_t* y, uint32_t* z ) {
+			const uint32_t index = it.ptr - begin().ptr;
+			IndexToCoords( index, x, y, z );
+		}
+
+		private:
+		T* grid;
+	};
+
 	class GLShader;
-	class GLShader_vertexLighting_DBS_entity;
 
 	struct scissorState_t
 	{
@@ -2684,6 +2396,9 @@ static inline void glFboSetExt()
 		int       w;
 		int       h;
 	};
+
+	using floatProcessor_t = float(*)(float);
+	using colorProcessor_t = Color::Color(*)(Color::Color);
 
 	/*
 	** trGlobals_t
@@ -2704,8 +2419,7 @@ static inline void glFboSetExt()
 		int      frameCount; // incremented every frame
 		int      sceneCount; // incremented every scene
 		int      viewCount; // incremented every view (twice a scene if portaled)
-		int      viewCountNoReset;
-		int      lightCount; // incremented every time a dlight traverses the world
+		int      viewCountNoReset; // incremented when doing something that visits surfaces and sets their viewCount
 		// and every R_MarkFragments call
 
 		int        smpFrame; // toggles from 0 to 1 every endFrame
@@ -2713,79 +2427,77 @@ static inline void glFboSetExt()
 		int        frameSceneNum; // zeroed at RE_BeginFrame
 
 		bool   worldMapLoaded;
+		bool   worldLightMapping;
 		bool   worldDeluxeMapping;
 		bool   worldHDR_RGBE;
+		bool worldLinearizeTexture;
+		bool worldLinearizeLightMap;
+
+		floatProcessor_t convertFloatFromSRGB;
+		colorProcessor_t convertColorFromSRGB;
+
+		lightMode_t lightMode;
+		lightMode_t worldLight;
+		lightMode_t modelLight;
+		deluxeMode_t worldDeluxe;
+		deluxeMode_t modelDeluxe;
+
+		bool worldLoaded;
 		world_t    *world;
+		std::string loadingMap;
+
+		TextureManager textureManager;
 
 		const byte *externalVisData; // from RE_SetWorldVisData, shared with CM_Load
 
+		// Maximum reported is 192, see https://opengl.gpuinfo.org/displaycapability.php?name=GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS
+		std::vector<int> currenttextures;
+
 		image_t    *defaultImage;
-		image_t    *fogImage;
-		image_t    *quadraticImage;
+		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
 		image_t    *whiteImage; // full of 0xff
-		image_t    *blackImage; // full of 0x0
-		image_t    *redImage;
-		image_t    *greenImage;
-		image_t    *blueImage;
+		image_t    *blackImage; // 0x0 color channels, 0xff alpha channel
 		image_t    *flatImage; // use this as default normalmap
-		image_t    *randomNormalsImage;
-		image_t    *noFalloffImage;
-		image_t    *attenuationXYImage;
 		image_t    *blackCubeImage;
 		image_t    *whiteCubeImage;
-		image_t    *autoCubeImage; // special pointer to the nearest cubemap probe
 
 		image_t    *contrastRenderFBOImage;
 		image_t    *bloomRenderFBOImage[ 2 ];
 		image_t    *currentRenderImage[ 2 ];
 		image_t    *currentDepthImage;
+		image_t    *depthSamplerImage;
 		image_t    *depthtile1RenderImage;
 		image_t    *depthtile2RenderImage;
 		image_t    *lighttileRenderImage;
 		image_t    *portalRenderImage;
 
-		image_t    *downScaleFBOImage_quarter;
-		image_t    *downScaleFBOImage_64x64;
-		image_t *shadowMapFBOImage[ MAX_SHADOWMAPS * 2 ];
-		image_t *shadowCubeFBOImage[ MAX_SHADOWMAPS ];
-		image_t *sunShadowMapFBOImage[ MAX_SHADOWMAPS * 2 ];
-		image_t *shadowClipMapFBOImage[ MAX_SHADOWMAPS * 2 ];
-		image_t *shadowClipCubeFBOImage[ MAX_SHADOWMAPS ];
-		image_t *sunShadowClipMapFBOImage[ MAX_SHADOWMAPS * 2 ];
-
 		// external images
-#if defined( REFBONE_NAMES )
-		int      charsetImageHash;
-#endif
 		image_t *colorGradeImage;
 		GLuint   colorGradePBO;
 
 		// framebuffer objects
 		FBO_t *mainFBO[ 2 ];
+		FBO_t *readonlyDepthFBO;
 		FBO_t *depthtile1FBO;
 		FBO_t *depthtile2FBO;
 		FBO_t *lighttileFBO;
-		FBO_t *portalRenderFBO; // holds a copy of the last currentRender that was rendered into a FBO
-		FBO_t *downScaleFBO_quarter;
-		FBO_t *downScaleFBO_64x64;
+		FBO_t *portalRenderFBO; // used with liquidMapping shader
 		FBO_t *contrastRenderFBO;
 		FBO_t *bloomRenderFBO[ 2 ];
-		FBO_t *shadowMapFBO[ MAX_SHADOWMAPS ];
-		FBO_t *sunShadowMapFBO[ MAX_SHADOWMAPS ];
 
 		// vertex buffer objects
-		VBO_t *unitCubeVBO;
-		IBO_t *unitCubeIBO;
 		VBO_t *lighttileVBO;
 
 		// internal shaders
 		shader_t *defaultShader;
-		shader_t *defaultPointLightShader;
-		shader_t *defaultProjectedLightShader;
-		shader_t *defaultDynamicLightShader;
+		shader_t *fogEqualShader;
+		shader_t *fogLEShader;
 
-		growList_t lightmaps;
-		growList_t deluxemaps;
+		std::vector<image_t *> lightmaps;
+		std::vector<image_t *> deluxemaps;
+
+		vec3_t ambientLight;
+		bool ambientLightSet = false;
 
 		image_t   *lightGrid1Image;
 		image_t   *lightGrid2Image;
@@ -2795,26 +2507,41 @@ static inline void glFboSetExt()
 		trRefEntity_t worldEntity; // point currentEntity at this when rendering world
 		model_t       *currentModel;
 
-		// render lights
-		trRefLight_t *currentLight;
-
 		// -----------------------------------------
 
 		viewParms_t    viewParms;
 
-		float          identityLight; // 1.0 / ( 1 << overbrightBits )
-		int            overbrightBits; // r_overbrightBits->integer, but set to 0 if no hw gamma
-		int            mapOverBrightBits; // r_mapOverbrightBits->integer, but can be overridden by mapper using the worldspawn
+		// Brightness scaling: roughly speaking, a lightmap value of x will be interpreted as
+		// min(x * pow(2, mapOverBrightBits), pow(2, overbrightBits))
+		// (but when a component hits the max allowed value, others are scaled down to keep the "same color")
+		int mapOverBrightBits;
+		// min(r_overbrightBits.Get(), mapOverBrightBits)
+		int overbrightBits;
+		// pow(2, overbrightBits), unless r_overbrightQ3 is on
+		float mapLightFactor;
+		// 1/pow(2, overbrightBits) if r_overbrightQ3 is on
+		float identityLight;
 
 		orientationr_t orientation; // for current entity
 
 		trRefdef_t     refdef;
+
+		// Generic shapes
+		drawSurf_t* genericQuad;
+		drawSurf_t* genericTriangle;
+
+		bool           hasSkybox;
+		bool           drawingSky = false;
+		drawSurf_t     *skybox;
 
 		vec3_t         sunLight; // from the sky shader for this level
 		vec3_t         sunDirection;
 
 		frontEndCounters_t pc;
 		int                frontEndMsec; // not in pc due to clearing issue
+
+		bool skipSubgroupProfiler = false;
+		bool skipVBO = false;
 
 		vec4_t             clipRegion; // 2D clipping region
 
@@ -2828,20 +2555,22 @@ static inline void glFboSetExt()
 		int             numAnimations;
 		skelAnimation_t *animations[ MAX_ANIMATIONFILES ];
 
-		growList_t      images;
+		std::vector<image_t *> images;
+
+		unsigned numGeneratedTextures;
 
 		int             numFBOs;
 		FBO_t           *fbos[ MAX_FBOS ];
 
 		GLuint          dlightUBO;
-		image_t         *dlightImage; // if the UBO is not available
 
-		growList_t      vbos;
-		growList_t      ibos;
+		std::vector<VBO_t *> vbos;
+		std::vector<IBO_t *> ibos;
 
-		byte            *cubeTemp[ 6 ]; // 6 textures for cubemap storage
-		growList_t      cubeProbes; // all cubemaps in a linear growing list
-		vertexHash_t    **cubeHashTable; // hash table for faster access
+		byte *cubeTemp[ 6 ]; // 6 textures for cubemap storage
+		std::vector<cubemapProbe_t> cubeProbes; // all cubemaps in a linear growing list
+		Grid<uint32_t> cubeProbeGrid{ true };
+		uint32_t cubeProbeSpacing;
 
 		// shader indexes from other modules will be looked up in tr.shaders[]
 		// shader indexes from drawsurfs will be looked up in sortedShaders[]
@@ -2864,7 +2593,6 @@ static inline void glFboSetExt()
 		float         triangleTable[ FUNCTABLE_SIZE ];
 		float         sawToothTable[ FUNCTABLE_SIZE ];
 		float         inverseSawToothTable[ FUNCTABLE_SIZE ];
-		float         fogTable[ FOG_TABLE_SIZE ];
 
 		scissorState_t scissor;
 	};
@@ -2872,66 +2600,64 @@ static inline void glFboSetExt()
 	extern const matrix_t quakeToOpenGLMatrix;
 	extern const matrix_t openGLToQuakeMatrix;
 	extern const matrix_t flipZMatrix;
-	extern const GLenum   geometricRenderTargets[];
-	extern int            shadowMapResolutions[ 5 ];
-	extern int            sunShadowMapResolutions[ 5 ];
 
 	extern backEndState_t backEnd;
 	extern trGlobals_t    tr;
-	extern glconfig_t     glConfig; // outside of TR since it shouldn't be cleared during ref re-init
-	extern glconfig2_t    glConfig2;
 
 	extern glstate_t      glState; // outside of TR since it shouldn't be cleared during ref re-init
-
-	extern float          displayAspect; // FIXME
 
 //
 // cvars
 //
+	extern Cvar::Cvar<int> r_rendererAPI;
+
 	extern cvar_t *r_glMajorVersion; // override GL version autodetect (for testing)
 	extern cvar_t *r_glMinorVersion;
 	extern cvar_t *r_glProfile;
-	extern cvar_t *r_glDebugProfile;
-	extern cvar_t *r_glDebugMode;
+	extern Cvar::Cvar<bool> r_glDebugProfile;
+	extern Cvar::Range<Cvar::Cvar<int>> r_glDebugMode;
 	extern cvar_t *r_glAllowSoftware;
 	extern cvar_t *r_glExtendedValidation;
 
 	extern cvar_t *r_ignore; // used for debugging anything
-	extern cvar_t *r_verbose; // used for verbose debug spew
 
 	extern Cvar::Cvar<bool> r_dpBlend;
 
 	extern cvar_t *r_znear; // near Z clip plane
 	extern cvar_t *r_zfar;
 
-	extern cvar_t *r_depthbits; // number of desired depth bits
 	extern cvar_t *r_colorbits; // number of desired color bits, only relevant for fullscreen
-
-	extern cvar_t *r_measureOverdraw; // enables stencil buffer overdraw measurement
 
 	extern cvar_t *r_lodBias; // push/pull LOD transitions
 	extern cvar_t *r_lodScale;
-	extern cvar_t *r_lodTest;
 
-	extern cvar_t *r_forceFog;
 	extern cvar_t *r_wolfFog;
 	extern cvar_t *r_noFog;
 
-	extern cvar_t *r_forceAmbient;
-	extern cvar_t *r_ambientScale;
+	extern Cvar::Range<Cvar::Cvar<float>> r_forceAmbient;
+	extern Cvar::Cvar<float> r_ambientScale;
 	extern cvar_t *r_lightScale;
 
-	extern cvar_t *r_fastsky; // controls whether sky should be cleared or drawn
-	extern cvar_t *r_dynamicLight; // dynamic lights enabled/disabled
-	extern cvar_t *r_staticLight; // static lights enabled/disabled
-	extern cvar_t *r_dynamicLightCastShadows;
+	extern Cvar::Cvar<bool> r_drawSky; // Controls whether sky should be drawn or cleared.
+	extern Cvar::Cvar<bool> r_realtimeLighting;
+	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers;
 	extern cvar_t *r_precomputedLighting;
-	extern cvar_t *r_vertexLighting;
+	extern Cvar::Cvar<int> r_overbrightDefaultExponent;
+	extern Cvar::Range<Cvar::Cvar<int>> r_overbrightBits;
+	extern Cvar::Cvar<bool> r_overbrightQ3;
+	extern Cvar::Cvar<bool> r_overbrightIgnoreMapSettings;
+	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
+	extern Cvar::Cvar<bool> r_colorGrading;
+	extern Cvar::Cvar<bool> r_preferBindlessTextures;
+	extern Cvar::Cvar<bool> r_materialSystem;
+	extern Cvar::Cvar<bool> r_gpuFrustumCulling;
+	extern Cvar::Cvar<bool> r_gpuOcclusionCulling;
+	extern Cvar::Cvar<bool> r_materialSystemSkip;
 	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;
 	extern cvar_t *r_heatHaze;
 	extern cvar_t *r_noMarksOnTrisurfs;
-	extern cvar_t *r_lazyShaders; // 0: build all shaders on program start 1: delay shader build until first map load 2: delay shader build until needed
+	extern Cvar::Range<Cvar::Cvar<int>> r_lazyShaders; // 0: build all shaders on program start 1: delay shader build until first map load 2: delay shader build until needed
 
 	extern cvar_t *r_norefresh; // bypasses the ref rendering
 	extern cvar_t *r_drawentities; // disable/enable entity rendering
@@ -2942,42 +2668,32 @@ static inline void glFboSetExt()
 	extern cvar_t *r_nocull;
 	extern cvar_t *r_facePlaneCull; // enables culling of planar surfaces with back side test
 	extern cvar_t *r_nocurves;
-	extern cvar_t *r_lightScissors;
-	extern cvar_t *r_noLightVisCull;
-	extern cvar_t *r_noInteractionSort;
 
 	extern cvar_t *r_mode; // video mode
 	extern cvar_t *r_gamma;
 
-	extern cvar_t *r_ext_occlusion_query; // these control use of specific extensions
-	extern cvar_t *r_ext_draw_buffers;
-	extern cvar_t *r_ext_vertex_array_object;
-	extern cvar_t *r_ext_half_float_pixel;
-	extern cvar_t *r_ext_texture_float;
-	extern cvar_t *r_ext_texture_integer;
-	extern cvar_t *r_ext_texture_rg;
-	extern cvar_t *r_ext_texture_filter_anisotropic;
-	extern cvar_t *r_ext_gpu_shader4;
-	extern cvar_t *r_arb_buffer_storage;
-	extern cvar_t *r_arb_map_buffer_range;
-	extern cvar_t *r_arb_sync;
-	extern cvar_t *r_arb_uniform_buffer_object;
-	extern cvar_t *r_arb_texture_gather;
-	extern cvar_t *r_arb_gpu_shader5;
+	extern Cvar::Cvar<bool> r_toneMapping;
+	extern Cvar::Cvar<float> r_toneMappingExposure;
+	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingContrast;
+	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingHighlightsCompressionSpeed;
+	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingHDRMax;
+	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingDarkAreaPointHDR;
+	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingDarkAreaPointLDR;
 
 	extern cvar_t *r_nobind; // turns off binding to appropriate textures
 	extern cvar_t *r_singleShader; // make most world faces use default shader
-	extern cvar_t *r_colorMipLevels; // development aid to see texture mip usage
 	extern cvar_t *r_picMip; // controls picmip values
 	extern cvar_t *r_imageMaxDimension;
 	extern cvar_t *r_ignoreMaterialMinDimension;
 	extern cvar_t *r_ignoreMaterialMaxDimension;
 	extern cvar_t *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
+	extern Cvar::Range<Cvar::Cvar<int>> r_imageFitScreen;
 	extern cvar_t *r_finish;
 	extern cvar_t *r_drawBuffer;
-	extern cvar_t *r_textureMode;
+	extern Cvar::Modified<Cvar::Cvar<std::string>> r_textureMode;
 	extern cvar_t *r_offsetFactor;
 	extern cvar_t *r_offsetUnits;
+	extern Cvar::Cvar<bool> r_depthShaders;
 
 	extern cvar_t *r_physicalMapping;
 	extern cvar_t *r_specularExponentMin;
@@ -2992,60 +2708,22 @@ static inline void glFboSetExt()
 	extern cvar_t *r_reliefDepthScale;
 	extern cvar_t *r_reliefMapping;
 	extern cvar_t *r_glowMapping;
-	extern cvar_t *r_reflectionMapping;
+	extern Cvar::Cvar<bool> r_reflectionMapping;
+	extern Cvar::Range<Cvar::Cvar<int>> r_autoBuildCubeMaps;
+	extern Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSize;
+	extern Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSpacing;
 
-	extern cvar_t *r_wrapAroundLighting;
 	extern cvar_t *r_halfLambertLighting;
 	extern cvar_t *r_rimLighting;
 	extern cvar_t *r_rimExponent;
 
-	extern cvar_t *r_logFile; // number of frames to emit GL logs
+	extern Cvar::Cvar<bool> r_highPrecisionRendering;
+	extern Cvar::Cvar<bool> r_accurateSRGB;
 
-	extern cvar_t *r_clear; // force screen clear every frame
-
-	extern cvar_t *r_shadows; // controls shadows: 0 = none, 1 = blur, 2 = black planar projection,
-
-// 3 = stencil shadow volumes
-// 4 = shadow mapping
-	extern cvar_t *r_softShadows;
-	extern cvar_t *r_softShadowsPP;
-	extern cvar_t *r_shadowBlur;
-
-	extern cvar_t *r_shadowMapQuality;
-	extern cvar_t *r_shadowMapSizeUltra;
-	extern cvar_t *r_shadowMapSizeVeryHigh;
-	extern cvar_t *r_shadowMapSizeHigh;
-	extern cvar_t *r_shadowMapSizeMedium;
-	extern cvar_t *r_shadowMapSizeLow;
-
-	extern cvar_t *r_shadowMapSizeSunUltra;
-	extern cvar_t *r_shadowMapSizeSunVeryHigh;
-	extern cvar_t *r_shadowMapSizeSunHigh;
-	extern cvar_t *r_shadowMapSizeSunMedium;
-	extern cvar_t *r_shadowMapSizeSunLow;
-
-	extern cvar_t *r_shadowOffsetFactor;
-	extern cvar_t *r_shadowOffsetUnits;
-	extern cvar_t *r_shadowLodBias;
-	extern cvar_t *r_shadowLodScale;
-	extern cvar_t *r_noShadowPyramids;
-	extern cvar_t *r_cullShadowPyramidFaces;
-	extern cvar_t *r_cullShadowPyramidCurves;
-	extern cvar_t *r_cullShadowPyramidTriangles;
-	extern cvar_t *r_debugShadowMaps;
-	extern cvar_t *r_noShadowFrustums;
-	extern cvar_t *r_noLightFrustums;
-	extern cvar_t *r_shadowMapLinearFilter;
-	extern cvar_t *r_lightBleedReduction;
-	extern cvar_t *r_overDarkeningFactor;
-	extern cvar_t *r_shadowMapDepthScale;
-	extern cvar_t *r_parallelShadowSplits;
-	extern cvar_t *r_parallelShadowSplitWeight;
+	extern Cvar::Range<Cvar::Cvar<int>> r_shadows;
 
 	extern cvar_t *r_lockpvs;
 	extern cvar_t *r_noportals;
-	extern cvar_t *r_portalOnly;
-	extern cvar_t *r_portalSky;
 	extern cvar_t *r_max_portal_levels;
 
 	extern cvar_t *r_subdivisions;
@@ -3054,9 +2732,9 @@ static inline void glFboSetExt()
 	extern cvar_t *r_smp;
 	extern cvar_t *r_showSmp;
 	extern cvar_t *r_skipBackEnd;
-	extern cvar_t *r_skipLightBuffer;
 
 	extern cvar_t *r_checkGLErrors;
+	extern Cvar::Cvar<bool> r_logFile;
 
 	extern cvar_t *r_debugSurface;
 
@@ -3070,44 +2748,41 @@ static inline void glFboSetExt()
 
 	extern cvar_t *r_showTris; // enables wireframe rendering of the world
 	extern cvar_t *r_showSky; // forces sky in front of all surfaces
-	extern cvar_t *r_showShadowVolumes;
-	extern cvar_t *r_showShadowLod;
-	extern cvar_t *r_showShadowMaps;
 	extern cvar_t *r_showSkeleton;
-	extern cvar_t *r_showEntityTransforms;
-	extern cvar_t *r_showLightTransforms;
-	extern cvar_t *r_showLightInteractions;
-	extern cvar_t *r_showLightScissors;
-	extern cvar_t *r_showLightBatches;
 	extern cvar_t *r_showLightGrid;
 	extern cvar_t *r_showLightTiles;
 	extern cvar_t *r_showBatches;
+	extern Cvar::Cvar<bool> r_showVertexColors;
 	extern cvar_t *r_showLightMaps; // render lightmaps only
 	extern cvar_t *r_showDeluxeMaps;
 	extern cvar_t *r_showNormalMaps;
 	extern cvar_t *r_showMaterialMaps;
-	extern cvar_t *r_showAreaPortals;
-	extern cvar_t *r_showCubeProbes;
+	extern Cvar::Cvar<bool> r_showReflectionMaps;
+	extern Cvar::Range<Cvar::Cvar<int>> r_showCubeProbes;
+	extern Cvar::Cvar<int> r_showCubeProbeFace;
 	extern cvar_t *r_showBspNodes;
-	extern cvar_t *r_showParallelShadowSplits;
-	extern cvar_t *r_showDecalProjectors;
+	extern Cvar::Range<Cvar::Cvar<int>> r_showGlobalMaterials;
+	extern Cvar::Cvar<bool> r_materialDebug;
+
+	extern Cvar::Cvar<int> r_forceRendererTime;
+
+	extern Cvar::Cvar<bool> r_profilerRenderSubGroups;
+	extern Cvar::Range<Cvar::Cvar<int>> r_profilerRenderSubGroupsMode;
+	extern Cvar::Cvar<int> r_profilerRenderSubGroupsStage;
 
 	extern cvar_t *r_vboFaces;
 	extern cvar_t *r_vboCurves;
 	extern cvar_t *r_vboTriangles;
-	extern cvar_t *r_vboShadows;
-	extern cvar_t *r_vboLighting;
-	extern cvar_t *r_vboModels;
+	extern Cvar::Cvar<bool> r_vboModels;
 	extern cvar_t *r_vboVertexSkinning;
-	extern cvar_t *r_vboDeformVertexes;
 
 	extern cvar_t *r_mergeLeafSurfaces;
 
-	extern cvar_t *r_bloom;
-	extern cvar_t *r_bloomBlur;
-	extern cvar_t *r_bloomPasses;
+	extern Cvar::Cvar<bool> r_bloom;
+	extern Cvar::Cvar<float> r_bloomBlur;
+	extern Cvar::Cvar<int> r_bloomPasses;
 	extern cvar_t *r_FXAA;
-	extern cvar_t *r_ssao;
+	extern Cvar::Range<Cvar::Cvar<int>> r_ssao;
 
 	extern cvar_t *r_evsmPostProcess;
 
@@ -3134,15 +2809,16 @@ inline bool checkGLErrors()
 	float          R_NoiseGet4f( float x, float y, float z, float t );
 	void           R_NoiseInit();
 
+	int            PortalOffScreenOrOutOfRange( const drawSurf_t* drawSurf, screenRect_t& surfRect );
+	bool           R_MirrorViewBySurface( drawSurf_t* drawSurf );
 	void           R_RenderView( viewParms_t *parms );
 	void           R_RenderPostProcess();
 
 	void           R_AddMDVSurfaces( trRefEntity_t *e );
-	void           R_AddMDVInteractions( trRefEntity_t *e, trRefLight_t *light, interactionType_t iaType );
 
 	void           R_AddPolygonSurfaces();
 
-	void           R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false );
+	void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false, int portalNum = -1 );
 
 	void           R_LocalNormalToWorld( const vec3_t local, vec3_t world );
 	void           R_LocalPointToWorld( const vec3_t local, vec3_t world );
@@ -3157,22 +2833,20 @@ inline bool checkGLErrors()
 	void           R_SetupEntityWorldBounds( trRefEntity_t *ent );
 
 	void           R_RotateEntityForViewParms( const trRefEntity_t *ent, const viewParms_t *viewParms, orientationr_t *orien );
-	void           R_RotateEntityForLight( const trRefEntity_t *ent, const trRefLight_t *light, orientationr_t *orien );
-	void           R_RotateLightForViewParms( const trRefLight_t *ent, const viewParms_t *viewParms, orientationr_t *orien );
 
 	void           R_SetupFrustum2( frustum_t frustum, const matrix_t modelViewProjectionMatrix );
 	template<size_t frustumSize>
 	inline
 	typename std::enable_if<(frustumSize >= frustumBits_t::FRUSTUM_NEAR + 1)>::type
-	R_CalcFrustumNearCorners( const vec4_t(&frustum)[frustumSize], vec3_t (&corners)[ 4 ] ) {
-		extern void R_CalcFrustumNearCornersUnsafe( const vec4_t frustum[frustumBits_t::FRUSTUM_NEAR + 1], vec3_t (&corners)[ 4 ] );
+	R_CalcFrustumNearCorners( const plane_t(&frustum)[frustumSize], vec3_t (&corners)[ 4 ] ) {
+		extern void R_CalcFrustumNearCornersUnsafe( const plane_t frustum[frustumBits_t::FRUSTUM_NEAR + 1], vec3_t (&corners)[ 4 ] );
 		R_CalcFrustumNearCornersUnsafe( frustum, corners );
 	}
 	template<size_t frustumSize>
 	inline
 	typename std::enable_if<(frustumSize >= frustumBits_t::FRUSTUM_FAR + 1)>::type
-	R_CalcFrustumFarCorners( const vec4_t(&frustum)[frustumSize], vec3_t (&corners)[ 4 ] ) {
-		extern void R_CalcFrustumFarCornersUnsafe( const vec4_t frustum[frustumBits_t::FRUSTUM_FAR + 1], vec3_t (&corners)[ 4 ] );
+	R_CalcFrustumFarCorners( const plane_t(&frustum)[frustumSize], vec3_t (&corners)[ 4 ] ) {
+		extern void R_CalcFrustumFarCornersUnsafe( const plane_t frustum[frustumBits_t::FRUSTUM_FAR + 1], vec3_t (&corners)[ 4 ] );
 		R_CalcFrustumFarCornersUnsafe( frustum, corners );
 	}
 
@@ -3207,7 +2881,13 @@ inline bool checkGLErrors()
 	 *   minimal error.
 	 */
 	void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
-			       const vec3_t normal, i16vec4_t qtangent );
+		const vec3_t normal, i16vec4_t qtangent, bool fast = false );
+
+	inline void R_TBNtoQtangentsFast( const vec3_t tangent, const vec3_t binormal,
+		const vec3_t normal, i16vec4_t qtangent )
+	{
+		R_TBNtoQtangents( tangent, binormal, normal, qtangent, true );
+	}
 
 	void R_QtangentsToTBN( const i16vec4_t qtangent, vec3_t tangent,
 			       vec3_t binormal, vec3_t normal );
@@ -3227,12 +2907,10 @@ inline bool checkGLErrors()
 	====================================================================
 	*/
 	void GL_Bind( image_t *image );
-	void GL_BindNearestCubeMap( const vec3_t xyz );
 	void GL_Unbind( image_t *image );
-	void BindAnimatedImage( textureBundle_t *bundle );
-	void GL_TextureFilter( image_t *image, filterType_t filterType );
-	void GL_BindProgram( shaderProgram_t *program );
-	void GL_BindToTMU( int unit, image_t *image );
+	GLuint64 BindAnimatedImage( int unit, const textureBundle_t *bundle );
+	void GL_BindProgram( ShaderProgramDescriptor* program );
+	GLuint64 GL_BindToTMU( int unit, image_t *image );
 	void GL_BindNullProgram();
 	void GL_SetDefaultState();
 	void GL_SelectTexture( int unit );
@@ -3243,7 +2921,6 @@ inline bool checkGLErrors()
 	void GL_ClearDepth( GLclampd depth );
 	void GL_ClearStencil( GLint s );
 	void GL_ColorMask( GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha );
-	void GL_CullFace( GLenum mode );
 	void GL_DepthFunc( GLenum func );
 	void GL_DepthMask( GLboolean flag );
 	void GL_DrawBuffer( GLenum mode );
@@ -3257,15 +2934,15 @@ inline bool checkGLErrors()
 	void GL_Viewport( GLint x, GLint y, GLsizei width, GLsizei height );
 	void GL_PolygonOffset( float factor, float units );
 
-	void GL_CheckErrors_( const char *filename, int line );
-
-#define GL_CheckErrors() do { if (!glConfig.smpActive) GL_CheckErrors_(__FILE__, __LINE__); } while (false)
-
 	void GL_State( uint32_t stateVector );
-	void GL_VertexAttribsState( uint32_t stateBits );
-	void GL_VertexAttribPointers( uint32_t attribBits );
+	void GL_VertexAttribsState( uint32_t stateBits, const bool settingUpVAO = false );
 	void GL_Cull( cullType_t cullType );
+void GL_TexImage2D( GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB );
+void GL_TexImage3D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB );
+void GL_CompressedTexImage2D( GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data, bool isSRGB );
+void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLint yOffset, GLint zOffset, GLsizei width, GLsizei height, GLsizei depth, GLenum internalFormat, GLsizei size, const void *data, bool isSRGB );
 	void R_ShutdownBackend();
+	void RB_PrepareForSamplingDepthMap();
 
 	/*
 	====================================================================
@@ -3275,10 +2952,10 @@ inline bool checkGLErrors()
 	====================================================================
 	*/
 
-	void      RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, int client, bool dirty );
+	void      RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool dirty );
 
 	void      RE_BeginFrame();
-	bool  RE_BeginRegistration( glconfig_t *glconfig, glconfig2_t *glconfig2 );
+	bool  RE_BeginRegistration( WindowConfig* windowCfg );
 	void      RE_LoadWorldMap( const char *mapname );
 	void      RE_SetWorldVisData( const byte *vis );
 	qhandle_t RE_RegisterModel( const char *name );
@@ -3286,7 +2963,7 @@ inline bool checkGLErrors()
 	void      RE_Shutdown( bool destroyWindow );
 
 	bool   R_GetEntityToken( char *buffer, int size );
-	float      R_ProcessLightmap( byte *pic, int in_padding, int width, int height, int bits, byte *pic_out );  // Arnout
+	void R_ProcessLightmap( byte *bytes, int width, int height, int bits ); // Arnout
 
 	model_t    *R_AllocModel();
 
@@ -3295,12 +2972,6 @@ inline bool checkGLErrors()
 	void AssertCvarRange( cvar_t *cv, float minVal, float maxVal, bool shouldBeIntegral );
 
 	bool   R_GetModeInfo( int *width, int *height, int mode );
-
-	void       R_ImageList_f();
-	void       R_SkinList_f();
-
-// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=516
-	const void *RB_TakeScreenshotCmd( const void *data );
 
 	void       R_InitSkins();
 	skin_t     *R_GetSkinByHandle( qhandle_t hSkin );
@@ -3315,7 +2986,7 @@ inline bool checkGLErrors()
 	void    R_InitImages();
 	void    R_ShutdownImages();
 
-	int R_FindImageLoader( const char *baseName );
+	bool R_HasImageLoader( const char *baseName );
 	image_t *R_FindImageFile( const char *name, imageParams_t &imageParams );
 	image_t *R_FindCubeImage( const char *name, imageParams_t &imageParams );
 
@@ -3328,12 +2999,10 @@ inline bool checkGLErrors()
 	qhandle_t RE_GenerateTexture( const byte *pic, int width, int height );
 
 	image_t *R_AllocImage( const char *name, bool linkIntoHashTable );
-	void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams );
+	void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams );
 
 	void    RE_GetTextureSize( int textureID, int *width, int *height );
 
-	void    R_InitFogTable();
-	float   R_FogFactor( float s, float t );
 	void    RE_SetColorGrading( int slot, qhandle_t hShader );
 
 	/*
@@ -3343,18 +3012,13 @@ inline bool checkGLErrors()
 
 	====================================================================
 	*/
-	qhandle_t RE_RegisterShader( const char *name, RegisterShaderFlags_t flags );
+	qhandle_t RE_RegisterShader( const char *name, int flags );
 	qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image );
-	bool  RE_LoadDynamicShader( const char *shadername, const char *shadertext );
 
-	shader_t  *R_FindShader( const char *name, shaderType_t type,
-				 RegisterShaderFlags_t flags );
+	shader_t  *R_FindShader( const char *name, int flags );
 	shader_t  *R_GetShaderByHandle( qhandle_t hShader );
-	shader_t  *R_FindShaderByName( const char *name );
 	const char *RE_GetShaderNameFromHandle( qhandle_t shader );
 	void      R_InitShaders();
-	void      R_ShaderList_f();
-	void      R_ShaderExp_f();
 	void      R_RemapShader( const char *oldShader, const char *newShader, const char *timeOffset );
 
 	/*
@@ -3377,7 +3041,19 @@ inline bool checkGLErrors()
 	void     GLimp_SyncRenderThread();
 	void     GLimp_WakeRenderer( void *data );
 
-	void     GLimp_LogComment( const char *comment );
+inline bool GLimp_isLogging() {
+	return r_logFile.Get() && GLEW_ARB_debug_output;
+}
+
+// Never use GLimp_LogComment_() directly, use the GLIMP_LOGCOMMENT() wrapper instead.
+void GLimp_LogComment_( std::string comment );
+
+#define GLIMP_LOGCOMMENT( ... ) { \
+	if ( GLimp_isLogging() ) \
+	{ \
+		GLimp_LogComment_( Str::Format( __VA_ARGS__ ) ); \
+	} \
+}
 
 	/*
 	====================================================================
@@ -3390,7 +3066,6 @@ inline bool checkGLErrors()
 	struct stageVars_t
 	{
 		Color::Color color;
-		bool texMatricesChanged[ MAX_TEXTURE_BUNDLES ];
 		matrix_t texMatrices[ MAX_TEXTURE_BUNDLES ];
 	};
 
@@ -3399,14 +3074,12 @@ inline bool checkGLErrors()
 	struct shaderVertex_t {
 		vec3_t    xyz;
 		Color::Color32Bit color;
-		union {
-			i16vec4_t qtangents;
-			f16vec4_t spriteOrientation;
-		};
-		f16vec4_t texCoords;
+		i16vec4_t qtangents;
+
+		// the lightmap coords (index 2-3) may be used in some weird cases like an autosprite map surface
+		vec4_t texCoords;
 	};
 
-#ifdef GL_ARB_sync
 	struct glRingbuffer_t {
 		// the BO is logically split into DYN_BUFFER_SEGMENTS
 		// segments, the active segment is the one the CPU may write
@@ -3420,92 +3093,103 @@ inline bool checkGLErrors()
 		// sync is always undefined
 		GLsync         syncs[ DYN_BUFFER_SEGMENTS ];
 	};
-#endif
 
 	struct shaderCommands_t
 	{
-		shaderVertex_t *verts;	 // at least SHADER_MAX_VERTEXES accessible
+		// For drawing which is not based on static VBOs, the data is written here.
+		shaderVertex_t *verts;   // at least SHADER_MAX_VERTEXES accessible
 		glIndex_t      *indexes; // at least SHADER_MAX_INDEXES accessible
-		uint32_t       vertsWritten, vertexBase;
-		uint32_t       indexesWritten, indexBase;
 
-		VBO_t       *vbo;
-		IBO_t       *ibo;
+		// When writing into the buffers above, these are used to track how much was written.
+		// For some static VBO/IBO-based drawing, these can be used to request a single data range.
+		uint32_t    numIndexes;
+		uint32_t    numVertexes;
 
+		// Must be set by the stage iterator function if needed. These are *not*
+		// automatically cleared by the likes of Tess_End.
 		stageVars_t svars;
 
 		shader_t    *surfaceShader;
-		shader_t    *lightShader;
 
-		bool    skipTangentSpaces;
-		bool    skipVBO;
+		// some drawing parameters from drawSurf_t
 		int16_t     lightmapNum;
 		int16_t     fogNum;
 		bool        bspSurface;
 
-		uint32_t    numIndexes;
-		uint32_t    numVertexes;
-		uint32_t    attribsSet;
+		// Signals that ATTR_QTANGENT will not be needed, so functions that generate vertexes
+		// may skip writing out shaderVertex_t::qtangents
+		bool skipTangents;
 
+		// Used for static VBO/IBO-based drawing, if multiple ranges of data from the
+		// buffers may be requested.
 		int         multiDrawPrimitives;
 		glIndex_t    *multiDrawIndexes[ MAX_MULTIDRAW_PRIMITIVES ];
 		int         multiDrawCounts[ MAX_MULTIDRAW_PRIMITIVES ];
+		uint        multiDrawOffsets[ MAX_MULTIDRAW_PRIMITIVES ];
 
+		// enabled when a skeletal model VBO is used
 		bool    vboVertexSkinning;
 		int         numBones;
 		transform_t bones[ MAX_BONES ];
 
+		// enabled when an MD3 VBO is used
 		bool    vboVertexAnimation;
-		bool    vboVertexSprite;
-		bool    buildingVBO;
 
-		// info extracted from current shader or backend mode
+		// This can be thought of a "flush" function for the vertex buffer.
+		// Which function depends on backend mode and also the shader.
 		void ( *stageIteratorFunc )();
-		void ( *stageIteratorFunc2 )();
 
-		int           numSurfaceStages;
-		shaderStage_t **surfaceStages;
+		shaderStage_t *surfaceStages;    // surfaceShader->stages
+		shaderStage_t *surfaceLastStage; // surfaceShader->lastStage
 
 		// preallocated host buffers for verts and indexes
+		// NOT mapped to any VBO
 		shaderVertex_t *vertsBuffer;
 		glIndex_t      *indexesBuffer;
 
-#ifdef GL_ARB_sync
+		uint32_t       vertsWritten, vertexBase;
+		uint32_t       indexesWritten, indexBase;
+
+		// The "default", "dynamic" VBO/IBO used for data that is generated and sent to the
+		// GPU on a per-frame basis
+		VBO_t       *vbo;
+		IBO_t       *ibo;
+
 		glRingbuffer_t  vertexRB;
 		glRingbuffer_t  indexRB;
-#endif
 	};
 
-	extern shaderCommands_t tess;
+	alignas(16) extern shaderCommands_t tess;
 
 	void                    GLSL_InitGPUShaders();
+	void                    GLSL_InitWorldShaders();
 	void                    GLSL_ShutdownGPUShaders();
 	void                    GLSL_FinishGPUShaders();
 
 // *INDENT-OFF*
 	void Tess_Begin( void ( *stageIteratorFunc )(),
-	                 void ( *stageIteratorFunc2 )(),
-	                 shader_t *surfaceShader, shader_t *lightShader,
-	                 bool skipTangentSpaces,
-	                 bool skipVBO,
+	                 shader_t *surfaceShader,
+	                 bool skipTangents,
 	                 int lightmapNum,
 	                 int fogNum,
 	                 bool bspSurface = false );
 
 // *INDENT-ON*
+	void Tess_Clear();
 	void Tess_End();
 	void Tess_EndBegin();
 	void Tess_DrawElements();
 	void Tess_DrawArrays( GLenum elementType );
 	void Tess_CheckOverflow( int verts, int indexes );
 
+	void SetNormalScale( const shaderStage_t* pStage, vec3_t normalScale );
 	void Tess_ComputeColor( shaderStage_t *pStage );
+	void Tess_ComputeTexMatrices( shaderStage_t* pStage );
 
+	void Tess_StageIteratorDummy();
 	void Tess_StageIteratorDebug();
-	void Tess_StageIteratorGeneric();
-	void Tess_StageIteratorDepthFill();
-	void Tess_StageIteratorShadowFill();
-	void Tess_StageIteratorLighting();
+	void Tess_StageIteratorColor();
+	void Tess_StageIteratorPortal();
 	void Tess_StageIteratorSky();
 
 	void Tess_AddQuadStamp( vec3_t origin, vec3_t left, vec3_t up, const Color::Color& color );
@@ -3525,11 +3209,36 @@ inline bool checkGLErrors()
 	void Tess_AddCube( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 	void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 
-	void Tess_InstantQuad( vec4_t quadVerts[ 4 ] );
+	class u_ModelViewProjectionMatrix;
+	void Tess_InstantScreenSpaceQuad();
+	void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, float x, float y, float width, float height );
+
 	void Tess_MapVBOs( bool forceCPU );
 	void Tess_UpdateVBOs();
 
 	void RB_ShowImages();
+
+	void ProcessShaderNONE( const shaderStage_t* );
+	void ProcessShaderNOP( const shaderStage_t* );
+	void ProcessShaderGeneric3D( const shaderStage_t* pStage );
+	void ProcessShaderLightMapping( const shaderStage_t* pStage );
+	void ProcessShaderReflection( const shaderStage_t* pStage );
+	void ProcessShaderHeatHaze( const shaderStage_t* );
+	void ProcessShaderLiquid( const shaderStage_t* pStage );
+	void ProcessShaderFog( const shaderStage_t* );
+
+	void Render_NONE( shaderStage_t *pStage );
+	void Render_NOP( shaderStage_t *pStage );
+	void Render_generic( shaderStage_t *pStage );
+	void Render_generic3D( shaderStage_t *pStage );
+	void Render_lightMapping( shaderStage_t *pStage );
+	void Render_reflection_CB( shaderStage_t *pStage );
+	void Render_skybox( shaderStage_t *pStage );
+	void Render_screen( shaderStage_t *pStage );
+	void Render_portal( shaderStage_t *pStage );
+	void Render_heatHaze( shaderStage_t *pStage );
+	void Render_liquid( shaderStage_t *pStage );
+	void Render_fog( shaderStage_t* pStage );
 
 	/*
 	============================================================
@@ -3541,24 +3250,10 @@ inline bool checkGLErrors()
 
 	void     R_AddBSPModelSurfaces( trRefEntity_t *e );
 	void     R_AddWorldSurfaces();
+	bspNode_t* R_PointInLeaf( const vec3_t p );
+	const byte* R_ClusterPVS( int cluster );
 	bool R_inPVS( const vec3_t p1, const vec3_t p2 );
 	bool R_inPVVS( const vec3_t p1, const vec3_t p2 );
-
-	void     R_AddWorldInteractions( trRefLight_t *light );
-	void     R_AddPrecachedWorldInteractions( trRefLight_t *light );
-	void     R_ShutdownVBOs();
-
-	/*
-	============================================================
-
-	FLARES, tr_flares.c
-
-	============================================================
-	*/
-
-	void R_ClearFlares();
-
-	void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t normal );
 
 	/*
 	============================================================
@@ -3568,50 +3263,10 @@ inline bool checkGLErrors()
 	============================================================
 	*/
 
-	void     R_AddBrushModelInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType );
-	void     R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent, vec3_t forcedOrigin );
 	float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 				      float *factors[3], vec3_t ambientLight,
 				      vec3_t directedLight, vec3_t lightDir );
 	int      R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
-	void     R_TessLight( const trRefLight_t *light, const Color::Color& color );
-
-	void     R_SetupLightOrigin( trRefLight_t *light );
-	void     R_SetupLightLocalBounds( trRefLight_t *light );
-	void     R_SetupLightWorldBounds( trRefLight_t *light );
-
-	void     R_SetupLightView( trRefLight_t *light );
-	void     R_SetupLightFrustum( trRefLight_t *light );
-	void     R_SetupLightProjection( trRefLight_t *light );
-
-	bool R_AddLightInteraction( trRefLight_t *light, surfaceType_t *surface, shader_t *surfaceShader, byte cubeSideBits,
-	                                interactionType_t iaType );
-
-	void     R_SortInteractions( trRefLight_t *light );
-
-	void     R_SetupLightScissor( trRefLight_t *light );
-	void     R_SetupLightLOD( trRefLight_t *light );
-
-	void     R_SetupLightShader( trRefLight_t *light );
-
-	byte     R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] );
-
-	cullResult_t R_CullLightPoint( trRefLight_t *light, const vec3_t p );
-
-	cullResult_t R_CullLightTriangle( trRefLight_t *light, vec3_t verts[ 3 ] );
-	cullResult_t R_CullLightWorldBounds( trRefLight_t *light, vec3_t worldBounds[ 2 ] );
-
-	void     R_ComputeFinalAttenuation( shaderStage_t *pStage, trRefLight_t *light );
-
-	/*
-	============================================================
-
-	SKIES
-
-	============================================================
-	*/
-
-	void R_InitSkyTexCoords( float cloudLayerHeight );
 
 	/*
 	============================================================
@@ -3648,65 +3303,16 @@ inline bool checkGLErrors()
 
 	FBO_t    *R_CreateFBO( const char *name, int width, int height );
 
-	void     R_CreateFBOColorBuffer( FBO_t *fbo, int format, int index );
-	void     R_CreateFBODepthBuffer( FBO_t *fbo, int format );
-	void     R_CreateFBOStencilBuffer( FBO_t *fbo, int format );
-
 	void     R_AttachFBOTexture1D( int texId, int attachmentIndex );
 	void     R_AttachFBOTexture2D( int target, int texId, int attachmentIndex );
 	void     R_AttachFBOTexture3D( int texId, int attachmentIndex, int zOffset );
-	void     R_AttachFBOTextureDepth( int texId );
 
 	void     R_BindFBO( FBO_t *fbo );
+	void     R_BindFBO( GLenum target, FBO_t *fbo );
 	void     R_BindNullFBO();
 
 	void     R_InitFBOs();
 	void     R_ShutdownFBOs();
-	void     R_FBOList_f();
-
-	/*
-	============================================================
-
-	VERTEX BUFFER OBJECTS, tr_vbo.c
-
-	============================================================
-	*/
-	VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout );
-	VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *verts, uint32_t stateBits );
-
-	IBO_t *R_CreateStaticIBO( const char *name, glIndex_t *indexes, int numIndexes );
-	IBO_t *R_CreateStaticIBO2( const char *name, int numTriangles, glIndex_t *indexes );
-
-	void  R_BindVBO( VBO_t *vbo );
-	void  R_BindNullVBO();
-
-	void  R_BindIBO( IBO_t *ibo );
-	void  R_BindNullIBO();
-
-	void  R_InitVBOs();
-	void  R_ShutdownVBOs();
-	void  R_VBOList_f();
-
-	/*
-	============================================================
-
-	DECALS - ydnar, tr_decals.c
-
-	============================================================
-	*/
-
-	void     RE_ProjectDecal( qhandle_t hShader, int numPoints, vec3_t *points, vec4_t projection, const Color::Color& color, int lifeTime,
-	                          int fadeTime );
-	void     RE_ClearDecals();
-
-	bool R_TestDecalBoundingBox( decalProjector_t *dp, vec3_t mins, vec3_t maxs );
-	bool R_TestDecalBoundingSphere( decalProjector_t *dp, vec3_t center, float radius2 );
-
-	void     R_ProjectDecalOntoSurface( decalProjector_t *dp, bspSurface_t *surf, bspModel_t *bmodel );
-
-	void     R_AddDecalSurface( decal_t *decal );
-	void     R_AddDecalSurfaces( bspModel_t *bmodel );
-	void     R_CullDecalProjectors();
 
 	/*
 	============================================================
@@ -3720,9 +3326,7 @@ inline bool checkGLErrors()
 
 	void RE_ClearScene();
 	void RE_AddRefEntityToScene( const refEntity_t *ent );
-	void RE_AddRefLightToScene( const refLight_t *light );
 
-	void RE_AddPolyToSceneQ3A( qhandle_t hShader, int numVerts, const polyVert_t *verts, int num );
 	void RE_AddPolyToSceneET( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 	void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 
@@ -3753,13 +3357,10 @@ inline bool checkGLErrors()
 	qhandle_t RE_RegisterAnimationIQM( const char *name, IQAnim_t *data );
 
 	skelAnimation_t *R_GetAnimationByHandle( qhandle_t hAnim );
-	void            R_AnimationList_f();
 
 	void            R_AddMD5Surfaces( trRefEntity_t *ent );
-	void            R_AddMD5Interactions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType );
 
 	void		R_AddIQMSurfaces( trRefEntity_t *ent );
-	void            R_AddIQMInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType );
 
 	int             RE_CheckSkeleton( refSkeleton_t *skel, qhandle_t hModel, qhandle_t hAnim );
 	int             RE_BuildSkeleton( refSkeleton_t *skel, qhandle_t anim, int startFrame, int endFrame, float frac,
@@ -3783,14 +3384,28 @@ inline bool checkGLErrors()
 	void     R_TransformClipToWindow( const vec4_t clip, const viewParms_t *view, vec4_t normalized, vec4_t window );
 	float    R_ProjectRadius( float r, vec3_t location );
 
-	void     Tess_AutospriteDeform( int mode, int firstVertex, int numVertexes,
-					int firstIndex, int numIndexes );
+	void     Tess_AutospriteDeform( int mode );
 
 	float    RB_EvalWaveForm( const waveForm_t *wf );
 	float    RB_EvalWaveFormClamped( const waveForm_t *wf );
 	float    RB_EvalExpression( const expression_t *exp, float defaultValue );
 
 	void     RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix );
+
+	/*
+	=============================================================
+
+	IN-GAME VIDEO PLAYBACK ON A SURFACE (tr_video.cpp)
+
+	=============================================================
+	*/
+
+	using videoHandle_t = int; // 0 is valid; -1 is the invalid handle
+
+	videoHandle_t CIN_PlayCinematic( std::string name );
+	bool CIN_RunCinematic( videoHandle_t handle );
+	void CIN_UploadCinematic( videoHandle_t handle );
+	void CIN_CloseAllVideos();
 
 	/*
 	=============================================================
@@ -3935,9 +3550,6 @@ inline bool checkGLErrors()
 		byte     *encodeBuffer;
 		bool motionJpeg;
 	};
-	struct RenderFinishCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const override;
-	};
 	struct RenderPostProcessCommand : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
@@ -3968,12 +3580,6 @@ inline bool checkGLErrors()
 		const RenderCommand *ExecuteSelf() const override;
 	};
 
-// ydnar: max decal projectors per frame, each can generate lots of polys
-#define MAX_DECAL_PROJECTORS 32 // uses bitmasks, don't increase
-#define DECAL_PROJECTOR_MASK ( MAX_DECAL_PROJECTORS - 1 )
-#define MAX_DECALS           1024
-#define DECAL_MASK           ( MAX_DECALS - 1 )
-
 // all of the information needed by the back end must be
 // contained in a backEndData_t.  This entire structure is
 // duplicated so the front and back end can run in parallel
@@ -3981,17 +3587,13 @@ inline bool checkGLErrors()
 	struct backEndData_t
 	{
 		drawSurf_t          drawSurfs[ MAX_DRAWSURFS ];
-		interaction_t       interactions[ MAX_INTERACTIONS ];
 
-		trRefLight_t        lights[ MAX_REF_LIGHTS ];
+		refLight_t          lights[ MAX_REF_LIGHTS ];
 		trRefEntity_t       entities[ MAX_REF_ENTITIES ];
 
 		srfPoly_t           *polys; //[MAX_POLYS];
 		polyVert_t          *polyVerts; //[MAX_POLYVERTS];
 		int                 *polyIndexes; //[MAX_POLYVERTS];
-
-		decalProjector_t    decalProjectors[ MAX_DECAL_PROJECTORS ];
-		srfDecal_t          decals[ MAX_DECALS ];
 
 		// the backend communicates to the frontend through visTestResult_t
 		int                 numVisTests;
@@ -4054,24 +3656,19 @@ inline bool checkGLErrors()
 
 
 // video stuff
-	const void *RB_TakeVideoFrameCmd( const void *data );
 	void       RE_TakeVideoFrame( int width, int height, byte *captureBuffer, byte *encodeBuffer, bool motionJpeg );
 
 // cubemap reflections stuff
-	void       R_BuildCubeMaps();
-	void       R_FindTwoNearestCubeMaps( const vec3_t position, cubemapProbe_t **cubeProbeNearest, cubemapProbe_t **cubeProbeSecondNearest );
-
-	void       FreeVertexHashTable( vertexHash_t **hashTable );
+	void R_BuildCubeMaps();
+	void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp,
+		const uint8_t samples, vec3_t *gridPoints = nullptr );
 
 // font stuff
 	void       R_InitFreeType();
 	void       R_DoneFreeType();
-	fontInfo_t* RE_RegisterFont( const char *fontName, const char *fallbackName, int pointSize );
+	fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize );
 	void       RE_UnregisterFont( fontInfo_t *font );
-	void       RE_Glyph(fontInfo_t *font, const char *str, glyphInfo_t *glyph);
 	void       RE_GlyphChar(fontInfo_t *font, int ch, glyphInfo_t *glyph);
-
-	void       RE_Finish();
 
 	void       R_SetAltShaderTokens( const char * );
 

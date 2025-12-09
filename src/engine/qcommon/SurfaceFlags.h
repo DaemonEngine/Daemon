@@ -85,7 +85,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SURF_NOMARKS                BIT( 5 )  // 0x20       // missile will explode, but no mark will be left
 #define SURF_SPLASH                 BIT( 6 )  // 0x40       // Q3 stores SURF_FLESH there; RTCW stores SURF_CERAMIC there; Wolf:ET stores SURF_SPLASH there
 #define SURF_NODRAW                 BIT( 7 )  // 0x80       // renderer will not draw this surface, q3map2 will not paint lightmap either
-#define SURF_HINT                   BIT( 7 )  // 0x100      // q3map2 will split BSP using this surface
+#define SURF_HINT                   BIT( 8 )  // 0x100      // q3map2 will split BSP using this surface
 #define SURF_SKIP                   BIT( 9 )  // 0x200      // ignore this surface, non-closed brushes can be made this way
 #define SURF_NOLIGHTMAP             BIT( 10 ) // 0x400      // lightmap will not be painted on such surface
 #define SURF_POINTLIGHT             BIT( 11 ) // 0x800      // sample lighting at vertexes

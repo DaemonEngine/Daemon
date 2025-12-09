@@ -21,16 +21,21 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "qcommon/q_shared.h" // Include before SDL.h due to M_PI issue...
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #ifdef USE_SMP
-#include <SDL_thread.h>
+#include <SDL3/SDL_thread.h>
 #endif
 
 #include "renderer/tr_local.h"
+#include "renderer/DetectGLVendors.h"
+#include "renderer/GLUtils.h"
 
+#pragma warning(push)
+#pragma warning(disable : 4125) // "decimal digit terminates octal escape sequence"
 #include "sdl_icon.h"
-#include "SDL_syswm.h"
+#pragma warning(pop)
+
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
 
@@ -41,7 +46,148 @@ static Cvar::Modified<Cvar::Cvar<bool>> r_noBorder(
 static Cvar::Modified<Cvar::Range<Cvar::Cvar<int>>> r_swapInterval(
 	"r_swapInterval", "enable vsync on every Nth frame, negative for apdative", Cvar::ARCHIVE, 0, -5, 5 );
 
+static Cvar::Cvar<std::string> r_glForceHardware(
+	"r_glForceHardware", "treat the GPU type as: 'r300' or 'generic'", Cvar::NONE, "");
+
+static Cvar::Cvar<std::string> r_availableModes(
+	"r_availableModes", "list of available resolutions", Cvar::ROM, "");
+
+static Cvar::Range<Cvar::Cvar<int>> r_glDebugSeverity(
+	"r_glDebugSeverity",
+	"minimum severity of r_glDebugProfile messages (1=NOTIFICATION, 2=LOW, 3=MEDIUM, 4=HIGH)",
+	Cvar::NONE, 2, 1, 4);
+
+// OpenGL extension cvars.
+/* Driver bug: Mesa versions > 24.0.9 produce garbage rendering when bindless textures are enabled,
+and the shader compiler crashes with material shaders
+24.0.9 is the latest known working version, 24.1.1 is the earliest known broken version
+So this defaults to disabled */
+static Cvar::Cvar<bool> r_arb_bindless_texture( "r_arb_bindless_texture",
+	"Use GL_ARB_bindless_texture if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_buffer_storage( "r_arb_buffer_storage",
+	"Use GL_ARB_buffer_storage if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_compute_shader( "r_arb_compute_shader",
+	"Use GL_ARB_compute_shader if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_direct_state_access( "r_arb_direct_state_access",
+	"Use GL_ARB_direct_state_access if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_framebuffer_object( "r_arb_framebuffer_object",
+	"Use GL_ARB_framebuffer_object if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_explicit_uniform_location( "r_arb_explicit_uniform_location",
+	"Use GL_ARB_explicit_uniform_location if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_gpu_shader5( "r_arb_gpu_shader5",
+	"Use GL_ARB_gpu_shader5 if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_half_float_pixel( "r_arb_half_float_pixel",
+	"Use GL_ARB_half_float_pixel if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_half_float_vertex( "r_arb_half_float_vertex",
+	"Use GL_ARB_half_float_vertex if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_indirect_parameters( "r_arb_indirect_parameters",
+	"Use GL_ARB_indirect_parameters if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_internalformat_query2( "r_arb_internalformat_query2",
+	"Use GL_ARB_internalformat_query2 if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_map_buffer_range( "r_arb_map_buffer_range",
+	"Use GL_ARB_map_buffer_range if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_multi_draw_indirect( "r_arb_multi_draw_indirect",
+	"Use GL_ARB_multi_draw_indirect if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_program_interface_query( "r_arb_program_interface_query",
+	"Load GL_ARB_program_interface_query if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_shader_draw_parameters( "r_arb_shader_draw_parameters",
+	"Use GL_ARB_shader_draw_parameters if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_shader_atomic_counters( "r_arb_shader_atomic_counters",
+	"Use GL_ARB_shader_atomic_counters if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_shader_atomic_counter_ops( "r_arb_shader_atomic_counter_ops",
+	"Use GL_ARB_shader_atomic_counter_ops if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_shader_image_load_store( "r_arb_shader_image_load_store",
+	"Use GL_ARB_shader_image_load_store if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_shader_storage_buffer_object( "r_arb_shader_storage_buffer_object",
+	"Use GL_ARB_shader_storage_buffer_object if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_shading_language_420pack( "r_arb_shading_language_420pack",
+	"Use GL_ARB_shading_language_420pack if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_sync( "r_arb_sync",
+	"Use GL_ARB_sync if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_texture_barrier( "r_arb_texture_barrier",
+	"Use GL_ARB_texture_barrier if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_texture_gather( "r_arb_texture_gather",
+	"Use GL_ARB_texture_gather if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_uniform_buffer_object( "r_arb_uniform_buffer_object",
+	"Use GL_ARB_uniform_buffer_object if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_vertex_attrib_binding( "r_arb_vertex_attrib_binding",
+	"Use GL_ARB_vertex_attrib_binding if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_ext_draw_buffers( "r_ext_draw_buffers",
+	"Use GL_EXT_draw_buffers if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_ext_gpu_shader4( "r_ext_gpu_shader4",
+	"Use GL_EXT_gpu_shader4 if available", Cvar::NONE, true );
+static Cvar::Range<Cvar::Cvar<float>> r_ext_texture_filter_anisotropic( "r_ext_texture_filter_anisotropic",
+	"Use GL_EXT_texture_filter_anisotropic if available: anisotropy value", Cvar::NONE, 4.0f, 0.0f, 16.0f );
+static Cvar::Cvar<bool> r_ext_texture_float( "r_ext_texture_float",
+	"Use GL_EXT_texture_float if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_ext_texture_integer( "r_ext_texture_integer",
+	"Use GL_EXT_texture_integer if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_ext_texture_rg( "r_ext_texture_rg",
+	"Use GL_EXT_texture_rg if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_khr_debug( "r_khr_debug",
+	"Use GL_KHR_debug if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_khr_shader_subgroup( "r_khr_shader_subgroup",
+	"Use GL_KHR_shader_subgroup if available", Cvar::NONE, true );
+
+static Cvar::Cvar<bool> workaround_glDriver_amd_adrenalin_disableBindlessTexture(
+	"workaround.glDriver.amd.adrenalin.disableBindlessTexture",
+	"Disable ARB_bindless_texture on AMD Adrenalin driver",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_amd_oglp_disableBindlessTexture(
+	"workaround.glDriver.amd.oglp.disableBindlessTexture",
+	"Disable ARB_bindless_texture on AMD OGLP driver",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv300_useFloatVertex(
+	"workaround.glDriver.mesa.ati.rv300.useFloatVertex",
+	"Use float vertex instead of supported-but-slower half-float vertex on Mesa driver on ATI RV300 hardware",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv600_disableHyperZ(
+	"workaround.glDriver.mesa.ati.rv600.disableHyperZ",
+	"Disable Hyper-Z on Mesa driver on RV600 hardware",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_broadcom_vc4_useFloatVertex(
+	"workaround.glDriver.mesa.broadcom.vc4.useFloatVertex",
+	"Use float vertex instead of supported-but-slower half-float vertex on Mesa driver on Broadcom VC4 hardware",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_forceS3tc(
+	"workaround.glDriver.mesa.forceS3tc",
+	"Enable S3TC on Mesa even when libtxc-dxtn is not available",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_intel_gma3_forceFragmentShader(
+	"workaround.glDriver.mesa.intel.gma3.forceFragmentShader",
+	"Force fragment shader on Intel GMA Gen 3 hardware",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_intel_gma3_stubOcclusionQuery(
+	"workaround.glDriver.mesa.intel.gma3.stubOcclusionQuery",
+	"Stub out occlusion query on Intel GMA Gen 3 hardware",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_v241_disableBindlessTexture(
+	"workaround.glDriver.mesa.v241.disableBindlessTexture",
+	"Disable ARB_bindless_texture on Mesa 24.1 driver",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_nvidia_v340_disableTextureGather(
+	"workaround.glDriver.nvidia.v340.disableTextureGather",
+	"Disable ARB_texture_gather on Nvidia 340 driver",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glExtension_missingArbFbo_useExtFbo(
+	"workaround.glExtension.missingArbFbo.useExtFbo",
+	"Use EXT_framebuffer_object and EXT_framebuffer_blit when ARB_framebuffer_object is not available",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glExtension_glsl120_disableShaderDrawParameters(
+	"workaround.glExtension.glsl120.disableShaderDrawParameters",
+	"Disable ARB_shader_draw_parameters on GLSL 1.20",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glExtension_glsl120_disableGpuShader4(
+	"workaround.glExtension.glsl120.disableGpuShader4",
+	"Disable EXT_gpu_shader4 on GLSL 1.20",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glHardware_intel_useFirstProvokinVertex(
+	"workaround.glHardware.intel.useFirstProvokinVertex",
+	"Use first provoking vertex on Intel hardware supporting ARB_provoking_vertex",
+	Cvar::NONE, true );
+
 SDL_Window *window = nullptr;
+static SDL_PropertiesID windowProperties;
 static SDL_GLContext glContext = nullptr;
 
 #ifdef USE_SMP
@@ -70,9 +216,9 @@ SMP acceleration
  * thread-safe OpenGL libraries.
  */
 
-static SDL_mutex  *smpMutex = nullptr;
-static SDL_cond   *renderCommandsEvent = nullptr;
-static SDL_cond   *renderCompletedEvent = nullptr;
+static SDL_Mutex *smpMutex = nullptr;
+static SDL_Condition *renderCommandsEvent = nullptr;
+static SDL_Condition *renderCompletedEvent = nullptr;
 static void ( *renderThreadFunction )() = nullptr;
 static SDL_Thread *renderThread = nullptr;
 
@@ -84,13 +230,13 @@ GLimp_RenderThreadWrapper
 ALIGN_STACK_FOR_MINGW static int GLimp_RenderThreadWrapper( void* )
 {
 	// These printfs cause race conditions which mess up the console output
-	logger.Notice( "Render thread starting\n" );
+	logger.Notice( "Render thread starting" );
 
 	renderThreadFunction();
 
 	GLimp_SetCurrentContext( false );
 
-	logger.Notice( "Render thread terminating\n" );
+	logger.Notice( "Render thread terminating" );
 
 	return 0;
 }
@@ -106,13 +252,13 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 
 	if ( !warned )
 	{
-		logger.Warn( "You enable r_smp at your own risk!\n" );
+		logger.Warn( "You enable r_smp at your own risk!" );
 		warned = true;
 	}
 
 	if ( renderThread != nullptr ) /* hopefully just a zombie at this point... */
 	{
-		logger.Notice( "Already a render thread? Trying to clean it up...\n" );
+		logger.Notice( "Already a render thread? Trying to clean it up..." );
 		GLimp_ShutdownRenderThread();
 	}
 
@@ -120,25 +266,25 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 
 	if ( smpMutex == nullptr )
 	{
-		logger.Notice( "smpMutex creation failed: %s\n", SDL_GetError() );
+		logger.Notice( "smpMutex creation failed: %s", SDL_GetError() );
 		GLimp_ShutdownRenderThread();
 		return false;
 	}
 
-	renderCommandsEvent = SDL_CreateCond();
+	renderCommandsEvent = SDL_CreateCondition();
 
 	if ( renderCommandsEvent == nullptr )
 	{
-		logger.Notice( "renderCommandsEvent creation failed: %s\n", SDL_GetError() );
+		logger.Notice( "renderCommandsEvent creation failed: %s", SDL_GetError() );
 		GLimp_ShutdownRenderThread();
 		return false;
 	}
 
-	renderCompletedEvent = SDL_CreateCond();
+	renderCompletedEvent = SDL_CreateCondition();
 
 	if ( renderCompletedEvent == nullptr )
 	{
-		logger.Notice( "renderCompletedEvent creation failed: %s\n", SDL_GetError() );
+		logger.Notice( "renderCompletedEvent creation failed: %s", SDL_GetError() );
 		GLimp_ShutdownRenderThread();
 		return false;
 	}
@@ -179,13 +325,13 @@ void GLimp_ShutdownRenderThread()
 
 	if ( renderCommandsEvent != nullptr )
 	{
-		SDL_DestroyCond( renderCommandsEvent );
+		SDL_DestroyCondition( renderCommandsEvent );
 		renderCommandsEvent = nullptr;
 	}
 
 	if ( renderCompletedEvent != nullptr )
 	{
-		SDL_DestroyCond( renderCompletedEvent );
+		SDL_DestroyCondition( renderCompletedEvent );
 		renderCompletedEvent = nullptr;
 	}
 
@@ -212,11 +358,11 @@ void           *GLimp_RendererSleep()
 		smpDataReady = false;
 
 		// after this, the front end can exit GLimp_FrontEndSleep
-		SDL_CondSignal( renderCompletedEvent );
+		SDL_SignalCondition( renderCompletedEvent );
 
 		while ( !smpDataReady )
 		{
-			SDL_CondWait( renderCommandsEvent, smpMutex );
+			SDL_WaitCondition( renderCommandsEvent, smpMutex );
 		}
 
 		data = ( void * ) smpData;
@@ -239,7 +385,7 @@ void GLimp_FrontEndSleep()
 	{
 		while ( smpData )
 		{
-			SDL_CondWait( renderCompletedEvent, smpMutex );
+			SDL_WaitCondition( renderCompletedEvent, smpMutex );
 		}
 	}
 	SDL_UnlockMutex( smpMutex );
@@ -273,7 +419,7 @@ void GLimp_WakeRenderer( void *data )
 		smpDataReady = true;
 
 		// after this, the renderer can continue through GLimp_RendererSleep
-		SDL_CondSignal( renderCommandsEvent );
+		SDL_SignalCondition( renderCommandsEvent );
 	}
 	SDL_UnlockMutex( smpMutex );
 }
@@ -317,6 +463,7 @@ void GLimp_WakeRenderer( void* )
 enum class rserr_t
 {
   RSERR_OK,
+  RSERR_RESTART,
 
   RSERR_INVALID_FULLSCREEN,
   RSERR_INVALID_MODE,
@@ -327,7 +474,6 @@ enum class rserr_t
 };
 
 cvar_t                     *r_allowResize; // make window resizable
-cvar_t                     *r_centerWindow;
 cvar_t                     *r_displayIndex;
 cvar_t                     *r_sdlDriver;
 
@@ -349,7 +495,7 @@ void GLimp_Shutdown()
 
 	if ( renderThread != nullptr )
 	{
-		logger.Notice( "Destroying renderer thread...\n" );
+		logger.Notice( "Destroying renderer thread..." );
 		GLimp_ShutdownRenderThread();
 	}
 
@@ -360,14 +506,13 @@ void GLimp_Shutdown()
 
 	SDL_QuitSubSystem( SDL_INIT_VIDEO );
 
-	memset( &glConfig, 0, sizeof( glConfig ) );
-	memset( &glState, 0, sizeof( glState ) );
+	ResetStruct( windowConfig );
+	ResetStruct( glState );
 }
 
-static void GLimp_Minimize()
-{
-	SDL_MinimizeWindow( window );
-}
+static Cmd::LambdaCmd minimizeCmd(
+	"minimize", Cmd::CLIENT, "minimize the window",
+	[]( const Cmd::Args & ) { SDL_MinimizeWindow( window ); });
 
 static void SetSwapInterval( int swapInterval )
 {
@@ -420,10 +565,8 @@ static void SetSwapInterval( int swapInterval )
 
 	About how to deal with errors:
 
-	> If an application requests adaptive vsync and the system
-	> does not support it, this function will fail and return -1.
-	> In such a case, you should probably retry the call with 1
-	> for the interval.
+	> Returns true on success or false on failure;
+	> call SDL_GetError() for more information.
 	> -- https://wiki.libsdl.org/SDL_GL_SetSwapInterval
 
 	Given what's written in Swap Interval Khronos page, setting r_finish
@@ -444,7 +587,7 @@ static void SetSwapInterval( int swapInterval )
 	int sign = swapInterval < 0 ? -1 : 1;
 	int interval = std::abs( swapInterval );
 
-	while ( SDL_GL_SetSwapInterval( sign * interval ) == -1 )
+	while ( !SDL_GL_SetSwapInterval( sign * interval ) )
 	{
 		if ( sign == -1 )
 		{
@@ -472,6 +615,11 @@ static void SetSwapInterval( int swapInterval )
 	}
 }
 
+struct displayMode_t
+{
+	int w;
+	int h;
+};
 /*
 ===============
 GLimp_CompareModes
@@ -480,14 +628,14 @@ GLimp_CompareModes
 static int GLimp_CompareModes( const void *a, const void *b )
 {
 	const float ASPECT_EPSILON = 0.001f;
-	SDL_Rect    *modeA = ( SDL_Rect * ) a;
-	SDL_Rect    *modeB = ( SDL_Rect * ) b;
+	displayMode_t *modeA = ( displayMode_t * ) a;
+	displayMode_t *modeB = ( displayMode_t * ) b;
 	float       aspectA = ( float ) modeA->w / ( float ) modeA->h;
 	float       aspectB = ( float ) modeB->w / ( float ) modeB->h;
 	int         areaA = modeA->w * modeA->h;
 	int         areaB = modeB->w * modeB->h;
-	float       aspectDiffA = fabsf( aspectA - displayAspect );
-	float       aspectDiffB = fabsf( aspectB - displayAspect );
+	float       aspectDiffA = fabsf( aspectA - windowConfig.displayAspect );
+	float       aspectDiffB = fabsf( aspectB - windowConfig.displayAspect );
 	float       aspectDiffsDiff = aspectDiffA - aspectDiffB;
 
 	if ( aspectDiffsDiff > ASPECT_EPSILON )
@@ -511,72 +659,58 @@ GLimp_DetectAvailableModes
 */
 static bool GLimp_DetectAvailableModes()
 {
-	char     buf[ MAX_STRING_CHARS ] = { 0 };
-	SDL_Rect modes[ 128 ];
-	int      numModes = 0;
-	int      i;
-	SDL_DisplayMode windowMode;
-	int      display;
+	SDL_DisplayID display = SDL_GetDisplayForWindow( window );
 
-	display = SDL_GetWindowDisplayIndex( window );
+	int allModes;
+	SDL_DisplayMode **displayModes = SDL_GetFullscreenDisplayModes( display, &allModes );
 
-	if ( SDL_GetWindowDisplayMode( window, &windowMode ) < 0 )
+	if ( !displayModes )
 	{
-		logger.Warn("Couldn't get window display mode: %s", SDL_GetError() );
-		/* FIXME: returning true means the engine will crash if the window size is
-		larger than what the GPU can support, but we need to not fail to open a window
-		with a size the GPU can handle even if not using native screen resolutions. */
-		return true;
+		Sys::Error( "Couldn't get display modes: %s", SDL_GetError() );
 	}
 
-	for ( i = 0; i < SDL_GetNumDisplayModes( display ); i++ )
+	std::vector<displayMode_t> modes;
+
+	for ( int i = 0; i < allModes; i++ )
 	{
-		SDL_DisplayMode mode;
+		SDL_DisplayMode *mode = displayModes[ i ];
 
-		if ( SDL_GetDisplayMode( display, i, &mode ) < 0 )
+		if ( !mode->w || !mode->h )
 		{
-			continue;
-		}
-
-		if ( !mode.w || !mode.h )
-		{
+			// FIXME is this really a thing? I don't see it in SDL2 or SDL3 documentation
 			logger.Notice("Display supports any resolution" );
+			SDL_free( displayModes );
 			return true;
 		}
 
-		if ( windowMode.format != mode.format || windowMode.refresh_rate != mode.refresh_rate )
+		if ( !modes.empty() && modes.back().w == mode->w && modes.back().h == mode->h )
 		{
 			continue;
 		}
 
-		modes[ numModes ].w = mode.w;
-		modes[ numModes ].h = mode.h;
-		numModes++;
+		modes.push_back( { mode->w, mode->h } );
 	}
 
-	if ( numModes > 1 )
-	{
-		qsort( modes, numModes, sizeof( SDL_Rect ), GLimp_CompareModes );
-	}
+	SDL_free( displayModes );
 
-	for ( i = 0; i < numModes; i++ )
-	{
-		const char *newModeString = va( "%ux%u ", modes[ i ].w, modes[ i ].h );
+	qsort( modes.data(), modes.size(), sizeof( modes[ 0 ] ), GLimp_CompareModes );
 
-		if ( strlen( newModeString ) < sizeof( buf ) - strlen( buf ) )
+	std::string modesString;
+
+	for ( displayMode_t mode : modes )
+	{
+		if ( !modesString.empty() )
 		{
-			Q_strcat( buf, sizeof( buf ), newModeString );
+			modesString.push_back( ' ' );
 		}
-		else
-		{
-			logger.Warn("Skipping mode %ux%x, buffer too small", modes[ i ].w, modes[ i ].h );
-		}
+
+		modesString += Str::Format( "%ux%u", mode.w, mode.h );
 	}
 
-	if ( *buf )
+	if ( !modesString.empty() )
 	{
-		logger.Notice("Available modes: '%s'", buf );
-		Cvar_Set( "r_availableModes", buf );
+		logger.Notice("Available modes: %s", modesString );
+		Cvar::SetValueForce( r_availableModes.Name(), modesString );
 	}
 
 	return true;
@@ -619,11 +753,16 @@ static std::string ContextDescription( const glConfiguration& configuration )
 
 static void GLimp_SetAttributes( const glConfiguration &configuration )
 {
+	// FIXME: 3 * 4 = 12 which is more than 8
 	int perChannelColorBits = configuration.colorBits == 24 ? 8 : 4;
 
 	SDL_GL_SetAttribute( SDL_GL_RED_SIZE, perChannelColorBits );
 	SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, perChannelColorBits );
 	SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, perChannelColorBits );
+
+	// Depth/stencil channels are not needed since all 3D rendering is done in FBOs
+	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 0 );
+	SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 0 );
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 
 	if ( !r_glAllowSoftware->integer )
@@ -643,10 +782,19 @@ static void GLimp_SetAttributes( const glConfiguration &configuration )
 		SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY );
 	}
 
-	if ( r_glDebugProfile->integer )
+	if ( r_glDebugProfile.Get() )
 	{
 		SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
 	}
+}
+
+// Copied from https://github.com/libsdl-org/SDL/blob/main/docs/README-migration.md
+static SDL_Surface *SDL_CreateRGBSurfaceFrom(
+	void *pixels, int width, int height, int depth, int pitch, Uint32 Rmask, Uint32 Gmask, Uint32 Bmask, Uint32 Amask )
+{
+	return SDL_CreateSurfaceFrom( width, height,
+	                              SDL_GetPixelFormatForMasks( depth, Rmask, Gmask, Bmask, Amask ),
+	                              pixels, pitch);
 }
 
 static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfiguration &configuration )
@@ -657,7 +805,7 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 	-- http://wiki.libsdl.org/SDL_GL_SetAttribute */
 	GLimp_SetAttributes( configuration );
 
-	Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL;
+	Uint32 flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_OPENGL;
 
 	if ( r_allowResize->integer )
 	{
@@ -702,20 +850,21 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 		}
 	}
 
-	int x, y;
-	if ( r_centerWindow->integer )
-	{
-		// center window on specified display
-		x = SDL_WINDOWPOS_CENTERED_DISPLAY( r_displayIndex->integer );
-		y = SDL_WINDOWPOS_CENTERED_DISPLAY( r_displayIndex->integer );
-	}
-	else
-	{
-		x = SDL_WINDOWPOS_UNDEFINED_DISPLAY( r_displayIndex->integer );
-		y = SDL_WINDOWPOS_UNDEFINED_DISPLAY( r_displayIndex->integer );
-	}
+	int x = SDL_WINDOWPOS_CENTERED_DISPLAY( glConfig.sdlDisplayID );
+	int y = SDL_WINDOWPOS_CENTERED_DISPLAY( glConfig.sdlDisplayID );
 
-	window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y, glConfig.vidWidth, glConfig.vidHeight, flags );
+	windowProperties = SDL_CreateProperties();
+	if ( !windowProperties )
+	{
+		Sys::Error( "SDL_CreateProperties failed" );
+	}
+	SDL_SetStringProperty( windowProperties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, CLIENT_WINDOW_TITLE );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_X_NUMBER, x );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, y );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, windowConfig.vidWidth );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, windowConfig.vidHeight );
+	SDL_SetNumberProperty( windowProperties, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, flags );
+	window = SDL_CreateWindowWithProperties( windowProperties );
 
 	if ( window )
 	{
@@ -730,16 +879,18 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 	else
 	{
 		logger.Warn( "SDL %d×%d %s%swindow not created",
-			glConfig.vidWidth, glConfig.vidHeight,
+			windowConfig.vidWidth, windowConfig.vidHeight,
 			windowType ? windowType : "",
 			windowType ? " ": "" );
 		logger.Warn("SDL_CreateWindow failed: %s", SDL_GetError() );
+		SDL_DestroyProperties( windowProperties );
+		windowProperties = 0;
 		return false;
 	}
 
 	SDL_SetWindowIcon( window, icon );
 
-	SDL_FreeSurface( icon );
+	SDL_DestroySurface( icon );
 
 	return true;
 }
@@ -748,7 +899,7 @@ static void GLimp_DestroyContextIfExists()
 {
 	if ( glContext != nullptr )
 	{
-		SDL_GL_DeleteContext( glContext );
+		SDL_GL_DestroyContext( glContext );
 		glContext = nullptr;
 	}
 }
@@ -766,6 +917,8 @@ static void GLimp_DestroyWindowIfExists()
 		logger.Debug("Destroying %d×%d SDL window at %d,%d", w, h, x, y );
 		SDL_DestroyWindow( window );
 		window = nullptr;
+		SDL_DestroyProperties( windowProperties );
+		windowProperties = 0;
 	}
 }
 
@@ -774,16 +927,30 @@ static bool GLimp_CreateContext( const glConfiguration &configuration )
 	GLimp_DestroyContextIfExists();
 	glContext = SDL_GL_CreateContext( window );
 
-	if ( glContext != nullptr )
-	{
-		logger.Debug( "Valid context: %s", ContextDescription( configuration ) );
-	}
-	else
+	if ( glContext == nullptr )
 	{
 		logger.Debug( "Invalid context: %s", ContextDescription( configuration ) );
+		return false;
 	}
 
-	return glContext != nullptr;
+	if ( glGetString( GL_VERSION ) == nullptr )
+	{
+		Sys::Error(
+			"SDL returned a broken OpenGL context.\n\n"
+			"Please report the bug and tell us what is your operating system,\n"
+			"OpenGL driver, graphic card, and if you built the game yourself.\n\n"
+
+#if defined(DAEMON_OPENGL_ABI_GLVND)
+			"This engine was built with the \"GLVND\" OpenGL ABI,\n"
+			"try to reconfigure the build with the \"LEGACY\" one:\n\n"
+			"  cmake -DOpenGL_GL_PREFERENCE=LEGACY\n\n"
+#endif
+
+			"See: https://github.com/DaemonEngine/Daemon/issues/945"
+			);
+	}
+
+	return true;
 }
 
 /* GLimp_DestroyWindowIfExists checks if window exists before
@@ -803,12 +970,12 @@ static bool GLimp_RecreateWindowWhenChange( const bool fullscreen, const bool bo
 		/* We don't care if comparing default values
 		is wrong when the window isn't created yet as
 		the first thing we do is to overwrite them. */
-		|| glConfig.vidWidth != currentWidth
-		|| glConfig.vidHeight != currentHeight
+		|| windowConfig.vidWidth != currentWidth
+		|| windowConfig.vidHeight != currentHeight
 		|| configuration != currentConfiguration )
 	{
-		currentWidth = glConfig.vidWidth;
-		currentHeight = glConfig.vidHeight;
+		currentWidth = windowConfig.vidWidth;
+		currentHeight = windowConfig.vidHeight;
 		currentConfiguration = configuration;
 
 		GLimp_DestroyWindowIfExists();
@@ -821,10 +988,7 @@ static bool GLimp_RecreateWindowWhenChange( const bool fullscreen, const bool bo
 
 	if ( fullscreen != currentFullscreen )
 	{
-		Uint32 flags = fullscreen ? SDL_WINDOW_FULLSCREEN : 0;
-		int sdlToggled = SDL_SetWindowFullscreen( window, flags );
-
-		if ( sdlToggled < 0 )
+		if ( !SDL_SetWindowFullscreen( window, fullscreen ) )
 		{
 			GLimp_DestroyWindowIfExists();
 
@@ -845,9 +1009,7 @@ static bool GLimp_RecreateWindowWhenChange( const bool fullscreen, const bool bo
 
 	if ( bordered != currentBordered )
 	{
-		SDL_bool sdlBordered = bordered ? SDL_TRUE : SDL_FALSE;
-
-		SDL_SetWindowBordered( window, sdlBordered );
+		SDL_SetWindowBordered( window, bordered );
 
 		const char* windowType = bordered ? "bordered" : "borderless";
 		logger.Debug( "SDL window set as %s.", windowType );
@@ -861,45 +1023,65 @@ static bool GLimp_RecreateWindowWhenChange( const bool fullscreen, const bool bo
 
 static rserr_t GLimp_SetModeAndResolution( const int mode )
 {
-	SDL_DisplayMode desktopMode;
+	int numDisplays;
+	SDL_DisplayID *displayIDs = SDL_GetDisplays( &numDisplays );
 
-	if ( SDL_GetDesktopDisplayMode( r_displayIndex->integer, &desktopMode ) == 0 )
+	if ( !displayIDs )
 	{
-		displayAspect = ( float ) desktopMode.w / ( float ) desktopMode.h;
+		Sys::Error( "SDL_GetDisplays failed: %s", SDL_GetError() );
+	}
+
+	if ( numDisplays <= 0 )
+	{
+		Sys::Error( "SDL_GetDisplays returned 0 displays" );
+	}
+
+	glConfig.sdlDisplayID = r_displayIndex->integer >= 0 && r_displayIndex->integer < numDisplays
+	                        ? displayIDs[ r_displayIndex->integer ]
+	                        : 0; // 0 indicates primary display
+
+	SDL_free( displayIDs );
+
+	const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode( glConfig.sdlDisplayID );
+
+	if ( desktopMode )
+	{
+		windowConfig.displayAspect = ( float ) desktopMode->w / ( float ) desktopMode->h;
+		logger.Notice( "Display aspect: %.3f", windowConfig.displayAspect );
 	}
 	else
 	{
-		memset( &desktopMode, 0, sizeof( SDL_DisplayMode ) );
-		displayAspect = 1.333f;
-		logger.Warn("Cannot determine display aspect, assuming %.3f: %s", displayAspect, SDL_GetError() );
+		windowConfig.displayAspect = 1.333f;
+		logger.Warn("Cannot determine display aspect, assuming %.3f: %s", windowConfig.displayAspect, SDL_GetError() );
 	}
 
-	logger.Notice("Display aspect: %.3f", displayAspect );
+	windowConfig.displayWidth = desktopMode->w;
+	windowConfig.displayHeight = desktopMode->h;
 
 	if ( mode == -2 )
 	{
 		// use desktop video resolution
-		if ( desktopMode.h > 0 )
+		if ( desktopMode->h > 0 )
 		{
-			glConfig.vidWidth = desktopMode.w;
-			glConfig.vidHeight = desktopMode.h;
+			windowConfig.vidWidth = desktopMode->w;
+			windowConfig.vidHeight = desktopMode->h;
 		}
 		else
 		{
-			glConfig.vidWidth = 640;
-			glConfig.vidHeight = 480;
-			logger.Warn("Cannot determine display resolution, assuming %dx%d", glConfig.vidWidth, glConfig.vidHeight );
+			windowConfig.vidWidth = 640;
+			windowConfig.vidHeight = 480;
+			logger.Warn("Cannot determine display resolution, assuming %dx%d", windowConfig.vidWidth, windowConfig.vidHeight );
 		}
 
-		logger.Notice("Display resolution: %dx%d", glConfig.vidWidth, glConfig.vidHeight);
+		logger.Notice("Display resolution: %dx%d", windowConfig.vidWidth, windowConfig.vidHeight);
 	}
-	else if ( !R_GetModeInfo( &glConfig.vidWidth, &glConfig.vidHeight, mode ) )
+	else if ( !R_GetModeInfo( &windowConfig.vidWidth, &windowConfig.vidHeight, mode ) )
 	{
 		logger.Notice("Invalid mode %d", mode );
 		return rserr_t::RSERR_INVALID_MODE;
 	}
 
-	logger.Notice("...setting mode %d: %d×%d", mode, glConfig.vidWidth, glConfig.vidHeight );
+	logger.Notice("...setting mode %d: %d×%d", mode, windowConfig.vidWidth, windowConfig.vidHeight );
 
 	return rserr_t::RSERR_OK;
 }
@@ -1012,7 +1194,6 @@ static rserr_t GLimp_ValidateBestContext(
 
 	if ( bestValidatedConfiguration.major == 0 )
 	{
-
 		return rserr_t::RSERR_MISSING_GL;
 	}
 
@@ -1140,16 +1321,17 @@ static bool CreateWindowAndContext(
 	logger.Notice( "Using %s context - %s",
 		contextAdjective,
 		ContextDescription( customConfiguration ) );
+
 	return true;
 }
 
 static void GLimp_RegisterConfiguration( const glConfiguration& highestConfiguration, const glConfiguration &requestedConfiguration )
 {
-	glConfig2.glHighestMajor = highestConfiguration.major;
-	glConfig2.glHighestMinor = highestConfiguration.minor;
+	glConfig.glHighestMajor = highestConfiguration.major;
+	glConfig.glHighestMinor = highestConfiguration.minor;
 
-	glConfig2.glRequestedMajor = requestedConfiguration.major;
-	glConfig2.glRequestedMinor = requestedConfiguration.minor;
+	glConfig.glRequestedMajor = requestedConfiguration.major;
+	glConfig.glRequestedMinor = requestedConfiguration.minor;
 
 	SetSwapInterval( r_swapInterval.Get() );
 	r_swapInterval.GetModifiedValue(); // clear modified flag
@@ -1171,14 +1353,14 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 
 		if ( glGetError() != GL_NO_ERROR )
 		{
-			glConfig2.glCoreProfile = false;
+			glConfig.glCoreProfile = false;
 		}
 		else
 		{
-			glConfig2.glCoreProfile = ( profileBit == GL_CONTEXT_CORE_PROFILE_BIT );
+			glConfig.glCoreProfile = ( profileBit == GL_CONTEXT_CORE_PROFILE_BIT );
 		}
 
-		glProfile providedProfile = glConfig2.glCoreProfile ? glProfile::CORE : glProfile::COMPATIBILITY ;
+		glProfile providedProfile = glConfig.glCoreProfile ? glProfile::CORE : glProfile::COMPATIBILITY ;
 		const char *providedProfileName = GLimp_getProfileName( providedProfile );
 
 		if ( providedProfile != requestedConfiguration.profile )
@@ -1213,44 +1395,64 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 		}
 	}
 
-	if ( requestedConfiguration.profile == glProfile::CORE )
+	{
+		int GLmajor, GLminor;
+		if ( 2 != sscanf( ( const char * ) glGetString( GL_VERSION ), "%d.%d", &GLmajor, &GLminor ) )
+		{
+			Sys::Error( "Indecipherable GL_VERSION" );
+		}
+
+		glConfig.glMajor = GLmajor;
+		glConfig.glMinor = GLminor;
+	}
+
+	// CONTEXT_FLAGS and forward compatibility were added in OpenGL 3.0
+	if ( glConfig.glMajor >= 3 )
 	{
 		// Check if context is forward compatible.
 		int contextFlags;
 		glGetIntegerv( GL_CONTEXT_FLAGS, &contextFlags );
 
-		glConfig2.glForwardCompatibleContext = contextFlags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT;
+		glConfig.glForwardCompatibleContext = contextFlags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT;
 
-		if ( glConfig2.glForwardCompatibleContext )
+		if ( glConfig.glForwardCompatibleContext )
 		{
-			logger.Debug( "Provided OpenGL core context is forward compatible." );
+			logger.Debug( "Provided OpenGL context is forward compatible." );
 		}
 		else
 		{
-			logger.Debug( "Provided OpenGL core context is not forward compatible." );
+			logger.Debug( "Provided OpenGL context is not forward compatible." );
 		}
 	}
 	else
 	{
-		glConfig2.glForwardCompatibleContext = false;
+		glConfig.glForwardCompatibleContext = false;
 	}
 
+	// Get our config strings.
+	Q_strncpyz( glConfig.vendor_string, ( char * ) glGetString( GL_VENDOR ), sizeof( glConfig.vendor_string ) );
+	Q_strncpyz( glConfig.renderer_string, ( char * ) glGetString( GL_RENDERER ), sizeof( glConfig.renderer_string ) );
+	Q_strncpyz( glConfig.version_string, ( char * ) glGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
+
+	if ( *glConfig.renderer_string )
 	{
-		int GLmajor, GLminor;
-		sscanf( ( const char * ) glGetString( GL_VERSION ), "%d.%d", &GLmajor, &GLminor );
-
-		glConfig2.glMajor = GLmajor;
-		glConfig2.glMinor = GLminor;
+		int last = strlen( glConfig.renderer_string ) - 1;
+		if ( glConfig.renderer_string[ last ] == '\n' )
+		{
+			glConfig.renderer_string[ last ] = '\0';
+		}
 	}
 
-	/* FIXME: a duplicate of this is done in GLimp_Init, also storing it
-	for gfxinfo command. */
-	const char *glstring = ( char * ) glGetString( GL_RENDERER );
-	logger.Notice("OpenGL Renderer: %s", glstring );
+	logger.Notice("OpenGL vendor: %s", glConfig.vendor_string );
+	logger.Notice("OpenGL renderer: %s", glConfig.renderer_string );
+	logger.Notice("OpenGL version: %s", glConfig.version_string );
 }
 
-static void GLimp_DrawWindowContent()
+static void GLimp_DrawWindow()
 {
+	// Unhide the window.
+	SDL_ShowWindow( window );
+
 	// Fill window with a dark grey (#141414) background.
 	glClearColor( 0.08f, 0.08f, 0.08f, 1.0f );
 	glClear( GL_COLOR_BUFFER_BIT );
@@ -1259,39 +1461,28 @@ static void GLimp_DrawWindowContent()
 
 static rserr_t GLimp_CheckOpenGLVersion( const glConfiguration &requestedConfiguration )
 {
-	if ( glConfig2.glMajor != requestedConfiguration.major
-		|| glConfig2.glMinor != requestedConfiguration.minor )
+	if ( glConfig.glMajor != requestedConfiguration.major
+		|| glConfig.glMinor != requestedConfiguration.minor )
 	{
 		logger.Warn( "Provided OpenGL %d.%d is not the same as requested %d.%d version",
-			glConfig2.glMajor,
-			glConfig2.glMinor,
+			glConfig.glMajor,
+			glConfig.glMinor,
 			requestedConfiguration.major,
 			requestedConfiguration.minor );
 	}
 	else
 	{
 		logger.Debug( "Provided OpenGL %d.%d version.",
-			glConfig2.glMajor,
-			glConfig2.glMinor );
+			glConfig.glMajor,
+			glConfig.glMinor );
 	}
 
-	if ( glConfig2.glMajor < 2 || ( glConfig2.glMajor == 2 && glConfig2.glMinor < 1 ) )
+	if ( glConfig.glMajor < 2 || ( glConfig.glMajor == 2 && glConfig.glMinor < 1 ) )
 	{
 		GLimp_DestroyWindowIfExists();
 
 		// Missing shader support, there is no OpenGL 1.x renderer anymore.
 		return rserr_t::RSERR_OLD_GL;
-	}
-
-	if ( glConfig2.glMajor < 3 || ( glConfig2.glMajor == 3 && glConfig2.glMinor < 2 ) )
-	{
-		// Shaders are supported, but not all OpenGL 3.x features
-		logger.Notice("Using GL3 Renderer in OpenGL 2.x mode..." );
-	}
-	else
-	{
-		logger.Notice("Using GL3 Renderer in OpenGL 3.x mode..." );
-		glConfig.driverType = glDriverType_t::GLDRV_OPENGL3;
 	}
 
 	return rserr_t::RSERR_OK;
@@ -1318,6 +1509,59 @@ static void GLimp_CheckGLEW( const glConfiguration &requestedConfiguration )
 			glewGetErrorString( glewResult ),
 			ContextDescription( requestedConfiguration ) );
 	}
+}
+
+// We should make sure every workaround returns false if restart already happened.
+static bool IsSdlVideoRestartNeeded()
+{
+	/* We call RV600 the first generation of R600 cards, to make a difference
+	with RV700 and RV800 cards that are also supported by the Mesa r600 driver.
+
+	The Mesa r600 driver has broken Hyper-Z wth RV600, not RV700 nor RV800. */
+	if ( workaround_glDriver_mesa_ati_rv600_disableHyperZ.Get() )
+	{
+		if ( getenv( "R600_HYPERZ" ) )
+		{
+			return false;
+		}
+
+		if ( glConfig.driverVendor == glDriverVendor_t::MESA
+			&& glConfig.hardwareVendor == glHardwareVendor_t::ATI )
+		{
+			bool foundRv600 = false;
+
+			std::string cardName = "";
+
+			static const std::string codenames[] = {
+				// Radeon HD 2000 Series
+				"R600", "RV610", "RV630",
+				// Radeon HD 3000 Series
+				"RV620", "RV635", "RV670",
+			};
+
+			for ( auto& codename : codenames )
+			{
+				cardName = Str::Format( "AMD %s", codename );
+
+				if ( Q_stristr( glConfig.renderer_string, cardName.c_str() ) )
+				{
+					foundRv600 = true;
+					break;
+				}
+			}
+
+			if ( foundRv600 )
+			{
+				logger.Warn( "Found buggy Mesa driver with %s card, disabling Hyper-Z.", cardName );
+
+				Sys::SetEnv( "R600_HYPERZ", "false" );
+
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 /*
@@ -1359,8 +1603,8 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 	// HACK: We want to set the current value, not the latched value
 	Cvar::ClearFlags("r_customwidth", CVAR_LATCH);
 	Cvar::ClearFlags("r_customheight", CVAR_LATCH);
-	Cvar_Set( "r_customwidth", va("%d", glConfig.vidWidth ) );
-	Cvar_Set( "r_customheight", va("%d", glConfig.vidHeight ) );
+	Cvar_Set( "r_customwidth", va("%d", windowConfig.vidWidth ) );
+	Cvar_Set( "r_customheight", va("%d", windowConfig.vidHeight ) );
 	Cvar::AddFlags("r_customwidth", CVAR_LATCH);
 	Cvar::AddFlags("r_customheight", CVAR_LATCH);
 
@@ -1383,8 +1627,8 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 			if ( err == rserr_t::RSERR_OLD_GL )
 			{
 				// Used by error message.
-				glConfig2.glMajor = bestValidatedConfiguration.major;
-				glConfig2.glMinor = bestValidatedConfiguration.minor;
+				glConfig.glMajor = bestValidatedConfiguration.major;
+				glConfig.glMinor = bestValidatedConfiguration.minor;
 			}
 
 			GLimp_DestroyWindowIfExists();
@@ -1417,9 +1661,15 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 		requestedConfiguration = bestValidatedConfiguration;
 	}
 
-	GLimp_DrawWindowContent();
-
 	GLimp_RegisterConfiguration( extendedValidationResult, requestedConfiguration );
+
+	if ( IsSdlVideoRestartNeeded() )
+	{
+		GLimp_DestroyWindowIfExists();
+		return rserr_t::RSERR_RESTART;
+	}
+
+	GLimp_DrawWindow();
 
 	{
 		rserr_t err = GLimp_CheckOpenGLVersion( requestedConfiguration );
@@ -1469,68 +1719,78 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 GLimp_StartDriverAndSetMode
 ===============
 */
-static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordered )
+static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordered )
 {
-	int numDisplays;
+	// See the SDL wiki page for details: https://wiki.libsdl.org/SDL3/SDL_SetAppMetadataProperty
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_NAME_STRING, PRODUCT_NAME );
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_VERSION_STRING, PRODUCT_VERSION );
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_TYPE_STRING, "game" );
+
+	/* Let X11 and Wayland desktops (Linux, FreeBSD…) associate the game
+	window with the XDG .desktop file, with the proper name and icon.
+	The .desktop file should have PRODUCT_APPID as base name or set the
+	StartupWMClass variable to PRODUCT_APPID. */
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_IDENTIFIER_STRING, PRODUCT_APPID );
+
+	/* Disable DPI scaling.
+	See the SDL wiki page for details: https://wiki.libsdl.org/SDL3/SDL_HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY */
+	SDL_SetHint( SDL_HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY, "1" );
 
 	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
 	{
 		const char *driverName;
-		SDL_version v;
-		SDL_GetVersion( &v );
+
+		const int linked = SDL_GetVersion();
+		const int compiled = SDL_VERSION;
 
 		logger.Notice("SDL_Init( SDL_INIT_VIDEO )... " );
-		logger.Notice("Using SDL version %u.%u.%u", v.major, v.minor, v.patch );
+		logger.Notice("Using SDL version %d.%d.%d (compiled against SDL version %d.%d.%d)",
+			SDL_VERSIONNUM_MAJOR(linked),
+			SDL_VERSIONNUM_MINOR(linked),
+			SDL_VERSIONNUM_MICRO(linked),
+			SDL_VERSIONNUM_MAJOR(compiled),
+			SDL_VERSIONNUM_MINOR(compiled),
+			SDL_VERSIONNUM_MICRO(compiled));
 
-		/* It is recommended to test for negative value and not just -1.
-
-		> Returns 0 on success or a negative error code on failure;
-		> call SDL_GetError() for more information.
-		> -- https://wiki.libsdl.org/SDL_Init
-
-		the SDL_GetError page also gives a sample of code testing for < 0
-		> if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
-		> -- https://wiki.libsdl.org/SDL_GetError */
-
-		if ( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+		if ( !SDL_Init( SDL_INIT_VIDEO ) )
 		{
-			logger.Notice("SDL_Init( SDL_INIT_VIDEO ) failed: %s", SDL_GetError() );
-			return false;
+			Sys::Error("SDL_Init( SDL_INIT_VIDEO ) failed: %s", SDL_GetError() );
 		}
 
 		driverName = SDL_GetCurrentVideoDriver();
 
 		if ( !driverName )
 		{
-			Sys::Error( "No video driver initialized\n" );
+			Sys::Error( "No video driver initialized" );
 		}
 
 		logger.Notice("SDL using driver \"%s\"", driverName );
 		Cvar_Set( "r_sdlDriver", driverName );
 	}
 
-	numDisplays = SDL_GetNumVideoDisplays();
+	int numDisplays;
+	SDL_DisplayID *displayIDs = SDL_GetDisplays( &numDisplays );
 
-	if ( numDisplays <= 0 )
+	if ( !displayIDs )
 	{
-		Sys::Error( "SDL_GetNumVideoDisplays failed: %s\n", SDL_GetError() );
+		Sys::Error( "SDL_GetDisplays failed: %s", SDL_GetError() );
 	}
 
-	AssertCvarRange( r_displayIndex, 0, numDisplays - 1, true );
-
-	if ( fullscreen && Cvar_VariableIntegerValue( "in_nograb" ) )
-	{
-		logger.Notice("Fullscreen not allowed with in_nograb 1" );
-		r_fullscreen.Set( false );
-		fullscreen = false;
-	}
+#if defined(DAEMON_OPENGL_ABI)
+	logger.Notice( "Using OpenGL ABI \"%s\"", DAEMON_OPENGL_ABI_STRING );
+#endif
 
 	rserr_t err = GLimp_SetMode(mode, fullscreen, bordered);
+
+	const char* glRequirements =
+		"You need a graphics card with drivers supporting at least OpenGL 3.2\n"
+		"or OpenGL 2.1 with EXT_framebuffer_object and ARB_vertex_array_object.";
 
 	switch ( err )
 	{
 		case rserr_t::RSERR_OK:
-			return true;
+		case rserr_t::RSERR_RESTART:
+			break;
 
 		case rserr_t::RSERR_INVALID_FULLSCREEN:
 			logger.Warn("GLimp: Fullscreen unavailable in this mode" );
@@ -1541,21 +1801,13 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 			break;
 
 		case rserr_t::RSERR_MISSING_GL:
-			Sys::Error(
-				"OpenGL is not available.\n\n"
-				"You need a graphic card with drivers supporting\n"
-				"at least OpenGL 3.2 or OpenGL 2.1 with\n"
-				"ARB_half_float_vertex and EXT_framebuffer_object." );
+			Sys::Error( "OpenGL is not available.\n\n%s", glRequirements );
 
 			// Sys:Error calls OSExit() so the break and the return is unreachable.
 			break;
 
 		case rserr_t::RSERR_OLD_GL:
-			Sys::Error(
-				"OpenGL %d.%d is too old.\n\n"
-				"You need a graphic card with drivers supporting\n"
-				"at least OpenGL 3.2 or OpenGL 2.1 with\n"
-				"ARB_half_float_vertex and EXT_framebuffer_object." );
+			Sys::Error( "OpenGL %d.%d is too old.\n\n%s", glConfig.glMajor, glConfig.glMinor, glRequirements );
 
 			// Sys:Error calls OSExit() so the break and the return is unreachable.
 			break;
@@ -1566,7 +1818,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 			break;
 	}
 
-	return false;
+	return err;
 }
 
 static GLenum debugTypes[] =
@@ -1581,7 +1833,7 @@ static GLenum debugTypes[] =
 };
 
 #ifdef _WIN32
-#define DEBUG_CALLBACK_CALL APIENTRY
+#define DEBUG_CALLBACK_CALL __stdcall //APIENTRY
 #else
 #define DEBUG_CALLBACK_CALL
 #endif
@@ -1591,14 +1843,14 @@ static void DEBUG_CALLBACK_CALL GLimp_DebugCallback( GLenum, GLenum type, GLuint
 	const char *debugTypeName;
 	const char *debugSeverity;
 
-	if ( r_glDebugMode->integer <= Util::ordinal(glDebugModes_t::GLDEBUG_NONE))
+	if ( r_glDebugMode.Get() <= Util::ordinal(glDebugModes_t::GLDEBUG_NONE))
 	{
 		return;
 	}
 
-	if ( r_glDebugMode->integer < Util::ordinal(glDebugModes_t::GLDEBUG_ALL))
+	if ( r_glDebugMode.Get() < Util::ordinal(glDebugModes_t::GLDEBUG_ALL))
 	{
-		if ( debugTypes[ r_glDebugMode->integer ] != type )
+		if ( debugTypes[ r_glDebugMode.Get()] != type )
 		{
 			return;
 		}
@@ -1606,46 +1858,63 @@ static void DEBUG_CALLBACK_CALL GLimp_DebugCallback( GLenum, GLenum type, GLuint
 
 	switch ( type )
 	{
-		case GL_DEBUG_TYPE_ERROR_ARB:
+		case GL_DEBUG_TYPE_ERROR:
 			debugTypeName = "DEBUG_TYPE_ERROR";
 			break;
-		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB:
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
 			debugTypeName = "DEBUG_TYPE_DEPRECATED_BEHAVIOR";
 			break;
-		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB:
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
 			debugTypeName = "DEBUG_TYPE_UNDEFINED_BEHAVIOR";
 			break;
-		case GL_DEBUG_TYPE_PORTABILITY_ARB:
+		case GL_DEBUG_TYPE_PORTABILITY:
 			debugTypeName = "DEBUG_TYPE_PORTABILITY";
 			break;
-		case GL_DEBUG_TYPE_PERFORMANCE_ARB:
+		case GL_DEBUG_TYPE_PERFORMANCE:
 			debugTypeName = "DEBUG_TYPE_PERFORMANCE";
 			break;
-		case GL_DEBUG_TYPE_OTHER_ARB:
+		case GL_DEBUG_TYPE_OTHER:
 			debugTypeName = "DEBUG_TYPE_OTHER";
+			break;
+		case GL_DEBUG_TYPE_MARKER:
+			debugTypeName = "DEBUG_TYPE_MARKER";
 			break;
 		default:
 			debugTypeName = "DEBUG_TYPE_UNKNOWN";
 			break;
 	}
 
+	int severityNum;
+
 	switch ( severity )
 	{
-		case GL_DEBUG_SEVERITY_HIGH_ARB:
+		case GL_DEBUG_SEVERITY_HIGH:
 			debugSeverity = "high";
+			severityNum = 4;
 			break;
-		case GL_DEBUG_SEVERITY_MEDIUM_ARB:
+		case GL_DEBUG_SEVERITY_MEDIUM:
 			debugSeverity = "med";
+			severityNum = 3;
 			break;
-		case GL_DEBUG_SEVERITY_LOW_ARB:
+		case GL_DEBUG_SEVERITY_LOW:
 			debugSeverity = "low";
+			severityNum = 2;
+			break;
+		case GL_DEBUG_SEVERITY_NOTIFICATION:
+			debugSeverity = "notification";
+			severityNum = 1;
 			break;
 		default:
 			debugSeverity = "none";
+			severityNum = 2;
 			break;
 	}
 
-	logger.Warn("%s: severity: %s msg: %s", debugTypeName, debugSeverity, message );
+	if ( severityNum >= r_glDebugSeverity.Get() )
+	{
+		Log::defaultLogger.WithoutSuppression().Warn(
+			"%s: severity: %s msg: %s", debugTypeName, debugSeverity, message );
+	}
 }
 
 /*
@@ -1667,19 +1936,26 @@ enum {
 
 static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true )
 {
-	if ( hasExt || ( flags & ExtFlag_CORE && glConfig2.glCoreProfile) )
+	if ( hasExt || ( flags & ExtFlag_CORE && glConfig.glCoreProfile) )
 	{
 		if ( test )
 		{
-			logger.WithoutSuppression().Notice( "...using GL_%s", name );
-
-			if ( glConfig2.glEnabledExtensionsString.length() != 0 )
+			if ( flags & ExtFlag_REQUIRED )
 			{
-				glConfig2.glEnabledExtensionsString += " ";
+				logger.WithoutSuppression().Notice( "...using required extension GL_%s.", name );
+			}
+			else
+			{
+				logger.WithoutSuppression().Notice( "...using optional extension GL_%s.", name );
 			}
 
-			glConfig2.glEnabledExtensionsString += "GL_";
-			glConfig2.glEnabledExtensionsString += name;
+			if ( glConfig.glEnabledExtensionsString.length() != 0 )
+			{
+				glConfig.glEnabledExtensionsString += " ";
+			}
+
+			glConfig.glEnabledExtensionsString += "GL_";
+			glConfig.glEnabledExtensionsString += name;
 
 			return true;
 		}
@@ -1688,30 +1964,32 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 			// Required extension can't be made optional
 			ASSERT( !( flags & ExtFlag_REQUIRED ) );
 
-			logger.WithoutSuppression().Notice( "...ignoring GL_%s", name );
+			logger.WithoutSuppression().Notice( "...ignoring optional extension GL_%s.", name );
 		}
 	}
 	else
 	{
 		if ( flags & ExtFlag_REQUIRED )
 		{
-			Sys::Error( "Required extension GL_%s is missing.", name );
+			Sys::Error( "Missing required extension GL_%s.", name );
 		}
 		else
 		{
-			logger.WithoutSuppression().Notice( "...GL_%s not found.", name );
+			logger.WithoutSuppression().Notice( "...missing optional extension GL_%s.", name );
 
-			if ( glConfig2.glMissingExtensionsString.length() != 0 )
+			if ( glConfig.glMissingExtensionsString.length() != 0 )
 			{
-				glConfig2.glMissingExtensionsString += " ";
+				glConfig.glMissingExtensionsString += " ";
 			}
 
-			glConfig2.glMissingExtensionsString += "GL_";
-			glConfig2.glMissingExtensionsString += name;
+			glConfig.glMissingExtensionsString += "GL_";
+			glConfig.glMissingExtensionsString += name;
 		}
 	}
 	return false;
 }
+
+#define SILENTLY_CHECK_EXTENSION( ext ) ( GLEW_##ext )
 
 #define LOAD_EXTENSION(flags, ext) LoadExt(flags, GLEW_##ext, #ext)
 
@@ -1723,57 +2001,150 @@ static void GLimp_InitExtensions()
 {
 	logger.Notice("Initializing OpenGL extensions" );
 
-	glConfig2.glEnabledExtensionsString = std::string();
-	glConfig2.glMissingExtensionsString = std::string();
+	Cvar::Latch( r_arb_bindless_texture );
+	Cvar::Latch( r_arb_buffer_storage );
+	Cvar::Latch( r_arb_compute_shader );
+	Cvar::Latch( r_arb_direct_state_access );
+	Cvar::Latch( r_arb_explicit_uniform_location );
+	Cvar::Latch( r_arb_framebuffer_object );
+	Cvar::Latch( r_arb_gpu_shader5 );
+	Cvar::Latch( r_arb_half_float_pixel );
+	Cvar::Latch( r_arb_half_float_vertex );
+	Cvar::Latch( r_arb_indirect_parameters );
+	Cvar::Latch( r_arb_internalformat_query2 );
+	Cvar::Latch( r_arb_map_buffer_range );
+	Cvar::Latch( r_arb_multi_draw_indirect );
+	Cvar::Latch( r_arb_shader_atomic_counters );
+	Cvar::Latch( r_arb_shader_atomic_counter_ops );
+	Cvar::Latch( r_arb_shader_draw_parameters );
+	Cvar::Latch( r_arb_shader_image_load_store );
+	Cvar::Latch( r_arb_shading_language_420pack );
+	Cvar::Latch( r_arb_shader_storage_buffer_object );
+	Cvar::Latch( r_arb_sync );
+	Cvar::Latch( r_arb_texture_barrier );
+	Cvar::Latch( r_arb_texture_gather );
+	Cvar::Latch( r_arb_uniform_buffer_object );
+	Cvar::Latch( r_arb_vertex_attrib_binding );
+	Cvar::Latch( r_ext_draw_buffers );
+	Cvar::Latch( r_ext_gpu_shader4 );
+	Cvar::Latch( r_ext_texture_filter_anisotropic );
+	Cvar::Latch( r_ext_texture_float );
+	Cvar::Latch( r_ext_texture_integer );
+	Cvar::Latch( r_ext_texture_rg );
+	Cvar::Latch( r_khr_debug );
+	Cvar::Latch( r_khr_shader_subgroup );
 
-	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_debug_output, r_glDebugProfile->value ) )
+	glConfig.glEnabledExtensionsString = std::string();
+	glConfig.glMissingExtensionsString = std::string();
+
+	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_debug_output,
+		r_khr_debug.Get() && r_glDebugProfile.Get() ) )
 	{
-		glDebugMessageCallbackARB( (GLDEBUGPROCARB)GLimp_DebugCallback, nullptr );
-		glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
+		glDebugMessageCallback( (GLDEBUGPROCARB)GLimp_DebugCallback, nullptr );
+		glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
 	}
 
-	// Shader limits
-	glGetIntegerv( GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, &glConfig2.maxVertexUniforms );
-	glGetIntegerv( GL_MAX_VERTEX_ATTRIBS_ARB, &glConfig2.maxVertexAttribs );
-
-	int reservedComponents = 36 * 10; // approximation how many uniforms we have besides the bone matrices
-	glConfig2.maxVertexSkinningBones = Math::Clamp( ( glConfig2.maxVertexUniforms - reservedComponents ) / 16, 0, MAX_BONES );
-	glConfig2.vboVertexSkinningAvailable = r_vboVertexSkinning->integer && ( ( glConfig2.maxVertexSkinningBones >= 12 ) ? true : false );
+	/* On OpenGL Core profile the ARB_fragment_program extension doesn't exist and the related getter functions
+	return 0. We can assume OpenGL 3 Core hardware is featureful enough to not care about those limits. */
+	if ( !glConfig.glCoreProfile )
+	{
+		if ( LOAD_EXTENSION( ExtFlag_REQUIRED, ARB_fragment_program ) )
+		{
+			glGetProgramivARB( GL_FRAGMENT_PROGRAM_ARB, GL_MAX_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB, &glConfig.maxAluInstructions );
+			glGetProgramivARB( GL_FRAGMENT_PROGRAM_ARB, GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB, &glConfig.maxTexIndirections );
+		}
+	}
 
 	// GLSL
 
-	Q_strncpyz( glConfig2.shadingLanguageVersionString, ( char * ) glGetString( GL_SHADING_LANGUAGE_VERSION_ARB ),
-				sizeof( glConfig2.shadingLanguageVersionString ) );
+	Q_strncpyz( glConfig.shadingLanguageVersionString, ( char * ) glGetString( GL_SHADING_LANGUAGE_VERSION_ARB ),
+				sizeof( glConfig.shadingLanguageVersionString ) );
 	int majorVersion, minorVersion;
-	if ( sscanf( glConfig2.shadingLanguageVersionString, "%i.%i", &majorVersion, &minorVersion ) != 2 )
+	if ( sscanf( glConfig.shadingLanguageVersionString, "%i.%i", &majorVersion, &minorVersion ) != 2 )
 	{
 		logger.Warn("unrecognized shading language version string format" );
 	}
-	glConfig2.shadingLanguageVersion = majorVersion * 100 + minorVersion;
+	glConfig.shadingLanguageVersion = majorVersion * 100 + minorVersion;
 
-	logger.Notice("...found shading language version %i", glConfig2.shadingLanguageVersion );
+	logger.Notice("...using shading language version %i", glConfig.shadingLanguageVersion );
 
-	// Texture formats and compression
-	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig2.maxCubeMapTextureSize );
+
+	// OpenGL driver constants.
+
+	glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &glConfig.maxTextureUnits );
+	glGetIntegerv( GL_MAX_TEXTURE_SIZE, &glConfig.maxTextureSize );
+	glGetIntegerv( GL_MAX_3D_TEXTURE_SIZE, &glConfig.max3DTextureSize );
+	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig.maxCubeMapTextureSize );
+
+	// Stubbed or broken drivers may report garbage.
+
+	if ( glConfig.maxTextureUnits < 0 )
+	{
+		Log::Warn( "Bad GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS value: %d", glConfig.maxTextureUnits );
+		glConfig.maxTextureUnits = 0;
+	}
+
+	if ( glConfig.maxTextureSize < 0 )
+	{
+		Log::Warn( "Bad GL_MAX_TEXTURE_SIZE value: %d", glConfig.maxTextureSize );
+		glConfig.maxTextureSize = 0;
+	}
+
+	if ( glConfig.max3DTextureSize < 0 )
+	{
+		Log::Warn( "Bad GL_MAX_3D_TEXTURE_SIZE value: %d", glConfig.max3DTextureSize );
+		glConfig.max3DTextureSize = 0;
+	}
+
+	if ( glConfig.maxCubeMapTextureSize < 0 )
+	{
+		Log::Warn( "Bad GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB value: %d", glConfig.maxCubeMapTextureSize );
+		glConfig.maxCubeMapTextureSize = 0;
+	}
+
+	logger.Notice( "...using up to %d texture size.", glConfig.maxTextureSize );
+	logger.Notice( "...using up to %d 3D texture size.", glConfig.max3DTextureSize );
+	logger.Notice( "...using up to %d cube map texture size.", glConfig.maxCubeMapTextureSize );
+	logger.Notice( "...using up to %d texture units.", glConfig.maxTextureUnits );
+
+	// Texture formats and compression.
 
 	// made required in OpenGL 3.0
-	glConfig2.textureHalfFloatAvailable =  LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_pixel, r_ext_half_float_pixel->value );
+	glConfig.textureHalfFloatAvailable =  LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_pixel, r_arb_half_float_pixel.Get() );
 
 	// made required in OpenGL 3.0
-	glConfig2.textureFloatAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_float, r_ext_texture_float->value );
+	glConfig.textureFloatAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_float, r_ext_texture_float.Get() );
+
+	bool gpuShader4Enabled = r_ext_gpu_shader4.Get();
+
+	if ( gpuShader4Enabled
+		&& SILENTLY_CHECK_EXTENSION( EXT_gpu_shader4 )
+		&& glConfig.shadingLanguageVersion <= 120
+		&& workaround_glExtension_glsl120_disableGpuShader4.Get() )
+	{
+		// EXT_gpu_shader4 behaves slightly differently when running on GLSL 1.20.
+		// See: https://gitlab.freedesktop.org/mesa/mesa/-/issues/12803#note_2819461
+		logger.Warn( "Found EXT_gpu_shader4 with incompatible GLSL 1.20, disabling EXT_gpu_shader4." );
+		gpuShader4Enabled = false;
+	}
 
 	// made required in OpenGL 3.0
-	glConfig2.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, r_ext_gpu_shader4->value );
+	glConfig.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, gpuShader4Enabled );
+
+	// made required in OpenGL 4.0
+	glConfig.gpuShader5Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_gpu_shader5, r_arb_gpu_shader5.Get() );
 
 	// made required in OpenGL 3.0
 	// GL_EXT_texture_integer can be used in shaders only if GL_EXT_gpu_shader4 is also available
-	glConfig2.textureIntegerAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_texture_integer, r_ext_texture_integer->value )
-	  && glConfig2.gpuShader4Available;
+	glConfig.textureIntegerAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_texture_integer, r_ext_texture_integer.Get() )
+	  && glConfig.gpuShader4Available;
 
 	// made required in OpenGL 3.0
-	glConfig2.textureRGAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_rg, r_ext_texture_rg->value );
+	glConfig.textureRGAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_rg, r_ext_texture_rg.Get() );
 
 	{
+		bool textureGatherEnabled = r_arb_texture_gather.Get();
+
 		/* GT218-based GPU with Nvidia 340.108 driver advertising
 		ARB_texture_gather extension is know to fail to compile
 		the depthtile1 GLSL shader.
@@ -1793,42 +2164,153 @@ static void GLimp_InitExtensions()
 		lighting so it is likely this feature would be disabled to
 		get acceptable framerate on this hardware anyway, making the
 		need for such extension and the related shader code useless. */
-		bool foundNvidia340 = ( Q_stristr( glConfig.vendor_string, "NVIDIA Corporation" ) && Q_stristr( glConfig.version_string, "NVIDIA 340." ) );
-
-		if ( foundNvidia340 )
+		if ( workaround_glDriver_nvidia_v340_disableTextureGather.Get() )
 		{
-			// No need for WithoutSuppression for something which can only be printed once per renderer restart.
-			logger.Notice("...found buggy Nvidia 340 driver");
+			if ( glConfig.driverVendor == glDriverVendor_t::NVIDIA
+				&& Q_stristr( glConfig.version_string, " NVIDIA 340." ) )
+			{
+				// No need for WithoutSuppression for something which can only be printed once per renderer restart.
+				logger.Warn( "Found buggy Nvidia 340 driver, disabling ARB_texture_gather. ");
+				textureGatherEnabled = false;
+			}
 		}
 
 		// made required in OpenGL 4.0
-		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather->value && !foundNvidia340 );
+		glConfig.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, textureGatherEnabled );
+	}
+	
+	if ( workaround_glHardware_intel_useFirstProvokinVertex.Get()
+		&& glConfig.hardwareVendor == glHardwareVendor_t::INTEL )
+	{
+		if ( LOAD_EXTENSION( ExtFlag_NONE, ARB_provoking_vertex ) )
+		{
+			/* Workaround texture distorsion bug on Intel GPU
+
+			This bug seems to only affect gfx9 but detecting gfx9
+			may not be easy.
+
+			See:
+			- https://github.com/DaemonEngine/Daemon/issues/909
+			- https://gitlab.freedesktop.org/mesa/mesa/-/issues/10224 */
+			logger.Warn( "Found Intel hardware and driver with ARB_provoking_vertex, using first vertex convention." );
+			glProvokingVertex( GL_FIRST_VERTEX_CONVENTION );
+		}
 	}
 
 	// made required in OpenGL 1.3
 	glConfig.textureCompression = textureCompression_t::TC_NONE;
-	if( LOAD_EXTENSION( ExtFlag_NONE, EXT_texture_compression_s3tc ) )
+
+	/* ExtFlag_REQUIRED could be turned into ExtFlag_NONE if s3tc-to-rgba is implemented.
+	See https://github.com/DaemonEngine/Daemon/pull/738 */
+	if ( LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_texture_compression_s3tc ) )
 	{
 		glConfig.textureCompression = textureCompression_t::TC_S3TC;
 	}
 
 	// made required in OpenGL 3.0
-	glConfig2.textureCompressionRGTCAvailable = LOAD_EXTENSION( ExtFlag_CORE, ARB_texture_compression_rgtc );
+	glConfig.textureCompressionRGTCAvailable = LOAD_EXTENSION( ExtFlag_CORE, ARB_texture_compression_rgtc );
 
 	// Texture - others
-	glConfig2.textureAnisotropyAvailable = false;
-	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, EXT_texture_filter_anisotropic, r_ext_texture_filter_anisotropic->value ) )
+	glConfig.textureAnisotropyAvailable = false;
+	glConfig.textureAnisotropy = 0.0f;
+	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, EXT_texture_filter_anisotropic, r_ext_texture_filter_anisotropic.Get() > 0 ) )
 	{
-		glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig2.maxTextureAnisotropy );
-		glConfig2.textureAnisotropyAvailable = true;
+		glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig.maxTextureAnisotropy );
+		glConfig.textureAnisotropyAvailable = true;
+
+		// Bound texture anisotropy.
+		glConfig.textureAnisotropy = std::max( std::min( r_ext_texture_filter_anisotropic.Get(), glConfig.maxTextureAnisotropy ), 1.0f );
 	}
 
 	// VAO and VBO
-	// made required in OpenGL 3.0
-	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
 
 	// made required in OpenGL 3.0
-	if ( LOAD_EXTENSION( ExtFlag_CORE, ARB_framebuffer_object ) )
+	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_vertex_array_object );
+
+	// made required in OpenGL 2.1
+	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_vertex_buffer_object );
+
+	/* We call RV300 the first generation of R300 cards, to make a difference
+	with RV400 and RV500 cards that are also supported by the Mesa r300 driver.
+
+	Mesa r300 implements half-float vertex for the RV300 hardware generation,
+	but it is likely emulated and it is very slow. We better use float vertex
+	instead. */
+	{
+		bool halfFloatVertexEnabled = r_arb_half_float_vertex.Get();
+
+		if ( halfFloatVertexEnabled && glConfig.driverVendor == glDriverVendor_t::MESA )
+		{
+			if ( glConfig.hardwareVendor == glHardwareVendor_t::ATI )
+			{
+				bool foundRv300 = false;
+
+				std::string cardName = "";
+
+				static const std::string codenames[] = {
+					"R300", "R350", "R360",
+					"RV350", "RV360", "RV370", "RV380",
+				};
+
+				for ( auto& codename : codenames )
+				{
+					cardName = Str::Format( "ATI %s", codename );
+
+					if ( Str::IsPrefix( cardName, glConfig.renderer_string ) )
+					{
+						foundRv300 = true;
+						break;
+					}
+				}
+
+				/* The RV300 generation only has 64 ALU instructions while RV400 and RV500
+				have 512 of them, so we can also use that value to detect RV300. */
+				if ( !foundRv300 )
+				{
+					if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300
+						&& glConfig.maxAluInstructions == 64 )
+					{
+						cardName = "unknown ATI RV3xx";
+						foundRv300 = true;
+					}
+				}
+
+				if ( foundRv300 && workaround_glDriver_mesa_ati_rv300_useFloatVertex.Get() )
+				{
+					logger.Notice( "Found slow Mesa half-float vertex implementation with %s hardware, disabling ARB_half_float_vertex.", cardName );
+					halfFloatVertexEnabled = false;
+				}
+			}
+			else if ( glConfig.hardwareVendor == glHardwareVendor_t::BROADCOM )
+			{
+				bool foundVc4 = Str::IsPrefix( "VC4 ", glConfig.renderer_string );
+
+				if ( foundVc4 && workaround_glDriver_mesa_broadcom_vc4_useFloatVertex.Get() )
+				{
+					logger.Notice( "Found slow Mesa half-float vertex implementation with Broadcom VC4 hardware, disabling ARB_half_float_vertex." );
+					halfFloatVertexEnabled = false;
+				}
+			}
+		}
+
+		// made required in OpenGL 3.0
+		glConfig.halfFloatVertexAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_vertex, halfFloatVertexEnabled );
+
+		if ( !halfFloatVertexEnabled )
+		{
+			logger.Notice( "Missing half-float vertex, using float vertex instead." );
+		}
+	}
+
+	// FBO
+
+	if ( !workaround_glExtension_missingArbFbo_useExtFbo.Get() )
+	{
+		// made required in OpenGL 3.0
+		LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_framebuffer_object );
+		glFboSetArb();
+	}
+	else if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_framebuffer_object, r_arb_framebuffer_object.Get() ) )
 	{
 		glFboSetArb();
 	}
@@ -1849,28 +2331,19 @@ static void GLimp_InitExtensions()
 		check for EXT_framebuffer_blit too. */
 		LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_blit );
 
+		logger.Warn( "Missing ARB_framebuffer_object, using EXT_framebuffer_object with EXT_framebuffer_blit instead." );
+
 		glFboSetExt();
 	}
 
-	// FBO
-	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig2.maxRenderbufferSize );
-	glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &glConfig2.maxColorAttachments );
-
-	// made required in OpenGL 1.5
-	glConfig2.occlusionQueryAvailable = false;
-	glConfig2.occlusionQueryBits = 0;
-	if ( r_ext_occlusion_query->integer != 0 )
-	{
-		glConfig2.occlusionQueryAvailable = true;
-		glGetQueryiv( GL_SAMPLES_PASSED, GL_QUERY_COUNTER_BITS, &glConfig2.occlusionQueryBits );
-	}
+	glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &glConfig.maxColorAttachments );
 
 	// made required in OpenGL 2.0
-	glConfig2.drawBuffersAvailable = false;
-	if ( r_ext_draw_buffers->integer != 0 )
+	glConfig.drawBuffersAvailable = false;
+	if ( r_ext_draw_buffers.Get() )
 	{
-		glGetIntegerv( GL_MAX_DRAW_BUFFERS, &glConfig2.maxDrawBuffers );
-		glConfig2.drawBuffersAvailable = true;
+		glGetIntegerv( GL_MAX_DRAW_BUFFERS, &glConfig.maxDrawBuffers );
+		glConfig.drawBuffersAvailable = true;
 	}
 
 	{
@@ -1884,20 +2357,269 @@ static void GLimp_InitExtensions()
 			logger.Notice("...no program binary formats");
 		}
 
-		glConfig2.getProgramBinaryAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_get_program_binary, formats > 0 );
+		glConfig.getProgramBinaryAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_get_program_binary, formats > 0 );
 	}
 
-	glConfig2.bufferStorageAvailable = false;
-	glConfig2.bufferStorageAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_buffer_storage, r_arb_buffer_storage->integer > 0 );
+	glConfig.bufferStorageAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_buffer_storage, r_arb_buffer_storage.Get() );
 
 	// made required since OpenGL 3.1
-	glConfig2.uniformBufferObjectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_uniform_buffer_object, r_arb_uniform_buffer_object->value );
+	glConfig.uniformBufferObjectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_uniform_buffer_object, r_arb_uniform_buffer_object.Get() );
 
 	// made required in OpenGL 3.0
-	glConfig2.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range->value );
+	glConfig.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range.Get() );
 
 	// made required in OpenGL 3.2
-	glConfig2.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync->value );
+	glConfig.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync.Get() );
+
+	// made required in OpenGL 4.5
+	glConfig.textureBarrierAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_barrier, r_arb_texture_barrier.Get() );
+
+	// made required in OpenGL 4.3
+	glConfig.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader.Get() );
+
+	{
+		bool bindlessTextureEnabled = r_arb_bindless_texture.Get();
+
+		if ( bindlessTextureEnabled )
+		{
+			/* Some of the mesa 24.x driver versions have a bug in their shader compiler
+			related to bindless textures, which results in either glitches or the shader
+			compiler crashing (when material system is enabled). It is expected to affect
+			every Mesa-supported hardware (the bug is in shared NIR code). See:
+			- https://gitlab.freedesktop.org/mesa/mesa/-/issues/11535
+			- https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/30315
+			- https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/30338
+			- https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/932 */
+			if ( glConfig.driverVendor == glDriverVendor_t::MESA )
+			{
+				const char *str1 = "Mesa 24.";
+
+				const char *match1 = Q_stristr( glConfig.version_string, str1 );
+
+				if ( match1 )
+				{
+					match1 += strlen( str1 );
+
+					std::string str2 = "";
+					std::string str3 = "";
+
+					bool foundMesa241 = false;
+
+					static const std::pair<std::string, std::vector<std::string>> versions[] = {
+						/* Most 24.1.0-devel (after bug is introduced),
+						some 24.1.6-devel (before bug is fixed),
+						and all 24.1.0-rc[1-4] versions are buggy.
+						It is fixed starting with 24.1.7 (backport from 24.2.1). */
+						{ "1.",  { "0", "1", "2", "3", "4", "5", "6", } },
+						/* Most 24.2.0-devel (before bug is fixed),
+						and all 24.2.0-rc[1-4] versions are buggy.
+						It is fixed starting with 24.2.1. */
+						{ "2.", { "0", } },
+					};
+
+					for ( auto& vp : versions )
+					{
+						if ( Str::IsPrefix( vp.first, match1 ) )
+						{
+							const char *match2 = match1 + vp.first.length();
+							str2 = vp.first;
+
+							for ( auto& v : vp.second )
+							{
+								if ( Str::IsPrefix( v, match2 ) )
+								{
+									foundMesa241 = true;
+									str3 = v;
+									break;
+								}
+							}
+
+							break;
+						}
+					}
+
+					if ( foundMesa241 && workaround_glDriver_mesa_v241_disableBindlessTexture.Get() ) {
+						logger.Notice( "^1Found buggy %s%s%s driver, disabling ARB_bindless_texture.",
+							str1, str2, str3 );
+						bindlessTextureEnabled = false;
+					}
+				}
+			}
+
+			// AMD proprietary drivers are known to have buggy bindless texture implementation.
+			else if ( glConfig.hardwareVendor == glHardwareVendor_t::ATI )
+			{
+				// AMD proprietary driver for macOS does not implement bindless texture.
+				// Other systems like FreeBSD don't have AMD proprietary drivers.
+
+				bool foundOglp = false;
+				bool foundAdrenalin = false;
+
+				#if defined(__linux__)
+					foundOglp = true;
+				#elif defined(_WIN32)
+					/* AMD OGLP driver for Linux shares the same vendor string than AMD Adrenalin driver
+					for Windows and AMD ATI driver for macOS. When running the Windows engine binary on
+					Wine we must check we're not running Windows or macOS to detect Linux OGLP. */
+					if ( Sys::isRunningOnWine() )
+					{
+						const char* system = Sys::getWineHostSystem();
+
+						if ( system && !strcmp( system, "Linux" ) )
+						{
+							foundOglp = true;
+						}
+					}
+					else
+					{
+						foundAdrenalin = true;
+					}
+				#endif
+
+				if ( foundOglp && workaround_glDriver_amd_oglp_disableBindlessTexture.Get() )
+				{
+					logger.Notice( "^1Found buggy AMD OGLP driver, disabling ARB_bindless_texture." );
+					bindlessTextureEnabled = false;
+				}
+
+				if ( foundAdrenalin && workaround_glDriver_amd_adrenalin_disableBindlessTexture.Get() )
+				{
+					logger.Notice( "^1Found buggy AMD Adrenalin driver, disabling ARB_bindless_texture." );
+					bindlessTextureEnabled = false;
+				}
+			}
+		}
+
+		// not required by any OpenGL version
+		glConfig.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, bindlessTextureEnabled );
+	}
+
+	bool shaderDrawParametersEnabled = r_arb_shader_draw_parameters.Get();
+
+	if ( shaderDrawParametersEnabled
+		&& SILENTLY_CHECK_EXTENSION( ARB_shader_draw_parameters )
+		&& glConfig.shadingLanguageVersion <= 120
+		&& workaround_glExtension_glsl120_disableShaderDrawParameters.Get() )
+	{
+		logger.Warn( "Found ARB_shader_draw_parameters with incompatible GLSL 1.20, disabling ARB_shader_draw_parameters." );
+		shaderDrawParametersEnabled = false;
+	}
+
+	// made required in OpenGL 4.6
+	glConfig.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, shaderDrawParametersEnabled );
+
+	// made required in OpenGL 4.3
+	// We don't use it but the ARB_shader_storage_buffer_object spec says "OpenGL 4.3 or ARB_program_interface_query is required" and
+	// Intel's driver interprets that as meaning we must explicitly load the extension for SSBOs to work?
+	// But don't stop ourselves from using SSBOs if this fails.
+	LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_program_interface_query, r_arb_program_interface_query.Get() );
+
+	// made required in OpenGL 4.3
+	glConfig.SSBOAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_storage_buffer_object, r_arb_shader_storage_buffer_object.Get() );
+
+	// made required in OpenGL 4.0
+	glConfig.multiDrawIndirectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_multi_draw_indirect, r_arb_multi_draw_indirect.Get() );
+
+	// made required in OpenGL 4.2
+	glConfig.shadingLanguage420PackAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shading_language_420pack, r_arb_shading_language_420pack.Get() );
+
+	// made required in OpenGL 4.3
+	glConfig.explicitUniformLocationAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_explicit_uniform_location, r_arb_explicit_uniform_location.Get() );
+
+	// made required in OpenGL 4.2
+	glConfig.shaderImageLoadStoreAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_image_load_store, r_arb_shader_image_load_store.Get() );
+
+	// made required in OpenGL 4.2
+	glConfig.shaderAtomicCountersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counters, r_arb_shader_atomic_counters.Get() );
+
+	// made required in OpenGL 4.6
+	glConfig.shaderAtomicCounterOpsAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counter_ops, r_arb_shader_atomic_counter_ops.Get() );
+
+	// made required in OpenGL 4.6
+	glConfig.indirectParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_indirect_parameters, r_arb_indirect_parameters.Get() );
+
+	// made required in OpenGL 4.5
+	glConfig.directStateAccessAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_direct_state_access, r_arb_direct_state_access.Get() );
+
+	// made required in OpenGL 4.3
+	glConfig.vertexAttribBindingAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_vertex_attrib_binding, r_arb_vertex_attrib_binding.Get() );
+
+	glConfig.geometryCacheAvailable = glConfig.vertexAttribBindingAvailable && glConfig.directStateAccessAvailable;
+
+	glConfig.materialSystemAvailable =
+		glConfig.bindlessTexturesAvailable
+		&& glConfig.computeShaderAvailable
+		&& glConfig.directStateAccessAvailable
+		&& glConfig.explicitUniformLocationAvailable
+		&& glConfig.geometryCacheAvailable
+		&& glConfig.gpuShader4Available
+		&& glConfig.indirectParametersAvailable
+		&& glConfig.multiDrawIndirectAvailable
+		&& glConfig.shaderAtomicCountersAvailable
+		&& glConfig.shaderDrawParametersAvailable
+		&& glConfig.shaderImageLoadStoreAvailable
+		&& glConfig.shadingLanguage420PackAvailable
+		&& glConfig.SSBOAvailable
+		&& glConfig.uniformBufferObjectAvailable;
+
+	// This requires GLEW 2.2+, so skip if it's a lower version
+#if defined(GLEW_KHR_shader_subgroup)
+	// not required by any OpenGL version
+	glConfig.shaderSubgroupAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, KHR_shader_subgroup, r_khr_shader_subgroup.Get() );
+
+	if ( glConfig.shaderSubgroupAvailable ) {
+		int subgroupFeatures;
+		glGetIntegerv( GL_SUBGROUP_SUPPORTED_FEATURES_KHR, &subgroupFeatures );
+
+		glConfig.shaderSubgroupBasicAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_BASIC_BIT_KHR;
+		glConfig.shaderSubgroupVoteAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_VOTE_BIT_KHR;
+		glConfig.shaderSubgroupArithmeticAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_ARITHMETIC_BIT_KHR;
+		glConfig.shaderSubgroupBallotAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_BALLOT_BIT_KHR;
+		glConfig.shaderSubgroupShuffleAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_SHUFFLE_BIT_KHR;
+		glConfig.shaderSubgroupShuffleRelativeAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT_KHR;
+		glConfig.shaderSubgroupQuadAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_QUAD_BIT_KHR;
+
+		Log::Notice( "Supported subgroup extensions: basic: %s, vote: %s, arithmetic: %s, ballot: %s, shuffle: %s, "
+			"shuffle_relative: %s, quad: %s", glConfig.shaderSubgroupBasicAvailable,
+			glConfig.shaderSubgroupVoteAvailable, glConfig.shaderSubgroupArithmeticAvailable,
+			glConfig.shaderSubgroupBallotAvailable, glConfig.shaderSubgroupShuffleAvailable,
+			glConfig.shaderSubgroupShuffleRelativeAvailable, glConfig.shaderSubgroupQuadAvailable );
+	}
+#else
+	glConfig.shaderSubgroupAvailable = false;
+
+	glConfig.shaderSubgroupBasicAvailable = false;
+	glConfig.shaderSubgroupVoteAvailable = false;
+	glConfig.shaderSubgroupArithmeticAvailable = false;
+	glConfig.shaderSubgroupBallotAvailable = false;
+	glConfig.shaderSubgroupShuffleAvailable = false;
+	glConfig.shaderSubgroupShuffleRelativeAvailable = false;
+	glConfig.shaderSubgroupQuadAvailable = false;
+
+	// Currently this functionality is only used by material system shaders
+	if ( glConfig.materialSystemAvailable ) {
+		logger.Notice( "^1Using outdated GLEW version, GL_KHR_shader_subgroup unavailable."
+			"Update GLEW to 2.2+ to be able to use this extension" );
+	}
+#endif
+
+	// Shader limits.
+
+	// From GL_ARB_vertex_shader.
+	glGetIntegerv( GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, &glConfig.maxVertexUniforms );
+
+	// From GL_ARB_vertex_program.
+	glGetIntegerv( GL_MAX_VERTEX_ATTRIBS_ARB, &glConfig.maxVertexAttribs );
+
+	// From GL_ARB_uniform_buffer_object.
+	if ( glConfig.uniformBufferObjectAvailable )
+	{
+		glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &glConfig.maxUniformBlockSize );
+	}
+
+	int reservedComponents = 36 * 10; // approximation how many uniforms we have besides the bone matrices
+	glConfig.maxVertexSkinningBones = Math::Clamp( ( glConfig.maxVertexUniforms - reservedComponents ) / 16, 0, MAX_BONES );
+	glConfig.vboVertexSkinningAvailable = r_vboVertexSkinning->integer && ( ( glConfig.maxVertexSkinningBones >= 12 ) ? true : false );
 
 	GL_CheckErrors();
 }
@@ -1905,19 +2627,6 @@ static void GLimp_InitExtensions()
 static const int R_MODE_FALLBACK = 3; // 640 * 480
 
 /* Support code for GLimp_Init */
-
-static void reportDriverType( bool force )
-{
-	static const char *const drivers[] = {
-		"integrated", "stand-alone", "OpenGL 3+", "Mesa"
-	};
-	if (glConfig.driverType > glDriverType_t::GLDRV_UNKNOWN && (unsigned) glConfig.driverType < ARRAY_LEN( drivers ) )
-	{
-		logger.Notice("%s graphics driver class '%s'",
-		           force ? "User has forced" : "Detected",
-		           drivers[Util::ordinal(glConfig.driverType)] );
-	}
-}
 
 static void reportHardwareType( bool force )
 {
@@ -1942,58 +2651,138 @@ of OpenGL
 */
 bool GLimp_Init()
 {
-	glConfig.driverType = glDriverType_t::GLDRV_ICD;
+	glConfig.driverType = glDriverType_t::GLDRV_OPENGL3;
 
 	r_sdlDriver = Cvar_Get( "r_sdlDriver", "", CVAR_ROM );
 	r_allowResize = Cvar_Get( "r_allowResize", "0", CVAR_LATCH );
-	r_centerWindow = Cvar_Get( "r_centerWindow", "0", 0 );
 	r_displayIndex = Cvar_Get( "r_displayIndex", "0", 0 );
-	Cvar_Get( "r_availableModes", "", CVAR_ROM );
 
-	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
+	Cvar::Latch( workaround_glDriver_amd_adrenalin_disableBindlessTexture );
+	Cvar::Latch( workaround_glDriver_amd_oglp_disableBindlessTexture );
+	Cvar::Latch( workaround_glDriver_mesa_ati_rv300_useFloatVertex );
+	Cvar::Latch( workaround_glDriver_mesa_ati_rv600_disableHyperZ );
+	Cvar::Latch( workaround_glDriver_mesa_broadcom_vc4_useFloatVertex );
+	Cvar::Latch( workaround_glDriver_mesa_forceS3tc );
+	Cvar::Latch( workaround_glDriver_mesa_intel_gma3_forceFragmentShader );
+	Cvar::Latch( workaround_glDriver_mesa_intel_gma3_stubOcclusionQuery );
+	Cvar::Latch( workaround_glDriver_mesa_v241_disableBindlessTexture );
+	Cvar::Latch( workaround_glDriver_nvidia_v340_disableTextureGather );
+	Cvar::Latch( workaround_glExtension_missingArbFbo_useExtFbo );
+	Cvar::Latch( workaround_glExtension_glsl120_disableShaderDrawParameters );
+	Cvar::Latch( workaround_glExtension_glsl120_disableGpuShader4 );
+	Cvar::Latch( workaround_glHardware_intel_useFirstProvokinVertex );
 
-	// Create the window and set up the context
-	if ( GLimp_StartDriverAndSetMode( r_mode->integer, r_fullscreen.Get(), !r_noBorder.Get() ) )
+	/* Enable S3TC on Mesa even if libtxc-dxtn is not available
+	The environment variables is currently always set,
+	it should do nothing with other systems and drivers.
+
+	It should also be set on Win32 when running on Wine
+	on Linux anyway. */
+	if ( workaround_glDriver_mesa_forceS3tc.Get() )
 	{
-		goto success;
+		Sys::SetEnv( "force_s3tc_enable", "true" );
 	}
 
-	// Finally, try the default screen resolution
-	if ( r_mode->integer != R_MODE_FALLBACK )
-	{
-		logger.Notice("Setting r_mode %d failed, falling back on r_mode %d", r_mode->integer, R_MODE_FALLBACK );
+	/* Enable 2.1 GL on Intel GMA Gen 3 on Linux Mesa driver.
 
-		if ( GLimp_StartDriverAndSetMode( R_MODE_FALLBACK, false, true ) )
+	Mesa provides limited ARB_fragment_shader support and a stub
+	for ARB_occlusion_query implementation on GMA Gen 3, making
+	possible to enable OpenGL 2.1 on such hardware.
+
+	The Mesa i915 driver for GMA Gen 3 disabled GL 2.1 on such
+	hardware to force Google Chrome to use its CPU fallback
+	that was faster but we don't implement such fallback.
+	See https://gitlab.freedesktop.org/mesa/mesa/-/commit/a1891da7c865c80d95c450abfc0d2bc49db5f678
+
+	Only Mesa i915 on Linux supports GL 2.1 for GMA Gen 3,
+	so there is no similar tweak available for Windows and macOS.
+
+	Mesa i915 and macOS also supports GL 2.1 on GMA Gen 4
+	(while windows drivers don't) and those tweaks are not
+	required as the related features are enabled by default.
+
+	First Intel hardware range expected to have drivers
+	supporting GL 2.1 on Windows is GMA Gen 5.
+
+	Enabling those options will at least make the engine
+	properly report missing extensions instead of missing
+	GL version, for example the Intel GMA 3100 G33 (Gen 3)
+	will report missing GL_ARB_half_float_vertex extension
+	instead of missing OpenGL 2.1 version. This will make
+	the engine runs on such hardware once float vertex
+	is implemented.
+
+	The GMA 3150 is known to have wider OpenGL support than
+	GMA 3100, for example it has OpenGL version similar to
+	GMA 4 on Windows while being a GMA 3 so the list of
+	available GL extensions may be different.
+
+	The environment variables are currently always set, they
+	should do nothing with other systems and drivers. They
+	should also be set when running Windows binaries running
+	on Wine on Linux anyway. So we better always set them. */
+	if ( workaround_glDriver_mesa_intel_gma3_forceFragmentShader.Get() )
+	{
+		Sys::SetEnv( "fragment_shader", "true" );
+	}
+
+	if ( workaround_glDriver_mesa_intel_gma3_stubOcclusionQuery.Get() )
+	{
+		Sys::SetEnv( "stub_occlusion_query", "true" );
+	}
+
+	int mode = r_mode->integer;
+	bool fullscreen = r_fullscreen.Get();
+	bool bordered = !r_noBorder.Get();
+
+	// Create the window and set up the context
+	rserr_t err = GLimp_StartDriverAndSetMode( mode, fullscreen, bordered );
+
+	if ( err == rserr_t::RSERR_RESTART )
+	{
+		Log::Warn( "...restarting SDL Video" );
+		SDL_QuitSubSystem( SDL_INIT_VIDEO );
+		err = GLimp_StartDriverAndSetMode( mode, fullscreen, bordered );
+	}
+
+	if ( err != rserr_t::RSERR_OK )
+	{
+		// Finally, try the default screen resolution
+		if ( mode != R_MODE_FALLBACK )
 		{
-			goto success;
+			logger.Notice("Setting r_mode %d failed, falling back on r_mode %d", mode, R_MODE_FALLBACK );
+
+			err = GLimp_StartDriverAndSetMode( R_MODE_FALLBACK, false, true );
 		}
 	}
 
-	// Nothing worked, give up
-	SDL_QuitSubSystem( SDL_INIT_VIDEO );
-	return false;
+	if ( err != rserr_t::RSERR_OK )
+	{
+		// Nothing worked, give up
+		SDL_QuitSubSystem( SDL_INIT_VIDEO );
+		return false;
+	}
 
-success:
 	// These values force the UI to disable driver selection
 	glConfig.hardwareType = glHardwareType_t::GLHW_GENERIC;
 
-	// get our config strings
-	Q_strncpyz( glConfig.vendor_string, ( char * ) glGetString( GL_VENDOR ), sizeof( glConfig.vendor_string ) );
-	Q_strncpyz( glConfig.renderer_string, ( char * ) glGetString( GL_RENDERER ), sizeof( glConfig.renderer_string ) );
+	DetectGLVendors(
+		glConfig.vendor_string,
+		glConfig.version_string,
+		glConfig.renderer_string,
+		glConfig.hardwareVendor,
+		glConfig.driverVendor );
 
-	if ( *glConfig.renderer_string && glConfig.renderer_string[ strlen( glConfig.renderer_string ) - 1 ] == '\n' )
-	{
-		glConfig.renderer_string[ strlen( glConfig.renderer_string ) - 1 ] = 0;
-	}
+	Log::Debug( "Detected OpenGL hardware vendor: %s", GetGLHardwareVendorName( glConfig.hardwareVendor ) );
+	Log::Debug( "Detected OpenGL driver vendor: %s", GetGLDriverVendorName( glConfig.driverVendor ) );
 
-	Q_strncpyz( glConfig.version_string, ( char * ) glGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
+	glConfig.glExtensionsString = std::string();
 
-	glConfig2.glExtensionsString = std::string();
-
-	if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
+	if ( glConfig.glMajor >= 3 )
 	{
 		GLint numExts, i;
 
+		// NUM_EXTENSIONS and glGetStringi( GL_EXTENSIONS, i ) were added in OpenGL 3.0
 		glGetIntegerv( GL_NUM_EXTENSIONS, &numExts );
 
 		logger.Debug( "Found %d OpenGL extensions.", numExts );
@@ -2027,10 +2816,11 @@ success:
 
 		logger.Debug( "OpenGL extensions found: %s", glExtensionsString );
 
-		glConfig2.glExtensionsString = glExtensionsString;
+		glConfig.glExtensionsString = glExtensionsString;
 	}
 	else
 	{
+		// glGetString( GL_EXTENSIONS ) was deprecated in OpenGL 3.0
 		char* extensions_string = ( char * ) glGetString( GL_EXTENSIONS );
 
 		if ( extensions_string == nullptr )
@@ -2047,57 +2837,29 @@ success:
 
 			logger.Debug( "OpenGL extensions found: %s", glExtensionsString );
 
-			glConfig2.glExtensionsString = glExtensionsString;
+			glConfig.glExtensionsString = glExtensionsString;
 		}
 	}
 
-	if ( Q_stristr( glConfig.renderer_string, "amd " ) ||
-	     Q_stristr( glConfig.renderer_string, "ati " ) )
+	if ( glConfig.hardwareVendor == glHardwareVendor_t::ATI &&
+	     std::make_pair( glConfig.glMajor, glConfig.glMinor ) < std::make_pair( 3, 2 ) )
 	{
-		if ( glConfig.driverType != glDriverType_t::GLDRV_OPENGL3 )
-		{
-			glConfig.hardwareType = glHardwareType_t::GLHW_R300;
-		}
+		glConfig.hardwareType = glHardwareType_t::GLHW_R300;
 	}
 
-	reportDriverType( false );
 	reportHardwareType( false );
 
 	{ // allow overriding where the user really does know better
-		cvar_t          *forceGL;
-		glDriverType_t   driverType   = glDriverType_t::GLDRV_UNKNOWN;
+		Cvar::Latch( r_glForceHardware );
 		glHardwareType_t hardwareType = glHardwareType_t::GLHW_UNKNOWN;
 
-		forceGL = Cvar_Get( "r_glForceDriver", "", CVAR_LATCH );
-
-		if      ( !Q_stricmp( forceGL->string, "icd" ))
-		{
-			driverType = glDriverType_t::GLDRV_ICD;
-		}
-		else if ( !Q_stricmp( forceGL->string, "standalone" ))
-		{
-			driverType = glDriverType_t::GLDRV_STANDALONE;
-		}
-		else if ( !Q_stricmp( forceGL->string, "opengl3" ))
-		{
-			driverType = glDriverType_t::GLDRV_OPENGL3;
-		}
-
-		forceGL = Cvar_Get( "r_glForceHardware", "", CVAR_LATCH );
-
-		if      ( !Q_stricmp( forceGL->string, "generic" ))
+		if      ( Str::IsIEqual( r_glForceHardware.Get(), "generic" ) )
 		{
 			hardwareType = glHardwareType_t::GLHW_GENERIC;
 		}
-		else if ( !Q_stricmp( forceGL->string, "r300" ))
+		else if ( Str::IsIEqual( r_glForceHardware.Get(), "r300" ) )
 		{
 			hardwareType = glHardwareType_t::GLHW_R300;
-		}
-
-		if ( driverType != glDriverType_t::GLDRV_UNKNOWN )
-		{
-			glConfig.driverType = driverType;
-			reportDriverType( true );
 		}
 
 		if ( hardwareType != glHardwareType_t::GLHW_UNKNOWN )
@@ -2149,56 +2911,63 @@ void GLimp_HandleCvars()
 
 	if ( Util::optional<bool> wantFullscreen = r_fullscreen.GetModifiedValue() )
 	{
-		int sdlToggled = false;
 		bool needToToggle = true;
 		bool fullscreen = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN );
-
-		if ( *wantFullscreen && Cvar_VariableIntegerValue( "in_nograb" ) )
-		{
-			logger.Notice("Fullscreen not allowed with in_nograb 1" );
-			*wantFullscreen = false;
-			r_fullscreen.Set( false );
-		}
 
 		// Is the state we want different from the current state?
 		needToToggle = *wantFullscreen != fullscreen;
 
 		if ( needToToggle )
 		{
-			Uint32 flags = *wantFullscreen ? SDL_WINDOW_FULLSCREEN : 0;
-			sdlToggled = SDL_SetWindowFullscreen( window, flags );
-
-			if ( sdlToggled < 0 )
+			if ( !SDL_SetWindowFullscreen( window, *wantFullscreen ) )
 			{
+				Log::Warn( "SDL_SetWindowFullscreen failed: %s", SDL_GetError() );
+				Log::Warn( "Trying vid_restart" );
 				Cmd::BufferCommandText("vid_restart");
 			}
-
-			ri.IN_Restart();
 		}
 	}
 
 	if ( Util::optional<bool> noBorder = r_noBorder.GetModifiedValue() )
 	{
-		SDL_bool bordered = *noBorder ? SDL_FALSE : SDL_TRUE;
+		bool bordered = !*noBorder;
 		SDL_SetWindowBordered( window, bordered );
 	}
 
 	// TODO: Update r_allowResize using SDL_SetWindowResizable when we have SDL 2.0.5
 }
 
-void GLimp_LogComment( const char *comment )
+// Never use GLimp_LogComment_() directly, use the GLIMP_LOGCOMMENT() wrapper instead.
+void GLimp_LogComment_( std::string comment )
 {
 	static char buf[ 4096 ];
 
-	if ( r_logFile->integer && GLEW_ARB_debug_output )
-	{
-		// copy string and ensure it has a trailing '\0'
-		Q_strncpyz( buf, comment, sizeof( buf ) );
+	Q_snprintf( buf, sizeof( buf ), "%s\n", comment.c_str() );
 
-		glDebugMessageInsertARB( GL_DEBUG_SOURCE_APPLICATION_ARB,
-					 GL_DEBUG_TYPE_OTHER_ARB,
-					 0,
-					 GL_DEBUG_SEVERITY_MEDIUM_ARB,
-					 strlen( buf ), buf );
-	}
+	glDebugMessageInsertARB(
+		GL_DEBUG_SOURCE_APPLICATION_ARB,
+		GL_DEBUG_TYPE_OTHER_ARB,
+		0,
+		GL_DEBUG_SEVERITY_MEDIUM_ARB,
+		strlen( buf ), buf );
 }
+
+class SetWindowOriginCmd : public Cmd::StaticCmd
+{
+public:
+	SetWindowOriginCmd() : StaticCmd("setWindowOrigin", Cmd::CLIENT, "move the window") {}
+
+	void Run( const Cmd::Args &args ) const
+	{
+		int x, y;
+		if ( args.Argc() != 3
+			|| !Str::ParseInt( x, args.Argv( 1 ) ) || !Str::ParseInt( y, args.Argv( 2 ) ) )
+		{
+			Print( "Usage: setWindowOrigin <x> <y>" );
+			return;
+		}
+
+		SDL_SetWindowPosition( window, x, y );
+	}
+};
+static SetWindowOriginCmd setWindowOriginCmdRegistration;

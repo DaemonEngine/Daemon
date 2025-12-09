@@ -180,7 +180,7 @@
 # define NACL_PRIX64 NACL___PRI64_PREFIX "X"
 #endif
 
-#else  /* NACL_LINUX, NACL_OSX, __native_client__ */
+#else  /* NACL_LINUX, NACL_FREEBSD, NACL_OSX, __native_client__ */
 
 # ifndef __STDC_FORMAT_MACROS
 #  define __STDC_FORMAT_MACROS  /* C++ */
@@ -251,7 +251,7 @@
 #  define NACL_PRIX8  "X"
 # endif  /* NACL_OSX */
 
-#endif  /* NACL_LINUX, NACL_OSX, __native_client__ */
+#endif  /* NACL_LINUX, NACL_FREEBSD, NACL_OSX, __native_client__ */
 
 /*
  * macros for run-time error detectors (such as Valgrind/Memcheck).

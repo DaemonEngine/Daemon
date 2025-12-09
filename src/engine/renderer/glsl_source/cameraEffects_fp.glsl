@@ -23,30 +23,84 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* cameraEffects_fp.glsl */
 
 uniform sampler2D u_CurrentMap;
-uniform sampler3D u_ColorMap;
-uniform vec4      u_ColorModulate;
-uniform float     u_InverseGamma;
 
-IN(smooth) vec2		var_TexCoords;
+#if defined(r_colorGrading)
+uniform sampler3D u_ColorMap3D;
+#endif
+
+uniform vec4      u_ColorModulate;
+uniform float     u_GlobalLightFactor; // 1 / tr.identityLight
+uniform float     u_InverseGamma;
+uniform bool u_SRGB;
+
+void convertToSRGB(inout vec3 color) {
+	#if defined(r_accurateSRGB)
+		float threshold = 0.0031308f;
+
+		bvec3 cutoff = lessThan(color, vec3(threshold));
+		vec3 low = vec3(12.92f) * color;
+		vec3 high = vec3(1.055f) * pow(color, vec3(1.0f / 2.4f)) - vec3(0.055f);
+
+		#if __VERSION__ > 120
+			color = mix(high, low, cutoff);
+		#else
+			color = mix(high, low, vec3(cutoff));
+		#endif
+	#else
+		float inverse = 0.4545454f; // 1 / 2.2
+		color = pow(color, vec3(inverse));
+	#endif
+}
+
+// Tone mapping is not available when high-precision float framebuffer isn't enabled or supported.
+#if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
+/* x: contrast
+y: highlightsCompressionSpeed
+z: shoulderClip
+w: highlightsCompression */
+uniform bool u_Tonemap;
+uniform vec4 u_TonemapParms;
+uniform float u_TonemapExposure;
+
+vec3 TonemapLottes( vec3 color ) {
+  // Lottes 2016, "Advanced Techniques and Optimization of HDR Color Pipelines"
+  return pow( color, vec3( u_TonemapParms[0] ) )
+         / ( pow( color, vec3( u_TonemapParms[0] * u_TonemapParms[1] ) ) * u_TonemapParms[2] + u_TonemapParms[3] );
+}
+#endif
 
 DECLARE_OUTPUT(vec4)
 
-void	main()
+void main()
 {
 	// calculate the screen texcoord in the 0.0 to 1.0 range
 	vec2 st = gl_FragCoord.st / r_FBufSize;
 
-	vec4 original = clamp(texture2D(u_CurrentMap, st), 0.0, 1.0);
+	vec4 color = texture2D(u_CurrentMap, st);
+	color *= u_GlobalLightFactor;
 
-	vec4 color = original;
+	if ( u_SRGB )
+	{
+		convertToSRGB( color.rgb );
+	}
 
+#if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
+	if( u_Tonemap ) {
+		color.rgb = TonemapLottes( color.rgb * u_TonemapExposure );
+	}
+#endif
+
+	color.rgb = clamp( color.rgb, vec3( 0.0f ), vec3( 1.0f ) );
+
+#if defined(r_colorGrading)
 	// apply color grading
 	vec3 colCoord = color.rgb * 15.0 / 16.0 + 0.5 / 16.0;
 	colCoord.z *= 0.25;
-	color.rgb = u_ColorModulate.x * texture3D(u_ColorMap, colCoord).rgb;
-	color.rgb += u_ColorModulate.y * texture3D(u_ColorMap, colCoord + vec3(0.0, 0.0, 0.25)).rgb;
-	color.rgb += u_ColorModulate.z * texture3D(u_ColorMap, colCoord + vec3(0.0, 0.0, 0.50)).rgb;
-	color.rgb += u_ColorModulate.w * texture3D(u_ColorMap, colCoord + vec3(0.0, 0.0, 0.75)).rgb;
+	color.rgb = u_ColorModulate.x * texture3D(u_ColorMap3D, colCoord).rgb;
+	color.rgb += u_ColorModulate.y * texture3D(u_ColorMap3D, colCoord + vec3(0.0, 0.0, 0.25)).rgb;
+	color.rgb += u_ColorModulate.z * texture3D(u_ColorMap3D, colCoord + vec3(0.0, 0.0, 0.50)).rgb;
+	color.rgb += u_ColorModulate.w * texture3D(u_ColorMap3D, colCoord + vec3(0.0, 0.0, 0.75)).rgb;
+#endif
 
 	color.xyz = pow(color.xyz, vec3(u_InverseGamma));
 

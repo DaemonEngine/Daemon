@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_animation.c
 #include "tr_local.h"
+#include "GeometryOptimiser.h"
 
 /*
 ===========================================================================
@@ -74,7 +75,7 @@ static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, const char *buffer, const 
 	md5Animation_t *anim;
 	md5Frame_t     *frame;
 	md5Channel_t   *channel;
-	char           *token;
+	const char *token;
 	int            version;
 	const char     *buf_p;
 
@@ -539,7 +540,7 @@ qhandle_t RE_RegisterAnimation( const char *name )
 		return 0;
 	}
 
-	if ( Str::IsPrefix( "MD5Version", buffer ) )
+	if ( Str::IsPrefix( MD5_IDENTSTRING, buffer ) )
 	{
 		loaded = R_LoadMD5Anim( anim, buffer.c_str(), name );
 	}
@@ -581,32 +582,35 @@ skelAnimation_t *R_GetAnimationByHandle( qhandle_t index )
 	return anim;
 }
 
-/*
-================
-R_AnimationList_f
-================
-*/
-void R_AnimationList_f()
+class ListAnimationsCmd : public Cmd::StaticCmd
 {
-	int             i;
-	skelAnimation_t *anim;
+public:
+	ListAnimationsCmd() : StaticCmd(
+		"listAnimations", Cmd::RENDERER, "list model animations loaded in renderer") {}
 
-	for ( i = 0; i < tr.numAnimations; i++ )
+	void Run( const Cmd::Args & ) const override
 	{
-		anim = tr.animations[ i ];
+		int             i;
+		skelAnimation_t *anim;
 
-		Log::Notice("'%s'", anim->name );
+		for ( i = 0; i < tr.numAnimations; i++ )
+		{
+			anim = tr.animations[ i ];
+
+			Print( "'%s'", anim->name );
+		}
+
+		Print( "%i total animations", tr.numAnimations );
 	}
-
-	Log::Notice("%8i : Total animations", tr.numAnimations );
-}
+};
+static ListAnimationsCmd listAnimationsCmdRegistration;
 
 /*
 =============
 R_CullMD5
 =============
 */
-static void R_CullMD5( trRefEntity_t *ent )
+static cullResult_t R_CullMD5( trRefEntity_t *ent )
 {
 	int        i;
 
@@ -634,19 +638,16 @@ static void R_CullMD5( trRefEntity_t *ent )
 	{
 		case cullResult_t::CULL_IN:
 			tr.pc.c_box_cull_md5_in++;
-			ent->cull = cullResult_t::CULL_IN;
-			return;
+			return cullResult_t::CULL_IN;
 
 		case cullResult_t::CULL_CLIP:
 			tr.pc.c_box_cull_md5_clip++;
-			ent->cull = cullResult_t::CULL_CLIP;
-			return;
+			return cullResult_t::CULL_CLIP;
 
 		case cullResult_t::CULL_OUT:
 		default:
 			tr.pc.c_box_cull_md5_out++;
-			ent->cull = cullResult_t::CULL_OUT;
-			return;
+			return cullResult_t::CULL_OUT;
 	}
 }
 
@@ -670,24 +671,16 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 
 	// cull the entire model if merged bounding box of both frames
 	// is outside the view frustum
-	R_CullMD5( ent );
-
-	if ( ent->cull == cullResult_t::CULL_OUT )
+	if ( R_CullMD5( ent ) == cullResult_t::CULL_OUT )
 	{
 		return;
-	}
-
-	// set up lighting now that we know we aren't culled
-	if ( !personalModel || r_shadows->integer > Util::ordinal(shadowingMode_t::SHADOWING_BLOB))
-	{
-		R_SetupEntityLighting( &tr.refdef, ent, nullptr );
 	}
 
 	// see if we are in a fog volume
 	fogNum = R_FogWorldBox( ent->worldBounds );
 
-	if ( !r_vboModels->integer || !model->numVBOSurfaces ||
-	     ( !glConfig2.vboVertexSkinningAvailable && ent->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE ) )
+	if ( !r_vboModels.Get() || !model->numVBOSurfaces ||
+	     ( !glConfig.vboVertexSkinningAvailable && ent->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE ) )
 	{
 		shader_t *shader;
 
@@ -789,315 +782,6 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 			if ( !personalModel )
 			{
 				R_AddDrawSurf( (surfaceType_t*) vboSurface, shader, -1, fogNum );
-			}
-		}
-	}
-}
-
-/*
-=================
-R_AddIQMInteractions
-=================
-*/
-void R_AddIQMInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType )
-{
-	int               i;
-	IQModel_t         *model;
-	srfIQModel_t      *surface;
-	shader_t          *shader = nullptr;
-	bool          personalModel;
-	byte              cubeSideBits = CUBESIDE_CLIPALL;
-
-	// cull the entire model if merged bounding box of both frames
-	// is outside the view frustum and we don't care about proper shadowing
-	if ( ent->cull == cullResult_t::CULL_OUT )
-	{
-		iaType = (interactionType_t) (iaType & ~IA_LIGHT);
-
-		if( !iaType ) {
-			return;
-		}
-	}
-
-	// avoid drawing of certain objects
-#if defined( USE_REFENTITY_NOSHADOWID )
-
-	if ( light->l.inverseShadows )
-	{
-		if ( (iaType & IA_SHADOW) && ( light->l.noShadowID && ( light->l.noShadowID != ent->e.noShadowID ) ) )
-		{
-			return;
-		}
-	}
-	else
-	{
-		if ( (iaType & IA_SHADOW) && ( light->l.noShadowID && ( light->l.noShadowID == ent->e.noShadowID ) ) )
-		{
-			return;
-		}
-	}
-
-#endif
-
-	// don't add third_person objects if not in a portal
-	personalModel = ( ent->e.renderfx & RF_THIRD_PERSON ) &&
-	  tr.viewParms.portalLevel == 0;
-
-	model = tr.currentModel->iqm;
-
-	// do a quick AABB cull
-	if ( !BoundsIntersect( light->worldBounds[ 0 ], light->worldBounds[ 1 ], ent->worldBounds[ 0 ], ent->worldBounds[ 1 ] ) )
-	{
-		tr.pc.c_dlightSurfacesCulled += model->num_surfaces;
-		return;
-	}
-
-	// do a more expensive and precise light frustum cull
-	if ( !r_noLightFrustums->integer )
-	{
-		if ( R_CullLightWorldBounds( light, ent->worldBounds ) == cullResult_t::CULL_OUT )
-		{
-			tr.pc.c_dlightSurfacesCulled += model->num_surfaces;
-			return;
-		}
-	}
-
-	cubeSideBits = R_CalcLightCubeSideBits( light, ent->worldBounds );
-
-		// generate interactions with all surfaces
-		for ( i = 0, surface = model->surfaces; i < model->num_surfaces; i++, surface++ )
-		{
-			if ( ent->e.customShader )
-			{
-				shader = R_GetShaderByHandle( ent->e.customShader );
-			}
-			else if ( ent->e.customSkin > 0 && ent->e.customSkin < tr.numSkins )
-			{
-				skin_t *skin;
-
-				skin = R_GetSkinByHandle( ent->e.customSkin );
-
-				// match the surface name to something in the skin file
-				shader = tr.defaultShader;
-
-				// FIXME: replace MD3_MAX_SURFACES for skin_t::surfaces
-				if ( i >= 0 && i < skin->numSurfaces && skin->surfaces[ i ] )
-				{
-					shader = skin->surfaces[ i ]->shader;
-				}
-
-				if ( shader == tr.defaultShader )
-				{
-					Log::Warn("no shader for surface %i in skin %s", i, skin->name );
-				}
-				else if ( shader->defaultShader )
-				{
-					Log::Warn("shader %s in skin %s not found", shader->name, skin->name );
-				}
-			}
-			else
-			{
-				shader = R_GetShaderByHandle( surface->shader->index );
-			}
-
-			// skip all surfaces that don't matter for lighting only pass
-			if ( shader->isSky || ( !shader->interactLight && shader->noShadows ) )
-			{
-				continue;
-			}
-
-			// we will add shadows even if the main object isn't visible in the view
-
-			// don't add third_person objects if not viewing through a portal
-			if ( !personalModel )
-			{
-				R_AddLightInteraction( light, ( surfaceType_t * ) surface, shader, cubeSideBits, iaType );
-				tr.pc.c_dlightSurfaces++;
-			}
-		}
-}
-
-/*
-=================
-R_AddMD5Interactions
-=================
-*/
-void R_AddMD5Interactions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType )
-{
-	md5Model_t        *model;
-	md5Surface_t      *surface;
-	bool          personalModel;
-	byte              cubeSideBits = CUBESIDE_CLIPALL;
-
-	// cull the entire model if merged bounding box of both frames
-	// is outside the view frustum and we don't care about proper shadowing
-	if ( ent->cull == cullResult_t::CULL_OUT )
-	{
-		iaType = Util::enum_cast<interactionType_t>(iaType & ~IA_LIGHT);
-	}
-
-	if( !iaType )
-	{
-		return;
-	}
-
-	// avoid drawing of certain objects
-#if defined( USE_REFENTITY_NOSHADOWID )
-
-	if ( light->l.inverseShadows )
-	{
-		if ( (iaType & IA_SHADOW) && ( light->l.noShadowID && ( light->l.noShadowID != ent->e.noShadowID ) ) )
-		{
-			return;
-		}
-	}
-	else
-	{
-		if ( (iaType & IA_SHADOW) && ( light->l.noShadowID && ( light->l.noShadowID == ent->e.noShadowID ) ) )
-		{
-			return;
-		}
-	}
-
-#endif
-
-	// don't add third_person objects if not in a portal
-	personalModel = ( ent->e.renderfx & RF_THIRD_PERSON ) &&
-	  tr.viewParms.portalLevel == 0;
-
-	model = tr.currentModel->md5;
-
-	// do a quick AABB cull
-	if ( !BoundsIntersect( light->worldBounds[ 0 ], light->worldBounds[ 1 ], ent->worldBounds[ 0 ], ent->worldBounds[ 1 ] ) )
-	{
-		tr.pc.c_dlightSurfacesCulled += model->numSurfaces;
-		return;
-	}
-
-	// do a more expensive and precise light frustum cull
-	if ( !r_noLightFrustums->integer )
-	{
-		if ( R_CullLightWorldBounds( light, ent->worldBounds ) == cullResult_t::CULL_OUT )
-		{
-			tr.pc.c_dlightSurfacesCulled += model->numSurfaces;
-			return;
-		}
-	}
-
-	cubeSideBits = R_CalcLightCubeSideBits( light, ent->worldBounds );
-
-	if ( !r_vboModels->integer || !model->numVBOSurfaces ||
-	     ( !glConfig2.vboVertexSkinningAvailable && ent->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE ) )
-	{
-		shader_t *shader = nullptr;
-
-		// generate interactions with all surfaces
-		int i;
-		for ( i = 0, surface = model->surfaces; i < model->numSurfaces; i++, surface++ )
-		{
-			if ( ent->e.customShader )
-			{
-				shader = R_GetShaderByHandle( ent->e.customShader );
-			}
-			else if ( ent->e.customSkin > 0 && ent->e.customSkin < tr.numSkins )
-			{
-				skin_t *skin;
-
-				skin = R_GetSkinByHandle( ent->e.customSkin );
-
-				// match the surface name to something in the skin file
-				shader = tr.defaultShader;
-
-				// FIXME: replace MD3_MAX_SURFACES for skin_t::surfaces
-				if ( i >= 0 && i < skin->numSurfaces && skin->surfaces[ i ] )
-				{
-					shader = skin->surfaces[ i ]->shader;
-				}
-
-				if ( shader == tr.defaultShader )
-				{
-					Log::Warn("no shader for surface %i in skin %s", i, skin->name );
-				}
-				else if ( shader->defaultShader )
-				{
-					Log::Warn("shader %s in skin %s not found", shader->name, skin->name );
-				}
-			}
-			else
-			{
-				shader = R_GetShaderByHandle( surface->shaderIndex );
-			}
-
-			// skip all surfaces that don't matter for lighting only pass
-			if ( shader->isSky || ( !shader->interactLight && shader->noShadows ) )
-			{
-				continue;
-			}
-
-			// we will add shadows even if the main object isn't visible in the view
-
-			// don't add third_person objects if not viewing through a portal
-			if ( !personalModel )
-			{
-				R_AddLightInteraction( light, (surfaceType_t*) surface, shader, cubeSideBits, iaType );
-				tr.pc.c_dlightSurfaces++;
-			}
-		}
-	}
-	else
-	{
-		int             i;
-		srfVBOMD5Mesh_t *vboSurface;
-		shader_t        *shader;
-
-		for ( i = 0; i < model->numVBOSurfaces; i++ )
-		{
-			vboSurface = model->vboSurfaces[ i ];
-
-			if ( ent->e.customShader )
-			{
-				shader = R_GetShaderByHandle( ent->e.customShader );
-			}
-			else if ( ent->e.customSkin > 0 && ent->e.customSkin < tr.numSkins )
-			{
-				skin_t *skin;
-
-				skin = R_GetSkinByHandle( ent->e.customSkin );
-
-				// match the surface name to something in the skin file
-				shader = tr.defaultShader;
-
-				// FIXME: replace MD3_MAX_SURFACES for skin_t::surfaces
-				if ( i >= 0 && i < skin->numSurfaces && skin->surfaces[ i ] )
-				{
-					shader = skin->surfaces[ i ]->shader;
-				}
-
-				if ( shader == tr.defaultShader )
-				{
-					Log::Warn("no shader for surface %i in skin %s", i, skin->name );
-				}
-				else if ( shader->defaultShader )
-				{
-					Log::Warn("shader %s in skin %s not found", shader->name, skin->name );
-				}
-			}
-			else
-			{
-				shader = vboSurface->shader;
-			}
-
-			// skip all surfaces that don't matter for lighting only pass
-			if ( shader->isSky || ( !shader->interactLight && shader->noShadows ) )
-			{
-				continue;
-			}
-
-			// don't add third_person objects if not viewing through a portal
-			if ( !personalModel )
-			{
-				R_AddLightInteraction( light, (surfaceType_t*) vboSurface, shader, cubeSideBits, iaType );
-				tr.pc.c_dlightSurfaces++;
 			}
 		}
 	}
@@ -1288,6 +972,9 @@ static int IQMBuildSkeleton( refSkeleton_t *skel, skelAnimation_t *skelAnim,
 		BoundsAdd( mins, maxs, bounds, bounds + 3 );
 	}
 
+#if defined( REFBONE_NAMES )
+	const char *boneNames = anim->jointNames;
+#endif
 	for ( i = 0; i < anim->num_joints; i++ )
 	{
 		TransStartLerp( &skel->bones[ i ].t );
@@ -1296,7 +983,8 @@ static int IQMBuildSkeleton( refSkeleton_t *skel, skelAnimation_t *skelAnim,
 		TransEndLerp( &skel->bones[ i ].t );
 
 #if defined( REFBONE_NAMES )
-		Q_strncpyz( skel->bones[ i ].name, anim->name, sizeof( skel->bones[ i ].name ) );
+		Q_strncpyz( skel->bones[ i ].name, boneNames, sizeof( skel->bones[ i ].name ) );
+		boneNames += strlen( boneNames ) + 1;
 #endif
 
 		skel->bones[ i ].parentIndex = anim->jointParents[ i ];
@@ -1343,7 +1031,7 @@ int RE_BuildSkeleton( refSkeleton_t *skel, qhandle_t hAnim, int startFrame, int 
 		/*
 		   if((startFrame >= anim->numFrames) || (startFrame < 0) || (endFrame >= anim->numFrames) || (endFrame < 0))
 		   {
-		   Log::Debug("RE_BuildSkeleton: no such frame %d to %d for '%s'\n", startFrame, endFrame, anim->name);
+		   Log::Debug("RE_BuildSkeleton: no such frame %d to %d for '%s'", startFrame, endFrame, anim->name);
 		   //startFrame = 0;
 		   //endFrame = 0;
 		   }
@@ -1493,7 +1181,7 @@ int RE_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float fra
 		TransAddWeight( frac, &blend->bones[ i ].t, &trans );
 		TransEndLerp( &trans );
 
-		TransCopy( &trans, &skel->bones[ i ].t );
+		skel->bones[ i ].t = trans;
 	}
 
 	// calculate a bounding box in the current coordinate system
@@ -1551,4 +1239,18 @@ int RE_AnimFrameRate( qhandle_t hAnim )
 	}
 
 	return 0;
+}
+
+void MarkShaderBuildMD5( const md5Model_t* model ) {
+	for ( int i = 0; i < model->numSurfaces; i++ ) {
+		md5Surface_t* surface = &model->surfaces[i];
+
+		shader_t* defaultModelShader = R_GetShaderByHandle( surface->shaderIndex );
+		MarkShaderBuild( defaultModelShader, -1, false, true, false );
+
+		for ( int j = 0; j < MAX_ALTSHADERS; j++ ) {
+			shader_t* shader = R_GetShaderByHandle( defaultModelShader->altShader[j].index );
+			MarkShaderBuild( shader, -1, false, true, false );
+		}
+	}
 }

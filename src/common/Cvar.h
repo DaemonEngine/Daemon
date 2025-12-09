@@ -42,12 +42,13 @@ namespace Cvar {
         USERINFO   = BIT(1), // The cvar is sent to the server as part of the client state
         SERVERINFO = BIT(2), // The cvar is sent to the client when doing server status request and in a config string (mostly for mapname)
         SYSTEMINFO = BIT(3), // The cvar is sent to the client when changed, to synchronize some global game options (for example pmove config)
+        INIT       = BIT(4), // The cvar can only be set from the command line (or before the flag is added)
         ROM        = BIT(6), // The cvar cannot be changed by the user
         TEMPORARY  = BIT(8), // The cvar is temporary and is not to be archived (overrides archive flags)
         CHEAT      = BIT(9), // The cvar is a cheat and should stay at its default value on pure servers.
         USER_ARCHIVE = BIT(14), // The cvar is saved to the configuration file at user request
-        LATCH      = BIT(15), // The cvar's value can be changed only after a cgame restart.
-                              // Different value from CVAR_LATCH since a separate implementation is used.
+        INTERNAL_LATCH = BIT(15), // The cvar's value can be changed only after a restart of some subsystem.
+                                  // Do not set this directly. Call Latch(cvar) when the system is ready for a new value
     };
 
     // Internal to the Cvar system
@@ -103,6 +104,9 @@ namespace Cvar {
      * be accessed with .Get() and .Set() will serialize T before setting the value.
      * It is also automatically registered when created so you can write:
      *   static Cvar<bool> my_bool_cvar("my_bool_cvar", "bool - a cvar", Cvar::NONE, false);
+     * Auto-registering cvars should only be declared in static storage (i.e. like global variables)
+     * because they do *not* automatically unregister, so if the cvar can be destroyed before the
+     * program ends you'll have a dangling pointer in the cvar table.
      *
      * The functions bool ParseCvarValue(string, T& res), string SerializeCvarValue(T)
      * and string GetCvarTypeName<T>() must be implemented for Cvar<T> to work.
@@ -115,9 +119,8 @@ namespace Cvar {
             Cvar(std::string name, std::string description, int flags, value_type defaultValue);
             Cvar(NoRegisterTag, std::string name, std::string description, int flags, value_type defaultValue);
 
-            //Outside code accesses the Cvar value by doing my_cvar.Get() or *my_cvar
+            //Outside code accesses the Cvar value by doing my_cvar.Get()
             T Get() const;
-            T operator*() const;
 
             //Outside code can also change the value but it won't be seen immediately after with a .Get()
             void Set(T newValue);
@@ -249,6 +252,8 @@ namespace Cvar {
     bool Register(CvarProxy* proxy, const std::string& name, std::string description, int flags, const std::string& defaultValue);
     std::string GetValue(const std::string& cvarName);
     void SetValue(const std::string& cvarName, const std::string& value);
+
+    // Alter flags, returns true if the variable exists
     bool AddFlags(const std::string& cvarName, int flags);
 
     // Implementation of templates
@@ -274,11 +279,6 @@ namespace Cvar {
     }
 
     template<typename T>
-    T Cvar<T>::operator*() const {
-        return this->Get();
-    }
-
-    template<typename T>
     void Cvar<T>::Set(T newValue) {
         if (Validate(newValue).success) {
             SetValue(SerializeCvarValue(newValue));
@@ -297,7 +297,8 @@ namespace Cvar {
                 return validationResult;
             }
         } else {
-            return OnValueChangedResult{false, Str::Format("value \"%s\" is not of type '%s' as expected", text, GetCvarTypeName<T>())};
+            return OnValueChangedResult{false, Str::Format(
+                "value \"%s^*\" is not of type '%s' as expected", text, GetCvarTypeName<T>())};
         }
     }
 

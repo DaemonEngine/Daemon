@@ -22,9 +22,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_scene.c
 #include "tr_local.h"
+#include "Material.h"
+
+static Cvar::Cvar<bool> r_drawDynamicLights(
+	"r_drawDynamicLights", "render dynamic lights (if realtime lighting is enabled)", Cvar::NONE, true );
 
 static int r_firstSceneDrawSurf;
-static int r_firstSceneInteraction;
 
 static int r_numLights;
 static int r_firstSceneLight;
@@ -37,12 +40,6 @@ static int r_firstScenePoly;
 
 int        r_numPolyVerts;
 int        r_numPolyIndexes;
-
-// ydnar: decals
-int        r_firstSceneDecalProjector;
-int        r_numDecalProjectors;
-int        r_firstSceneDecal;
-int        r_numDecals;
 
 int r_numVisTests;
 int r_firstSceneVisTest;
@@ -68,7 +65,6 @@ void R_ToggleSmpFrame()
 	backEndData[ tr.smpFrame ]->commands.used = 0;
 
 	r_firstSceneDrawSurf = 0;
-	r_firstSceneInteraction = 0;
 
 	r_numLights = 0;
 	r_firstSceneLight = 0;
@@ -81,12 +77,6 @@ void R_ToggleSmpFrame()
 
 	r_numPolyVerts = 0;
 	r_numPolyIndexes = 0;
-
-	// ydnar: decals
-	r_numDecalProjectors = 0;
-	r_firstSceneDecalProjector = 0;
-	r_numDecals = 0;
-	r_firstSceneDecal = 0;
 
 	r_numVisTests = 0;
 	r_firstSceneVisTest = 0;
@@ -179,7 +169,7 @@ static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t
 			   since we don't plan on changing the const and making for room for those effects
 			   simply cut this message to developer only
 			 */
-			Log::Debug("RE_AddPolyToScene: r_max_polys or r_max_polyverts reached\n" );
+			Log::Debug("RE_AddPolyToScene: r_max_polys or r_max_polyverts reached" );
 			return;
 		}
 
@@ -189,7 +179,7 @@ static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t
 		poly->numVerts = numVerts;
 		poly->verts = &backEndData[ tr.smpFrame ]->polyVerts[ r_numPolyVerts ];
 
-		memcpy( poly->verts, &verts[ numVerts * j ], numVerts * sizeof( *verts ) );
+		std::copy_n( &verts[ numVerts * j ], numVerts, poly->verts );
 
 		// done.
 		r_numPolys++;
@@ -281,101 +271,9 @@ void RE_AddRefEntityToScene( const refEntity_t *ent )
 		Sys::Drop("RE_AddRefEntityToScene: bad reType %s", Util::enum_str(ent->reType));
 	}
 
-	memcpy( &backEndData[ tr.smpFrame ]->entities[ r_numEntities ].e, ent, sizeof( refEntity_t ) );
-	backEndData[ tr.smpFrame ]->entities[ r_numEntities ].lightingCalculated = false;
+	backEndData[ tr.smpFrame ]->entities[ r_numEntities ].e = *ent;
 
 	r_numEntities++;
-}
-
-/*
-=====================
-RE_AddRefLightToScene
-=====================
-*/
-void RE_AddRefLightToScene( const refLight_t *l )
-{
-	trRefLight_t *light;
-
-	if ( !tr.registered )
-	{
-		return;
-	}
-
-	if ( r_numLights >= MAX_REF_LIGHTS )
-	{
-		return;
-	}
-
-	if ( l->radius <= 0 && !VectorLength( l->projTarget ) )
-	{
-		return;
-	}
-
-	if (l->rlType >= refLightType_t::RL_MAX_REF_LIGHT_TYPE)
-	{
-		Sys::Drop("RE_AddRefLightToScene: bad rlType %s", Util::enum_str(l->rlType));
-	}
-
-	light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
-	memcpy( &light->l, l, sizeof( light->l ) );
-
-	light->isStatic = false;
-	light->additive = true;
-
-	if ( light->l.scale <= 0 )
-	{
-		light->l.scale = r_lightScale->value;
-	}
-
-	if ( light->l.scale >= r_lightScale->value )
-	{
-		light->l.scale = r_lightScale->value;
-	}
-
-	if ( !r_dynamicLightCastShadows->integer && !light->l.inverseShadows )
-	{
-		light->l.noShadows = true;
-	}
-}
-
-/*
-=====================
-R_AddWorldLightsToScene
-=====================
-*/
-static void R_AddWorldLightsToScene()
-{
-	int          i;
-	trRefLight_t *light;
-
-	if ( !tr.registered )
-	{
-		return;
-	}
-
-	if ( tr.refdef.rdflags & RDF_NOWORLDMODEL )
-	{
-		return;
-	}
-
-	for ( i = 0; i < tr.world->numLights; i++ )
-	{
-		light = tr.currentLight = &tr.world->lights[ i ];
-
-		if ( r_numLights >= MAX_REF_LIGHTS )
-		{
-			return;
-		}
-
-		if ( !light->firstInteractionCache )
-		{
-			// this light has no interactions precached
-			continue;
-		}
-
-		memcpy( &backEndData[ tr.smpFrame ]->lights[ r_numLights ], light, sizeof( trRefLight_t ) );
-		r_numLights++;
-	}
 }
 
 /*
@@ -387,19 +285,22 @@ ydnar: modified dlight system to support separate radius and intensity
 */
 void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t, int flags )
 {
-	trRefLight_t *light;
+	refLight_t *light;
+
+	if ( !glConfig.realtimeLighting || !r_drawDynamicLights.Get() )
+	{
+		return;
+	}
 
 	if ( !tr.registered )
 	{
 		return;
 	}
 
-	// set last lights restrictInteractionEnd if needed
-	if ( r_numLights > r_firstSceneLight ) {
-		light = &backEndData[ tr.smpFrame ]->lights[ r_numLights - 1 ];
-		if( light->restrictInteractionFirst >= 0 ) {
-			light->restrictInteractionLast = r_numEntities - r_firstSceneEntity - 1;
-		}
+	if ( flags & REF_INVERSE_DLIGHT )
+	{
+		Log::Warn( "REF_INVERSE_DLIGHT not implemtented" );
+		return;
 	}
 
 	if ( r_numLights >= MAX_REF_LIGHTS )
@@ -414,44 +315,156 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 
 	light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
 
-	light->l.rlType = refLightType_t::RL_OMNI;
-	VectorCopy( org, light->l.origin );
+	light->rlType = refLightType_t::RL_OMNI;
+	VectorCopy( org, light->origin );
 
-	QuatClear( light->l.rotation );
-	VectorClear( light->l.center );
+	light->radius = radius;
 
-	// HACK: this will tell the renderer backend to use tr.defaultLightShader
-	light->l.attenuationShader = 0;
+	light->color[ 0 ] = r;
+	light->color[ 1 ] = g;
+	light->color[ 2 ] = b;
 
-	light->l.radius = radius;
-
-	light->l.color[ 0 ] = r;
-	light->l.color[ 1 ] = g;
-	light->l.color[ 2 ] = b;
-
-	light->l.inverseShadows = (flags & REF_INVERSE_DLIGHT) != 0;
-	light->l.noShadows = !r_dynamicLightCastShadows->integer && !light->l.inverseShadows;
-
-	if( flags & REF_RESTRICT_DLIGHT ) {
-		light->restrictInteractionFirst = r_numEntities - r_firstSceneEntity;
-		light->restrictInteractionLast = 0;
-	} else {
-		light->restrictInteractionFirst = -1;
-		light->restrictInteractionLast = -1;
+	// Linearize dynamic lights.
+	if ( tr.worldLinearizeTexture )
+	{
+		convertFromSRGB( light->color );
 	}
 
-	light->isStatic = false;
-	light->additive = true;
-
-	if( light->l.inverseShadows )
-		light->l.scale = -intensity;
-	else
-		light->l.scale = intensity;
+	light->scale = intensity;
 }
 
 void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float radius, float r, float g, float b )
 {
 	RE_AddDynamicLightToSceneET( org, radius, r_lightScale->value, r, g, b, 0, 0 );
+}
+
+static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {
+	const size_t globalID = r_showCubeProbeFace.Get();
+	const size_t probeID = globalID / 6;
+
+	if ( probeID >= tr.cubeProbes.size() ) {
+		Log::Warn( "Cube probe face out of range! (%i/%i)", probeID, tr.cubeProbes.size() );
+		return;
+	}
+	
+	refdef_t refdef{};
+	const int faceID = globalID % 6;
+
+	const int cubeMapSize = r_cubeProbeSize.Get();
+
+	VectorCopy( tr.cubeProbes[probeID].origin, refdef.vieworg );
+
+	refdef.fov_x = 90;
+	refdef.fov_y = 90;
+	refdef.x = 0;
+	refdef.y = 0;
+	refdef.width = cubeMapSize;
+	refdef.height = cubeMapSize;
+	refdef.time = originalRefdef->time;
+	VectorCopy( originalRefdef->gradingWeights, refdef.gradingWeights );
+
+	refdef.rdflags = RDF_NOCUBEMAP | RDF_NOBLOOM;
+
+	switch ( faceID ) {
+		case 0:
+		{
+			//X+
+			refdef.viewaxis[0][0] = 1;
+			refdef.viewaxis[0][1] = 0;
+			refdef.viewaxis[0][2] = 0;
+
+			refdef.viewaxis[1][0] = 0;
+			refdef.viewaxis[1][1] = 0;
+			refdef.viewaxis[1][2] = 1;
+
+			CrossProduct( refdef.viewaxis[0], refdef.viewaxis[1], refdef.viewaxis[2] );
+			break;
+		}
+
+		case 1:
+		{
+			//X-
+			refdef.viewaxis[0][0] = -1;
+			refdef.viewaxis[0][1] = 0;
+			refdef.viewaxis[0][2] = 0;
+
+			refdef.viewaxis[1][0] = 0;
+			refdef.viewaxis[1][1] = 0;
+			refdef.viewaxis[1][2] = -1;
+
+			CrossProduct( refdef.viewaxis[0], refdef.viewaxis[1], refdef.viewaxis[2] );
+			break;
+		}
+
+		case 2:
+		{
+			//Y+
+			refdef.viewaxis[0][0] = 0;
+			refdef.viewaxis[0][1] = 1;
+			refdef.viewaxis[0][2] = 0;
+
+			refdef.viewaxis[1][0] = -1;
+			refdef.viewaxis[1][1] = 0;
+			refdef.viewaxis[1][2] = 0;
+
+			CrossProduct( refdef.viewaxis[0], refdef.viewaxis[1], refdef.viewaxis[2] );
+			break;
+		}
+
+		case 3:
+		{
+			//Y-
+			refdef.viewaxis[0][0] = 0;
+			refdef.viewaxis[0][1] = -1;
+			refdef.viewaxis[0][2] = 0;
+
+			refdef.viewaxis[1][0] = -1; //-1
+			refdef.viewaxis[1][1] = 0;
+			refdef.viewaxis[1][2] = 0;
+
+			CrossProduct( refdef.viewaxis[0], refdef.viewaxis[1], refdef.viewaxis[2] );
+			break;
+		}
+
+		case 4:
+		{
+			//Z+
+			refdef.viewaxis[0][0] = 0;
+			refdef.viewaxis[0][1] = 0;
+			refdef.viewaxis[0][2] = 1;
+
+			refdef.viewaxis[1][0] = -1;
+			refdef.viewaxis[1][1] = 0;
+			refdef.viewaxis[1][2] = 0;
+
+			CrossProduct( refdef.viewaxis[0], refdef.viewaxis[1], refdef.viewaxis[2] );
+			break;
+		}
+
+		case 5:
+		{
+			//Z-
+			refdef.viewaxis[0][0] = 0;
+			refdef.viewaxis[0][1] = 0;
+			refdef.viewaxis[0][2] = -1;
+
+			refdef.viewaxis[1][0] = 1;
+			refdef.viewaxis[1][1] = 0;
+			refdef.viewaxis[1][2] = 0;
+
+			CrossProduct( refdef.viewaxis[0], refdef.viewaxis[1], refdef.viewaxis[2] );
+			break;
+		}
+	}
+
+	if ( glConfig.usingMaterialSystem ) {
+		// Material system writes culled surfaces for the next frame, so we need to render twice with it to cull correctly
+		R_SyncRenderThread();
+		RE_RenderScene( &refdef );
+	}
+	R_SyncRenderThread();
+	RE_RenderScene( &refdef );
+
 }
 
 /*
@@ -467,7 +480,6 @@ to handle mirrors,
 */
 void RE_RenderScene( const refdef_t *fd )
 {
-	viewParms_t parms;
 	int         startTime;
 
 	if ( !tr.registered )
@@ -475,7 +487,7 @@ void RE_RenderScene( const refdef_t *fd )
 		return;
 	}
 
-	GLimp_LogComment( "====== RE_RenderScene =====\n" );
+	GLIMP_LOGCOMMENT( "====== RE_RenderScene =====" );
 
 	if ( r_norefresh->integer )
 	{
@@ -509,7 +521,7 @@ void RE_RenderScene( const refdef_t *fd )
 	// will force a reset of the visible leafs even if the view hasn't moved
 	tr.refdef.areamaskModified = false;
 
-	if ( !( tr.refdef.rdflags & RDF_NOWORLDMODEL ) && !( ( tr.refdef.rdflags & RDF_SKYBOXPORTAL ) && tr.world->numSkyNodes > 0 ) )
+	if ( !( tr.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
 		int areaDiff;
 		int i;
@@ -530,16 +542,15 @@ void RE_RenderScene( const refdef_t *fd )
 		}
 	}
 
-	R_AddWorldLightsToScene();
-
 	// derived info
-	tr.refdef.floatTime = float(double(tr.refdef.time) * 0.001);
+	if ( r_forceRendererTime.Get() >= 0 ) {
+		tr.refdef.floatTime = float( double( r_forceRendererTime.Get() ) * 0.001 );
+	} else {
+		tr.refdef.floatTime = float( double( tr.refdef.time ) * 0.001 );
+	}
 
 	tr.refdef.numDrawSurfs = r_firstSceneDrawSurf;
 	tr.refdef.drawSurfs = backEndData[ tr.smpFrame ]->drawSurfs;
-
-	tr.refdef.numInteractions = r_firstSceneInteraction;
-	tr.refdef.interactions = backEndData[ tr.smpFrame ]->interactions;
 
 	tr.refdef.numEntities = r_numEntities - r_firstSceneEntity;
 	tr.refdef.entities = &backEndData[ tr.smpFrame ]->entities[ r_firstSceneEntity ];
@@ -549,12 +560,6 @@ void RE_RenderScene( const refdef_t *fd )
 
 	tr.refdef.numPolys = r_numPolys - r_firstScenePoly;
 	tr.refdef.polys = &backEndData[ tr.smpFrame ]->polys[ r_firstScenePoly ];
-
-	tr.refdef.numDecalProjectors = r_numDecalProjectors - r_firstSceneDecalProjector;
-	tr.refdef.decalProjectors = &backEndData[ tr.smpFrame ]->decalProjectors[ r_firstSceneDecalProjector ];
-
-	tr.refdef.numDecals = r_numDecals - r_firstSceneDecal;
-	tr.refdef.decals = &backEndData[ tr.smpFrame ]->decals[ r_firstSceneDecal ];
 
 	tr.refdef.numVisTests = r_numVisTests - r_firstSceneVisTest;
 	tr.refdef.visTests = &backEndData[ tr.smpFrame ]->visTests[ r_firstSceneVisTest ];
@@ -578,20 +583,21 @@ void RE_RenderScene( const refdef_t *fd )
 	// The refdef takes 0-at-the-top y coordinates, so
 	// convert to GL's 0-at-the-bottom space
 	//
-	memset( &parms, 0, sizeof( parms ) );
+	viewParms_t parms{};
 
 	if ( tr.refdef.pixelTarget == nullptr )
 	{
 		parms.viewportX = tr.refdef.x;
-		parms.viewportY = glConfig.vidHeight - ( tr.refdef.y + tr.refdef.height );
+		if( fd->rdflags & RDF_NOCUBEMAP ) {
+			parms.viewportY = tr.refdef.height - ( tr.refdef.y + tr.refdef.height );
+		} else {
+			parms.viewportY = windowConfig.vidHeight - ( tr.refdef.y + tr.refdef.height );
+		}
 	}
 	else
 	{
-		//Driver bug, if we try and do pixel target work along the top edge of a window
-		//we can end up capturing part of the status bar. (see screenshot corruption..)
-		//Soooo.. use the middle.
-		parms.viewportX = glConfig.vidWidth / 2;
-		parms.viewportY = glConfig.vidHeight / 2;
+		parms.viewportX = tr.refdef.x;
+		parms.viewportY = tr.refdef.height - ( tr.refdef.y + tr.refdef.height );
 	}
 
 	parms.viewportWidth = tr.refdef.width;
@@ -623,19 +629,27 @@ void RE_RenderScene( const refdef_t *fd )
 	R_AddClearBufferCmd();
 	R_AddSetupLightsCmd();
 
+	if ( glConfig.usingMaterialSystem ) {
+		materialSystem.StartFrame();
+	}
+
 	R_RenderView( &parms );
 
 	R_RenderPostProcess();
 
 	// the next scene rendered in this frame will tack on after this one
 	r_firstSceneDrawSurf = tr.refdef.numDrawSurfs;
-	r_firstSceneInteraction = tr.refdef.numInteractions;
 	r_firstSceneEntity = r_numEntities;
 	r_firstSceneLight = r_numLights;
 	r_firstScenePoly = r_numPolys;
 	r_firstSceneVisTest = r_numVisTests;
 
 	tr.frontEndMsec += ri.Milliseconds() - startTime;
+
+	if ( ( r_showCubeProbeFace.Get() >= 0 ) && glConfig.reflectionMapping
+		&& !( fd->rdflags & RDF_NOCUBEMAP ) ) {
+		RE_RenderCubeProbeFace( fd );
+	}
 }
 
 /*
@@ -693,7 +707,7 @@ qhandle_t RE_RegisterVisTest()
 	}
 
 	int hTest;
-	for ( hTest = 1; hTest < MAX_VISTESTS; hTest++ )
+	for ( hTest = 0; hTest < MAX_VISTESTS; hTest++ )
 	{
 		test = &tr.visTests[ hTest ];
 		if ( !test->registered )
@@ -703,7 +717,7 @@ qhandle_t RE_RegisterVisTest()
 	}
 	ASSERT ( !test->registered );
 
-	memset( test, 0, sizeof( *test ) );
+	*test = {};
 	test->registered = true;
 	tr.numVisTests++;
 
@@ -780,7 +794,7 @@ float RE_CheckVisibility( qhandle_t hTest )
 
 void RE_UnregisterVisTest( qhandle_t hTest )
 {
-	if ( hTest <= 0 || hTest > MAX_VISTESTS )
+	if ( hTest <= 0 || hTest > MAX_VISTESTS || !tr.visTests[ hTest - 1 ].registered )
 	{
 		return;
 	}

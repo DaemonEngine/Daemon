@@ -39,7 +39,9 @@ Maryland 20850 USA.
 
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
-#include "renderer/tr_public.h"
+
+#include "RefAPI.h"
+
 #include "keys.h"
 #include "audio/Audio.h"
 #include "client/cg_api.h"
@@ -181,7 +183,6 @@ struct clientConnection_t
 	char     serverMessage[ MAX_STRING_TOKENS ]; // for display on connection dialog
 
 	std::string challenge; // from the server to use for connecting
-	int      checksumFeed; // from the server for checksum calculations
 
 	// these are our reliable messages that go to the server
 	int  reliableSequence;
@@ -244,12 +245,11 @@ no client connection is active at all
 ==================================================================
 */
 
-struct ping_t
+enum class pingStatus_t
 {
-	netadr_t adr;
-	int      start;
-	int      time;
-	char     info[ MAX_INFO_STRING ];
+	WAITING,
+	COMPLETE,
+	TIMEOUT,
 };
 
 #define MAX_FEATLABEL_CHARS 32
@@ -267,7 +267,9 @@ struct serverInfo_t
 	int      maxClients;
 	int      minPing;
 	int      maxPing;
+	pingStatus_t pingStatus;
 	int      ping;
+	int      pingAttempts;
 	bool visible;
 	int      needpass;
 	char     gameName[ MAX_NAME_LENGTH ]; // Arnout
@@ -294,16 +296,12 @@ struct clientStatic_t
 
 	// master server sequence information
 	int          numMasterPackets;
-	unsigned int receivedMasterPackets; // bitfield
 
 	int          numlocalservers;
 	serverInfo_t localServers[ MAX_OTHER_SERVERS ];
 
 	int          numglobalservers;
 	serverInfo_t globalServers[ MAX_GLOBAL_SERVERS ];
-	// additional global servers
-	int          numGlobalServerAddresses;
-	netadr_t     globalServerAddresses[ MAX_GLOBAL_SERVERS ];
 
 	unsigned     numserverLinks;
 	netadr_t     serverLinks[ MAX_GLOBAL_SERVERS ];
@@ -316,13 +314,8 @@ struct clientStatic_t
 	char     updateInfoString[ MAX_INFO_STRING ];
 
 	// rendering info
-	glconfig_t  glconfig;
-	glconfig2_t glconfig2;
-	qhandle_t   charSetShader;
+	WindowConfig windowConfig;
 	qhandle_t   whiteShader;
-	qhandle_t   consoleShader;
-	bool    useLegacyConsoleFont;
-	bool    useLegacyConsoleFace;
 	fontInfo_t *consoleFont;
 
 	// www downloading
@@ -330,7 +323,7 @@ struct clientStatic_t
 	// if new stuff gets added, CL_ClearStaticDownload code needs to be updated for clear up
 	char     downloadName[ MAX_OSPATH ];
 	char     downloadTempName[ MAX_OSPATH ]; // in wwwdl mode, this is OS path (it's a qpath otherwise)
-	char     originalDownloadName[ MAX_QPATH ]; // if we get a redirect, keep a copy of the original file path
+	char     originalDownloadName[ MAX_OSPATH ]; // if we get a redirect, keep a copy of the original file path
 	bool downloadRestart; // if true, we need to do another FS_Restart because we downloaded a pak
 };
 
@@ -347,7 +340,8 @@ public:
 	void CGameInit(int serverMessageNum, int clientNum);
 	void CGameShutdown();
 	void CGameDrawActiveFrame(int serverTime, bool demoPlayback);
-	void CGameKeyEvent(Keyboard::Key key, bool down);
+	bool CGameKeyDownEvent(Keyboard::Key key, bool repeat);
+	void CGameKeyUpEvent(Keyboard::Key key);
 	void CGameMouseEvent(int dx, int dy);
 	void CGameMousePosEvent(int x, int y);
 	void CGameTextInputEvent(int c);
@@ -388,45 +382,36 @@ extern cvar_t *cl_noprint;
 extern cvar_t *cl_maxpackets;
 extern cvar_t *cl_packetdup;
 extern cvar_t *cl_shownet;
-extern cvar_t *cl_shownuments; // DHM - Nerve
 extern cvar_t *cl_showSend;
-extern cvar_t *cl_showServerCommands; // NERVE - SMF
 extern cvar_t *cl_timeNudge;
 extern cvar_t *cl_showTimeDelta;
 
-extern cvar_t *cl_yawspeed;
-extern cvar_t *cl_pitchspeed;
-extern cvar_t *cl_run;
-extern cvar_t *cl_anglespeedkey;
+extern Cvar::Cvar<float> cl_yawspeed;
+extern Cvar::Cvar<float> cl_pitchspeed;
+extern Cvar::Cvar<bool> cl_run;
+extern Cvar::Cvar<float> cl_anglespeedkey;
 
-extern cvar_t *cl_doubletapdelay;
+extern Cvar::Range<Cvar::Cvar<int>> cl_doubletapdelay;
 
 extern cvar_t *cl_sensitivity;
-extern cvar_t *cl_freelook;
+extern Cvar::Cvar<bool> cl_freelook;
 
-extern cvar_t *cl_gameControllerAvailable;
+extern Cvar::Cvar<float> m_pitch;
+extern Cvar::Cvar<float> m_yaw;
+extern Cvar::Cvar<float> m_forward;
+extern Cvar::Cvar<float> m_side;
+extern Cvar::Cvar<bool> m_filter;
 
-extern cvar_t *cl_mouseAccel;
-extern cvar_t *cl_mouseAccelOffset;
-extern cvar_t *cl_mouseAccelStyle;
-extern cvar_t *cl_showMouseRate;
-
-extern cvar_t *m_pitch;
-extern cvar_t *m_yaw;
-extern cvar_t *m_forward;
-extern cvar_t *m_side;
-extern cvar_t *m_filter;
-
-extern cvar_t *j_pitch;
-extern cvar_t *j_yaw;
-extern cvar_t *j_forward;
-extern cvar_t *j_side;
-extern cvar_t *j_up;
-extern cvar_t *j_pitch_axis;
-extern cvar_t *j_yaw_axis;
-extern cvar_t *j_forward_axis;
-extern cvar_t *j_side_axis;
-extern cvar_t *j_up_axis;
+extern Cvar::Cvar<float> j_pitch;
+extern Cvar::Cvar<float> j_yaw;
+extern Cvar::Cvar<float> j_forward;
+extern Cvar::Cvar<float> j_side;
+extern Cvar::Cvar<float> j_up;
+extern Cvar::Range<Cvar::Cvar<int>> j_pitch_axis;
+extern Cvar::Range<Cvar::Cvar<int>> j_yaw_axis;
+extern Cvar::Range<Cvar::Cvar<int>> j_forward_axis;
+extern Cvar::Range<Cvar::Cvar<int>> j_side_axis;
+extern Cvar::Range<Cvar::Cvar<int>> j_up_axis;
 
 extern Cvar::Cvar<bool> cvar_demo_timedemo;
 
@@ -434,7 +419,6 @@ extern cvar_t *cl_activeAction;
 extern cvar_t *cl_autorecord;
 
 extern cvar_t *cl_allowDownload;
-extern cvar_t *cl_inGameVideo;
 
 extern cvar_t *cl_altTab;
 
@@ -446,8 +430,6 @@ extern cvar_t *cl_consoleFontScaling;
 extern cvar_t *cl_consoleFontKerning;
 extern cvar_t *cl_consoleCommand;
 
-extern cvar_t *cl_cgameSyscallStats;
-
 extern cvar_t *con_scrollLock;
 
 // XreaL BEGIN
@@ -455,8 +437,10 @@ extern cvar_t *cl_aviFrameRate;
 extern cvar_t *cl_aviMotionJpeg;
 // XreaL END
 
+#if defined(USE_MUMBLE)
 extern cvar_t *cl_useMumble;
 extern cvar_t *cl_mumbleScale;
+#endif
 
 //=================================================
 
@@ -478,15 +462,16 @@ void        CL_Snd_Restart_f();
 
 void        CL_ReadDemoMessage();
 
-void        CL_GetPing( int n, char *buf, int buflen, int *pingtime );
-void        CL_ClearPing( int n );
-int         CL_GetPingQueueCount();
-
 void        CL_ShutdownRef();
 
-int         CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen );
-
 void CL_Record(std::string demo_name);
+
+//
+// cl_serverstatus.cpp
+//
+int         CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen );
+void        CL_ServerStatus_f();
+void        CL_ServerStatusResponse( const netadr_t& from, msg_t *msg );
 
 //
 // cl_keys (for input usage)
@@ -558,9 +543,12 @@ float    CL_KeyState( kbutton_t *key );
 void CL_SystemInfoChanged();
 void CL_ParseServerMessage( msg_t *msg );
 
-//====================================================================
-
+//
+// cl_serverlist.cpp
+//
 void     CL_ServerInfoPacket( const netadr_t& from, msg_t *msg );
+void CL_ServerLinksResponsePacket( msg_t *msg );
+void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended );
 void     CL_LocalServers_f();
 void     CL_GlobalServers_f();
 void     CL_Ping_f();
@@ -582,6 +570,7 @@ struct consoleBoxWidth_t
 struct console_t
 {
 	bool initialized;
+	bool changedMap;
 
 	std::vector<std::string> lines;
 
@@ -658,7 +647,6 @@ void  SCR_AdjustFrom640( float *x, float *y, float *w, float *h );
 void  SCR_FillRect( float x, float y, float width, float height, const Color::Color& color );
 
 void  SCR_DrawSmallStringExt( int x, int y, const char *string, const Color::Color& setColor, bool forceColor, bool noColorEscape );
-void  SCR_DrawSmallUnichar( int x, int y, int ch );
 void  SCR_DrawConsoleFontUnichar( float x, float y, int ch );
 float SCR_ConsoleFontCharWidth( const char *s );
 float SCR_ConsoleFontUnicharWidth( int ch );

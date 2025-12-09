@@ -22,9 +22,16 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* heatHaze_vp.glsl */
 
+#insert vertexSimple_vp
+#insert vertexSkinning_vp
+#insert vertexAnimation_vp
+
 uniform float		u_Time;
 
-uniform mat4		u_TextureMatrix;
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat3x2 u_TextureMatrix;
+#endif
+
 uniform mat4		u_ProjectionMatrixTranspose;
 uniform mat4		u_ModelViewMatrixTranspose;
 uniform mat4		u_ModelViewProjectionMatrix;
@@ -42,6 +49,8 @@ void DeformVertex( inout vec4 pos,
 
 void	main()
 {
+	#insert material_vp
+
 	vec4            deformVec;
 	float           d1, d2;
 
@@ -66,7 +75,7 @@ void	main()
 	deformVec.z = dot(u_ModelViewMatrixTranspose[2], position);
 
 	// transform normalmap texcoords
-	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec3(texCoord, 1.0)).st;
 
 	d1 = dot(u_ProjectionMatrixTranspose[0],  deformVec);
 	d2 = dot(u_ProjectionMatrixTranspose[3],  deformVec);

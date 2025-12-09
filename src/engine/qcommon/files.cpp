@@ -130,7 +130,7 @@ static fileHandle_t FS_FOpenFileWrite_internal(const char* path, bool temporary)
 	try {
 		handleTable[handle].file = FS::HomePath::OpenWrite(temporary ? std::string(path) + TEMP_SUFFIX : path);
 	} catch (std::system_error& err) {
-		Log::Notice("Failed to open '%s' for writing: %s\n", path, err.what());
+		Log::Notice("Failed to open '%s' for writing: %s", path, err.what());
 		return 0;
 	}
 	handleTable[handle].forceFlush = false;
@@ -158,7 +158,7 @@ fileHandle_t FS_FOpenFileAppend(const char* path)
 	try {
 		handleTable[handle].file = FS::HomePath::OpenAppend(path);
 	} catch (std::system_error& err) {
-		Log::Notice("Failed to open '%s' for appending: %s\n", path, err.what());
+		Log::Notice("Failed to open '%s' for appending: %s", path, err.what());
 		return 0;
 	}
 	handleTable[handle].forceFlush = false;
@@ -267,6 +267,7 @@ int FS_FCloseFile(fileHandle_t handle)
 	handleTable[handle].isOpen = false;
 	if (handleTable[handle].isPakFile) {
 		handleTable[handle].fileData.clear();
+		handleTable[handle].fileData.shrink_to_fit();
 		return 0;
 	} else {
 		try {
@@ -277,13 +278,13 @@ int FS_FCloseFile(fileHandle_t handle)
 				try {
 					FS::RawPath::MoveFile(renameTo, renameTo + TEMP_SUFFIX);
 				} catch (std::system_error& err) {
-					Log::Notice("Failed to replace file %s: %s\n", renameTo.c_str(), err.what());
+					Log::Notice("Failed to replace file %s: %s", renameTo.c_str(), err.what());
 					return -1;
 				}
 			}
 			return 0;
 		} catch (std::system_error& err) {
-			Log::Notice("Failed to close file: %s\n", err.what());
+			Log::Notice("Failed to close file: %s", err.what());
 			return -1;
 		}
 	}
@@ -298,7 +299,7 @@ int FS_filelength(fileHandle_t handle)
 		std::error_code err;
 		int length = handleTable[handle].file.Length(err);
 		if (err) {
-			Log::Notice("Failed to get file length: %s\n", err.message().c_str());
+			Log::Notice("Failed to get file length: %s", err.message().c_str());
 			return 0;
 		}
 		return length;
@@ -355,7 +356,7 @@ int FS_Seek(fileHandle_t handle, long offset, fsOrigin_t origin)
 			}
 			return 0;
 		} catch (std::system_error& err) {
-			Log::Notice("FS_Seek failed: %s\n", err.what());
+			Log::Notice("FS_Seek failed: %s", err.what());
 			return -1;
 		}
 	}
@@ -372,7 +373,7 @@ void FS_Flush(fileHandle_t handle)
 	try {
 		handleTable[handle].file.Flush();
 	} catch (std::system_error& err) {
-		Log::Notice("FS_Flush failed: %s\n", err.what());
+		Log::Notice("FS_Flush failed: %s", err.what());
 	}
 }
 
@@ -385,7 +386,7 @@ int FS_Write(const void* buffer, int len, fileHandle_t handle)
 			handleTable[handle].file.Flush();
 		return len;
 	} catch (std::system_error& err) {
-		Log::Notice("FS_Write failed: %s\n", err.what());
+		Log::Notice("FS_Write failed: %s", err.what());
 		return 0;
 	}
 }
@@ -393,9 +394,11 @@ int FS_Write(const void* buffer, int len, fileHandle_t handle)
 int FS_Read(void* buffer, int len, fileHandle_t handle)
 {
 	FS_CheckHandle(handle, false);
+	if (len < 0)
+		Sys::Drop("FS_Read: invalid length");
 	if (handleTable[handle].isPakFile) {
-		if (len < 0)
-			Sys::Drop("FS_Read: invalid length");
+		if (!len)
+			return 0;
 		if (handleTable[handle].filePos >= handleTable[handle].fileData.size())
 			return 0;
 		len = std::min<size_t>(len, handleTable[handle].fileData.size() - handleTable[handle].filePos);
@@ -406,7 +409,7 @@ int FS_Read(void* buffer, int len, fileHandle_t handle)
 		try {
 			return handleTable[handle].file.Read(buffer, len);
 		} catch (std::system_error& err) {
-			Log::Notice("FS_Read failed: %s\n", err.what());
+			Log::Notice("FS_Read failed: %s", err.what());
 			return 0;
 		}
 	}
@@ -429,7 +432,7 @@ int FS_Delete(const char* path)
 	try {
 		FS::HomePath::DeleteFile(path);
 	} catch (std::system_error& err) {
-		Log::Notice("Failed to delete file '%s': %s\n", path, err.what());
+		Log::Notice("Failed to delete file '%s': %s", path, err.what());
 	}
 	return 0;
 }
@@ -439,7 +442,7 @@ void FS_SV_Rename(const char* from, const char* to)
 	try {
 		FS::HomePath::MoveFile(to, from);
 	} catch (std::system_error& err) {
-		Log::Notice("Failed to move '%s' to '%s': %s\n", from, to, err.what());
+		Log::Notice("Failed to move '%s' to '%s': %s", from, to, err.what());
 	}
 }
 
@@ -450,7 +453,7 @@ void FS_WriteFile(const char* path, const void* buffer, int size)
 		f.Write(buffer, size);
 		f.Close();
 	} catch (std::system_error& err) {
-		Log::Notice("Failed to write file '%s': %s\n", path, err.what());
+		Log::Notice("Failed to write file '%s': %s", path, err.what());
 	}
 }
 
@@ -632,13 +635,15 @@ const char* FS_LoadedPaks()
 	return info;
 }
 
-bool FS_LoadPak(const char* name)
+bool FS_LoadPak(const Str::StringRef name)
 {
 	const FS::PakInfo* pak = FS::FindPak(name);
+
 	if (!pak) {
 		Log::Warn("Pak not found: '%s'", name);
 		return false;
 	}
+
 	try {
 		FS::PakPath::LoadPak(*pak);
 		return true;
@@ -651,13 +656,14 @@ bool FS_LoadPak(const char* name)
 void FS_LoadBasePak()
 {
 	Cmd::Args extrapaks(fs_extrapaks.Get());
-	for (const auto& x: extrapaks) {
-		if (!FS_LoadPak(x.c_str())) {
+	for (auto& x: extrapaks) {
+		if (!FS_LoadPak(x)) {
+
 			Sys::Error("Could not load extra pak '%s'", x.c_str());
 		}
 	}
 
-	if (FS_LoadPak(fs_basepak.Get().c_str())) {
+	if (FS_LoadPak(fs_basepak.Get())) {
 		return; // success
 	}
 
@@ -682,10 +688,19 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 		if (!FS::ParsePakName(x.data(), x.data() + x.size(), name, version, checksum)) {
 			Sys::Drop("Invalid pak reference from server: %s", x.c_str());
 		} else if (!version.empty() && !checksum) {
-			// non-legacy paks (with non empty version) must have a checksum
 			if (isDemo || allowRemotePakDir.Get()) {
+				const FS::PakInfo* pak = FS::FindPak(name, version);
+				if (!pak) {
+					Sys::Drop("Pak %s version %s not found", name, version);
+				}
+				try {
+					FS::PakPath::LoadPakExplicitWithoutChecksum(*pak); // FIXME bogus checksum argument
+				} catch (const std::system_error& e) {
+					Sys::Drop("Failed to load pak %s version %s: %s", name, version, e.what());
+				}
 				continue;
 			}
+			// non-legacy paks (with non empty version) must have a checksum
 			Sys::Drop("The server is configured to load game data from a directory which makes it incompatible with remote clients.");
 		}
 
@@ -706,8 +721,8 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 	if (isDemo) {
 		Cmd::Args extrapaks(fs_extrapaks.Get());
 		for (auto& x: extrapaks) {
-			if (!FS_LoadPak(x.c_str()))
-				Sys::Error("Could not load extra pak '%s'\n", x.c_str());
+			if (!FS_LoadPak(x))
+				Sys::Error("Could not load extra pak '%s'", x.c_str());
 		}
 	}
 
@@ -752,7 +767,7 @@ bool FS_ComparePaks(char* neededpaks, int len)
 class WhichCmd: public Cmd::StaticCmd {
 public:
 	WhichCmd()
-		: Cmd::StaticCmd("which", Cmd::SYSTEM, "shows which pak a file is in") {}
+		: Cmd::StaticCmd("which", Cmd::BASE, "shows which pak a file is in") {}
 
 	void Run(const Cmd::Args& args) const override
 	{
@@ -783,7 +798,7 @@ static WhichCmd WhichCmdRegistration;
 class ListPathsCmd: public Cmd::StaticCmd {
 public:
 	ListPathsCmd()
-		: Cmd::StaticCmd("listPaths", Cmd::SYSTEM, "list filesystem search paths") {}
+		: Cmd::StaticCmd("listPaths", Cmd::BASE, "list filesystem search paths") {}
 
 	void Run(const Cmd::Args&) const override
 	{
@@ -796,7 +811,7 @@ static ListPathsCmd ListPathsCmdRegistration;
 
 class DirCmd: public Cmd::StaticCmd {
 public:
-	DirCmd(): Cmd::StaticCmd("dir", Cmd::SYSTEM, "list all files in a given directory with the option to pass a filter") {}
+	DirCmd(): Cmd::StaticCmd("dir", Cmd::BASE, "list all files in a given directory with the option to pass a filter") {}
 
 	void Run(const Cmd::Args& args) const override
 	{

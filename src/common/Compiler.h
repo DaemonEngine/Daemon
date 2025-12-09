@@ -33,8 +33,81 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_COMPILER_H_
 #define COMMON_COMPILER_H_
 
-// GCC and Clang
-#ifdef __GNUC__
+// Code making use of compiler intrinsics.
+
+/* CountTrailingZeroes returns the number of
+trailing zeroes of the argument in binary.
+The result is unspecified if the input is 0. */
+#if defined(DAEMON_USE_COMPILER_INTRINSICS) && defined(__GNUC__)
+inline int CountTrailingZeroes(unsigned int x)
+{
+	return __builtin_ctz(x);
+}
+inline int CountTrailingZeroes(unsigned long x)
+{
+	return __builtin_ctzl(x);
+}
+inline int CountTrailingZeroes(unsigned long long x)
+{
+	return __builtin_ctzll(x);
+}
+#elif defined(DAEMON_USE_COMPILER_INTRINSICS) && defined(_MSC_VER)
+inline int CountTrailingZeroes(unsigned int x)
+{
+	unsigned long ans; _BitScanForward(&ans, x); return ans;
+}
+inline int CountTrailingZeroes(unsigned long x)
+{
+	unsigned long ans; _BitScanForward(&ans, x); return ans;
+}
+inline int CountTrailingZeroes(unsigned long long x)
+{
+	unsigned long ans;
+	#ifdef _WIN64
+	_BitScanForward64(&ans, x); return ans;
+	#else
+	bool nonzero = _BitScanForward(&ans, static_cast<unsigned long>(x));
+	if (!nonzero) { _BitScanForward(&ans, x >> 32); }
+	#endif
+	return ans;
+}
+#else
+inline int CountTrailingZeroes(unsigned int x)
+{
+	int i = 0; while (i < 32 && !(x & 1)) { ++i; x >>= 1; } return i;
+}
+inline int CountTrailingZeroes(unsigned long x)
+{
+	int i = 0; while (i < 64 && !(x & 1)) { ++i; x >>= 1; } return i;
+}
+inline int CountTrailingZeroes(unsigned long long x)
+{
+	int i = 0; while (i < 64 && !(x & 1)) { ++i; x >>= 1; } return i;
+}
+#endif
+
+// Sanitizer detection
+
+#if defined(__SANITIZE_ADDRESS__) // Detects GCC and MSVC AddressSanitizer
+	#define USING_ADDRESS_SANITIZER
+	#define USING_SANITIZER
+#elif defined(__SANITIZE_THREAD__) // Detects GCC ThreadSanitizer
+	#define USING_SANITIZER
+#elif defined(__has_feature)
+	#if __has_feature(address_sanitizer) // Detects Clang AddressSanitizer
+		#define USING_ADDRESS_SANITIZER
+		#define USING_SANITIZER
+	#elif __has_feature(leak_sanitizer) // Detects Clang LeakSanitizer
+		#define USING_SANITIZER
+	#elif __has_feature(memory_sanitizer) // Detects Clang MemorySanitizer
+		#define USING_SANITIZER
+	#elif __has_feature(thread_sanitizer) // Detects Clang ThreadSanitizer
+		#define USING_SANITIZER
+	#endif
+#endif
+
+// GCC and Clang attribute and operator customization.
+#if defined(DAEMON_USE_COMPILER_CUSTOMIZATION) && defined(__GNUC__)
 
 // Emit a nice warning when a function is used
 #define DEPRECATED __attribute__((__deprecated__))
@@ -61,12 +134,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // other pointer
 #define MALLOC_LIKE __attribute__((__malloc__))
 
-// Marks this function as memory allocator
-#define ALLOCATOR
-
-// Align the address of a variable to a certain value
-#define ALIGNED(a, x) x __attribute__((__aligned__(a)))
-
 // Shared library function import/export
 #ifdef _WIN32
 #define DLLEXPORT __attribute__((__dllexport__))
@@ -78,158 +145,172 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Raise an exception and break in the debugger
 #if defined(DAEMON_ARCH_i686) || defined(DAEMON_ARCH_amd64)
+	// Always run this asm code even if DAEMON_USE_ARCH_INTRINSICS is not defined.
 	#define BREAKPOINT() __asm__ __volatile__("int $3\n\t")
-#elif defined(DAEMON_ARCH_arm64)
-	// TODO find how to implement breakpoint on arm64
-	#define BREAKPOINT()
-#elif defined(DAEMON_ARCH_armhf)
-	// TODO find how to implement breakpoint on armhf
-	#define BREAKPOINT()
-#elif defined(DAEMON_ARCH_pnacl)
-	// TODO find how to implement breakpoint on PNaCl
-	#define BREAKPOINT()
-#elif defined(DAEMON_ARCH_wasm)
-	// TODO find how to implement breakpoint on Wasm
-	#define BREAKPOINT()
-#else
-	#error Implement BREAKPOINT on platform
 #endif
 
-// noexcept keyword, this should be used on all move constructors and move
-// assignments so that containers move objects instead of copying them.
-#define NOEXCEPT noexcept
-#define NOEXCEPT_IF(x) noexcept(x)
-#define NOEXCEPT_EXPR(x) noexcept(x)
+/* Compiler can be fooled when calling ASSERT_UNREACHABLE() macro at end of non-void function.
+In this case, compiler is complaining because control reaches end of non-void function,
+even if the execution flow is expected to be taken down by assert before.
 
-// Work around lack of constexpr
-#define CONSTEXPR constexpr
+That's why we use these compiler specific unreachable builtin on modern compilers,
+ASSERT_UNREACHABLE() macro makes use of this UNREACHABLE() macro, preventing useless warnings.
+Unsupported compilers will raise "control reaches end of non-void function" warnings but
+that's not a big issue and that's likely to never happen (these compilers would be too old and
+would lack too much features to compile Daemon anyway).
+
+See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf */
+#define UNREACHABLE() __builtin_unreachable()
 
 // To mark functions which cause issues with address sanitizer
-#if __clang__
-#if __has_attribute(no_sanitize_address)
-# define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
-#else
-# define ATTRIBUTE_NO_SANITIZE_ADDRESS
-#endif
-#elif __SANITIZE_ADDRESS__
-# define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
-#else
-# define ATTRIBUTE_NO_SANITIZE_ADDRESS
-#endif
-
-// Microsoft Visual C++
-#elif defined( _MSC_VER )
-
-// Disable some warnings
-#pragma warning(disable : 4100) // unreferenced formal parameter
-#pragma warning(disable : 4125) // decimal digit terminates octal escape sequence
-#pragma warning(disable : 4127) // conditional expression is constant
-
-#pragma warning(disable : 4201) // nonstandard extension used: nameless struct / union
-#pragma warning(disable : 4244) // 'XXX': conversion from 'YYY' to 'ZZZ', possible loss of data
-#pragma warning(disable : 4267) // 'initializing' : conversion from 'size_t' to 'int', possible loss of data
-
-#pragma warning(disable : 4458) // declaration of 'XXX' hides class member
-#pragma warning(disable : 4459) // declaration of 'XXX' hides global declaration
-
-#pragma warning(disable : 4701) // potentially uninitialized local variable 'XXX' used
-#pragma warning(disable : 4706) // assignment within conditional expression
-
-#pragma warning(disable : 26495) // Variable 'XXX' is uninitialized. Always initialize a member variable.
-
-// See descriptions above
-#define DEPRECATED __declspec(deprecated)
-#define WARN_UNUSED_RESULT _Check_return_
-#define COLD
-#define NORETURN __declspec(noreturn)
-#define NORETURN_PTR
-#define PRINTF_LIKE(n)
-#define VPRINTF_LIKE(n)
-#define PRINTF_TRANSLATE_ARG(a)
-#if _MSC_VER >= 1900 && !defined( _CORECRT_BUILD )
-#define ALLOCATOR __declspec(allocator)
-#else
-#define ALLOCATOR
-#endif
-#define MALLOC_LIKE ALLOCATOR __declspec(restrict)
-#define ALIGNED(a,x) __declspec(align(a)) x
-#define DLLEXPORT __declspec(dllexport)
-#define DLLIMPORT __declspec(dllimport)
-#define BREAKPOINT() __debugbreak()
-#define NOEXCEPT noexcept
-#define NOEXCEPT_IF(x) noexcept(x)
-#define NOEXCEPT_EXPR(x) noexcept(x)
-#define CONSTEXPR constexpr
-#define ATTRIBUTE_NO_SANITIZE_ADDRESS
-
-// Other compilers, unsupported
-#else
-#warning "Unsupported compiler"
-#define DEPRECATED
-#define WARN_UNUSED_RESULT
-#define COLD
-#define NORETURN
-#define PRINTF_LIKE(n)
-#define VPRINTF_LIKE(n)
-#define PRINTF_TRANSLATE_ARG(a)
-#define MALLOC_LIKE
-#define ALLOCATOR
-#define ALIGNED(a,x) x
-#define DLLEXPORT
-#define DLLIMPORT
-#define BREAKPOINT()
-#endif
-
-#if defined(__MINGW32__) && defined(__i386__)
-// On x86, GCC expects 16-byte stack alignment (used for SSE instructions), but MSVC only uses 4-byte alignment.
-// Therefore the stack needs to be adjusted whenever MSVC code calls into GCC code.
-#   define ALIGN_STACK_FOR_MINGW __attribute__((force_align_arg_pointer))
-#else
-#   define ALIGN_STACK_FOR_MINGW
-#endif
-
-// Uses SD-6 Feature Test Recommendations
-#ifdef __cpp_constexpr
-#   if __cpp_constexpr >= 201304
-#       define CONSTEXPR_FUNCTION_RELAXED constexpr
-#   else
-#       define CONSTEXPR_FUNCTION_RELAXED
-#   endif
-#   define CONSTEXPR_FUNCTION constexpr
-#else
-// Work around lack of constexpr
-#   define CONSTEXPR_FUNCTION
-#   define CONSTEXPR_FUNCTION_RELAXED
+#ifdef USING_ADDRESS_SANITIZER
+	#define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
 #endif
 
 // The new -Wimplicit-fallthrough warning...
 #if defined(__clang__) && __clang_major__ >= 6
-#   define DAEMON_FALLTHROUGH [[clang::fallthrough]]
+	#define DAEMON_FALLTHROUGH [[clang::fallthrough]]
 #elif __GNUC__ >= 7
-#   define DAEMON_FALLTHROUGH [[gnu::fallthrough]]
-#else
-#   define DAEMON_FALLTHROUGH
+	#define DAEMON_FALLTHROUGH [[gnu::fallthrough]]
 #endif
 
-/* Compiler can be fooled when calling ASSERT_UNREACHABLE() macro at end of non-void function.
- * In this case, compiler is complaining because control reaches end of non-void function,
- * even if the execution flow is expected to be taken down by assert before.
- *
- * That's why we use these compiler specific unreachable builtin on modern compilers,
- * ASSERT_UNREACHABLE() macro makes use of this UNREACHABLE() macro, preventing useless warnings.
- * Unsupported compilers will raise "control reaches end of non-void function" warnings but
- * that's not a big issue and that's likely to never happen (these compilers would be too old and
- * would lack too much features to compile Daemon anyway).
- *
- * See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf
-*/
-#if defined(_MSC_VER) //UNREACHABLE
-	#define UNREACHABLE() __assume(0)
-// All of gcc, clang and icc define __GNUC__
-#elif defined(__GNUC__)
-	#define UNREACHABLE() __builtin_unreachable()
-#else // UNREACHABLE
+// Microsoft Visual C++ attribute and operator customization.
+#elif defined(DAEMON_USE_COMPILER_CUSTOMIZATION) && defined(_MSC_VER)
+
+// See descriptions above
+#define DEPRECATED __declspec(deprecated)
+#define WARN_UNUSED_RESULT _Check_return_
+#define NORETURN __declspec(noreturn)
+
+// Marks this function as memory allocator
+#if _MSC_VER >= 1900 && !defined( _CORECRT_BUILD )
+	#define ALLOCATOR __declspec(allocator)
+#endif
+
+#define MALLOC_LIKE ALLOCATOR __declspec(restrict)
+#define DLLEXPORT __declspec(dllexport)
+#define DLLIMPORT __declspec(dllimport)
+#define BREAKPOINT() __debugbreak()
+#define UNREACHABLE() __assume(0)
+
+// Other compilers, unsupported
+#else
+	#warning "Unsupported compiler"
+#endif
+
+// Work around lack of compiler customization.
+#if !defined(DEPRECATED)
+	#define DEPRECATED
+#endif
+#if !defined(WARN_UNUSED_RESULT)
+	#define WARN_UNUSED_RESULT
+#endif
+#if !defined(COLD)
+	#define COLD
+#endif
+#if !defined(NORETURN)
+	#define NORETURN
+#endif
+#if !defined(NORETURN_PTR)
+	#define NORETURN_PTR
+#endif
+#if !defined(PRINTF_LIKE)
+	#define PRINTF_LIKE(n)
+#endif
+#if !defined(VPRINTF_LIKE)
+	#define VPRINTF_LIKE(n)
+#endif
+#if !defined(PRINTF_TRANSLATE_ARG)
+	#define PRINTF_TRANSLATE_ARG(a)
+#endif
+#if !defined(MALLOC_LIKE)
+	#define MALLOC_LIKE
+#endif
+#if !defined(ALLOCATOR)
+	#define ALLOCATOR
+#endif
+#if !defined(DLLEXPORT)
+	#define DLLEXPORT
+#endif
+#if !defined(DLLIMPORT)
+	#define DLLIMPORT
+#endif
+#if !defined(BREAKPOINT)
+	#define BREAKPOINT()
+#endif
+#if !defined(UNREACHABLE)
 	#define UNREACHABLE()
-#endif // UNREACHABLE
+#endif
+#if !defined(ATTRIBUTE_NO_SANITIZE_ADDRESS)
+	#define ATTRIBUTE_NO_SANITIZE_ADDRESS
+#endif
+#if !defined(DAEMON_FALLTHROUGH)
+	#define DAEMON_FALLTHROUGH
+#endif
+
+// Keywords specific to C++ versions
+
+/* TODO: Rewrite all NOEXCEPT usages from the whole code base.
+
+The noexcept keyword should be used on all move constructors and move
+assignments so that containers move objects instead of copying them.
+That keyword was added in C++11, all compilers should now support it. */
+#define NOEXCEPT noexcept
+#define NOEXCEPT_IF(x) noexcept(x)
+#define NOEXCEPT_EXPR(x) noexcept(x)
+
+// Uses SD-6 Feature Test Recommendations
+#if defined(__cpp_constexpr)
+	#define CONSTEXPR constexpr
+	#define CONSTEXPR_FUNCTION constexpr
+	#if __cpp_constexpr >= 201304
+		#define CONSTEXPR_FUNCTION_RELAXED constexpr
+	#endif
+#endif
+
+// Work around lack of language keywords.
+#if !defined(CONSTEXPR)
+	#define CONSTEXPR
+#endif
+#if !defined(CONSTEXPR_FUNCTION)
+	#define CONSTEXPR_FUNCTION
+#endif
+#if !defined(CONSTEXPR_FUNCTION_RELAXED)
+	#define CONSTEXPR_FUNCTION_RELAXED
+#endif
+
+// Compiler specificities we can't disable.
+
+#if defined(__MINGW32__) && defined(__i386__)
+// On x86, GCC expects 16-byte stack alignment (used for SSE instructions), but MSVC only uses 4-byte alignment.
+// Therefore the stack needs to be adjusted whenever MSVC code calls into GCC code.
+	#define ALIGN_STACK_FOR_MINGW __attribute__((force_align_arg_pointer))
+#else
+	#define ALIGN_STACK_FOR_MINGW
+#endif
+
+/* Use a C++11 braced initializer on MSVC instead of a bracket initializer
+when zeroing a struct. This works around a bug in how MSVC generates implicit
+default constructors. -- Amanieu
+
+The MSVC workaround is known to crash ICC, there is no reason to apply MSVC
+workarounds on non-MSVC compilers. -- illwieckz
+
+I believe GCC, Clang, and MSVC have all been seen to crash during compilation
+on either the () or {} forms of these constructors. -- slipher
+
+The actual occasion for using this function is when you want to clear a struct
+with a very large size. Supposedly with some compiler this could cause a
+temporary copy to be placed on the stack and cause a stack overflow if you did
+it the normal way like foo = {}. -- slipher */
+template<typename T>
+void ResetStruct( T& object ) {
+	object.~T();
+#if defined(_MSC_VER)
+	new( &object ) T{};
+#else
+	new( &object ) T();
+#endif
+}
 
 #endif // COMMON_COMPILER_H_

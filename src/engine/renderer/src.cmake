@@ -1,0 +1,71 @@
+
+set(RENDERERLIST
+    ${ENGINE_DIR}/renderer/BufferBind.h
+    ${ENGINE_DIR}/renderer/DetectGLVendors.cpp
+    ${ENGINE_DIR}/renderer/DetectGLVendors.h
+    ${ENGINE_DIR}/renderer/gl_shader.cpp
+    ${ENGINE_DIR}/renderer/gl_shader.h
+    ${ENGINE_DIR}/renderer/iqm.h
+    ${ENGINE_DIR}/renderer/ShadeCommon.h
+    ${ENGINE_DIR}/renderer/tr_animation.cpp
+    ${ENGINE_DIR}/renderer/tr_backend.cpp
+    ${ENGINE_DIR}/renderer/tr_bsp.cpp
+    ${ENGINE_DIR}/renderer/tr_cmds.cpp
+    ${ENGINE_DIR}/renderer/tr_curve.cpp
+    ${ENGINE_DIR}/renderer/tr_fbo.cpp
+    ${ENGINE_DIR}/renderer/tr_font.cpp
+    ${ENGINE_DIR}/renderer/GeometryCache.cpp
+    ${ENGINE_DIR}/renderer/GeometryCache.h
+    ${ENGINE_DIR}/renderer/GeometryOptimiser.cpp
+    ${ENGINE_DIR}/renderer/GeometryOptimiser.h
+    ${ENGINE_DIR}/renderer/GLMemory.cpp
+    ${ENGINE_DIR}/renderer/GLMemory.h
+    ${ENGINE_DIR}/renderer/GLUtils.h
+    ${ENGINE_DIR}/renderer/InternalImage.cpp
+    ${ENGINE_DIR}/renderer/InternalImage.h
+    ${ENGINE_DIR}/renderer/Material.cpp
+    ${ENGINE_DIR}/renderer/Material.h
+    ${ENGINE_DIR}/renderer/TextureManager.cpp
+    ${ENGINE_DIR}/renderer/TextureManager.h
+    ${ENGINE_DIR}/renderer/tr_image.cpp
+    ${ENGINE_DIR}/renderer/tr_image.h
+    ${ENGINE_DIR}/renderer/tr_image_crn.cpp
+    ${ENGINE_DIR}/renderer/tr_image_dds.cpp
+    ${ENGINE_DIR}/renderer/tr_image_jpg.cpp
+    ${ENGINE_DIR}/renderer/tr_image_ktx.cpp
+    ${ENGINE_DIR}/renderer/tr_image_png.cpp
+    ${ENGINE_DIR}/renderer/tr_image_tga.cpp
+    ${ENGINE_DIR}/renderer/tr_image_webp.cpp
+    ${ENGINE_DIR}/renderer/tr_init.cpp
+    ${ENGINE_DIR}/renderer/tr_light.cpp
+    ${ENGINE_DIR}/renderer/tr_local.h
+    ${ENGINE_DIR}/renderer/tr_main.cpp
+    ${ENGINE_DIR}/renderer/tr_marks.cpp
+    ${ENGINE_DIR}/renderer/tr_mesh.cpp
+    ${ENGINE_DIR}/renderer/tr_model.cpp
+    ${ENGINE_DIR}/renderer/tr_model_iqm.cpp
+    ${ENGINE_DIR}/renderer/tr_model_md3.cpp
+    ${ENGINE_DIR}/renderer/tr_model_md5.cpp
+    ${ENGINE_DIR}/renderer/tr_model_skel.cpp
+    ${ENGINE_DIR}/renderer/tr_model_skel.h
+    ${ENGINE_DIR}/renderer/tr_noise.cpp
+    ${ENGINE_DIR}/renderer/tr_scene.cpp
+    ${ENGINE_DIR}/renderer/tr_shade.cpp
+    ${ENGINE_DIR}/renderer/tr_shader.cpp
+    ${ENGINE_DIR}/renderer/tr_shade_calc.cpp
+    ${ENGINE_DIR}/renderer/tr_skin.cpp
+    ${ENGINE_DIR}/renderer/tr_sky.cpp
+    ${ENGINE_DIR}/renderer/tr_surface.cpp
+    ${ENGINE_DIR}/renderer/tr_types.h
+    ${ENGINE_DIR}/renderer/tr_vbo.cpp
+    ${ENGINE_DIR}/renderer/VBO.h
+    ${ENGINE_DIR}/renderer/VertexSpecification.h
+    ${ENGINE_DIR}/renderer/tr_video.cpp
+    ${ENGINE_DIR}/renderer/tr_world.cpp
+    ${ENGINE_DIR}/sys/sdl_glimp.cpp
+    ${ENGINE_DIR}/sys/sdl_icon.h
+)
+
+set(RENDERERTESTLIST
+    ${ENGINE_DIR}/renderer/gl_shader_test.cpp
+)

@@ -34,7 +34,6 @@ Maryland 20850 USA.
 
 // console.c
 
-#include "revision.h"
 #include "client.h"
 #include "qcommon/q_unicode.h"
 #include "framework/LogSystem.h"
@@ -54,6 +53,7 @@ cvar_t    *con_animationSpeed;
 cvar_t    *con_animationType;
 
 cvar_t    *con_autoclear;
+Cvar::Cvar<bool> con_persistOnMapChange( "con_persistOnMapChange", "Current console input will be saved when changing map", Cvar::NONE, false );
 
 /**
  * 0: no scroll lock at all, scroll down on any message arriving
@@ -98,10 +98,12 @@ Con_ToggleConsole_f
 void Con_ToggleConsole_f()
 {
 	// ydnar: persistent console input is more useful
-	if ( con_autoclear->integer )
+	if ( con_autoclear->integer && !( con_persistOnMapChange.Get() && consoleState.changedMap ) )
 	{
 		g_consoleField.Clear();
 	}
+
+	consoleState.changedMap = false;
 
 	g_consoleField.SetWidth(g_console_field_width);
 
@@ -170,7 +172,7 @@ void Con_Dump_f()
 		return;
 	}
 
-	Log::Notice( "Dumped console text to %s.\n", name.c_str() );
+	Log::Notice( "Dumped console text to %s.", name.c_str() );
 
 	// write the remaining lines
 	for ( const std::string& line : consoleState.lines )
@@ -296,9 +298,9 @@ bool Con_CheckResize()
 
 	bool  ret = true;
 
-	if ( cls.glconfig.vidWidth )
+	if ( cls.windowConfig.vidWidth )
 	{
-		int consoleVidWidth = cls.glconfig.vidWidth - 2 * (consoleState.margin.sides + consoleState.padding.sides );
+		int consoleVidWidth = cls.windowConfig.vidWidth - 2 * (consoleState.margin.sides + consoleState.padding.sides );
 		textWidthInChars = consoleVidWidth / SCR_ConsoleFontUnicharWidth( 'W' );
 	}
 	else
@@ -333,31 +335,32 @@ bool Con_CheckResize()
 			// Copy the lines, wrapping them when needed
 			for ( const std::string& line : old_lines )
 			{
-				// Quick case for empty lines
-				if ( line.empty() )
-				{
-					consoleState.lines.emplace_back();
-					continue;
-				}
+				consoleState.lines.emplace_back();
 
 				// Count the number of visible characters, adding a new line when too long
 				const char* begin = line.c_str();
 				int len = 0;
+				Str::StringView lastColorToken;
 				for ( const auto& token : Color::Parser( line.c_str() ) )
 				{
-					if ( token.Type() == Color::Token::TokenType::CHARACTER || token.Type() == Color::Token::TokenType::ESCAPE )
+					if ( token.Type() == Color::Token::TokenType::COLOR )
+					{
+						lastColorToken = token.RawToken();
+					}
+					else
 					{
 						len++;
-					}
-					if ( len > consoleState.textWidthInChars )
-					{
-						consoleState.lines.emplace_back( begin, token.RawToken().begin() );
-						begin = token.RawToken().begin();
-						len = 0;
+						if ( len > consoleState.textWidthInChars )
+						{
+							consoleState.lines.back().append( begin, token.RawToken().begin() );
+							begin = token.RawToken().begin();
+							len = 0;
+							consoleState.lines.emplace_back( lastColorToken.begin(), lastColorToken.end() );
+						}
 					}
 				}
 				// add the remainder of the line
-				consoleState.lines.emplace_back( begin, (&line.back()) + 1 );
+				consoleState.lines.back().append( begin, line.data() + line.size() );
 			}
 		}
 		else
@@ -413,7 +416,9 @@ void Con_Init()
 
 	// Done defining cvars for console colors
 
-	g_consoleField.Clear();
+	if ( !con_persistOnMapChange.Get() ) {
+		g_consoleField.Clear();
+	}
 	g_consoleField.SetWidth(g_console_field_width);
 
 	Cmd_AddCommand( "toggleConsole", Con_ToggleConsole_f );
@@ -478,7 +483,7 @@ bool CL_InternalConsolePrint( const char *text )
 	}
 
 	//Video hasn't been initialized
-	if ( ! cls.glconfig.vidWidth ) {
+	if ( ! cls.windowConfig.vidWidth ) {
 		return false;
 	}
 
@@ -496,12 +501,13 @@ bool CL_InternalConsolePrint( const char *text )
 
 	Con_Linefeed();
 
+	Str::StringView activeColorToken;
 	for ( const auto& token : Color::Parser( text ) )
 	{
 		if ( token.Type() == Color::Token::TokenType::COLOR )
 		{
-			Str::StringView colorToken = token.RawToken();
-			consoleState.lines.back().append( colorToken.begin(), colorToken.end() );
+			activeColorToken = token.RawToken();
+			consoleState.lines.back().append( activeColorToken.begin(), activeColorToken.end() );
 			continue;
 		}
 
@@ -528,6 +534,7 @@ bool CL_InternalConsolePrint( const char *text )
 			if ( consoleState.lines.back().size() + wordLen >= size_t(consoleState.textWidthInChars) )
 			{
 				Con_Linefeed();
+				consoleState.lines.back().append( activeColorToken.begin(), activeColorToken.end() );
 			}
 		}
 
@@ -535,6 +542,7 @@ bool CL_InternalConsolePrint( const char *text )
 		{
 			case '\n':
 				Con_Linefeed();
+				activeColorToken = {};
 				break;
 
 			default: // display character and advance
@@ -547,6 +555,7 @@ bool CL_InternalConsolePrint( const char *text )
 				if ( consoleState.lines.back().size() >= size_t(consoleState.textWidthInChars) )
 				{
 					Con_Linefeed();
+					consoleState.lines.back().append( activeColorToken.begin(), activeColorToken.end() );
 				}
 
 				break;
@@ -577,7 +586,7 @@ Draws the background of the console (on the virtual 640x480 resolution)
 */
 void Con_DrawBackground()
 {
-	const int consoleWidth = cls.glconfig.vidWidth - 2 * consoleState.margin.sides;
+	const int consoleWidth = cls.windowConfig.vidWidth - 2 * consoleState.margin.sides;
 
 	// draw the background
 	Color::Color color (
@@ -608,7 +617,7 @@ void Con_DrawBackground()
 		              consoleState.border.sides, consoleState.height + consoleState.border.bottom, borderColor );
 
 		//right border
-		SCR_FillRect( cls.glconfig.vidWidth - consoleState.margin.sides, consoleState.margin.top - consoleState.border.top,
+		SCR_FillRect( cls.windowConfig.vidWidth - consoleState.margin.sides, consoleState.margin.top - consoleState.border.top,
 		              consoleState.border.sides, consoleState.border.top + consoleState.height, borderColor );
 
 		//bottom border
@@ -642,9 +651,10 @@ void Con_DrawInput( int linePosition, float overrideAlpha )
 
 	SCR_DrawSmallStringExt( consoleState.margin.sides + consoleState.padding.sides, linePosition, prompt, color, false, false );
 
-	Color::StripColors( prompt );
+	std::string decoloredPrompt = Color::StripColors( prompt );
 	Field_Draw( g_consoleField,
-		consoleState.margin.sides + consoleState.padding.sides + SCR_ConsoleFontStringWidth( prompt, strlen( prompt ) ),
+		consoleState.margin.sides + consoleState.padding.sides +
+			SCR_ConsoleFontStringWidth( decoloredPrompt.c_str(), decoloredPrompt.size() ),
 		linePosition, true, true, color.Alpha() );
 }
 
@@ -660,7 +670,7 @@ void Con_DrawRightFloatingTextLine( const int linePosition, const Color::Color& 
 	                          + charHeight;
 
 	i = strlen( text );
-	currentWidthLocation = cls.glconfig.vidWidth
+	currentWidthLocation = cls.windowConfig.vidWidth
 	                     - SCR_ConsoleFontStringWidth( text, i )
 	                     - consoleState.margin.sides - consoleState.padding.sides;
 
@@ -717,7 +727,7 @@ void Con_DrawConsoleScrollbackIndicator( int lineDrawPosition )
 void Con_DrawConsoleScrollbar()
 {
 	const int	freeConsoleHeight = consoleState.height - consoleState.padding.top - consoleState.padding.bottom;
-	const float scrollBarX = cls.glconfig.vidWidth - consoleState.margin.sides - consoleState.padding.sides - 2 * consoleState.border.sides;
+	const float scrollBarX = cls.windowConfig.vidWidth - consoleState.margin.sides - consoleState.padding.sides - 2 * consoleState.border.sides;
 	const float scrollBarY = consoleState.margin.top + consoleState.border.top + consoleState.padding.top + freeConsoleHeight * 0.10f;
 	const float scrollBarLength = freeConsoleHeight * 0.80f;
 	const float scrollBarWidth = consoleState.border.sides * 2;
@@ -773,7 +783,7 @@ void Con_DrawScrollbackMarkerline( int lineDrawPosition )
 
 	SCR_FillRect(	consoleState.margin.sides + consoleState.border.sides + consoleState.padding.sides/2,
 					lineDrawPosition + SCR_ConsoleFontCharVPadding(),
-					cls.glconfig.vidWidth - 2 * consoleState.margin.sides - 2 * consoleState.border.sides - consoleState.padding.sides/2 - scrollBarImpliedPadding,
+					cls.windowConfig.vidWidth - 2 * consoleState.margin.sides - 2 * consoleState.border.sides - consoleState.padding.sides/2 - scrollBarImpliedPadding,
 					1, color );
 }
 
@@ -857,7 +867,7 @@ void Con_DrawConsoleContent()
 
 	lineDrawPosition -= charHeight;
 
-	row = consoleState.bottomDisplayedLine;
+	row = floor( consoleState.bottomDisplayedLine );
 
 	lineDrawLowestPosition = lineDrawPosition;
 
@@ -923,7 +933,7 @@ void Con_DrawAnimatedConsole()
 	//clip about text and content to the console
 	contentClipping [ 0 ] = consoleState.margin.sides + consoleState.border.sides; //x
 	contentClipping [ 1 ] = consoleState.margin.top + consoleState.border.top; //y
-	contentClipping [ 2 ] = cls.glconfig.vidWidth - consoleState.margin.sides - consoleState.border.sides; //x-end
+	contentClipping [ 2 ] = cls.windowConfig.vidWidth - consoleState.margin.sides - consoleState.border.sides; //x-end
 	contentClipping [ 3 ] = consoleState.margin.top + consoleState.border.top + consoleState.height ; //y-end
 	re.SetClipRegion( contentClipping );
 
@@ -1009,7 +1019,7 @@ void Con_UpdateConsoleState()
 	/*
 	 * calculate current console height
 	 */
-	consoleState.height = con_height->integer * 0.01f * (cls.glconfig.vidHeight
+	consoleState.height = con_height->integer * 0.01f * (cls.windowConfig.vidHeight
 						- consoleState.margin.top - consoleState.margin.bottom
 						- consoleState.border.top - consoleState.border.bottom
 						);
@@ -1028,9 +1038,9 @@ void Con_UpdateConsoleState()
 		consoleState.height *= consoleState.currentAnimationFraction;
 	}
 
-	if ( consoleState.height > cls.glconfig.vidHeight )
+	if ( consoleState.height > cls.windowConfig.vidHeight )
 	{
-		consoleState.height = cls.glconfig.vidHeight;
+		consoleState.height = cls.windowConfig.vidHeight;
 	}
 
 	/*
@@ -1072,7 +1082,7 @@ void Con_RunAnimatedConsole()
 		Con_UpdateConsoleState( ); //recalculate
 	}
 
-	consoleVidWidth = cls.glconfig.vidWidth - 2 * (consoleState.margin.sides + consoleState.padding.sides );
+	consoleVidWidth = cls.windowConfig.vidWidth - 2 * (consoleState.margin.sides + consoleState.padding.sides );
 
 	if( 2 * con_horizontalPadding->value >= consoleVidWidth )
 	{
@@ -1204,7 +1214,7 @@ class GraphicalTarget : public Log::Target {
 			}
 
 			//Video hasn't been initialized
-			if ( ! cls.glconfig.vidWidth ) {
+			if ( ! cls.windowConfig.vidWidth ) {
 				return false;
 			}
 
@@ -1294,9 +1304,12 @@ void Con_Close()
 		return;
 	}
 
-	g_consoleField.Clear();
+	if ( !con_persistOnMapChange.Get() ) {
+		g_consoleField.Clear();
+	}
 	cls.keyCatchers &= ~KEYCATCH_CONSOLE;
 	consoleState.isOpened = false;
+	consoleState.changedMap = true;
 
 	//instant disappearance, if we need it for situations where this is not called by the user
 	consoleState.currentAnimationFraction = 0;

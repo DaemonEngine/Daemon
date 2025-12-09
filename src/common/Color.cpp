@@ -84,21 +84,6 @@ int StrlenNocolor( const char *string )
 	return len;
 }
 
-char *StripColors( char *string )
-{
-	char *out = string;
-
-	for ( const auto& token : Parser( string ) )
-	{
-		Str::StringView text = token.PlainText();
-		memmove( out, text.begin(), text.size() );
-		out += text.size();
-	}
-
-	*out = '\0';
-	return string;
-}
-
 void StripColors( const char *in, char *out, size_t len )
 {
 	for ( const auto& token : Parser( in ) )
@@ -108,7 +93,7 @@ void StripColors( const char *in, char *out, size_t len )
 		{
 			break;
 		}
-		memcpy( out, text.begin(), text.size() );
+		std::copy( text.begin(), text.end(), out );
 		out += text.size();
 		len -= text.size();
 	}
@@ -116,7 +101,7 @@ void StripColors( const char *in, char *out, size_t len )
 	*out = '\0';
 }
 
-std::string StripColors( const std::string& input )
+std::string StripColors( Str::StringRef input )
 {
 	std::string output;
 	output.reserve( input.size() );

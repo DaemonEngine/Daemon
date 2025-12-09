@@ -38,6 +38,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Compiler.h"
 #include "Math.h"
 
+inline float convertFromSRGB( float f, bool accurate = true )
+{
+	if ( accurate )
+	{
+		return f <= 0.04045f ? f * (1.0f / 12.92f) : pow((f + 0.055f) * (1.0f / 1.055f), 2.4f);
+	}
+
+	return pow( f, 2.2f );
+}
+
+inline void convertFromSRGB( float* v, bool accurate = true )
+{
+	v[ 0 ] = convertFromSRGB( v[ 0 ], accurate );
+	v[ 1 ] = convertFromSRGB( v[ 1 ], accurate );
+	v[ 2 ] = convertFromSRGB( v[ 2 ], accurate );
+}
+
+inline void convertFromSRGB( byte* bytes, bool accurate = true )
+{
+	vec3_t v;
+	VectorScale( bytes, 1.0f / 255.0f, v );
+	convertFromSRGB( v, accurate );
+	VectorScale( v, 255.0f, bytes );
+}
+
 namespace Color {
 
 /*
@@ -102,10 +127,10 @@ public:
 
 	ColorAdaptor( const Component* array ) : array( array ) {}
 
-	Component Red() const { return array[0]; }
-	Component Green() const { return array[1]; }
-	Component Blue() const { return array[2]; }
-	Component Alpha() const { return array[3]; }
+	Component Red() const { return array[ 0 ]; }
+	Component Green() const { return array[ 1 ]; }
+	Component Blue() const { return array[ 2 ]; }
+	Component Alpha() const { return array[ 3 ]; }
 
 private:
 	const Component* array;
@@ -163,7 +188,7 @@ public:
 	// Initialize from the components
 	CONSTEXPR_FUNCTION BasicColor( component_type r, component_type g, component_type b,
 	       component_type a = component_max ) NOEXCEPT
-		: red( r ), green( g ), blue( b ), alpha( a )
+		: data_{ r, g, b, a }
 	{}
 
     // Default constructor, all components set to zero
@@ -175,21 +200,21 @@ public:
     BasicColor& operator=( BasicColor&& ) NOEXCEPT = default;
 
 	template<class T, class = std::enable_if<T::is_color>>
-		BasicColor( const T& adaptor ) :
-			red  ( ConvertComponent<T>( adaptor.Red()   ) ),
-			green( ConvertComponent<T>( adaptor.Green() ) ),
-			blue ( ConvertComponent<T>( adaptor.Blue()  ) ),
-			alpha( ConvertComponent<T>( adaptor.Alpha() ) )
+		BasicColor( const T& adaptor ) : data_{
+			ConvertComponent<T>( adaptor.Red() ),
+			ConvertComponent<T>( adaptor.Green() ),
+			ConvertComponent<T>( adaptor.Blue() ),
+			ConvertComponent<T>( adaptor.Alpha() ) }
 		{}
 
 
 	template<class T, class = std::enable_if<T::is_color>>
 		BasicColor& operator=( const T& adaptor )
 		{
-			red   = ConvertComponent<T>( adaptor.Red()   );
-			green = ConvertComponent<T>( adaptor.Green() );
-			blue  = ConvertComponent<T>( adaptor.Blue()  );
-			alpha = ConvertComponent<T>( adaptor.Alpha() );
+			SetRed( ConvertComponent<T>( adaptor.Red() ) );
+			SetGreen( ConvertComponent<T>( adaptor.Green() ) );
+			SetBlue( ConvertComponent<T>( adaptor.Blue() ) );
+			SetAlpha( ConvertComponent<T>( adaptor.Alpha() ) );
 
 			return *this;
 		}
@@ -197,63 +222,79 @@ public:
 	// Converts to an array
 	CONSTEXPR_FUNCTION const component_type* ToArray() const NOEXCEPT
 	{
-		return &red;
+		return data_;
 	}
 
 	CONSTEXPR_FUNCTION_RELAXED component_type* ToArray() NOEXCEPT
 	{
-		return &red;
+		return data_;
 	}
 
 	void ToArray( component_type* output ) const
 	{
-		memcpy( output, ToArray(), ArrayBytes() );
+		std::copy_n( ToArray(), 4, output );
 	}
 
 	// Size of the memory location returned by ToArray() in bytes
 	CONSTEXPR_FUNCTION std::size_t ArrayBytes() const NOEXCEPT
 	{
-		return 4 * Traits::component_size;
+		return sizeof(data_);
 	}
 
 	CONSTEXPR_FUNCTION component_type Red() const NOEXCEPT
 	{
-		return red;
+		return data_[ 0 ];
 	}
 
 	CONSTEXPR_FUNCTION component_type Green() const NOEXCEPT
 	{
-		return green;
+		return data_[ 1 ];
 	}
 
 	CONSTEXPR_FUNCTION component_type Blue() const NOEXCEPT
 	{
-		return blue;
+		return data_[ 2 ];
 	}
 
 	CONSTEXPR_FUNCTION component_type Alpha() const NOEXCEPT
 	{
-		return alpha;
+		return data_[ 3 ];
 	}
 
 	CONSTEXPR_FUNCTION_RELAXED void SetRed( component_type v ) NOEXCEPT
 	{
-		red = v;
+		data_[ 0 ] = v;
 	}
 
 	CONSTEXPR_FUNCTION_RELAXED void SetGreen( component_type v ) NOEXCEPT
 	{
-		green = v;
+		data_[ 1 ] = v;
 	}
 
 	CONSTEXPR_FUNCTION_RELAXED void SetBlue( component_type v ) NOEXCEPT
 	{
-		blue = v;
+		data_[ 2 ] = v;
 	}
 
 	CONSTEXPR_FUNCTION_RELAXED void SetAlpha( component_type v ) NOEXCEPT
 	{
-		alpha = v;
+		data_[ 3 ] = v;
+	}
+
+	static component_type ConvertFromSRGB( component_type v, bool accurate = true ) NOEXCEPT
+	{
+		float f = float( v ) / float( component_max );
+		f = convertFromSRGB( f, accurate );
+		return component_type( f * float( component_max ) );
+	}
+
+	BasicColor ConvertFromSRGB( bool accurate = true ) const NOEXCEPT
+	{
+		return BasicColor(
+			ConvertFromSRGB( Red(), accurate ),
+			ConvertFromSRGB( Green(), accurate ),
+			ConvertFromSRGB( Blue(), accurate ),
+			Alpha() );
 	}
 
 	CONSTEXPR_FUNCTION_RELAXED BasicColor& operator*=( float factor ) NOEXCEPT
@@ -262,18 +303,19 @@ public:
 		return *this;
 	}
 
+	// FIXME: multiplying both rgb AND alpha by something doesn't seem like an operation anyone would want
 	CONSTEXPR_FUNCTION BasicColor operator*( float factor ) const NOEXCEPT
 	{
-		return BasicColor( red * factor, green * factor, blue * factor, alpha * factor );
+		return BasicColor( Red() * factor, Green() * factor, Blue() * factor, Alpha() * factor );
 	}
 
 	// Fits the component values from 0 to component_max
 	CONSTEXPR_FUNCTION_RELAXED void Clamp()
 	{
-		red = Math::Clamp<component_type>( red, component_type(), component_max );
-		green = Math::Clamp<component_type>( green, component_type(), component_max );
-		blue = Math::Clamp<component_type>( blue, component_type(), component_max );
-		alpha = Math::Clamp<component_type>( alpha, component_type(), component_max );
+		SetRed( Math::Clamp<component_type>( Red(), component_type(), component_max ) );
+		SetGreen( Math::Clamp<component_type>( Green(), component_type(), component_max ) );
+		SetBlue( Math::Clamp<component_type>( Blue(), component_type(), component_max ) );
+		SetAlpha( Math::Clamp<component_type>( Alpha(), component_type(), component_max ) );
 	}
 
 private:
@@ -299,8 +341,7 @@ private:
 		return from;
 	}
 
-	component_type red = 0, green = 0, blue = 0, alpha = 0;
-
+	component_type data_[4]{};
 };
 
 using Color = BasicColor<float>;
@@ -577,15 +618,12 @@ private:
 // UTF-8 sequences are counted as a single character
 int StrlenNocolor( const char* string );
 
-// Removes the color codes from string (in place)
-char* StripColors( char* string );
+// Returns the plain text of the possibly color-coded string
+std::string StripColors( Str::StringRef string );
 
-// Removes color codes from in, writing to out
+// Removes color codes from in, writing its plain text to out
 // Pre: in NUL terminated and out can contain at least len characters
 void StripColors( const char *in, char *out, size_t len );
-
-// Overload for C++ strings
-std::string StripColors( const std::string& input );
 
 } // namespace Color
 

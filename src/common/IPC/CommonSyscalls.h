@@ -260,7 +260,7 @@ namespace VM {
 
     using FSInitializeMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_INITIALIZE>>,
-        IPC::Reply<std::string, std::string, std::vector<FS::PakInfo>, std::vector<FS::LoadedPakInfo>, std::unordered_map<std::string, std::pair<uint32_t, FS::offset_t>>>
+        IPC::Reply<std::string, std::string, std::vector<FS::PakInfo>, std::vector<FS::LoadedPakInfo>, std::unordered_map<std::string, std::pair<uint32_t, FS::offset_t>, Str::IHash, Str::IEqual>>
     >;
     using FSHomePathFileExistsMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_HOMEPATH_FILEEXISTS>, std::string>,

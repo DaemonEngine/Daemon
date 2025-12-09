@@ -33,84 +33,9 @@ Maryland 20850 USA.
 */
 
 // q_shared.c -- stateless support routines that are included in each code dll
+#include "qcommon.h"
 #include "q_shared.h"
 #include "q_unicode.h"
-
-/*
-============================================================================
-
-GROWLISTS
-
-============================================================================
-*/
-
-void Com_InitGrowList( growList_t *list, int maxElements )
-{
-	list->maxElements = maxElements;
-	list->currentElements = 0;
-	list->elements = ( void ** ) malloc( list->maxElements * sizeof( void * ) );
-}
-
-void Com_DestroyGrowList( growList_t *list )
-{
-	free( list->elements );
-	memset( list, 0, sizeof( *list ) );
-}
-
-int Com_AddToGrowList( growList_t *list, void *data )
-{
-	void **old;
-
-	if ( list->currentElements != list->maxElements )
-	{
-		list->elements[ list->currentElements ] = data;
-		return list->currentElements++;
-	}
-
-	// grow, reallocate and move
-	old = list->elements;
-
-	if ( list->maxElements < 0 )
-	{
-        Sys::Error( "Com_AddToGrowList: maxElements = %i", list->maxElements );
-	}
-
-	if ( list->maxElements == 0 )
-	{
-		// initialize the list to hold 100 elements
-		Com_InitGrowList( list, 100 );
-		return Com_AddToGrowList( list, data );
-	}
-
-	list->maxElements *= 2;
-
-//  Log::Debug("Resizing growlist to %i maxElements", list->maxElements);
-
-	list->elements = ( void ** ) malloc( list->maxElements * sizeof( void * ) );
-
-	if ( !list->elements )
-	{
-        Sys::Drop( "Growlist alloc failed" );
-	}
-
-	memcpy( list->elements, old, list->currentElements * sizeof( void * ) );
-
-	free( old );
-
-	return Com_AddToGrowList( list, data );
-}
-
-void           *Com_GrowListElement( const growList_t *list, int index )
-{
-	if ( index < 0 || index >= list->currentElements )
-	{
-        Sys::Drop( "Com_GrowListElement: %i out of range of %i", index, list->currentElements );
-	}
-
-	return list->elements[ index ];
-}
-
-//=============================================================================
 
 /*
 COM_FixPath()
@@ -363,45 +288,6 @@ int Com_HashKey( char *string, int maxlen )
 /*
 ============================================================================
 
-q_shared.h-enum to name conversion
-
-============================================================================
-*/
-
-const char *Com_EntityTypeName(entityType_t entityType)
-{
-	switch (entityType)
-	{
-	case entityType_t::ET_GENERAL:          return "GENERAL";
-	case entityType_t::ET_PLAYER:           return "PLAYER";
-	case entityType_t::ET_ITEM:             return "ITEM";
-	case entityType_t::ET_BUILDABLE:        return "BUILDABLE";
-	case entityType_t::ET_LOCATION:         return "LOCATION";
-	case entityType_t::ET_MISSILE:          return "MISSILE";
-	case entityType_t::ET_MOVER:            return "MOVER";
-	case entityType_t::ET_PORTAL:           return "PORTAL";
-	case entityType_t::ET_SPEAKER:          return "SPEAKER";
-	case entityType_t::ET_PUSHER:           return "PUSHER";
-	case entityType_t::ET_TELEPORTER:       return "TELEPORTER";
-	case entityType_t::ET_INVISIBLE:        return "INVISIBLE";
-	case entityType_t::ET_FIRE:             return "FIRE";
-	case entityType_t::ET_CORPSE:           return "CORPSE";
-	case entityType_t::ET_PARTICLE_SYSTEM:  return "PARTICLE_SYSTEM";
-	case entityType_t::ET_ANIMMAPOBJ:       return "ANIMMAPOBJ";
-	case entityType_t::ET_MODELDOOR:        return "MODELDOOR";
-	case entityType_t::ET_LIGHTFLARE:       return "LIGHTFLARE";
-	case entityType_t::ET_LEV2_ZAP_CHAIN:   return "LEV2_ZAP_CHAIN";
-	case entityType_t::ET_BEACON:   	return "BEACON";
-	default:
-		if(entityType >= entityType_t::ET_EVENTS)
-			return "EVENT";
-		return nullptr;
-	}
-}
-
-/*
-============================================================================
-
 PARSING
 
 ============================================================================
@@ -419,22 +305,13 @@ static char com_token[ MAX_TOKEN_CHARS ];
 static char com_parsename[ MAX_TOKEN_CHARS ];
 static int  com_lines;
 
-static int  backup_lines;
-static const char *backup_text;
-
 void COM_BeginParseSession( const char *name )
 {
 	com_lines = 0;
 	Com_sprintf( com_parsename, sizeof( com_parsename ), "%s", name );
 }
 
-void COM_BackupParseSession( const char **data_p )
-{
-	backup_lines = com_lines;
-	backup_text = *data_p;
-}
-
-char *COM_Parse( const char **data_p )
+const char *COM_Parse( const char **data_p )
 {
 	return COM_ParseExt( data_p, true );
 }
@@ -500,26 +377,27 @@ static const char *SkipWhitespace( const char *data, bool *hasNewLines )
 
 int COM_Compress( char *data_p )
 {
-	char     *datai, *datao;
-	int      c, size;
+	char *datai, *datao;
 	bool ws = false;
 
-	size = 0;
+	int size = 0;
 	datai = datao = data_p;
 
+	char c;
 	if ( datai )
 	{
 		while ( ( c = *datai ) != 0 )
 		{
-			if ( c == 13 || c == 10 )
+			if ( c == '\n' || c == '\r' )
 			{
+				c = '\n'; // Change `\r` endings to `\n`
 				*datao = c;
 				datao++;
 				ws = false;
 				datai++;
 				size++;
-				// skip double slash comments
 			}
+			// skip double slash comments
 			else if ( c == '/' && datai[ 1 ] == '/' )
 			{
 				while ( *datai && *datai != '\n' )
@@ -528,8 +406,9 @@ int COM_Compress( char *data_p )
 				}
 
 				ws = false;
-				// skip /* */ comments
+				
 			}
+			// skip /* */ comments
 			else if ( c == '/' && datai[ 1 ] == '*' )
 			{
 				datai += 2; // Arnout: skip over '/*'
@@ -568,7 +447,7 @@ int COM_Compress( char *data_p )
 	return size;
 }
 
-char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
+const char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
 {
 	int      c = 0, len;
 	bool hasNewLines = false;
@@ -584,9 +463,6 @@ char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
 		*data_p = nullptr;
 		return com_token;
 	}
-
-	// RF, backup the session data so we can unget easily
-	COM_BackupParseSession( data_p );
 
 	while (true)
 	{
@@ -733,7 +609,7 @@ char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
 
 	if ( len == MAX_TOKEN_CHARS )
 	{
-//		Log::Notice ("Token exceeded %i chars, discarded.\n", MAX_TOKEN_CHARS);
+//		Log::Notice ("Token exceeded %i chars, discarded.", MAX_TOKEN_CHARS);
 		len = 0;
 	}
 
@@ -743,13 +619,13 @@ char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
 	return com_token;
 }
 
-char           *COM_Parse2( const char **data_p )
+const char *COM_Parse2( const char **data_p )
 {
 	return COM_ParseExt2( data_p, true );
 }
 
 // *INDENT-OFF*
-char           *COM_ParseExt2( const char **data_p, bool allowLineBreaks )
+const char *COM_ParseExt2( const char **data_p, bool allowLineBreaks )
 {
 	int        c = 0, len;
 	bool   hasNewLines = false;
@@ -771,9 +647,6 @@ char           *COM_ParseExt2( const char **data_p, bool allowLineBreaks )
 		*data_p = nullptr;
 		return com_token;
 	}
-
-	// RF, backup the session data so we can unget easily
-	COM_BackupParseSession( data_p );
 
 	// skip whitespace
 	while (true)
@@ -1016,23 +889,6 @@ char           *COM_ParseExt2( const char **data_p, bool allowLineBreaks )
 // *INDENT-ON*
 
 /*
-==================
-COM_MatchToken
-==================
-*/
-void COM_MatchToken( const char **buf_p, const char *match )
-{
-	char *token;
-
-	token = COM_Parse( buf_p );
-
-	if ( strcmp( token, match ) )
-	{
-        Sys::Drop( "MatchToken: %s != %s", token, match );
-	}
-}
-
-/*
 =================
 SkipBracedSection_Depth
 
@@ -1040,11 +896,9 @@ SkipBracedSection_Depth
 */
 bool SkipBracedSection_Depth( const char **program, int depth )
 {
-	char *token;
-
 	do
 	{
-		token = COM_ParseExt( program, true );
+		const char *token = COM_ParseExt( program, true );
 
 		if ( token[ 1 ] == 0 )
 		{
@@ -1075,14 +929,13 @@ Returns whether the close brace was found.
 */
 bool SkipBracedSection( const char **program )
 {
-	char *token;
 	int  depth;
 
 	depth = 0;
 
 	do
 	{
-		token = COM_ParseExt( program, true );
+		const char *token = COM_ParseExt( program, true );
 
 		if ( token[ 1 ] == 0 )
 		{
@@ -1149,13 +1002,13 @@ int Com_ParseInfos( const char *buf, int max, char infos[][ MAX_INFO_STRING ] )
 
 		if ( strcmp( token, "{" ) )
 		{
-            Log::Notice( "Missing { in info file\n" );
+            Log::Notice( "Missing { in info file" );
 			break;
 		}
 
 		if ( count == max )
 		{
-            Log::Notice( "Max infos exceeded\n" );
+            Log::Notice( "Max infos exceeded" );
 			break;
 		}
 
@@ -1167,7 +1020,7 @@ int Com_ParseInfos( const char *buf, int max, char infos[][ MAX_INFO_STRING ] )
 
 			if ( !token[ 0 ] )
 			{
-                Log::Notice( "Unexpected end of info file\n" );
+                Log::Notice( "Unexpected end of info file" );
 				break;
 			}
 
@@ -1253,9 +1106,9 @@ const char *Com_ClearForeignCharacters( const char *str )
 	static char *clean = nullptr; // much longer than needed
 	int          i, j, size;
 
-	free( clean );
+	Z_Free( clean );
 	size = strlen( str );
-	clean = (char*)malloc ( size + 1 ); // guaranteed sufficient
+	clean = (char*)Z_AllocUninit( size + 1 ); // guaranteed sufficient
 
 	i = -1;
 	j = 0;
@@ -1803,12 +1656,12 @@ int PRINTF_LIKE(3) Com_sprintf( char *dest, int size, const char *fmt, ... )
 
 	if ( len >= size )
 	{
-        Log::Notice( "Com_sprintf: Output length %d too short, %d bytes required.\n", size, len + 1 );
+        Log::Notice( "Com_sprintf: Output length %d too short, %d bytes required.", size, len + 1 );
 	}
 
 	if ( len == -1 )
 	{
-        Log::Notice( "Com_sprintf: overflow of %i bytes buffer\n", size );
+        Log::Notice( "Com_sprintf: overflow of %i bytes buffer", size );
 	}
 
 	return len;
@@ -1875,7 +1728,7 @@ std::string InfoMapToString( const InfoMap& map )
 		if ( pair.first.find( INFO_SEPARATOR ) != std::string::npos ||
 			pair.second.find( INFO_SEPARATOR ) != std::string::npos )
 		{
-			Log::Notice( "Can't use keys or values with a \\\n" );
+			Log::Notice( "Can't use keys or values with a \\" );
 			continue;
 		}
 
@@ -2166,19 +2019,19 @@ void Info_SetValueForKey( char *s, const char *key, const char *value, bool big 
 
 	if ( strchr( key, '\\' ) || ( value && strchr( value, '\\' ) ) )
 	{
-        Log::Notice( "Can't use keys or values with a \\\n" );
+        Log::Notice( "Can't use keys or values with a \\" );
 		return;
 	}
 
 	if ( strchr( key, ';' ) || ( value && strchr( value, ';' ) ) )
 	{
-        Log::Notice( "Can't use keys or values with a semicolon\n" );
+        Log::Notice( "Can't use keys or values with a semicolon" );
 		return;
 	}
 
 	if ( strchr( key, '\"' ) || ( value && strchr( value, '\"' ) ) )
 	{
-        Log::Notice( "Can't use keys or values with a \"\n" );
+        Log::Notice( "Can't use keys or values with a \"" );
 		return;
 	}
 
@@ -2193,7 +2046,7 @@ void Info_SetValueForKey( char *s, const char *key, const char *value, bool big 
 
 	if ( strlen( newi ) + slen >= (unsigned) maxlen )
 	{
-        Log::Notice( "Info string length exceeded\n" );
+        Log::Notice( "Info string length exceeded" );
 		return;
 	}
 
@@ -2213,7 +2066,7 @@ void Info_SetValueForKeyRocket( char *s, const char *key, const char *value, boo
 
 	if ( strchr( key, '\\' ) || ( value && strchr( value, '\\' ) ) )
 	{
-        Log::Notice( "Can't use keys or values with a \\\n" );
+        Log::Notice( "Can't use keys or values with a \\" );
 		return;
 	}
 
@@ -2228,7 +2081,7 @@ void Info_SetValueForKeyRocket( char *s, const char *key, const char *value, boo
 
 	if ( strlen( newi ) + slen >= (unsigned) maxlen )
 	{
-        Log::Notice( "Info string length exceeded\n" );
+        Log::Notice( "Info string length exceeded" );
 		return;
 	}
 

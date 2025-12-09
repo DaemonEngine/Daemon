@@ -36,6 +36,9 @@
 
 #include "q_shared.h"
 
+#define DotProduct4(x, y)            (( x )[ 0 ] * ( y )[ 0 ] + ( x )[ 1 ] * ( y )[ 1 ] + ( x )[ 2 ] * ( y )[ 2 ] + ( x )[ 3 ] * ( y )[ 3 ] )
+#define VectorMultiply( a,b,c )      ( ( c )[ 0 ] = ( a )[ 0 ] * ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] * ( b )[ 1 ],( c )[ 2 ] = ( a )[ 2 ] * ( b )[ 2 ] )
+
 const vec3_t vec3_origin = { 0, 0, 0 };
 
 const vec3_t axisDefault[ 3 ] = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
@@ -225,23 +228,38 @@ void ByteToDir( int b, vec3_t dir )
 	VectorCopy( bytedirs[ b ], dir );
 }
 
-vec_t PlaneNormalize( vec4_t plane )
+void PlaneSet( plane_t &out, const vec_t x, const vec_t y, const vec_t z, const vec_t dist )
 {
-	vec_t length2, ilength;
+	VectorSet( out.normal, x, y, z );
+	out.dist = dist;
+}
 
-	length2 = DotProduct( plane, plane );
+void PlaneSet( plane_t &out, const vec3_t normal, const vec_t dist )
+{
+	VectorCopy( normal, out.normal );
+	out.dist = dist;
+}
+
+void PlaneSet( plane_t &out, const vec4_t v )
+{
+	PlaneSet( out, v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
+}
+
+vec_t PlaneNormalize( plane_t &plane )
+{
+	vec_t length2 = DotProduct( plane.normal, plane.normal );
 
 	if ( length2 == 0.0f )
 	{
-		VectorClear( plane );
+		VectorClear( plane.normal );
 		return 0.0f;
 	}
 
-	ilength = Q_rsqrt( length2 );
-	plane[ 0 ] = plane[ 0 ] * ilength;
-	plane[ 1 ] = plane[ 1 ] * ilength;
-	plane[ 2 ] = plane[ 2 ] * ilength;
-	plane[ 3 ] = plane[ 3 ] * ilength;
+	vec_t ilength = Q_rsqrt( length2 );
+	plane.normal[ 0 ] *= ilength;
+	plane.normal[ 1 ] *= ilength;
+	plane.normal[ 2 ] *= ilength;
+	plane.dist *= ilength;
 
 	return length2 * ilength;
 }
@@ -270,20 +288,20 @@ vec_t PlaneNormalize( vec4_t plane )
  * See the function below if you want the normal to be on the other side
  * =====================
  */
-bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c )
+bool PlaneFromPoints( plane_t &plane, const vec3_t a, const vec3_t b, const vec3_t c )
 {
 	vec3_t d1, d2;
 
 	VectorSubtract( b, a, d1 );
 	VectorSubtract( c, a, d2 );
-	CrossProduct( d2, d1, plane );
+	CrossProduct( d2, d1, plane.normal );
 
-	if ( VectorNormalize( plane ) == 0 )
+	if ( VectorNormalize( plane.normal ) == 0 )
 	{
 		return false;
 	}
 
-	plane[ 3 ] = DotProduct( a, plane );
+	plane.dist = DotProduct( a, plane.normal );
 	return true;
 }
 /*
@@ -293,7 +311,7 @@ bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t
  * Returns false if the triangle is degenerate.
  * =====================
  */
-bool PlaneFromPointsOrder( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c, bool cw )
+bool PlaneFromPointsOrder( plane_t &plane, const vec3_t a, const vec3_t b, const vec3_t c, bool cw )
 {
 	vec3_t d1, d2;
 
@@ -302,24 +320,24 @@ bool PlaneFromPointsOrder( vec4_t plane, const vec3_t a, const vec3_t b, const v
 
 	if ( cw )
 	{
-		CrossProduct( d2, d1, plane );
+		CrossProduct( d2, d1, plane.normal );
 	}
 
 	else
 	{
-		CrossProduct( d1, d2, plane );
+		CrossProduct( d1, d2, plane.normal );
 	}
 
-	if ( VectorNormalize( plane ) == 0 )
+	if ( VectorNormalize( plane.normal ) == 0 )
 	{
 		return false;
 	}
 
-	plane[ 3 ] = DotProduct( a, plane );
+	plane.dist = DotProduct( a, plane.normal );
 	return true;
 }
 
-bool PlanesGetIntersectionPoint( const vec4_t plane1, const vec4_t plane2, const vec4_t plane3, vec3_t out )
+bool PlanesGetIntersectionPoint( const plane_t &plane1, const plane_t &plane2, const plane_t &plane3, vec3_t out )
 {
 	// http://www.cgafaq.info/wiki/Intersection_of_three_planes
 
@@ -327,9 +345,9 @@ bool PlanesGetIntersectionPoint( const vec4_t plane1, const vec4_t plane2, const
 	vec3_t n1n2, n2n3, n3n1;
 	vec_t  denom;
 
-	VectorNormalize2( plane1, n1 );
-	VectorNormalize2( plane2, n2 );
-	VectorNormalize2( plane3, n3 );
+	VectorNormalize2( plane1.normal, n1 );
+	VectorNormalize2( plane2.normal, n2 );
+	VectorNormalize2( plane3.normal, n3 );
 
 	CrossProduct( n1, n2, n1n2 );
 	CrossProduct( n2, n3, n2n3 );
@@ -347,23 +365,21 @@ bool PlanesGetIntersectionPoint( const vec4_t plane1, const vec4_t plane2, const
 
 	VectorClear( out );
 
-	VectorMA( out, plane1[ 3 ], n2n3, out );
-	VectorMA( out, plane2[ 3 ], n3n1, out );
-	VectorMA( out, plane3[ 3 ], n1n2, out );
+	VectorMA( out, plane1.dist, n2n3, out );
+	VectorMA( out, plane2.dist, n3n1, out );
+	VectorMA( out, plane3.dist, n1n2, out );
 
 	VectorScale( out, 1.0f / denom, out );
 
 	return true;
 }
 
-void PlaneIntersectRay( const vec3_t rayPos, const vec3_t rayDir, const vec4_t plane, vec3_t res )
+void PlaneIntersectRay( const vec3_t rayPos, const vec3_t rayDir, const plane_t &plane, vec3_t res )
 {
 	vec3_t dir;
-	float  sect;
-
 	VectorNormalize2( rayDir, dir );
 
-	sect = - ( DotProduct( plane, rayPos ) - plane[ 3 ] ) / DotProduct( plane, rayDir );
+	vec_t sect = - ( DotProduct( plane.normal, rayPos ) - plane.dist ) / DotProduct( plane.normal, rayDir );
 	VectorScale( dir, sect, dir );
 	VectorAdd( rayPos, dir, res );
 }
@@ -611,16 +627,16 @@ float AngleSubtract( float a1, float a2 )
 	return a - 360.0f * floor( ( a + 180.0f ) / 360.0f );
 }
 
-void AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 )
+void AnglesSubtract( const vec3_t v1, const vec3_t v2, vec3_t v3 )
 {
 	v3[ 0 ] = AngleSubtract( v1[ 0 ], v2[ 0 ] );
 	v3[ 1 ] = AngleSubtract( v1[ 1 ], v2[ 1 ] );
 	v3[ 2 ] = AngleSubtract( v1[ 2 ], v2[ 2 ] );
 }
 
-float AngleMod( float a )
+DEPRECATED float AngleMod( float a )
 {
-	return ( ( 360.0f / 65536 ) * ( ( int )( a * ( 65536 / 360.0f ) ) & 65535 ) );
+	return AngleNormalize360( a );
 }
 
 /*
@@ -727,8 +743,27 @@ void SetPlaneSignbits( cplane_t *out )
 
 int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 {
+#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+	auto mins = sseLoadVec3( emins );
+	auto maxs = sseLoadVec3( emaxs );
+	auto normal = sseLoadVec3( p->normal );
+
+	auto prod0 = _mm_mul_ps( maxs, normal );
+	auto prod1 = _mm_mul_ps( mins, normal );
+
+	auto pmax = _mm_max_ps( prod0, prod1 );
+	auto pmin = _mm_min_ps( prod0, prod1 );
+
+	alignas(16) vec4_t pmaxv;
+	alignas(16) vec4_t pminv;
+	_mm_store_ps( pmaxv, pmax );
+	_mm_store_ps( pminv, pmin );
+
 	float dist[ 2 ];
-	int   sides, b, i;
+	dist[ 0 ] = pmaxv[ 0 ] + pmaxv[ 1 ] + pmaxv[ 2 ];
+	dist[ 1 ] = pminv[ 0 ] + pminv[ 1 ] + pminv[ 2 ];
+#else
+	ASSERT_LT( p->signbits, 8 );
 
 	// fast axial cases
 	if ( p->type < 3 )
@@ -747,31 +782,32 @@ int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 	}
 
 	// general case
-	dist[ 0 ] = dist[ 1 ] = 0;
+	int index[ 3 ];
+	index[ 0 ] = p->signbits;
+	index[ 1 ] = p->signbits >> 1;
+	index[ 2 ] = p->signbits >> 2;
 
-	if ( p->signbits < 8 ) // >= 8: default case is original code (dist[0]=dist[1]=0)
-	{
-		for ( i = 0; i < 3; i++ )
-		{
-			b = ( p->signbits >> i ) & 1;
-			dist[ b ] += p->normal[ i ] * emaxs[ i ];
-			dist[ !b ] += p->normal[ i ] * emins[ i ];
-		}
-	}
+	index[ 0 ] &= 1;
+	index[ 1 ] &= 1;
+	index[ 2 ] &= 1;
 
-	sides = 0;
+	vec3_t mmins, mmaxs;
+	VectorMultiply( p->normal, emins, mmins );
+	VectorMultiply( p->normal, emaxs, mmaxs );
 
-	if ( dist[ 0 ] >= p->dist )
-	{
-		sides = 1;
-	}
+	float dist[ 2 ] = {};
+	dist[ index[ 0 ] ] += mmaxs[ 0 ];
+	dist[ index[ 1 ] ] += mmaxs[ 1 ];
+	dist[ index[ 2 ] ] += mmaxs[ 2 ];
 
-	if ( dist[ 1 ] < p->dist )
-	{
-		sides |= 2;
-	}
+	dist[ !index[ 0 ] ] += mmins[ 0 ];
+	dist[ !index[ 1 ] ] += mmins[ 1 ];
+	dist[ !index[ 2 ] ] += mmins[ 2 ];
+#endif
 
-	return sides;
+	int bit0 = dist[ 0 ] > p->dist;
+	int bit1 = dist[ 1 ] < p->dist;
+	return bit0 + ( bit1 * 2 );
 }
 
 /*
@@ -917,108 +953,6 @@ float BoundsMaxExtent( const vec3_t mins, const vec3_t maxs ) {
 	result = std::max( result, Q_fabs( maxs[ 2 ] ) );
 
 	return result;
-}
-
-int VectorCompare( const vec3_t v1, const vec3_t v2 )
-{
-	if ( v1[ 0 ] != v2[ 0 ] || v1[ 1 ] != v2[ 1 ] || v1[ 2 ] != v2[ 2 ] )
-	{
-		return 0;
-	}
-
-	return 1;
-}
-
-vec_t VectorNormalize( vec3_t v )
-{
-	float length, ilength;
-
-	length = DotProduct( v, v );
-
-	if ( length != 0.0f )
-	{
-		ilength = Q_rsqrt( length );
-		/* sqrtf(length) = length * (1 / sqrtf(length)) */
-		length *= ilength;
-		VectorScale( v, ilength, v );
-	}
-
-	return length;
-}
-
-//
-// fast vector normalize routine that does not check to make sure
-// that length != 0, nor does it return length
-//
-void VectorNormalizeFast( vec3_t v )
-{
-	float ilength;
-
-	ilength = Q_rsqrt( DotProduct( v, v ) );
-
-	VectorScale( v, ilength, v );
-}
-
-vec_t VectorNormalize2( const vec3_t v, vec3_t out )
-{
-	float length, ilength;
-
-	length = v[ 0 ] * v[ 0 ] + v[ 1 ] * v[ 1 ] + v[ 2 ] * v[ 2 ];
-
-	if ( length )
-	{
-		ilength = Q_rsqrt( length );
-		/* sqrtf(length) = length * (1 / sqrtf(length)) */
-		length *= ilength;
-		VectorScale( v, ilength, out );
-	}
-
-	else
-	{
-		VectorClear( out );
-	}
-
-	return length;
-}
-
-void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross )
-{
-	cross[ 0 ] = v1[ 1 ] * v2[ 2 ] - v1[ 2 ] * v2[ 1 ];
-	cross[ 1 ] = v1[ 2 ] * v2[ 0 ] - v1[ 0 ] * v2[ 2 ];
-	cross[ 2 ] = v1[ 0 ] * v2[ 1 ] - v1[ 1 ] * v2[ 0 ];
-}
-
-vec_t VectorLength( const vec3_t v )
-{
-	return sqrtf( v[ 0 ] * v[ 0 ] + v[ 1 ] * v[ 1 ] + v[ 2 ] * v[ 2 ] );
-}
-
-vec_t VectorLengthSquared( const vec3_t v )
-{
-	return ( v[ 0 ] * v[ 0 ] + v[ 1 ] * v[ 1 ] + v[ 2 ] * v[ 2 ] );
-}
-
-vec_t Distance( const vec3_t p1, const vec3_t p2 )
-{
-	vec3_t v;
-
-	VectorSubtract( p2, p1, v );
-	return VectorLength( v );
-}
-
-vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 )
-{
-	vec3_t v;
-
-	VectorSubtract( p2, p1, v );
-	return v[ 0 ] * v[ 0 ] + v[ 1 ] * v[ 1 ] + v[ 2 ] * v[ 2 ];
-}
-
-void VectorInverse( vec3_t v )
-{
-	v[ 0 ] = -v[ 0 ];
-	v[ 1 ] = -v[ 1 ];
-	v[ 2 ] = -v[ 2 ];
 }
 
 int NearestPowerOfTwo( int val )
@@ -1477,62 +1411,17 @@ float VectorDistanceSquared( vec3_t v1, vec3_t v2 )
 // *INDENT-OFF*
 void MatrixIdentity( matrix_t m )
 {
-	m[ 0 ] = 1;
-	m[ 4 ] = 0;
-	m[ 8 ] = 0;
-	m[ 12 ] = 0;
-	m[ 1 ] = 0;
-	m[ 5 ] = 1;
-	m[ 9 ] = 0;
-	m[ 13 ] = 0;
-	m[ 2 ] = 0;
-	m[ 6 ] = 0;
-	m[ 10 ] = 1;
-	m[ 14 ] = 0;
-	m[ 3 ] = 0;
-	m[ 7 ] = 0;
-	m[ 11 ] = 0;
-	m[ 15 ] = 1;
+	MatrixCopy( matrixIdentity, m );
 }
 
 void MatrixClear( matrix_t m )
 {
-	m[ 0 ] = 0;
-	m[ 4 ] = 0;
-	m[ 8 ] = 0;
-	m[ 12 ] = 0;
-	m[ 1 ] = 0;
-	m[ 5 ] = 0;
-	m[ 9 ] = 0;
-	m[ 13 ] = 0;
-	m[ 2 ] = 0;
-	m[ 6 ] = 0;
-	m[ 10 ] = 0;
-	m[ 14 ] = 0;
-	m[ 3 ] = 0;
-	m[ 7 ] = 0;
-	m[ 11 ] = 0;
-	m[ 15 ] = 0;
+	memset( m, 0, sizeof( matrix_t ) );
 }
 
 void MatrixCopy( const matrix_t in, matrix_t out )
 {
-	out[ 0 ] = in[ 0 ];
-	out[ 4 ] = in[ 4 ];
-	out[ 8 ] = in[ 8 ];
-	out[ 12 ] = in[ 12 ];
-	out[ 1 ] = in[ 1 ];
-	out[ 5 ] = in[ 5 ];
-	out[ 9 ] = in[ 9 ];
-	out[ 13 ] = in[ 13 ];
-	out[ 2 ] = in[ 2 ];
-	out[ 6 ] = in[ 6 ];
-	out[ 10 ] = in[ 10 ];
-	out[ 14 ] = in[ 14 ];
-	out[ 3 ] = in[ 3 ];
-	out[ 7 ] = in[ 7 ];
-	out[ 11 ] = in[ 11 ];
-	out[ 15 ] = in[ 15 ];
+	memcpy( out, in, sizeof( matrix_t ) );
 }
 
 bool MatrixCompare( const matrix_t a, const matrix_t b )
@@ -1564,7 +1453,7 @@ void MatrixTranspose( const matrix_t in, matrix_t out )
 }
 
 // helper functions for MatrixInverse from GtkRadiant C mathlib
-static float m3_det( matrix3x3_t mat )
+WARN_UNUSED_RESULT static float m3_det( const matrix3x3_t mat )
 {
 	float det;
 
@@ -1600,7 +1489,7 @@ static float m3_det( matrix3x3_t mat )
  *  return 0;
  * }*/
 
-static void m4_submat( matrix_t mr, matrix3x3_t mb, int i, int j )
+static void m4_submat( const matrix_t mr, matrix3x3_t mb, int i, int j )
 {
 	int ti, tj, idst = 0, jdst = 0;
 
@@ -1636,7 +1525,7 @@ static void m4_submat( matrix_t mr, matrix3x3_t mb, int i, int j )
 	}
 }
 
-static float m4_det( matrix_t mr )
+WARN_UNUSED_RESULT static float m4_det( const matrix_t mr )
 {
 	float       det, result = 0, i = 1;
 	matrix3x3_t msub3;
@@ -1811,7 +1700,7 @@ void MatrixSetupShear( matrix_t m, vec_t x, vec_t y )
 
 void MatrixMultiply( const matrix_t a, const matrix_t b, matrix_t out )
 {
-#if idx86_sse
+#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
 	//#error MatrixMultiply
 	int    i;
 	__m128 _t0, _t1, _t2, _t3, _t4, _t5, _t6, _t7;
@@ -2087,7 +1976,7 @@ void MatrixFromQuat( matrix_t m, const quat_t q )
 	 *	February 27th 2005
 	 *	J.M.P. van Waveren
 	 *
-	 *	http://www.intel.com/cd/ids/developer/asmo-na/eng/293748.htm
+	 *	https://web.archive.org/web/20100818052330/http://cache-www.intel.com/cd/00/00/29/37/293748_293748.pdf
 	 */
 	float x2, y2, z2 /*, w2*/;
 	float yy2, xy2;
@@ -2180,33 +2069,36 @@ void MatrixFromQuat( matrix_t m, const quat_t q )
 #endif
 }
 
-void MatrixFromPlanes( matrix_t m, const vec4_t left, const vec4_t right, const vec4_t bottom, const vec4_t top, const vec4_t near, const vec4_t far )
+void MatrixFromPlanes( matrix_t m,
+		const plane_t left, const plane_t right,
+		const plane_t bottom, const plane_t top,
+		const plane_t near, const plane_t far )
 {
-	m[ 0 ] = ( right[ 0 ] - left[ 0 ] ) / 2;
-	m[ 1 ] = ( top[ 0 ] - bottom[ 0 ] ) / 2;
-	m[ 2 ] = ( far[ 0 ] - near[ 0 ] ) / 2;
-	m[ 3 ] = right[ 0 ] - ( right[ 0 ] - left[ 0 ] ) / 2;
+	m[ 0 ] = ( right.normal[ 0 ] - left.normal[ 0 ] ) / 2;
+	m[ 1 ] = ( top.normal[ 0 ] - bottom.normal[ 0 ] ) / 2;
+	m[ 2 ] = ( far.normal[ 0 ] - near.normal[ 0 ] ) / 2;
+	m[ 3 ] = right.normal[ 0 ] - ( right.normal[ 0 ] - left.normal[ 0 ] ) / 2;
 
-	m[ 4 ] = ( right[ 1 ] - left[ 1 ] ) / 2;
-	m[ 5 ] = ( top[ 1 ] - bottom[ 1 ] ) / 2;
-	m[ 6 ] = ( far[ 1 ] - near[ 1 ] ) / 2;
-	m[ 7 ] = right[ 1 ] - ( right[ 1 ] - left[ 1 ] ) / 2;
+	m[ 4 ] = ( right.normal[ 1 ] - left.normal[ 1 ] ) / 2;
+	m[ 5 ] = ( top.normal[ 1 ] - bottom.normal[ 1 ] ) / 2;
+	m[ 6 ] = ( far.normal[ 1 ] - near.normal[ 1 ] ) / 2;
+	m[ 7 ] = right.normal[ 1 ] - ( right.normal[ 1 ] - left.normal[ 1 ] ) / 2;
 
-	m[ 8 ] = ( right[ 2 ] - left[ 2 ] ) / 2;
-	m[ 9 ] = ( top[ 2 ] - bottom[ 2 ] ) / 2;
-	m[ 10 ] = ( far[ 2 ] - near[ 2 ] ) / 2;
-	m[ 11 ] = right[ 2 ] - ( right[ 2 ] - left[ 2 ] ) / 2;
+	m[ 8 ] = ( right.normal[ 2 ] - left.normal[ 2 ] ) / 2;
+	m[ 9 ] = ( top.normal[ 2 ] - bottom.normal[ 2 ] ) / 2;
+	m[ 10 ] = ( far.normal[ 2 ] - near.normal[ 2 ] ) / 2;
+	m[ 11 ] = right.normal[ 2 ] - ( right.normal[ 2 ] - left.normal[ 2 ] ) / 2;
 
 #if 0
-	m[ 12 ] = ( right[ 3 ] - left[ 3 ] ) / 2;
-	m[ 13 ] = ( top[ 3 ] - bottom[ 3 ] ) / 2;
-	m[ 14 ] = ( far[ 3 ] - near[ 3 ] ) / 2;
-	m[ 15 ] = right[ 3 ] - ( right[ 3 ] - left[ 3 ] ) / 2;
+	m[ 12 ] = ( right.dist - left.dist ) / 2;
+	m[ 13 ] = ( top.dist - bottom.dist ) / 2;
+	m[ 14 ] = ( far.dist - near.dist ) / 2;
+	m[ 15 ] = right.dist - ( right.dist - left.dist ) / 2;
 #else
-	m[ 12 ] = ( -right[ 3 ] - -left[ 3 ] ) / 2;
-	m[ 13 ] = ( -top[ 3 ] - -bottom[ 3 ] ) / 2;
-	m[ 14 ] = ( -far[ 3 ] - -near[ 3 ] ) / 2;
-	m[ 15 ] = -right[ 3 ] - ( -right[ 3 ] - -left[ 3 ] ) / 2;
+	m[ 12 ] = ( -right.dist - -left.dist ) / 2;
+	m[ 13 ] = ( -top.dist - -bottom.dist ) / 2;
+	m[ 14 ] = ( -far.dist - -near.dist ) / 2;
+	m[ 15 ] = -right.dist - ( -right.dist - -left.dist ) / 2;
 #endif
 }
 
@@ -2411,27 +2303,26 @@ void MatrixTransform4( const matrix_t m, const vec4_t in, vec4_t out )
 	out[ 3 ] = m[ 3 ] * in[ 0 ] + m[ 7 ] * in[ 1 ] + m[ 11 ] * in[ 2 ] + m[ 15 ] * in[ 3 ];
 }
 
-void MatrixTransformPlane( const matrix_t m, const vec4_t in, vec4_t out )
+void MatrixTransformPlane( const matrix_t m, const plane_t &in, plane_t &out )
 {
-	vec3_t translation;
-	vec3_t planePos;
-
 	// rotate the plane normal
-	MatrixTransformNormal( m, in, out );
+	MatrixTransformNormal( m, in.normal, out.normal );
 
 	// add new position to current plane position
+	vec3_t translation;
 	VectorSet( translation,  m[ 12 ], m[ 13 ], m[ 14 ] );
-	VectorMA( translation, in[ 3 ], out, planePos );
 
-	out[ 3 ] = DotProduct( out, planePos );
+	vec3_t planePos;
+	VectorMA( translation, in.dist, out.normal, planePos );
+
+	out.dist = DotProduct( out.normal, planePos );
 }
 
-void MatrixTransformPlane2( const matrix_t m, vec4_t inout )
+void MatrixTransformPlane2( const matrix_t m, plane_t &inout )
 {
-	vec4_t tmp;
-
+	plane_t tmp;
 	MatrixTransformPlane( m, inout, tmp );
-	Vector4Copy( tmp, inout );
+	inout = tmp;
 }
 
 /*
@@ -2749,11 +2640,9 @@ void MatrixOrthogonalProjectionRH( matrix_t m, vec_t left, vec_t right, vec_t bo
  *
  * http://msdn.microsoft.com/en-us/library/bb205356%28v=VS.85%29.aspx
  */
-void MatrixPlaneReflection( matrix_t m, const vec4_t plane )
+void MatrixPlaneReflection( matrix_t m, const plane_t plane )
 {
-	vec4_t P;
-	Vector4Copy( plane, P );
-
+	plane_t P = plane;
 	PlaneNormalize( P );
 
 	/*
@@ -2764,18 +2653,18 @@ void MatrixPlaneReflection( matrix_t m, const vec4_t plane )
 	 */
 
 	// Quake uses a different plane equation
-	m[ 0 ] = -2 * P[ 0 ] * P[ 0 ] + 1;
-	m[ 4 ] = -2 * P[ 0 ] * P[ 1 ];
-	m[ 8 ] = -2 * P[ 0 ] * P[ 2 ];
-	m[ 12 ] = 2 * P[ 0 ] * P[ 3 ];
-	m[ 1 ] = -2 * P[ 1 ] * P[ 0 ];
-	m[ 5 ] = -2 * P[ 1 ] * P[ 1 ] + 1;
-	m[ 9 ] = -2 * P[ 1 ] * P[ 2 ];
-	m[ 13 ] = 2 * P[ 1 ] * P[ 3 ];
-	m[ 2 ] = -2 * P[ 2 ] * P[ 0 ];
-	m[ 6 ] = -2 * P[ 2 ] * P[ 1 ];
-	m[ 10 ] = -2 * P[ 2 ] * P[ 2 ] + 1;
-	m[ 14 ] = 2 * P[ 2 ] * P[ 3 ];
+	m[ 0 ] = -2 * P.normal[ 0 ] * P.normal[ 0 ] + 1;
+	m[ 4 ] = -2 * P.normal[ 0 ] * P.normal[ 1 ];
+	m[ 8 ] = -2 * P.normal[ 0 ] * P.normal[ 2 ];
+	m[ 12 ] = 2 * P.normal[ 0 ] * P.dist;
+	m[ 1 ] = -2 * P.normal[ 1 ] * P.normal[ 0 ];
+	m[ 5 ] = -2 * P.normal[ 1 ] * P.normal[ 1 ] + 1;
+	m[ 9 ] = -2 * P.normal[ 1 ] * P.normal[ 2 ];
+	m[ 13 ] = 2 * P.normal[ 1 ] * P.dist;
+	m[ 2 ] = -2 * P.normal[ 2 ] * P.normal[ 0 ];
+	m[ 6 ] = -2 * P.normal[ 2 ] * P.normal[ 1 ];
+	m[ 10 ] = -2 * P.normal[ 2 ] * P.normal[ 2 ] + 1;
+	m[ 14 ] = 2 * P.normal[ 2 ] * P.dist;
 	m[ 3 ] = 0;
 	m[ 7 ] = 0;
 	m[ 11 ] = 0;
@@ -2975,14 +2864,18 @@ void QuatFromMatrix( quat_t q, const matrix_t m )
 	 *	   February 27th 2005
 	 *	   J.M.P. van Waveren
 	 *
-	 *	   http://www.intel.com/cd/ids/developer/asmo-na/eng/293748.htm
+	 *	   https://web.archive.org/web/20100818052330/http://cache-www.intel.com/cd/00/00/29/37/293748_293748.pdf
 	 */
-	float t, s;
 
-	if ( m[ 0 ] + m[ 5 ] + m[ 10 ] > 0.0f )
+	/* For the +1 that deviates from the original implementation,
+	see https://github.com/DaemonEngine/Daemon/issues/1527 */
+
+	float t = m[ 0 ] + m[ 5 ] + m[ 10 ] + 1.0f;
+	float s;
+
+	if ( t > 0.0f )
 	{
-		t = m[ 0 ] + m[ 5 ] + m[ 10 ] + 1.0f;
-		s = ( 1.0f / sqrtf( t ) ) * 0.5f;
+		s = Q_rsqrt( t ) * 0.5f;
 
 		q[ 3 ] = s * t;
 		q[ 2 ] = ( m[ 1 ] - m[ 4 ] ) * s;
@@ -2993,7 +2886,7 @@ void QuatFromMatrix( quat_t q, const matrix_t m )
 	else if ( m[ 0 ] > m[ 5 ] && m[ 0 ] > m[ 10 ] )
 	{
 		t = m[ 0 ] - m[ 5 ] - m[ 10 ] + 1.0f;
-		s = ( 1.0f / sqrtf( t ) ) * 0.5f;
+		s = Q_rsqrt( t ) * 0.5f;
 
 		q[ 0 ] = s * t;
 		q[ 1 ] = ( m[ 1 ] + m[ 4 ] ) * s;
@@ -3004,7 +2897,7 @@ void QuatFromMatrix( quat_t q, const matrix_t m )
 	else if ( m[ 5 ] > m[ 10 ] )
 	{
 		t = -m[ 0 ] + m[ 5 ] - m[ 10 ] + 1.0f;
-		s = ( 1.0f / sqrtf( t ) ) * 0.5f;
+		s = Q_rsqrt( t ) * 0.5f;
 
 		q[ 1 ] = s * t;
 		q[ 0 ] = ( m[ 1 ] + m[ 4 ] ) * s;
@@ -3015,7 +2908,7 @@ void QuatFromMatrix( quat_t q, const matrix_t m )
 	else
 	{
 		t = -m[ 0 ] - m[ 5 ] + m[ 10 ] + 1.0f;
-		s = ( 1.0f / sqrtf( t ) ) * 0.5f;
+		s = Q_rsqrt( t ) * 0.5f;
 
 		q[ 2 ] = s * t;
 		q[ 3 ] = ( m[ 1 ] - m[ 4 ] ) * s;
@@ -3300,19 +3193,14 @@ void QuatTransformVectorInverse( const quat_t q, const vec3_t in, vec3_t out )
 	VectorAdd( out, tmp2, out );
 }
 
-#if !idx86_sse
+// The SSE variants are inline functions in q_shared.h file.
+#if !defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
 // create an identity transform
 void TransInit( transform_t *t )
 {
 	QuatClear( t->rot );
 	VectorClear( t->trans );
 	t->scale = 1.0f;
-}
-
-// copy a transform
-void TransCopy( const transform_t *in, transform_t *out )
-{
-	memcpy( out, in, sizeof( transform_t ) );
 }
 
 // apply a transform to a point
@@ -3322,25 +3210,11 @@ void TransformPoint( const transform_t *t, const vec3_t in, vec3_t out )
 	VectorScale( out, t->scale, out );
 	VectorAdd( out, t->trans, out );
 }
-// apply the inverse of a transform to a point
-void TransformPointInverse( const transform_t *t, const vec3_t in, vec3_t out )
-{
-	VectorSubtract( in, t->trans, out );
-	VectorScale( out, 1.0f / t->scale, out );
-	QuatTransformVectorInverse( t->rot, out, out );
-}
 
 // apply a transform to a normal vector (ignore scale and translation)
 void TransformNormalVector( const transform_t *t, const vec3_t in, vec3_t out )
 {
 	QuatTransformVector( t->rot, in, out );
-}
-// apply the inverse of a transform to a normal vector (ignore scale
-// and translation)
-void TransformNormalVectorInverse( const transform_t *t, const vec3_t in,
-                                   vec3_t out )
-{
-	QuatTransformVectorInverse( t->rot, in, out );
 }
 
 // initialize a transform with a pure rotation
@@ -3349,16 +3223,6 @@ void TransInitRotationQuat( const quat_t quat, transform_t *t )
 	QuatCopy( quat, t->rot );
 	VectorClear( t->trans );
 	t->scale = 1.0f;
-}
-void TransInitRotation( const vec3_t axis, float angle, transform_t *t )
-{
-	float sa = sinf( 0.5f * angle );
-	float ca = cosf( 0.5f * angle );
-	quat_t q;
-
-	VectorScale( axis, sa, q );
-	q[3] = ca;
-	TransInitRotationQuat( q, t );
 }
 // initialize a transform with a pure translation
 void TransInitTranslation( const vec3_t vec, transform_t *t )
@@ -3402,16 +3266,6 @@ void TransAddRotationQuat( const quat_t quat, transform_t *t )
 	QuatMultiply2( tmp, t->rot );
 	QuatCopy( tmp, t->rot );
 }
-void TransAddRotation( const vec3_t axis, float angle, transform_t *t )
-{
-	float sa = sinf( 0.5f * angle );
-	float ca = cosf( 0.5f * angle );
-	quat_t q;
-
-	VectorScale( axis, sa, q );
-	q[3] = ca;
-	TransAddRotationQuat( q, t );
-}
 
 // add a scale to the start of an existing transform
 void TransInsScale( float factor, transform_t *t )
@@ -3429,9 +3283,9 @@ void TransAddScale( float factor, transform_t *t )
 void TransInsTranslation( const vec3_t vec, transform_t *t )
 {
 	vec3_t tmp;
-
-	TransformPoint( t, vec, tmp );
-	VectorAdd( t->trans, tmp, t->trans );
+	QuatTransformVector( t->rot, vec, tmp );
+	VectorScale( tmp, t->scale, tmp );
+	VectorAdd( tmp, t->trans, t->trans );
 }
 
 // add a translation at the end of an existing transformation
@@ -3444,7 +3298,7 @@ void TransAddTranslation( const vec3_t vec, transform_t *t )
 void TransCombine( const transform_t *a, const transform_t *b,
                    transform_t *out )
 {
-	TransCopy( a, out );
+	*out = *a;
 
 	TransAddRotationQuat( b->rot, out );
 	TransAddScale( b->scale, out );
@@ -3455,7 +3309,7 @@ void TransCombine( const transform_t *a, const transform_t *b,
 void TransInverse( const transform_t *in, transform_t *out )
 {
 	quat_t inverse;
-	static transform_t tmp; // static for proper alignment in QVMs
+	transform_t tmp;
 
 	TransInit( &tmp );
 	VectorNegate( in->trans, tmp.trans );
@@ -3463,7 +3317,7 @@ void TransInverse( const transform_t *in, transform_t *out )
 	QuatCopy( in->rot, inverse );
 	QuatInverse( inverse );
 	TransAddRotationQuat( inverse, &tmp );
-	TransCopy( &tmp, out );
+	*out = tmp;
 }
 
 // lerp between transforms

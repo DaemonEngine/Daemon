@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <engine/client/cg_msgdef.h>
 #include <shared/VMMain.h>
 #include <shared/CommandBufferClient.h>
+#include "cg_api.h"
 
 IPC::CommandBufferClient cmdBuffer("cgame");
 
@@ -50,18 +51,32 @@ void trap_UpdateScreen()
 
 int trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projection, int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer )
 {
+	if (!numPoints) return 0;
+
 	std::vector<std::array<float, 3>> mypoints(numPoints);
 	std::array<float, 3> myproj;
-	memcpy((float*)mypoints.data(), points, sizeof(float) * 3 * numPoints);
-	VectorCopy(projection, myproj.data());
+	memcpy(mypoints.data(), points, sizeof(float) * 3 * numPoints);
+	VectorCopy(projection, myproj);
 
 	std::vector<std::array<float, 3>> mypointBuffer;
 	std::vector<markFragment_t> myfragmentBuffer;
 	VM::SendMsg<CMMarkFragmentsMsg>(mypoints, myproj, maxPoints, maxFragments, mypointBuffer, myfragmentBuffer);
 
 	memcpy(pointBuffer, mypointBuffer.data(), sizeof(float) * 3 * maxPoints);
-	memcpy(fragmentBuffer, myfragmentBuffer.data(), sizeof(markFragment_t) * myfragmentBuffer.size());
+	std::copy(myfragmentBuffer.begin(), myfragmentBuffer.end(), fragmentBuffer);
 	return myfragmentBuffer.size();
+}
+
+void trap_CM_BatchMarkFragments(
+	unsigned maxPoints, //per mark
+	unsigned maxFragments, //per mark
+	const std::vector<markMsgInput_t> &markMsgInput,
+	std::vector<markMsgOutput_t> &markMsgOutput )
+{
+	if (!markMsgInput.empty())
+	{
+		VM::SendMsg<CMBatchMarkFragments>(maxPoints, maxFragments, markMsgInput, markMsgOutput);
+	}
 }
 
 void trap_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverTime )
@@ -69,7 +84,7 @@ void trap_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverTime )
 	VM::SendMsg<GetCurrentSnapshotNumberMsg>(*snapshotNumber, *serverTime);
 }
 
-bool trap_GetSnapshot( int snapshotNumber, snapshot_t *snapshot )
+bool trap_GetSnapshot( int snapshotNumber, ipcSnapshot_t *snapshot )
 {
 	bool res;
 	VM::SendMsg<GetSnapshotMsg>(snapshotNumber, res, *snapshot);
@@ -83,10 +98,35 @@ int trap_GetCurrentCmdNumber()
 	return res;
 }
 
+// Use a local cache to reduce IPC traffic. We assume that the user command number never decreases as
+// the command number only resets on an svc_gamestate command, and this command is only sent once
+// per cgame lifetime when the user enters the game (it's not even used for map_restart).
 bool trap_GetUserCmd( int cmdNumber, usercmd_t *ucmd )
 {
+	static usercmd_t cache[ CMD_BACKUP ];
+	static int latestInCache = -1;
+
+	if ( cmdNumber <= latestInCache - CMD_BACKUP )
+	{
+		// Either the cgame is buggy and trying to request really old stuff, or there is some case
+		// of additional calls to CL_ClearState that I didn't know about. Reset the cache in case
+		// it's legit.
+		Log::Warn( "Unexpectedly old command number requested in trap_GetUserCmd" );
+		latestInCache = -1;
+	}
+	else if ( cmdNumber <= latestInCache )
+	{
+		*ucmd = cache[ cmdNumber & CMD_MASK ];
+		return true;
+	}
+
 	bool res;
 	VM::SendMsg<GetUserCmdMsg>(cmdNumber, res, *ucmd);
+	if ( res )
+	{
+		latestInCache = cmdNumber;
+		cache[ cmdNumber & CMD_MASK ] = *ucmd;
+	}
 	return res;
 }
 
@@ -207,6 +247,11 @@ void trap_S_UpdateEntityVelocity( int entityNum, const vec3_t velocity )
 	cmdBuffer.SendMsg<Audio::UpdateEntityVelocityMsg>(entityNum, Vec3::Load(velocity));
 }
 
+void trap_S_UpdateEntityPositionVelocity( int entityNum, const vec3_t origin, const vec3_t velocity )
+{
+	cmdBuffer.SendMsg<Audio::UpdateEntityPositionVelocityMsg>(entityNum, Vec3::Load(origin), Vec3::Load(velocity));
+}
+
 void trap_S_SetReverb( int slotNum, const char* name, float ratio )
 {
 	cmdBuffer.SendMsg<Audio::SetReverbMsg>(slotNum, name, ratio);
@@ -250,8 +295,8 @@ bool trap_R_inPVVS( const vec3_t p1, const vec3_t p2 )
 {
 	bool res;
 	std::array<float, 3> myp1, myp2;
-	VectorCopy(p1, myp1.data());
-	VectorCopy(p2, myp2.data());
+	VectorCopy(p1, myp1);
+	VectorCopy(p2, myp2);
 	VM::SendMsg<Render::InPVVSMsg>(myp1, myp2, res);
 	return res;
 }
@@ -275,7 +320,7 @@ qhandle_t trap_R_RegisterSkin( const char *name )
 	return handle;
 }
 
-qhandle_t trap_R_RegisterShader( const char *name, RegisterShaderFlags_t flags )
+qhandle_t trap_R_RegisterShader( const char *name, int flags )
 {
 	int handle;
 	VM::SendMsg<Render::RegisterShaderMsg>(name, flags, handle);
@@ -294,24 +339,38 @@ void trap_R_AddRefEntityToScene( const refEntity_t *re )
 
 void trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts )
 {
-	std::vector<polyVert_t> myverts(numVerts);
-	memcpy(myverts.data(), verts, numVerts * sizeof(polyVert_t));
+	if (!numVerts)
+	{
+		return;
+	}
+
+	std::vector<polyVert_t> myverts(verts, verts + numVerts);
 	cmdBuffer.SendMsg<Render::AddPolyToSceneMsg>(hShader, myverts);
 }
 
 void trap_R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys )
 {
-	std::vector<polyVert_t> myverts(numVerts * numPolys);
-	memcpy(myverts.data(), verts, numVerts * numPolys * sizeof(polyVert_t));
+	size_t size = numVerts * numPolys;
+
+	if (!size)
+	{
+		return;
+	}
+
+	std::vector<polyVert_t> myverts(verts, verts + size);
+
 	cmdBuffer.SendMsg<Render::AddPolysToSceneMsg>(hShader, myverts, numVerts, numPolys);
 }
 
-void trap_R_Add2dPolysIndexedToScene( polyVert_t* polys, int numPolys, int* indexes, int numIndexes, int trans_x, int trans_y, qhandle_t shader )
+void trap_R_Add2dPolysIndexedToScene( const polyVert_t* polys, int numPolys, const int* indexes, int numIndexes, int trans_x, int trans_y, qhandle_t shader )
 {
-	std::vector<polyVert_t> mypolys(numPolys);
-	std::vector<int> myindices(numIndexes);
-	memcpy(mypolys.data(), polys, numPolys * sizeof( polyVert_t ) );
-	memcpy(myindices.data(), indexes, numIndexes * sizeof( int ) );
+	if (!numIndexes)
+	{
+		return;
+	}
+
+	std::vector<polyVert_t> mypolys(polys, polys + numPolys);
+	std::vector<int> myindices(indexes, indexes + numIndexes);
 	cmdBuffer.SendMsg<Render::Add2dPolysIndexedMsg>(mypolys, numPolys, myindices, numIndexes, trans_x, trans_y, shader);
 }
 
@@ -320,7 +379,7 @@ void trap_R_Add2dPolysIndexedToScene( polyVert_t* polys, int numPolys, int* inde
 void trap_R_SetMatrixTransform( const matrix_t matrix )
 {
 	std::array<float, 16> mymatrix;
-	memcpy(mymatrix.data(), matrix, 16 * sizeof(float));
+	MatrixCopy(matrix, mymatrix.data());
 	cmdBuffer.SendMsg<Render::SetMatrixTransformMsg>(mymatrix);
 }
 
@@ -334,14 +393,14 @@ void trap_R_ResetMatrixTransform()
 void trap_R_AddLightToScene( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags )
 {
 	std::array<float, 3> myorg;
-	VectorCopy(org, myorg.data());
+	VectorCopy(org, myorg);
 	cmdBuffer.SendMsg<Render::AddLightToSceneMsg>(myorg, radius, intensity, r, g, b, hShader, flags);
 }
 
 void trap_R_AddAdditiveLightToScene( const vec3_t org, float intensity, float r, float g, float b )
 {
 	std::array<float, 3> myorg;
-	VectorCopy(org, myorg.data());
+	VectorCopy(org, myorg);
 	cmdBuffer.SendMsg<Render::AddAdditiveLightToSceneMsg>(myorg, intensity, r, g, b);
 }
 
@@ -361,7 +420,7 @@ void trap_R_SetColor( const Color::Color &rgba )
 void trap_R_SetClipRegion( const float *region )
 {
 	std::array<float, 4> myregion;
-	memcpy(myregion.data(), region, 4 * sizeof(float));
+	Vector4Copy(region, myregion);
 	cmdBuffer.SendMsg<Render::SetClipRegionMsg>(myregion);
 }
 
@@ -384,8 +443,8 @@ void trap_R_ModelBounds( clipHandle_t model, vec3_t mins, vec3_t maxs )
 {
 	std::array<float, 3> mymins, mymaxs;
 	VM::SendMsg<Render::ModelBoundsMsg>(model, mymins, mymaxs);
-	VectorCopy(mymins.data(), mins);
-	VectorCopy(mymaxs.data(), maxs);
+	VectorCopy(mymins, mins);
+	VectorCopy(mymaxs, maxs);
 }
 
 int trap_R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagName, int startIndex )
@@ -404,21 +463,32 @@ bool trap_R_inPVS( const vec3_t p1, const vec3_t p2 )
 {
 	bool res;
 	std::array<float, 3> myp1, myp2;
-	VectorCopy(p1, myp1.data());
-	VectorCopy(p2, myp2.data());
+	VectorCopy(p1, myp1);
+	VectorCopy(p2, myp2);
 	VM::SendMsg<Render::InPVSMsg>(myp1, myp2, res);
 	return res;
+}
+
+std::vector<bool> trap_R_BatchInPVS(
+	const vec3_t origin,
+	const std::vector<std::array<float, 3>>& posEntities )
+{
+	std::array<float, 3> myOrigin;
+	VectorCopy(origin, myOrigin);
+	std::vector<bool> inPVS;
+	VM::SendMsg<Render::BatchInPVSMsg>(myOrigin, posEntities, inPVS);
+	return inPVS;
 }
 
 int trap_R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir )
 {
 	int result;
 	std::array<float, 3> mypoint, myambient, mydirected, mydir;
-	VectorCopy(point, mypoint.data());
+	VectorCopy(point, mypoint);
 	VM::SendMsg<Render::LightForPointMsg>(mypoint, myambient, mydirected, mydir, result);
-	VectorCopy(myambient.data(), ambientLight);
-	VectorCopy(mydirected.data(), directedLight);
-	VectorCopy(mydir.data(), lightDir);
+	VectorCopy(myambient, ambientLight);
+	VectorCopy(mydirected, directedLight);
+	VectorCopy(mydir, lightDir);
 	return result;
 }
 
@@ -444,7 +514,7 @@ int trap_R_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float
 
     if ( skel->numBones != blend->numBones )
     {
-        Log::Warn("trap_R_BlendSkeleton: different number of bones %d != %d\n", skel->numBones, blend->numBones);
+        Log::Warn("trap_R_BlendSkeleton: different number of bones %d != %d", skel->numBones, blend->numBones);
         return false;
     }
 
@@ -458,7 +528,7 @@ int trap_R_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float
         TransAddWeight( frac, &blend->bones[ i ].t, &trans );
         TransEndLerp( &trans );
 
-        TransCopy( &trans, &skel->bones[ i ].t );
+        skel->bones[ i ].t = trans;
     }
 
     // calculate a bounding box in the current coordinate system
@@ -505,7 +575,7 @@ qhandle_t trap_RegisterVisTest()
 void trap_AddVisTestToScene( qhandle_t hTest, const vec3_t pos, float depthAdjust, float area )
 {
 	std::array<float, 3> mypos;
-	VectorCopy(pos, mypos.data());
+	VectorCopy(pos, mypos);
 	cmdBuffer.SendMsg<Render::AddVisTestToSceneMsg>(hTest, mypos, depthAdjust, area);
 }
 
@@ -523,9 +593,9 @@ void trap_R_GetTextureSize( qhandle_t handle, int *x, int *y )
 
 qhandle_t trap_R_GenerateTexture( const byte *data, int x, int y )
 {
+	ASSERT( x && y );
 	qhandle_t handle;
-	std::vector<byte> mydata(x * y * 4);
-	memcpy(mydata.data(), data, x * y * 4 * sizeof( byte ) );
+	std::vector<byte> mydata(data, data + 4 * x * y);
 	VM::SendMsg<Render::GenerateTextureMsg>(mydata, x, y, handle);
 	return handle;
 }

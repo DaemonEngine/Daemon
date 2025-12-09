@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_surface.c
 #include "tr_local.h"
+#include "gl_shader.h"
+#include "Material.h"
 
 /*
 ==============================================================================
@@ -38,23 +40,29 @@ use the shader system.
 ==============================================================================
 */
 
-static ALIGNED( 16, transform_t bones[ MAX_BONES ] );
+static transform_t bones[ MAX_BONES ];
 
 /*
 ==============
 Tess_EndBegin
+
+Flush the buffered polygons and prepare to receive more with the same parameters
 ==============
 */
 void Tess_EndBegin()
 {
 	Tess_End();
-	Tess_Begin( tess.stageIteratorFunc, tess.stageIteratorFunc2, tess.surfaceShader, tess.lightShader, tess.skipTangentSpaces, tess.skipVBO,
+	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.skipTangents,
 	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
 }
 
 /*
 ==============
 Tess_CheckVBOAndIBO
+
+Bind the buffers and flush any data that came from a different buffer.
+For a multidraw-using static VBO surface, it performs an analogous function to Tess_CheckOverflow,
+with the assumption that only one multidraw primitive will be used.
 ==============
 */
 static void Tess_CheckVBOAndIBO( VBO_t *vbo, IBO_t *ibo )
@@ -71,6 +79,10 @@ static void Tess_CheckVBOAndIBO( VBO_t *vbo, IBO_t *ibo )
 /*
 ==============
 Tess_CheckOverflow
+
+Used for non-VBO surfaces. Check that tess.verts and tess.indexes have sufficient room for the
+data that is about to be written and ensure that the default VBO and IBO are bound. If there
+is old data from a different surface or if there is too much data already, flush it.
 ==============
 */
 void Tess_CheckOverflow( int verts, int indexes )
@@ -81,44 +93,35 @@ void Tess_CheckOverflow( int verts, int indexes )
 		Tess_CheckVBOAndIBO( tess.vbo, tess.ibo );
 	}
 
-	if ( tess.buildingVBO )
-	{
-		return;
-	}
-
 	if ( tess.numVertexes + verts < SHADER_MAX_VERTEXES && tess.numIndexes + indexes < SHADER_MAX_INDEXES )
 	{
 		return;
 	}
 
-	if ( r_logFile->integer )
-	{
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		GLimp_LogComment( va
-		                  ( "--- Tess_CheckOverflow(%i + %i vertices, %i + %i triangles ) ---\n", tess.numVertexes, verts,
-		                    ( tess.numIndexes / 3 ), indexes ) );
-	}
+	GLIMP_LOGCOMMENT( "--- Tess_CheckOverflow(%i + %i vertices, %i + %i triangles ) ---",
+		tess.numVertexes, verts,( tess.numIndexes / 3 ), indexes );
 
 	Tess_End();
 
 	if ( verts >= SHADER_MAX_VERTEXES )
 	{
-		Sys::Drop( "Tess_CheckOverflow: verts > std::max (%d > %d)", verts, SHADER_MAX_VERTEXES );
+		Sys::Drop( "Tess_CheckOverflow: verts > max (%d > %d)", verts, SHADER_MAX_VERTEXES );
 	}
 
 	if ( indexes >= SHADER_MAX_INDEXES )
 	{
-		Sys::Drop( "Tess_CheckOverflow: indexes > std::max (%d > %d)", indexes, SHADER_MAX_INDEXES );
+		Sys::Drop( "Tess_CheckOverflow: indexes > max (%d > %d)", indexes, SHADER_MAX_INDEXES );
 	}
 
-	Tess_Begin( tess.stageIteratorFunc, tess.stageIteratorFunc2, tess.surfaceShader, tess.lightShader, tess.skipTangentSpaces, tess.skipVBO,
+	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.skipTangents,
 	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
 }
 
 /*
 ==============
 Tess_SurfaceVertsAndTris
+
+Defines ATTR_POSITION, ATTR_TEXCOORD, ATTR_COLOR, ATTR_QTANGENT
 ==============
 */
 static void Tess_SurfaceVertsAndTris( const srfVert_t *verts, const srfTriangle_t *triangles, int numVerts, int numTriangles )
@@ -144,27 +147,21 @@ static void Tess_SurfaceVertsAndTris( const srfVert_t *verts, const srfTriangle_
 		VectorCopy( vert->xyz, tess.verts[ tess.numVertexes + i ].xyz );
 		Vector4Copy( vert->qtangent, tess.verts[ tess.numVertexes + i ].qtangents );
 
-		tess.verts[ tess.numVertexes + i ].texCoords[ 0 ] = floatToHalf( vert->st[ 0 ] );
-		tess.verts[ tess.numVertexes + i ].texCoords[ 1 ] = floatToHalf( vert->st[ 1 ] );
+		tess.verts[ tess.numVertexes + i ].texCoords[ 0 ] = vert->st[ 0 ];
+		tess.verts[ tess.numVertexes + i ].texCoords[ 1 ] = vert->st[ 1 ];
 
-		tess.verts[ tess.numVertexes + i ].texCoords[ 2 ] = floatToHalf( vert->lightmap[ 0 ] );
-		tess.verts[ tess.numVertexes + i ].texCoords[ 3 ] = floatToHalf( vert->lightmap[ 1 ] );
+		tess.verts[ tess.numVertexes + i ].texCoords[ 2 ] = vert->lightmap[ 0 ];
+		tess.verts[ tess.numVertexes + i ].texCoords[ 3 ] = vert->lightmap[ 1 ];
 
 		tess.verts[ tess.numVertexes + i ].color = vert->lightColor;
 	}
 
 	tess.numVertexes += numVerts;
-	tess.attribsSet =  ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR | ATTR_QTANGENT;
 }
 
 static bool Tess_SurfaceVBO( VBO_t *vbo, IBO_t *ibo, int numIndexes, int firstIndex )
 {
-	if ( !vbo || !ibo )
-	{
-		return false;
-	}
-
-	if ( tess.skipVBO || tess.stageIteratorFunc == &Tess_StageIteratorSky )
+	if ( ( !vbo && !tr.skipVBO ) || !ibo )
 	{
 		return false;
 	}
@@ -200,11 +197,13 @@ static bool Tess_SurfaceVBO( VBO_t *vbo, IBO_t *ibo, int numIndexes, int firstIn
 	else if ( mergeBack )
 	{
 		tess.multiDrawIndexes[ tess.multiDrawPrimitives - 1 ] = firstIndexOffset;
+		tess.multiDrawOffsets[ tess.multiDrawPrimitives - 1 ] = (GLuint) firstIndex;
 		tess.multiDrawCounts[ tess.multiDrawPrimitives - 1 ] += numIndexes;
 	}
 	else
 	{
 		tess.multiDrawIndexes[ tess.multiDrawPrimitives ] = firstIndexOffset;
+		tess.multiDrawOffsets[ tess.multiDrawPrimitives ] = (GLuint) firstIndex;
 		tess.multiDrawCounts[ tess.multiDrawPrimitives ] = numIndexes;
 
 		tess.multiDrawPrimitives++;
@@ -216,6 +215,8 @@ static bool Tess_SurfaceVBO( VBO_t *vbo, IBO_t *ibo, int numIndexes, int firstIn
 /*
 ==============
 Tess_AddQuadStampExt
+
+Defines ATTR_POSITION, ATTR_QTANGENT, ATTR_COLOR, ATTR_TEXCOORD
 ==============
 */
 void Tess_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, const Color::Color& color, float s1, float t1, float s2, float t2 )
@@ -224,7 +225,7 @@ void Tess_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, const Color::C
 	vec3_t normal;
 	int    ndx;
 
-	GLimp_LogComment( "--- Tess_AddQuadStampExt ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_AddQuadStampExt ---" );
 
 	Tess_CheckOverflow( 4, 6 );
 
@@ -267,17 +268,17 @@ void Tess_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, const Color::C
 	Vector4Copy( qtangents, tess.verts[ ndx + 3 ].qtangents );
 
 	// standard square texture coordinates
-	tess.verts[ ndx ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ ndx ].texCoords[ 1 ] = floatToHalf( t1 );
+	tess.verts[ ndx ].texCoords[ 0 ] = s1;
+	tess.verts[ ndx ].texCoords[ 1 ] = t1;
 
-	tess.verts[ ndx + 1 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ ndx + 1 ].texCoords[ 1 ] = floatToHalf( t1 );
+	tess.verts[ ndx + 1 ].texCoords[ 0 ] = s2;
+	tess.verts[ ndx + 1 ].texCoords[ 1 ] = t1;
 
-	tess.verts[ ndx + 2 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ ndx + 2 ].texCoords[ 1 ] = floatToHalf( t2 );
+	tess.verts[ ndx + 2 ].texCoords[ 0 ] = s2;
+	tess.verts[ ndx + 2 ].texCoords[ 1 ] = t2;
 
-	tess.verts[ ndx + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ ndx + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
+	tess.verts[ ndx + 3 ].texCoords[ 0 ] = s1;
+	tess.verts[ ndx + 3 ].texCoords[ 1 ] = t2;
 
 	// constant color all the way around
 	// should this be identity and let the shader specify from entity?
@@ -291,8 +292,6 @@ void Tess_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, const Color::C
 
 	tess.numVertexes += 4;
 	tess.numIndexes += 6;
-
-	tess.attribsSet |= ATTR_POSITION | ATTR_QTANGENT | ATTR_COLOR | ATTR_TEXCOORD;
 }
 
 /*
@@ -308,6 +307,8 @@ void Tess_AddQuadStamp( vec3_t origin, vec3_t left, vec3_t up, const Color::Colo
 /*
 ==============
 Tess_AddQuadStampExt2
+
+Defines ATTR_POSITION, ATTR_COLOR, ATTR_TEXCOORD, ATTR_QTANGENT
 ==============
 */
 void Tess_AddQuadStampExt2( vec4_t quadVerts[ 4 ], const Color::Color& color, float s1, float t1, float s2, float t2 )
@@ -316,7 +317,7 @@ void Tess_AddQuadStampExt2( vec4_t quadVerts[ 4 ], const Color::Color& color, fl
 	vec3_t normal, tangent, binormal;
 	int    ndx;
 
-	GLimp_LogComment( "--- Tess_AddQuadStampExt2 ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_AddQuadStampExt2 ---" );
 
 	Tess_CheckOverflow( 4, 6 );
 
@@ -335,8 +336,6 @@ void Tess_AddQuadStampExt2( vec4_t quadVerts[ 4 ], const Color::Color& color, fl
 	VectorCopy( quadVerts[ 1 ], tess.verts[ ndx + 1 ].xyz );
 	VectorCopy( quadVerts[ 2 ], tess.verts[ ndx + 2 ].xyz );
 	VectorCopy( quadVerts[ 3 ], tess.verts[ ndx + 3 ].xyz );
-
-	tess.attribsSet |= ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD | ATTR_QTANGENT;
 
 	// constant normal all the way around
 	vec2_t st[ 3 ] = { { s1, t1 }, { s2, t1 }, { s2, t2 } };
@@ -359,17 +358,17 @@ void Tess_AddQuadStampExt2( vec4_t quadVerts[ 4 ], const Color::Color& color, fl
 	Vector4Copy( qtangents, tess.verts[ ndx + 3 ].qtangents );
 
 	// standard square texture coordinates
-	tess.verts[ ndx ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ ndx ].texCoords[ 1 ] = floatToHalf( t1 );
+	tess.verts[ ndx ].texCoords[ 0 ] = s1;
+	tess.verts[ ndx ].texCoords[ 1 ] = t1;
 
-	tess.verts[ ndx + 1 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ ndx + 1 ].texCoords[ 1 ] = floatToHalf( t1 );
+	tess.verts[ ndx + 1 ].texCoords[ 0 ] = s2;
+	tess.verts[ ndx + 1 ].texCoords[ 1 ] = t1;
 
-	tess.verts[ ndx + 2 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ ndx + 2 ].texCoords[ 1 ] = floatToHalf( t2 );
+	tess.verts[ ndx + 2 ].texCoords[ 0 ] = s2;
+	tess.verts[ ndx + 2 ].texCoords[ 1 ] = t2;
 
-	tess.verts[ ndx + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ ndx + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
+	tess.verts[ ndx + 3 ].texCoords[ 0 ] = s1;
+	tess.verts[ ndx + 3 ].texCoords[ 1 ] = t2;
 
 	// constant color all the way around
 	// should this be identity and let the shader specify from entity?
@@ -399,47 +398,7 @@ void Tess_AddQuadStamp2WithNormals( vec4_t quadVerts[ 4 ], const Color::Color& c
 	Tess_AddQuadStampExt2( quadVerts, color, 0, 0, 1, 1 );
 }
 
-void Tess_AddSprite( const vec3_t center, const Color::Color32Bit color, float radius, float rotation )
-{
-	int    i;
-	int    ndx;
-
-	GLimp_LogComment( "--- Tess_AddSprite ---\n" );
-
-	Tess_CheckOverflow( 4, 6 );
-
-	ndx = tess.numVertexes;
-
-	// triangle indexes for a simple quad
-	tess.indexes[ tess.numIndexes     ] = ndx;
-	tess.indexes[ tess.numIndexes + 1 ] = ndx + 1;
-	tess.indexes[ tess.numIndexes + 2 ] = ndx + 3;
-
-	tess.indexes[ tess.numIndexes + 3 ] = ndx + 3;
-	tess.indexes[ tess.numIndexes + 4 ] = ndx + 1;
-	tess.indexes[ tess.numIndexes + 5 ] = ndx + 2;
-
-	for ( i = 0; i < 4; i++ )
-	{
-		vec4_t texCoord;
-		vec4_t orientation;
-
-		Vector4Set( texCoord, 0.5f * (i & 2), 0.5f * ( (i + 1) & 2 ),
-			    (i & 2) - 1.0f, ( (i + 1) & 2 ) - 1.0f );
-
-		VectorCopy( center, tess.verts[ ndx + i ].xyz );
-		tess.verts[ ndx + i ].color = color;
-		floatToHalf( texCoord, tess.verts[ ndx + i ].texCoords );
-		Vector4Set( orientation, rotation, 0.0f, 0.0f, radius );
-		floatToHalf( orientation, tess.verts[ ndx + i ].spriteOrientation );
-	}
-
-	tess.numVertexes += 4;
-	tess.numIndexes += 6;
-
-	tess.attribsSet |= ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD | ATTR_ORIENTATION;
-}
-
+// Defines ATTR_POSITION, ATTR_COLOR
 void Tess_AddTetrahedron( vec4_t tetraVerts[ 4 ], const Color::Color& colorf )
 {
 	int k;
@@ -475,8 +434,6 @@ void Tess_AddTetrahedron( vec4_t tetraVerts[ 4 ], const Color::Color& colorf )
 		tess.indexes[ tess.numIndexes++ ] = tess.numVertexes;
 		tess.numVertexes++;
 	}
-
-	tess.attribsSet |= ATTR_POSITION | ATTR_COLOR;
 }
 
 void Tess_AddCube( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color )
@@ -571,63 +528,57 @@ void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const
 	Tess_AddQuadStamp2WithNormals( quadVerts, color );
 }
 
+void Tess_InstantScreenSpaceQuad() {
+	GLIMP_LOGCOMMENT( "--- Tess_InstantScreenSpaceQuad ---" );
 
-/*
-==============
-Tess_InstantQuad
-==============
-*/
-void Tess_InstantQuad( vec4_t quadVerts[ 4 ] )
+	if ( glConfig.gpuShader4Available )
+	{
+		tr.skipVBO = true;
+		Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
+		rb_surfaceTable[Util::ordinal( *( tr.genericTriangle->surface ) )]( tr.genericTriangle->surface );
+		Tess_DrawElements();
+		tr.skipVBO = false;
+	}
+	else
+	{
+		Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
+		rb_surfaceTable[Util::ordinal( *( tr.genericQuad->surface ) )]( tr.genericQuad->surface );
+		GL_VertexAttribsState( ATTR_POSITION );
+		Tess_DrawElements();
+	}
+
+	GL_CheckErrors();
+
+	Tess_Clear();
+}
+
+void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, const float x, const float y, const float width, const float height )
 {
-	GLimp_LogComment( "--- Tess_InstantQuad ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_InstantQuad ---" );
 
-	tess.multiDrawPrimitives = 0;
-	tess.numVertexes = 0;
-	tess.numIndexes = 0;
-	tess.attribsSet = 0;
+	Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
 
-	Tess_MapVBOs( false );
-	VectorCopy( quadVerts[ 0 ], tess.verts[ tess.numVertexes ].xyz );
-	tess.verts[ tess.numVertexes ].color = Color::White;
-	tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( 0.0f );
-	tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( 0.0f );
-	tess.numVertexes++;
+	/* We don't use x, y, width, height directly to make it compatible
+	with R_InitGenericVBOs() in tr_vbo.cpp.
+	See: https://github.com/DaemonEngine/Daemon/pull/1739 */
+	matrix_t modelViewMatrix;
+	MatrixCopy( matrixIdentity, modelViewMatrix );
+	modelViewMatrix[12] = 0.5f * width + x;
+	modelViewMatrix[13] = 0.5f * height + y;
+	modelViewMatrix[0] = 0.5f * width;
+	modelViewMatrix[5] = 0.5f * height;
+	GL_LoadModelViewMatrix( modelViewMatrix );
+	shader.SetUniform_ModelViewProjectionMatrix(
+		glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-	VectorCopy( quadVerts[ 1 ], tess.verts[ tess.numVertexes ].xyz );
-	tess.verts[ tess.numVertexes ].color = Color::White;
-	tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( 1.0f );
-	tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( 0.0f );
-	tess.numVertexes++;
-
-	VectorCopy( quadVerts[ 2 ], tess.verts[ tess.numVertexes ].xyz );
-	tess.verts[ tess.numVertexes ].color = Color::White;
-	tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( 1.0f );
-	tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( 1.0f );
-	tess.numVertexes++;
-
-	VectorCopy( quadVerts[ 3 ], tess.verts[ tess.numVertexes ].xyz );
-	tess.verts[ tess.numVertexes ].color = Color::White;
-	tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( 0.0f );
-	tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( 1.0f );
-	tess.numVertexes++;
-
-	tess.indexes[ tess.numIndexes++ ] = 0;
-	tess.indexes[ tess.numIndexes++ ] = 1;
-	tess.indexes[ tess.numIndexes++ ] = 2;
-	tess.indexes[ tess.numIndexes++ ] = 0;
-	tess.indexes[ tess.numIndexes++ ] = 2;
-	tess.indexes[ tess.numIndexes++ ] = 3;
-
-	Tess_UpdateVBOs( );
+	rb_surfaceTable[Util::ordinal( *( tr.genericQuad->surface ) )]( tr.genericQuad->surface );
 	GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR );
 
 	Tess_DrawElements();
 
-	tess.multiDrawPrimitives = 0;
-	tess.numVertexes = 0;
-	tess.numIndexes = 0;
-	tess.attribsSet = 0;
 	GL_CheckErrors();
+
+	Tess_Clear();
 }
 
 /*
@@ -642,33 +593,48 @@ static void Tess_SurfaceSprite()
 	vec3_t delta, left, up;
 	float  radius;
 
-	GLimp_LogComment( "--- Tess_SurfaceSprite ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceSprite ---" );
 
 	radius = backEnd.currentEntity->e.radius;
 
-	if( tess.surfaceShader->autoSpriteMode == 1 ) {
-		// the calculations are done in GLSL shader
-
-		Tess_AddSprite( backEnd.currentEntity->e.origin, 
-				backEnd.currentEntity->e.shaderRGBA,
-				radius, backEnd.currentEntity->e.rotation );
-		return;
+	if ( tess.surfaceShader->autoSpriteMode != 0 && !tess.surfaceShader->autoSpriteWarned )
+	{
+		// This function does similarly to autosprite mode 1. Autospriting it again would be a
+		// waste and would probably lose the rotation angle
+		Log::Warn( "RT_SPRITE entity should NOT configure its shader (%s) as autosprite",
+		           tess.surfaceShader->name );
+		tess.surfaceShader->autoSpriteWarned = true;
 	}
 
-	VectorSubtract( backEnd.currentEntity->e.origin, backEnd.viewParms.pvsOrigin, delta );
+	VectorSubtract( backEnd.currentEntity->e.origin, backEnd.viewParms.orientation.origin, delta );
 
 	if( VectorNormalize( delta ) < NORMAL_EPSILON )
 		return;
 
-	CrossProduct( backEnd.viewParms.orientation.axis[ 2 ], delta, left );
+	vec3_t forward;
+	if ( tess.surfaceShader->entitySpriteFaceViewDirection )
+	{
+		// Face opposite to view direction, triggered by RSF_SPRITE.
+		// Good for particles that may appear very close to the viewer and thus have extreme
+		// difference between the view direction and the direction to the viewer, so
+		// as to avoid cases where they appear obviously planar
+		VectorCopy( backEnd.viewParms.orientation.axis[ 0 ], forward );
+	}
+	else
+	{
+		// Face toward viewer. Used by light flares
+		VectorCopy( delta, forward );
+	}
+
+	CrossProduct( backEnd.viewParms.orientation.axis[ 2 ], forward, left );
 
 	if( VectorNormalize( left ) < NORMAL_EPSILON )
 		VectorSet( left, 1, 0, 0 );
 
 	if( backEnd.currentEntity->e.rotation != 0 )
-		RotatePointAroundVector( left, delta, left, backEnd.currentEntity->e.rotation );
+		RotatePointAroundVector( left, forward, left, backEnd.currentEntity->e.rotation );
 
-	CrossProduct( delta, left, up );
+	CrossProduct( forward, left, up );
 
 	VectorScale( left, radius, left );
 	VectorScale( up, radius, up );
@@ -676,27 +642,30 @@ static void Tess_SurfaceSprite()
 	if ( backEnd.viewParms.isMirror )
 		VectorSubtract( vec3_origin, left, left );
 
-	Tess_AddQuadStamp( backEnd.currentEntity->e.origin, left, up,
-		backEnd.currentEntity->e.shaderRGBA );
+	Color::Color32Bit color = backEnd.currentEntity->e.shaderRGBA;
+	color = tr.convertColorFromSRGB( color );
+	Tess_AddQuadStamp( backEnd.currentEntity->e.origin, left, up, color );
 }
 
 /*
 =============
 Tess_SurfacePolychain
+
+Defines ATTR_POSITION, ATTR_TEXCOORD, ATTR_COLOR, and maybe ATTR_QTANGENT
 =============
 */
 static void Tess_SurfacePolychain( srfPoly_t *p )
 {
 	int i;
 
-	GLimp_LogComment( "--- Tess_SurfacePolychain ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfacePolychain ---" );
 
 	int numVertexes = p->numVerts;
 	int numIndexes = 3 * (p->numVerts - 2);
 
 	Tess_CheckOverflow( numVertexes, numIndexes );
 
-	if (!tess.surfaceShader->interactLight || tess.skipTangentSpaces)
+	if ( tess.skipTangents )
 	{
 		// fan triangles into the tess array
 
@@ -704,9 +673,12 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 		{
 			VectorCopy(p->verts[i].xyz, tess.verts[tess.numVertexes + i].xyz);
 
-			tess.verts[tess.numVertexes + i].color = Color::Adapt(p->verts[i].modulate);
-			tess.verts[tess.numVertexes + i].texCoords[0] = floatToHalf(p->verts[i].st[0]);
-			tess.verts[tess.numVertexes + i].texCoords[1] = floatToHalf(p->verts[i].st[1]);
+			Color::Color32Bit color = Color::Adapt( p->verts[ i ].modulate );
+			color = tr.convertColorFromSRGB( color );
+			tess.verts[tess.numVertexes + i].color = color;
+
+			tess.verts[tess.numVertexes + i].texCoords[0] = p->verts[i].st[0];
+			tess.verts[tess.numVertexes + i].texCoords[1] = p->verts[i].st[1];
 		}
 
 		// generate fan indexes into the tess array
@@ -717,8 +689,6 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 			tess.indexes[tess.numIndexes + i * 3 + 1] = tess.numVertexes + i + 1;
 			tess.indexes[tess.numIndexes + i * 3 + 2] = tess.numVertexes + i + 2;
 		}
-
-		tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR;
 	}
 	else
 	{
@@ -770,58 +740,26 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 			i16vec4_t qtangents;
 
 			VectorNormalizeFast(normals[i]);
-			R_TBNtoQtangents(tangents[i], binormals[i],
-				normals[i], qtangents);
+			R_TBNtoQtangentsFast(tangents[i], binormals[i], normals[i], qtangents);
 
 			VectorCopy(p->verts[i].xyz, tess.verts[tess.numVertexes + i].xyz);
-			tess.verts[tess.numVertexes + i].color = Color::Adapt(p->verts[i].modulate);
+
+			Color::Color32Bit color =  Color::Adapt( p->verts[ i ].modulate );
+			color = tr.convertColorFromSRGB( color );
+			tess.verts[tess.numVertexes + i].color = color;
+
 			Vector4Copy(qtangents, tess.verts[tess.numVertexes + i].qtangents);
-			tess.verts[tess.numVertexes + i].texCoords[0] = floatToHalf(p->verts[i].st[0]);
-			tess.verts[tess.numVertexes + i].texCoords[1] = floatToHalf(p->verts[i].st[1]);
+			tess.verts[tess.numVertexes + i].texCoords[0] = p->verts[i].st[0];
+			tess.verts[tess.numVertexes + i].texCoords[1] = p->verts[i].st[1];
 		}
 
 		ri.Hunk_FreeTempMemory( normals );
 		ri.Hunk_FreeTempMemory( binormals );
 		ri.Hunk_FreeTempMemory( tangents );
-
-		tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR | ATTR_QTANGENT;
 	}
 
 	tess.numIndexes += numIndexes;
 	tess.numVertexes += numVertexes;
-}
-
-// ydnar: decal surfaces
-void Tess_SurfaceDecal( srfDecal_t *srf )
-{
-	int i;
-
-	GLimp_LogComment( "--- Tess_SurfaceDecal ---\n" );
-
-	Tess_CheckOverflow( srf->numVerts, 3 * ( srf->numVerts - 2 ) );
-
-	// fan triangles into the tess array
-	for ( i = 0; i < srf->numVerts; i++ )
-	{
-		VectorCopy( srf->verts[ i ].xyz, tess.verts[ tess.numVertexes + i ].xyz );
-
-		tess.verts[ tess.numVertexes + i ].texCoords[ 0 ] = floatToHalf( srf->verts[ i ].st[ 0 ] );
-		tess.verts[ tess.numVertexes + i ].texCoords[ 1 ] = floatToHalf( srf->verts[ i ].st[ 1 ] );
-
-		tess.verts[ tess.numVertexes + i ].color = Color::Adapt( srf->verts[ i ].modulate );
-	}
-
-	// generate fan indexes into the tess array
-	for ( i = 0; i < srf->numVerts - 2; i++ )
-	{
-		tess.indexes[ tess.numIndexes + 0 ] = tess.numVertexes;
-		tess.indexes[ tess.numIndexes + 1 ] = tess.numVertexes + i + 1;
-		tess.indexes[ tess.numIndexes + 2 ] = tess.numVertexes + i + 2;
-		tess.numIndexes += 3;
-	}
-
-	tess.attribsSet |= ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD;
-	tess.numVertexes += srf->numVerts;
 }
 
 /*
@@ -829,11 +767,11 @@ void Tess_SurfaceDecal( srfDecal_t *srf )
 Tess_SurfaceFace
 ==============
 */
-static void Tess_SurfaceFace( srfSurfaceFace_t *srf )
+static void Tess_SurfaceFace( srfGeneric_t* srf )
 {
-	GLimp_LogComment( "--- Tess_SurfaceFace ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceFace ---" );
 
-	if ( !r_vboFaces->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstTriangle * 3 ) )
+	if ( !r_vboFaces->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
 	{
 		Tess_SurfaceVertsAndTris( srf->verts, srf->triangles, srf->numVerts, srf->numTriangles );
 	}
@@ -846,9 +784,9 @@ Tess_SurfaceGrid
 */
 static void Tess_SurfaceGrid( srfGridMesh_t *srf )
 {
-	GLimp_LogComment( "--- Tess_SurfaceGrid ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceGrid ---" );
 
-	if ( !r_vboCurves->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstTriangle * 3 ) )
+	if ( !r_vboCurves->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
 	{
 		Tess_SurfaceVertsAndTris( srf->verts, srf->triangles, srf->numVerts, srf->numTriangles );
 	}
@@ -859,11 +797,11 @@ static void Tess_SurfaceGrid( srfGridMesh_t *srf )
 Tess_SurfaceTriangles
 =============
 */
-static void Tess_SurfaceTriangles( srfTriangles_t *srf )
+static void Tess_SurfaceTriangles( srfGeneric_t* srf )
 {
-	GLimp_LogComment( "--- Tess_SurfaceTriangles ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceTriangles ---" );
 
-	if ( !r_vboTriangles->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstTriangle * 3 ) )
+	if ( !r_vboTriangles->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
 	{
 		Tess_SurfaceVertsAndTris( srf->verts, srf->triangles, srf->numVerts, srf->numTriangles );
 	}
@@ -874,6 +812,8 @@ static void Tess_SurfaceTriangles( srfTriangles_t *srf )
 /*
 =============
 Tess_SurfaceMDV
+
+Defines ATTR_POSITION, ATTR_TEXCOORD, and maybe ATTR_QTANGENT
 =============
 */
 static void Tess_SurfaceMDV( mdvSurface_t *srf )
@@ -888,7 +828,7 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 	float         backlerp;
 	float         oldXyzScale, newXyzScale;
 
-	GLimp_LogComment( "--- Tess_SurfaceMDV ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceMDV ---" );
 
 	if ( backEnd.currentEntity->e.oldframe == backEnd.currentEntity->e.frame )
 	{
@@ -921,7 +861,7 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 
 	numVertexes = srf->numVerts;
 
-	if (tess.skipTangentSpaces)
+	if (tess.skipTangents)
 	{
 		for (j = 0; j < numVertexes; j++, newVert++, oldVert++, st++)
 		{
@@ -943,11 +883,9 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 			tess.verts[tess.numVertexes + j].xyz[1] = tmpVert[1];
 			tess.verts[tess.numVertexes + j].xyz[2] = tmpVert[2];
 
-			tess.verts[tess.numVertexes + j].texCoords[0] = floatToHalf(st->st[0]);
-			tess.verts[tess.numVertexes + j].texCoords[1] = floatToHalf(st->st[1]);
+			tess.verts[tess.numVertexes + j].texCoords[0] = st->st[0];
+			tess.verts[tess.numVertexes + j].texCoords[1] = st->st[1];
 		}
-
-		tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD;
 	}
 	else
 	{
@@ -960,14 +898,12 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 		vec3_t      binormal, *binormals;
 		vec3_t      *normals;
 
-		tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT;
-
 		xyz = (vec3_t *)ri.Hunk_AllocateTempMemory( numVertexes * sizeof(vec3_t) );
 		tangents = (vec3_t *)ri.Hunk_AllocateTempMemory( numVertexes * sizeof( vec3_t ) );
 		binormals = (vec3_t *)ri.Hunk_AllocateTempMemory( numVertexes * sizeof( vec3_t ) );
 		normals = (vec3_t *)ri.Hunk_AllocateTempMemory( numVertexes * sizeof( vec3_t ) );
 
-		for ( i = 0; i < numVertexes; i++ )
+		for ( i = 0; i < numVertexes; i++, newVert++, oldVert++, oldNormal++, newNormal++ )
 		{
 			VectorClear( tangents[ i ] );
 			VectorClear( binormals[ i ] );
@@ -1031,8 +967,8 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 
 			VectorCopy(xyz[i], tess.verts[tess.numVertexes + i].xyz);
 			Vector4Copy(qtangents, tess.verts[tess.numVertexes + i].qtangents);
-			tess.verts[tess.numVertexes + i].texCoords[0] = floatToHalf(st[i].st[0]);
-			tess.verts[tess.numVertexes + i].texCoords[1] = floatToHalf(st[i].st[1]);
+			tess.verts[tess.numVertexes + i].texCoords[0] = st[i].st[0];
+			tess.verts[tess.numVertexes + i].texCoords[1] = st[i].st[1];
 		}
 
 		ri.Hunk_FreeTempMemory( normals );
@@ -1048,24 +984,19 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 /*
 ==============
 Tess_SurfaceMD5
+
+Defines ATTR_POSITION, ATTR_TEXCOORD, and maybe ATTR_QTANGENT
 ==============
 */
 static void Tess_SurfaceMD5( md5Surface_t *srf )
 {
 	md5Model_t *model = srf->model;
 
-	GLimp_LogComment( "--- Tess_SurfaceMD5 ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceMD5 ---" );
 
 	int numIndexes = srf->numTriangles * 3;
 
 	Tess_CheckOverflow( srf->numVerts, numIndexes );
-
-	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD;
-
-	if ( !tess.skipTangentSpaces )
-	{
-		tess.attribsSet |= ATTR_QTANGENT;
-	}
 
 	vec_t entityScale = backEnd.currentEntity->e.skeleton.scale;
 	float modelScale = model->internalScale;
@@ -1087,14 +1018,14 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 			TransInsScale( modelScale, bone );
 		}
 	}
-	else if ( tess.skipTangentSpaces )
+	else if ( tess.skipTangents )
 	{
 		md5Bone_t *modelBone = model->bones;
 
 		for ( ; bone < lastBone; bone++,
 			modelBone++ )
 		{
-			TransCopy( &modelBone->joint, bone );
+			*bone = modelBone->joint;
 			TransInsScale( modelScale, bone );
 		}
 	}
@@ -1124,7 +1055,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 	shaderVertex_t *lastVertex = tessVertex + srf->numVerts;
 
 	// Deform the vertices by the lerped bones.
-	if ( tess.skipTangentSpaces )
+	if ( tess.skipTangents )
 	{
 		for ( ; tessVertex < lastVertex; tessVertex++,
 			surfaceVertex++ )
@@ -1147,7 +1078,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 
 			VectorCopy( position, tessVertex->xyz );
 
-			floatToHalf( surfaceVertex->texCoordsF, tessVertex->texCoords );
+			Vector2Copy( surfaceVertex->texCoords, tessVertex->texCoords );
 		}
 	}
 	else
@@ -1183,14 +1114,14 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 				VectorMA( binormal, *boneWeight, tmp, binormal );
 			}
 
-			VectorNormalize( normal );
-			VectorNormalize( tangent );
-			VectorNormalize( binormal );
+			VectorNormalizeFast( normal );
+			VectorNormalizeFast( tangent );
+			VectorNormalizeFast( binormal );
 			VectorCopy( position, tessVertex->xyz );
 
-			R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
+			R_TBNtoQtangentsFast( tangent, binormal, normal, tessVertex->qtangents );
 
-			floatToHalf( surfaceVertex->texCoordsF, tessVertex->texCoords );
+			Vector2Copy( surfaceVertex->texCoords, tessVertex->texCoords );
 		}
 	}
 
@@ -1203,24 +1134,16 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 Tess_SurfaceIQM
 
 Compute vertices for this model surface
+If not using a VBO, defines ATTR_POSITION, ATTR_TEXCOORD, and maybe ATTR_QTANGENT
 =================
 */
 void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	IQModel_t *model = surf->data;
 	int offset = tess.numVertexes - surf->first_vertex;
 
-	GLimp_LogComment( "--- Tess_SurfaceIQM ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceIQM ---" );
 
 	int numIndexes = surf->num_triangles * 3;
-
-	Tess_CheckOverflow( surf->num_vertexes, numIndexes );
-
-	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD;
-
-	if ( !tess.skipTangentSpaces )
-	{
-		tess.attribsSet |= ATTR_QTANGENT;
-	}
 
 	vec_t entityScale = backEnd.currentEntity->e.skeleton.scale;
 	float modelScale = model->internalScale;
@@ -1242,14 +1165,14 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 			TransInsScale( modelScale, bone );
 		}
 	}
-	else if ( tess.skipTangentSpaces )
+	else if ( tess.skipTangents )
 	{
 		transform_t *modelJoint = model->joints;
 
 		for ( ; bone < lastBone; bone++,
 			modelJoint++ )
 		{
-			TransCopy( modelJoint, bone );
+			*bone = *modelJoint;
 			TransInsScale( modelScale, bone );
 		}
 	}
@@ -1267,7 +1190,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	returns early and then save CPU time.
 
 	This test is false when r_vboModels is disabled, or when
-	glConfig2.vboVertexSkinningAvailable is false because related
+	glConfig.vboVertexSkinningAvailable is false because related
 	OpenGL extensions are unsupported, or the model has too much
 	bones for the hardware, or r_vboVertexSkinning is disabled.
 
@@ -1276,7 +1199,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	{
 		if( model->num_joints > 0 )
 		{
-			memcpy( tess.bones, bones, model->num_joints * sizeof(transform_t) );
+			std::copy_n( bones, model->num_joints, tess.bones );
 			tess.numBones = model->num_joints;
 		}
 		else
@@ -1298,6 +1221,8 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 		return;
 	}
 
+	Tess_CheckOverflow( surf->num_vertexes, numIndexes );
+
 	glIndex_t *tessIndex = tess.indexes + tess.numIndexes;
 	int *modelTriangle = model->triangles + 3 * surf->first_triangle;
 	int *lastModelTriangle = modelTriangle + 3 * surf->num_triangles;
@@ -1313,7 +1238,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	float *modelNormal = model->normals + 3 * firstVertex;
 	float *modelTangent = model->tangents + 3 * firstVertex;
 	float *modelBitangent = model->bitangents + 3 * firstVertex;
-	f16_t *modelTexcoord = model->texcoords + 2 * firstVertex;
+	float *modelTexcoord = model->texcoords + 2 * firstVertex;
 	shaderVertex_t *tessVertex = tess.verts + tess.numVertexes;
 	shaderVertex_t *lastVertex = tessVertex + surf->num_vertexes;
 
@@ -1322,7 +1247,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	{
 		const float weightFactor = 1.0f / 255.0f;
 
-		if ( tess.skipTangentSpaces )
+		if ( tess.skipTangents )
 		{
 			byte *modelBlendIndex = model->blendIndexes + 4 * firstVertex;
 			byte *modelBlendWeight = model->blendWeights + 4 * firstVertex;
@@ -1394,12 +1319,12 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 					VectorMA( binormal, weight, tmp, binormal );
 				}
 
-				VectorNormalize( normal );
-				VectorNormalize( tangent );
-				VectorNormalize( binormal );
+				VectorNormalizeFast( normal );
+				VectorNormalizeFast( tangent );
+				VectorNormalizeFast( binormal );
 				VectorCopy( position, tessVertex->xyz );
 
-				R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
+				R_TBNtoQtangentsFast( tangent, binormal, normal, tessVertex->qtangents );
 
 				Vector2Copy( modelTexcoord, tessVertex->texCoords );
 			}
@@ -1416,7 +1341,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 		{
 			VectorScale( modelPosition, scale, tessVertex->xyz );
 
-			R_TBNtoQtangents( modelTangent, modelBitangent, modelNormal, tessVertex->qtangents );
+			R_TBNtoQtangentsFast( modelTangent, modelBitangent, modelNormal, tessVertex->qtangents );
 
 			Vector2Copy( modelTexcoord, tessVertex->texCoords );
 		}
@@ -1437,7 +1362,7 @@ Entities that have a single procedurally generated surface
 */
 static void Tess_SurfaceEntity( surfaceType_t* )
 {
-	GLimp_LogComment( "--- Tess_SurfaceEntity ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceEntity ---" );
 
 	switch ( backEnd.currentEntity->e.reType )
 	{
@@ -1451,33 +1376,9 @@ static void Tess_SurfaceEntity( surfaceType_t* )
 
 static void Tess_SurfaceBad( surfaceType_t* )
 {
-	GLimp_LogComment( "--- Tess_SurfaceBad ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceBad ---" );
 
 	Log::Notice("Bad surface tesselated." );
-}
-
-static void Tess_SurfaceFlare( srfFlare_t *surf )
-{
-	vec3_t dir;
-	vec3_t origin;
-	float  d;
-
-	GLimp_LogComment( "--- Tess_SurfaceFlare ---\n" );
-
-	Tess_CheckVBOAndIBO( tess.vbo, tess.ibo );
-
-	VectorMA( surf->origin, 2.0F, surf->normal, origin );
-	VectorSubtract( origin, backEnd.viewParms.orientation.origin, dir );
-	VectorNormalize( dir );
-	d = -DotProduct( dir, surf->normal );
-	VectorMA( origin, r_ignore->value, dir, origin );
-
-	if ( d < 0 )
-	{
-		return;
-	}
-
-	RB_AddFlare( ( void * ) surf, tess.fogNum, origin, surf->color, surf->normal );
 }
 
 /*
@@ -1487,10 +1388,9 @@ Tess_SurfaceVBOMesh
 */
 static void Tess_SurfaceVBOMesh( srfVBOMesh_t *srf )
 {
-	GLimp_LogComment( "--- Tess_SurfaceVBOMesh ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceVBOMesh ---" );
 
-
-	Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numIndexes, srf->firstIndex );
+	Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex );
 }
 
 /*
@@ -1502,7 +1402,7 @@ void Tess_SurfaceVBOMDVMesh( srfVBOMDVMesh_t *surface )
 {
 	refEntity_t *refEnt;
 
-	GLimp_LogComment( "--- Tess_SurfaceVBOMDVMesh ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceVBOMDVMesh ---" );
 
 	if ( !surface->vbo || !surface->ibo )
 	{
@@ -1544,7 +1444,7 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 {
 	md5Model_t *model = srf->md5Model;
 
-	GLimp_LogComment( "--- Tess_SurfaceVBOMD5Mesh ---\n" );
+	GLIMP_LOGCOMMENT( "--- Tess_SurfaceVBOMD5Mesh ---" );
 
 	if ( !srf->vbo || !srf->ibo )
 	{
@@ -1555,14 +1455,6 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 
 	R_BindVBO( srf->vbo );
 	R_BindIBO( srf->ibo );
-
-	// Tess_SurfaceMD5 has this, is it useful?
-	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD;
-
-	if ( !tess.skipTangentSpaces )
-	{
-		tess.attribsSet |= ATTR_QTANGENT;
-	}
 
 	tess.numIndexes = srf->numIndexes;
 	tess.numVertexes = srf->numVerts;
@@ -1590,14 +1482,14 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 			TransInsScale( modelScale, bone );
 		}
 	}
-	else if ( tess.skipTangentSpaces )
+	else if ( tess.skipTangents )
 	{
 		md5Bone_t *modelBone = model->bones;
 
 		for ( ; bone < lastBone; bone++,
 			modelBone++ )
 		{
-			TransCopy( &modelBone->joint, bone );
+			*bone = modelBone->joint;
 			TransInsScale( modelScale, bone );
 		}
 	}
@@ -1626,12 +1518,10 @@ void ( *rb_surfaceTable[ Util::ordinal(surfaceType_t::SF_NUM_SURFACE_TYPES) ] )(
 	( void ( * )( void * ) ) Tess_SurfaceGrid,  // SF_GRID,
 	( void ( * )( void * ) ) Tess_SurfaceTriangles,  // SF_TRIANGLES,
 	( void ( * )( void * ) ) Tess_SurfacePolychain,  // SF_POLY,
-	( void ( * )( void * ) ) Tess_SurfaceDecal,  // SF_DECAL
 	( void ( * )( void * ) ) Tess_SurfaceMDV,  // SF_MDV,
 	( void ( * )( void * ) ) Tess_SurfaceMD5,  // SF_MD5,
 	( void ( * )( void * ) ) Tess_SurfaceIQM,  // SF_IQM,
 
-	( void ( * )( void * ) ) Tess_SurfaceFlare,  // SF_FLARE,
 	( void ( * )( void * ) ) Tess_SurfaceEntity,  // SF_ENTITY
 	( void ( * )( void * ) ) Tess_SurfaceVBOMesh,  // SF_VBO_MESH
 	( void ( * )( void * ) ) Tess_SurfaceVBOMD5Mesh,  // SF_VBO_MD5MESH

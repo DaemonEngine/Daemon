@@ -69,12 +69,20 @@ std::string CRNFormatToString(crn_format format)
 bool LoadInMemoryCRN(const char* name, const void* buff, size_t buffLen, byte **data, int *width, int *height,
                      int *numLayers, int *numMips, int *bits)
 {
-    if (crnd::crnd_validate_file(buff, buffLen, nullptr)) { // Checks the header, not the whole file.
-        // Found height and width in [1, 4096], num mip levels in [1, 13], faces in {1, 6}
-    } else {
+    // The validation functions check that there is height and width in [1, 4096],
+    // num mip levels in [1, 13], faces in {1, 6}
+#ifdef DEBUG_BUILD
+    if (!crnd::crnd_validate_file(buff, buffLen, nullptr)) {
+        Log::Warn("CRN image '%s' is invalid", name);
+        return false;
+    }
+#else
+    if (!crnd::crnd_validate_header(buff, buffLen, nullptr)) {
         Log::Warn("CRN image '%s' has an invalid header", name);
         return false;
     }
+#endif
+
     crnd::crn_texture_info ti;
     if (!crnd::crnd_get_texture_info(buff, buffLen, &ti)) {
         Log::Warn("CRN image '%s' has bad texture info", name);
@@ -124,7 +132,7 @@ bool LoadInMemoryCRN(const char* name, const void* buff, size_t buffLen, byte **
         Log::Warn("CRN image '%s' has bad data", name);
         return false;
     }
-    byte* nextImage = (byte *)ri.Z_Malloc(totalSize);
+    byte* nextImage = (byte *)Z_Malloc(totalSize);
     bool success = true;
     for (unsigned i = 0; i < ti.m_levels; i++) {
         for (unsigned j = 0; j < ti.m_faces; j++) {
@@ -161,7 +169,7 @@ void LoadCRN(const char* name, byte **data, int *width, int *height,
     }
     if (!LoadInMemoryCRN(name, buff.data(), buff.size(), data, width, height, numLayers, numMips, bits)) {
         if (*data) {
-            ri.Free(*data);
+            Z_Free(*data);
             *data = nullptr; // This signals failure.
         }
     }

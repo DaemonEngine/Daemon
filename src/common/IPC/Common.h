@@ -70,6 +70,19 @@ namespace IPC {
         void Close() const;
 	};
 
+    // Version of the protocol for detecting what ABI version the VM has upon startup
+    constexpr uint32_t ABI_VERSION_DETECTION_ABI_VERSION = 4;
+
+    // Version for the syscall signatures between engine and VM. This must change if the syscall
+    // IDs, argument types, or return types change, or if serialization procedures change.
+    // Follows Daemon major versions.
+    // This should be updated only by update-version-number.py when a "major" release is indicated
+    constexpr const char* SYSCALL_ABI_VERSION = "0.55";
+
+    // This should be manually set to true when starting a 'for-X.Y.Z/sync' branch.
+    // This should be set to false by update-version-number.py when a (major) release is created.
+    constexpr bool DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES = false;
+
     /*
      * The messages sent between the VM and the engine are defined by a numerical
      * ID used for dispatch, a list of input types and an optional list of return

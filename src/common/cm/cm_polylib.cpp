@@ -38,10 +38,10 @@ Maryland 20850 USA.
 
 // counters are only bumped when running single threaded,
 // because they are an awefull coherence problem
-int c_active_windings;
-int c_peak_windings;
-int c_winding_allocs;
-int c_winding_points;
+static int c_active_windings;
+static int c_peak_windings;
+static int c_winding_allocs;
+static int c_winding_points;
 
 /*
 =============
@@ -63,8 +63,7 @@ winding_t      *AllocWinding( int points )
 	}
 
 	s = sizeof( vec_t ) * 3 * points + sizeof( int );
-	w = ( winding_t * ) Z_Malloc( s );
-	memset( w, 0, s );
+	w = ( winding_t * ) Z_Calloc( s );
 	return w;
 }
 
@@ -113,7 +112,13 @@ void WindingBounds( winding_t *w, vec3_t mins, vec3_t maxs )
 BaseWindingForPlane
 =================
 */
-winding_t      *BaseWindingForPlane( const vec3_t normal, const vec_t dist )
+winding_t *BaseWindingForPlane( const plane_t &plane )
+{
+	return BaseWindingForPlane( plane.normal, plane.dist  );
+}
+
+// Backward compatibility with game.
+winding_t *BaseWindingForPlane( const vec3_t normal, const vec_t dist )
 {
 	int       i, x;
 	vec_t     max, v;
@@ -207,6 +212,12 @@ winding_t      *CopyWinding( winding_t *w )
 ChopWindingInPlace
 =============
 */
+void ChopWindingInPlace( winding_t **inout, const plane_t &plane, const vec_t epsilon )
+{
+	ChopWindingInPlace( inout, plane.normal, plane.dist, epsilon );
+}
+
+// Backward compatibility with game.
 void ChopWindingInPlace( winding_t **inout, const vec3_t normal, const vec_t dist, const vec_t epsilon )
 {
 // FIXME: https://github.com/DaemonEngine/Daemon/issues/169

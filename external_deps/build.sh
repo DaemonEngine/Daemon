@@ -1,134 +1,337 @@
 #!/usr/bin/env bash
 
-# Exit on error
-# Error on undefined variable
-set -e
-set -u
+# Exit on undefined variable and error.
+set -u -e -o pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+WORK_DIR="${PWD}"
 
 # This should match the DEPS_VERSION in CMakeLists.txt.
 # This is mostly to ensure the path the files end up at if you build deps yourself
 # are the same as the ones when extracting from the downloaded packages.
-DEPS_VERSION=7
+DEPS_VERSION=11
+
+# Package download pages
+PKGCONFIG_BASEURL='https://pkg-config.freedesktop.org/releases'
+NASM_BASEURL='https://www.nasm.us/pub/nasm/releasebuilds'
+ZLIB_BASEURL='https://zlib.net/fossils'
+GMP_BASEURL='https://gmplib.org/download/gmp'
+NETTLE_BASEURL='https://mirror.cyberbits.eu/gnu/nettle'
+CURL_BASEURL='https://curl.se/download'
+SDL3_BASEURL='https://www.libsdl.org/release'
+GLEW_BASEURL='https://github.com/nigels-com/glew/releases'
+# Index: https://download.sourceforge.net/libpng/files/libpng16
+PNG_BASEURL='https://sourceforge.net/projects/libpng/files/libpng16'
+JPEG_BASEURL='https://github.com/libjpeg-turbo/libjpeg-turbo/releases'
+# Index: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/index.html
+WEBP_BASEURL='https://storage.googleapis.com/downloads.webmproject.org/releases/webp'
+# Index: https://github.com/kcat/openal-soft/releases
+OPENAL_BASEURL='https://github.com/kcat/openal-soft'
+OGG_BASEURL='https://downloads.xiph.org/releases/ogg'
+VORBIS_BASEURL='https://downloads.xiph.org/releases/vorbis'
+OPUS_BASEURL='https://downloads.xiph.org/releases/opus'
+OPUSFILE_BASEURL='https://downloads.xiph.org/releases/opus'
+# No index.
+NACLSDK_BASEURL='https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk'
+# No index.
+NACLRUNTIME_BASEURL='https://api.github.com/repos/DaemonEngine/native_client/zipball'
+NCURSES_BASEURL='https://ftpmirror.gnu.org/gnu/ncurses'
+WASISDK_BASEURL='https://github.com/WebAssembly/wasi-sdk/releases'
+WASMTIME_BASEURL='https://github.com/bytecodealliance/wasmtime/releases'
 
 # Package versions
 PKGCONFIG_VERSION=0.29.2
-NASM_VERSION=2.15.05
-ZLIB_VERSION=1.2.13
-GMP_VERSION=6.2.1
-NETTLE_VERSION=3.7.3
-CURL_VERSION=7.83.1
-SDL2_VERSION=2.0.12  # Holding back due to https://github.com/DaemonEngine/Daemon/issues/628
+NASM_VERSION=2.16.03
+ZLIB_VERSION=1.3.1
+GMP_VERSION=6.3.0
+NETTLE_VERSION=3.10.2
+CURL_VERSION=8.15.0
+SDL3_VERSION=3.2.22
 GLEW_VERSION=2.2.0
-PNG_VERSION=1.6.37
-JPEG_VERSION=2.1.3
-WEBP_VERSION=1.2.2
-FREETYPE_VERSION=2.12.1
-OPENAL_VERSION=1.21.1  # Not using 1.22.0 due to https://github.com/kcat/openal-soft/issues/719
-OGG_VERSION=1.3.5
+PNG_VERSION=1.6.50
+JPEG_VERSION=3.1.1
+# WebP 1.6.0 introduced AVX2 intrinsics that are not available on
+# the GCC 10 compiler provided by Debian Bullseye.
+WEBP_VERSION=1.5.0
+OPENAL_VERSION=1.24.3
+OGG_VERSION=1.3.6
 VORBIS_VERSION=1.3.7
-OPUS_VERSION=1.3.1
+OPUS_VERSION=1.5.2
 OPUSFILE_VERSION=0.12
-LUA_VERSION=5.4.4
 NACLSDK_VERSION=44.0.2403.155
-NCURSES_VERSION=6.2
+NACLRUNTIME_REVISION=2aea5fcfce504862a825920fcaea1a8426afbd6f
+NCURSES_VERSION=6.5
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
+
+# Require the compiler names to be explicitly hardcoded, we should not inherit them
+# from environment as we heavily cross-compile.
+CC='false'
+CXX='false'
+# Set defaults.
+LD='ld'
+AR='ar'
+RANLIB='ranlib'
+PKG_CONFIG='pkg-config'
+CROSS_PKG_CONFIG_PATH=''
+LIBS_SHARED='OFF'
+LIBS_STATIC='ON'
+CMAKE_TOOLCHAIN=''
+# Always reset flags, we heavily cross-compile and must not inherit any stray flag
+# from environment.
+CPPFLAGS=''
+CFLAGS='-O3 -fPIC'
+CXXFLAGS='-O3 -fPIC'
+LDFLAGS='-O3 -fPIC'
+
+log() {
+	level="${1}"; shift
+	printf '%s: %s\n' "${level}" "${@}" >&2
+	[ "${level}" != 'ERROR' ]
+}
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
 extract() {
-	rm -rf "${BUILD_DIR}/${2}"
-	mkdir -p "${BUILD_DIR}/${2}"
-	case "${1}" in
+	local archive_file="${1}"; shift
+	local extract_dir="${1}"; shift
+
+	local archive_name="$(basename "${archive_file}")"
+	log STATUS "Extracting ${archive_name}"
+
+	rm -rf "${extract_dir}"
+	mkdir -p "${extract_dir}"
+	case "${archive_file}" in
 	*.tar.bz2)
-		tar xjf "${DOWNLOAD_DIR}/${1}" -C "${BUILD_DIR}/${2}"
+		tar xjf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.tar.xz)
-		tar xJf "${DOWNLOAD_DIR}/${1}" -C "${BUILD_DIR}/${2}"
+		tar xJf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.tar.gz|*.tgz)
-		tar xzf "${DOWNLOAD_DIR}/${1}" -C "${BUILD_DIR}/${2}"
+		tar xzf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.zip)
-		unzip -d "${BUILD_DIR}/${2}" "${DOWNLOAD_DIR}/${1}"
+		unzip -d "${extract_dir}" "${archive_file}"
 		;;
 	*.cygtar.bz2)
 		# Some Windows NaCl SDK packages have incorrect symlinks, so use
 		# cygtar to extract them.
-		"${SCRIPT_DIR}/cygtar.py" -xjf "${DOWNLOAD_DIR}/${1}" -C "${BUILD_DIR}/${2}"
+		"${SCRIPT_DIR}/cygtar.py" -xjf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.dmg)
-		mkdir -p "${BUILD_DIR}/${2}-dmg"
-		hdiutil attach -mountpoint "${BUILD_DIR}/${2}-dmg" "${DOWNLOAD_DIR}/${1}"
-		cp -R "${BUILD_DIR}/${2}-dmg/"* "${BUILD_DIR}/${2}/"
-		hdiutil detach "${BUILD_DIR}/${2}-dmg"
-		rmdir "${BUILD_DIR}/${2}-dmg"
+		local dmg_temp_dir="$(mktemp -d)"
+		hdiutil attach -mountpoint "${dmg_temp_dir}" "${archive_file}"
+		cp -R "${dmg_temp_dir}/"* "${extract_dir}/"
+		hdiutil detach "${dmg_temp_dir}"
+		rmdir "${dmg_temp_dir}"
 		;;
 	*)
-		echo "Unknown archive type for ${1}"
-		exit 1
+		log ERROR "Unknown archive type for ${archive_name}"
 		;;
 	esac
-	cd "${BUILD_DIR}/${2}"
+	cd "${extract_dir}"
+}
+
+download() {
+	local tarball_file="${1}"; shift
+
+	while [ ! -f "${tarball_file}" ]; do
+		if [ -z "${1:-}" ]
+		then
+			log ERROR "No more mirror to download ${tarball_file} from"
+		fi
+		local download_url="${1}"; shift
+		log STATUS "Downloading ${download_url}"
+		if ! "${CURL}" -R -L --fail -o "${tarball_file}" "${download_url}"
+		then
+			log WARNING "Failed to download ${download_url}"
+			rm -f "${tarball_file}"
+		fi
+	done
 }
 
 # Download a file if it doesn't exist yet, and extract it into the build dir
 # Usage: download <filename> <URL> <dir>
-download() {
-	if [ ! -f "${DOWNLOAD_DIR}/${1}" ]; then
-		curl -L --fail -o "${DOWNLOAD_DIR}/${1}" "${2}"
+download_extract() {
+	local extract_dir="${BUILD_DIR}/${1}"; shift
+	local our_mirror="https://dl.unvanquished.net/deps/original/${1}"
+	local tarball_file="${DOWNLOAD_DIR}/${1}"; shift
+
+	if "${require_theirs}"
+	then
+		download "${tarball_file}" "${@}"
+	elif "${prefer_ours}"
+	then
+		download "${tarball_file}" "${our_mirror}" "${@}"
+	else
+		download "${tarball_file}" "${@}" "${our_mirror}"
 	fi
-	extract "${1}" "${3}"
+
+	"${download_only}" && return
+
+	extract "${tarball_file}" "${extract_dir}"
 }
 
-# Build pkg-config
-build_pkgconfig() {
-	download "pkg-config-${PKGCONFIG_VERSION}.tar.gz" "http://pkgconfig.freedesktop.org/releases/pkg-config-${PKGCONFIG_VERSION}.tar.gz" pkgconfig
-	cd "pkg-config-${PKGCONFIG_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" --with-internal-glib
+configure_build() {
+	local configure_args=()
+
+	if [ "${LIBS_SHARED}" = 'ON' ]
+	then
+		configure_args+=(--enable-shared)
+	else
+		configure_args+=(--disable-shared)
+	fi
+
+	if [ "${LIBS_STATIC}" = 'ON' ]
+	then
+		configure_args+=(--enable-static)
+	else
+		configure_args+=(--disable-static)
+	fi
+
+	# Workaround macOS bash limitation.
+	if [ -n "${1:-}" ]
+	then
+		configure_args+=("${@}")
+	fi
+
+	./configure \
+		--host="${HOST}" \
+		--prefix="${PREFIX}" \
+		--libdir="${PREFIX}/lib" \
+		"${configure_args[@]}"
+
 	make
 	make install
+}
+
+get_compiler_name() {
+	echo "${1}"
+}
+
+get_compiler_arg1() {
+	shift
+
+	# Check for ${@} not being empty to workaround a macOS bash limitation.
+	if [ -n "${1:-}" ]
+	then
+		echo "${@}"
+	fi
+}
+
+cmake_build() {
+	local cmake_args=()
+
+	cmake_args+=(-DCMAKE_C_COMPILER="$(get_compiler_name ${CC})")
+	cmake_args+=(-DCMAKE_CXX_COMPILER="$(get_compiler_name ${CXX})")
+	cmake_args+=(-DCMAKE_C_COMPILER_ARG1="$(get_compiler_arg1 ${CC})")
+	cmake_args+=(-DCMAKE_CXX_COMPILER_ARG1="$(get_compiler_arg1 ${CXX})")
+	cmake_args+=(-DCMAKE_C_FLAGS="${CFLAGS}")
+	cmake_args+=(-DCMAKE_CXX_FLAGS="${CXXFLAGS}")
+	cmake_args+=(-DCMAKE_EXE_LINKER_FLAGS="${LDFLAGS}")
+
+	# Check for ${@} not being empty to workaround a macOS bash limitation.
+	if [ -n "${1:-}" ]
+	then
+		cmake_args+=("${@}")
+	fi
+
+	cmake -S . -B build \
+		-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}" \
+		-DCMAKE_BUILD_TYPE='Release' \
+		-DCMAKE_PREFIX_PATH="${PREFIX}" \
+		-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+		-DBUILD_SHARED_LIBS="${LIBS_SHARED}" \
+		"${cmake_args[@]}"
+
+	cmake --build build
+	cmake --install build --strip
+}
+
+# Build pkg-config, needed for opusfile.
+# As a host-mode dependency it must be provided by the system when cross-compiling.
+build_pkgconfig() {
+	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download_extract pkgconfig "${archive_name}" \
+		"${PKGCONFIG_BASEURL}/${archive_name}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
+	# Reset the environment variables, we don't cross-compile this,
+	# it is part of the cross-compilation toolchain.
+	# CXXFLAGS is unused.
+	CFLAGS='-Wno-error=int-conversion' \
+	LDFLAGS='' \
+	HOST='' \
+	configure_build \
+		--with-internal-glib
 }
 
 # Build NASM
 build_nasm() {
 	case "${PLATFORM}" in
 	macos-*-*)
-		download "nasm-${NASM_VERSION}-macosx.zip" "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/nasm-${NASM_VERSION}-macosx.zip" nasm
-		cp "nasm-${NASM_VERSION}/nasm" "${PREFIX}/bin"
+		local dir_name="nasm-${NASM_VERSION}"
+		local archive_name="${dir_name}-macosx.zip"
+
+		download_extract nasm "${archive_name}" \
+			"${NASM_BASEURL}/${NASM_VERSION}/macosx/${archive_name}"
+
+		"${download_only}" && return
+
+		cp "${dir_name}/nasm" "${PREFIX}/bin"
 		;;
 	*)
-		echo "Unsupported platform for NASM"
-		exit 1
+		log ERROR 'Unsupported platform for NASM'
 		;;
 	esac
 }
 
 # Build zlib
 build_zlib() {
-	download "zlib-${ZLIB_VERSION}.tar.xz" "https://zlib.net/zlib-${ZLIB_VERSION}.tar.xz" zlib
-	cd "zlib-${ZLIB_VERSION}"
+	# Only the latest zlib version is provided as tar.xz, the
+	# older ones in fossils/ folder are only provided as tar.gz.
+	local dir_name="zlib-${ZLIB_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download_extract zlib "${archive_name}" \
+		"${ZLIB_BASEURL}/${archive_name}" \
+		"https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/${archive_name}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
 	case "${PLATFORM}" in
 	windows-*-*)
-		LOC="${CFLAGS:-}" make -f win32/Makefile.gcc PREFIX="${CROSS}"
+		LOC="${CFLAGS}" make -f win32/Makefile.gcc PREFIX="${HOST}-"
 		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
 		;;
-	linux-*-*)
-		./configure --prefix="${PREFIX}" --static --const
-		make
-		make install
-		;;
 	*)
-		echo "Unsupported platform for zlib"
-		exit 1
+		CFLAGS="${CFLAGS} -DZLIB_CONST" \
+		cmake_build \
+			-DZLIB_BUILD_EXAMPLES=OFF
 		;;
 	esac
 }
 
 # Build GMP
 build_gmp() {
-	download "gmp-${GMP_VERSION}.tar.bz2" "https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.bz2" gmp
-	cd "gmp-${GMP_VERSION}"
+	local dir_name="gmp-${GMP_VERSION}"
+	local archive_name="${dir_name}.tar.bz2"
+
+	download_extract gmp "${archive_name}" \
+		"${GMP_BASEURL}/${archive_name}" \
+		"https://ftpmirror.gnu.org/gnu/gmp/${archive_name}" \
+		"https://ftp.gnu.org/gnu/gmp/${archive_name}"
+
+	"${download_only}" && return
+
 	case "${PLATFORM}" in
 	windows-*-msvc)
 		# Configure script gets confused if we override the compiler. Shouldn't
@@ -140,21 +343,24 @@ build_gmp() {
 		;;
 	esac
 
-	# The default -O2 is dropped when there's user-provided CFLAGS.
+	local gmp_configure_args=()
+
 	case "${PLATFORM}" in
 	macos-*-*)
 		# The assembler objects are incompatible with PIE
-		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-assembly
+		gmp_configure_args+=(--disable-assembly)
 		;;
 	*)
-		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
 		;;
 	esac
 
-	make
-	make install
+	cd "${dir_name}"
+
+	configure_build \
+		"${gmp_configure_args[@]}"
+
 	case "${PLATFORM}" in
-	msvc*)
+	windows-*-msvc)
 		export CC="${CC_BACKUP}"
 		export CXX="${CXX_BACKUP}"
 		;;
@@ -163,279 +369,542 @@ build_gmp() {
 
 # Build Nettle
 build_nettle() {
-	# download "nettle-${NETTLE_VERSION}.tar.gz" "https://www.lysator.liu.se/~nisse/archive/nettle-${NETTLE_VERSION}.tar.gz" nettle
-	download "nettle-${NETTLE_VERSION}.tar.gz" "https://ftp.gnu.org/gnu/nettle/nettle-${NETTLE_VERSION}.tar.gz" nettle
-	cd "nettle-${NETTLE_VERSION}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
-	make
-	make install
+	local dir_name="nettle-${NETTLE_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download_extract nettle "${archive_name}" \
+		"${NETTLE_BASEURL}/${archive_name}" \
+		"https://ftp.gnu.org/gnu/nettle/${archive_name}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
+	configure_build \
+		--disable-fat \
+		--disable-pic
 }
 
 # Build cURL
 build_curl() {
-	download "curl-${CURL_VERSION}.tar.bz2" "https://curl.haxx.se/download/curl-${CURL_VERSION}.tar.bz2" curl
-	cd "curl-${CURL_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" --without-ssl --without-libssh2 --without-librtmp --without-libidn2 --disable-file --disable-ldap --disable-crypto-auth --disable-gopher --disable-ftp --disable-tftp --disable-dict --disable-imap --disable-mqtt --disable-smtp --disable-pop3 --disable-telnet --disable-rtsp --disable-threaded-resolver --disable-alt-svc ${MSVC_SHARED[@]}
-	make
-	make install
+	local dir_name="curl-${CURL_VERSION}"
+	local archive_name="${dir_name}.tar.xz"
+
+	download_extract curl "${archive_name}" \
+		"${CURL_BASEURL}/${archive_name}" \
+		"https://github.com/curl/curl/releases/download/curl-${CURL_VERSION//./_}/${archive_name}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
+	cmake_build \
+		-DBUILD_CURL_EXE=OFF \
+		-DBUILD_TESTING=OFF \
+		-DENABLE_CURL_MANUAL=OFF \
+		-DENABLE_THREADED_RESOLVER=OFF \
+		-DENABLE_UNIX_SOCKETS=OFF \
+		-DUSE_HTTPSRR=OFF \
+		-DUSE_LIBIDN2=OFF \
+		-DUSE_LIBRTMP=OFF \
+		-DUSE_MSH3=OFF \
+		-DUSE_NGHTTP2=OFF \
+		-DUSE_NGTCP2=OFF \
+		-DUSE_OPENSSL_QUIC=OFF \
+		-DUSE_QUICHE=OFF \
+		-DUSE_WIN32_IDN=OFF \
+		-DCURL_BROTLI=OFF \
+		-DCURL_ZLIB=OFF \
+		-DCURL_ZSTD=OFF \
+		-DCURL_ENABLE_SSL=OFF \
+		-DCURL_USE_GSSAPI=OFF \
+		-DCURL_USE_LIBPSL=OFF \
+		-DCURL_USE_LIBSSH=OFF \
+		-DCURL_USE_LIBSSH2=OFF \
+		-DCURL_USE_MBEDTLS=OFF \
+		-DCURL_USE_OPENSSL=OFF \
+		-DCURL_USE_WOLFSSL=OFF \
+		-DHTTP_ONLY=ON # Implies all CURL_DISABLE_xxx options except HTTP
 }
 
-# Build SDL2
-build_sdl2() {
+# Build SDL3
+build_sdl3() {
+	local dir_name="SDL3-${SDL3_VERSION}"
+
 	case "${PLATFORM}" in
 	windows-*-mingw)
-		download "SDL2-devel-${SDL2_VERSION}-mingw.tar.gz" "https://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-mingw.tar.gz" sdl2
-		cd "SDL2-${SDL2_VERSION}"
-		make install-package arch="${HOST}" prefix="${PREFIX}"
+		local archive_name="SDL3-devel-${SDL3_VERSION}-mingw.tar.gz"
 		;;
 	windows-*-msvc)
-		download "SDL2-devel-${SDL2_VERSION}-VC.zip" "https://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-VC.zip" sdl2
-		cd "SDL2-${SDL2_VERSION}"
-		mkdir -p "${PREFIX}/include/SDL2"
-		cp include/* "${PREFIX}/include/SDL2"
-		case "${PLATFORM}" in
-		windows-i686-msvc)
-			cp lib/x86/{SDL2.lib,SDL2main.lib} "${PREFIX}/lib"
-			cp lib/x86/*.dll "${PREFIX}/bin"
-			;;
-		windows-amd64-msvc)
-			cp lib/x64/{SDL2.lib,SDL2main.lib} "${PREFIX}/lib"
-			cp lib/x64/*.dll "${PREFIX}/bin"
-			;;
-		esac
+		local archive_name="SDL3-devel-${SDL3_VERSION}-VC.zip"
 		;;
 	macos-*-*)
-		download "SDL2-${SDL2_VERSION}.dmg" "https://libsdl.org/release/SDL2-${SDL2_VERSION}.dmg" sdl2
-		cp -R "SDL2.framework" "${PREFIX}"
+		local archive_name="SDL3-${SDL3_VERSION}.dmg"
 		;;
-	linux-*-*)
-		download "SDL2-${SDL2_VERSION}.tar.gz" "https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz" sdl2
-		cd "SDL2-${SDL2_VERSION}"
-		# The default -O3 is dropped when there's user-provided CFLAGS.
-		CFLAGS="${CFLAGS:-} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
-		make
-		make install
+	*)
+		local archive_name="SDL3-${SDL3_VERSION}.tar.gz"
+		;;
+	esac
+
+	download_extract sdl3 "${archive_name}" \
+		"${SDL3_BASEURL}/${archive_name}" \
+		"https://github.com/libsdl-org/SDL/releases/download/release-${SDL3_VERSION}/${archive_name}"
+
+	"${download_only}" && return
+
+	case "${PLATFORM}" in
+	windows-*-mingw)
+		cd "${dir_name}"
+		cp -rv "${HOST}"/* "${PREFIX}/"
+		rm "${PREFIX}/lib/libSDL3_test.a"
+		rm "${PREFIX}/lib/cmake/SDL3/SDL3testTargets"*.cmake
+		;;
+	windows-*-msvc)
+		cd "${dir_name}"
+		mkdir -p "${PREFIX}/SDL3/cmake"
+		cp "cmake/"* "${PREFIX}/SDL3/cmake"
+		mkdir -p "${PREFIX}/SDL3/include/SDL3"
+		cp "include/SDL3/"* "${PREFIX}/SDL3/include/SDL3"
+
+		case "${PLATFORM}" in
+		*-i686-*)
+			local sdl3_lib_dir='lib/x86'
+			;;
+		*-amd64-*)
+			local sdl3_lib_dir='lib/x64'
+			;;
+		*)
+			log ERROR 'Unsupported platform for SDL3'
+			;;
+		esac
+
+		mkdir -p "${PREFIX}/SDL3/${sdl3_lib_dir}"
+		cp "${sdl3_lib_dir}/SDL3.lib" "${PREFIX}/SDL3/${sdl3_lib_dir}"
+		cp "${sdl3_lib_dir}/"*.dll "${PREFIX}/SDL3/${sdl3_lib_dir}"
+		;;
+	macos-*-*)
+		cp -R "SDL3.xcframework/macos-arm64_x86_64/SDL3.framework" "${PREFIX}/lib"
+		;;
+	*)
+		cd "${dir_name}"
+
+		cmake_build \
+			-DSDL_TEST_LIBRARY=OFF \
+			-DSDL_AUDIO=OFF
 		;;
 	esac
 }
 
 # Build GLEW
 build_glew() {
-	download "glew-${GLEW_VERSION}.tgz" "https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/glew-${GLEW_VERSION}.tgz" glew
-	cd "glew-${GLEW_VERSION}"
+	local dir_name="glew-${GLEW_VERSION}"
+	local archive_name="${dir_name}.tgz"
+
+	download_extract glew "${archive_name}" \
+		"${GLEW_BASEURL}/download/glew-${GLEW_VERSION}/${archive_name}" \
+		"https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/${archive_name}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
+	local glew_env=(LDFLAGS.EXTRA="${LDFLAGS}")
+	local glew_options=(GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" STRIP="${STRIP}")
+
 	case "${PLATFORM}" in
 	windows-*-*)
-		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
-		make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		glew_env+=(CFLAGS.EXTRA="${CFLAGS}")
+		glew_options+=(SYSTEM="linux-mingw${BITNESS}" LD="${LD}" AR="${AR}" RANLIB="${RANLIB}")
+		;;
+	macos-*-*)
+		glew_env+=(CFLAGS.EXTRA="${CFLAGS} -dynamic -fno-common")
+		glew_options+=(SYSTEM=darwin LD="${CC}")
+		;;
+	linux-*-*)
+		glew_env+=(CFLAGS.EXTRA="${CFLAGS}")
+		glew_options+=(LIBDIR="${PREFIX}/lib" LD="${CC}")
+		;;
+	*)
+		log ERROR 'Unsupported platform for GLEW'
+		;;
+	esac
+
+	# env hack: CFLAGS.EXTRA is populated with some flags, which are sometimess necessary for
+	# compilation, in the makefile with +=. If CFLAGS.EXTRA is set on the command line, those
+	# += will be ignored. But if it is set via the environment, the two sources are actually
+	# concatenated how we would like. Bash doesn't allow variables with a dot so use env.
+	# The hack doesn't work on Mac's ancient Make (the env var has no effect), so we have to
+	# manually re-add the required flags there.
+	case "${PLATFORM}" in
+	macos-*-*)
+		make "${glew_env[@]}" "${glew_options[@]}"
+		make install "${glew_env[@]}" "${glew_options[@]}"
+		;;
+	*)
+		env "${glew_env[@]}" make "${glew_options[@]}"
+		env "${glew_env[@]}" make install "${glew_options[@]}"
+		;;
+	esac
+
+	case "${PLATFORM}" in
+	windows-*-*)
 		mv "${PREFIX}/lib/glew32.dll" "${PREFIX}/bin/"
 		rm "${PREFIX}/lib/libglew32.a"
 		cp lib/libglew32.dll.a "${PREFIX}/lib/"
 		;;
 	macos-*-*)
-		make SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
-		make install SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
 		install_name_tool -id "@rpath/libGLEW.${GLEW_VERSION}.dylib" "${PREFIX}/lib/libGLEW.${GLEW_VERSION}.dylib"
-		;;
-	linux-*-*)
-		make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
-		make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
-		;;
-	*)
-		echo "Unsupported platform for GLEW"
-		exit 1
 		;;
 	esac
 }
 
 # Build PNG
 build_png() {
-	download "libpng-${PNG_VERSION}.tar.gz" "https://download.sourceforge.net/libpng/libpng-${PNG_VERSION}.tar.gz" png
-	cd "libpng-${PNG_VERSION}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
-	make
-	make install
+	local dir_name="libpng-${PNG_VERSION}"
+	local archive_name="${dir_name}.tar.xz"
+
+	download_extract png "${archive_name}" \
+		"${PNG_BASEURL}/${PNG_VERSION}/${archive_name}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
+	configure_build \
+		--disable-tests \
+		--disable-tools
 }
 
 # Build JPEG
 build_jpeg() {
-	download "libjpeg-turbo-${JPEG_VERSION}.tar.gz" "https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/libjpeg-turbo-${JPEG_VERSION}.tar.gz" jpeg
+	local dir_name="libjpeg-turbo-${JPEG_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
 
-	# Ensure NASM is available
-	"${NASM:-nasm}" --help >/dev/null
+	download_extract jpeg "${archive_name}" \
+		"${JPEG_BASEURL}/download/${JPEG_VERSION}/${archive_name}"
 
-	cd "libjpeg-turbo-${JPEG_VERSION}"
+	"${download_only}" && return
+
 	case "${PLATFORM}" in
-	windows-*-mingw)
-		cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
-		;;
-	windows-*-msvc)
-		CFLAGS="${CFLAGS:-} " cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=1
+	windows-*-*)
+		local SYSTEM_NAME='Windows'
 		;;
 	macos-*-*)
-		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
+		local SYSTEM_NAME='Darwin'
+		;;
+	linux-*-*)
+		local SYSTEM_NAME='Linux'
+		;;
+	*)
+		# Other platforms can build but we need to explicitly
+		# set CMAKE_SYSTEM_NAME for CMAKE_CROSSCOMPILING to be set
+		# and CMAKE_SYSTEM_PROCESSOR to not be ignored by cmake.
+		log ERROR 'Unsupported platform for JPEG'
 		;;
 	esac
-	cmake --build build
-	cmake --install build
+
+	local jpeg_cmake_args=(-DREQUIRE_SIMD=ON)
+
+	case "${PLATFORM}" in
+	*-amd64-*)
+		local SYSTEM_PROCESSOR='x86_64'
+		# Ensure NASM is available
+		nasm --help >/dev/null
+		;;
+	*-i686-*)
+		local SYSTEM_PROCESSOR='i386'
+		# Ensure NASM is available
+		nasm --help >/dev/null
+		;;
+	*-arm64-*)
+		local SYSTEM_PROCESSOR='aarch64'
+		jpeg_cmake_args+=(-DNEON_INTRINSICS=ON)
+		;;
+	*-armhf-*)
+		local SYSTEM_PROCESSOR='arm'
+		jpeg_cmake_args+=(-DNEON_INTRINSICS=ON)
+		;;
+	*)
+		log ERROR 'Unsupported platform for JPEG'
+		;;
+	esac
+
+	case "${PLATFORM}" in
+	windows-*-*)
+		;;
+	*)
+		# Workaround for: undefined reference to `log10'
+		# The CMakeLists.txt file only does -lm if UNIX,
+		# but UNIX may not be true on Linux.
+		jpeg_cmake_args+=(-DUNIX=True)
+		;;
+	esac
+		
+	cd "${dir_name}"
+
+	# -DHAVE_THREAD_LOCAL=0 overrides the compiler test to avoid the silly thread_local variable,
+	# which causes a libwinpthread dependency on Windows.
+	cmake_build \
+		-DHAVE_THREAD_LOCAL=0 \
+		-DENABLE_SHARED="${LIBS_SHARED}" \
+		-DENABLE_STATIC="${LIBS_STATIC}" \
+		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" \
+		-DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
+		-DWITH_JPEG8=1 \
+		-DWITH_TURBOJPEG=0 \
+		"${jpeg_cmake_args[@]}"
+
+	rm -r "${PREFIX}/lib/cmake/libjpeg-turbo"
 }
 
 # Build WebP
 build_webp() {
-	download "libwebp-${WEBP_VERSION}.tar.gz" "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${WEBP_VERSION}.tar.gz" webp
-	cd "libwebp-${WEBP_VERSION}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --disable-libwebpdemux ${MSVC_SHARED[@]}
-	make
-	make install
-}
+	local dir_name="libwebp-${WEBP_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
 
-# Build FreeType
-build_freetype() {
-	download "freetype-${FREETYPE_VERSION}.tar.gz" "https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VERSION}.tar.gz" freetype
-	cd "freetype-${FREETYPE_VERSION}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --without-bzip2 --without-png --with-harfbuzz=no --with-brotli=no
-	make
-	make install
-	cp -a "${PREFIX}/include/freetype2" "${PREFIX}/include/freetype"
-	mv "${PREFIX}/include/freetype" "${PREFIX}/include/freetype2/freetype"
+	download_extract webp "${archive_name}" \
+		"${WEBP_BASEURL}/${archive_name}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
+	# WEBP_LINK_STATIC is ON by default
+
+	cmake_build \
+		-DWEBP_BUILD_ANIM_UTILS=OFF \
+		-DWEBP_BUILD_CWEBP=OFF \
+		-DWEBP_BUILD_DWEBP=OFF \
+		-DWEBP_BUILD_EXTRAS=OFF \
+		-DWEBP_BUILD_GIF2WEBP=OFF \
+		-DWEBP_BUILD_IMG2WEBP=OFF \
+		-DWEBP_BUILD_LIBWEBPMUX=OFF \
+		-DWEBP_BUILD_VWEBP=OFF \
+		-DWEBP_BUILD_WEBPINFO=OFF \
+		-DWEBP_BUILD_WEBPMUX=OFF \
+		-DWEBP_ENABLE_SIMD=ON \
+		-DWEBP_USE_THREAD=OFF
 }
 
 # Build OpenAL
 build_openal() {
+	# On OpenAL website, Windows binaries are on:
+	#  https://openal-soft.org/openal-binaries/openal-soft-1.24.3-bin.zip
+	# and sources are on:
+	#  https://openal-soft.org/openal-releases/openal-soft-1.24.3.tar.bz2
+
+	# But on GitHub Windows binaries are on:
+	#   https://github.com/kcat/openal-soft/releases/download/1.24.3/openal-soft-1.24.3-bin.zip
+	# and sources are on:
+	#   https://github.com/kcat/openal-soft/archive/refs/tags/1.24.3.tar.gz
+
+	# They contain the same content, but GitHub is more reliable so we use the tar.gz archive.
+	# We mirror it as openal-soft-1.24.3.tar.gz for convenience.
+
+	# There is no tar.bz2 uploaded to GitHub anymore, so we cannot use GitHub as a mirror
+	# for the OpenAL website.
+
 	case "${PLATFORM}" in
 	windows-*-*)
-		download "openal-soft-${OPENAL_VERSION}-bin.zip" "https://openal-soft.org/openal-binaries/openal-soft-${OPENAL_VERSION}-bin.zip" openal
-		cd "openal-soft-${OPENAL_VERSION}-bin"
-		cp -r "include/AL" "${PREFIX}/include"
-		case "${PLATFORM}" in
-		windows-i686-*)
-			cp "libs/Win32/libOpenAL32.dll.a" "${PREFIX}/lib"
-			cp "bin/Win32/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
-			;;
-		windows-amd64-*)
-			cp "libs/Win64/libOpenAL32.dll.a" "${PREFIX}/lib"
-			cp "bin/Win64/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
-			;;
-		esac
-		;;
-	macos-*-*)
-		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
-		cd "openal-soft-${OPENAL_VERSION}"
-		cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF
-		make
-		make install
-		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
-		;;
-	linux-*-*)
-		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
-		cd "openal-soft-${OPENAL_VERSION}"
-		cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DALSOFT_EXAMPLES=OFF -DLIBTYPE=STATIC -DCMAKE_BUILD_TYPE=Release .
-		make
-		make install
+		local dir_name="openal-soft-${OPENAL_VERSION}-bin"
+		local archive_name="${dir_name}.zip"
+		local github_archive_name="${archive_name}"
+		local github_subdir='releases/download'
 		;;
 	*)
-		echo "Unsupported platform for OpenAL"
-		exit 1
+		local dir_name="openal-soft-${OPENAL_VERSION}"
+		local archive_name="${dir_name}.tar.gz"
+		local github_archive_name="${OPENAL_VERSION}.tar.gz"
+		local github_subdir='archive/refs/tags'
+		;;
+	esac
+
+	download_extract openal "${archive_name}" \
+		"${OPENAL_BASEURL}/${github_subdir}/${OPENAL_VERSION}/${github_archive_name}"
+
+	"${download_only}" && return
+
+	local openal_cmake_args=(-DALSOFT_EXAMPLES=OFF -DALSOFT_BACKEND_SNDIO=OFF)
+
+	case "${PLATFORM}" in
+	*-i686-*|*-amd64-*)
+		openal_cmake_args+=(-DALSOFT_CPUEXT_SSE=ON -DALSOFT_REQUIRE_SSE=ON)
+		openal_cmake_args+=(-DALSOFT_CPUEXT_SSE2=ON -DALSOFT_REQUIRE_SSE2=ON)
+		openal_cmake_args+=(-DALSOFT_CPUEXT_SSE3=ON -DALSOFT_REQUIRE_SSE3=OFF)
+		openal_cmake_args+=(-DALSOFT_CPUEXT_SSE4_1=ON -DALSOFT_REQUIRE_SSE4_1=OFF)
+		;;
+	*-armhf-*|*-arm64-*)
+		openal_cmake_args+=(-DALSOFT_CPUEXT_NEON=ON -DALSOFT_REQUIRE_NEON=ON)
+		;;
+	esac
+
+	case "${PLATFORM}" in
+	windows-i686-*)
+		local openal_win_dir='Win32'
+		;;
+	windows-amd64-*)
+		local openal_win_dir='Win64'
+		;;
+	macos-*-*)
+		openal_cmake_args+=(-DLIBTYPE=SHARED)
+		;;
+	*)
+		if [ "${LIBS_SHARED}" = 'ON' ]
+		then
+			openal_cmake_args+=(-DLIBTYPE=SHARED)
+		elif [ "${LIBS_STATIC}" = 'ON' ]
+		then
+			openal_cmake_args+=(-DLIBTYPE=STATIC)
+		fi
+		;;
+	esac
+
+	case "${PLATFORM}" in
+	windows-*-*)
+		cd "${dir_name}"
+		cp -r "include/AL" "${PREFIX}/include"
+		cp "libs/${openal_win_dir}/libOpenAL32.dll.a" "${PREFIX}/lib"
+		cp "bin/${openal_win_dir}/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
+		;;
+	*)
+		cd "${dir_name}"
+
+		cmake_build \
+			-DALSOFT_UTILS=OFF \
+			"${openal_cmake_args[@]}"
+		;;
+	esac
+
+	case "${PLATFORM}" in
+	macos-*-*)
+		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
 		;;
 	esac
 }
 
 # Build Ogg
 build_ogg() {
-	download "libogg-${OGG_VERSION}.tar.gz" "https://downloads.xiph.org/releases/ogg/libogg-${OGG_VERSION}.tar.gz" ogg
-	cd "libogg-${OGG_VERSION}"
+	local dir_name="libogg-${OGG_VERSION}"
+	local archive_name="libogg-${OGG_VERSION}.tar.xz"
+
+	download_extract ogg "${archive_name}" \
+		"${OGG_BASEURL}/${archive_name}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
 	# This header breaks the vorbis and opusfile Mac builds
 	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
 	mv os_types.tmp include/ogg/os_types.h
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
-	make
-	make install
+
+	configure_build
 }
 
 # Build Vorbis
 build_vorbis() {
-	download "libvorbis-${VORBIS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/vorbis/libvorbis-${VORBIS_VERSION}.tar.gz" vorbis
-	cd "libvorbis-${VORBIS_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-examples
-	make
-	make install
+	local dir_name="libvorbis-${VORBIS_VERSION}"
+	local archive_name="${dir_name}.tar.xz"
+
+	download_extract vorbis "${archive_name}" \
+		"${VORBIS_BASEURL}/${archive_name}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
+	case "${PLATFORM}" in
+	windows-*-msvc)
+		# Workaround a build issue on MinGW:
+		# See: https://github.com/microsoft/vcpkg/issues/22990
+		# and: https://github.com/microsoft/vcpkg/pull/23761
+		ls win32/vorbis.def win32/vorbisenc.def win32/vorbisfile.def \
+		| xargs -I{} -P3 sed -e 's/LIBRARY//' -i {}
+		;;
+	esac
+
+	cmake_build
 }
 
 # Build Opus
 build_opus() {
-	download "opus-${OPUS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz" opus
-	cd "opus-${OPUS_VERSION}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
+	local dir_name="opus-${OPUS_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download_extract opus "${archive_name}" \
+		"${OPUS_BASEURL}/${archive_name}"
+
+	"${download_only}" && return
+
+	local opus_cmake_args=()
+
 	case "${PLATFORM}" in
 	windows-*-*)
-		# With MinGW _FORTIFY_SOURCE (added by configure) can only by used with -fstack-protector enabled.
-		CFLAGS="${CFLAGS:-} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
-		;;
-	*)
-		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+		# With MinGW, we would get this error:
+		# undefined reference to `__stack_chk_guard'
+		opus_cmake_args+=(-DOPUS_FORTIFY_SOURCE=OFF -DOPUS_STACK_PROTECTOR=OFF)
 		;;
 	esac
-	make
-	make install
+
+	case "${PLATFORM}" in
+	*-i686-*|*-amd64-*)
+		opus_cmake_args+=(-DOPUS_X86_MAY_HAVE_SSE=OFF -DOPUS_X86_PRESUME_SSE=ON)
+		opus_cmake_args+=(-DOPUS_X86_MAY_HAVE_SSE2=OFF -DOPUS_X86_PRESUME_SSE2=ON)
+		opus_cmake_args+=(-DOPUS_X86_MAY_HAVE_SSE4_1=OFF -DOPUS_X86_PRESUME_SSE4_1=OFF)
+		opus_cmake_args+=(-DOPUS_X86_MAY_HAVE_AVX2=OFF -DOPUS_X86_PRESUME_AVX2=OFF)
+		;;
+	*-armhf-*|*-arm64-*)
+		opus_cmake_args+=(-DOPUS_MAY_HAVE_NEON=OFF -DOPUS_PRESUME_NEON=ON)
+		;;
+	esac
+
+	cd "${dir_name}"
+
+	cmake_build \
+		-DOPUS_BUILD_PROGRAMS=OFF \
+		-DOPUS_BUILD_TESTING=OFF \
+		-DOPUS_FLOAT_APPROX=ON \
+		"${opus_cmake_args[@]}"
 }
 
 # Build OpusFile
 build_opusfile() {
-	download "opusfile-${OPUSFILE_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opusfile-${OPUSFILE_VERSION}.tar.gz" opusfile
-	cd "opusfile-${OPUSFILE_VERSION}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-http
-	make
-	make install
-}
+	local dir_name="opusfile-${OPUSFILE_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
 
+	download_extract opusfile "${archive_name}" \
+		"${OPUSFILE_BASEURL}/${archive_name}"
 
-# Build Lua
-build_lua() {
-	download "lua-${LUA_VERSION}.tar.gz" "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" lua
-	cd "lua-${LUA_VERSION}"
-	case "${PLATFORM}" in
-	windows-*-*)
-		local LUA_PLATFORM=mingw
-		;;
-	macos-*-*)
-		local LUA_PLATFORM=macosx
-		;;
-	linux-*-*)
-		local LUA_PLATFORM=linux
-		;;
-	*)
-		echo "Unsupported platform for Lua"
-		exit 1
-		;;
-	esac
-	make "${LUA_PLATFORM}" CC="${CC:-${CROSS}gcc}" AR="${CROSS}ar rcu" RANLIB="${CROSS}ranlib" MYCFLAGS="${CFLAGS:-}" MYLDFLAGS="${LDFLAGS}"
-	case "${PLATFORM}" in
-	windows-*-mingw)
-		make install TO_BIN="lua.exe luac.exe" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
-		;;
-	windows-*-msvc)
-		make install TO_BIN="lua.exe luac.exe lua54.dll" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
-		touch "${PREFIX}/lib/lua54.dll.a"
-		;;
-	*)
-		make install INSTALL_TOP="${PREFIX}"
-		;;
-	esac
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
+	configure_build \
+		--disable-http
 }
 
 # Build ncurses
 build_ncurses() {
-	download "ncurses-${NCURSES_VERSION}.tar.gz" "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz" ncurses
-	cd "ncurses-${NCURSES_VERSION}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
+	local dir_name="ncurses-${NCURSES_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download_extract ncurses "${archive_name}" \
+		"${NCURSES_BASEURL}/${archive_name}" \
+		"https://ftp.gnu.org/pub/gnu/ncurses/${archive_name}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
+	# Brutally disable writing to database
+	cp /dev/null misc/run_tic.in
 	# Configure terminfo search dirs based on the ones used in Debian. By default it will only look in (only) the install directory.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --enable-widec ${MSVC_SHARED[@]} --with-terminfo-dirs=/etc/terminfo:/lib/terminfo --with-default-terminfo-dir=/usr/share/terminfo
-	make
-	make install
+	configure_build \
+		--with-strip-program="${STRIP}" \
+		--without-progs \
+		--enable-widec \
+		--with-terminfo-dirs=/etc/terminfo:/lib/terminfo \
+		--with-default-terminfo-dir=/usr/share/terminfo
 }
 
 # "Builds" (downloads) the WASI SDK
@@ -455,13 +924,20 @@ build_wasisdk() {
 	*-amd64-*)
 		;;
 	*)
-		echo "wasi doesn't have release for ${PLATFORM}"
-		exit 1
+		log ERROR "wasi doesn't have release for ${PLATFORM}"
 		;;
 	esac
+
+	local dir_name="wasi-sdk-${WASISDK_VERSION}"
+	local archive_name="${dir_name}-${WASISDK_PLATFORM}.tar.gz"
 	local WASISDK_VERSION_MAJOR="$(echo "${WASISDK_VERSION}" | cut -f1 -d'.')"
-	download "wasi-sdk_${WASISDK_PLATFORM}.tar.gz" "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/wasi-sdk-${WASISDK_VERSION}-${WASISDK_PLATFORM}.tar.gz" wasisdk
-	cp -r "wasi-sdk-${WASISDK_VERSION}" "${PREFIX}/wasi-sdk"
+
+	download_extract wasisdk "${archive_name}" \
+		"${WASISDK_BASEURL}/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/${archive_name}"
+
+	"${download_only}" && return
+
+	cp -r "${dir_name}" "${PREFIX}/wasi-sdk"
 }
 
 # "Builds" (downloads) wasmtime
@@ -488,14 +964,19 @@ build_wasmtime() {
 		local WASMTIME_ARCH=aarch64
 		;;
 	*)
-		echo "wasmtime doesn't have release for ${PLATFORM}"
-		exit 1
+		log ERROR "wasmtime doesn't have release for ${PLATFORM}"
 		;;
 	esac
-	local folder_name="wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-${WASMTIME_PLATFORM}-c-api"
+
+	local dir_name="wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-${WASMTIME_PLATFORM}-c-api"
 	local archive_name="${folder_name}.${ARCHIVE_EXT}"
-	download "${archive_name}" "https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/${archive_name}" wasmtime
-	cd "${folder_name}"
+
+	download_extract wasmtime "${archive_name}" \
+		"${WASMTIME_BASEURL}/download/v${WASMTIME_VERSION}/${archive_name}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
 	cp -r include/* "${PREFIX}/include"
 	cp -r lib/* "${PREFIX}/lib"
 }
@@ -522,22 +1003,33 @@ build_naclsdk() {
 	case "${PLATFORM}" in
 	*-i686-*)
 		local NACLSDK_ARCH=x86_32
-		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
-		local DAEMON_ARCH=x86
+		local DAEMON_ARCH=i686
 		;;
 	*-amd64-*)
 		local NACLSDK_ARCH=x86_64
-		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
-		local DAEMON_ARCH=x86_64
+		local DAEMON_ARCH=amd64
 		;;
 	*-armhf-*|linux-arm64-*)
 		local NACLSDK_ARCH=arm
 		local DAEMON_ARCH=armhf
 		;;
 	esac
-	download "naclsdk_${NACLSDK_PLATFORM}-${NACLSDK_VERSION}.${TAR_EXT}.bz2" "https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2" naclsdk
-	cp pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/sel_ldr${EXE}"
+
+	local archive_name="naclsdk_${NACLSDK_PLATFORM}-${NACLSDK_VERSION}.${TAR_EXT}.bz2"
+
+	download_extract naclsdk "${archive_name}" \
+		"${NACLSDK_BASEURL}/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2"
+
+	"${download_only}" && return
+
 	cp pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
+	case "${PLATFORM}" in
+	linux-amd64-*)
+		;; # Get sel_ldr from naclruntime package
+	*)
+		cp pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/nacl_loader${EXE}"
+		;;
+	esac
 	case "${PLATFORM}" in
 	windows-i686-*|*-amd64-*)
 		cp pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE}" "${PREFIX}/nacl-gdb${EXE}"
@@ -559,53 +1051,114 @@ build_naclsdk() {
 	esac
 	case "${PLATFORM}" in
 	windows-i686-*)
-		cp pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/sel_ldr64.exe"
-		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
-		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-x86_64.nexe"
+		cp pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/nacl_loader-amd64.exe"
+		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-amd64.nexe"
 		;;
-	linux-amd64-*|linux-i686-*)
+	linux-amd64-*)
+		# Fix permissions on a few files which deny access to non-owner
+		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
+		;;
+	linux-i686-*)
 		cp pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
+		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
 		;;
 	linux-armhf-*|linux-arm64-*)
 		cp pepper_*"/tools/nacl_helper_bootstrap_arm" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
+		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
 		;;
 	esac
 	case "${PLATFORM}" in
 	linux-arm64-*)
 		mkdir -p "${PREFIX}/lib-armhf"
 		cp -a pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/lib-armhf/."
-		mv "${PREFIX}/lib-armhf/ld-linux-armhf.so.3" "${PREFIX}/lib-armhf/ld-linux-armhf"
-		sed -e 's|/lib/ld-linux-armhf.so.3|lib-armhf/ld-linux-armhf|' -i "${PREFIX}/sel_ldr"
+		# Copy the library loader instead of renaming it because there may still be some
+		# references to ld-linux-armhf.so.3 in binaries.
+		cp "${PREFIX}/lib-armhf/ld-linux-armhf.so.3" "${PREFIX}/lib-armhf/ld-linux-armhf"
+		# We can't use patchelf or 'nacl_helper_bootstrap nacl_loader' will complain:
+		#   bootstrap_helper: nacl_loader: ELF file has unreasonable e_phnum=13
+		sed -e 's|/lib/ld-linux-armhf.so.3|lib-armhf/ld-linux-armhf|' -i "${PREFIX}/nacl_loader"
 		;;
 	esac
 }
 
-build_naclports() {
-	download "naclports-${NACLSDK_VERSION}.tar.bz2" "https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclports.tar.bz2" naclports
-	mkdir -p "${PREFIX}/pnacl_deps/"{include,lib}
-	cp pepper_*"/ports/include/"{lauxlib.h,lua.h,lua.hpp,luaconf.h,lualib.h} "${PREFIX}/pnacl_deps/include"
-	cp -a pepper_*"/ports/include/freetype2" "${PREFIX}/pnacl_deps/include"
-	cp pepper_*"/ports/lib/newlib_pnacl/Release/"{liblua.a,libfreetype.a,libpng16.a} "${PREFIX}/pnacl_deps/lib"
+# Only builds nacl_loader and nacl_helper_bootstrap for now, not IRT.
+build_naclruntime() {
+	case "${PLATFORM}" in
+	linux-amd64-*)
+		local NACL_ARCH=x86-64
+		;;
+	*)
+		log ERROR 'Unsupported platform for naclruntime'
+		;;
+	esac
+
+	local dir_name="DaemonEngine-native_client-${NACLRUNTIME_REVISION:0:7}"
+	local archive_name="native_client-${NACLRUNTIME_REVISION}.zip"
+
+	download_extract naclruntime "${archive_name}" \
+		"{$NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+	env -i /usr/bin/env bash -l -c "python3 /usr/bin/scons --mode=opt-linux 'platform=${NACL_ARCH}' werror=0 sysinfo=0 sel_ldr"
+	cp "scons-out/opt-linux-${NACL_ARCH}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
+	cp "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader"
+}
+
+# Check for DLL dependencies on MinGW stuff. For MSVC platforms this is bad because it should work
+# without having MinGW installed. For MinGW platforms it is still bad because it might not work
+# when building with different flavors, or newer/older versions.
+build_depcheck() {
+	"${download_only}" && return
+
+	case "${PLATFORM}" in
+	windows-*-*)
+		local good=true
+		for dll in $(find "${PREFIX}/bin" -type f -name '*.dll'); do
+			# https://wiki.unvanquished.net/wiki/MinGW#Built-in_DLL_dependencies
+			if objdump -p "${dll}" | grep -oP '(?<=DLL Name: )(libgcc_s|libstdc|libssp|libwinpthread).*'; then
+				log WARNING "${dll} depends on above DLLs"
+				good=false
+			fi
+		done
+		"${good}" || log ERROR 'Built DLLs depend on MinGW runtime DLLs'
+		;;
+	*)
+		log ERROR 'Unsupported platform for depcheck'
+		;;
+	esac
 }
 
 # The import libraries generated by MinGW seem to have issues, so we use LLVM's version instead.
 # So LLVM must be installed, e.g. 'sudo apt install llvm'
 build_genlib() {
+	"${download_only}" && return
+
 	case "${PLATFORM}" in
 	windows-*-msvc)
 		mkdir -p "${PREFIX}/def"
 		cd "${PREFIX}/def"
-		for DLL_A in "${PREFIX}"/lib/*.dll.a; do
-			local DLL="$(${CROSS}dlltool -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll)"
+		for DLL_A in $(find "${PREFIX}/lib" -type f -name '*.dll.a'); do
+			local DLL="$("${HOST}-dlltool" -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll)"
 			local DEF="$(basename ${DLL} .dll).def"
 			local LIB="$(basename ${DLL_A} .dll.a).lib"
-			local MACHINE="$([ "${PLATFORM}" = msvc32 ] && echo i386 || echo i386:x86-64)"
+
+			case "${PLATFORM}" in
+			*-i686-*)
+				local MACHINE='i386'
+				;;
+			*-amd64-*)
+				local MACHINE='i386:x86-64'
+				;;
+			*)
+				log ERROR 'Unsupported platform for genlib'
+				;;
+			esac
 
 			# Using gendef from mingw-w64-tools
 			gendef "${PREFIX}/bin/${DLL}"
@@ -617,10 +1170,33 @@ build_genlib() {
 		done
 		;;
 	*)
-		echo "Unsupported platform for genlib"
-		exit 1
+		log ERROR 'Unsupported platform for genlib'
 		;;
 	esac
+}
+
+build() {
+	for pkg in "${@}"
+	do
+		cd "${WORK_DIR}"
+		log STATUS "Processing target '${pkg}' for ${PLATFORM}"
+		"build_${pkg}"
+	done
+}
+
+list_build() {
+	local list_name="${1}"
+	local package_list
+	eval "package_list=(\${${list_name}_${PLATFORM//-/_}_packages})"
+	build "${package_list[@]}"
+}
+
+build_base() {
+	list_build base
+}
+
+build_all() {
+	list_build all
 }
 
 # Install all the necessary files to the location expected by CMake
@@ -633,13 +1209,14 @@ build_install() {
 	mkdir -p "${PKG_PREFIX}/bin"
 	mkdir -p "${PKG_PREFIX}/include"
 	mkdir -p "${PKG_PREFIX}/lib"
+	mkdir -p "${PKG_PREFIX}/lib/cmake"
 
 	# Remove all unneeded files
 	rm -rf "${PKG_PREFIX}/man"
 	rm -rf "${PKG_PREFIX}/def"
 	rm -rf "${PKG_PREFIX}/share"
 	rm -rf "${PKG_PREFIX}/lib/pkgconfig"
-	find "${PKG_PREFIX}/bin" -not -type d -not -name '*.dll' -execdir rm -f -- {} \;
+	find "${PKG_PREFIX}/bin" -not -type d -not -name '*.dll' -not -execdir rm -f -- {} \;
 	find "${PKG_PREFIX}/lib" -name '*.la' -execdir rm -f -- {} \;
 	find "${PKG_PREFIX}/lib" -name '*.dll.a' -execdir bash -c 'rm -f -- "$(basename "{}" .dll.a).a"' \;
 	find "${PKG_PREFIX}/lib" -name '*.dylib' -execdir bash -c 'rm -f -- "$(basename "{}" .dylib).a"' \;
@@ -647,25 +1224,67 @@ build_install() {
 	# Strip libraries
 	case "${PLATFORM}" in
 	windows-*-mingw)
-		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
-		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${STRIP}" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${STRIP}" --strip-unneeded -- {} \;
 		;;
 	windows-*-msvc)
-		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${STRIP}" --strip-unneeded -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.a' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.exp' -execdir rm -f -- {} \;
+
+		# Fix import lib paths to use MSVC-style instead of MinGW ones (see 'genlib' target)
+		find "${PKG_PREFIX}/lib/cmake" -name '*.cmake' -execdir sed -i -E 's@[.]dll[.]a\b@.lib@g' {} \;
+		;;
+	linux-*-*)
+		find "${PKG_PREFIX}/lib" -name '*.so' -execdir rm -f -- {} \;
+		find "${PKG_PREFIX}/lib" -name '*.so.*' -execdir rm -f -- {} \;
+		find "${PKG_PREFIX}/lib" -name '*_g.a' -execdir rm -f -- {} \;
+
+		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${STRIP}" --strip-unneeded -- {} \;
+		;;
+	macos-*-*)
+		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${STRIP}" -u {} \;
+	esac
+
+	case "${PLATFORM}" in
+	windows-*-*)
+		# CMake looks for libSDL3.a and aborts if missing if this file exists:
+		rm -rf "${PKG_PREFIX}/lib/cmake/SDL3/SDL3staticTargets.cmake"
 		;;
 	esac
 
 	# Remove empty directories
 	find "${PKG_PREFIX}/" -mindepth 1 -type d -empty -delete
+
+	# Check for unwanted embedded paths with a couple of exemptions:
+	# - Opus's release mode assertions - https://github.com/xiph/opus/issues/399
+	# - SDL3 has a small number of renderer backend filenames embedded for some reason
+	local good=true
+	for f in $(find "${PKG_PREFIX}" -type f -not -name '*libopus*' -not -name 'libSDL3.a'); do
+		if grep --with-filename external_deps "${f}"
+		then
+			good=false
+		elif [[ $? != 1 ]]
+		then
+			exit $? # grep errored
+		fi
+	done
+	"${good}" || log ERROR 'Absolute paths found embedded in install. This may be due to builds with debug symbols or config files that need to be fixed.'
 }
 
 # Create a redistributable package for the dependencies
 build_package() {
 	cd "${WORK_DIR}"
 	rm -f "${PKG_BASEDIR}.tar.xz"
-	XZ_OPT='-9' tar cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
+	local XZ_OPT='-9'
+	case "${PLATFORM}" in
+	windows-*-*)
+		tar --dereference -cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
+		;;
+	*)
+		tar -cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
+		;;
+	esac
 }
 
 build_wipe() {
@@ -674,204 +1293,343 @@ build_wipe() {
 
 # Common setup code
 common_setup() {
-	WORK_DIR="${PWD}"
-	SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+	HOST="${2}"
+
+	"common_setup_${1}"
+	common_setup_arch
+
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
 	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
 	BUILD_BASEDIR="build-${PKG_BASEDIR}"
 	BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
 	PREFIX="${BUILD_DIR}/prefix"
-	export PATH="${PATH}:${PREFIX}/bin"
-	export PKG_CONFIG="pkg-config"
-	export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
-	export CPPFLAGS="${CPPFLAGS:-} -I${PREFIX}/include"
-	export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
-	if [[ "${MSYSTEM:-}" = MINGW* ]]; then
-		# Experimental MSYS2 support. Most packages won't work;
-		# you need to cross-compile from Linux
-		export CMAKE_GENERATOR="MSYS Makefiles"
-		CROSS= # Doing this because there is no ${CROSS}strip
-	fi
+	PATH="${PREFIX}/bin:${PATH}"
+	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${CROSS_PKG_CONFIG_PATH}"
+	CPPFLAGS+=" -I${PREFIX}/include"
+	LDFLAGS+=" -L${PREFIX}/lib"
+
 	mkdir -p "${DOWNLOAD_DIR}"
-	mkdir -p "${PREFIX}"
 	mkdir -p "${PREFIX}/bin"
 	mkdir -p "${PREFIX}/include"
 	mkdir -p "${PREFIX}/lib"
+
+	export CC CXX LD AR RANLIB STRIP PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+}
+
+common_setup_arch() {
+	case "${PLATFORM}" in
+	*-amd64-*)
+		CFLAGS+=' -march=x86-64 -mcx16'
+		CXXFLAGS+=' -march=x86-64 -mcx16'
+		;;
+	*-i686-*)
+		CFLAGS+=' -march=i686 -msse2 -mfpmath=sse'
+		CXXFLAGS+=' -march=i686 -msse2 -mfpmath=sse'
+		;;
+	*-arm64-*)
+		CFLAGS+=' -march=armv8-a'
+		CXXFLAGS+=' -march=armv8-a'
+		;;
+	*-armhf-*)
+		CFLAGS+=' -march=armv7-a -mfpu=neon'
+		CXXFLAGS+=' -march=armv7-a -mfpu=neon'
+		;;
+	*)
+		log ERROR 'Unsupported platform'
+		;;
+	esac
+}
+
+# -D__USE_MINGW_ANSI_STDIO=0 instructs MinGW to *not* use its own implementation
+# of printf and instead use the system one. It's bad when MinGW uses its own
+# implementation because this can cause extra DLL dependencies.
+# The separate implementation exists because Microsoft's implementation at some
+# point did not implement certain printf specifiers, in particular %lld (long long).
+# Lua does use this one, which results in compiler warnings. But this is OK because
+# the Windows build of Lua is only used in developer gamelogic builds, and Microsoft
+# supports %lld since Visual Studio 2013. Also we don't build Lua anymore.
+common_setup_windows() {
+	STRIP="${HOST}-strip"
+	LD="${HOST}-ld"
+	AR="${HOST}-ar"
+	RANLIB="${HOST}-ranlib"
+	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
+	CMAKE_TOOLCHAIN="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake"
+}
+
+common_setup_msvc() {
+	LIBS_SHARED='ON'
+	LIBS_STATIC='OFF'
+	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
+	CC="${HOST}-gcc -static-libgcc"
+	CXX="${HOST}-g++ -static-libgcc"
+	common_setup_windows
+}
+
+common_setup_mingw() {
+	CC="${HOST}-gcc"
+	CXX="${HOST}-g++"
+	common_setup_windows
+}
+
+common_setup_macos() {
+	CC='clang'
+	CXX='clang++'
+	STRIP='strip'
+	CFLAGS+=" -arch ${MACOS_ARCH}"
+	CXXFLAGS+=" -arch ${MACOS_ARCH}"
+	LDFLAGS+=" -arch ${MACOS_ARCH}"
+	export CMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}"
+}
+
+common_setup_linux() {
+	CC="${HOST/-unknown-/-}-gcc"
+	CXX="${HOST/-unknown-/-}-g++"
+	STRIP="${HOST/-unknown-/-}-strip"
+	CROSS_PKG_CONFIG_PATH="/usr/lib/${HOST/-unknown-/-}/pkgconfig"
+	CFLAGS+=' -fPIC'
+	CXXFLAGS+=' -fPIC'
 }
 
 # Set up environment for 32-bit i686 Windows for Visual Studio (compile all as .dll)
 setup_windows-i686-msvc() {
-	HOST=i686-w64-mingw32
-	CROSS="${HOST}-"
 	BITNESS=32
-	MSVC_SHARED=(--enable-shared --disable-static)
-	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	export CC="i686-w64-mingw32-gcc -static-libgcc"
-	export CXX="i686-w64-mingw32-g++ -static-libgcc"
-	export CFLAGS="-msse2 -mpreferred-stack-boundary=2 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-msse2 -mpreferred-stack-boundary=2"
-	common_setup
+	CFLAGS+=' -mpreferred-stack-boundary=2'
+	CXXFLAGS+=' -mpreferred-stack-boundary=2'
+	common_setup msvc i686-w64-mingw32
 }
-
-# Note about -D__USE_MINGW_ANSI_STDIO=0 - this instructs MinGW to *not* use its own implementation
-# of printf and instead use the system one. It's bad when MinGW uses its own implementation because
-# this can cause extra DLL dependencies.
-# The separate implementation exists because Microsoft's implementation at some point did not
-# implement certain printf specifiers, in particular %lld (long long). Lua does use this one, which
-# results in compiler warnings. But this is OK because the Windows build of Lua is only used in
-# developer gamelogic builds, and Microsoft supports %lld since Visual Studio 2013.
 
 # Set up environment for 64-bit amd64 Windows for Visual Studio (compile all as .dll)
 setup_windows-amd64-msvc() {
-	HOST=x86_64-w64-mingw32
-	CROSS="${HOST}-"
 	BITNESS=64
-	MSVC_SHARED=(--enable-shared --disable-static)
-	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	export CC="x86_64-w64-mingw32-gcc -static-libgcc"
-	export CXX="x86_64-w64-mingw32-g++ -static-libgcc"
-	export CFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
-	common_setup
+	common_setup msvc x86_64-w64-mingw32
 }
 
 # Set up environment for 32-bit i686 Windows for MinGW (compile all as .a)
 setup_windows-i686-mingw() {
-	HOST=i686-w64-mingw32
-	CROSS="${HOST}-"
 	BITNESS=32
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m32 -msse2 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-m32 -msse2"
-	common_setup
+	common_setup mingw i686-w64-mingw32
 }
 
 # Set up environment for 64-bit amd64 Windows for MinGW (compile all as .a)
 setup_windows-amd64-mingw() {
-	HOST=x86_64-w64-mingw32
-	CROSS="${HOST}-"
 	BITNESS=64
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m64 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-m64"
-	common_setup
+	common_setup mingw x86_64-w64-mingw32
 }
 
 # Set up environment for 64-bit amd64 macOS
 setup_macos-amd64-default() {
-	HOST=x86_64-apple-darwin11
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export MACOSX_DEPLOYMENT_TARGET=10.9 # works with CMake
-	export CC=clang
-	export CXX=clang++
-	export CFLAGS="-arch x86_64"
-	export CXXFLAGS="-arch x86_64"
-	export LDFLAGS="-arch x86_64"
-	export CMAKE_OSX_ARCHITECTURES="x86_64"
-	common_setup
-	export NASM="${PWD}/${BUILD_BASEDIR}/prefix/bin/nasm" # A newer version of nasm is required for 64-bit
+	MACOS_ARCH=x86_64
+	# OpenAL requires 10.14.
+	export MACOSX_DEPLOYMENT_TARGET=10.14 # works with CMake
+	common_setup macos "x86_64-apple-macos${MACOSX_DEPLOYMENT_TARGET}"
 }
 
 # Set up environment for 32-bit i686 Linux
 setup_linux-i686-default() {
-	HOST=i386-unknown-linux-gnu
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CC='i686-linux-gnu-gcc'
-	export CXX='i686-linux-gnu-g++'
-	export CFLAGS='-fPIC'
-	export CXXFLAGS='-fPIC'
-	export LDFLAGS=''
-	common_setup
+	common_setup linux i686-unknown-linux-gnu
 }
 
 # Set up environment for 64-bit amd64 Linux
 setup_linux-amd64-default() {
-	HOST=x86_64-unknown-linux-gnu
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CC='x86_64-linux-gnu-gcc'
-	export CXX='x86_64-linux-gnu-g++'
-	export CFLAGS="-m64 -fPIC"
-	export CXXFLAGS="-m64 -fPIC"
-	export LDFLAGS="-m64"
-	common_setup
+	common_setup linux x86_64-unknown-linux-gnu
 }
 
 # Set up environment for 32-bit armhf Linux
 setup_linux-armhf-default() {
-	HOST=arm-unknown-linux-gnueabihf
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CC='arm-linux-gnueabihf-gcc'
-	export CXX='arm-linux-gnueabihf-g++'
-	export CFLAGS="-fPIC"
-	export CXXFLAGS="-fPIC"
-	export LDFLAGS=""
-	common_setup
+	common_setup linux arm-unknown-linux-gnueabihf
 }
 
 # Set up environment for 64-bit arm Linux
 setup_linux-arm64-default() {
-	HOST=aarch64-unknown-linux-gnu
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CC='aarch64-linux-gnu-gcc'
-	export CXX='aarch64-linux-gnu-g++'
-	export CFLAGS="-fPIC"
-	export CXXFLAGS="-fPIC"
-	export LDFLAGS=""
-	common_setup
+	common_setup linux aarch64-unknown-linux-gnu
 }
 
-# Usage
-if [ "${#}" -lt "2" ]; then
-	cat <<-EOF
-	usage: ${0} <platform> <package[s]...>
+base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck genlib'
+all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
+
+base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
+all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
+
+base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck'
+all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
+
+base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
+all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
+
+base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
+
+base_linux_i686_default_packages='sdl3 naclsdk'
+all_linux_i686_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+
+base_linux_amd64_default_packages="${base_linux_i686_default_packages} naclruntime"
+all_linux_amd64_default_packages="${all_linux_i686_default_packages} naclruntime"
+
+base_linux_arm64_default_packages='sdl3 naclsdk'
+all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+
+base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
+all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
+
+all_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
+all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
+all_macos_platforms='macos-amd64-default'
+all_platforms="${all_linux_platforms} ${all_windows_platforms} ${all_macos_platforms}"
+
+printHelp() {
+	# Please align to 4-space tabs.
+	cat >&2 <<-EOF
+	usage: $(basename "${BASH_SOURCE[0]}") [OPTION] <PLATFORM> <PACKAGE(S)...>
 
 	Script to build dependencies for platforms which do not provide them
 
+	Options:
+	    --download-only only download source packages, do not build them
+	    --prefer-ours   attempt to download from unvanquished.net first
+
 	Platforms:
-	  windows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default linux-arm64-default linux-armhf-default
+	    ${all_platforms}
+
+	Virtual platforms:
+	    linux   ${all_linux_platforms}
+	    windows ${all_windows_platforms}
+	    macos   ${all_macos_platforms}
+	    all     linux windows macos
 
 	Packages:
-	  pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime
+	    pkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
 
 	Virtual packages:
-	  install - create a stripped down version of the built packages that CMake can use
-	  package - create a zip/tarball of the dependencies so they can be distributed
-	  wipe - remove products of build process, excepting download cache but INCLUDING installed files. Must be last
+	    base    build packages for pre-built binaries to be downloaded when building the game
+	    all     build all supported packages that can possibly be involved in building the game
+	    install create a stripped down version of the built packages that CMake can use
+	    package create a tarball of the dependencies so they can be distributed
+	    wipe    remove products of build process, excepting download cache but INCLUDING installed files. Must be last
 
-	Packages requires for each platform:
+	Packages required for each platform:
 
-	Native Windows compile:
-	  pkgconfig zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports genlib
+	windows-amd64-msvc:
+	windows-i686-msvc:
+	    base    ${base_windows_amd64_msvc_packages}
+	    all     same
 
-	Linux to Windows cross-compile:
-	  zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports
+	windows-amd64-mingw:
+	windows-i686-mingw:
+	    base    ${base_windows_amd64_mingw_packages}
+	    all     same
 
-	Native macOS compile:
-	  pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports
+	macos-amd64-default:
+	    base    ${base_macos_amd64_default_packages}
+	    all     same
 
-	Linux amd64 native compile:
-	  naclsdk naclports (and possibly others depending on what packages your distribution provides)
+	linux-amd64-default:
+	    base    ${base_linux_amd64_default_packages}
+	    all     ${all_linux_amd64_default_packages}
 
-	Linux arm64 and armhf native compile:
-	  naclsdk (and possibly others depending on what packages your distribution provides)
+	linux-i686-default:
+	    base    ${base_linux_i686_default_packages}
+	    all     ${all_linux_i686_default_packages}
+
+	linux-arm64-default:
+	linux-armhf-default:
+	    base    ${base_linux_arm64_default_packages}
+	    all     ${all_linux_arm64_default_packages}
 
 	EOF
-	exit 1
+	
+	exit
+}
+
+syntaxError() {
+	log ERROR "${1}" || true
+	echo >&2
+	printHelp
+}
+
+download_only='false'
+prefer_ours='false'
+require_theirs='false'
+while [ -n "${1:-}" ]
+do
+	case "${1-}" in
+	'--download-only')
+		download_only='true'
+		shift
+	;;
+	'--prefer-ours')
+		prefer_ours='true'
+		shift
+	;;
+	'--require-theirs')
+		require_theirs='true'
+		shift
+	;;
+	'-h'|'--help')
+		printHelp
+	;;
+	'-'*)
+		syntaxError 'Unknown option'
+	;;
+	*)
+		break
+	esac
+done
+
+# Usage
+if [ "${#}" -lt "1" ]
+then
+	syntaxError 'Missing platform and package(s)'
+elif [ "${#}" -lt "2" ]
+then
+	syntaxError 'Missing package(s)'
 fi
 
+# Do not reuse self-built curl from external_deps custom PATH
+# to download source archives or we would get errors like:
+#   curl: (1) Protocol "https" not supported or disabled in libcurl
+CURL="$(command -v curl)" || log ERROR "Command 'curl' not found"
+
 # Enable parallel build
-export MAKEFLAGS="-j`nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
+export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)"
+export MAKEFLAGS="-j${CMAKE_BUILD_PARALLEL_LEVEL}"
+export SCONSFLAGS="${MAKEFLAGS}"
 
 # Setup platform
-PLATFORM="${1}"; shift
-"setup_${PLATFORM}"
+platform="${1}"; shift
 
-# Build packages
-for pkg in "${@}"; do
-	cd "${WORK_DIR}"
-	"build_${pkg}"
-done
+platform_list=''
+case "${platform}" in
+'all')
+	platform_list="${all_platforms}"
+;;
+'linux')
+	platform_list="${all_linux_platforms}"
+;;
+'windows')
+	platform_list="${all_windows_platforms}"
+;;
+'macos')
+	platform_list="${all_macos_platforms}"
+;;
+*)
+	for known_platform in ${all_platforms}
+	do
+		if [ "${platform}" = "${known_platform}" ]
+		then
+			platform_list="${platform}"
+			break;
+		fi
+	done
+	if [ -z "${platform_list}" ]
+	then
+		syntaxError 'Unknown platform'
+	fi
+;;
+esac
+
+for PLATFORM in ${platform_list}
+do (
+	"setup_${PLATFORM}"
+	build "${@}"
+) done

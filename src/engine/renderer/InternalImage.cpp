@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // InternalImage.cpp
 #include "tr_local.h"
+#include "GLUtils.h"
 
 // Comments may include short quotes from other authors.
 
@@ -105,6 +106,40 @@ int R_GetImageCustomScalingStep( const image_t *image, const imageParams_t &imag
 		return 0;
 	}
 
+	// Consider the larger edge as the "image dimension"
+	int scaledDimension = std::max( image->width, image->height );
+
+	int scalingStep = 0;
+
+	// Scale down the image size according to the screen size.
+	if ( image->bits & IF_FITSCREEN )
+	{
+		int largerSide = std::max( windowConfig.vidWidth, windowConfig.vidHeight );
+
+		if ( scaledDimension > largerSide )
+		{
+			while ( scaledDimension > largerSide )
+			{
+				scaledDimension >>= 1;
+				scalingStep++;
+			}
+
+			/* With r_imageFitScreen == 1, we need the larger image size before
+			it becomes smaller than screen.
+
+			With r_imageFitScreen == 2 the image is never larger than screen, as
+			we allow the larger size that is not larger than screen, it can be the
+			larger size smaller than screen. */
+			if ( scaledDimension != largerSide && r_imageFitScreen.Get() != 2 )
+			{
+				scaledDimension <<= 1;
+				scalingStep--;
+			}
+		}
+
+		return scalingStep;
+	}
+
 	int materialMinDimension = r_ignoreMaterialMinDimension->integer ? 0 : imageParams.minDimension;
 	int materialMaxDimension = r_ignoreMaterialMaxDimension->integer ? 0 : imageParams.maxDimension;
 
@@ -129,10 +164,6 @@ int R_GetImageCustomScalingStep( const image_t *image, const imageParams_t &imag
 	{
 		maxDimension = std::min( maxDimension, r_imageMaxDimension->integer );
 	}
-
-	// Consider the larger edge as the "image dimension"
-	int scaledDimension = std::max( image->width, image->height );
-	int scalingStep = 0;
 
 	// 1st priority: scaledDimension >= minDimension
 	// 2nd priority: scaledDimension <= maxDimension

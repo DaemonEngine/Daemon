@@ -26,8 +26,95 @@
 
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
+include(DaemonBuildTypeGeneratorExpression)
 
 add_definitions(-DDAEMON_BUILD_${CMAKE_BUILD_TYPE})
+
+option(USE_COMPILER_INTRINSICS "Enable usage of compiler intrinsics" ON)
+mark_as_advanced(USE_COMPILER_INTRINSICS)
+
+if (USE_COMPILER_INTRINSICS)
+    add_definitions(-DDAEMON_USE_COMPILER_INTRINSICS=1)
+    message(STATUS "Enabling compiler intrinsics")
+else()
+    message(STATUS "Disabling compiler intrinsics")
+endif()
+
+option(USE_COMPILER_CUSTOMIZATION "Enable usage of compiler custom attributes and operators" ON)
+mark_as_advanced(USE_COMPILER_CUSTOMIZATION)
+
+if (USE_COMPILER_CUSTOMIZATION)
+    add_definitions(-DDAEMON_USE_COMPILER_CUSTOMIZATION=1)
+    message(STATUS "Enabling compiler custom attributes and operators")
+else()
+    message(STATUS "Disabling compiler custom attributes and operators")
+endif()
+
+option(USE_RECOMMENDED_CXX_STANDARD "Use recommended C++ standard" ON)
+mark_as_advanced(USE_RECOMMENDED_CXX_STANDARD)
+
+option(USE_CPP23 "Use C++23 standard where possible" OFF)
+
+if (MSVC)
+	set(DEFAULT_STRIP_SOURCE_PATHS ON)
+else()
+	set(DEFAULT_STRIP_SOURCE_PATHS OFF)
+endif()
+	
+option(STRIP_SOURCE_PATHS "Strip source paths in debug symbols" ${DEFAULT_STRIP_SOURCE_PATHS})
+
+# Required for <stacktrace> on Clang/GCC
+if(USE_CPP23)
+    if (DAEMON_CXX_COMPILER_Clang_COMPATIBILITY OR DAEMON_CXX_COMPILER_GCC_COMPATIBILITY)
+		if ((DAEMON_CXX_COMPILER_Clang_VERSION VERSION_GREATER_EQUAL 19.1.0) OR (DAEMON_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 13.3))
+			set(CPP23SupportLibraryTryExp TRUE)
+		endif()
+
+		if ((DAEMON_CXX_COMPILER_Clang_VERSION VERSION_GREATER_EQUAL 17.0.1) OR (DAEMON_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 12.1))
+			set(CPP23SupportLibraryTryBacktrace TRUE)
+		endif()
+
+        if (CPP23SupportLibraryTryExp)
+            set(CPP23SupportLibrary "-lstdc++exp")
+			set(CPP23SupportLibraryCompatibleCompiler TRUE)
+
+			find_library(HAVE_CPP23SupportLibrary "libstdc++exp")
+        endif()
+        
+        if (CPP23SupportLibraryTryBacktrace AND (HAVE_CPP23SupportLibrary-NOTFOUND OR NOT CPP23SupportLibraryTryExp))
+            if (CPP23SupportLibraryCompatibleCompiler)
+				set(CPP23SupportLibraryOldLibrary TRUE)
+			endif()
+
+			set(CPP23SupportLibrary "-lstdc++_libbacktrace")
+			set(CPP23SupportLibraryCompatibleCompiler TRUE)
+			
+			find_library(HAVE_CPP23SupportLibrary "libstdc++_libbacktrace")
+        endif()
+
+		if (HAVE_CPP23SupportLibrary-NOTFOUND)
+			if (NOT CPP23SupportLibraryCompatibleCompiler)
+				message(WARNING "Not using <stacktrace>: the compiler is too old (requires clang >= 17.0.1 or GCC >= 12.1)")
+			else()
+				message(WARNING "Not using <stacktrace>: libstdc++exp or libstdc++_backtrace is required, but wasn't found in system paths")
+			endif()
+
+			set(CPP23SupportLibrary "")
+		elseif (CXX_FLAGS MATCHES ".*\\-stdlib\\=libc\\+\\+*")
+			message(WARNING "Not using <stacktrace>: only -stdlib=libstdc++ is supported")
+			
+			set(CPP23SupportLibrary "")
+		else()
+    		add_definitions(-DDAEMON_CPP23_SUPPORT_LIBRARY_ENABLED=1)
+			
+			if (CPP23SupportLibraryOldLibrary)
+				message(STATUS "Using <stacktrace>: found ${CPP23SupportLibrary} (recommended to use libc++exp on this compiler version instead, but it wasn't found)")
+			else()
+				message(STATUS "Using <stacktrace>: found ${CPP23SupportLibrary}")
+			endif()
+		endif()
+	endif()
+endif()
 
 # Set flag without checking, optional argument specifies build type
 macro(set_c_flag FLAG)
@@ -48,6 +135,11 @@ macro(set_c_cxx_flag FLAG)
     set_c_flag(${FLAG} ${ARGN})
     set_cxx_flag(${FLAG} ${ARGN})
 endmacro()
+
+macro(set_exe_linker_flag FLAG)
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${FLAG}")
+endmacro()
+
 macro(set_linker_flag FLAG)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${FLAG}")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${FLAG}")
@@ -77,6 +169,12 @@ function(try_flag LIST FLAG)
 endfunction()
 
 # Try flag and set if it works, optional argument specifies build type
+macro(try_c_flag PROP FLAG)
+    check_C_compiler_flag(${FLAG} FLAG_${PROP})
+    if (FLAG_${PROP})
+        set_c_flag(${FLAG} ${ARGV2})
+    endif()
+endmacro()
 macro(try_cxx_flag PROP FLAG)
     check_CXX_compiler_flag(${FLAG} FLAG_${PROP})
     if (FLAG_${PROP})
@@ -116,14 +214,75 @@ macro(try_linker_flag PROP FLAG)
     endif()
 endmacro()
 
-if(MINGW AND USE_BREAKPAD)
-    set_linker_flag("-Wl,--build-id")
+macro(try_exe_linker_flag PROP FLAG)
+	# Check it with the C compiler
+	set(CMAKE_REQUIRED_FLAGS ${FLAG})
+	check_C_compiler_flag(${FLAG} FLAG_${PROP})
+	set(CMAKE_REQUIRED_FLAGS "")
+
+	if (FLAG_${PROP})
+		set_exe_linker_flag(${FLAG} ${ARGN})
+	endif()
+endmacro()
+
+if (STRIP_SOURCE_PATHS)
+	# Stripping of absolute paths for __FILE__ / source_location
+	# Also do without src/ to get libs/
+	set(FILENAME_STRIP_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}")
+	if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL DAEMON_DIR)
+		set(FILENAME_STRIP_DIRS ${FILENAME_STRIP_DIRS} "${DAEMON_DIR}/src" "${DAEMON_DIR}")
+	endif()
+	foreach(strip_dir ${FILENAME_STRIP_DIRS})
+		if (MSVC)
+			string(REPLACE "/" "\\" backslashed_dir ${strip_dir})
+			# set_c_cxx_flag can't be used because macros barf if the input contains backslashes
+			# https://gitlab.kitware.com/cmake/cmake/-/issues/19281
+			set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} /d1trimfile:${backslashed_dir}\\")
+			set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /d1trimfile:${backslashed_dir}\\")
+		else()
+			try_c_cxx_flag(PREFIX_MAP "-ffile-prefix-map=${strip_dir}/=")
+		endif()
+	endforeach()
+endif()
+
+if (BE_VERBOSE)
+    set(WARNMODE "no-error=")
+else()
+    set(WARNMODE "no-")
+endif()
+
+# Compiler options
+option(USE_FLOAT_EXCEPTIONS "Use floating point exceptions with common.floatException.* cvars" OFF)
+option(USE_FAST_MATH "Use fast math" OFF)
+
+if (USE_FLOAT_EXCEPTIONS)
+    add_definitions(-DDAEMON_USE_FLOAT_EXCEPTIONS)
 endif()
 
 if (MSVC)
     set_c_cxx_flag("/MP")
-    set_c_cxx_flag("/fp:fast")
+
+    # There is no flag for standards before C++17
+    if (USE_CPP23 AND USE_RECOMMENDED_CXX_STANDARD)
+        set_cxx_flag("/std:c++23preview")
+    endif()
+
+    if (USE_FAST_MATH)
+        set_c_cxx_flag("/fp:fast")
+    else()
+        # Don't switch on C4305 "truncation from 'double' to 'float'" every
+        # time an unsuffixed decimal constant is used
+        set_c_cxx_flag("/wd4305")
+    endif()
+
+    if (USE_FLOAT_EXCEPTIONS)
+        set_c_cxx_flag("/fp:strict")
+    endif()
+
     set_c_cxx_flag("/d2Zi+" RELWITHDEBINFO)
+
+    # https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
+    set_cxx_flag("/Zc:__cplusplus")
 
     # At least Ninja doesn't remove the /W3 flag when we add /W4|/Wall one, which
     # leads to compilation warnings.  Remove /W3 entirely, as /W4|/Wall be used.
@@ -139,9 +298,25 @@ if (MSVC)
 
     set_c_cxx_flag("/W4")
 
-    if (ARCH STREQUAL "i686")
-        set_c_cxx_flag("/arch:SSE2")
-    endif()
+    # These warnings need to be disabled for both Daemon and Unvanquished since they are triggered in shared headers
+    try_flag(WARNINGS "/wd4201")  # nonstandard extension used: nameless struct / union
+    try_flag(WARNINGS "/wd4244")  # 'XXX': conversion from 'YYY' to 'ZZZ', possible loss of data
+    try_flag(WARNINGS "/wd4267")  # 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+
+    # This warning is garbage because it doesn't go away if you parenthesize the expression
+    try_flag(WARNINGS "/wd4706")  # assignment within conditional expression
+
+    # Turn off warning C4996:, e.g:
+    # warning C4996: 'open': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _open. See online help for details.    set_c_cxx_flag("/wd4996")
+    # open seems far more popular than _open not to mention nicer. There doesn't seem to be any reason or will to change to _open.
+    # So until there is a specific plan to tackle all of these type of warnings it's best to turn them off to the distraction.
+    set_c_cxx_flag("/wd4996")
+
+	if (USE_WERROR)
+		try_flag(WARNINGS "/WX")
+	endif()
+
+    set_linker_flag("/LARGEADDRESSAWARE")
 
     if (USE_LTO)
         set_c_cxx_flag("/GL" MINSIZEREL)
@@ -151,219 +326,349 @@ if (MSVC)
         set_linker_flag("/LTCG" RELWITHDEBINFO)
         set_linker_flag("/LTCG" RELEASE)
     endif()
-    set_linker_flag("/LARGEADDRESSAWARE")
-
-    try_flag(WARNINGS   "/wd4068")
-
-    # Turn off C4503:, e.g:
-    # warning C4503: 'std::_Tree<std::_Tmap_traits<_Kty,_Ty,_Pr,_Alloc,false>>::_Insert_hint' : decorated name length exceeded, name was truncated
-    # No issue will be caused from this error as long as no two symbols become identical by being truncated.
-    # In practice this rarely happens and even the standard libraries are affected as in the example. So there really is not
-    # much that can to done about it and the warnings about each truncation really just make it more likely
-    # that other more real issues might get missed. So better to remove the distraction when it really is very unlikey to happen.
-    set_c_cxx_flag("/wd4503")
-
-    # Turn off warning C4996:, e.g:
-    # warning C4996: 'open': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _open. See online help for details.    set_c_cxx_flag("/wd4996")
-    # open seems far more popular than _open not to mention nicer. There doesn't seem to be any reason or will to change to _open.
-    # So until there is a specific plan to tackle all of these type of warnings it's best to turn them off to the distraction.
-    set_c_cxx_flag("/wd4996")
-elseif (NACL)
-    set_c_flag("-std=c11")
-    set_cxx_flag("-std=gnu++14")
-
-    set_c_cxx_flag("-ffast-math")
-    set_c_cxx_flag("-fvisibility=hidden")
-    set_c_cxx_flag("-stdlib=libc++")
-    set_c_cxx_flag("--pnacl-allow-exceptions")
-
-    set_c_cxx_flag("-Os -DNDEBUG"       MINSIZEREL)
-    set_c_cxx_flag("-O3 -DNDEBUG"       RELEASE)
-    set_c_cxx_flag("-O2 -DNDEBUG -g3"   RELWITHDEBINFO)
-    set_c_cxx_flag("-O0          -g3"   DEBUG)
 else()
-    set_c_cxx_flag("-ffast-math")
-    set_c_cxx_flag("-fno-strict-aliasing")
+	# Minimum language standards supported.
 
-    # Set arch on x86 to SSE2 minimum and enable CMPXCHG16B
-    if (ARCH STREQUAL "i686")
-        set_c_cxx_flag("-m32")
-        set_c_cxx_flag("-msse2")
-        set_c_cxx_flag("-mtune=generic")
-        try_c_cxx_flag_werror(MFPMATH_SSE "-mfpmath=sse")
-    elseif (ARCH STREQUAL "amd64")
-        set_c_cxx_flag("-m64")
-        set_c_cxx_flag("-mtune=generic")
-        try_c_cxx_flag_werror(MCX16 "-mcx16")
-    elseif (ARCH STREQUAL "arm64")
-        set_c_cxx_flag("-march=armv8-a")
-    elseif (ARCH STREQUAL "armhf")
-        set_c_cxx_flag("-march=armv7")
-        set_c_cxx_flag("-mfloat-abi=hard")
-        set_c_cxx_flag("-mfpu=neon")
-    else()
-        message(FATAL_ERROR "Unsupported architecture ${ARCH}")
-    endif()
+	option(USE_RECOMMENDED_C_STANDARD "Use recommended C standard" ON)
+	mark_as_advanced(USE_RECOMMENDED_C_STANDARD)
 
-    # Use hidden symbol visibility if possible
-    try_c_cxx_flag(FVISIBILITY_HIDDEN "-fvisibility=hidden")
+	if (USE_RECOMMENDED_C_STANDARD)
+		# GNU89 or later standard is required when building gzip or the compiler
+		# will complain about implicitly defined lseek, read, write and close.
+		# GNU99 or later standard is required when building lua or lua will
+		# complain that the compiler doesn't support 'long long'.
+		try_c_flag(GNU99 "-std=gnu99")
+		if (NOT FLAG_GNU99)
+			message(FATAL_ERROR "GNU99 is not supported by the compiler")
+		endif()
+	endif()
 
-    # Prevent the generation of STB_GNU_UNIQUE symbols on templated functions on Linux.
-    # STB_GNU_UNIQUE renders dlclose() inoperative.
-    try_cxx_flag(FNO_GNU_UNIQUE "-fno-gnu-unique")
+	if (USE_RECOMMENDED_CXX_STANDARD)
+		if (USE_CPP23)
+			try_cxx_flag(GNUXX23 "-std=gnu++23")
+			if (NOT FLAG_GNUXX23)
+				message(FATAL_ERROR "GNU++23 is not supported by the compiler")
+			endif()
+		else()
+			# PNaCl only defines isascii if __STRICT_ANSI__ is not defined,
+			# always prefer GNU dialect.
+			try_cxx_flag(GNUXX14 "-std=gnu++14")
+			if (NOT FLAG_GNUXX14)
+				try_cxx_flag(GNUXX1Y "-std=gnu++1y")
+				if (NOT FLAG_GNUXX1Y)
+					message(FATAL_ERROR "GNU++14 is not supported by the compiler")
+				endif()
+			endif()
+		endif()
+	endif()
 
-    # Extra debug flags
-    set_c_cxx_flag("-g3" DEBUG)
-    set_c_cxx_flag("-g3" RELWITHDEBINFO)
-    if (USE_DEBUG_OPTIMIZE)
-        try_c_cxx_flag(OPTIMIZE_DEBUG "-Og" DEBUG)
-    endif()
+	if (NACL AND USE_NACL_SAIGO AND SAIGO_ARCH STREQUAL "arm")
+		# This should be set for every build type because build type flags
+		# are set after the other custom flags and then have the last word.
+		# DEBUG should already use -O0 anyway.
+		# See: https://github.com/Unvanquished/Unvanquished/issues/3297
+		set_c_cxx_flag("-O0" DEBUG)
+		set_c_cxx_flag("-O0" RELEASE)
+		set_c_cxx_flag("-O0" RELWITHDEBINFO)
+		set_c_cxx_flag("-O0" MINSIZEREL)
+	endif()
 
-    # C++14 support
-    try_cxx_flag(GNUXX14 "-std=gnu++14")
-    if (NOT FLAG_GNUXX14)
-        try_cxx_flag(GNUXX1Y "-std=gnu++1y")
-        if (NOT FLAG_GNUXX1Y)
-            message(FATAL_ERROR "C++14 not supported by compiler")
-        endif()
-    endif()
+	# Extra debug flags.
+	set_c_cxx_flag("-g3" RELWITHDEBINFO)
+	set_c_cxx_flag("-g3" DEBUG)
 
-    # Use MSVC-compatible bitfield layout
-    if (WIN32)
-        set_c_cxx_flag("-mms-bitfields")
-    endif()
+	if (USE_DEBUG_OPTIMIZE)
+		try_c_cxx_flag(OPTIMIZE_DEBUG "-Og" DEBUG)
+	endif()
 
-    # Use libc++ on Mac because the shipped libstdc++ version is too old
-    if (APPLE)
-        set_c_cxx_flag("-stdlib=libc++")
-        set_linker_flag("-stdlib=libc++")
-    endif()
+	# Optimizations.
+	if (USE_FAST_MATH)
+		set_c_cxx_flag("-ffast-math")
+	endif()
 
-    # Hardening, don't set _FORTIFY_SOURCE in debug builds
-    if (USE_HARDENING OR NOT MINGW)
-        # MinGW with _FORTIFY_SOURCE and without -fstack-protector causes unsatisfied dependency on libssp
-        # https://github.com/msys2/MINGW-packages/issues/5868
-        set_c_cxx_flag("-D_FORTIFY_SOURCE=2" RELEASE)
-        set_c_cxx_flag("-D_FORTIFY_SOURCE=2" RELWITHDEBINFO)
-        set_c_cxx_flag("-D_FORTIFY_SOURCE=2" MINSIZEREL)
-    endif()
-    if (USE_HARDENING)
-        try_c_cxx_flag(FSTACK_PROTECTOR_STRONG "-fstack-protector-strong")
-        if (NOT FLAG_FSTACK_PROTECTOR_STRONG)
-            try_c_cxx_flag(FSTACK_PROTECTOR_ALL "-fstack-protector-all")
-        endif()
-        try_c_cxx_flag(FNO_STRICT_OVERFLOW "-fno-strict-overflow")
-        try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
-        try_c_cxx_flag(FPIE "-fPIE")
-        try_linker_flag(LINKER_PIE "-pie")
-        if (${FLAG_LINKER_PIE} AND MINGW)
-            # https://github.com/msys2/MINGW-packages/issues/4100
-            if (ARCH STREQUAL "i686")
-                set_linker_flag("-Wl,-e,_mainCRTStartup")
-            elseif(ARCH STREQUAL "amd64")
-                set_linker_flag("-Wl,-e,mainCRTStartup")
-            else()
-                message(FATAL_ERROR "Unsupported architecture ${ARCH}")
-            endif()
-        endif()
-    endif()
+	if (USE_FLOAT_EXCEPTIONS)
+		# Floating point exceptions requires trapping math
+		# to avoid false positives on architectures with SSE.
+		set_c_cxx_flag("-ftrapping-math")
+		# GCC prints noisy warnings saying -ftrapping-math implies this.
+		set_c_cxx_flag("-fno-associative-math")
+		# Other optimizations from -ffast-math can be kept.
+	endif()
 
-    # Linker flags
-    if (NOT APPLE)
-        try_linker_flag(LINKER_O1 "-Wl,-O1")
-        try_linker_flag(LINKER_SORT_COMMON "-Wl,--sort-common")
-        try_linker_flag(LINKER_AS_NEEDED "-Wl,--as-needed")
-        if (NOT USE_ADDRESS_SANITIZER)
-            try_linker_flag(LINKER_NO_UNDEFINED "-Wl,--no-undefined")
-        endif()
-        try_linker_flag(LINKER_Z_RELRO "-Wl,-z,relro")
-        try_linker_flag(LINKER_Z_NOW "-Wl,-z,now")
-    endif()
-    if (WIN32)
-        try_linker_flag(LINKER_DYNAMICBASE "-Wl,--dynamicbase")
-        try_linker_flag(LINKER_NXCOMPAT "-Wl,--nxcompat")
-        try_linker_flag(LINKER_LARGE_ADDRESS_AWARE "-Wl,--large-address-aware")
-        try_linker_flag(LINKER_HIGH_ENTROPY_VA "-Wl,--high-entropy-va")
-    endif()
+	# Use hidden symbol visibility if possible.
+	try_c_cxx_flag(FVISIBILITY_HIDDEN "-fvisibility=hidden")
 
-    # The -pthread flag sets some preprocessor defines,
-    # it is also used to link with libpthread on Linux
-    if (NOT APPLE)
-        try_c_cxx_flag(PTHREAD "-pthread")
-    endif()
-    if (LINUX)
-        set_linker_flag("-pthread")
-    endif()
+	# Disable strict aliasing.
+	set_c_cxx_flag("-fno-strict-aliasing")
 
-    # Warning options
-    try_flag(WARNINGS           "-Wall")
-    try_flag(WARNINGS           "-Wextra")
-    if (USE_PEDANTIC)
-        try_flag(WARNINGS       "-pedantic")
-    endif()
+	# Warning options.
+	try_flag(WARNINGS "-Wall")
+	try_flag(WARNINGS "-Wextra")
 
-    if (USE_ADDRESS_SANITIZER)
-        set_cxx_flag("-fsanitize=address")
-        set_linker_flag("-fsanitize=address")
-    endif()
+	if (USE_PEDANTIC)
+		try_flag(WARNINGS "-pedantic")
+	endif()
 
-    # Link-time optimization
-    if (USE_LTO)
-        set_c_cxx_flag("-flto")
-        set_linker_flag("-flto")
+	if (USE_WERROR)
+		try_flag(WARNINGS "-Werror")
+	endif()
 
-        # For LTO compilation we must send a copy of all compile flags to the linker
-        set_linker_flag("${CMAKE_CXX_FLAGS}")
+	if (NACL AND NOT USE_NACL_SAIGO)
+		# PNaCl only supports libc++ as standard library.
+		set_c_cxx_flag("-stdlib=libc++")
+		set_c_cxx_flag("--pnacl-allow-exceptions")
+	endif()
 
-        # Use gcc-ar and gcc-ranlib instead of ar and ranlib so that we can use
-        # slim LTO objects. This requires a recent version of GCC and binutils.
-        if (${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
-            if (USE_SLIM_LTO)
-                string(REGEX MATCH "^([0-9]+.[0-9]+)" _version "${CMAKE_CXX_COMPILER_VERSION}")
-                get_filename_component(COMPILER_BASENAME "${CMAKE_C_COMPILER}" NAME)
-                if (COMPILER_BASENAME MATCHES "^(.+-)g?cc(-[0-9]+\\.[0-9]+\\.[0-9]+)?(\\.exe)?$")
-                    set(TOOLCHAIN_PREFIX ${CMAKE_MATCH_1})
-                endif()
+	# Prevent the generation of STB_GNU_UNIQUE symbols
+	# on templated functions on Linux.
+	# STB_GNU_UNIQUE renders dlclose() inoperative.
+	try_cxx_flag(FNO_GNU_UNIQUE "-fno-gnu-unique")
 
-                find_program(GCC_AR
-                    NAMES
-                        "${TOOLCHAIN_PREFIX}gcc-ar"
-                        "${TOOLCHAIN_PREFIX}gcc-ar-${_version}"
-                    DOC "gcc provided wrapper for ar which adds the --plugin option"
-                )
+	# Use MSVC-compatible bitfield layout
+	if (WIN32)
+		set_c_cxx_flag("-mms-bitfields")
+	endif()
 
-                find_program(GCC_RANLIB
-                    NAMES
-                        "${TOOLCHAIN_PREFIX}gcc-ranlib"
-                        "${TOOLCHAIN_PREFIX}gcc-ranlib-${_version}"
-                    DOC "gcc provided wrapper for ranlib which adds the --plugin option"
-                )
+	# Linker flags
+	if (NOT APPLE)
+		try_linker_flag(LINKER_O1 "-Wl,-O1")
+		try_linker_flag(LINKER_SORT_COMMON "-Wl,--sort-common")
+		try_linker_flag(LINKER_AS_NEEDED "-Wl,--as-needed")
 
-                mark_as_advanced(GCC_AR GCC_RANLIB)
+		if (NOT USE_ADDRESS_SANITIZER)
+			try_linker_flag(LINKER_NO_UNDEFINED "-Wl,--no-undefined")
+		endif()
 
-                # Override standard ar and ranlib with the gcc- versions
-                if (GCC_AR)
-                    set(CMAKE_AR ${GCC_AR})
-                endif()
-                if (GCC_RANLIB)
-                    set(CMAKE_RANLIB ${GCC_RANLIB})
-                endif()
+		try_linker_flag(LINKER_Z_RELRO "-Wl,-z,relro")
+		try_linker_flag(LINKER_Z_NOW "-Wl,-z,now")
+	endif()
 
-                try_c_cxx_flag(NO_FAT_LTO_OBJECTS "-fno-fat-lto-objects")
-            else()
-                try_c_cxx_flag(FAT_LTO_OBJECTS "-ffat-lto-objects")
-            endif()
-        endif()
-    endif()
+	if (WIN32)
+		try_linker_flag(LINKER_DYNAMICBASE "-Wl,--dynamicbase")
+		try_linker_flag(LINKER_NXCOMPAT "-Wl,--nxcompat")
+		try_linker_flag(LINKER_LARGE_ADDRESS_AWARE "-Wl,--large-address-aware")
+		try_linker_flag(LINKER_HIGH_ENTROPY_VA "-Wl,--high-entropy-va")
+	endif()
 
+	if (MINGW AND USE_BREAKPAD)
+	    set_linker_flag("-Wl,--build-id")
+	endif()
+
+	# The -pthread flag sets some preprocessor defines,
+	# it is also used to link with libpthread on Linux.
+	if (NOT APPLE)
+		try_c_cxx_flag(PTHREAD "-pthread")
+	endif()
+
+	if (USE_ADDRESS_SANITIZER)
+		set_cxx_flag("-fsanitize=address")
+		set_linker_flag("-fsanitize=address")
+	endif()
+
+	# Hardening.
+	if (USE_HARDENING OR NOT MINGW)
+		# MinGW with _FORTIFY_SOURCE and without -fstack-protector
+		# causes unsatisfied dependency on libssp.
+		# https://github.com/msys2/MINGW-packages/issues/5868
+		set_c_cxx_flag("-D_FORTIFY_SOURCE=2" RELEASE)
+		set_c_cxx_flag("-D_FORTIFY_SOURCE=2" RELWITHDEBINFO)
+		set_c_cxx_flag("-D_FORTIFY_SOURCE=2" MINSIZEREL)
+		# Don't set _FORTIFY_SOURCE in debug builds.
+	endif()
+
+	try_c_cxx_flag(FPIC "-fPIC")
+
+	if (USE_HARDENING)
+		# PNaCl accepts the flags but does not define __stack_chk_guard and __stack_chk_fail.
+		if (NOT NACL)
+			try_c_cxx_flag(FSTACK_PROTECTOR_STRONG "-fstack-protector-strong")
+
+			if (NOT FLAG_FSTACK_PROTECTOR_STRONG)
+				try_c_cxx_flag(FSTACK_PROTECTOR_ALL "-fstack-protector-all")
+			endif()
+		endif()
+
+		try_c_cxx_flag(FNO_STRICT_OVERFLOW "-fno-strict-overflow")
+		try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
+
+		if (NOT NACL OR (NACL AND GAME_PIE))
+			# The -pie flag requires -fPIC:
+			# > ld: error: relocation R_X86_64_64 cannot be used against local symbol; recompile with -fPIC
+			# This flag isn't used on macOS:
+			# > clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+			if (FLAG_FPIC AND NOT APPLE)
+				try_exe_linker_flag(LINKER_PIE "-pie")
+			endif()
+		endif()
+
+		if ("${FLAG_LINKER_PIE}" AND MINGW)
+			# https://github.com/msys2/MINGW-packages/issues/4100
+			if (ARCH STREQUAL "i686")
+				set_linker_flag("-Wl,-e,_mainCRTStartup")
+			elseif(ARCH STREQUAL "amd64")
+				set_linker_flag("-Wl,-e,mainCRTStartup")
+			else()
+				message(FATAL_ERROR "Unsupported architecture ${ARCH}")
+			endif()
+		endif()
+	endif()
+
+	# Link-time optimizations. It should be done at the very end because
+	# it copies all compiler flags to the linker flags.
+
+	# PNaCl accepts the flag but does nothing with it, underlying clang doesn't support it.
+	# Saigo NaCl compiler doesn't support LTO, the flag is accepted but linking fails
+	# with “unable to pass LLVM bit-code files to linker” error.
+	if (USE_LTO AND NOT NACL)
+		try_c_cxx_flag(LTO_AUTO "-flto=auto")
+
+		if (NOT FLAG_LTO_AUTO)
+			try_c_cxx_flag(LTO "-flto")
+		endif()
+
+		if (FLAG_LTO_AUTO OR FLAG_LTO)
+			# Pass all compile flags to the linker.
+			set_linker_flag("${CMAKE_CXX_FLAGS}")
+
+			# Use gcc-ar and gcc-ranlib instead of ar and ranlib so that we can use
+			# slim LTO objects. This requires a recent version of GCC and binutils.
+			if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL GNU)
+				if (USE_SLIM_LTO)
+					string(REGEX MATCH "^([0-9]+.[0-9]+)" _version "${CMAKE_CXX_COMPILER_VERSION}")
+					get_filename_component(COMPILER_BASENAME "${CMAKE_C_COMPILER}" NAME)
+					if (COMPILER_BASENAME MATCHES "^(.+-)g?cc(-[0-9]+\\.[0-9]+\\.[0-9]+)?(\\.exe)?$")
+						set(TOOLCHAIN_PREFIX ${CMAKE_MATCH_1})
+					endif()
+
+					find_program(GCC_AR
+						NAMES
+							"${TOOLCHAIN_PREFIX}gcc-ar"
+							"${TOOLCHAIN_PREFIX}gcc-ar-${_version}"
+						DOC "gcc provided wrapper for ar which adds the --plugin option"
+					)
+
+					find_program(GCC_RANLIB
+						NAMES
+							"${TOOLCHAIN_PREFIX}gcc-ranlib"
+							"${TOOLCHAIN_PREFIX}gcc-ranlib-${_version}"
+						DOC "gcc provided wrapper for ranlib which adds the --plugin option"
+					)
+
+					mark_as_advanced(GCC_AR GCC_RANLIB)
+
+					# Override standard ar and ranlib with the gcc- versions.
+					if (GCC_AR)
+						set(CMAKE_AR ${GCC_AR})
+					endif()
+
+					if (GCC_RANLIB)
+						set(CMAKE_RANLIB ${GCC_RANLIB})
+					endif()
+
+					try_c_cxx_flag(NO_FAT_LTO_OBJECTS "-fno-fat-lto-objects")
+				else()
+					try_c_cxx_flag(FAT_LTO_OBJECTS "-ffat-lto-objects")
+				endif()
+			endif()
+		endif()
+	endif()
 endif()
 
-if (USE_WERROR)
-    try_flag(WARNINGS "-Werror")
-    try_flag(WARNINGS "/WX")
-    if (USE_PEDANTIC)
-        try_flag(WARNINGS "-pedantic-errors")
+option(USE_CPU_RECOMMENDED_FEATURES "Use some common hardware features like SSE2, NEON, VFP, MCX16, etc." ON)
+
+# Target options.
+if (MSVC)
+    if (ARCH STREQUAL "i686")
+        if (USE_CPU_RECOMMENDED_FEATURES)
+            set_c_cxx_flag("/arch:SSE2") # This is the default
+        else()
+            set_c_cxx_flag("/arch:IA32") # minimum
+        endif()
     endif()
+elseif (NOT NACL)
+	# Among the required hardware features, the NX bit (No eXecute bit)
+	# feature may be required for NativeClient to work. Some early
+	# Intel EM64T processors are known to not implement the NX bit.
+	# Some ARM CPUs may not implement the similar “execute never” feature.
+	# While this is an hardware feature, this isn't a build option because it's
+	# not used by the engine itself but by the NaCl loader. The engine will be
+	# built but the game may or may not run. The NX bit feature may also be
+	# disabled in the BIOS while the hardware supports it, so even if we would
+	# detect the lack of it such knowledge would be useless at build time.
+	# Running a server with a native executable game is also a valid usage
+	# not requiring the NX bit.
+
+	if (ARCH STREQUAL "amd64")
+		# K8 or EM64T minimum: AMD Athlon 64 ClawHammer, Intel Xeon Nocona, Intel Pentium 4 model F (Prescott revision EO), VIA Nano.
+		if (DAEMON_CXX_COMPILER_ICC)
+			set(GCC_GENERIC_ARCH "pentium4")
+		elseif (DAEMON_CXX_COMPILER_Zig)
+			set(GCC_GENERIC_ARCH "x86_64")
+		else()
+			set(GCC_GENERIC_ARCH "x86-64")
+		endif()
+		set(GCC_GENERIC_TUNE "generic")
+	elseif (ARCH STREQUAL "i686")
+		# P6 or K6 minimum: Intel Pentium Pro, AMD K6, Via Cyrix III, Via C3.
+		set(GCC_GENERIC_ARCH "i686")
+		set(GCC_GENERIC_TUNE "generic")
+	elseif (ARCH STREQUAL "arm64")
+		# Armv8-A minimum: Cortex-A50.
+		set(GCC_GENERIC_ARCH "armv8-a")
+		set(GCC_GENERIC_TUNE "generic")
+	elseif (ARCH STREQUAL "armhf")
+		# Armv7-A minimum with VFPv3 and optional NEONv1: Cortex-A5.
+		# Hard float ABI (mainstream 32-bit ARM Linux distributions).
+		# An FPU should be explicitly set on recent compilers or this
+		# error would be raised:
+		#   cc1: error: ‘-mfloat-abi=hard’: selected architecture
+		#   lacks an FPU
+		set(GCC_GENERIC_ARCH "armv7-a+fp")
+		set(GCC_GENERIC_TUNE "generic-armv7-a")
+	elseif (ARCH STREQUAL "armel")
+		# Armv6 minimum with optional VFP: ARM11.
+		# Soft float ABI (previous mainstream 32-bit ARM Linux
+		# distributions, mainstream 32-bit ARM Android distributions).
+		set(GCC_GENERIC_ARCH "armv6")
+		# There is no generic tuning option for armv6.
+		unset(GCC_GENERIC_TUNE)
+	else()
+		message(WARNING "Unknown architecture ${ARCH}")
+	endif()
+
+	if ("${DAEMON_CXX_COMPILER_NAME}" STREQUAL "Zig")
+		unset(GCC_GENERIC_TUNE)
+	endif()
+
+	option(USE_CPU_GENERIC_ARCHITECTURE "Enforce generic -march and -mtune compiler options" ON)
+	if (USE_CPU_GENERIC_ARCHITECTURE)
+		if (GCC_GENERIC_ARCH)
+			try_c_cxx_flag_werror(MARCH "-march=${GCC_GENERIC_ARCH}")
+		endif()
+
+		if (GCC_GENERIC_TUNE)
+			try_c_cxx_flag_werror(MTUNE "-mtune=${GCC_GENERIC_TUNE}")
+		endif()
+	endif()
+
+	if (USE_CPU_RECOMMENDED_FEATURES)
+		if (ARCH STREQUAL "amd64")
+			# CMPXCHG16B minimum (x86-64-v2): AMD64 revision F.
+			try_c_cxx_flag_werror(MCX16 "-mcx16")
+		elseif (ARCH STREQUAL "i686")
+			# SSE2 minimum: Intel Pentium 4 (Prescott),
+			# Intel Pentium M (Banias), AMD K8, Via C7.
+			try_c_cxx_flag_werror(MSSE2 "-msse2")
+			try_c_cxx_flag_werror(MFPMATH_SSE "-mfpmath=sse")
+		elseif (ARCH STREQUAL "armhf")
+			# NEONv1 minimum.
+			try_c_cxx_flag_werror(MFPU_NEON "-mfpu=neon")
+		elseif (ARCH STREQUAL "armel")
+			# VFP minimum, hard float with soft float ABI.
+			try_c_cxx_flag_werror(MFPU_VFP "-mfpu=vfp")
+			try_c_cxx_flag_werror(MFLOAT_ABI_SOFTFP "-mfloat-abi=softfp")
+		endif()
+	endif()
 endif()
 
 # Windows-specific definitions
@@ -376,6 +681,7 @@ if (WIN32)
     )
     set(CMAKE_FIND_LIBRARY_PREFIXES ${CMAKE_FIND_LIBRARY_PREFIXES} "" "lib")
 endif()
+
 if (MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
@@ -389,8 +695,4 @@ endif()
 
 # Configuration specific definitions
 
-# This stupid trick to define THIS_IS_NOT_A_DEBUG_BUILD (rather than nothing) in the non-debug case
-# is so that it doesn't break the hacky gcc/clang PCH code which reads all the definitions
-# and prefixes "-D" to them.
-set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS
-             $<$<NOT:$<CONFIG:Debug>>:THIS_IS_NOT_A_>DEBUG_BUILD)
+set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS $<${DEBUG_GENEXP_COND}:DEBUG_BUILD>)

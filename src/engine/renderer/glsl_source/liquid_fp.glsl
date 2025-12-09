@@ -22,10 +22,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* liquid_fp.glsl */
 
+#insert common
+#insert computeLight_fp
+#insert reliefMapping_fp
+
+#define LIQUID_GLSL
+
 uniform sampler2D	u_CurrentMap;
 uniform sampler2D	u_PortalMap;
 uniform sampler2D	u_DepthMap;
+
 uniform vec3		u_ViewOrigin;
+
+uniform uint u_ColorModulateColorGen;
+
 uniform float		u_FogDensity;
 uniform vec3		u_FogColor;
 uniform float		u_RefractionIndex;
@@ -50,6 +60,8 @@ DECLARE_OUTPUT(vec4)
 
 void	main()
 {
+	#insert material_fp
+
 	// compute incident ray
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
@@ -64,17 +76,20 @@ void	main()
 	vec2 texNormal = var_TexCoords;
 
 #if defined(USE_RELIEF_MAPPING)
-	// ray intersect in view direction
 
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ReliefTexOffset(texNormal, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ReliefTexOffset(texNormal, viewDir, tangentToWorldMatrix, u_HeightMap);
 
 	texScreen += texOffset;
 	texNormal += texOffset;
 #endif
 
 	// compute normal in world space from normalmap
-	vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
+	#if defined(r_normalMapping)
+		vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix, u_NormalMap);
+	#else // !r_normalMapping
+		vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
+	#endif // !r_normalMapping
 
 	// compute fresnel term
 	float fresnel = clamp(u_FresnelBias + pow(1.0 - dot(viewDir, normal), u_FresnelPower) *
@@ -120,7 +135,13 @@ void	main()
 
 	// compute light color from light grid
 	vec3 ambientColor, lightColor;
-	ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), ambientColor, lightColor);
+	#if defined(USE_GRID_LIGHTING) || defined(USE_GRID_DELUXE_MAPPING)
+		float lightFactor = ColorModulateToLightFactor( u_ColorModulateColorGen );
+		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), lightFactor, ambientColor, lightColor);
+	#else // !( defined(USE_GRID_LIGHTING) && defined(USE_GRID_DELUXE_MAPPING) )
+		ambientColor = vec3( 0.0, 0.0, 0.0 );
+		lightColor = vec3( 0.0, 0.0, 0.0 );
+	#endif
 
 	// compute light direction in world space
 	vec4 texel = texture3D(u_LightGrid2, lightGridPos);
@@ -129,7 +150,11 @@ void	main()
 	vec4 diffuse = vec4(0.0, 0.0, 0.0, 1.0);
 
 	// compute the specular term
-	computeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color);
+	#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING)
+		computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color);
+	#else // !USE_DELUXE_MAPPING && !USE_GRID_DELUXE_MAPPING
+		computeLight(lightColor, diffuse, color);
+	#endif // !USE_DELUXE_MAPPING && !USE_GRID_DELUXE_MAPPING
 
 	outputColor = color;
 

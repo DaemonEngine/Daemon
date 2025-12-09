@@ -1,26 +1,42 @@
 # Documentation: https://wiki.unvanquished.net/wiki/Continuous_integration
 
+skip_branch_with_pr: true
+
+only_commits:
+  files:
+    - .appveyor.yml
+    # The rest of this list should stay in sync with azure-pipelines.yml
+    - src/
+    - libs/
+    - cmake/
+    - CMakeLists.txt
+    - '*.cmake'
+    - .gitmodules
+
 branches:
   except:
     - debian
 
 environment:
-  configuration: Debug
   matrix:
     # see 96d5c1f3ed77b09c64ce7c3c7cbd37c70456b3db
     # for NMake template
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      generator: Visual Studio 16 2019
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+      generator: Visual Studio 17 2022
       platform: x64
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      generator: Visual Studio 16 2019
-      platform: win32
 
 build:
   parallel: true
 
 before_build:
-  - git submodule update --init --recursive
+  - curl -sS https://gitlab.com/illwieckz/git-checkout-modules/raw/master/git-checkout-modules -o git-checkout-modules
+  # The git-checkout-modules command below is normally equivalent to 'git submodule update --init --recursive',
+  # but in the case that the branch name ends with '/sync' it tries to find branches with the same name.
+  - bash git-checkout-modules
+    --update
+    --sub-ref=%APPVEYOR_REPO_BRANCH%:has=/sync$
+    --sub-ref=%APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH%:has=/sync$
+    --print
 
 build_script:
   # simple line break: space
@@ -32,15 +48,18 @@ build_script:
       :: /Wv pins warnings to a specific compiler version so that new ones
       :: don't make the build error after Appveyor updates the compiler.
 
-      set CFLAGS=/Wv:19.29.30037
+      set CFLAGS=/Wv:19.34
 
-      set CXXFLAGS=/Wv:19.29.30037
+      set CXXFLAGS=/Wv:19.34
 
       cmake
       -Wdev -Wdeprecated
       -G"%generator%" -A"%platform%"
       -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1
-      -DCMAKE_BUILD_TYPE="%configuration%"
+      -DUSE_CPP23=1
+      -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1
       -S. -Bbuild
 
-      cmake --build build
+      cmake --build build --config Release
+
+      build\Release\test-dummyapp -pakpath pkg

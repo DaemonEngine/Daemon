@@ -22,8 +22,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_models.c -- model loading and caching
 #include "tr_local.h"
+#include "GLUtils.h"
 
-bool AddTriangleToVBOTriangleList( growList_t *vboTriangles, skelTriangle_t *tri, int *numBoneReferences, int boneReferences[ MAX_BONES ] )
+bool R_AddTriangleToVBOTriangleList(
+	const skelTriangle_t *tri, int *numBoneReferences, int boneReferences[ MAX_BONES ] )
 {
 	md5Vertex_t *v;
 	int         boneIndex;
@@ -52,7 +54,7 @@ bool AddTriangleToVBOTriangleList( growList_t *vboTriangles, skelTriangle_t *tri
 				if ( !boneReferences[ boneIndex ] )
 				{
 					// the bone isn't yet and we have to test if we can give the mesh this bone at all
-					if ( ( *numBoneReferences + numNewReferences ) >= glConfig2.maxVertexSkinningBones )
+					if ( ( *numBoneReferences + numNewReferences ) >= glConfig.maxVertexSkinningBones )
 					{
 						return false;
 					}
@@ -88,35 +90,33 @@ bool AddTriangleToVBOTriangleList( growList_t *vboTriangles, skelTriangle_t *tri
 		*numBoneReferences = *numBoneReferences + 1;
 	}
 
-	if ( hasWeights )
-	{
-		Com_AddToGrowList( vboTriangles, tri );
-		return true;
-	}
-
-	return false;
+	return hasWeights;
 }
 
-void AddSurfaceToVBOSurfacesList( growList_t *vboSurfaces, growList_t *vboTriangles, md5Model_t *md5, md5Surface_t *surf, int skinIndex, int boneReferences[ MAX_BONES ] )
+// index has to be in range 0-255, weight has to be >= 0 and <= 1
+static unsigned short boneFactor( int index, float weight ) {
+	int scaledWeight = lrintf( weight * 255.0F );
+	return (unsigned short)( ( scaledWeight << 8 ) | index );
+}
+
+srfVBOMD5Mesh_t *R_GenerateMD5VBOSurface(
+	Str::StringRef surfName, const std::vector<skelTriangle_t> &vboTriangles,
+	md5Model_t *md5, md5Surface_t *surf, int skinIndex, int boneReferences[ MAX_BONES ] )
 {
 	int             j;
 
 	int             vertexesNum;
-	vboData_t       data;
 
 	int             indexesNum;
 	glIndex_t       *indexes;
 
-	skelTriangle_t  *tri;
-
 	srfVBOMD5Mesh_t *vboSurf;
 
 	vertexesNum = surf->numVerts;
-	indexesNum = vboTriangles->currentElements * 3;
+	indexesNum = vboTriangles.size() * 3;
 
 	// create surface
 	vboSurf = (srfVBOMD5Mesh_t*) ri.Hunk_Alloc( sizeof( *vboSurf ), ha_pref::h_low );
-	Com_AddToGrowList( vboSurfaces, vboSurf );
 
 	vboSurf->surfaceType = surfaceType_t::SF_VBO_MD5MESH;
 	vboSurf->md5Model = md5;
@@ -125,16 +125,8 @@ void AddSurfaceToVBOSurfacesList( growList_t *vboSurfaces, growList_t *vboTriang
 	vboSurf->numIndexes = indexesNum;
 	vboSurf->numVerts = vertexesNum;
 
-	memset( &data, 0, sizeof( data ) );
-
-	data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( sizeof( *data.xyz ) * vertexesNum );
-	data.qtangent = ( i16vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * vertexesNum );
-	data.boneIndexes = ( int (*)[ 4 ] ) ri.Hunk_AllocateTempMemory( sizeof( *data.boneIndexes ) * vertexesNum );
-	data.boneWeights = ( vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( *data.boneWeights ) * vertexesNum );
-	data.st = ( f16vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( f16vec2_t ) * vertexesNum );
-	data.noLightCoords = true;
-	data.numVerts = vertexesNum;
-
+	i16vec4_t *qtangents = ( i16vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * vertexesNum );
+	u16vec4_t *boneFactors = (u16vec4_t*)ri.Hunk_AllocateTempMemory( sizeof( u16vec4_t ) * vertexesNum );
 	indexes = ( glIndex_t * ) ri.Hunk_AllocateTempMemory( indexesNum * sizeof( glIndex_t ) );
 
 	vboSurf->numBoneRemap = 0;
@@ -152,48 +144,61 @@ void AddSurfaceToVBOSurfacesList( growList_t *vboSurfaces, growList_t *vboTriang
 		}
 	}
 
-	for ( j = 0; j < vboTriangles->currentElements; j++ )
-	{
-		tri = ( skelTriangle_t * ) Com_GrowListElement( vboTriangles, j );
+	glIndex_t *indexesOut = indexes;
 
+	for ( const skelTriangle_t &tri : vboTriangles )
+	{
 		for (unsigned k = 0; k < 3; k++ )
 		{
-			indexes[ j * 3 + k ] = tri->indexes[ k ];
+			*indexesOut++ = tri.indexes[ k ];
 		}
 	}
 
 	for ( j = 0; j < vertexesNum; j++ )
 	{
-		VectorCopy( surf->verts[ j ].position, data.xyz[ j ] );
 		R_TBNtoQtangents( surf->verts[ j ].tangent, surf->verts[ j ].binormal,
-				  surf->verts[ j ].normal, data.qtangent[ j ] );
-		
-		data.st[ j ][ 0 ] = floatToHalf( surf->verts[ j ].texCoordsF[ 0 ] );
-		data.st[ j ][ 1 ] = floatToHalf( surf->verts[ j ].texCoordsF[ 1 ] );
+		                  surf->verts[ j ].normal, qtangents[ j ] );
 
 		for (unsigned k = 0; k < MAX_WEIGHTS; k++ )
 		{
 			if ( k < surf->verts[ j ].numWeights )
 			{
-				data.boneIndexes[ j ][ k ] = vboSurf->boneRemap[ surf->verts[ j ].boneIndexes[ k ] ];
-				data.boneWeights[ j ][ k ] = surf->verts[ j ].boneWeights[ k ];
+				uint16_t boneIndex = vboSurf->boneRemap[ surf->verts[ j ].boneIndexes[ k ] ];
+				boneFactors[ j ][ k ] = boneFactor( boneIndex, surf->verts[ j ].boneWeights[ k ] );
 			}
 			else
 			{
-				data.boneWeights[ j ][ k ] = 0;
-				data.boneIndexes[ j ][ k ] = 0;
+				boneFactors[ j ][ k ] = 0;
 			}
 		}
 	}
 
-	vboSurf->vbo = R_CreateStaticVBO( va( "staticMD5Mesh_VBO %i", vboSurfaces->currentElements ), data, vboLayout_t::VBO_LAYOUT_SKELETAL );
+	// MD5 does not have color, but shaders always require the color vertex attribute, so we have
+	// to provide this 0 color.
+	// TODO: optimize a vertexAttributeSpec_t with 0 stride to use a non-array vertex attribute?
+	// (although that would mess up the nice 32-bit size)
+	const byte dummyColor[ 4 ]{};
 
-	vboSurf->ibo = R_CreateStaticIBO( va( "staticMD5Mesh_IBO %i", vboSurfaces->currentElements ), indexes, indexesNum );
+	vertexAttributeSpec_t attributes[] {
+		{ ATTR_INDEX_BONE_FACTORS, GL_UNSIGNED_SHORT, GL_UNSIGNED_SHORT, boneFactors, 4, sizeof(u16vec4_t), 0 },
+		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_SHORT, &surf->verts[ 0 ].position, 3, sizeof(md5Vertex_t), ATTR_OPTION_NORMALIZE },
+		{ ATTR_INDEX_QTANGENT, GL_SHORT, GL_SHORT, qtangents, 4, sizeof(i16vec4_t), ATTR_OPTION_NORMALIZE },
+		{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, &surf->verts[ 0 ].texCoords, 2, sizeof(md5Vertex_t), 0 },
+		{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, dummyColor, 4, 0, ATTR_OPTION_NORMALIZE },
+	};
+
+	vboSurf->vbo = R_CreateStaticVBO( "MD5 surface VBO " + surfName,
+	                                  std::begin( attributes ), std::end( attributes ), vertexesNum );
+
+	vboSurf->ibo = R_CreateStaticIBO( ( "MD5 surface IBO " + surfName ).c_str(), indexes, indexesNum );
+
+	SetupVAOBuffers( vboSurf->vbo, vboSurf->ibo,
+		ATTR_BONE_FACTORS | ATTR_POSITION | ATTR_QTANGENT | ATTR_TEXCOORD | ATTR_COLOR,
+		&vboSurf->vbo->VAO );
 
 	ri.Hunk_FreeTempMemory( indexes );
-	ri.Hunk_FreeTempMemory( data.st );
-	ri.Hunk_FreeTempMemory( data.boneWeights );
-	ri.Hunk_FreeTempMemory( data.boneIndexes );
-	ri.Hunk_FreeTempMemory( data.qtangent );
-	ri.Hunk_FreeTempMemory( data.xyz );
+	ri.Hunk_FreeTempMemory( boneFactors );
+	ri.Hunk_FreeTempMemory( qtangents );
+
+	return vboSurf;
 }

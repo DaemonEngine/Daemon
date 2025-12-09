@@ -1,23 +1,5 @@
-if (DAEMON_PARENT_SCOPE_DIR)
-    set(SHAREDLIST
-        ${MOUNT_DIR}/shared/CommandBufferClient.cpp
-        ${MOUNT_DIR}/shared/CommandBufferClient.h
-        ${MOUNT_DIR}/shared/CommonProxies.cpp
-        ${MOUNT_DIR}/shared/CommonProxies.h
-        ${MOUNT_DIR}/shared/VMMain.cpp
-        ${MOUNT_DIR}/shared/VMMain.h
-        PARENT_SCOPE
-    )
-
-    set(SHAREDLIST_cgame
-        ${MOUNT_DIR}/shared/client/cg_api.cpp ${MOUNT_DIR}/shared/client/cg_api.h
-        PARENT_SCOPE
-    )
-
-    set(SHAREDLIST_sgame
-        ${MOUNT_DIR}/shared/server/sg_api.cpp ${MOUNT_DIR}/shared/server/sg_api.h
-        PARENT_SCOPE
-    )
+if (USE_MUMBLE)
+    add_definitions("-DUSE_MUMBLE")
 endif()
 
 set(COMMONLIST
@@ -45,6 +27,7 @@ set(COMMONLIST
     ${COMMON_DIR}/IPC/Primitives.h
     ${COMMON_DIR}/KeyIdentification.cpp
     ${COMMON_DIR}/KeyIdentification.h
+    ${COMMON_DIR}/CPPStandard.h
     ${COMMON_DIR}/LineEditData.cpp
     ${COMMON_DIR}/LineEditData.h
     ${COMMON_DIR}/Log.cpp
@@ -53,10 +36,13 @@ set(COMMONLIST
     ${COMMON_DIR}/Optional.h
     ${COMMON_DIR}/Platform.h
     ${COMMON_DIR}/Serialize.h
+    ${COMMON_DIR}/StackTrace.h
     ${COMMON_DIR}/String.cpp
     ${COMMON_DIR}/String.h
     ${COMMON_DIR}/System.cpp
     ${COMMON_DIR}/System.h
+    ${COMMON_DIR}/Type.h
+    ${COMMON_DIR}/Util.cpp
     ${COMMON_DIR}/Util.h
     ${COMMON_DIR}/cm/cm_load.cpp
     ${COMMON_DIR}/cm/cm_local.h
@@ -81,119 +67,87 @@ if (DAEMON_PARENT_SCOPE_DIR)
     set(COMMONLIST ${COMMONLIST} PARENT_SCOPE)
 endif()
 
-set(RENDERERLIST
-    ${ENGINE_DIR}/renderer/gl_shader.cpp
-    ${ENGINE_DIR}/renderer/gl_shader.h
-    ${ENGINE_DIR}/renderer/iqm.h
-    ${ENGINE_DIR}/renderer/shaders.cpp
-    ${ENGINE_DIR}/renderer/tr_animation.cpp
-    ${ENGINE_DIR}/renderer/tr_backend.cpp
-    ${ENGINE_DIR}/renderer/tr_bsp.cpp
-    ${ENGINE_DIR}/renderer/tr_cmds.cpp
-    ${ENGINE_DIR}/renderer/tr_curve.cpp
-    ${ENGINE_DIR}/renderer/tr_decals.cpp
-    ${ENGINE_DIR}/renderer/tr_fbo.cpp
-    ${ENGINE_DIR}/renderer/tr_flares.cpp
-    ${ENGINE_DIR}/renderer/tr_font.cpp
-    ${ENGINE_DIR}/renderer/InternalImage.cpp
-    ${ENGINE_DIR}/renderer/InternalImage.h
-    ${ENGINE_DIR}/renderer/tr_image.cpp
-    ${ENGINE_DIR}/renderer/tr_image.h
-    ${ENGINE_DIR}/renderer/tr_image_crn.cpp
-    ${ENGINE_DIR}/renderer/tr_image_dds.cpp
-    ${ENGINE_DIR}/renderer/tr_image_jpg.cpp
-    ${ENGINE_DIR}/renderer/tr_image_ktx.cpp
-    ${ENGINE_DIR}/renderer/tr_image_png.cpp
-    ${ENGINE_DIR}/renderer/tr_image_tga.cpp
-    ${ENGINE_DIR}/renderer/tr_image_webp.cpp
-    ${ENGINE_DIR}/renderer/tr_init.cpp
-    ${ENGINE_DIR}/renderer/tr_light.cpp
-    ${ENGINE_DIR}/renderer/tr_local.h
-    ${ENGINE_DIR}/renderer/tr_main.cpp
-    ${ENGINE_DIR}/renderer/tr_marks.cpp
-    ${ENGINE_DIR}/renderer/tr_mesh.cpp
-    ${ENGINE_DIR}/renderer/tr_model.cpp
-    ${ENGINE_DIR}/renderer/tr_model_iqm.cpp
-    ${ENGINE_DIR}/renderer/tr_model_md3.cpp
-    ${ENGINE_DIR}/renderer/tr_model_md5.cpp
-    ${ENGINE_DIR}/renderer/tr_model_skel.cpp
-    ${ENGINE_DIR}/renderer/tr_model_skel.h
-    ${ENGINE_DIR}/renderer/tr_noise.cpp
-    ${ENGINE_DIR}/renderer/tr_public.h
-    ${ENGINE_DIR}/renderer/tr_scene.cpp
-    ${ENGINE_DIR}/renderer/tr_shade.cpp
-    ${ENGINE_DIR}/renderer/tr_shader.cpp
-    ${ENGINE_DIR}/renderer/tr_shade_calc.cpp
-    ${ENGINE_DIR}/renderer/tr_skin.cpp
-    ${ENGINE_DIR}/renderer/tr_sky.cpp
-    ${ENGINE_DIR}/renderer/tr_surface.cpp
-    ${ENGINE_DIR}/renderer/tr_types.h
-    ${ENGINE_DIR}/renderer/tr_vbo.cpp
-    ${ENGINE_DIR}/renderer/tr_world.cpp
-    ${ENGINE_DIR}/sys/sdl_glimp.cpp
-    ${ENGINE_DIR}/sys/sdl_icon.h
+# Tests for code shared by engine and gamelogic
+set(COMMONTESTLIST
+    ${LIB_DIR}/tinyformat/TinyformatTest.cpp
+    ${COMMON_DIR}/ColorTest.cpp
+    ${COMMON_DIR}/CvarTest.cpp
+    ${COMMON_DIR}/FileSystemTest.cpp
+    ${COMMON_DIR}/StringTest.cpp
+    ${COMMON_DIR}/cm/unittest.cpp
+    ${COMMON_DIR}/MathTest.cpp
+    ${COMMON_DIR}/UtilTest.cpp
+    ${ENGINE_DIR}/qcommon/q_math_test.cpp
 )
 
-set(GLSLSOURCELIST
-    ${ENGINE_DIR}/renderer/glsl_source/skybox_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/ssao_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/ssao_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/vertexAnimation_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/vertexSimple_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/vertexSkinning_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/vertexSprite_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/blurX_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/blurX_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/blurY_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/blurY_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/cameraEffects_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/cameraEffects_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/computeLight_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/contrast_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/contrast_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/debugShadowMap_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/debugShadowMap_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/deformVertexes_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/depthtile1_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/depthtile1_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/depthtile2_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/depthtile2_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/dispersion_C_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/dispersion_C_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fogGlobal_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fogGlobal_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fogQuake3_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/forwardLighting_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/forwardLighting_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fxaa_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fxaa_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/fxaa3_11_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/generic2D_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/generic_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/generic_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/heatHaze_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/heatHaze_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/lightMapping_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/lightMapping_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/lighttile_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/lighttile_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/liquid_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/liquid_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/motionblur_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/motionblur_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/portal_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/portal_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/reflection_CB_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/reflection_CB_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/refraction_C_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/refraction_C_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/reliefMapping_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/screen_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/screen_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/shadowFill_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/shadowFill_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/skybox_fp.glsl
+if (USE_VULKAN)
+    include (${ENGINE_DIR}/renderer-vulkan/src.cmake)
+else()
+    include (${ENGINE_DIR}/renderer/src.cmake)
+endif()
+
+set(GLSL_EMBED_DIR "${ENGINE_DIR}/renderer/glsl_source")
+set(GLSL_EMBED_LIST
+    # Common shader libraries
+    common.glsl
+    common_cp.glsl
+    fogEquation_fp.glsl
+    shaderProfiler_vp.glsl
+    shaderProfiler_fp.glsl
+    # Material system shaders
+    material_cp.glsl
+    material_vp.glsl
+    material_fp.glsl
+    clearSurfaces_cp.glsl
+    cull_cp.glsl
+    depthReduction_cp.glsl
+    processSurfaces_cp.glsl
+    
+    # Screen-space shaders
+    screenSpace_vp.glsl
+    blur_fp.glsl
+    cameraEffects_fp.glsl
+    contrast_fp.glsl
+    fogGlobal_fp.glsl
+    fxaa_fp.glsl
+    fxaa3_11_fp.glsl
+    motionblur_fp.glsl
+    ssao_fp.glsl
+    
+    # Lighting shaders
+    depthtile1_vp.glsl
+    depthtile1_fp.glsl
+    depthtile2_fp.glsl
+    lighttile_vp.glsl
+    lighttile_fp.glsl
+    computeLight_fp.glsl
+    reliefMapping_fp.glsl
+
+    # Common vertex shader libraries
+    deformVertexes_vp.glsl
+    vertexAnimation_vp.glsl
+    vertexSimple_vp.glsl
+    vertexSkinning_vp.glsl
+
+    # Regular shaders
+    fogQuake3_vp.glsl
+    fogQuake3_fp.glsl
+    generic_vp.glsl
+    generic_fp.glsl
+    heatHaze_vp.glsl
+    heatHaze_fp.glsl
+    lightMapping_vp.glsl
+    lightMapping_fp.glsl
+    liquid_vp.glsl
+    liquid_fp.glsl
+    portal_vp.glsl
+    portal_fp.glsl
+    reflection_CB_vp.glsl
+    reflection_CB_fp.glsl
+    screen_vp.glsl
+    screen_fp.glsl
+    skybox_vp.glsl
+    skybox_fp.glsl
 )
 
 set(SERVERLIST
@@ -250,6 +204,7 @@ set(ENGINELIST
     ${ENGINE_DIR}/sys/con_common.h
     ${ENGINE_DIR}/sys/con_common.cpp
     ${ENGINE_DIR}/sys/sys_events.h
+    ${ENGINE_DIR}/RefAPI.h
 )
 
 if (WIN32)
@@ -262,9 +217,8 @@ else()
     )
 endif()
 
-# Tests for engine-lib
-set(ENGINETESTLIST
-    ${COMMON_DIR}/StringTest.cpp
+# Tests runnable for any engine variant
+set(ENGINETESTLIST ${COMMONTESTLIST}
     ${ENGINE_DIR}/framework/CommandSystemTest.cpp
 )
 
@@ -307,6 +261,8 @@ set(CLIENTBASELIST
     ${ENGINE_DIR}/client/cl_main.cpp
     ${ENGINE_DIR}/client/cl_parse.cpp
     ${ENGINE_DIR}/client/cl_scrn.cpp
+    ${ENGINE_DIR}/client/cl_serverlist.cpp
+    ${ENGINE_DIR}/client/cl_serverstatus.cpp
     ${ENGINE_DIR}/client/dl_main.cpp
     ${ENGINE_DIR}/client/hunk_allocator.cpp
     ${ENGINE_DIR}/client/key_identification.h
@@ -340,6 +296,13 @@ set(CLIENTLIST
     ${RENDERERLIST}
 )
 
+if (APPLE)
+    set(CLIENTLIST ${CLIENTLIST} ${ENGINE_DIR}/sys/DisableAccentMenu.m)
+endif()
+
+set(CLIENTTESTLIST ${ENGINETESTLIST}
+)
+
 set(TTYCLIENTLIST
     ${ENGINE_DIR}/null/NullAudio.cpp
     ${ENGINE_DIR}/null/NullKeyboard.cpp
@@ -353,4 +316,4 @@ set(DEDSERVERLIST
     ${ENGINE_DIR}/null/null_input.cpp
 )
 
-set(WIN_RC ${ENGINE_DIR}/sys/daemon.rc)
+set(WIN_RC ${ENGINE_DIR}/sys/windows-resource/icon.rc)

@@ -37,8 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 uniform sampler2D u_DepthMap;
 IN(flat) vec3 unprojectionParams;
 
-uniform vec3 u_zFar;
-
 const vec2 pixelScale = 1 / r_FBufSize;
 
 DECLARE_OUTPUT(vec4)
@@ -117,20 +115,9 @@ void	main()
 
     float maxDepth = max16( depth[0], depth[1], depth[2], depth[3] );
 
-    float avgDepth = dot( depth[0] + depth[1] + depth[2] + depth[3],
-			  vec4( samples ) );
-
-    depth[0] -= avgDepth * mask[0];
-    depth[1] -= avgDepth * mask[1];
-    depth[2] -= avgDepth * mask[2];
-    depth[3] -= avgDepth * mask[3];
-
-    float variance = dot( depth[0], depth[0] ) + dot( depth[1], depth[1] ) +
-      dot( depth[2], depth[2] ) + dot( depth[3], depth[3] );
-    variance *= samples;
-    outputColor = vec4( maxDepth, minDepth, avgDepth, sqrt( variance ) );
+    outputColor = vec4( maxDepth, minDepth, 0.0, 0.0 );
   } else {
     // found just sky pixels
-    outputColor = vec4( 99999.0, 99999.0, 99999.0, 0.0 );
+    outputColor = vec4( 99999.0, 99999.0, 0.0, 0.0 );
   }
 }

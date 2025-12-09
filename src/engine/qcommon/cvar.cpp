@@ -40,8 +40,6 @@ Maryland 20850 USA.
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
 
-cvar_t        *cvar_vars;
-
 /*
 ============
 Cvar_FindVar

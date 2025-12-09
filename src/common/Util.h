@@ -44,6 +44,17 @@ char     *PRINTF_LIKE(1) va( const char *format, ... );
 
 namespace Util {
 
+// C++20 std::bit_cast
+template<typename ToT, typename FromT>
+ToT bit_cast(FromT from)
+{
+	static_assert(sizeof(ToT) == sizeof(FromT), "bit_cast: sizes must be equal");
+
+	ToT to;
+	memcpy(&to, &from, sizeof(to));
+	return to;
+}
+
 // Binary search function which returns an iterator to the result or end if not found
 template<typename Iter, typename T>
 Iter binary_find(Iter begin, Iter end, const T& value)
@@ -162,7 +173,7 @@ public:
 	}
 
 private:
-	typename std::aligned_storage<sizeof(T), std::alignment_of<T>::value>::type data;
+	alignas( T ) uint8_t data[sizeof( T )];
 };
 
 // std::make_unique is not available until C++14.
@@ -171,6 +182,14 @@ std::unique_ptr<T> make_unique(U&&... args)
 {
 	return std::unique_ptr<T>(new T(std::forward<U>(args)...));
 }
+
+// Maintains an FPS counter using an exponential moving average algorithm.
+// More recently completed frames are given more weight in the counter. 50% of the weight is given
+// to the framerate during the last `halfLife` seconds. halfLife should be the same for every call
+// for a given counter.
+// frameMs is the duration in milliseconds of the latest completed frame. It is assumed that the
+// latest frame began at the same time the previous one ended.
+void UpdateFPSCounter(float halfLife, int frameMs, float& fps);
 
 } // namespace Util
 

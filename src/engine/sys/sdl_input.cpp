@@ -34,34 +34,31 @@ Maryland 20850 USA.
 
 #include "common/Common.h"
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include "client/client.h"
 #include "client/key_identification.h"
 #include "qcommon/q_unicode.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/sys.h"
 #include "framework/CommandSystem.h"
+#include "framework/CvarSystem.h"
 #include "sys/sys_events.h"
 
-static cvar_t       *in_keyboardDebug = nullptr;
+static Log::Logger mouseLog("client.mouse", "");
+static Log::Logger controllerLog = Log::Logger("client.controller", "", Log::Level::NOTICE);
+
+static Cvar::Cvar<bool> in_keyboardDebug("in_keyboardDebug", "log debug info about key presses", Cvar::NONE, false);
 
 static SDL_Joystick *stick = nullptr;
-static SDL_GameController *gamepad = nullptr;
+static SDL_Gamepad *gamepad = nullptr;
 
-static bool     mouseAvailable = false;
+static Cvar::Cvar<bool> in_nograb("in_nograb", "disable mouse grabbing and cursor hiding", Cvar::NONE, false);
 
-static cvar_t       *in_mouse = nullptr;
-
-static cvar_t       *in_nograb;
-
-static cvar_t       *in_joystick = nullptr;
-static cvar_t       *in_joystickDebug = nullptr;
-static cvar_t       *in_joystickThreshold = nullptr;
-static cvar_t       *in_joystickNo = nullptr;
-static cvar_t       *in_joystickUseAnalog = nullptr;
-static cvar_t       *in_gameControllerTriggerDeadzone = nullptr;
-
-static cvar_t *in_gameControllerDebug = nullptr;
+static Cvar::Cvar<bool> in_joystick("in_joystick", "enable game controller", Cvar::NONE, false);
+static Cvar::Cvar<float> in_joystickThreshold("in_joystickThreshold", "ignore analog stick deflections less than this", Cvar::NONE, 0.15);
+static Cvar::Cvar<int> in_joystickNo("in_joystickNo", "which game controller to use", Cvar::NONE, 0);
+static Cvar::Cvar<bool> j_useAnalog("j_useAnalog", "something about joystick control style", Cvar::NONE, false);
+static Cvar::Cvar<float> in_gameControllerTriggerDeadzone("in_gameControllerTriggerDeadzone", "how far trigger must be pulled for key down event", Cvar::NONE, 0.5);
 
 static SDL_Window *window = nullptr;
 
@@ -71,38 +68,39 @@ static SDL_Window *window = nullptr;
 IN_PrintKey
 ===============
 */
-static void IN_PrintKey( const SDL_Keysym *keysym, Keyboard::Key keycodeKey, bool down )
+static void IN_PrintKey( const SDL_Keymod mod, const SDL_Scancode scancode, const SDL_Keycode eventKey,
+	Keyboard::Key keycodeKey, bool down )
 {
 	std::string kmods;
 
-	if ( keysym->mod & KMOD_LSHIFT ) { kmods += "KMOD_LSHIFT "; }
+	if ( mod & SDL_KMOD_LSHIFT ) { kmods += "KMOD_LSHIFT "; }
 
-	if ( keysym->mod & KMOD_RSHIFT ) { kmods += "KMOD_RSHIFT "; }
+	if ( mod & SDL_KMOD_RSHIFT ) { kmods += "KMOD_RSHIFT "; }
 
-	if ( keysym->mod & KMOD_LCTRL ) { kmods += "KMOD_LCTRL "; }
+	if ( mod & SDL_KMOD_LCTRL ) { kmods += "KMOD_LCTRL "; }
 
-	if ( keysym->mod & KMOD_RCTRL ) { kmods += "KMOD_RCTRL "; }
+	if ( mod & SDL_KMOD_RCTRL ) { kmods += "KMOD_RCTRL "; }
 
-	if ( keysym->mod & KMOD_LALT ) { kmods += "KMOD_LALT "; }
+	if ( mod & SDL_KMOD_LALT ) { kmods += "KMOD_LALT "; }
 
-	if ( keysym->mod & KMOD_RALT ) { kmods += "KMOD_RALT "; }
+	if ( mod & SDL_KMOD_RALT ) { kmods += "KMOD_RALT "; }
 
-	if ( keysym->mod & KMOD_LGUI ) { kmods += "KMOD_LGUI "; }
+	if ( mod & SDL_KMOD_LGUI ) { kmods += "KMOD_LGUI "; }
 
-	if ( keysym->mod & KMOD_RGUI ) { kmods += "KMOD_RGUI "; }
+	if ( mod & SDL_KMOD_RGUI ) { kmods += "KMOD_RGUI "; }
 
-	if ( keysym->mod & KMOD_NUM ) { kmods += "KMOD_NUM" ; }
+	if ( mod & SDL_KMOD_NUM ) { kmods += "KMOD_NUM" ; }
 
-	if ( keysym->mod & KMOD_CAPS ) { kmods += "KMOD_CAPS "; }
+	if ( mod & SDL_KMOD_CAPS ) { kmods += "KMOD_CAPS "; }
 
-	if ( keysym->mod & KMOD_MODE ) { kmods += "KMOD_MODE "; }
+	if ( mod & SDL_KMOD_MODE ) { kmods += "KMOD_MODE "; }
 
-	if ( keysym->mod & KMOD_RESERVED ) { kmods += "KMOD_RESERVED "; }
+	// if ( mod & SDL_KMOD_RESERVED ) { kmods += "KMOD_RESERVED "; }
 
 	Log::defaultLogger.WithoutSuppression().Notice(
 	    "%s%c scancode = 0x%03x | SDL name = \"%s\" | keycode bind = %s | scancode bind = %s",
-	    kmods, down ? '+' : '-', keysym->scancode, SDL_GetKeyName( keysym->sym ),
-	    KeyToString( keycodeKey ),  KeyToString( Keyboard::Key::FromScancode( keysym->scancode )));
+	    kmods, down ? '+' : '-', scancode, SDL_GetKeyName( eventKey ),
+	    KeyToString( keycodeKey ),  KeyToString( Keyboard::Key::FromScancode( scancode )));
 }
 
 /*
@@ -124,22 +122,22 @@ static bool IN_IsConsoleKey( Keyboard::Key key )
 }
 
 // Translates based on keycode, not scancode.
-static Keyboard::Key IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, bool down )
+static Keyboard::Key IN_TranslateSDLToQ3Key( SDL_KeyboardEvent *event, bool down )
 {
 	using Keyboard::Key;
 	Key key;
 
-	if ( keysym->sym == SDLK_DELETE ) // SDLK_DELETE is anomalously located in the Unicode range.
+	if ( event->key == SDLK_DELETE ) // SDLK_DELETE is anomalously located in the Unicode range.
 	{
 		key = Key(K_DEL);
 	}
-	else if ( keysym->sym >= SDLK_SPACE && keysym->sym < UNICODE_MAX_CODE_POINT )
+	else if ( event->key >= SDLK_SPACE && event->key < UNICODE_MAX_CODE_POINT )
 	{
-		key = Key::FromCharacter(keysym->sym);
+		key = Key::FromCharacter( event->key );
 	}
 	else
 	{
-		switch ( keysym->sym )
+		switch ( event->key )
 		{
 			case SDLK_PAGEUP:
 				key = Key(K_PGUP);
@@ -394,9 +392,9 @@ static Keyboard::Key IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, bool down )
 		}
 	}
 
-	if ( in_keyboardDebug->integer )
+	if ( in_keyboardDebug.Get() )
 	{
-		IN_PrintKey( keysym, key, down );
+		IN_PrintKey( event->mod, event->scancode, event->key, key, down );
 	}
 
 	return key;
@@ -405,13 +403,30 @@ static Keyboard::Key IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, bool down )
 
 // Whether the cursor is enabled
 static MouseMode mouse_mode = MouseMode::SystemCursor;
+static bool mouse_mode_unset = true;
 
-/*
- * Returns whether the cursor is enabled
- */
-MouseMode IN_GetMouseMode()
+static bool MouseModeAllowed( MouseMode mode )
 {
-    return mouse_mode;
+	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
+	{
+		return false;
+	}
+
+	switch ( mode )
+	{
+		case MouseMode::Deltas:
+		case MouseMode::CustomCursor:
+		{
+			int appState = SDL_GetWindowFlags( window );
+			bool unfocused = !( appState & SDL_WINDOW_INPUT_FOCUS );
+			bool minimized = ( appState & SDL_WINDOW_MINIMIZED );
+			return !unfocused && !minimized;
+		}
+		case MouseMode::SystemCursor:
+			return true;
+	}
+	mouseLog.Warn( "Invalid mouse mode requested" );
+	return false;
 }
 
 /*
@@ -419,24 +434,57 @@ MouseMode IN_GetMouseMode()
  */
 void IN_SetMouseMode(MouseMode newMode)
 {
-	if ( newMode != mouse_mode )
+	if ( in_nograb.Get() && newMode == MouseMode::Deltas )
 	{
-		if ( !mouseAvailable || !SDL_WasInit( SDL_INIT_VIDEO ) )
+		newMode = MouseMode::SystemCursor;
+	}
+
+	if ( newMode == mouse_mode && !mouse_mode_unset )
+	{
+		mouseLog.Debug( "Mouse mode: already in mode %d", Util::ordinal( mouse_mode ) );
+	}
+	else if ( !MouseModeAllowed( newMode ) )
+	{
+		mouseLog.Debug( "Mouse mode: mode %d not allowed now", Util::ordinal( newMode ) );
+	}
+	else
+	{
+		mouseLog.Verbose( "Mouse mode: changing to %d", Util::ordinal( newMode ) );
+		mouse_mode_unset = false;
+
+		switch ( newMode )
 		{
-			return;
+			case MouseMode::SystemCursor:
+				SDL_ShowCursor();
+				SDL_SetWindowMouseGrab( window, false );
+				SDL_SetWindowRelativeMouseMode( window, false );
+				break;
+
+			case MouseMode::CustomCursor:
+				SDL_HideCursor();
+				SDL_SetWindowMouseGrab( window, false );
+				SDL_SetWindowRelativeMouseMode( window, false );
+				break;
+
+			case MouseMode::Deltas:
+				SDL_HideCursor();
+				SDL_SetWindowMouseGrab( window, true );
+				SDL_SetWindowRelativeMouseMode( window, true );
+				break;
 		}
 
-		SDL_ShowCursor( newMode == MouseMode::SystemCursor ? SDL_ENABLE : SDL_DISABLE );
-		auto grab = newMode != MouseMode::Deltas || in_nograb->integer ? SDL_FALSE : SDL_TRUE;
-		SDL_SetRelativeMouseMode( grab );
-		SDL_SetWindowGrab( window, grab );
-
+		/* Only center mouse when leaving the Delta mode. */
 		if ( mouse_mode == MouseMode::Deltas )
 		{
 			IN_CenterMouse();
 		}
+
 		mouse_mode = newMode;
 	}
+#ifdef __APPLE__
+	// This prevents the system cursor from disappearing in the loading screen
+	SDL_PumpEvents();
+#endif
 }
 
 static bool in_focus = false;
@@ -505,9 +553,9 @@ struct
 	unsigned int oldhats;
 } stick_state;
 
-static const char* JoystickNameForIndex(int index)
+static const char* JoystickNameForID( SDL_JoystickID id )
 {
-    const char* name = SDL_JoystickNameForIndex(index);
+    const char* name = SDL_GetJoystickNameForID( id );
     return name ? name : "<no name found>";
 }
 
@@ -518,87 +566,87 @@ IN_InitJoystick
 */
 static void IN_InitJoystick()
 {
-	int i = 0;
-	int total = 0;
+	Cvar::Latch( in_joystick );
+	Cvar::Latch( in_joystickNo );
 
 	if ( stick != nullptr )
 	{
-		SDL_JoystickClose( stick );
+		SDL_CloseJoystick( stick );
 	}
 
 	stick = nullptr;
-	memset( &stick_state, '\0', sizeof( stick_state ) );
+	stick_state = {};
 
-	if ( !in_joystick->integer )
+	if ( !in_joystick.Get() )
 	{
-		Log::Debug( "Joystick is not active." );
-
-		if ( !gamepad )
-		{
-			Log::Debug( "Gamepad is not active." );
-		}
-
+		controllerLog.Verbose( "Game controllers disabled" );
 		return;
 	}
 
 	if ( !SDL_WasInit( SDL_INIT_JOYSTICK ) )
 	{
-		Log::Debug( "Calling SDL_Init(SDL_INIT_JOYSTICK)..." );
+		controllerLog.Verbose( "Calling SDL_Init(SDL_INIT_JOYSTICK)..." );
 
-		if ( SDL_Init( SDL_INIT_JOYSTICK ) < 0 )
+		if ( !SDL_Init( SDL_INIT_JOYSTICK ) )
 		{
-			Log::Warn( "SDL_Init(SDL_INIT_JOYSTICK) failed: %s", SDL_GetError() );
+			controllerLog.Warn( "SDL_Init(SDL_INIT_JOYSTICK) failed: %s", SDL_GetError() );
 			return;
 		}
-
-		Log::Debug( "SDL_Init(SDL_INIT_JOYSTICK) passed." );
 	}
 
-	total = SDL_NumJoysticks();
-	Log::Debug( "%d possible joysticks", total );
+	int total = 0;
+	SDL_JoystickID* ids = SDL_GetJoysticks( &total );
+	controllerLog.Notice( "%d possible joystick(s):", total );
 
-	for ( i = 0; i < total; i++ )
+	for ( int i = 0; i < total; i++ )
 	{
-		Log::Debug( "[%d] %s", i, JoystickNameForIndex( i ) );
+		controllerLog.Notice( "[%d] %s", i, JoystickNameForID( ids[i] ) );
 	}
 
-	in_joystickNo = Cvar_Get( "in_joystickNo", "0", 0 );
-
-	if ( in_joystickNo->integer < 0 || in_joystickNo->integer >= total )
+	if ( total <= 0 )
 	{
-		Cvar_Set( "in_joystickNo", "0" );
-	}
-
-	in_joystickUseAnalog = Cvar_Get( "in_joystickUseAnalog", "0", 0 );
-
-	stick = SDL_JoystickOpen( in_joystickNo->integer );
-
-	if ( stick == nullptr )
-	{
-		Log::Debug( "No joystick opened: %s.", SDL_GetError() );
+		SDL_free( ids );
 		return;
 	}
 
-	if ( SDL_IsGameController( in_joystickNo->integer ) )
+	int stickIndex = in_joystickNo.Get();
+	if ( stickIndex < 0 || stickIndex >= total )
 	{
-		gamepad = SDL_GameControllerOpen( in_joystickNo->integer );
+		stickIndex = 0;
+	}
+
+	SDL_JoystickID id = ids[ stickIndex ];
+	SDL_free( ids );
+
+	stick = SDL_OpenJoystick( id );
+
+	if ( stick == nullptr )
+	{
+		controllerLog.Warn( "No joystick opened: %s", SDL_GetError() );
+		return;
+	}
+
+	if ( SDL_IsGamepad( id ) )
+	{
+		gamepad = SDL_OpenGamepad( id );
 		if ( gamepad )
 		{
-			Cvar_Set( "in_gameControllerAvailable", "1" );
-			SDL_GameControllerEventState( SDL_QUERY );
+			SDL_GamepadEventsEnabled();
 		}
 	}
 
-	Log::Debug( "Joystick %d opened", in_joystickNo->integer );
-	Log::Debug( "Name:    %s", JoystickNameForIndex( in_joystickNo->integer ) );
-	Log::Debug( "Axes:    %d", SDL_JoystickNumAxes( stick ) );
-	Log::Debug( "Hats:    %d", SDL_JoystickNumHats( stick ) );
-	Log::Debug( "Buttons: %d", SDL_JoystickNumButtons( stick ) );
-	Log::Debug( "Balls: %d", SDL_JoystickNumBalls( stick ) );
-	Log::Debug( "Use Analog: %s", in_joystickUseAnalog->integer ? "Yes" : "No" );
-	Log::Debug( "Use SDL2 GameController mappings: %s", gamepad ? "Yes" : "No" );
+	Cvar::SetValueForce( "in_gameControllerAvailable", gamepad ? "1" : "0" );
 
-	SDL_JoystickEventState( SDL_QUERY );
+	controllerLog.Notice( "Joystick %d opened", stickIndex );
+	controllerLog.Verbose( "Name:    %s", JoystickNameForID( id ) );
+	controllerLog.Verbose( "Axes:    %d", SDL_GetNumJoystickAxes( stick ) );
+	controllerLog.Verbose( "Hats:    %d", SDL_GetNumJoystickHats( stick ) );
+	controllerLog.Verbose( "Buttons: %d", SDL_GetNumJoystickButtons( stick ) );
+	controllerLog.Verbose( "Balls: %d", SDL_GetNumJoystickBalls( stick ) );
+	controllerLog.Verbose( "Use Analog: %s", j_useAnalog.Get() ? "Yes" : "No" );
+	controllerLog.Verbose( "Use SDL GameController mappings: %s", gamepad ? "Yes" : "No" );
+
+	SDL_GamepadEventsEnabled();
 }
 
 /*
@@ -606,16 +654,16 @@ static void IN_InitJoystick()
 IN_ShutdownJoystick
 ===============
 */
-static void IN_ShutdownJoystick()
+void IN_ShutdownJoystick()
 {
 	if ( gamepad )
 	{
-		SDL_GameControllerClose( gamepad );
+		SDL_CloseGamepad( gamepad );
 		gamepad = nullptr;
 	}
 	if ( stick )
 	{
-		SDL_JoystickClose( stick );
+		SDL_CloseJoystick( stick );
 		stick = nullptr;
 	}
 
@@ -630,7 +678,16 @@ static void QueueKeyEvent(Keyboard::Key key, bool down)
 	if (!key.IsValid()) {
 		return;
 	}
-	Com_QueueEvent( Util::make_unique<Sys::KeyEvent>(key, down, Sys::Milliseconds()) );
+	Com_QueueEvent(Util::make_unique<Sys::KeyEvent>(
+		key, Keyboard::Key::NONE, down, false, Sys::Milliseconds()));
+}
+static void QueueKeyEvent(Keyboard::Key key1, Keyboard::Key key2, bool down, bool repeat)
+{
+	if (!key1.IsValid() && !key2.IsValid()) {
+		return;
+	}
+	Com_QueueEvent(Util::make_unique<Sys::KeyEvent>(
+		key1, key2, down, repeat, Sys::Milliseconds()));
 }
 static void QueueKeyEvent(keyNum_t key, bool down) {
 	QueueKeyEvent(Keyboard::Key(key), down);
@@ -653,10 +710,10 @@ static void IN_JoyMove()
 		return;
 	}
 
-	SDL_JoystickUpdate();
+	SDL_UpdateJoysticks();
 
 	// update the ball state.
-	total = SDL_JoystickNumBalls( stick );
+	total = SDL_GetNumJoystickBalls( stick );
 
 	if ( total > 0 )
 	{
@@ -667,7 +724,7 @@ static void IN_JoyMove()
 		{
 			int dx = 0;
 			int dy = 0;
-			SDL_JoystickGetBall( stick, i, &dx, &dy );
+			SDL_GetJoystickBall( stick, i, &dx, &dy );
 			balldx += dx;
 			balldy += dy;
 		}
@@ -694,7 +751,7 @@ static void IN_JoyMove()
 	}
 
 	// now query the stick buttons...
-	total = SDL_JoystickNumButtons( stick );
+	total = SDL_GetNumJoystickButtons( stick );
 
 	if ( total > 0 )
 	{
@@ -705,7 +762,7 @@ static void IN_JoyMove()
 
 		for ( i = 0; i < total; i++ )
 		{
-			bool pressed = ( SDL_JoystickGetButton( stick, i ) != 0 );
+			bool pressed = ( SDL_GetJoystickButton( stick, i ) != 0 );
 
 			if ( pressed != stick_state.buttons[ i ] )
 			{
@@ -717,7 +774,7 @@ static void IN_JoyMove()
 	}
 
 	// look at the hats...
-	total = SDL_JoystickNumHats( stick );
+	total = SDL_GetNumJoystickHats( stick );
 
 	if ( total > 0 )
 	{
@@ -725,7 +782,7 @@ static void IN_JoyMove()
 
 		for ( i = 0; i < total; i++ )
 		{
-			( ( Uint8 * ) &hats ) [ i ] = SDL_JoystickGetHat( stick, i );
+			( ( Uint8 * ) &hats ) [ i ] = SDL_GetJoystickHat( stick, i );
 		}
 	}
 
@@ -829,7 +886,7 @@ static void IN_JoyMove()
 	stick_state.oldhats = hats;
 
 	// finally, look at the axes...
-	total = SDL_JoystickNumAxes( stick );
+	total = SDL_GetNumJoystickAxes( stick );
 
 	if ( total > 0 )
 	{
@@ -837,17 +894,17 @@ static void IN_JoyMove()
 
 		for ( i = 0; i < total; i++ )
 		{
-			Sint16 axis = SDL_JoystickGetAxis( stick, i );
+			Sint16 axis = SDL_GetJoystickAxis( stick, i );
 
-			if ( !in_joystickUseAnalog->integer )
+			if ( !j_useAnalog.Get() )
 			{
 				float f = ( ( float ) axis ) / 32767.0f;
 
-				if ( f < -in_joystickThreshold->value )
+				if ( f < -in_joystickThreshold.Get() )
 				{
 					axes |= ( 1 << ( i * 2 ) );
 				}
-				else if ( f > in_joystickThreshold->value )
+				else if ( f > in_joystickThreshold.Get() )
 				{
 					axes |= ( 1 << ( ( i * 2 ) + 1 ) );
 				}
@@ -856,7 +913,7 @@ static void IN_JoyMove()
 			{
 				float f = ( ( float ) abs( axis ) ) / 32767.0f;
 
-				if ( f < in_joystickThreshold->value ) { axis = 0; }
+				if ( f < in_joystickThreshold.Get() ) { axis = 0; }
 
 				if ( axis != stick_state.oldaaxes[ i ] )
 				{
@@ -889,35 +946,31 @@ static void IN_JoyMove()
 	stick_state.oldaxes = axes;
 }
 
-static void IN_GameControllerAxis( SDL_GameControllerAxis controllerAxis, joystickAxis_t gameAxis, float scale )
+static void IN_GameControllerAxis( SDL_GamepadAxis controllerAxis, joystickAxis_t gameAxis, float scale )
 {
-	Sint16 axis = SDL_GameControllerGetAxis( gamepad, controllerAxis );
+	Sint16 axis = SDL_GetGamepadAxis( gamepad, controllerAxis );
 	float  f = ( ( float ) axis ) / 32767.0f;
 
-	if ( f > -in_joystickThreshold->value && f < in_joystickThreshold->value )
+	if ( f > -in_joystickThreshold.Get() && f < in_joystickThreshold.Get() )
 	{
 		Com_QueueEvent( Util::make_unique<Sys::JoystickEvent>(Util::ordinal(gameAxis), 0) );
 	}
 	else
 	{
-		if ( in_gameControllerDebug->integer )
-		{
-			Log::Notice( "GameController axis %i = %f\n", controllerAxis, f );
-		}
-
+		controllerLog.Debug( "GameController axis %i = %f", controllerAxis, f );
 		Com_QueueEvent( Util::make_unique<Sys::JoystickEvent>(Util::ordinal(gameAxis), static_cast<int>(f * scale)) );
 	}
 }
 
-static int IN_GameControllerAxisToButton( SDL_GameControllerAxis controllerAxis, keyNum_t key )
+static int IN_GameControllerAxisToButton( SDL_GamepadAxis controllerAxis, keyNum_t key )
 {
 	using Keyboard::Key;
 	unsigned int axes = 0;
 
-	Sint16       axis = SDL_GameControllerGetAxis( gamepad, controllerAxis );
+	Sint16       axis = SDL_GetGamepadAxis( gamepad, controllerAxis );
 	float        f = ( ( float ) axis ) / 32767.0f;
 
-	if ( f > in_gameControllerTriggerDeadzone->value )
+	if ( f > in_gameControllerTriggerDeadzone.Get() )
 	{
 		axes |= ( 1 << ( controllerAxis ) );
 	}
@@ -925,23 +978,21 @@ static int IN_GameControllerAxisToButton( SDL_GameControllerAxis controllerAxis,
 	if ( ( axes & ( 1 << controllerAxis ) ) && !( stick_state.oldaxes & ( 1 << controllerAxis ) ) )
 	{
 		QueueKeyEvent( key, true );
-		if ( in_gameControllerDebug->integer )
-		{
-			Log::Notice( "GameController axis = %s to key = Q:0x%02x(%s), value = %f\n",
-						 SDL_GameControllerGetStringForAxis( controllerAxis ), key,
-						 Keyboard::KeyToString( Key(key) ), f );
-		}
+		controllerLog.DoDebugCode( [&] {
+			controllerLog.Debug( "GameController axis = %s to key = Q:0x%02x(%s), value = %f",
+			                     SDL_GetGamepadStringForAxis( controllerAxis ), key,
+			                     Keyboard::KeyToString( Key(key) ), f );
+		});
 	}
 
 	if ( !( axes & ( 1 << controllerAxis ) ) && ( stick_state.oldaxes & ( 1 << controllerAxis ) ) )
 	{
 		QueueKeyEvent( key, false );
-		if ( in_gameControllerDebug->integer )
-		{
-			Log::Notice( "GameController axis = %s to key = Q:0x%02x(%s), value = %f\n",
-						 SDL_GameControllerGetStringForAxis( controllerAxis ), key,
-						 Keyboard::KeyToString( Key(key) ), f );
-		}
+		controllerLog.DoDebugCode( [&] {
+			controllerLog.Debug( "GameController axis = %s to key = Q:0x%02x(%s), value = %f",
+			                     SDL_GetGamepadStringForAxis( controllerAxis ), key,
+			                     Keyboard::KeyToString( Key(key) ), f );
+		});
 	}
 
 	return axes;
@@ -963,37 +1014,36 @@ static void IN_GameControllerMove()
 		return;
 	}
 
-	SDL_GameControllerUpdate();
+	SDL_UpdateGamepads();
 
 	for ( i = 0; i < (K_CONTROLLER_MAX - K_CONTROLLER_A); i++ )
 	{
-		bool pressed = SDL_GameControllerGetButton( gamepad, Util::enum_cast<SDL_GameControllerButton>(i) );
+		bool pressed = SDL_GetGamepadButton( gamepad, Util::enum_cast<SDL_GamepadButton>(i) );
 
 		if ( pressed != stick_state.buttons[ i ] )
 		{
 			QueueKeyEvent( Util::enum_cast<keyNum_t>(K_CONTROLLER_A + i), pressed );
 
-			if ( in_gameControllerDebug->integer )
-			{
-				Log::Notice( "GameController button %s = %s\n",
-							 SDL_GameControllerGetStringForButton( Util::enum_cast<SDL_GameControllerButton>(i) ),
-							 pressed ? "Pressed" : "Released" );
-			}
+			controllerLog.DoDebugCode([&] {
+				controllerLog.Debug( "GameController button %s = %s",
+				                     SDL_GetGamepadStringForButton( Util::enum_cast< SDL_GamepadButton >(i) ),
+				                     pressed ? "Pressed" : "Released" );
+			});
 
 			stick_state.buttons[ i ] = pressed;
 		}
 	}
 
 	// use left stick for strafing
-	IN_GameControllerAxis( SDL_CONTROLLER_AXIS_LEFTX, joystickAxis_t::AXIS_SIDE, 127 );
-	IN_GameControllerAxis( SDL_CONTROLLER_AXIS_LEFTY, joystickAxis_t::AXIS_FORWARD, -127 );
+	IN_GameControllerAxis( SDL_GAMEPAD_AXIS_LEFTX, joystickAxis_t::AXIS_SIDE, 127 );
+	IN_GameControllerAxis( SDL_GAMEPAD_AXIS_LEFTY, joystickAxis_t::AXIS_FORWARD, -127 );
 
 	// use right stick for viewing
-	IN_GameControllerAxis( SDL_CONTROLLER_AXIS_RIGHTX, joystickAxis_t::AXIS_YAW, -127 );
-	IN_GameControllerAxis( SDL_CONTROLLER_AXIS_RIGHTY, joystickAxis_t::AXIS_PITCH, 127 );
+	IN_GameControllerAxis( SDL_GAMEPAD_AXIS_RIGHTX, joystickAxis_t::AXIS_YAW, -127 );
+	IN_GameControllerAxis( SDL_GAMEPAD_AXIS_RIGHTY, joystickAxis_t::AXIS_PITCH, 127 );
 
-	axes |= IN_GameControllerAxisToButton( SDL_CONTROLLER_AXIS_TRIGGERLEFT, K_CONTROLLER_LT );
-	axes |= IN_GameControllerAxisToButton( SDL_CONTROLLER_AXIS_TRIGGERRIGHT, K_CONTROLLER_RT );
+	axes |= IN_GameControllerAxisToButton( SDL_GAMEPAD_AXIS_LEFT_TRIGGER, K_CONTROLLER_LT );
+	axes |= IN_GameControllerAxisToButton( SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, K_CONTROLLER_RT );
 
 	/* Save for future generations. */
 	stick_state.oldaxes = axes;
@@ -1024,12 +1074,12 @@ static void IN_ProcessEvents( bool dropInput )
 	{
 		switch ( e.type )
 		{
-			case SDL_KEYDOWN:
-				if ( !dropInput && ( !e.key.repeat || cls.keyCatchers ) )
+			case SDL_EVENT_KEY_DOWN:
+				if ( !dropInput )
 				{
 					// Send events for both scancode- and keycode-based Keys
-					Key kScan = Keyboard::Key::FromScancode( e.key.keysym.scancode );
-					Key kKeycode = IN_TranslateSDLToQ3Key( &e.key.keysym, true );
+					Key kScan = Keyboard::Key::FromScancode( e.key.scancode );
+					Key kKeycode = IN_TranslateSDLToQ3Key( &e.key, true );
 					bool consoleFound = false;
 					for (Key k: {kScan, kKeycode} ) {
 						if ( IN_IsConsoleKey( k ) && !keys[ Key(K_ALT) ].down) {
@@ -1044,35 +1094,34 @@ static void IN_ProcessEvents( bool dropInput )
 						lastEventWasConsoleKeyDown = true;
 						continue;
 					}
-					for (Key k: {kKeycode, kScan} ) {
-						QueueKeyEvent( k, true );
-					}
+					QueueKeyEvent( kKeycode, kScan, true, e.key.repeat );
 				}
 				break;
 
-			case SDL_KEYUP:
+			case SDL_EVENT_KEY_UP:
 				if ( !dropInput )
 				{
-					QueueKeyEvent( Keyboard::Key::FromScancode( e.key.keysym.scancode ), false );
-					Key k = IN_TranslateSDLToQ3Key( &e.key.keysym, false );
-					QueueKeyEvent( k, false );
+					QueueKeyEvent(
+						Keyboard::Key::FromScancode( e.key.scancode ),
+						IN_TranslateSDLToQ3Key( &e.key, false ),
+						false, false );
 				}
 
 				break;
-			case SDL_TEXTINPUT:
+			case SDL_EVENT_TEXT_INPUT:
 				if ( !lastEventWasConsoleKeyDown )
 				{
-					char *c = e.text.text;
+					std::string text = e.text.text;
 
-					while ( *c )
-					{
+					const char* c = text.c_str();
+					while ( *c ) {
 						int width = Q_UTF8_Width( c );
 						Com_QueueEvent( Util::make_unique<Sys::CharEvent>( Q_UTF8_CodePoint( c ) ) );
 						c += width;
 					}
 				}
 				break;
-			case SDL_MOUSEMOTION:
+			case SDL_EVENT_MOUSE_MOTION:
 				if ( !dropInput )
 				{
 					if ( mouse_mode != MouseMode::Deltas )
@@ -1086,8 +1135,8 @@ static void IN_ProcessEvents( bool dropInput )
 				}
 				break;
 
-			case SDL_MOUSEBUTTONDOWN:
-			case SDL_MOUSEBUTTONUP:
+			case SDL_EVENT_MOUSE_BUTTON_DOWN:
+			case SDL_EVENT_MOUSE_BUTTON_UP:
 				if ( !dropInput )
 				{
 					keyNum_t b;
@@ -1117,10 +1166,10 @@ static void IN_ProcessEvents( bool dropInput )
 							b = Util::enum_cast<keyNum_t>(K_AUX1 + ( e.button.button - ( SDL_BUTTON_X2 + 1 ) ) % 16);
 							break;
 					}
-					QueueKeyEvent( b, e.type == SDL_MOUSEBUTTONDOWN );
+					QueueKeyEvent( b, e.type == SDL_EVENT_MOUSE_BUTTON_DOWN );
 				}
 				break;
-			case SDL_MOUSEWHEEL:
+			case SDL_EVENT_MOUSE_WHEEL:
 				// FIXME: mouse wheel support shouldn't use keys!
 				if ( e.wheel.y > 0 )
 				{
@@ -1134,43 +1183,38 @@ static void IN_ProcessEvents( bool dropInput )
 				}
 				break;
 
-			case SDL_WINDOWEVENT:
-				switch( e.window.event )
+			case SDL_EVENT_WINDOW_RESIZED:
+				extern cvar_t* r_allowResize;
+				// Toggling r_fullscreen does not work well when r_allowResize is enabled -
+				// it generates spurious resize events.
+				if ( r_allowResize->integer )
 				{
-					case SDL_WINDOWEVENT_RESIZED:
-						extern cvar_t* r_allowResize;
-						// Toggling r_fullscreen does not work well when r_allowResize is enabled -
-						// it generates spurious resize events.
-						if ( r_allowResize->integer )
-						{
-							char width[32], height[32];
-							Com_sprintf( width, sizeof( width ), "%d", e.window.data1 );
-							Com_sprintf( height, sizeof( height ), "%d", e.window.data2 );
-							Cvar_Set( "r_customwidth", width );
-							Cvar_Set( "r_customheight", height );
-							Cvar_Set( "r_mode", "-1" );
-						}
-						break;
-
-					case SDL_WINDOWEVENT_MINIMIZED:    Cvar_SetValue( "com_minimized", 1 ); break;
-					case SDL_WINDOWEVENT_RESTORED:
-					case SDL_WINDOWEVENT_MAXIMIZED:    Cvar_SetValue( "com_minimized", 0 ); break;
-					case SDL_WINDOWEVENT_FOCUS_LOST:   Cvar_SetValue( "com_unfocused", 1 ); break;
-					case SDL_WINDOWEVENT_FOCUS_GAINED:
-
-						Cvar_SetValue( "com_unfocused", 0 );
-
-						// HACK: if the window is focused, it can't be minimized.
-						// fixes
-						//  * https://github.com/DaemonEngine/Daemon/issues/408
-						//  * https://github.com/Unvanquished/Unvanquished/issues/1136
-						// and maybe others
-						Cvar_SetValue( "com_minimized", 0 );
-
-						break;
+					char width[32], height[32];
+					Com_sprintf( width, sizeof( width ), "%d", e.window.data1 );
+					Com_sprintf( height, sizeof( height ), "%d", e.window.data2 );
+					Cvar_Set( "r_customwidth", width );
+					Cvar_Set( "r_customheight", height );
+					Cvar_Set( "r_mode", "-1" );
 				}
 				break;
-			case SDL_QUIT:
+
+			case SDL_EVENT_WINDOW_MINIMIZED:    Cvar_SetValue( "com_minimized", 1 ); break;
+			case SDL_EVENT_WINDOW_RESTORED:
+			case SDL_EVENT_WINDOW_MAXIMIZED:    Cvar_SetValue( "com_minimized", 0 ); break;
+			case SDL_EVENT_WINDOW_FOCUS_LOST:   Cvar_SetValue( "com_unfocused", 1 ); break;
+			case SDL_EVENT_WINDOW_FOCUS_GAINED:
+
+				Cvar_SetValue( "com_unfocused", 0 );
+
+				// HACK: if the window is focused, it can't be minimized.
+				// fixes
+				//  * https://github.com/DaemonEngine/Daemon/issues/408
+				//  * https://github.com/Unvanquished/Unvanquished/issues/1136
+				// and maybe others
+				Cvar_SetValue( "com_minimized", 0 );
+
+				break;
+			case SDL_EVENT_QUIT:
 				Cmd::ExecuteCommand("quit Closed window");
 				break;
 			default:
@@ -1180,15 +1224,10 @@ static void IN_ProcessEvents( bool dropInput )
 	}
 }
 
-/*
-===============
-IN_IsNumLockDown
-===============
-*/
-
-bool IN_IsNumLockDown() {
-    return SDL_GetModState() & KMOD_NUM;
+bool IN_IsNumLockOn() {
+    return SDL_GetModState() & SDL_KMOD_NUM;
 }
+
 /*
 ===============
 IN_Frame
@@ -1246,6 +1285,9 @@ void IN_FrameEnd()
 IN_Init
 ===============
 */
+#ifdef __APPLE__
+extern "C" void DisableAccentMenu();
+#endif
 void IN_Init( void *windowData )
 {
 	int appState;
@@ -1259,26 +1301,20 @@ void IN_Init( void *windowData )
 
 	Log::Debug( "------- Input Initialization -------" );
 
-	in_keyboardDebug = Cvar_Get( "in_keyboardDebug", "0", CVAR_TEMP );
-
-	// mouse variables
-	in_mouse = Cvar_Get( "in_mouse", "1", 0 );
-	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
-
-	in_joystick = Cvar_Get( "in_joystick", "0",  CVAR_LATCH );
-	in_joystickDebug = Cvar_Get( "in_joystickDebug", "0", CVAR_TEMP );
-	in_joystickThreshold = Cvar_Get( "in_joystickThreshold", "0.15", 0 );
-	in_gameControllerTriggerDeadzone = Cvar_Get( "in_gameControllerTriggerDeadzone", "0.5", 0);
-
-	in_gameControllerDebug = Cvar_Get( "in_gameControllerDebug", "0", CVAR_TEMP );
-	SDL_StartTextInput();
-	mouseAvailable = ( in_mouse->value != 0 );
-	IN_SetMouseMode( MouseMode::CustomCursor );
+	SDL_StartTextInput( window );
+	IN_SetMouseMode( MouseMode::SystemCursor );
 
 	appState = SDL_GetWindowFlags( window );
 	Cvar_SetValue( "com_unfocused", !( appState & SDL_WINDOW_INPUT_FOCUS ) );
 	Cvar_SetValue( "com_minimized", ( appState & SDL_WINDOW_MINIMIZED ) );
 	IN_InitJoystick();
+
+#ifdef __APPLE__
+	// We have to act after SDL does. Whoever has the last word wins!
+	// https://github.com/libsdl-org/SDL/commit/caf0348b26d02bc22ba9a0a908c83c43f8e4e6ad
+	DisableAccentMenu();
+#endif
+
 	Log::Debug( "------------------------------------" );
 }
 
@@ -1295,9 +1331,9 @@ IN_Shutdown
 */
 void IN_Shutdown()
 {
-	SDL_StopTextInput();
+	SDL_StopTextInput( window );
 	IN_SetMouseMode(MouseMode::SystemCursor);
-	mouseAvailable = false;
+	mouse_mode_unset = true;
 
 	IN_ShutdownJoystick();
 

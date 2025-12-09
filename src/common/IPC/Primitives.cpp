@@ -82,6 +82,8 @@ enum NaClDescTypeTag {
   NACL_DESC_NULL
 };
 #define NACL_DESC_TYPE_MAX (NACL_DESC_NULL + 1)
+
+#if !defined(__native_client__)
 static const int NACL_DESC_TYPE_END_TAG  = (0xff);
 
 struct NaClInternalRealHeader {
@@ -96,6 +98,8 @@ struct NaClInternalHeader {
 };
 
 static const uint32_t NACL_HANDLE_TRANSFER_PROTOCOL = 0xd3c0de01;
+#endif
+
 // End of imported definitions
 
 namespace IPC {

@@ -38,13 +38,18 @@ Maryland 20850 USA.
 #include "cg_msgdef.h"
 
 #include "key_identification.h"
+
+#if defined(USE_MUMBLE)
 #include "mumblelink/libmumblelink.h"
+#endif
+
 #include "qcommon/crypto.h"
 #include "qcommon/sys.h"
 
 #include "framework/CommonVMServices.h"
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
+#include "framework/Network.h"
 
 // Suppress warnings for unused [this] lambda captures.
 #ifdef __clang__
@@ -145,9 +150,9 @@ bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
 	if (cmd == "disconnect") {
 		// NERVE - SMF - allow server to indicate why they were disconnected
 		if (argc >= 2) {
-			Sys::Drop("Server disconnected: %s", args.Argv(1).c_str());
+			Sys::Drop("^3Server disconnected:\n^7%s", args.Argv(1).c_str());
 		} else {
-			Sys::Drop("Server disconnected");
+			Sys::Drop("^3Server disconnected:\n^7(reason unknown)");
 		}
 	}
 
@@ -218,7 +223,7 @@ bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
 		mpz_t        message;
 
 		if (argc == 1) {
-			Log::Notice("^3Server sent a pubkey_decrypt command, but sent nothing to decrypt!\n");
+			Log::Notice("^3Server sent a pubkey_decrypt command, but sent nothing to decrypt!");
 			return false;
 		}
 
@@ -276,7 +281,7 @@ void CL_FillServerCommands(std::vector<std::string>& commands, int start, int en
 CL_GetSnapshot
 ====================
 */
-bool CL_GetSnapshot( int snapshotNumber, snapshot_t *snapshot )
+bool CL_GetSnapshot( int snapshotNumber, ipcSnapshot_t *snapshot )
 {
 	clSnapshot_t *clSnap;
 
@@ -300,14 +305,14 @@ bool CL_GetSnapshot( int snapshotNumber, snapshot_t *snapshot )
 	}
 
 	// write the snapshot
-	snapshot->snapFlags = clSnap->snapFlags;
-	snapshot->ping = clSnap->ping;
-	snapshot->serverTime = clSnap->serverTime;
-	memcpy( snapshot->areamask, clSnap->areamask, sizeof( snapshot->areamask ) );
+	snapshot->b.snapFlags = clSnap->snapFlags;
+	snapshot->b.ping = clSnap->ping;
+	snapshot->b.serverTime = clSnap->serverTime;
+	memcpy( snapshot->b.areamask, clSnap->areamask, sizeof( snapshot->b.areamask ) );
 	snapshot->ps = clSnap->ps;
-	snapshot->entities = clSnap->entities;
+	snapshot->b.entities = clSnap->entities;
 
-	CL_FillServerCommands(snapshot->serverCommands, clc.lastExecutedServerCommand + 1, clSnap->serverCommandNum);
+	CL_FillServerCommands(snapshot->b.serverCommands, clc.lastExecutedServerCommand + 1, clSnap->serverCommandNum);
 	clc.lastExecutedServerCommand = clSnap->serverCommandNum;
 
 	return true;
@@ -359,6 +364,8 @@ static void LAN_ResetPings( int source )
 	{
 		for ( i = 0; i < count; i++ )
 		{
+			servers[ i ].pingStatus = pingStatus_t::WAITING;
+			servers[ i ].pingAttempts = 0;
 			servers[ i ].ping = -1;
 		}
 	}
@@ -429,7 +436,7 @@ static void LAN_GetServerInfo( int source, int n, char *buf, int buflen )
 		Info_SetValueForKey( info, "maxping", va( "%i", server->maxPing ), false );
 		Info_SetValueForKey( info, "game", server->game, false );
 		Info_SetValueForKey( info, "nettype", Util::enum_str(server->netType), false );
-		Info_SetValueForKey( info, "addr", NET_AdrToStringwPort( server->adr ), false );
+		Info_SetValueForKey( info, "addr", Net::AddressToString( server->adr, true ).c_str(), false );
 		Info_SetValueForKey( info, "needpass", va( "%i", server->needpass ), false );   // NERVE - SMF
 		Info_SetValueForKey( info, "gamename", server->gameName, false );  // Arnout
 		Q_strncpyz( buf, info, buflen );
@@ -687,7 +694,7 @@ void CL_AdjustTimeDelta()
 	// if the current time is WAY off, just correct to the current value
 
 	/*
-	        if(com_sv_running->integer)
+	        if(com_sv_running.Get())
 	        {
 	                resetTime = 100;
 	        }
@@ -780,11 +787,13 @@ void CL_FirstSnapshot()
 		Cvar_Set( "activeAction", "" );
 	}
 
+#if defined(USE_MUMBLE)
 	if ( ( cl_useMumble->integer ) && !mumble_islinked() )
 	{
 		int ret = mumble_link( CLIENT_WINDOW_TITLE );
 		Log::Notice(ret == 0 ? "Mumble: Linking to Mumble application okay" : "Mumble: Linking to Mumble application failed" );
 	}
+#endif
 
 	// resend userinfo upon entering the game, as some cvars may
     // not have had the CVAR_USERINFO flag set until loading cgame
@@ -954,10 +963,7 @@ CGameVM::CGameVM(): VM::VMBase("cgame", Cvar::CHEAT), services(nullptr), cmdBuff
 void CGameVM::Start()
 {
 	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "CGame", FS::Owner::CGAME, Cmd::CGAME_VM));
-	uint32_t version = this->Create();
-	if ( version != CGAME_API_VERSION ) {
-		Sys::Drop( "CGame ABI mismatch, expected %d, got %d", CGAME_API_VERSION, version );
-	}
+	this->Create();
 	this->CGameStaticInit();
 }
 
@@ -968,7 +974,15 @@ void CGameVM::CGameStaticInit()
 
 void CGameVM::CGameInit(int serverMessageNum, int clientNum)
 {
-	this->SendMsg<CGameInitMsg>(serverMessageNum, clientNum, cls.glconfig, cl.gameState);
+	glconfig_t glConfig;
+	memset( &glConfig, 0, sizeof( glconfig_t ) );
+	glConfig.displayAspect = cls.windowConfig.displayAspect;
+	glConfig.displayWidth = cls.windowConfig.displayWidth;
+	glConfig.displayHeight = cls.windowConfig.displayHeight;
+	glConfig.vidWidth = cls.windowConfig.vidWidth;
+	glConfig.vidHeight = cls.windowConfig.vidHeight;
+
+	this->SendMsg<CGameInitMsg>(serverMessageNum, clientNum, glConfig, cl.gameState);
 	NetcodeTable psTable;
 	size_t psSize;
 	this->SendMsg<VM::GetNetcodeTablesMsg>(psTable, psSize);
@@ -991,9 +1005,22 @@ void CGameVM::CGameDrawActiveFrame(int serverTime,  bool demoPlayback)
 	this->SendMsg<CGameDrawActiveFrameMsg>(serverTime, demoPlayback);
 }
 
-void CGameVM::CGameKeyEvent(Keyboard::Key key, bool down)
+bool CGameVM::CGameKeyDownEvent(Keyboard::Key key, bool repeat)
 {
-	this->SendMsg<CGameKeyEventMsg>(key, down);
+	if (!key.IsValid())
+		return false;
+
+	bool consumed;
+	this->SendMsg<CGameKeyDownEventMsg>(key, repeat, consumed);
+	return consumed;
+}
+
+void CGameVM::CGameKeyUpEvent(Keyboard::Key key)
+{
+	if (!key.IsValid())
+		return;
+
+	this->SendMsg<CGameKeyUpEventMsg>(key);
 }
 
 void CGameVM::CGameMouseEvent(int dx, int dy)
@@ -1019,7 +1046,15 @@ void CGameVM::CGameTextInputEvent(int c)
 
 void CGameVM::CGameRocketInit()
 {
-	this->SendMsg<CGameRocketInitMsg>(cls.glconfig);
+	glconfig_t glConfig;
+	memset( &glConfig, 0, sizeof( glconfig_t ) );
+	glConfig.displayAspect = cls.windowConfig.displayAspect;
+	glConfig.displayWidth = cls.windowConfig.displayWidth;
+	glConfig.displayHeight = cls.windowConfig.displayHeight;
+	glConfig.vidWidth = cls.windowConfig.vidWidth;
+	glConfig.vidHeight = cls.windowConfig.vidHeight;
+
+	this->SendMsg<CGameRocketInitMsg>( glConfig );
 }
 
 void CGameVM::CGameRocketFrame()
@@ -1083,6 +1118,45 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			});
 			break;
 
+		case CG_CM_BATCHMARKFRAGMENTS:
+			IPC::HandleMsg<CMBatchMarkFragments>(channel, std::move(reader), [this] (
+				unsigned maxPoints,
+				unsigned maxFragments,
+				const std::vector<markMsgInput_t>& inputs,
+				std::vector<markMsgOutput_t>& outputs)
+			{
+				outputs.reserve(inputs.size());
+				std::vector<std::array<float, 3>> pointBuf(maxPoints);
+				std::vector<markFragment_t> fragmentBuf(maxFragments);
+
+				for (const markMsgInput_t& input : inputs)
+				{
+					auto& inputPoints = input.first;
+					auto& projection = input.second;
+					size_t numFragments = re.MarkFragments(
+						inputPoints.size(),
+						reinterpret_cast<const vec3_t*>(inputPoints.data()),
+						projection.data(),
+						maxPoints,
+						reinterpret_cast<float*>(pointBuf.data()),
+						maxFragments,
+						fragmentBuf.data());
+					size_t numPoints;
+					if (numFragments == 0) {
+						numPoints = 0;
+					} else {
+						// HACK: assume last fragment is last
+						const markFragment_t& lastFragment = fragmentBuf[numFragments - 1];
+						numPoints = lastFragment.firstPoint + lastFragment.numPoints;
+					}
+					outputs.emplace_back(
+						std::vector<std::array<float, 3>>(pointBuf.data(), pointBuf.data() + numPoints),
+						std::vector<markFragment_t>(fragmentBuf.data(), fragmentBuf.data() + numFragments)
+					);
+				}
+			});
+			break;
+
 		case CG_GETCURRENTSNAPSHOTNUMBER:
 			IPC::HandleMsg<GetCurrentSnapshotNumberMsg>(channel, std::move(reader), [this] (int& number, int& serverTime) {
 				number = cl.snap.messageNum;
@@ -1091,7 +1165,7 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			break;
 
 		case CG_GETSNAPSHOT:
-			IPC::HandleMsg<GetSnapshotMsg>(channel, std::move(reader), [this] (int number, bool& res, snapshot_t& snapshot) {
+			IPC::HandleMsg<GetSnapshotMsg>(channel, std::move(reader), [this] (int number, bool& res, ipcSnapshot_t& snapshot) {
 				res = CL_GetSnapshot(number, &snapshot);
 			});
 			break;
@@ -1201,7 +1275,7 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 
 		case CG_R_REGISTERSHADER:
 			IPC::HandleMsg<Render::RegisterShaderMsg>(channel, std::move(reader), [this] (const std::string& name, int flags, int& handle) {
-				handle = re.RegisterShader(name.c_str(), (RegisterShaderFlags_t) flags);
+				handle = re.RegisterShader(name.c_str(), flags);
 			});
 			break;
 
@@ -1226,6 +1300,21 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 		case CG_R_INPVS:
 			IPC::HandleMsg<Render::InPVSMsg>(channel, std::move(reader), [this] (const std::array<float, 3>& p1, const std::array<float, 3>& p2, bool& res) {
 				res = re.inPVS(p1.data(), p2.data());
+			});
+			break;
+
+		case CG_R_BATCHINPVS:
+			IPC::HandleMsg<Render::BatchInPVSMsg>(channel, std::move(reader), [this] (
+				const std::array<float, 3>& origin,
+				const std::vector<std::array<float, 3>>& posEntities,
+				std::vector<bool>& inPVS)
+			{
+				inPVS.reserve(posEntities.size());
+
+				for (const auto& posEntity : posEntities)
+				{
+					inPVS.push_back(re.inPVS(origin.data(), posEntity.data()));
+				}
 			});
 			break;
 
@@ -1285,6 +1374,12 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 
 		case CG_R_GENERATETEXTURE:
 			IPC::HandleMsg<Render::GenerateTextureMsg>(channel, std::move(reader), [this] (std::vector<byte> data, int x, int y, qhandle_t& handle) {
+				// Limit max size to avoid int overflow issues
+				if (x <= 0 || y <= 0 || x > 16384 || y > 16384 || size_t(x * y * 4) != data.size()) {
+					Log::Warn("GenerateTextureMsg: bad dimensions or size: %dx%d / %d bytes", x, y, data.size());
+					handle = 0;
+					return;
+				}
 				handle = re.GenerateTexture(data.data(), x, y);
 			});
 			break;
@@ -1362,7 +1457,7 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 				{
 					if (key == Keyboard::Key(keyNum_t::K_KP_NUMLOCK))
 					{
-						list.push_back(IN_IsNumLockDown());
+						list.push_back(IN_IsNumLockOn());
 					}
 					else
 					{
@@ -1526,6 +1621,13 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 
 			case CG_S_UPDATEENTITYVELOCITY:
 				HandleMsg<Audio::UpdateEntityVelocityMsg>(std::move(reader), [this] (int entityNum, Vec3 velocity) {
+					Audio::UpdateEntityVelocity(entityNum, velocity);
+				});
+				break;
+
+			case CG_S_UPDATEENTITYPOSITIONVELOCITY:
+				HandleMsg<Audio::UpdateEntityPositionVelocityMsg>(std::move(reader), [this] (int entityNum, Vec3 position, Vec3 velocity) {
+					Audio::UpdateEntityPosition(entityNum, position);
 					Audio::UpdateEntityVelocity(entityNum, velocity);
 				});
 				break;

@@ -22,25 +22,48 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_init.c -- functions that are not called every frame
 #include "tr_local.h"
+#include "framework/CvarSystem.h"
+#include "DetectGLVendors.h"
+#include "Material.h"
+#include "GeometryCache.h"
+#include "GeometryOptimiser.h"
 
-	glconfig_t  glConfig;
-	glconfig2_t glConfig2;
+#ifdef _WIN32
+	extern "C" {
+		// Use dGPU if both dGPU and iGPU are available
+		// https://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
+		__declspec( dllexport ) uint32_t NvOptimusEnablement = 0x00000001;
+		// https://gpuopen.com/learn/amdpowerxpressrequesthighperformance/
+		__declspec( dllexport ) uint32_t AmdPowerXpressRequestHighPerformance = 0x00000001;
+	}
+#endif
+
+	WindowConfig windowConfig;
+	GLConfig glConfig;
 
 	glstate_t   glState;
 
-	float       displayAspect = 0.0f;
-
 	static void GfxInfo_f();
+
+#if !defined(DAEMON_RENDERER_OPENGL)
+	#error Undefined renderer API.
+#endif
+
+Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 0 );
 
 	cvar_t      *r_glMajorVersion;
 	cvar_t      *r_glMinorVersion;
 	cvar_t      *r_glProfile;
-	cvar_t      *r_glDebugProfile;
-	cvar_t      *r_glDebugMode;
+	Cvar::Cvar<bool> r_glDebugProfile( "r_glDebugProfile", "Enable GL debug message callback", Cvar::NONE, false );
+	Cvar::Range<Cvar::Cvar<int>> r_glDebugMode( "r_glDebugMode",
+		"GL debug message callback mode: 0: none, 1: error, 2: deprecated, 3: undefined, 4: portability, 5: performance,"
+		"6: other, 7: all", Cvar::NONE,
+		Util::ordinal( glDebugModes_t::GLDEBUG_NONE ),
+		Util::ordinal( glDebugModes_t::GLDEBUG_NONE ),
+		Util::ordinal( glDebugModes_t::GLDEBUG_ALL ) );
 	cvar_t      *r_glAllowSoftware;
 	cvar_t      *r_glExtendedValidation;
 
-	cvar_t      *r_verbose;
 	cvar_t      *r_ignore;
 
 	cvar_t      *r_znear;
@@ -49,15 +72,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_smp;
 	cvar_t      *r_showSmp;
 	cvar_t      *r_skipBackEnd;
-	cvar_t      *r_skipLightBuffer;
-
-	cvar_t      *r_measureOverdraw;
-
-	cvar_t      *r_fastsky;
 
 	cvar_t      *r_lodBias;
 	cvar_t      *r_lodScale;
-	cvar_t      *r_lodTest;
 
 	cvar_t      *r_norefresh;
 	cvar_t      *r_drawentities;
@@ -68,91 +85,69 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_nocull;
 	cvar_t      *r_facePlaneCull;
 	cvar_t      *r_nocurves;
-	cvar_t      *r_lightScissors;
-	cvar_t      *r_noLightVisCull;
-	cvar_t      *r_noInteractionSort;
-	cvar_t      *r_dynamicLight;
-	cvar_t      *r_staticLight;
-	cvar_t      *r_dynamicLightCastShadows;
+	Cvar::Cvar<bool> r_realtimeLighting( "r_realtimeLighting", "Enable realtime light rendering", Cvar::NONE, true );
+	Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers( "r_realtimeLightLayers", "Dynamic light layers per tile, each layer holds 16 lights",
+		Cvar::NONE, 4, 1, MAX_REF_LIGHTS / 16 );
 	cvar_t      *r_precomputedLighting;
-	cvar_t      *r_vertexLighting;
+	Cvar::Cvar<int> r_overbrightDefaultExponent("r_overbrightDefaultExponent", "default map light color shift (multiply by 2^x)", Cvar::NONE, 2);
+	Cvar::Range<Cvar::Cvar<int>> r_overbrightBits("r_overbrightBits", "clamp lightmap colors to 2^x", Cvar::NONE, 1, 0, 3);
+
+	// also set r_highPrecisionRendering 0 for an even more authentic q3 experience
+	Cvar::Cvar<bool> r_overbrightQ3("r_overbrightQ3", "brighten entire color buffer like Quake 3 (incompatible with newer assets)", Cvar::NONE, false);
+
+	Cvar::Cvar<bool> r_overbrightIgnoreMapSettings("r_overbrightIgnoreMapSettings", "force usage of r_overbrightDefaultClamp / r_overbrightDefaultExponent, ignoring worldspawn", Cvar::NONE, false);
+	Cvar::Range<Cvar::Cvar<int>> r_lightMode("r_lightMode", "lighting mode: 0: fullbright (cheat), 1: vertex light, 2: grid light (cheat), 3: light map", Cvar::NONE, Util::ordinal(lightMode_t::MAP), Util::ordinal(lightMode_t::FULLBRIGHT), Util::ordinal(lightMode_t::MAP));
+	Cvar::Cvar<bool> r_colorGrading( "r_colorGrading", "Use color grading", Cvar::NONE, true );
+	static Cvar::Range<Cvar::Cvar<int>> r_readonlyDepthBuffer(
+		"r_readonlyDepthBuffer", "sample depth from a copy of the depth texture: 0 = no (unsafe), 1 = if necessary depending on GL features, 2 = yes",
+		Cvar::NONE, 1, 0, 2);
+	Cvar::Cvar<bool> r_preferBindlessTextures( "r_preferBindlessTextures", "use bindless textures even when material system is off", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_materialSystem( "r_materialSystem", "Use Material System", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_gpuFrustumCulling( "r_gpuFrustumCulling", "Use frustum culling on the GPU for the Material System", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_gpuOcclusionCulling( "r_gpuOcclusionCulling", "Use occlusion culling on the GPU for the Material System", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_materialSystemSkip( "r_materialSystemSkip", "Temporarily skip Material System rendering, using only core renderer instead", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_materialSeparatePerShader("r_materialSeparatePerShader", "store separate material uniforms for every q3shader stage (to debug merging)", Cvar::NONE, false);
 	cvar_t      *r_lightStyles;
 	cvar_t      *r_exportTextures;
 	cvar_t      *r_heatHaze;
 	cvar_t      *r_noMarksOnTrisurfs;
-	cvar_t      *r_lazyShaders;
 
-	cvar_t      *r_ext_occlusion_query;
-	cvar_t      *r_ext_draw_buffers;
-	cvar_t      *r_ext_vertex_array_object;
-	cvar_t      *r_ext_half_float_pixel;
-	cvar_t      *r_ext_texture_float;
-	cvar_t      *r_ext_texture_integer;
-	cvar_t      *r_ext_texture_rg;
-	cvar_t      *r_ext_texture_filter_anisotropic;
-	cvar_t      *r_ext_gpu_shader4;
-	cvar_t      *r_arb_buffer_storage;
-	cvar_t      *r_arb_map_buffer_range;
-	cvar_t      *r_arb_sync;
-	cvar_t      *r_arb_uniform_buffer_object;
-	cvar_t      *r_arb_texture_gather;
-	cvar_t      *r_arb_gpu_shader5;
+	/* Default value is 1: Delay GLSL shader build until first map load.
+
+	This makes possible for the user to quickly reach the game main menu
+	without building all GLSL shaders and set a low graphics preset before
+	joining a game and loading a map.
+
+	Doing so prevents building unwanted or unsupported GLSL shaders on slow
+	and/or old hardware and drastically reduce first startup time. */
+	Cvar::Range<Cvar::Cvar<int>> r_lazyShaders(
+		"r_lazyShaders", "build GLSL shaders (0) on startup, (1) on map load or (2) when used",
+		Cvar::NONE, 1, 0, 2);
 
 	cvar_t      *r_checkGLErrors;
-	cvar_t      *r_logFile;
+	Cvar::Cvar<bool> r_logFile( "r_logFile", "Emit GL logs", Cvar::NONE, false );
 
-	cvar_t      *r_depthbits;
 	cvar_t      *r_colorbits;
 
 	cvar_t      *r_drawBuffer;
-	cvar_t      *r_shadows;
-	cvar_t      *r_softShadows;
-	cvar_t      *r_softShadowsPP;
-	cvar_t      *r_shadowBlur;
 
-	cvar_t      *r_shadowMapQuality;
-	cvar_t      *r_shadowMapSizeUltra;
-	cvar_t      *r_shadowMapSizeVeryHigh;
-	cvar_t      *r_shadowMapSizeHigh;
-	cvar_t      *r_shadowMapSizeMedium;
-	cvar_t      *r_shadowMapSizeLow;
-
-	cvar_t      *r_shadowMapSizeSunUltra;
-	cvar_t      *r_shadowMapSizeSunVeryHigh;
-	cvar_t      *r_shadowMapSizeSunHigh;
-	cvar_t      *r_shadowMapSizeSunMedium;
-	cvar_t      *r_shadowMapSizeSunLow;
-
-	cvar_t      *r_shadowOffsetFactor;
-	cvar_t      *r_shadowOffsetUnits;
-	cvar_t      *r_shadowLodBias;
-	cvar_t      *r_shadowLodScale;
-	cvar_t      *r_noShadowPyramids;
-	cvar_t      *r_cullShadowPyramidFaces;
-	cvar_t      *r_cullShadowPyramidCurves;
-	cvar_t      *r_cullShadowPyramidTriangles;
-	cvar_t      *r_debugShadowMaps;
-	cvar_t      *r_noShadowFrustums;
-	cvar_t      *r_noLightFrustums;
-	cvar_t      *r_shadowMapLinearFilter;
-	cvar_t      *r_lightBleedReduction;
-	cvar_t      *r_overDarkeningFactor;
-	cvar_t      *r_shadowMapDepthScale;
-	cvar_t      *r_parallelShadowSplits;
-	cvar_t      *r_parallelShadowSplitWeight;
+	Cvar::Range<Cvar::Cvar<int>> r_shadows( "cg_shadows", "shadowing mode", Cvar::NONE,
+		Util::ordinal(shadowingMode_t::SHADOWING_BLOB),
+		Util::ordinal(shadowingMode_t::SHADOWING_NONE),
+		Util::ordinal(shadowingMode_t::SHADOWING_BLOB) );
 
 	cvar_t      *r_mode;
 	cvar_t      *r_nobind;
 	cvar_t      *r_singleShader;
-	cvar_t      *r_colorMipLevels;
 	cvar_t      *r_picMip;
 	cvar_t      *r_imageMaxDimension;
 	cvar_t      *r_ignoreMaterialMinDimension;
 	cvar_t      *r_ignoreMaterialMaxDimension;
 	cvar_t      *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
+	Cvar::Range<Cvar::Cvar<int>> r_imageFitScreen("r_imageFitScreen", "downscale “fitscreen” images to fit the screen size: 0: disable, 1: downscale as much as possible without being smaller than screen size (default), 2: downscale to never be larger then screen size", Cvar::NONE, 1, 0, 2);
 	cvar_t      *r_finish;
-	cvar_t      *r_clear;
-	cvar_t      *r_textureMode;
+	Cvar::Modified<Cvar::Cvar<std::string>> r_textureMode(
+		"r_textureMode", "default texture filter mode", Cvar::NONE, "GL_LINEAR_MIPMAP_LINEAR");
 	cvar_t      *r_offsetFactor;
 	cvar_t      *r_offsetUnits;
 
@@ -169,17 +164,49 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_reliefDepthScale;
 	cvar_t      *r_reliefMapping;
 	cvar_t      *r_glowMapping;
-	cvar_t      *r_reflectionMapping;
+	Cvar::Cvar<bool> r_reflectionMapping( "r_reflectionMapping", "Use static reflections", Cvar::NONE, false );
+	Cvar::Range<Cvar::Cvar<int>> r_autoBuildCubeMaps( "r_autoBuildCubeMaps",
+		"Automatically build cube maps when a map is loaded: 0: off, 1: build and store on disk if not found, 2: always build", Cvar::NONE,
+		Util::ordinal( cubeProbesAutoBuildMode::ALWAYS ),
+		Util::ordinal( cubeProbesAutoBuildMode::DISABLED ),
+		Util::ordinal( cubeProbesAutoBuildMode::ALWAYS ) );
+	Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSize( "r_cubeProbeSize", "Size of the static reflections cubemaps", Cvar::NONE,
+		32, 1, 32768 );
+	Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSpacing( "r_cubeProbeSpacing", "Spacing between the static reflections cubemaps", Cvar::NONE,
+		256, 64, 1024 );
 
-	cvar_t      *r_wrapAroundLighting;
 	cvar_t      *r_halfLambertLighting;
 	cvar_t      *r_rimLighting;
 	cvar_t      *r_rimExponent;
+
+	Cvar::Cvar<bool> r_highPrecisionRendering("r_highPrecisionRendering", "use high precision frame buffers for rendering and blending", Cvar::NONE, true);
+	Cvar::Cvar<bool> r_accurateSRGB("r_accurateSRGB", "Use accurate sRGB computation when converting images", Cvar::NONE, true);
+
 	cvar_t      *r_gamma;
+
+	Cvar::Cvar<bool> r_toneMapping(
+		"r_toneMapping", "Use  HDR->LDR tonemapping", Cvar::NONE, true );
+	Cvar::Cvar<float> r_toneMappingExposure(
+		"r_toneMappingExposure", "Tonemap exposure", Cvar::NONE, 1.0f );
+	Cvar::Range<Cvar::Cvar<float>> r_toneMappingContrast(
+		"r_toneMappingContrast", "Makes dark areas light up faster",
+		Cvar::NONE, 1.6f, 1.0f, 10.0f );
+	Cvar::Range<Cvar::Cvar<float>> r_toneMappingHighlightsCompressionSpeed(
+		"r_toneMappingHighlightsCompressionSpeed", "Highlights saturation",
+		Cvar::NONE, 0.977f, 0.0f, 10.0f );
+	Cvar::Range<Cvar::Cvar<float>> r_toneMappingHDRMax(
+		"r_toneMappingHDRMax", "HDR white point",
+		Cvar::NONE, 8.0f, 1.0f, 128.0f );
+	Cvar::Range<Cvar::Cvar<float>> r_toneMappingDarkAreaPointHDR(
+		"r_toneMappingDarkAreaPointHDR", "Cut-off for dark area light-up",
+		Cvar::NONE, 0.18f, 0.0f, 1.0f );
+	Cvar::Range<Cvar::Cvar<float>> r_toneMappingDarkAreaPointLDR(
+		"r_toneMappingDarkAreaPointLDR", "Convert to this brightness at dark area cut-off",
+		Cvar::NONE, 0.268f, 0.0f, 1.0f );
+
 	cvar_t      *r_lockpvs;
 	cvar_t      *r_noportals;
-	cvar_t      *r_portalOnly;
-	cvar_t      *r_portalSky;
+
 	cvar_t      *r_max_portal_levels;
 
 	cvar_t      *r_subdivisions;
@@ -195,12 +222,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_showImages;
 
-	cvar_t      *r_forceFog;
 	cvar_t      *r_wolfFog;
 	cvar_t      *r_noFog;
 
-	cvar_t      *r_forceAmbient;
-	cvar_t      *r_ambientScale;
+	Cvar::Range<Cvar::Cvar<float>> r_forceAmbient( "r_forceAmbient", "Minimal light amount in lightGrid; -1 to use map value",
+		Cvar::CHEAT, -1.0f, -1.0f, 0.3f );
+	Cvar::Cvar<float> r_ambientScale( "r_ambientScale", "Scale lightGrid produced by ambientColor keyword by this much", Cvar::CHEAT, 1.0 );
 	cvar_t      *r_lightScale;
 	cvar_t      *r_debugSort;
 	cvar_t      *r_printShaders;
@@ -210,44 +237,63 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_showTris;
 	cvar_t      *r_showSky;
-	cvar_t      *r_showShadowVolumes;
-	cvar_t      *r_showShadowLod;
-	cvar_t      *r_showShadowMaps;
 	cvar_t      *r_showSkeleton;
-	cvar_t      *r_showEntityTransforms;
-	cvar_t      *r_showLightTransforms;
-	cvar_t      *r_showLightInteractions;
-	cvar_t      *r_showLightScissors;
-	cvar_t      *r_showLightBatches;
 	cvar_t      *r_showLightGrid;
 	cvar_t      *r_showLightTiles;
 	cvar_t      *r_showBatches;
+	Cvar::Cvar<bool> r_showVertexColors("r_showVertexColors", "show vertex colors used for vertex lighting", Cvar::CHEAT, false);
 	cvar_t      *r_showLightMaps;
 	cvar_t      *r_showDeluxeMaps;
 	cvar_t      *r_showNormalMaps;
 	cvar_t      *r_showMaterialMaps;
-	cvar_t      *r_showAreaPortals;
-	cvar_t      *r_showCubeProbes;
+	Cvar::Cvar<bool> r_showReflectionMaps( "r_showReflectionMaps", "Show only the static reflections on surfaces", Cvar::NONE, false );
+	Cvar::Range<Cvar::Cvar<int>> r_showCubeProbes( "r_showCubeProbes", "Show static reflections cubemap placement: 0: off, 1: grid, "
+		"2: unique only", Cvar::NONE,
+		Util::ordinal( showCubeProbesMode::DISABLED ),
+		Util::ordinal( showCubeProbesMode::DISABLED ),
+		Util::ordinal( showCubeProbesMode::UNIQUE ) );
+	Cvar::Cvar<int> r_showCubeProbeFace( "r_showCubeProbeFace", "Render from the perspective of a selected static reflection "
+		"cubemap face, -1 to disable", Cvar::NONE, -1 );
 	cvar_t      *r_showBspNodes;
-	cvar_t      *r_showParallelShadowSplits;
-	cvar_t      *r_showDecalProjectors;
+	Cvar::Range<Cvar::Cvar<int>> r_showGlobalMaterials( "r_showGlobalMaterials", "Show material system materials: 0: off, 1: depth, "
+		"2: opaque, 3: opaque + transparent", Cvar::NONE,
+		Util::ordinal( MaterialDebugMode::NONE ),
+		Util::ordinal( MaterialDebugMode::NONE ),
+		Util::ordinal( MaterialDebugMode::OPAQUE_TRANSPARENT ) );
+	Cvar::Cvar<bool> r_materialDebug( "r_materialDebug", "Enable material debug SSBO", Cvar::NONE, false );
+
+	Cvar::Cvar<bool> r_profilerRenderSubGroups( "r_profilerRenderSubGroups", "Enable subgroup profiling in rendering shaders", Cvar::CHEAT, false );
+	Cvar::Range<Cvar::Cvar<int>> r_profilerRenderSubGroupsMode( "r_profilerRenderSubGroupsMode", "Red: more wasted lanes, green: less wasted lanes; "
+		"0: VS opaque, 1: VS transparent, 2: VS all, 3: FS opaque, 4: FS transparent, 5: FS all", Cvar::NONE,
+		Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_OPAQUE ),
+		Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_OPAQUE ),
+		Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_ALL ) );
+	Cvar::Cvar<int> r_profilerRenderSubGroupsStage( "r_profilerRenderSubGroupsStage", "Select a specific"
+		"stage/material ID (if material system is enabled) for subgroup profiling "
+		"(-1 to profile all stages/materials, rendered in their usual order); "
+		"for materials, material IDs start from opaque materials, depth pre-pass materials are ignored", Cvar::NONE, -1 );
+
+	Cvar::Cvar<int> r_forceRendererTime( "r_forceRendererTime", "Set a specific time (in ms, since the start of the map) for time-based shader effects; -1 to disable", Cvar::CHEAT, -1 );
 
 	cvar_t      *r_vboFaces;
 	cvar_t      *r_vboCurves;
 	cvar_t      *r_vboTriangles;
-	cvar_t      *r_vboShadows;
-	cvar_t      *r_vboLighting;
-	cvar_t      *r_vboModels;
+	Cvar::Cvar<bool> r_vboModels( "r_vboModels", "Use static GPU VBOs/IBOs for models", Cvar::NONE, true );
 	cvar_t      *r_vboVertexSkinning;
-	cvar_t      *r_vboDeformVertexes;
 
 	cvar_t      *r_mergeLeafSurfaces;
-
-	cvar_t      *r_bloom;
-	cvar_t      *r_bloomBlur;
-	cvar_t      *r_bloomPasses;
+	
+	Cvar::Cvar<bool> r_bloom( "r_bloom", "Use bloom", Cvar::ARCHIVE, false );
+	Cvar::Cvar<float> r_bloomBlur( "r_bloomBlur", "Bloom strength", Cvar::NONE, 1.0 );
+	Cvar::Cvar<int> r_bloomPasses( "r_bloomPasses", "Amount of bloom passes in each direction", Cvar::NONE, 2 );
 	cvar_t      *r_FXAA;
-	cvar_t      *r_ssao;
+	Cvar::Range<Cvar::Cvar<int>> r_ssao( "r_ssao",
+		"Screen space ambient occlusion: "
+		"-1: show, 0: disabled, 1: enabled",
+		Cvar::NONE,
+		Util::ordinal( ssaoMode::DISABLED ),
+		Util::ordinal( ssaoMode::SHOW ),
+		Util::ordinal( ssaoMode::ENABLED ) );
 
 	cvar_t      *r_evsmPostProcess;
 
@@ -295,37 +341,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		//      - r_(color|depth|stencil)bits
 		//
 
-		if ( glConfig.vidWidth == 0 )
+		if ( windowConfig.vidWidth == 0 )
 		{
-			GLint temp;
-
 			if ( !GLimp_Init() )
 			{
 				return false;
 			}
 
-			if( glConfig2.glCoreProfile ) {
-				glGenVertexArrays( 1, &backEnd.currentVAO );
-				glBindVertexArray( backEnd.currentVAO );
-			}
-
-			glState.tileStep[ 0 ] = TILE_SIZE * ( 1.0f / glConfig.vidWidth );
-			glState.tileStep[ 1 ] = TILE_SIZE * ( 1.0f / glConfig.vidHeight );
+			glState.tileStep[ 0 ] = TILE_SIZE * ( 1.0f / windowConfig.vidWidth );
+			glState.tileStep[ 1 ] = TILE_SIZE * ( 1.0f / windowConfig.vidHeight );
 
 			GL_CheckErrors();
 
 			strcpy( renderer_buffer, glConfig.renderer_string );
 			Q_strlwr( renderer_buffer );
-
-			// OpenGL driver constants
-			glGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
-			glConfig.maxTextureSize = temp;
-
-			// stubbed or broken drivers may have reported 0...
-			if ( glConfig.maxTextureSize <= 0 )
-			{
-				glConfig.maxTextureSize = 0;
-			}
 
 			// handle any OpenGL/GLSL brokenness here...
 			// nothing at present
@@ -352,6 +381,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		{
 			GLSL_ShutdownGPUShaders();
 			GLSL_InitGPUShaders();
+		}
+
+		if ( glConfig.glCoreProfile ) {
+			glGenVertexArrays( 1, &backEnd.defaultVAO );
+			GL_BindVAO( backEnd.defaultVAO );
 		}
 
 		GL_CheckErrors();
@@ -495,18 +529,21 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		return true;
 	}
 
-	/*
-	** R_ModeList_f
-	*/
-	static void R_ModeList_f()
+	class ListModesCmd : public Cmd::StaticCmd
 	{
-		int i;
-
-		for ( i = 0; i < s_numVidModes; i++ )
+	public:
+		ListModesCmd() : StaticCmd("listModes", Cmd::RENDERER, "list suggested screen/window dimensions") {}
+		void Run( const Cmd::Args& ) const override
 		{
-			Log::Notice("Mode %-2d: %s", i, r_vidModes[ i ].description );
+			int i;
+
+			for ( i = 0; i < s_numVidModes; i++ )
+			{
+				Print("Mode %-2d: %s", i, r_vidModes[ i ].description );
+			}
 		}
-	}
+	};
+	static ListModesCmd listModesCmdRegistration;
 
 	/*
 	==================
@@ -550,7 +587,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	RB_TakeScreenshot
 	==================
 	*/
-	static void RB_TakeScreenshot( int x, int y, int width, int height, const char *fileName )
+	static void RB_TakeScreenshotTGA( int x, int y, int width, int height, const char *fileName )
 	{
 		byte *buffer;
 		int  dataSize;
@@ -620,7 +657,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		switch ( format )
 		{
 			case ssFormat_t::SSF_TGA:
-				RB_TakeScreenshot( x, y, width, height, fileName );
+				RB_TakeScreenshotTGA( x, y, width, height, fileName );
 				break;
 
 			case ssFormat_t::SSF_JPEG:
@@ -651,8 +688,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 		cmd->x = 0;
 		cmd->y = 0;
-		cmd->width = glConfig.vidWidth;
-		cmd->height = glConfig.vidHeight;
+		cmd->width = windowConfig.vidWidth;
+		cmd->height = windowConfig.vidHeight;
 		Q_strncpyz(cmd->fileName, path.c_str(), sizeof(cmd->fileName));
 		cmd->format = format;
 
@@ -714,7 +751,8 @@ public:
 		}
 	}
 };
-ScreenshotCmd screenshotTGARegistration("screenshot", ssFormat_t::SSF_TGA, "tga");
+ScreenshotCmd screenshotRegistration("screenshot", ssFormat_t::SSF_JPEG, "jpg");
+ScreenshotCmd screenshotTGARegistration("screenshotTGA", ssFormat_t::SSF_TGA, "tga");
 ScreenshotCmd screenshotJPEGRegistration("screenshotJPEG", ssFormat_t::SSF_JPEG, "jpg");
 ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "png");
 } // namespace
@@ -794,18 +832,10 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	*/
 	void GL_SetDefaultState()
 	{
-		int i;
+		GLIMP_LOGCOMMENT( "--- GL_SetDefaultState ---" );
 
-		GLimp_LogComment( "--- GL_SetDefaultState ---\n" );
-
-		GL_ClearDepth( 1.0f );
-		GL_ClearStencil( 0 );
-
-		GL_FrontFace( GL_CCW );
-		GL_CullFace( GL_FRONT );
-
-		glState.faceCulling = CT_TWO_SIDED;
-		glDisable( GL_CULL_FACE );
+		glCullFace( GL_FRONT );
+		GL_Cull( CT_TWO_SIDED );
 
 		GL_CheckErrors();
 
@@ -813,18 +843,10 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		GL_CheckErrors();
 
-		// initialize downstream texture units if we're running
-		// in a multitexture environment
-		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
-		{
-			for ( i = 31; i >= 0; i-- )
-			{
-				GL_SelectTexture( i );
-				GL_TextureMode( r_textureMode->string );
-			}
-		}
+		tr.currenttextures.resize( glConfig.maxTextureUnits );
 
-		GL_CheckErrors();
+		GL_TextureMode( r_textureMode.Get().c_str() );
+		r_textureMode.GetModifiedValue();
 
 		GL_DepthFunc( GL_LEQUAL );
 
@@ -833,7 +855,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		glState.vertexAttribsState = 0;
 		glState.vertexAttribPointersSet = 0;
 
-		GL_BindProgram( nullptr );
+		GL_BindNullProgram();
 
 		glBindBuffer( GL_ARRAY_BUFFER, 0 );
 		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
@@ -854,8 +876,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		   bound.
 		 */
 
-		GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-		GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, 0 );
+		GL_fboShim.glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
 		glState.currentFBO = nullptr;
 
 		GL_PolygonMode( GL_FRONT_AND_BACK, GL_FILL );
@@ -864,18 +885,19 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		glEnable( GL_SCISSOR_TEST );
 		glDisable( GL_BLEND );
 
-		glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-		glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
-		glClearDepth( 1.0 );
+		GL_ColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+		GL_ClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+		GL_ClearDepth( 1.0 );
+		GL_ClearStencil( 0 );
 
-		glDrawBuffer( GL_BACK );
+		GL_DrawBuffer( GL_BACK );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
 		GL_CheckErrors();
 
 		glState.stackIndex = 0;
 
-		for ( i = 0; i < MAX_GLSTACK; i++ )
+		for ( int i = 0; i < MAX_GLSTACK; i++ )
 		{
 			MatrixIdentity( glState.modelViewMatrix[ i ] );
 			MatrixIdentity( glState.projectionMatrix[ i ] );
@@ -888,7 +910,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	GfxInfo_f
 	================
 	*/
-	void GfxInfo_f()
+	static void GfxInfo_f()
 	{
 		static const char fsstrings[][16] =
 		{
@@ -896,75 +918,71 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			"fullscreen"
 		};
 
+		Log::Notice( "%sOpenGL hardware vendor: %s",
+			Color::ToString( Util::ordinal(glConfig.hardwareVendor) ? Color::Green : Color::Yellow ),
+			GetGLHardwareVendorName( glConfig.hardwareVendor ) );
+
+		Log::Notice( "%sOpenGL driver vendor: %s",
+			Color::ToString( Util::ordinal(glConfig.driverVendor) ? Color::Green : Color::Yellow ),
+			GetGLDriverVendorName( glConfig.driverVendor ) );
+
 		Log::Notice("GL_VENDOR: %s", glConfig.vendor_string );
 		Log::Notice("GL_RENDERER: %s", glConfig.renderer_string );
 		Log::Notice("GL_VERSION: %s", glConfig.version_string );
-		Log::Debug("GL_EXTENSIONS: %s", glConfig2.glExtensionsString );
+		Log::Debug("GL_EXTENSIONS: %s", glConfig.glExtensionsString );
+
 		Log::Notice("GL_MAX_TEXTURE_SIZE: %d", glConfig.maxTextureSize );
+		Log::Notice("GL_MAX_3D_TEXTURE_SIZE: %d", glConfig.max3DTextureSize );
+		Log::Notice("GL_MAX_CUBE_MAP_TEXTURE_SIZE: %d", glConfig.maxCubeMapTextureSize );
+		Log::Notice("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS: %d", glConfig.maxTextureUnits );
 
-		Log::Notice("GL_SHADING_LANGUAGE_VERSION: %s", glConfig2.shadingLanguageVersionString );
+		Log::Notice("GL_SHADING_LANGUAGE_VERSION: %s", glConfig.shadingLanguageVersionString );
 
-		Log::Notice("GL_MAX_VERTEX_UNIFORM_COMPONENTS %d", glConfig2.maxVertexUniforms );
-		Log::Notice("GL_MAX_VERTEX_ATTRIBS %d", glConfig2.maxVertexAttribs );
+		Log::Notice("GL_MAX_VERTEX_UNIFORM_COMPONENTS %d", glConfig.maxVertexUniforms );
+		Log::Notice("GL_MAX_VERTEX_ATTRIBS %d", glConfig.maxVertexAttribs );
 
-		if ( glConfig2.occlusionQueryAvailable )
+		if ( !glConfig.glCoreProfile )
 		{
-			Log::Notice("Occlusion query bits: %d", glConfig2.occlusionQueryBits );
+			Log::Notice( "GL_MAX_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB: %d", glConfig.maxAluInstructions );
+			Log::Notice( "GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB: %d", glConfig.maxTexIndirections );
 		}
 
-		if ( glConfig2.drawBuffersAvailable )
+		if ( glConfig.drawBuffersAvailable )
 		{
-			Log::Notice("GL_MAX_DRAW_BUFFERS: %d", glConfig2.maxDrawBuffers );
+			Log::Notice("GL_MAX_DRAW_BUFFERS: %d", glConfig.maxDrawBuffers );
 		}
 
-		if ( glConfig2.textureAnisotropyAvailable )
+		if ( glConfig.textureAnisotropyAvailable )
 		{
-			Log::Notice("GL_TEXTURE_MAX_ANISOTROPY_EXT: %f", glConfig2.maxTextureAnisotropy );
+			Log::Notice("GL_TEXTURE_MAX_ANISOTROPY_EXT: %f", glConfig.maxTextureAnisotropy );
 		}
 
-		Log::Notice("GL_MAX_RENDERBUFFER_SIZE: %d", glConfig2.maxRenderbufferSize );
-		Log::Notice("GL_MAX_COLOR_ATTACHMENTS: %d", glConfig2.maxColorAttachments );
+		Log::Notice("GL_MAX_COLOR_ATTACHMENTS: %d", glConfig.maxColorAttachments );
 
 		Log::Notice("PIXELFORMAT: color(%d-bits)", glConfig.colorBits );
 
-		{
-			std::string out;
-			if ( glConfig.displayFrequency )
-			{
-				out = Str::Format("%d", glConfig.displayFrequency );
-			}
-			else
-			{
-				out = "N/A";
-			}
-
-			Log::Notice("MODE: %d, %d x %d %s hz: %s",
-				r_mode->integer,
-				glConfig.vidWidth, glConfig.vidHeight,
-				fsstrings[ +r_fullscreen.Get() ],
-				out
-				);
-		}
+		Log::Notice("MODE: %d, %d x %d %s",
+			r_mode->integer,
+			windowConfig.vidWidth, windowConfig.vidHeight,
+			fsstrings[ +r_fullscreen.Get() ] );
 
 		if ( !!r_glExtendedValidation->integer )
 		{
 			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d, highest: %d.%d",
-				glConfig2.glMajor, glConfig2.glMinor, glConfig2.glRequestedMajor, glConfig2.glRequestedMinor,
-				glConfig2.glHighestMajor, glConfig2.glHighestMinor );
+				glConfig.glMajor, glConfig.glMinor, glConfig.glRequestedMajor, glConfig.glRequestedMinor,
+				glConfig.glHighestMajor, glConfig.glHighestMinor );
 		}
 		else
 		{
-			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d", glConfig2.glMajor, glConfig2.glMinor, glConfig2.glRequestedMajor, glConfig2.glRequestedMinor );
+			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d", glConfig.glMajor, glConfig.glMinor, glConfig.glRequestedMajor, glConfig.glRequestedMinor );
 		}
 
-		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
+		if ( std::make_pair( glConfig.glMajor, glConfig.glMinor ) >= std::make_pair( 3, 2 ) )
 		{
-			Log::Notice("%sUsing OpenGL 3.x context.", Color::ToString( Color::Green ) );
-
 			/* See https://www.khronos.org/opengl/wiki/OpenGL_Context
 			for information about core, compatibility and forward context. */
 
-			if ( glConfig2.glCoreProfile )
+			if ( glConfig.glCoreProfile )
 			{
 				Log::Notice("%sUsing an OpenGL core profile.", Color::ToString( Color::Green ) );
 			}
@@ -972,29 +990,34 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			{
 				Log::Notice("%sUsing an OpenGL compatibility profile.", Color::ToString( Color::Red ) );
 			}
+		}
 
-			if ( glConfig2.glForwardCompatibleContext )
-			{
-				Log::Notice("OpenGL 3.x context is forward compatible.");
-			}
-			else
-			{
-				Log::Notice("OpenGL 3.x context is not forward compatible.");
-			}
+		if ( glConfig.glForwardCompatibleContext )
+		{
+			Log::Notice("OpenGL context is forward compatible.");
 		}
 		else
 		{
-			Log::Notice("%sUsing OpenGL 2.x context.", Color::ToString( Color::Red ) );
+			Log::Notice("OpenGL context is not forward compatible.");
 		}
 
-		if ( glConfig2.glEnabledExtensionsString.length() != 0 )
+		if ( glConfig.glEnabledExtensionsString.length() != 0 )
 		{
-			Log::Notice("%sUsing OpenGL extensions: %s", Color::ToString( Color::Green ), glConfig2.glEnabledExtensionsString );
+			Log::Notice("%sUsing OpenGL extensions: %s", Color::ToString( Color::Green ), glConfig.glEnabledExtensionsString );
 		}
 
-		if ( glConfig2.glMissingExtensionsString.length() != 0 )
+		if ( glConfig.glMissingExtensionsString.length() != 0 )
 		{
-			Log::Notice("%sMissing OpenGL extensions: %s", Color::ToString( Color::Red ), glConfig2.glMissingExtensionsString );
+			Log::Notice("%sMissing OpenGL extensions: %s", Color::ToString( Color::Red ), glConfig.glMissingExtensionsString );
+		}
+
+		if ( glConfig.halfFloatVertexAvailable )
+		{
+			Log::Notice("%sUsing half-float vertex format.", Color::ToString( Color::Green ));
+		}
+		else
+		{
+			Log::Notice("%sMissing half-float vertex format.", Color::ToString( Color::Red ));
 		}
 
 		if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
@@ -1007,19 +1030,19 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("%sUsing S3TC (DXTC) texture compression.", Color::ToString( Color::Green ) );
 		}
 
-		if ( glConfig2.vboVertexSkinningAvailable )
+		if ( glConfig.vboVertexSkinningAvailable )
 		{
 			/* Mesa drivers usually support 256 bones, Nvidia proprietary drivers
 			usually support 233 bones, OpenGL 2.1 hardware usually supports no more
 			than 41 bones which may not be enough to use hardware acceleration on
 			models from games like Unvanquished. */
-			if ( glConfig2.maxVertexSkinningBones < 233 )
+			if ( glConfig.maxVertexSkinningBones < 233 )
 			{
-				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, some models may not be hardware accelerated.", Color::ToString( Color::Red ), glConfig2.maxVertexSkinningBones );
+				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, some models may not be hardware accelerated.", Color::ToString( Color::Red ), glConfig.maxVertexSkinningBones );
 			}
 			else
 			{
-				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, models are hardware accelerated.", Color::ToString( Color::Green ), glConfig2.maxVertexSkinningBones );
+				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, models are hardware accelerated.", Color::ToString( Color::Green ), glConfig.maxVertexSkinningBones );
 			}
 		}
 		else
@@ -1037,7 +1060,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("Forcing glFinish." );
 		}
 
-		Log::Debug("texturemode: %s", r_textureMode->string );
+		Log::Debug("texturemode: %s", r_textureMode.Get() );
 		Log::Debug("picmip: %d", r_picMip->integer );
 		Log::Debug("imageMaxDimension: %d", r_imageMaxDimension->integer );
 		Log::Debug("ignoreMaterialMinDimension: %d", r_ignoreMaterialMinDimension->integer );
@@ -1045,14 +1068,50 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Log::Debug("replaceMaterialMinDimensionIfPresentWithMaxDimension: %d", r_replaceMaterialMinDimensionIfPresentWithMaxDimension->integer );
 	}
 
-	static void GLSL_restart_f()
-	{
-		// make sure the render thread is stopped
-		R_SyncRenderThread();
+	// FIXME: uses regular logging not Print()
+	static Cmd::LambdaCmd gfxInfoCmd(
+		"gfxinfo", Cmd::RENDERER, "dump graphics driver and configuration info",
+		[]( const Cmd::Args & ) { GfxInfo_f(); });
 
-		GLSL_ShutdownGPUShaders();
-		GLSL_InitGPUShaders();
-	}
+	class GlslRestartCmd : public Cmd::StaticCmd
+	{
+	public:
+		GlslRestartCmd() : StaticCmd(
+			"glsl_restart", Cmd::RENDERER, "recompile GLSL shaders (useful when shaderpath is set)") {}
+
+		void Run( const Cmd::Args & ) const override
+		{
+			// make sure the render thread is stopped
+			R_SyncRenderThread();
+
+			GLSL_ShutdownGPUShaders();
+			GLSL_InitGPUShaders();
+
+			for ( int i = 0; i < tr.numShaders; i++ )
+			{
+				shader_t &shader = *tr.shaders[ i ];
+				if ( shader.stages == shader.lastStage || shader.stages[ 0 ].deformIndex == 0 )
+				{
+					continue;
+				}
+
+				int deformIndex =
+					gl_shaderManager.GetDeformShaderIndex( shader.deforms, shader.numDeforms );
+
+				for ( shaderStage_t *stage = shader.stages; stage != shader.lastStage; stage++ )
+				{
+					stage->deformIndex = deformIndex;
+				}
+			}
+
+			if ( glConfig.usingMaterialSystem ) {
+				/* GLSL shaders linked to materials will be invalidated by glsl_restart,
+				so we need to reset them here */
+				materialSystem.GLSLRestart();
+			}
+		}
+	};
+	static GlslRestartCmd glslRestartCmdRegistration;
 
 	/*
 	===============
@@ -1065,104 +1124,64 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_glMajorVersion = Cvar_Get( "r_glMajorVersion", "", CVAR_LATCH );
 		r_glMinorVersion = Cvar_Get( "r_glMinorVersion", "", CVAR_LATCH );
 		r_glProfile = Cvar_Get( "r_glProfile", "", CVAR_LATCH );
-		r_glDebugProfile = Cvar_Get( "r_glDebugProfile", "", CVAR_LATCH );
-		r_glDebugMode = Cvar_Get( "r_glDebugMode", "0", CVAR_CHEAT );
-		r_glAllowSoftware = Cvar_Get( "r_glAllowSoftware", "0", CVAR_LATCH );
+		Cvar::Latch( r_glDebugProfile );
+		r_glAllowSoftware = Cvar_Get( "r_glAllowSoftware", "1", CVAR_LATCH );
 		r_glExtendedValidation = Cvar_Get( "r_glExtendedValidation", "0", CVAR_LATCH );
 
 		// latched and archived variables
-		r_ext_occlusion_query = Cvar_Get( "r_ext_occlusion_query", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_ext_draw_buffers = Cvar_Get( "r_ext_draw_buffers", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_ext_vertex_array_object = Cvar_Get( "r_ext_vertex_array_object", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_ext_half_float_pixel = Cvar_Get( "r_ext_half_float_pixel", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_ext_texture_float = Cvar_Get( "r_ext_texture_float", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_ext_texture_integer = Cvar_Get( "r_ext_texture_integer", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_ext_texture_rg = Cvar_Get( "r_ext_texture_rg", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_ext_texture_filter_anisotropic = Cvar_Get( "r_ext_texture_filter_anisotropic", "4",  CVAR_LATCH | CVAR_ARCHIVE );
-		r_ext_gpu_shader4 = Cvar_Get( "r_ext_gpu_shader4", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_arb_buffer_storage = Cvar_Get( "r_arb_buffer_storage", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_arb_map_buffer_range = Cvar_Get( "r_arb_map_buffer_range", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_arb_sync = Cvar_Get( "r_arb_sync", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_arb_uniform_buffer_object = Cvar_Get( "r_arb_uniform_buffer_object", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_arb_texture_gather = Cvar_Get( "r_arb_texture_gather", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_arb_gpu_shader5 = Cvar_Get( "r_arb_gpu_shader5", "1", CVAR_CHEAT | CVAR_LATCH );
-
 		r_picMip = Cvar_Get( "r_picMip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_imageMaxDimension = Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_ignoreMaterialMinDimension = Cvar_Get( "r_ignoreMaterialMinDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_ignoreMaterialMaxDimension = Cvar_Get( "r_ignoreMaterialMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_replaceMaterialMinDimensionIfPresentWithMaxDimension
 			= Cvar_Get( "r_replaceMaterialMinDimensionIfPresentWithMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
-		r_colorMipLevels = Cvar_Get( "r_colorMipLevels", "0", CVAR_LATCH );
+		Cvar::Latch(r_imageFitScreen);
 		r_colorbits = Cvar_Get( "r_colorbits", "0",  CVAR_LATCH );
-		r_depthbits = Cvar_Get( "r_depthbits", "0",  CVAR_LATCH );
 		r_mode = Cvar_Get( "r_mode", "-2", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customwidth = Cvar_Get( "r_customwidth", "1600", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customheight = Cvar_Get( "r_customheight", "1024", CVAR_LATCH | CVAR_ARCHIVE );
 		r_subdivisions = Cvar_Get( "r_subdivisions", "4", CVAR_LATCH );
-		r_dynamicLightCastShadows = Cvar_Get( "r_dynamicLightCastShadows", "1", 0 );
-		r_precomputedLighting = Cvar_Get( "r_precomputedLighting", "1", CVAR_LATCH );
-		r_vertexLighting = Cvar_Get( "r_vertexLighting", "0", CVAR_LATCH | CVAR_ARCHIVE );
+		r_precomputedLighting = Cvar_Get( "r_precomputedLighting", "1", CVAR_CHEAT | CVAR_LATCH );
+		Cvar::Latch( r_overbrightDefaultExponent );
+		Cvar::Latch( r_overbrightBits );
+		Cvar::Latch( r_overbrightQ3 );
+		Cvar::Latch( r_overbrightIgnoreMapSettings );
+		Cvar::Latch( r_lightMode );
+		Cvar::Latch( r_colorGrading );
+		Cvar::Latch( r_drawSky );
 		r_lightStyles = Cvar_Get( "r_lightStyles", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_exportTextures = Cvar_Get( "r_exportTextures", "0", 0 );
 		r_heatHaze = Cvar_Get( "r_heatHaze", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_noMarksOnTrisurfs = Cvar_Get( "r_noMarksOnTrisurfs", "1", CVAR_CHEAT );
 
-		/* 1: Delay GLSL shader build until first map load.
-
-		This makes possible for the user to quickly reach the game main menu
-		without building all GLSL shaders and set a low graphics preset before
-		joining a game and loading a map.
-
-		Doing so prevents building unwanted or unsupported GLSL shaders on slow
-		and/or old hardware and drastically reduce first startup time. */
-		r_lazyShaders = Cvar_Get( "r_lazyShaders", "1", 0 );
-
-		r_forceFog = Cvar_Get( "r_forceFog", "0", CVAR_CHEAT /* | CVAR_LATCH */ );
-		AssertCvarRange( r_forceFog, 0.0f, 1.0f, false );
 		r_wolfFog = Cvar_Get( "r_wolfFog", "1", CVAR_CHEAT );
 		r_noFog = Cvar_Get( "r_noFog", "0", CVAR_CHEAT );
 
-		r_forceAmbient = Cvar_Get( "r_forceAmbient", "0.125",  CVAR_LATCH );
-		AssertCvarRange( r_forceAmbient, 0.0f, 0.3f, false );
+		Cvar::Latch( r_forceAmbient );
 
 		r_smp = Cvar_Get( "r_smp", "0",  CVAR_LATCH );
 
 		// temporary latched variables that can only change over a restart
 		r_singleShader = Cvar_Get( "r_singleShader", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_stitchCurves = Cvar_Get( "r_stitchCurves", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_debugShadowMaps = Cvar_Get( "r_debugShadowMaps", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_shadowMapLinearFilter = Cvar_Get( "r_shadowMapLinearFilter", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_lightBleedReduction = Cvar_Get( "r_lightBleedReduction", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_overDarkeningFactor = Cvar_Get( "r_overDarkeningFactor", "30.0", CVAR_CHEAT | CVAR_LATCH );
-		r_shadowMapDepthScale = Cvar_Get( "r_shadowMapDepthScale", "1.41", CVAR_CHEAT | CVAR_LATCH );
-
-		r_parallelShadowSplitWeight = Cvar_Get( "r_parallelShadowSplitWeight", "0.9", CVAR_CHEAT );
-		r_parallelShadowSplits = Cvar_Get( "r_parallelShadowSplits", "2", CVAR_CHEAT | CVAR_LATCH );
-		AssertCvarRange( r_parallelShadowSplits, 0, MAX_SHADOWMAPS - 1, true );
 
 		// archived variables that can change at any time
 		r_lodBias = Cvar_Get( "r_lodBias", "0", 0 );
 		r_znear = Cvar_Get( "r_znear", "3", CVAR_CHEAT );
 		r_zfar = Cvar_Get( "r_zfar", "0", CVAR_CHEAT );
 		r_checkGLErrors = Cvar_Get( "r_checkGLErrors", "-1", 0 );
-		r_fastsky = Cvar_Get( "r_fastsky", "0", CVAR_ARCHIVE );
 		r_finish = Cvar_Get( "r_finish", "0", CVAR_CHEAT );
-		r_textureMode = Cvar_Get( "r_textureMode", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE );
 		r_gamma = Cvar_Get( "r_gamma", "1.0", CVAR_ARCHIVE );
 		r_facePlaneCull = Cvar_Get( "r_facePlaneCull", "1", 0 );
 
-		r_ambientScale = Cvar_Get( "r_ambientScale", "1.0", CVAR_CHEAT | CVAR_LATCH );
+		Cvar::Latch( r_ambientScale );
 		r_lightScale = Cvar_Get( "r_lightScale", "2", CVAR_CHEAT );
 
 		r_vboFaces = Cvar_Get( "r_vboFaces", "1", CVAR_CHEAT );
 		r_vboCurves = Cvar_Get( "r_vboCurves", "1", CVAR_CHEAT );
 		r_vboTriangles = Cvar_Get( "r_vboTriangles", "1", CVAR_CHEAT );
-		r_vboShadows = Cvar_Get( "r_vboShadows", "1", CVAR_CHEAT );
-		r_vboLighting = Cvar_Get( "r_vboLighting", "1", CVAR_CHEAT );
-		r_vboModels = Cvar_Get( "r_vboModels", "1", CVAR_LATCH );
+		Cvar::Latch( r_vboModels );
 		r_vboVertexSkinning = Cvar_Get( "r_vboVertexSkinning", "1",  CVAR_LATCH );
-		r_vboDeformVertexes = Cvar_Get( "r_vboDeformVertexes", "1",  CVAR_LATCH );
 
 		r_mergeLeafSurfaces = Cvar_Get( "r_mergeLeafSurfaces", "1",  CVAR_LATCH );
 
@@ -1170,11 +1189,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		r_printShaders = Cvar_Get( "r_printShaders", "0", 0 );
 
-		r_bloom = Cvar_Get( "r_bloom", "0", CVAR_LATCH | CVAR_ARCHIVE );
-		r_bloomBlur = Cvar_Get( "r_bloomBlur", "1.0", CVAR_CHEAT );
-		r_bloomPasses = Cvar_Get( "r_bloomPasses", "2", CVAR_CHEAT );
+		Cvar::Latch( r_bloom );
 		r_FXAA = Cvar_Get( "r_FXAA", "0", CVAR_LATCH | CVAR_ARCHIVE );
-		r_ssao = Cvar_Get( "r_ssao", "0", CVAR_LATCH | CVAR_ARCHIVE );
+		Cvar::Latch( r_ssao );
 
 		// temporary variables that can change at any time
 		r_showImages = Cvar_Get( "r_showImages", "0", CVAR_TEMP );
@@ -1182,26 +1199,20 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_debugSort = Cvar_Get( "r_debugSort", "0", CVAR_CHEAT );
 
 		r_nocurves = Cvar_Get( "r_nocurves", "0", CVAR_CHEAT );
-		r_lightScissors = Cvar_Get( "r_lightScissors", "1", CVAR_ARCHIVE );
-		AssertCvarRange( r_lightScissors, 0, 2, true );
 
-		r_noLightVisCull = Cvar_Get( "r_noLightVisCull", "0", CVAR_CHEAT );
-		r_noInteractionSort = Cvar_Get( "r_noInteractionSort", "0", CVAR_CHEAT );
-		r_dynamicLight = Cvar_Get( "r_dynamicLight", "2", CVAR_LATCH | CVAR_ARCHIVE );
+		Cvar::Latch( r_realtimeLighting );
+		Cvar::Latch( r_realtimeLightLayers );
+		Cvar::Latch( r_readonlyDepthBuffer );
+		Cvar::Latch( r_preferBindlessTextures );
+		Cvar::Latch( r_materialSystem );
 
-		r_staticLight = Cvar_Get( "r_staticLight", "2", CVAR_ARCHIVE );
 		r_drawworld = Cvar_Get( "r_drawworld", "1", CVAR_CHEAT );
-		r_portalOnly = Cvar_Get( "r_portalOnly", "0", CVAR_CHEAT );
-		r_portalSky = Cvar_Get( "cg_skybox", "1", 0 );
 		r_max_portal_levels = Cvar_Get( "r_max_portal_levels", "5", 0 );
 
 		r_showSmp = Cvar_Get( "r_showSmp", "0", CVAR_CHEAT );
 		r_skipBackEnd = Cvar_Get( "r_skipBackEnd", "0", CVAR_CHEAT );
-		r_skipLightBuffer = Cvar_Get( "r_skipLightBuffer", "0", CVAR_CHEAT );
 
-		r_measureOverdraw = Cvar_Get( "r_measureOverdraw", "0", CVAR_CHEAT );
 		r_lodScale = Cvar_Get( "r_lodScale", "5", CVAR_CHEAT );
-		r_lodTest = Cvar_Get( "r_lodTest", "0.5", CVAR_CHEAT );
 		r_norefresh = Cvar_Get( "r_norefresh", "0", CVAR_CHEAT );
 		r_drawentities = Cvar_Get( "r_drawentities", "1", CVAR_CHEAT );
 		r_drawpolies = Cvar_Get( "r_drawpolies", "1", CVAR_CHEAT );
@@ -1209,11 +1220,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_nocull = Cvar_Get( "r_nocull", "0", CVAR_CHEAT );
 		r_novis = Cvar_Get( "r_novis", "0", CVAR_CHEAT );
 		r_speeds = Cvar_Get( "r_speeds", "0", 0 );
-		r_verbose = Cvar_Get( "r_verbose", "0", CVAR_CHEAT );
-		r_logFile = Cvar_Get( "r_logFile", "0", CVAR_CHEAT );
 		r_debugSurface = Cvar_Get( "r_debugSurface", "0", CVAR_CHEAT );
 		r_nobind = Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
-		r_clear = Cvar_Get( "r_clear", "1", 0 );
 		r_offsetFactor = Cvar_Get( "r_offsetFactor", "-1", CVAR_CHEAT );
 		r_offsetUnits = Cvar_Get( "r_offsetUnits", "-2", CVAR_CHEAT );
 
@@ -1227,86 +1235,27 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_normalMapping = Cvar_Get( "r_normalMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_highQualityNormalMapping = Cvar_Get( "r_highQualityNormalMapping", "0",  CVAR_LATCH );
 		r_liquidMapping = Cvar_Get( "r_liquidMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
-		r_reliefDepthScale = Cvar_Get( "r_reliefDepthScale", "0.03", CVAR_CHEAT );
+		r_reliefDepthScale = Cvar_Get( "r_reliefDepthScale", "0.02", CVAR_CHEAT );
 		r_reliefMapping = Cvar_Get( "r_reliefMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_glowMapping = Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
-		r_reflectionMapping = Cvar_Get( "r_reflectionMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
+		Cvar::Latch( r_reflectionMapping );
+		Cvar::Latch( r_autoBuildCubeMaps );
+		Cvar::Latch( r_cubeProbeSize );
+		Cvar::Latch( r_cubeProbeSpacing );
 
-		r_wrapAroundLighting = Cvar_Get( "r_wrapAroundLighting", "0.7", CVAR_CHEAT | CVAR_LATCH );
 		r_halfLambertLighting = Cvar_Get( "r_halfLambertLighting", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_rimLighting = Cvar_Get( "r_rimLighting", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_rimExponent = Cvar_Get( "r_rimExponent", "3", CVAR_CHEAT | CVAR_LATCH );
 		AssertCvarRange( r_rimExponent, 0.5, 8.0, false );
 
+		Cvar::Latch( r_highPrecisionRendering );
+		Cvar::Latch( r_accurateSRGB );
+
 		r_drawBuffer = Cvar_Get( "r_drawBuffer", "GL_BACK", CVAR_CHEAT );
 		r_lockpvs = Cvar_Get( "r_lockpvs", "0", CVAR_CHEAT );
 		r_noportals = Cvar_Get( "r_noportals", "0", CVAR_CHEAT );
 
-		r_shadows = Cvar_Get( "cg_shadows", "1",  CVAR_LATCH );
-		AssertCvarRange( r_shadows, 0, Util::ordinal(shadowingMode_t::SHADOWING_EVSM32), true );
-
-		r_softShadows = Cvar_Get( "r_softShadows", "0",  CVAR_LATCH );
-		AssertCvarRange( r_softShadows, 0, 6, true );
-
-		r_softShadowsPP = Cvar_Get( "r_softShadowsPP", "0",  CVAR_LATCH );
-
-		r_shadowBlur = Cvar_Get( "r_shadowBlur", "2",  CVAR_LATCH );
-
-		r_shadowMapQuality = Cvar_Get( "r_shadowMapQuality", "3",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapQuality, 0, 4, true );
-
-		r_shadowMapSizeUltra = Cvar_Get( "r_shadowMapSizeUltra", "1024",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeUltra, 32, 2048, true );
-
-		r_shadowMapSizeVeryHigh = Cvar_Get( "r_shadowMapSizeVeryHigh", "512",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeVeryHigh, 32, 2048, true );
-
-		r_shadowMapSizeHigh = Cvar_Get( "r_shadowMapSizeHigh", "256",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeHigh, 32, 2048, true );
-
-		r_shadowMapSizeMedium = Cvar_Get( "r_shadowMapSizeMedium", "128",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeMedium, 32, 2048, true );
-
-		r_shadowMapSizeLow = Cvar_Get( "r_shadowMapSizeLow", "64",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeLow, 32, 2048, true );
-
-		shadowMapResolutions[ 0 ] = r_shadowMapSizeUltra->integer;
-		shadowMapResolutions[ 1 ] = r_shadowMapSizeVeryHigh->integer;
-		shadowMapResolutions[ 2 ] = r_shadowMapSizeHigh->integer;
-		shadowMapResolutions[ 3 ] = r_shadowMapSizeMedium->integer;
-		shadowMapResolutions[ 4 ] = r_shadowMapSizeLow->integer;
-
-		r_shadowMapSizeSunUltra = Cvar_Get( "r_shadowMapSizeSunUltra", "1024",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeSunUltra, 32, 2048, true );
-
-		r_shadowMapSizeSunVeryHigh = Cvar_Get( "r_shadowMapSizeSunVeryHigh", "1024",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeSunVeryHigh, 512, 2048, true );
-
-		r_shadowMapSizeSunHigh = Cvar_Get( "r_shadowMapSizeSunHigh", "1024",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeSunHigh, 512, 2048, true );
-
-		r_shadowMapSizeSunMedium = Cvar_Get( "r_shadowMapSizeSunMedium", "1024",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeSunMedium, 512, 2048, true );
-
-		r_shadowMapSizeSunLow = Cvar_Get( "r_shadowMapSizeSunLow", "1024",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapSizeSunLow, 512, 2048, true );
-
-		sunShadowMapResolutions[ 0 ] = r_shadowMapSizeSunUltra->integer;
-		sunShadowMapResolutions[ 1 ] = r_shadowMapSizeSunVeryHigh->integer;
-		sunShadowMapResolutions[ 2 ] = r_shadowMapSizeSunHigh->integer;
-		sunShadowMapResolutions[ 3 ] = r_shadowMapSizeSunMedium->integer;
-		sunShadowMapResolutions[ 4 ] = r_shadowMapSizeSunLow->integer;
-
-		r_shadowOffsetFactor = Cvar_Get( "r_shadowOffsetFactor", "0", CVAR_CHEAT );
-		r_shadowOffsetUnits = Cvar_Get( "r_shadowOffsetUnits", "0", CVAR_CHEAT );
-		r_shadowLodBias = Cvar_Get( "r_shadowLodBias", "0", CVAR_CHEAT );
-		r_shadowLodScale = Cvar_Get( "r_shadowLodScale", "0.8", CVAR_CHEAT );
-		r_noShadowPyramids = Cvar_Get( "r_noShadowPyramids", "0", CVAR_CHEAT );
-		r_cullShadowPyramidFaces = Cvar_Get( "r_cullShadowPyramidFaces", "0", CVAR_CHEAT );
-		r_cullShadowPyramidCurves = Cvar_Get( "r_cullShadowPyramidCurves", "1", CVAR_CHEAT );
-		r_cullShadowPyramidTriangles = Cvar_Get( "r_cullShadowPyramidTriangles", "1", CVAR_CHEAT );
-		r_noShadowFrustums = Cvar_Get( "r_noShadowFrustums", "0", CVAR_CHEAT );
-		r_noLightFrustums = Cvar_Get( "r_noLightFrustums", "1", CVAR_CHEAT );
+		Cvar::Latch( r_shadows );
 
 		r_maxPolys = Cvar_Get( "r_maxpolys", "10000", CVAR_LATCH );  // 600 in vanilla Q3A
 		AssertCvarRange( r_maxPolys, 600, 30000, true );
@@ -1316,43 +1265,25 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		r_showTris = Cvar_Get( "r_showTris", "0", CVAR_CHEAT );
 		r_showSky = Cvar_Get( "r_showSky", "0", CVAR_CHEAT );
-		r_showShadowVolumes = Cvar_Get( "r_showShadowVolumes", "0", CVAR_CHEAT );
-		r_showShadowLod = Cvar_Get( "r_showShadowLod", "0", CVAR_CHEAT );
-		r_showShadowMaps = Cvar_Get( "r_showShadowMaps", "0", CVAR_CHEAT );
 		r_showSkeleton = Cvar_Get( "r_showSkeleton", "0", CVAR_CHEAT );
-		r_showEntityTransforms = Cvar_Get( "r_showEntityTransforms", "0", CVAR_CHEAT );
-		r_showLightTransforms = Cvar_Get( "r_showLightTransforms", "0", CVAR_CHEAT );
-		r_showLightInteractions = Cvar_Get( "r_showLightInteractions", "0", CVAR_CHEAT );
-		r_showLightScissors = Cvar_Get( "r_showLightScissors", "0", CVAR_CHEAT );
-		r_showLightBatches = Cvar_Get( "r_showLightBatches", "0", CVAR_CHEAT );
 		r_showLightGrid = Cvar_Get( "r_showLightGrid", "0", CVAR_CHEAT );
 		r_showLightTiles = Cvar_Get("r_showLightTiles", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showBatches = Cvar_Get( "r_showBatches", "0", CVAR_CHEAT );
+		Cvar::Latch( r_showVertexColors );
 		r_showLightMaps = Cvar_Get( "r_showLightMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showDeluxeMaps = Cvar_Get( "r_showDeluxeMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showNormalMaps = Cvar_Get( "r_showNormalMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showMaterialMaps = Cvar_Get( "r_showMaterialMaps", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_showAreaPortals = Cvar_Get( "r_showAreaPortals", "0", CVAR_CHEAT );
-		r_showCubeProbes = Cvar_Get( "r_showCubeProbes", "0", CVAR_CHEAT );
+		Cvar::Latch( r_showReflectionMaps );
 		r_showBspNodes = Cvar_Get( "r_showBspNodes", "0", CVAR_CHEAT );
-		r_showParallelShadowSplits = Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_showDecalProjectors = Cvar_Get( "r_showDecalProjectors", "0", CVAR_CHEAT );
-
-		// make sure all the commands added here are also removed in R_Shutdown
-		ri.Cmd_AddCommand( "imagelist", R_ImageList_f );
-		ri.Cmd_AddCommand( "shaderlist", R_ShaderList_f );
-		ri.Cmd_AddCommand( "shaderexp", R_ShaderExp_f );
-		ri.Cmd_AddCommand( "skinlist", R_SkinList_f );
-		ri.Cmd_AddCommand( "modellist", R_Modellist_f );
-		ri.Cmd_AddCommand( "modelist", R_ModeList_f );
-		ri.Cmd_AddCommand( "animationlist", R_AnimationList_f );
-		ri.Cmd_AddCommand( "fbolist", R_FBOList_f );
-		ri.Cmd_AddCommand( "vbolist", R_VBOList_f );
-		ri.Cmd_AddCommand( "gfxinfo", GfxInfo_f );
-		ri.Cmd_AddCommand( "buildcubemaps", R_BuildCubeMaps );
-
-		ri.Cmd_AddCommand( "glsl_restart", GLSL_restart_f );
+		Cvar::Latch( r_showGlobalMaterials );
+		Cvar::Latch( r_materialDebug );
+		Cvar::Latch( r_materialSeparatePerShader );
+		Cvar::Latch( r_profilerRenderSubGroups );
 	}
+
+	static float convertFloatFromSRGB_NOP( float f ) { return f; }
+	static Color::Color convertColorFromSRGB_NOP( Color::Color c ) { return c; }
 
 	/*
 	===============
@@ -1366,14 +1297,12 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Log::Debug("----- R_Init -----" );
 
 		// clear all our internal state
-		tr.~trGlobals_t();
-		new(&tr) trGlobals_t{};
+		ResetStruct( tr );
+		ResetStruct( backEnd );
+		ResetStruct( tess );
 
-		backEnd.~backEndState_t();
-		new(&backEnd) backEndState_t{};
-
-		tess.~shaderCommands_t();
-		new(&tess) shaderCommands_t{};
+		tr.convertFloatFromSRGB = convertFloatFromSRGB_NOP;
+		tr.convertColorFromSRGB = convertColorFromSRGB_NOP;
 
 		if ( ( intptr_t ) tess.verts & 15 )
 		{
@@ -1405,8 +1334,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			}
 		}
 
-		R_InitFogTable();
-
 		R_NoiseInit();
 
 		R_Register();
@@ -1414,6 +1341,63 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		if ( !InitOpenGL() )
 		{
 			return false;
+		}
+
+		tr.lightMode = lightMode_t( r_lightMode.Get() );
+
+		if ( !Com_AreCheatsAllowed() )
+		{
+			switch( tr.lightMode )
+			{
+				case lightMode_t::VERTEX:
+				case lightMode_t::MAP:
+					break;
+
+				default:
+					tr.lightMode = lightMode_t::MAP;
+					r_lightMode.Set( Util::ordinal( tr.lightMode ) );
+					Cvar::Latch( r_lightMode );
+					break;
+			}
+		}
+
+		if ( r_showNormalMaps->integer
+			|| r_showMaterialMaps->integer )
+		{
+			tr.lightMode = lightMode_t::MAP;
+		}
+		else if ( r_showLightMaps->integer
+			|| r_showDeluxeMaps->integer )
+		{
+			tr.lightMode = lightMode_t::MAP;
+		}
+		else if ( r_showVertexColors.Get() )
+		{
+			tr.lightMode = lightMode_t::VERTEX;
+		}
+
+		if ( r_reflectionMapping.Get() ) {
+			glConfig.reflectionMappingAvailable = true;
+
+			if ( !r_normalMapping->integer ) {
+				glConfig.reflectionMappingAvailable = false;
+				Log::Warn( "Unable to use static reflections without normal mapping, make sure you enable r_normalMapping" );
+			}
+
+			if ( !r_deluxeMapping->integer ) {
+				glConfig.reflectionMappingAvailable = false;
+				Log::Warn( "Unable to use static reflections without deluxe mapping, make sure you enable r_deluxeMapping" );
+			}
+
+			if ( !r_specularMapping->integer ) {
+				glConfig.reflectionMappingAvailable = false;
+				Log::Warn( "Unable to use static reflections without specular mapping, make sure you enable r_specularMapping" );
+			}
+
+			if ( r_physicalMapping->integer ) {
+				glConfig.reflectionMappingAvailable = false;
+				Log::Warn( "Unable to use static reflections with physical mapping, make sure you disable r_physicalMapping" );
+			}
 		}
 
 		backEndData[ 0 ] = ( backEndData_t * ) ri.Hunk_Alloc( sizeof( *backEndData[ 0 ] ), ha_pref::h_low );
@@ -1433,11 +1417,36 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			backEndData[ 1 ] = nullptr;
 		}
 
+		switch ( r_readonlyDepthBuffer.Get() )
+		{
+		case 0:
+			glConfig.usingReadonlyDepth = false;
+			break;
+		case 1:
+			glConfig.usingReadonlyDepth = !glConfig.textureBarrierAvailable;
+			break;
+		case 2:
+			glConfig.usingReadonlyDepth = true;
+			break;
+		}
+
+		if ( glConfig.usingReadonlyDepth && !r_depthShaders.Get() )
+		{
+			Log::Warn( "Disabling read-only depth buffer because depth pre-pass is disabled" );
+			glConfig.usingReadonlyDepth = false;
+		}
+
 		R_ToggleSmpFrame();
 
 		R_InitImages();
 
 		R_InitFBOs();
+
+		// This is here in case creating the depth-only FBO failed.
+		if ( !glConfig.usingReadonlyDepth )
+		{
+			tr.depthSamplerImage = tr.currentDepthImage;
+		}
 
 		R_InitVBOs();
 
@@ -1450,11 +1459,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		R_InitAnimations();
 
 		R_InitFreeType();
-
-		if ( glConfig2.textureAnisotropyAvailable )
-		{
-			AssertCvarRange( r_ext_texture_filter_anisotropic, 0, glConfig2.maxTextureAnisotropy, false );
-		}
 
 		R_InitVisTests();
 
@@ -1477,26 +1481,11 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	{
 		Log::Debug("RE_Shutdown( destroyWindow = %i )", destroyWindow );
 
-		ri.Cmd_RemoveCommand( "modellist" );
-		ri.Cmd_RemoveCommand( "imagelist" );
-		ri.Cmd_RemoveCommand( "shaderlist" );
-		ri.Cmd_RemoveCommand( "shaderexp" );
-		ri.Cmd_RemoveCommand( "skinlist" );
-		ri.Cmd_RemoveCommand( "gfxinfo" );
-		ri.Cmd_RemoveCommand( "modelist" );
-		ri.Cmd_RemoveCommand( "shaderstate" );
-		ri.Cmd_RemoveCommand( "animationlist" );
-		ri.Cmd_RemoveCommand( "fbolist" );
-		ri.Cmd_RemoveCommand( "vbolist" );
-		ri.Cmd_RemoveCommand( "generatemtr" );
-		ri.Cmd_RemoveCommand( "buildcubemaps" );
-
-		ri.Cmd_RemoveCommand( "glsl_restart" );
-
 		if ( tr.registered )
 		{
 			R_SyncRenderThread();
 
+			CIN_CloseAllVideos();
 			R_ShutdownBackend();
 			R_ShutdownImages();
 			R_ShutdownVBOs();
@@ -1506,17 +1495,20 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		R_DoneFreeType();
 
+		if ( glConfig.usingMaterialSystem ) {
+			materialSystem.Free();
+		}
+
 		// shut down platform specific OpenGL stuff
 		if ( destroyWindow )
 		{
 			GLSL_ShutdownGPUShaders();
-			if( glConfig2.glCoreProfile ) {
+			if( glConfig.glCoreProfile ) {
 				glBindVertexArray( 0 );
-				glDeleteVertexArrays( 1, &backEnd.currentVAO );
+				glDeleteVertexArrays( 1, &backEnd.defaultVAO );
 			}
 
 			GLimp_Shutdown();
-			ri.Tag_Free();
 		}
 
 		tr.registered = false;
@@ -1532,9 +1524,70 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	void RE_EndRegistration()
 	{
 		R_SyncRenderThread();
-		if ( r_lazyShaders->integer == 1 )
-		{
+		if ( r_lazyShaders.Get() == 1 ) {
+			if ( tr.world->numFogs > 0 )
+			{
+				// Fog is applied dynamically based on the surface's BBox, so build all of the q3 fog shaders here
+				for ( uint32_t i = 0; i < 3; i++ ) {
+					gl_fogQuake3Shader->SetVertexSkinning( i & 1 );
+					gl_fogQuake3Shader->SetVertexAnimation( i & 2 );
+					gl_fogQuake3Shader->SetDeform( 0 );
+					gl_fogQuake3Shader->MarkProgramForBuilding();
+				}
+			}
+
+			for ( int i = 0; i < tr.numModels; i++ ) {
+				const model_t* model = tr.models[i];
+				switch ( model->type ) {
+					case modtype_t::MOD_IQM:
+						MarkShaderBuildIQM( model->iqm );
+						break;
+					case modtype_t::MOD_MESH:
+						MarkShaderBuildMDV( model->mdv[0] );
+						break;
+					case modtype_t::MOD_MD5:
+						MarkShaderBuildMD5( model->md5 );
+						break;
+					case modtype_t::MOD_BSP:
+					case modtype_t::MOD_BAD:
+					default:
+						break;
+				}
+
+				/* This sucks because not all of those shaders might be used for skeletal models,
+				but MD5 doesn't have any way to check if a skin is used for a model,
+				so we don't know which ones will use skeletal animation in advance */
+				for ( int j = 0; j < tr.numSkins; j++ ) {
+					skin_t* skin = tr.skins[j];
+					for ( int k = 0; k < skin->numSurfaces; k++ ) {
+						MarkShaderBuild( skin->surfaces[k]->shader, -1, false, true, false );
+					}
+				}
+			}
+
 			GLSL_FinishGPUShaders();
+		}
+
+		if ( glConfig.shadingLanguage420PackAvailable ) {
+			gl_shaderManager.BindBuffers();
+		}
+
+		/* TODO: Move this into a loading step and don't render it to the screen
+		For now though do it here to avoid the ugly square rendering appearing on top of the loading screen */
+		if ( glConfig.reflectionMappingAvailable ) {
+			switch ( r_autoBuildCubeMaps.Get() ) {
+				case Util::ordinal( cubeProbesAutoBuildMode::CACHED ):
+				case Util::ordinal( cubeProbesAutoBuildMode::ALWAYS ):
+					R_BuildCubeMaps();
+					break;
+				case Util::ordinal( cubeProbesAutoBuildMode::DISABLED ):
+				default:
+					break;
+			}
+		} else if ( r_reflectionMapping.Get() && r_autoBuildCubeMaps.Get() != Util::ordinal( cubeProbesAutoBuildMode::DISABLED ) ) {
+			/* TODO: Add some proper functionality to check the various cvar combinations required for different graphics settings,
+			and move this check there */
+			Log::Notice( "Unable to build reflection cubemaps due to incorrect graphics settings" );
 		}
 	}
 
@@ -1549,13 +1602,13 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		ri = *rimp;
 
-		Log::Debug("GetRefAPI()" );
+		Log::Debug( "GetRefAPI()" );
 
-		memset( &re, 0, sizeof( re ) );
+		re = {};
 
 		if ( apiVersion != REF_API_VERSION )
 		{
-			Log::Notice("Mismatched REF_API_VERSION: expected %i, got %i", REF_API_VERSION, apiVersion );
+			Log::Notice( "Mismatched REF_API_VERSION: expected %i, got %i", REF_API_VERSION, apiVersion );
 			return nullptr;
 		}
 
@@ -1607,7 +1660,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.SetMatrixTransform = RE_SetMatrixTransform;
 		re.ResetMatrixTransform = RE_ResetMatrixTransform;
 
-		re.Glyph = RE_Glyph;
 		re.GlyphChar = RE_GlyphChar;
 		re.RegisterFont = RE_RegisterFont;
 		re.UnregisterFont = RE_UnregisterFont;
@@ -1618,18 +1670,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.inPVVS = R_inPVVS;
 		// Q3A END
 
-		// ET BEGIN
-		re.ProjectDecal = RE_ProjectDecal;
-		re.ClearDecals = RE_ClearDecals;
-
-		re.LoadDynamicShader = RE_LoadDynamicShader;
-		re.Finish = RE_Finish;
-		// ET END
-
 		// XreaL BEGIN
 		re.TakeVideoFrame = RE_TakeVideoFrame;
-
-		re.AddRefLightToScene = RE_AddRefLightToScene;
 
 		re.RegisterAnimation = RE_RegisterAnimation;
 		re.CheckSkeleton = RE_CheckSkeleton;

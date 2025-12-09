@@ -21,6 +21,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #if NACL_ANDROID
 #include <linux/ashmem.h>
@@ -34,7 +35,7 @@
 #include "native_client/src/shared/platform/nacl_check.h"
 
 
-#if NACL_LINUX && defined(NACL_ENABLE_TMPFS_REDIRECT_VAR)
+#if (NACL_LINUX || NACL_FREEBSD) && defined(NACL_ENABLE_TMPFS_REDIRECT_VAR)
 static const char kNaClTempPrefixVar[] = "NACL_TMPFS_PREFIX";
 #endif
 
@@ -79,9 +80,8 @@ static int AshmemCreateRegion(size_t size) {
 int NaClWouldBlock(void) {
   return errno == EAGAIN;
 }
-
 int NaClGetLastErrorString(char* buffer, size_t length) {
-#if NACL_LINUX && !NACL_ANDROID
+#if NACL_LINUX && defined(__GLIBC__)
   char* message;
   /*
    * Note some Linux distributions provide only GNU version of strerror_r().
@@ -171,7 +171,7 @@ NaClHandle NaClCreateMemoryObject(size_t length, int executable) {
    * To handle this case, sel_ldr can take a path
    * to tmpfs from the environment.
    */
-#if NACL_LINUX && defined(NACL_ENABLE_TMPFS_REDIRECT_VAR)
+#if (NACL_LINUX || NACL_FREEBSD) && defined(NACL_ENABLE_TMPFS_REDIRECT_VAR)
   if (NACL_ENABLE_TMPFS_REDIRECT_VAR) {
     const char* prefix = getenv(kNaClTempPrefixVar);
     if (prefix != NULL) {

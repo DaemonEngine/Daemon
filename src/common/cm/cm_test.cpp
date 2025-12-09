@@ -196,12 +196,8 @@ CM_PointContents
 int CM_PointContents( const vec3_t p, clipHandle_t model )
 {
 	int      leafnum;
-	int      i, k;
-	int      brushnum;
 	cLeaf_t  *leaf;
-	cbrush_t *b;
 	int      contents;
-	float    d;
 	cmodel_t *clipm;
 
 	if ( !cm.numNodes )
@@ -233,10 +229,11 @@ int CM_PointContents( const vec3_t p, clipHandle_t model )
 
 	contents = 0;
 
-	for ( k = 0; k < leaf->numLeafBrushes; k++ )
+	const int *firstBrushNum = leaf->firstLeafBrush;
+	const int *endBrushNum = firstBrushNum + leaf->numLeafBrushes;
+	for ( const int *brushNum = firstBrushNum; brushNum < endBrushNum; brushNum++ )
 	{
-		brushnum = leaf->firstLeafBrush[ k ];
-		b = &cm.brushes[ brushnum ];
+		const cbrush_t *b = &cm.brushes[ *brushNum ];
 
 		// XreaL BEGIN
 		if ( !CM_BoundsIntersectPoint( b->bounds[ 0 ], b->bounds[ 1 ], p ) )
@@ -247,19 +244,22 @@ int CM_PointContents( const vec3_t p, clipHandle_t model )
 		// XreaL END
 
 		// see if the point is in the brush
-		for ( i = 0; i < b->numsides; i++ )
+		const cbrushside_t *firstSide = b->sides;
+		const cbrushside_t *endSide = firstSide + b->numsides;
+		const cbrushside_t *side;
+		for ( side = firstSide; side < endSide; side++ )
 		{
-			d = DotProduct( p, b->sides[ i ].plane->normal );
+			float d = DotProduct( p, side->plane->normal );
 
 // FIXME test for Cash
-//          if ( d >= b->sides[i].plane->dist ) {
-			if ( d > b->sides[ i ].plane->dist )
+//          if ( d >= side->plane->dist ) {
+			if ( d > side->plane->dist )
 			{
 				break;
 			}
 		}
 
-		if ( i == b->numsides )
+		if ( side == endSide )
 		{
 			contents |= b->contents;
 		}
@@ -507,17 +507,12 @@ CM_BoundsIntersect
 */
 bool CM_BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 )
 {
-	if ( maxs[ 0 ] < mins2[ 0 ] - SURFACE_CLIP_EPSILON ||
-	     maxs[ 1 ] < mins2[ 1 ] - SURFACE_CLIP_EPSILON ||
-	     maxs[ 2 ] < mins2[ 2 ] - SURFACE_CLIP_EPSILON ||
-	     mins[ 0 ] > maxs2[ 0 ] + SURFACE_CLIP_EPSILON ||
-	     mins[ 1 ] > maxs2[ 1 ] + SURFACE_CLIP_EPSILON ||
-	     mins[ 2 ] > maxs2[ 2 ] + SURFACE_CLIP_EPSILON )
-	{
-		return false;
-	}
-
-	return true;
+	return ( maxs[ 0 ] >= mins2[ 0 ] - SURFACE_CLIP_EPSILON &&
+	     maxs[ 1 ] >= mins2[ 1 ] - SURFACE_CLIP_EPSILON &&
+	     maxs[ 2 ] >= mins2[ 2 ] - SURFACE_CLIP_EPSILON &&
+	     mins[ 0 ] <= maxs2[ 0 ] + SURFACE_CLIP_EPSILON &&
+	     mins[ 1 ] <= maxs2[ 1 ] + SURFACE_CLIP_EPSILON &&
+	     mins[ 2 ] <= maxs2[ 2 ] + SURFACE_CLIP_EPSILON );
 }
 
 /*
@@ -527,17 +522,12 @@ CM_BoundsIntersectPoint
 */
 bool CM_BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t point )
 {
-	if ( maxs[ 0 ] < point[ 0 ] - SURFACE_CLIP_EPSILON ||
-	     maxs[ 1 ] < point[ 1 ] - SURFACE_CLIP_EPSILON ||
-	     maxs[ 2 ] < point[ 2 ] - SURFACE_CLIP_EPSILON ||
-	     mins[ 0 ] > point[ 0 ] + SURFACE_CLIP_EPSILON ||
-	     mins[ 1 ] > point[ 1 ] + SURFACE_CLIP_EPSILON ||
-	     mins[ 2 ] > point[ 2 ] + SURFACE_CLIP_EPSILON )
-	{
-		return false;
-	}
-
-	return true;
+	return ( maxs[ 0 ] >= point[ 0 ] - SURFACE_CLIP_EPSILON &&
+	     maxs[ 1 ] >= point[ 1 ] - SURFACE_CLIP_EPSILON &&
+	     maxs[ 2 ] >= point[ 2 ] - SURFACE_CLIP_EPSILON &&
+	     mins[ 0 ] <= point[ 0 ] + SURFACE_CLIP_EPSILON &&
+	     mins[ 1 ] <= point[ 1 ] + SURFACE_CLIP_EPSILON &&
+	     mins[ 2 ] <= point[ 2 ] + SURFACE_CLIP_EPSILON );
 }
 
 // XreaL END

@@ -44,6 +44,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/wait.h>
 #ifdef __linux__
 #include <sys/prctl.h>
+#if defined(DAEMON_ARCH_armhf)
+#include <sys/utsname.h>
+#endif
 #endif
 #endif
 
@@ -54,6 +57,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 #define JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE 0x2000
 #endif
+
+static Cvar::Cvar<std::string> abiVersionCvar(
+	"version.daemon.abi", "Virtual machine IPC ABI version", Cvar::SERVERINFO | Cvar::ROM,
+	std::string(IPC::SYSCALL_ABI_VERSION) +
+	(IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES ? "+compatbreak" : ""));
+
+static Cvar::Cvar<bool> workaround_naclArchitecture_arm64_disableQualification(
+	"workaround.linux.arm64.naclDisableQualification",
+	"Disable platform qualification when running armhf NaCl loader on arm64 Linux",
+	Cvar::NONE, true);
+
+static Cvar::Cvar<bool> workaround_naclSystem_freebsd_disableQualification(
+	"workaround.naclSystem.freebsd.disableQualification",
+	"Disable platform qualification when running Linux NaCl loader on FreeBSD through Linuxulator",
+	Cvar::NONE, true);
+
+static Cvar::Cvar<bool> vm_nacl_qualification(
+	"vm.nacl.qualification",
+	"Enable NaCl loader platform qualification",
+	Cvar::INIT, true);
+
+static Cvar::Cvar<bool> vm_nacl_bootstrap(
+	"vm.nacl.bootstrap",
+	"Use NaCl bootstrap helper",
+	Cvar::INIT, true);
+
+static Cvar::Cvar<int> vm_timeout(
+	"vm.timeout",
+	"Receive timeout in seconds",
+	Cvar::NONE, 2);
 
 namespace VM {
 
@@ -136,15 +169,13 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 	HANDLE job = CreateJobObject(nullptr, nullptr);
 	if (!job)
 		Sys::Drop("VM: Could not create job object: %s", Sys::Win32StrError(GetLastError()));
-	JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli;
-	memset(&jeli, 0, sizeof(jeli));
+	JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli{};
 	jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
 	if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli)))
 		Sys::Drop("VM: Could not set job object information: %s", Sys::Win32StrError(GetLastError()));
 
-	STARTUPINFOW startupInfo;
+	STARTUPINFOW startupInfo{};
 	PROCESS_INFORMATION processInfo;
-	memset(&startupInfo, 0, sizeof(startupInfo));
 	if (stderrRedirect) {
 		startupInfo.hStdError = stderrRedirectHandle;
 		startupInfo.dwFlags = STARTF_USESTDHANDLES;
@@ -200,11 +231,11 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 #endif
 }
 
-std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug, bool extract, int debugLoader) {
+static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug, bool extract, int debugLoader) {
 	CheckMinAddressSysctlTooLarge();
 	const std::string& libPath = FS::GetLibPath();
-#ifdef NACL_RUNTIME_PATH
-	const char* naclPath = XSTRING(NACL_RUNTIME_PATH);
+#ifdef DAEMON_NACL_RUNTIME_PATH
+	const char* naclPath = DAEMON_NACL_RUNTIME_PATH_STRING;
 #else
 	const std::string& naclPath = libPath;
 #endif
@@ -223,66 +254,130 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::S
 #endif
 
 	// Extract the nexe from the pak so that nacl_loader can load it
-	module = win32Force64Bit ? name + "-x86_64.nexe" : name + "-" XSTRING(NACL_ARCH_STRING) ".nexe";
+	module = win32Force64Bit
+		? name + "-amd64.nexe"
+		: Str::Format("%s-%s.nexe", name, DAEMON_NACL_ARCH_STRING);
 	if (extract) {
 		try {
 			FS::File out = FS::HomePath::OpenWrite(module);
 			if (const FS::LoadedPakInfo* pak = FS::PakPath::LocateFile(module))
-				Log::Notice("Extracting VM module %s from %s...\n", module.c_str(), pak->path.c_str());
+				Log::Notice("Extracting VM module %s from %s...", module.c_str(), pak->path.c_str());
 			FS::PakPath::CopyFile(module, out);
 			out.Close();
 		} catch (std::system_error& err) {
 			Sys::Drop("VM: Failed to extract VM module %s: %s", module, err.what());
 		}
 		modulePath = FS::Path::Build(FS::GetHomePath(), module);
-	} else
+	} else {
 		modulePath = FS::Path::Build(libPath, module);
+	}
 
 	// Generate command line
 	Q_snprintf(rootSocketRedir, sizeof(rootSocketRedir), "%d:%d", ROOT_SOCKET_FD, (int)(intptr_t)pair.second.GetHandle());
-	irt = FS::Path::Build(naclPath, win32Force64Bit ? "irt_core-x86_64.nexe" : "irt_core-" XSTRING(NACL_ARCH_STRING) ".nexe");
-	nacl_loader = FS::Path::Build(naclPath, win32Force64Bit ? "nacl_loader64" EXE_EXT : "nacl_loader" EXE_EXT);
-	if (!FS::RawPath::FileExists(modulePath))
-		Log::Warn("VM module file not found: %s", modulePath);
-	if (!FS::RawPath::FileExists(nacl_loader))
-		Log::Warn("NaCl loader not found: %s", nacl_loader);
-	if (!FS::RawPath::FileExists(irt))
-		Log::Warn("NaCl integrated runtime not found: %s", irt);
-#ifdef __linux__
-	#if defined(DAEMON_ARCH_arm64)
+	irt = FS::Path::Build(naclPath, win32Force64Bit
+		? "irt_core-amd64.nexe"
+		: Str::Format("irt_core-%s.nexe", DAEMON_NACL_ARCH_STRING));
+	nacl_loader = FS::Path::Build(naclPath, win32Force64Bit ? "nacl_loader-amd64" EXE_EXT : "nacl_loader" EXE_EXT);
+
+	if (!FS::RawPath::FileExists(modulePath)) {
+		Sys::Error("VM module file not found: %s", modulePath);
+	}
+
+	if (!FS::RawPath::FileExists(nacl_loader)) {
+		Sys::Error("NaCl loader not found: %s", nacl_loader);
+	}
+
+	if (!FS::RawPath::FileExists(irt)) {
+		Sys::Error("NaCl integrated runtime not found: %s", irt);
+	}
+
+#if defined(__linux__) || defined(__FreeBSD__)
+	if (vm_nacl_bootstrap.Get()) {
+#if defined(DAEMON_ARCH_arm64)
 		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap-armhf");
-	#else
+#else
 		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
-	#endif
-	if (!FS::RawPath::FileExists(bootstrap))
-		Log::Warn("NaCl bootstrap helper not found: %s", bootstrap);
-	args.push_back(bootstrap.c_str());
-	args.push_back(nacl_loader.c_str());
-	args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
-	args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
+#endif
 
-	#if defined(DAEMON_ARCH_arm64) || defined(DAEMON_ARCH_armhf)
-		/* This is required to run on Raspberry Pi 4,
-		otherwise nexe loading fails with this message:
+		if (!FS::RawPath::FileExists(bootstrap)) {
+			Sys::Error("NaCl bootstrap helper not found: %s", bootstrap);
+		}
 
-		  Error while loading "sgame-armhf.nexe": CPU model is not supported
-
-		From nacl_loader --help we can read:
-
-		  -Q disable platform qualification (dangerous!)
-
-		When this option is enabled, nacl_loader will print:
-
-		  PLATFORM QUALIFICATION DISABLED BY -Q - Native Client's sandbox will be unreliable!
-
-		But the nexe will load and run. */
-
-		args.push_back("-Q");
-	#endif
+		args.push_back(bootstrap.c_str());
+		args.push_back(nacl_loader.c_str());
+		args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
+		args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
+	} else {
+		Log::Warn("Not using NaCl bootstrap helper.");
+		args.push_back(nacl_loader.c_str());
+	}
 #else
 	Q_UNUSED(bootstrap);
 	args.push_back(nacl_loader.c_str());
 #endif
+
+	bool enableQualification = vm_nacl_qualification.Get();
+
+	if (enableQualification) {
+#if defined(__linux__) && (defined(DAEMON_ARCH_arm64) || defined(DAEMON_ARCH_armhf))
+		if (workaround_naclArchitecture_arm64_disableQualification.Get()) {
+#if defined(DAEMON_ARCH_arm64)
+			bool onArm64 = true;
+#elif defined(DAEMON_ARCH_armhf)
+			bool onArm64 = false;
+
+			struct utsname buf;
+			if (!uname(&buf)) {
+				onArm64 = !strcmp(buf.machine, "aarch64");
+			}
+#endif
+
+			/* This is required to run armhf NaCl loader on arm64 kernel
+			otherwise nexe loading fails with this message:
+
+			> Error while loading "sgame-armhf.nexe": CPU model is not supported
+
+			From nacl_loader --help we can read:
+
+			> -Q disable platform qualification (dangerous!)
+
+			When this option is enabled, nacl_loader will print:
+
+			> PLATFORM QUALIFICATION DISABLED BY -Q - Native Client's sandbox will be unreliable!
+
+			But the nexe will load and run. */
+
+			if (onArm64) {
+				Log::Warn("Disabling NaCL platform qualification on arm64 kernel architecture.");
+				enableQualification = false;
+			}
+		}
+#endif
+
+#if defined(__FreeBSD__)
+		/* While it is possible to build a native FreeBSD engine, the only available NaCl loader
+		is the Linux one, which can run on Linuxulator (the FreeBSD Linux compatibility layer).
+
+		The Linux NaCl loader binary fails to qualify the platform and aborts with this message:
+
+		> Bus error (core dumped)
+
+		The Linux NaCl loader runs properly on Linuxulator when we disable the qualification. */
+
+		if (workaround_naclSystem_freebsd_disableQualification.Get()) {
+			Log::Warn("Disabling NaCL platform qualification on FreeBSD system.");
+			enableQualification = false;
+		}
+#endif
+	}
+	else {
+		Log::Warn("Not using NaCl platform qualification.");
+	}
+
+	if (!enableQualification) {
+		args.push_back("-Q");
+	}
+
 	if (debug) {
 		args.push_back("-g");
 	}
@@ -323,7 +418,7 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::S
 	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect));
 }
 
-std::pair<Sys::OSHandle, IPC::Socket> CreateNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug) {
+static std::pair<Sys::OSHandle, IPC::Socket> CreateNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug) {
 	const std::string& libPath = FS::GetLibPath();
 	std::vector<const char*> args;
 
@@ -343,7 +438,7 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNativeVM(std::pair<IPC::Socket, IPC:
 	return InternalLoadModule(std::move(pair), args.data(), true);
 }
 
-IPC::Socket CreateInProcessNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, VM::VMBase::InProcessInfo& inProcess) {
+static IPC::Socket CreateInProcessNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, VM::VMBase::InProcessInfo& inProcess) {
 	std::string filename = FS::Path::Build(FS::GetLibPath(), name + "-native-dll" + DLL_EXT);
 
 	Log::Notice("Loading VM module %s...", filename.c_str());
@@ -377,7 +472,7 @@ IPC::Socket CreateInProcessNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, St
 	return std::move(pair.first);
 }
 
-uint32_t VMBase::Create()
+void VMBase::Create()
 {
 	type = static_cast<vmType_t>(params.vmType.Get());
 
@@ -412,18 +507,44 @@ uint32_t VMBase::Create()
 	rootChannel = IPC::Channel(std::move(rootSocket));
 
 	if (type != TYPE_NATIVE_DLL && params.debug.Get())
-		Log::Notice("Waiting for GDB connection on localhost:4014\n");
+		Log::Notice("Waiting for GDB connection on localhost:4014");
 
 	// Only set a receive timeout for non-debug configurations, otherwise it
 	// would get triggered by breakpoints.
-	if (type != TYPE_NATIVE_DLL && !params.debug.Get())
-		rootChannel.SetRecvTimeout(std::chrono::seconds(2));
+	if (type != TYPE_NATIVE_DLL && !params.debug.Get()) {
+		rootChannel.SetRecvTimeout(std::chrono::seconds(vm_timeout.Get()));
+	}
 
-	// Read the ABI version from the root socket.
+	// Read the ABI version detection ABI version from the root socket.
 	// If this fails, we assume the remote process failed to start
 	Util::Reader reader = rootChannel.RecvMsg();
-	Log::Notice("Loaded VM module in %d msec", Sys::Milliseconds() - loadStartTime);
-	return reader.Read<uint32_t>();
+
+	// VM version incompatibility detection...
+
+	uint32_t magic = reader.Read<uint32_t>();
+	if (magic != IPC::ABI_VERSION_DETECTION_ABI_VERSION) {
+		Sys::Drop("Couldn't load the %s gamelogic module: it is built for %s version of Daemon engine",
+		          this->name, magic > IPC::ABI_VERSION_DETECTION_ABI_VERSION ? "a newer" : "an older");
+	}
+
+	std::string vmABI = reader.Read<std::string>();
+	if (vmABI != IPC::SYSCALL_ABI_VERSION) {
+		Sys::Drop("Couldn't load the %s gamelogic module: it uses ABI version %s but this Daemon engine uses %s",
+		          this->name, vmABI, IPC::SYSCALL_ABI_VERSION);
+	}
+
+	bool vmCompatBreaking = reader.Read<bool>();
+	if (vmCompatBreaking && !IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES) {
+		Sys::Drop("Couldn't load the %s gamelogic module: it has compatibility-breaking ABI changes but Daemon engine uses the vanilla %s ABI",
+		          this->name, IPC::SYSCALL_ABI_VERSION);
+	} else if (!vmCompatBreaking && IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES) {
+		Sys::Drop("Couldn't load the %s gamelogic module: Daemon has compatibility-breaking ABI changes but the VM uses the vanilla %s ABI",
+		          this->name, IPC::SYSCALL_ABI_VERSION);
+	} else if (IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES) {
+		Log::Notice("^6Using %s VM with unreleased ABI changes", this->name);
+	}
+
+	Log::Notice("Loaded %s VM module in %d msec", this->name, Sys::Milliseconds() - loadStartTime);
 }
 
 void VMBase::FreeInProcessVM() {
@@ -499,9 +620,9 @@ void VMBase::Free()
 		int status;
 		if (waitpid(processHandle, &status, WNOHANG) != 0) {
 			if (WIFSIGNALED(status))
-				Log::Warn("VM exited with signal %d: %s\n", WTERMSIG(status), strsignal(WTERMSIG(status)));
+				Log::Warn("VM exited with signal %d: %s", WTERMSIG(status), strsignal(WTERMSIG(status)));
 			else if (WIFEXITED(status))
-				Log::Warn("VM exited with non-zero exit code %d\n", WEXITSTATUS(status));
+				Log::Warn("VM exited with non-zero exit code %d", WEXITSTATUS(status));
 		}
 		kill(processHandle, SIGKILL);
 		waitpid(processHandle, nullptr, 0);
@@ -511,6 +632,11 @@ void VMBase::Free()
 		FreeInProcessVM();
 	}
 
+}
+
+VMBase::~VMBase()
+{
+	Free();
 }
 
 } // namespace VM

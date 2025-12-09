@@ -37,106 +37,107 @@ namespace IPC {
             Sys::Drop("Buffer is too small, size is %i", size);
         }
 
-        this->size = size - DATA_OFFSET;
-        base = reinterpret_cast<char*>(memory);
-        writerOffset = SAFETY_OFFSET;
-        readerOffset = 0;
+        size_ = size - DATA_OFFSET;
+        base_ = reinterpret_cast<char*>(memory);
+        writerOffset_ = SAFETY_OFFSET;
+        readerOffset_ = 0;
     }
 
     void CommandBuffer::Reset() {
         // The writer starts at the safety offset to have the invariant at init.
-        reinterpret_cast<SharedWriterData*>(base + WRITER_OFFSET)->offset.store(SAFETY_OFFSET);
-        reinterpret_cast<SharedReaderData*>(base + READER_OFFSET)->offset.store(0);
+        reinterpret_cast<SharedWriterData*>(base_ + WRITER_OFFSET)->offset.store(SAFETY_OFFSET);
+        reinterpret_cast<SharedReaderData*>(base_ + READER_OFFSET)->offset.store(0);
     }
 
     void CommandBuffer::LoadWriterData() {
-        writerOffset = reinterpret_cast<SharedWriterData*>(base + WRITER_OFFSET)->offset.load(std::memory_order_acquire);
-        if (writerOffset >= size) {
-            Sys::Drop("Invalid writerOffset %i for size %i", writerOffset, size);
+        writerOffset_ = reinterpret_cast<SharedWriterData*>(base_ + WRITER_OFFSET)->offset.load(std::memory_order_acquire);
+        if (writerOffset_ >= size_) {
+            Sys::Drop("Invalid writerOffset %i for size %i", writerOffset_, size_);
         }
     }
 
     void CommandBuffer::LoadReaderData() {
-        readerOffset = reinterpret_cast<SharedReaderData*>(base + READER_OFFSET)->offset.load(std::memory_order_acquire);
-        if (readerOffset >= size) {
-            Sys::Drop("Invalid readerOffset %i for size %i", readerOffset, size);
+        readerOffset_ = reinterpret_cast<SharedReaderData*>(base_ + READER_OFFSET)->offset.load(std::memory_order_acquire);
+        if (readerOffset_ >= size_) {
+            Sys::Drop("Invalid readerOffset %i for size %i", readerOffset_, size_);
         }
     }
 
     size_t CommandBuffer::GetMaxReadLength() const {
-        return FromRead(writerOffset) - SAFETY_OFFSET;
+        return FromRead(writerOffset_) - SAFETY_OFFSET;
     }
 
     size_t CommandBuffer::GetMaxWriteLength() const {
-        return FromWrite(readerOffset) - SAFETY_OFFSET;
+        return FromWrite(readerOffset_) - SAFETY_OFFSET;
     }
 
     bool CommandBuffer::CanRead(size_t len) const {
-        return FromRead(writerOffset) - SAFETY_OFFSET >= len;
+        return FromRead(writerOffset_) - SAFETY_OFFSET >= len;
     }
 
     bool CommandBuffer::CanWrite(size_t len) const {
-        return FromWrite(readerOffset) - SAFETY_OFFSET >= len;
+        return FromWrite(readerOffset_) - SAFETY_OFFSET >= len;
     }
 
     void CommandBuffer::Read(char* out, size_t len, size_t offset) {
         // Add an additional SAFETY_OFFSET to catch what the write pointer has written.
-        InternalRead(readerOffset + offset + SAFETY_OFFSET, out, len);
+        InternalRead(readerOffset_ + offset + SAFETY_OFFSET, out, len);
     }
 
     void CommandBuffer::Write(const char* in, size_t len, size_t offset) {
-        InternalWrite(writerOffset + offset, in, len);
+        InternalWrite(writerOffset_ + offset, in, len);
     }
 
     void CommandBuffer::AdvanceReadPointer(size_t offset) {
         // TODO assert that offset is < size
         // Realign the offset to be a multiple of 4
         offset = (offset + 3) & ~3;
-        readerOffset = Normalize(readerOffset + offset);
-        reinterpret_cast<SharedReaderData*>(base + READER_OFFSET)->offset.store(readerOffset, std::memory_order_release);
+        readerOffset_ = Normalize(readerOffset_ + offset);
+        reinterpret_cast<SharedReaderData*>(base_ + READER_OFFSET)->offset.store(readerOffset_, std::memory_order_release);
     }
 
     void CommandBuffer::AdvanceWritePointer(size_t offset) {
         // TODO assert that offset is < size
         // Realign the offset to be a multiple of 4
         offset = (offset + 3) & ~3;
-        writerOffset = Normalize(writerOffset + offset);
-        reinterpret_cast<SharedWriterData*>(base + WRITER_OFFSET)->offset.store(writerOffset, std::memory_order_release);
+        writerOffset_ = Normalize(writerOffset_ + offset);
+        reinterpret_cast<SharedWriterData*>(base_ + WRITER_OFFSET)->offset.store(writerOffset_, std::memory_order_release);
     }
 
     size_t CommandBuffer::GetSize() const {
-        return size;
+        return size_;
     }
 
     size_t CommandBuffer::Normalize(size_t offset) const {
-        if (offset >= size) {
-            offset -= size;
+        if (offset >= size_) {
+            offset -= size_;
         }
-        if (offset >= size) {
-            offset -= size;
+        if (offset >= size_) {
+            offset -= size_;
         }
         //TODO assert < size
         return offset;
     }
 
     size_t CommandBuffer::FromRead(size_t offset) const {
-        if (offset < readerOffset) {
-            offset += size;
+        if (offset < readerOffset_) {
+            offset += size_;
         }
-        return offset - readerOffset;
+        return offset - readerOffset_;
     }
 
     size_t CommandBuffer::FromWrite(size_t offset) const {
-        if (offset < writerOffset) {
-            offset += size;
+        if (offset < writerOffset_) {
+            offset += size_;
         }
-        return offset - writerOffset;
+        return offset - writerOffset_;
     }
 
     void CommandBuffer::InternalRead(size_t offset, char* out, size_t len) {
-        char* data = base + DATA_OFFSET;
+        ASSERT(out); // must not be null when using memcpy
+        char* data = base_ + DATA_OFFSET;
         offset = Normalize(offset);
-        size_t canRead = size - offset;
+        size_t canRead = size_ - offset;
         if (len >= canRead) {
             memcpy(out, data + offset, canRead);
             len -= canRead;
@@ -148,9 +149,10 @@ namespace IPC {
     }
 
     void CommandBuffer::InternalWrite(size_t offset, const char* in, size_t len) {
-        char* data = base + DATA_OFFSET;
+        ASSERT(in); // must not be null when using memcpy
+        char* data = base_ + DATA_OFFSET;
         offset = Normalize(offset);
-        size_t canWrite = size - offset;
+        size_t canWrite = size_ - offset;
         if (len >= canWrite) {
             memcpy(data + offset, in, canWrite);
             len -= canWrite;

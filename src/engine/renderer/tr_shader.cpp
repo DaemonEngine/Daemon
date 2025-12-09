@@ -23,6 +23,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_shader.c -- this file deals with the parsing and definition of shaders
 #include "tr_local.h"
 #include "gl_shader.h"
+#include "framework/CvarSystem.h"
+#include "Material.h"
+#include "GeometryOptimiser.h"
+#include <iomanip>
 
 static const int MAX_SHADERTABLE_HASH = 1024;
 static shaderTable_t *shaderTableHashTable[ MAX_SHADERTABLE_HASH ];
@@ -38,7 +42,8 @@ static char          *s_shaderText;
 // the shader is parsed into these global variables, then copied into
 // dynamically allocated memory if it is valid.
 static shaderTable_t table;
-static shaderStage_t stages[ MAX_SHADER_STAGES ];
+static std::array<shaderStage_t, MAX_SHADER_STAGES> stages;
+static size_t numStages;
 static shader_t      shader;
 static texModInfo_t  texMods[ MAX_SHADER_STAGES ][ TR_MAX_TEXMODS ];
 
@@ -65,14 +70,22 @@ It's possible to extend this parser with other stage keywords
 from other engines to load normal map with their respective format.
 
 The normalFormat stage keyword can be used in materials to set an
-arbitrary format.
-*/
-static const vec3_t glNormalFormat = {  1.0,  1.0,  1.0 };
-static const vec3_t dxNormalFormat = {  1.0, -1.0,  1.0 };
+arbitrary format. */
+static const int8_t glNormalFormat[ 3 ] = { 1,  1, 1 };
+static const int8_t dxNormalFormat[ 3 ] = { 1, -1, 1 };
 
 // DarkPlaces material compatibility
-static Cvar::Cvar<bool> r_dpMaterial("r_dpMaterial", "Enable DarkPlaces material compatibility", Cvar::LATCH, false);
+static Cvar::Cvar<bool> r_dpMaterial("r_dpMaterial", "Enable DarkPlaces material compatibility", Cvar::NONE, false);
 Cvar::Cvar<bool> r_dpBlend("r_dpBlend", "Enable DarkPlaces blend compatibility, process GT0 as GE128", Cvar::NONE, false);
+
+/* Quake3 used 256 as default portal range. */
+static Cvar::Cvar<float> r_portalDefaultRange(
+	"r_portalDefaultRange", "Default portal range", Cvar::NONE, 1024);
+
+// This can be turned off to debug problems with depth shaders.
+// Things should generally render identically (albeit slower) without them.
+Cvar::Cvar<bool> r_depthShaders(
+	"r_depthShaders", "use depth pre-pass shaders", Cvar::CHEAT, true);
 
 /*
 ================
@@ -121,51 +134,35 @@ void R_RemapShader( const char *shaderName, const char *newShaderName, const cha
 {
 	char      strippedName[ MAX_QPATH ];
 	int       hash;
-	shader_t  *sh, *sh2;
-	qhandle_t h;
-
-	sh = R_FindShaderByName( shaderName );
-
-	if ( sh == nullptr || sh == tr.defaultShader )
-	{
-		h = RE_RegisterShader( shaderName, RSF_DEFAULT );
-		sh = R_GetShaderByHandle( h );
-	}
-
-	if ( sh == nullptr || sh == tr.defaultShader )
-	{
-		Log::Warn("R_RemapShader: shader %s not found", shaderName );
-		return;
-	}
-
-	sh2 = R_FindShaderByName( newShaderName );
-
-	if ( sh2 == nullptr || sh2 == tr.defaultShader )
-	{
-		h = RE_RegisterShader( newShaderName, RSF_DEFAULT );
-		sh2 = R_GetShaderByHandle( h );
-	}
-
-	if ( sh2 == nullptr || sh2 == tr.defaultShader )
-	{
-		Log::Warn("R_RemapShader: new shader %s not found", newShaderName );
-		return;
-	}
-
-	if ( sh->autoSpriteMode != sh2->autoSpriteMode ) {
-		Log::Warn("R_RemapShader: shaders %s and %s have different autoSprite modes", shaderName, newShaderName );
-		return;
-	}
 
 	// remap all the shaders with the given name
 	// even tho they might have different lightmaps
 	COM_StripExtension3( shaderName, strippedName, sizeof( strippedName ) );
 	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
+	bool found = false;
 
-	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
+	for ( shader_t *sh = shaderHashTable[ hash ]; sh; sh = sh->next )
 	{
 		if ( Q_stricmp( sh->name, strippedName ) == 0 )
 		{
+			found = true;
+			shader_t *sh2 = R_FindShader( newShaderName, sh->registerFlags );
+
+			if ( sh2->defaultShader )
+			{
+				if ( !sh2->shaderRemapWarned )
+				{
+					Log::Warn( "R_RemapShader: new shader %s not found", newShaderName );
+					sh2->shaderRemapWarned = true;
+				}
+				return;
+			}
+
+			if ( sh->autoSpriteMode != sh2->autoSpriteMode ) {
+				Log::Warn( "R_RemapShader: shaders %s and %s have different autoSprite modes", shaderName, newShaderName );
+				return;
+			}
+
 			if ( sh != sh2 )
 			{
 				sh->remappedShader = sh2;
@@ -174,6 +171,17 @@ void R_RemapShader( const char *shaderName, const char *newShaderName, const cha
 			{
 				sh->remappedShader = nullptr;
 			}
+		}
+	}
+
+	if ( !found )
+	{
+		// try registering it to detect typos
+		shader_t *test = R_FindShader( shaderName, RSF_DEFAULT );
+
+		if ( test->defaultShader )
+		{
+			Log::Warn( "R_RemapShader: shader %s not found", shaderName );
 		}
 	}
 }
@@ -185,7 +193,7 @@ ParseVector
 */
 static bool ParseVector( const char **text, int count, float *v )
 {
-	char *token;
+	const char *token;
 	int  i;
 
 	token = COM_ParseExt2( text, false );
@@ -679,24 +687,24 @@ static char    *ParseExpressionElement( const char **data_p )
 ParseExpression
 ===============
 */
-static void ParseExpression( const char **text, expression_t *exp )
+static void ParseExpression( const char **text, expression_t *exp, int bits = 0 )
 {
-	int            i;
-	char           *token;
+	exp->bits = bits;
 
 	expOperation_t op, op2;
 
 	expOperation_t inFixOps[ MAX_EXPRESSION_OPS ];
-	int            numInFixOps;
+	size_t numInFixOps = 0;
 
 	// convert stack
 	expOperation_t tmpOps[ MAX_EXPRESSION_OPS ];
-	int            numTmpOps;
+	size_t numTmpOps = 0;
 
-	numInFixOps = 0;
-	numTmpOps = 0;
-
+	// A ext->numOps equals to 0 means empty or invalid expression.
 	exp->numOps = 0;
+
+	// The numOps will only be written to exp->numOps if there is no parsing error.
+	size_t numOps = 0;
 
 	// push left parenthesis on the stack
 	op.type = opcode_t::OP_LPAREN;
@@ -705,7 +713,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 
 	while ( true )
 	{
-		token = ParseExpressionElement( text );
+		char *token = ParseExpressionElement( text );
 
 		if ( token[ 0 ] == 0 || token[ 0 ] == ',' )
 		{
@@ -768,7 +776,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 	op.value = 0;
 	inFixOps[ numInFixOps++ ] = op;
 
-	for ( i = 0; i < ( numInFixOps - 1 ); i++ )
+	for ( size_t i = 0; i < ( numInFixOps - 1 ); i++ )
 	{
 		op = inFixOps[ i ];
 		op2 = inFixOps[ i + 1 ];
@@ -788,14 +796,14 @@ static void ParseExpression( const char **text, expression_t *exp )
 	// convert infix representation to postfix
 	//
 
-	for ( i = 0; i < numInFixOps; i++ )
+	for ( size_t i = 0; i < numInFixOps; i++ )
 	{
 		op = inFixOps[ i ];
 
 		// if current operator in infix is digit
 		if ( IsOperand( op.type ) )
 		{
-			exp->ops[ exp->numOps++ ] = op;
+			exp->ops[ numOps++ ] = op;
 		}
 		// if current operator in infix is left parenthesis
 		else if ( op.type == opcode_t::OP_LPAREN )
@@ -821,7 +829,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 					{
 						if ( GetOpPrecedence( op2.type ) >= GetOpPrecedence( op.type ) )
 						{
-							exp->ops[ exp->numOps++ ] = op2;
+							exp->ops[ numOps++ ] = op2;
 							numTmpOps--;
 						}
 						else
@@ -855,7 +863,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 
 					if ( op2.type != opcode_t::OP_LPAREN )
 					{
-						exp->ops[ exp->numOps++ ] = op2;
+						exp->ops[ numOps++ ] = op2;
 						numTmpOps--;
 					}
 					else
@@ -869,7 +877,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 	}
 
 	// everything went ok
-	exp->active = true;
+	exp->numOps = numOps;
 }
 
 /*
@@ -881,7 +889,7 @@ static unsigned NameToAFunc( const char *funcname )
 {
 	if ( !Q_stricmp( funcname, "GT0" ) )
 	{
-		if ( *r_dpBlend )
+		if ( r_dpBlend.Get() )
 		{
 			// DarkPlaces only supports one alphaFunc operation: GE128
 			Log::Warn("alphaFunc 'GT0' will be replaced by 'GE128' in shader '%s' because r_dpBlend compatibility layer is enabled", shader.name );
@@ -889,7 +897,7 @@ static unsigned NameToAFunc( const char *funcname )
 		}
 		else
 		{
-			if ( *r_dpMaterial )
+			if ( r_dpMaterial.Get() )
 			{
 				Log::Warn("alphaFunc 'GT0' will not be replaced by 'GE128' in shader '%s' because r_dpBlend compatibility layer is disabled", shader.name );
 			}
@@ -1052,7 +1060,7 @@ ParseWaveForm
 */
 static void ParseWaveForm( const char **text, waveForm_t *wave )
 {
-	char *token;
+	const char *token;
 
 	token = COM_ParseExt2( text, false );
 
@@ -1368,14 +1376,13 @@ static bool ParseTexMod( const char **text, shaderStage_t *stage )
 static bool ParseMap( const char **text, char *buffer, int bufferSize )
 {
 	int  len;
-	char *token;
 
 	// example
 	// map textures/caves/tembrick1crum_local.tga
 
 	while ( true )
 	{
-		token = COM_ParseExt2( text, false );
+		const char *token = COM_ParseExt2( text, false );
 
 		if ( !token[ 0 ] )
 		{
@@ -1399,9 +1406,8 @@ static bool ParseMap( const char **text, char *buffer, int bufferSize )
 	return true;
 }
 
-static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleIndex = TB_COLORMAP )
+static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type, const int bundleIndex = TB_COLORMAP )
 {
-	char         *token;
 	const char         *buffer_p = &buffer[ 0 ];
 
 	if ( !buffer || !buffer[ 0 ] )
@@ -1410,35 +1416,30 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		return false;
 	}
 
-	token = COM_ParseExt2( &buffer_p, false );
+	const char *token = COM_ParseExt2( &buffer_p, false );
 
 	// NOTE: Normal map can ship height map in alpha channel.
-	if ( ( stage->type == stageType_t::ST_NORMALMAP && !r_normalMapping->integer && !r_reliefMapping->integer )
-		|| ( stage->type == stageType_t::ST_HEIGHTMAP && !r_reliefMapping->integer )
-		|| ( stage->type == stageType_t::ST_SPECULARMAP && !r_specularMapping->integer )
-		|| ( stage->type == stageType_t::ST_PHYSICALMAP && !r_physicalMapping->integer )
-		|| ( stage->type == stageType_t::ST_GLOWMAP && !r_glowMapping->integer )
-		|| ( stage->type == stageType_t::ST_REFLECTIONMAP && !r_reflectionMapping->integer ) )
+	if ( ( type == stageType_t::ST_NORMALMAP && !glConfig.normalMapping && !glConfig.reliefMapping )
+		|| ( type == stageType_t::ST_HEIGHTMAP && !glConfig.reliefMapping )
+		|| ( type == stageType_t::ST_SPECULARMAP && !glConfig.specularMapping )
+		|| ( type == stageType_t::ST_PHYSICALMAP && !glConfig.physicalMapping )
+		|| ( type == stageType_t::ST_GLOWMAP && !r_glowMapping->integer )
+		|| ( type == stageType_t::ST_REFLECTIONMAP && !glConfig.reflectionMappingAvailable ) )
 	{
 		return true;
 	}
 
-	if ( !Q_stricmp( token, "$whiteimage" ) || !Q_stricmp( token, "$white" ) || !Q_stricmp( token, "_white" ) ||
-	     !Q_stricmp( token, "*white" ) )
+	// Quake III backward compatibility.
+	if ( !Q_stricmp( token, "$whiteimage" ) || !Q_stricmp( token, "*white" ) )
 	{
 		stage->bundle[ bundleIndex ].image[ 0 ] = tr.whiteImage;
 		return true;
 	}
-	else if ( !Q_stricmp( token, "$blackimage" ) || !Q_stricmp( token, "$black" ) || !Q_stricmp( token, "_black" ) ||
-	          !Q_stricmp( token, "*black" ) )
+
+	// Other engine compatibility (old XeaL, QFusion…)
+	if ( !Q_stricmp( token, "$blackimage" ) || !Q_stricmp( token, "*black" ) )
 	{
 		stage->bundle[ bundleIndex ].image[ 0 ] = tr.blackImage;
-		return true;
-	}
-	else if ( !Q_stricmp( token, "$flatimage" ) || !Q_stricmp( token, "$flat" ) || !Q_stricmp( token, "_flat" ) ||
-	          !Q_stricmp( token, "*flat" ) )
-	{
-		stage->bundle[ bundleIndex ].image[ 0 ] = tr.flatImage;
 		return true;
 	}
 
@@ -1454,9 +1455,14 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 	So we don't load extra light maps when light styles are not supported.
 
 	The disablement of the stage is done in the ParseShader() function. */
-	if ( ( r_vertexLighting->integer != 0 || r_lightStyles->integer == 0 )
+	if ( ( tr.lightMode != lightMode_t::MAP || r_lightStyles->integer == 0 )
 		&& stage->tcGen_Lightmap )
 	{
+		/* We don't return false because we properly parsed the stage
+		and the shader is still valid. The stage will be disabled later.
+		We set a dummy image to avoid this error message:
+		> Shader xxx has a colormap stage with no image. */
+		stage->bundle[ bundleIndex ].image[ 0 ] = tr.blackImage;
 		return true;
 	}
 
@@ -1464,13 +1470,40 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 	imageParams.minDimension = shader.imageMinDimension;
 	imageParams.maxDimension = shader.imageMaxDimension;
 
+	if ( tr.worldLinearizeTexture )
+	{
+		/* Some stage types may be meaningless in 2D but we can't prevent people
+		to use any shader in UI, so we better take care of more than ST_COLORMAP. */
+		if ( ! ( shader.registerFlags & RSF_2D ) )
+		{
+			switch ( type )
+			{
+				case stageType_t::ST_COLORMAP:
+				case stageType_t::ST_DIFFUSEMAP:
+				case stageType_t::ST_GLOWMAP:
+				case stageType_t::ST_REFLECTIONMAP:
+				case stageType_t::ST_SKYBOXMAP:
+				case stageType_t::ST_SPECULARMAP:
+					imageParams.bits |= IF_SRGB;
+					break;
+				default:
+					break;
+			}
+		}
+	}
+
 	// determine image options
 	if ( stage->overrideNoPicMip || shader.noPicMip || stage->highQuality || stage->forceHighQuality )
 	{
 		imageParams.bits |= IF_NOPICMIP;
 	}
 
-	switch ( stage->type )
+	if ( stage->fitScreen || shader.fitScreen )
+	{
+		imageParams.bits |= IF_FITSCREEN;
+	}
+
+	switch ( type )
 	{
 		case stageType_t::ST_NORMALMAP:
 		case stageType_t::ST_HEATHAZEMAP:
@@ -1529,7 +1562,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 ParseClampType
 ===================
 */
-static bool ParseClampType( char *token, wrapType_t *clamp )
+static bool ParseClampType( const char *token, wrapType_t *clamp )
 {
 	bool s = true, t = true;
 	wrapTypeEnum_t type;
@@ -1568,25 +1601,25 @@ static void ParseDiffuseMap( shaderStage_t *stage, const char **text, const int 
 {
 	char buffer[ 1024 ] = "";
 
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer, stageType_t::ST_DIFFUSEMAP, bundleIndex );
+	}
+}
+
+static void ParseLegacyDiffuseStage( shaderStage_t *stage, const char **text )
+{
 	stage->active = true;
 	stage->type = stageType_t::ST_DIFFUSEMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer, bundleIndex );
-	}
+	ParseDiffuseMap( stage, text, TB_COLORMAP );
 }
 
 static void ParseNormalMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_NORMALMAP )
 {
 	char buffer[ 1024 ] = "";
-
-	stage->active = true;
-	stage->type = stageType_t::ST_NORMALMAP;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
 
 	// because of collapsing, this affects other textures (diffuse, specular…) too
 	if ( r_highQualityNormalMapping->integer )
@@ -1599,8 +1632,18 @@ static void ParseNormalMap( shaderStage_t *stage, const char **text, const int b
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, bundleIndex );
+		LoadMap( stage, buffer, stageType_t::ST_NORMALMAP, bundleIndex );
 	}
+}
+
+static void ParseLegacyNormalStage( shaderStage_t *stage, const char **text )
+{
+	stage->active = true;
+	stage->type = stageType_t::ST_NORMALMAP;
+	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
+	stage->stateBits = GLS_DEFAULT;
+
+	ParseNormalMap( stage, text, TB_COLORMAP );
 }
 
 static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_NORMALMAP )
@@ -1642,38 +1685,42 @@ static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **te
 			Log::Debug("Found heightmap embedded in normalmap '%s'", buffer);
 		});
 
-		stage->isHeightMapInNormalMap = true;
+		stage->hasHeightMapInNormalMap = true;
 	}
 }
+
+// There is no ParseLegacyNormalStageDetectHeightMap.
 
 static void ParseHeightMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_HEIGHTMAP )
 {
 	char buffer[ 1024 ] = "";
 
-	stage->active = true;
-	stage->type = stageType_t::ST_HEIGHTMAP;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
-
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, bundleIndex );
+		LoadMap( stage, buffer, stageType_t::ST_HEIGHTMAP, bundleIndex );
 	}
 }
+
+// There is no ParseLegacyHeightStage.
 
 static void ParseSpecularMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_SPECULARMAP )
 {
 	char buffer[ 1024 ] = "";
 
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer, stageType_t::ST_SPECULARMAP, bundleIndex );
+	}
+}
+
+static void ParseLegacySpecularStage( shaderStage_t *stage, const char **text )
+{
 	stage->active = true;
 	stage->type = stageType_t::ST_SPECULARMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer, bundleIndex );
-	}
+	ParseSpecularMap( stage, text, TB_COLORMAP );
 }
 
 static void ParsePhysicalMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_PHYSICALMAP )
@@ -1681,82 +1728,75 @@ static void ParsePhysicalMap( shaderStage_t *stage, const char **text, const int
 	char buffer[ 1024 ] = "";
 
 	stage->active = true;
-	stage->type = stageType_t::ST_PHYSICALMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, bundleIndex );
+		LoadMap( stage, buffer, stageType_t::ST_PHYSICALMAP, bundleIndex );
 	}
 }
+
+// There is no ParseLegacyPhysicalStage.
 
 static void ParseGlowMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_GLOWMAP )
 {
 	char buffer[ 1024 ] = "";
 
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer, stageType_t::ST_GLOWMAP, bundleIndex );
+	}
+}
+
+static void ParseLegacyGlowStage( shaderStage_t *stage, const char **text )
+{
 	stage->active = true;
 	stage->type = stageType_t::ST_GLOWMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE; // blend add
 
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer, bundleIndex );
-	}
+	ParseGlowMap( stage, text, TB_COLORMAP );
 }
 
 static void ParseReflectionMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_REFLECTIONMAP )
 {
 	char buffer[ 1024 ] = "";
 
-	stage->active = true;
-	stage->type = stageType_t::ST_REFLECTIONMAP;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
 	stage->overrideWrapType = true;
 	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
 		stage->isCubeMap = true;
-		LoadMap( stage, buffer, bundleIndex );
+		LoadMap( stage, buffer, stageType_t::ST_REFLECTIONMAP, bundleIndex );
 	}
 }
 
-static void ParseReflectionMapBlended( shaderStage_t *stage, const char **text, const int bundleIndex = TB_REFLECTIONMAP )
+// This is not legacy.
+static void ParseReflectionStage( shaderStage_t *stage, const char **text )
 {
-	char buffer[ 1024 ] = "";
+	stage->active = true;
+	stage->type = stageType_t::ST_REFLECTIONMAP;
+	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
+	stage->stateBits = GLS_DEFAULT;
 
+	ParseReflectionMap( stage, text, TB_COLORMAP );
+}
+
+static void ParseReflectionStageBlended( shaderStage_t *stage, const char **text )
+{
 	stage->active = true;
 	stage->type = stageType_t::ST_REFLECTIONMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ONE;
-	stage->overrideWrapType = true;
-	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		stage->isCubeMap = true;
-		LoadMap( stage, buffer, bundleIndex );
-	}
+	ParseReflectionMap( stage, text, TB_COLORMAP );
 }
 
-static void ParseLightFalloffImage( shaderStage_t *stage, const char **text )
+static bool HasNormalFormat( shaderStage_t *stage )
 {
-	char buffer[ 1024 ] = "";
-
-	stage->active = true;
-	stage->type = stageType_t::ST_ATTENUATIONMAP_Z;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
-	stage->overrideWrapType = true;
-	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
-
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer );
-	}
+	return stage->normalFormat[ 0 ];
 }
 
 /* SetNormalFormat: set normal format for given stage if normal format
@@ -1794,16 +1834,11 @@ textures/castle/brick
 ```
 */
 
-void SetNormalFormat( shaderStage_t *stage, const vec3_t normalFormat, bool force = false )
+static void SetNormalFormat( shaderStage_t *stage, const int8_t normalFormat[ 3 ], bool force = false )
 {
-	if ( !stage->hasNormalFormat || force )
+	if ( force || !HasNormalFormat( stage ) )
 	{
-		stage->hasNormalFormat = true;
-
-		for ( int i = 0; i < 3; i++ )
-		{
-			stage->normalFormat[ i ] = normalFormat[ i ];
-		}
+		VectorCopy( normalFormat, stage->normalFormat );
 	}
 }
 
@@ -1835,7 +1870,7 @@ Look for implicit extra maps (normal, specular…) for the given image path
 */
 void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 {
-	if ( *r_dpMaterial )
+	if ( r_dpMaterial.Get() )
 	{
 		/* DarkPlaces material compatibility
 
@@ -1933,7 +1968,7 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 		for ( const extraMapParser_t parser: dpExtraMapParsers )
 		{
 			std::string extraMapName = Str::Format( "%s%s", colorMapBaseName, parser.suffix );
-			if( R_FindImageLoader( extraMapName.c_str() ) >= 0 )
+			if ( R_HasImageLoader( extraMapName.c_str() ) )
 			{
 				foundExtraMap = true;
 				Log::Debug( "found extra %s '%s'", parser.description, extraMapName.c_str() );
@@ -1951,8 +1986,9 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 
 		if ( foundExtraMap )
 		{
-			stage->type = stageType_t::ST_COLLAPSE_lighting_PHONG;
-			stage->collapseType = collapseType_t::COLLAPSE_lighting_PHONG;
+			// We don't know yet if there is a light map.
+			stage->type = stageType_t::ST_COLLAPSE_COLORMAP;
+			stage->collapseType = collapseType_t::COLLAPSE_PHONG;
 			stage->dpMaterial = true;
 		}
 	}
@@ -1965,7 +2001,7 @@ ParseStage
 */
 static bool ParseStage( shaderStage_t *stage, const char **text )
 {
-	char         *token;
+	const char *token;
 	int          colorMaskBits = 0;
 	int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0, polyModeBits = 0;
 	bool     depthMaskExplicit = false;
@@ -2015,8 +2051,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				stage->collapseType = collapseType_t::COLLAPSE_generic;
 			}
 
+			stage->type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
 			ParseDiffuseMap( stage, text );
-			stage->implicitLightmap = true;
 		}
 		else if ( !Q_stricmp( token, "normalMap" ) )
 		{
@@ -2035,7 +2071,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				stage->collapseType = collapseType_t::COLLAPSE_generic;
 			}
 
-			stage->isHeightMapInNormalMap = true;
+			stage->hasHeightMapInNormalMap = true;
 			ParseNormalMap( stage, text );
 			SetNormalFormat( stage, dxNormalFormat );
 		}
@@ -2050,39 +2086,40 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		}
 		else if ( !Q_stricmp( token, "specularMap" ) )
 		{
-			if ( stage->collapseType == collapseType_t::COLLAPSE_reflection_CB )
+			if ( stage->collapseType == collapseType_t::COLLAPSE_REFLECTIONMAP )
 			{
-				Log::Warn("Supposedly you shouldn't have a physicalMap after a reflectionMap (in shader '%s')?", shader.name);
-				// use PHONG instead
+				Log::Warn("Supposedly you shouldn't have a specularMap after a reflectionMap (in shader '%s')?", shader.name);
+				// keep REFLECTION instead
 			}
-
-			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR )
+			else if ( stage->collapseType == collapseType_t::COLLAPSE_PBR )
 			{
-				Log::Warn("Supposedly you shouldn't have a specularMap after a physicalMap (in shader '%s')?", shader.name);
+				Log::Warn("Supposedly you shouldn't have a specularMap after a reflectionMap (in shader '%s')?", shader.name);
 				// keep PBR instead
 			}
 			else
 			{
-				stage->collapseType = collapseType_t::COLLAPSE_lighting_PHONG;
+				stage->collapseType = collapseType_t::COLLAPSE_PHONG;
 				ParseSpecularMap( stage, text );
 			}
 		}
 		else if ( !Q_stricmp( token, "physicalMap" ) )
 		{
-			if ( stage->collapseType == collapseType_t::COLLAPSE_reflection_CB )
+			if ( stage->collapseType == collapseType_t::COLLAPSE_REFLECTIONMAP )
 			{
 				Log::Warn("Supposedly you shouldn't have a physicalMap after a reflectionMap (in shader '%s')?", shader.name);
-				// use PBR instead
+				// keep REFLECTION instead
 			}
-			else if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
+			else if ( stage->collapseType == collapseType_t::COLLAPSE_PHONG )
 			{
 				Log::Warn("Supposedly you shouldn't have a physicalMap after a specularMap (in shader '%s')?", shader.name);
-				// use PBR instead
+				// keep PHONG instead
 			}
-
-			// Daemon PBR packing defaults to ORM like glTF 2.0
-			stage->collapseType = collapseType_t::COLLAPSE_lighting_PBR;
-			ParsePhysicalMap( stage, text );
+			else
+			{
+				// Daemon PBR packing defaults to ORM like glTF 2.0
+				stage->collapseType = collapseType_t::COLLAPSE_PBR;
+				ParsePhysicalMap( stage, text );
+			}
 		}
 		else if ( !Q_stricmp( token, "glowMap" ) )
 		{
@@ -2093,42 +2130,17 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			ParseGlowMap( stage, text );
 		}
-		else if ( !Q_stricmp( token, "reflectionMap" ) )
-		{
-			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR
-				|| stage->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
-			{
-				Log::Warn("Supposedly you shouldn't have a reflectionMap after a physicalMap or a specularMap (in shader '%s')?", shader.name);
-				// use reflectionMap instead
-			}
-
-			stage->collapseType = collapseType_t::COLLAPSE_reflection_CB;
-			ParseReflectionMap( stage, text );
-		}
-		else if ( !Q_stricmp( token, "reflectionMapBlended" ) )
-		{
-			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR
-				|| stage->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
-			{
-				Log::Warn("Supposedly you shouldn't have a reflectionMapBlended after a physicalMap or a specularMap (in shader '%s')?", shader.name);
-				// use reflectionMapBlended instead
-			}
-
-			stage->collapseType = collapseType_t::COLLAPSE_reflection_CB;
-			ParseReflectionMapBlended( stage, text );
-		}
 		/* not handled yet:
-		else if ( !Q_stricmp( token, "refractionMap" ) )
-		else if ( !Q_stricmp( token, "dispersionMap" ) )
+		else if ( !Q_stricmp( token, "reflectionMap" ) )
+		else if ( !Q_stricmp( token, "reflectionMapBlended" ) )
 		else if ( !Q_stricmp( token, "skyboxMap" ) )
 		else if ( !Q_stricmp( token, "screenMap" ) )
 		else if ( !Q_stricmp( token, "portalMap" ) )
 		else if ( !Q_stricmp( token, "heathazeMap" ) )
 		else if ( !Q_stricmp( token, "liquidMap" ) )
-		else if ( !Q_stricmp( token, "attenuationMapXY" ) )
-		else if ( !Q_stricmp( token, "attenuationMapZ" ) )
 		*/
 		// lightmap <name>
+		// What is the use case for this?
 		else if ( !Q_stricmp( token, "lightmap" ) )
 		{
 			if ( !ParseMap( text, buffer, sizeof( buffer ) ) )
@@ -2161,6 +2173,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			if ( stage->overrideNoPicMip || shader.noPicMip )
 			{
 				imageBits |= IF_NOPICMIP;
+			}
+
+			if ( stage->fitScreen || shader.fitScreen )
+			{
+				imageBits |= IF_FITSCREEN;
 			}
 
 			if ( stage->overrideFilterType )
@@ -2228,6 +2245,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 					imageParams.minDimension = shader.imageMinDimension;
 					imageParams.maxDimension = shader.imageMaxDimension;
 
+					if ( tr.worldLinearizeTexture )
+					{
+						imageParams.bits |= IF_SRGB;
+					}
+
 					stage->bundle[ 0 ].image[ num ] = R_FindImageFile( token, imageParams );
 
 					if ( !stage->bundle[ 0 ].image[ num ] )
@@ -2243,9 +2265,23 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		}
 		else if ( !Q_stricmp( token, "videoMap" ) )
 		{
-			Log::Warn("videoMap unsupported");
-			// Discussion about video support: https://github.com/DaemonEngine/Daemon/pull/391
-			COM_ParseExt2( text, false );
+			if ( stage->collapseType != collapseType_t::COLLAPSE_none )
+			{
+				Log::Warn( "keyword '%s' cannot be used in collapsed shader '%s'",
+					token, shader.name );
+			}
+
+			token = COM_ParseExt2( text, false );
+
+			if ( !token[ 0 ] )
+			{
+				Log::Warn( "missing parameter for 'videoMap' keyword in shader '%s'", shader.name );
+				return false;
+			}
+
+			stage->bundle[ 0 ].videoMapHandle = CIN_PlayCinematic( token );
+			stage->bundle[ 0 ].isVideoMap = true;
+			stage->bundle[ 0 ].image[ 0 ] = tr.cinematicImage[ stage->bundle[ 0 ].videoMapHandle ];
 		}
 		// cubeMap <map>
 		else if ( !Q_stricmp( token, "cubeMap" ) || !Q_stricmp( token, "cameraCubeMap" ) )
@@ -2268,6 +2304,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			if ( stage->overrideNoPicMip || shader.noPicMip )
 			{
 				imageBits |= IF_NOPICMIP;
+			}
+
+			if ( stage->fitScreen || shader.fitScreen )
+			{
+				imageBits |= IF_FITSCREEN;
 			}
 
 			if ( stage->overrideFilterType )
@@ -2362,6 +2403,10 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		{
 			stage->overrideNoPicMip = true;
 		}
+		else if ( !Q_stricmp( token, "fitScreen" ) )
+		{
+			stage->fitScreen = true;
+		}
 		// clamp, edgeClamp etc.
 		else if ( ParseClampType( token, &stage->wrapType ) )
 		{
@@ -2394,6 +2439,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				continue;
 			}
 
+			// This isn't actually used because we render fog based on the shader, not the stage
 			if ( !Q_stricmp( token, "on" ) )
 			{
 				stage->noFog = false;
@@ -2468,7 +2514,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				Log::Warn("deprecated idTech4 blend parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_DIFFUSEMAP;
-				stage->implicitLightmap = true;
 			}
 			else if ( !Q_stricmp( token, "normalMap" ) )
 			{
@@ -2520,7 +2565,9 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			// clear depth mask for blended surfaces
 			if ( !depthMaskExplicit &&
 			     (stage->type == stageType_t::ST_COLORMAP ||
+			      stage->type == stageType_t::ST_COLLAPSE_COLORMAP ||
 			      stage->type == stageType_t::ST_DIFFUSEMAP ||
+			      stage->type == stageType_t::ST_COLLAPSE_DIFFUSEMAP ||
 			      stage->collapseType != collapseType_t::COLLAPSE_none ) &&
 			     blendSrcBits != 0 && blendDstBits != 0
 			     && !(blendSrcBits == GLS_SRCBLEND_ONE &&
@@ -2544,7 +2591,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				Log::Warn("deprecated XreaL stage parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_DIFFUSEMAP;
-				stage->implicitLightmap = true;
 			}
 			else if ( !Q_stricmp( token, "normalMap" ) )
 			{
@@ -2578,14 +2624,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				Log::Warn("deprecated XreaL stage parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_REFLECTIONMAP;
 			}
-			else if ( !Q_stricmp( token, "refractionMap" ) )
-			{
-				stage->type = stageType_t::ST_REFRACTIONMAP;
-			}
-			else if ( !Q_stricmp( token, "dispersionMap" ) )
-			{
-				stage->type = stageType_t::ST_DISPERSIONMAP;
-			}
 			else if ( !Q_stricmp( token, "skyboxMap" ) )
 			{
 				stage->type = stageType_t::ST_SKYBOXMAP;
@@ -2607,14 +2645,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				stage->type = stageType_t::ST_LIQUIDMAP;
 				SetNormalFormat( stage, dxNormalFormat );
-			}
-			else if ( !Q_stricmp( token, "attenuationMapXY" ) )
-			{
-				stage->type = stageType_t::ST_ATTENUATIONMAP_XY;
-			}
-			else if ( !Q_stricmp( token, "attenuationMapZ" ) )
-			{
-				stage->type = stageType_t::ST_ATTENUATIONMAP_Z;
 			}
 			else
 			{
@@ -2698,25 +2728,25 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "rgb" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGB;
-			ParseExpression( text, &stage->rgbExp );
+			ParseExpression( text, &stage->rgbExp, EXP_CLAMP | EXP_SRGB );
 		}
 		// red <arithmetic expression>
 		else if ( !Q_stricmp( token, "red" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
-			ParseExpression( text, &stage->redExp );
+			ParseExpression( text, &stage->redExp, EXP_CLAMP | EXP_SRGB );
 		}
 		// green <arithmetic expression>
 		else if ( !Q_stricmp( token, "green" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
-			ParseExpression( text, &stage->greenExp );
+			ParseExpression( text, &stage->greenExp, EXP_CLAMP | EXP_SRGB );
 		}
 		// blue <arithmetic expression>
 		else if ( !Q_stricmp( token, "blue" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
-			ParseExpression( text, &stage->blueExp );
+			ParseExpression( text, &stage->blueExp, EXP_CLAMP | EXP_SRGB );
 		}
 		// colored
 		else if ( !Q_stricmp( token, "colored" ) )
@@ -2792,11 +2822,21 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			}
 			else if ( !Q_stricmp( token, "portal" ) )
 			{
-				Log::Warn("alphaGen portal keyword not supported in shader '%s'", shader.name );
-				//stage->type = ST_PORTALMAP;
-				stage->alphaGen = alphaGen_t::AGEN_CONST;
-				stage->constantColor.SetAlpha( 0 );
-				SkipRestOfLine( text );
+				stage->type = stageType_t::ST_PORTALMAP;
+				stage->alphaGen = alphaGen_t::AGEN_PORTAL;
+
+				token = COM_ParseExt2( text, false );
+
+				/* Until we implement “alphaGen portal” to blend textures on them
+				we are still rendering portals so we need to parse the range. */
+				if ( token[ 0 ] )
+				{
+					shader.portalRange = atof( token );
+				}
+
+				/* Quake3 shaders made the portalRange a requirement, we choose
+				to make it optional and fallback later on the default value or the
+				value that is previously set as “portal <range>” at shader level. */
 			}
 			else
 			{
@@ -2808,17 +2848,17 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "alpha" ) )
 		{
 			stage->alphaGen = alphaGen_t::AGEN_CUSTOM;
-			ParseExpression( text, &stage->alphaExp );
+			ParseExpression( text, &stage->alphaExp, EXP_CLAMP );
 		}
 		// color <exp>, <exp>, <exp>, <exp>
 		else if ( !Q_stricmp( token, "color" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
 			stage->alphaGen = alphaGen_t::AGEN_CUSTOM;
-			ParseExpression( text, &stage->redExp );
-			ParseExpression( text, &stage->greenExp );
-			ParseExpression( text, &stage->blueExp );
-			ParseExpression( text, &stage->alphaExp );
+			ParseExpression( text, &stage->redExp, EXP_CLAMP | EXP_SRGB );
+			ParseExpression( text, &stage->greenExp, EXP_CLAMP | EXP_SRGB );
+			ParseExpression( text, &stage->blueExp, EXP_CLAMP | EXP_SRGB );
+			ParseExpression( text, &stage->alphaExp, EXP_CLAMP );
 		}
 		// tcGen <function>
 		else if ( !Q_stricmp( token, "texGen" ) || !Q_stricmp( token, "tcGen" ) )
@@ -2846,6 +2886,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			else if ( !Q_stricmp( token, "texture" ) || !Q_stricmp( token, "base" ) )
 			{
 			}
+			// FIXME: this is a deprecated way of doing things
 			else if ( !Q_stricmp( token, "reflect" ) )
 			{
 				stage->type = stageType_t::ST_REFLECTIONMAP;
@@ -3062,7 +3103,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "normalFormat" ) )
 		{
 			const char* components[3] = { "X", "Y", "Z" };
-			vec3_t normalFormat;
+			int8_t normalFormat[ 3 ];
 
 			for ( int i = 0; i < 3; i++ )
 			{
@@ -3070,11 +3111,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 				if ( !Q_stricmp( token, components[ i ] ) )
 				{
-					normalFormat[ i ] = 1.0;
+					normalFormat[ i ] = 1;
 				}
 				else if ( token[ 0 ] == '-' && !Q_stricmp( token + 1, components[ i ] ) )
 				{
-					normalFormat[ i ] = -1.0;
+					normalFormat[ i ] = -1;
 				}
 				else
 				{
@@ -3148,7 +3189,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				}
 
 				stage->normalScale[ i ] = j;
-				stage->hasNormalScale = true;
 			}
 
 			SkipRestOfLine( text );
@@ -3174,11 +3214,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		{
 			ParseExpression( text, &stage->deformMagnitudeExp );
 		}
-		// wrapAroundLighting <arithmetic expression>
-		else if ( !Q_stricmp( token, "wrapAroundLighting" ) )
-		{
-			ParseExpression( text, &stage->wrapAroundLightingExp );
-		}
 		else
 		{
 			Log::Warn("unknown shader stage parameter '%s' in shader '%s'", token, shader.name );
@@ -3189,6 +3224,18 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 	// parsing succeeded
 	stage->active = true;
+
+	if ( stage->type == stageType_t::ST_COLORMAP &&
+		( stage->collapseType == collapseType_t::COLLAPSE_PHONG
+		|| stage->collapseType == collapseType_t::COLLAPSE_PBR ) )
+	{
+		stage->type = stageType_t::ST_COLLAPSE_COLORMAP;
+	}
+
+	else if ( stage->collapseType == collapseType_t::COLLAPSE_REFLECTIONMAP )
+	{
+		stage->type = stageType_t::ST_COLLAPSE_REFLECTIONMAP;
+	}
 
 	// if cgen isn't explicitly specified, use either identity or identitylighting
 	if ( stage->rgbGen == colorGen_t::CGEN_BAD )
@@ -3210,23 +3257,24 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		depthMaskBits = GLS_DEPTHMASK_TRUE;
 	}
 
-	// tell shader if this stage has an alpha test
-	if ( atestBits & GLS_ATEST_BITS )
-	{
-		shader.alphaTest = true;
-	}
-
 	// check that depthFade and depthWrite are mutually exclusive
 	if ( depthMaskBits && stage->hasDepthFade ) {
-		Log::Warn( "depth fade conflicts with depth mask in shader '%s'\n", shader.name );
+		Log::Warn( "depth fade conflicts with depth mask in shader '%s'", shader.name );
 		stage->hasDepthFade = false;
 	}
 
 	// compute state bits
 	stage->stateBits = colorMaskBits | depthMaskBits | blendSrcBits | blendDstBits | atestBits | depthFuncBits | polyModeBits;
 
+	// Do not load heatHaze maps when r_heatHaze is disabled.
+	if ( stage->type == stageType_t::ST_HEATHAZEMAP && !r_heatHaze->integer )
+	{
+		stage->active = false;
+		return true;
+	}
+
 	// load image
-	if ( loadMap && !LoadMap( stage, buffer ) )
+	if ( loadMap && !LoadMap( stage, buffer, stage->type ) )
 	{
 		return false;
 	}
@@ -3249,7 +3297,7 @@ deformVertexes autoSprite2
 */
 static void ParseDeform( const char **text )
 {
-	char          *token;
+	const char *token;
 	deformStage_t *ds;
 
 	token = COM_ParseExt2( text, false );
@@ -3446,7 +3494,7 @@ skyParms <outerbox> <cloudheight> <innerbox>
 */
 static void ParseSkyParms( const char **text )
 {
-	char *token;
+	const char *token;
 	char prefix[ MAX_QPATH ];
 
 	// outerbox
@@ -3468,6 +3516,11 @@ static void ParseSkyParms( const char **text )
 		imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 		imageParams.minDimension = shader.imageMinDimension;
 		imageParams.maxDimension = shader.imageMaxDimension;
+
+		if ( tr.worldLinearizeTexture )
+		{
+			imageParams.bits |= IF_SRGB;
+		}
 
 		shader.sky.outerbox = R_FindCubeImage( prefix, imageParams );
 
@@ -3493,8 +3546,6 @@ static void ParseSkyParms( const char **text )
 	{
 		shader.sky.cloudHeight = 512;
 	}
-
-	R_InitSkyTexCoords( shader.sky.cloudHeight );
 
 	// innerbox
 	token = COM_ParseExt2( text, false );
@@ -3525,6 +3576,7 @@ static void ParseSkyParms( const char **text )
 		}
 	}
 
+	tr.hasSkybox = true;
 	shader.isSky = true;
 }
 
@@ -3535,7 +3587,7 @@ ParseSort
 */
 static void ParseSort( const char **text )
 {
-	char *token;
+	const char *token;
 
 	token = COM_ParseExt2( text, false );
 
@@ -3749,9 +3801,7 @@ static bool SurfaceParm( const char *token )
 
 static void ParseSurfaceParm( const char **text )
 {
-	char *token;
-
-	token = COM_ParseExt2( text, false );
+	const char *token = COM_ParseExt2( text, false );
 	SurfaceParm( token );
 }
 
@@ -3767,7 +3817,7 @@ will optimize it.
 static bool ParseShader( const char *_text )
 {
 	const char **text;
-	char *token;
+	const char *token;
 	int  s;
 
 	s = 0;
@@ -3780,8 +3830,6 @@ static bool ParseShader( const char *_text )
 		Log::Warn("no preceding '}' in shader %s", shader.name );
 		return false;
 	}
-
-	bool lightmap_found = false;
 
 	while ( true )
 	{
@@ -3807,37 +3855,170 @@ static bool ParseShader( const char *_text )
 				return false;
 			}
 
-			if ( !ParseStage( &stages[ s ], text ) )
+			shaderStage_t *stage = &stages[ s ];
+
+			if ( !ParseStage( stage, text ) )
 			{
 				return false;
 			}
 
-			stages[ s ].active = true;
+			/* Examples of shaders with light styles, those
+			shaders are generated by the q3map2 map compiler.
 
-			/* Light styles are only compatible with light mapping as light styles
-			are just extra light map stages with special effects.
+			All color stages with “tcGen lightmap” are light style
+			stages, they use direct path to the light map image
+			like “maps/<nam>/lm_<num>[ext]”.
 
-			So we disable extra light map stages when light styles are not supported.
+			Light map stages using the “$lightmap” image don't
+			need “tcGen lightmap” and then such stage with such
+			keyword should be light style stages, but some legacy
+			materials may needlessly set “tcGen lightmap” on the
+			light map stage so we need more data to not wrongly
+			detect them as light style stages.
 
-			The first light map stage can be rendered using grid lighting,
-			the other ones have no way to be rendered. */
-			if ( stages[ s ].active 
-				&& ( r_vertexLighting->integer != 0 || r_lightStyles->integer == 0 ) )
-			{
-				if ( stages[ s ].type == stageType_t::ST_LIGHTMAP )
+			The textures/conveyor/p_01_s material in cruz map
+			is a good example of such light map stage with
+			useless “tcGen lightmap” keywords.
+
+			It looks like all light style stages use
+			the “blendFunc GL_SRC_ALPHA GL_ONE” blend operation,
+			so we use that to know if a light map stage is a
+			light map one or a light style one.
+
+			gloom2/673A7C895A24ECE49A80324DF57B0CC1
+			{ // Q3Map2 defaulted
 				{
-					if ( !lightmap_found )
-					{
-						lightmap_found = true;
-					}
-					else
-					{
-						stages[ s ].active = false;
-					}
+					map $lightmap
+					rgbGen identity
 				}
-				else if ( stages[ s ].tcGen_Lightmap )
+
+				// Q3Map2 custom lightstyle stage(s)
 				{
-					stages[ s ].active = false;
+					map $lightmap
+					blendFunc GL_SRC_ALPHA GL_ONE
+					rgbGen wave noise 1 .75 1.6 4.2 // style 2
+					tcGen lightmap
+					tcMod transform 1 0 0 1 -0.50000 0.50000
+				}
+
+				{
+					map textures/gloom2/barrel_rst_top.tga
+					blendFunc GL_DST_COLOR GL_ZERO
+					rgbGen identity
+				}
+			}
+
+			gloom2/2EAD7A05FC2E0F822744BCF91FA7176D
+			{ // Q3Map2 defaulted
+				{
+					map $lightmap
+					rgbGen identity
+				}
+
+				// Q3Map2 custom lightstyle stage(s)
+				{
+					map $lightmap
+					blendFunc GL_SRC_ALPHA GL_ONE
+					rgbGen wave noise 1 .75 1.6 4.2 // style 2
+					tcGen lightmap
+					tcMod transform 1 0 0 1 0.06250 0.00000
+				}
+				{
+					map $lightmap
+					blendFunc GL_SRC_ALPHA GL_ONE
+					rgbGen wave noise 1 .5 3.7 4.9 // style 3
+					tcGen lightmap
+					tcMod transform 1 0 0 1 0.12500 0.00000
+				}
+				{
+					map $lightmap
+					blendFunc GL_SRC_ALPHA GL_ONE
+					rgbGen wave noise 1 1 2.6 1.3 // style 4
+					tcGen lightmap
+					tcMod transform 1 0 0 1 -0.06250 0.04395
+				}
+
+				{
+					map textures/gloom2/e8clangfloor05c.tga
+					blendFunc GL_DST_COLOR GL_ZERO
+					rgbGen identity
+				}
+			}
+
+			gloom2/1AE453216BF2550BD776F35268418499
+			{ // Q3Map2 defaulted
+				{
+					map $lightmap
+					rgbGen identity
+				}
+
+				// Q3Map2 custom lightstyle stage(s)
+				{
+					map maps/gloom2/lm_0000.tga
+					blendFunc GL_SRC_ALPHA GL_ONE
+					rgbGen wave noise 1 .5 3.7 4.9 // style 3
+					tcGen lightmap
+					tcMod transform 1 0 0 1 0.00000 0.50000
+				}
+
+				{
+					map textures/gloom2/rust_1.tga
+					blendFunc GL_DST_COLOR GL_ZERO
+					rgbGen identity
+				}
+			}
+
+			Light style map stages using the $lightmap keyword
+			should not be rendered with Render_lightmap but with
+			Render_generic otherwise we would blend dynamic lights
+			on every light style map while such dynamic lights are
+			already blended on the first lightmap stage. So we should
+			not keep the ST_LIGHTMAP type but set on such light style
+			map stage a specific ST_LIGHTSTYLEMAP type to recognize
+			them and route the render properly. We can't set them
+			to ST_COLORMAP type because we need to remember the image
+			has to be found at render time.
+
+			Light style map stages using the direct image path
+			are already rendered by Render_lightmap as they have
+			a ST_COLORMAP type so we don't have to change them. */
+
+			bool lightStyleBlend = ( stage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_SRC_ALPHA
+				&& ( stage->stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
+
+			if ( stage->type == stageType_t::ST_LIGHTMAP
+				&& stage->tcGen_Lightmap
+				&& lightStyleBlend )
+			{
+				stage->type = stageType_t::ST_STYLELIGHTMAP;
+			}
+			else if ( stage->type != stageType_t::ST_LIGHTMAP
+				&& stage->tcGen_Lightmap )
+			{
+				stage->type = stageType_t::ST_STYLECOLORMAP;
+			}
+
+			/* Light styles are only compatible with light mapping
+			as light styles are just extra light map stages with
+			special effects.
+
+			When light mapping is disabled, the first light map stage
+			can be rendered using vertex lighting, but the light style
+			stages should not be rendered.
+
+			So we disable light style stages when light mapping
+			is disabled. */
+			if ( tr.lightMode != lightMode_t::MAP || r_lightStyles->integer == 0 )
+			{
+				switch ( stage->type )
+				{
+					case stageType_t::ST_STYLELIGHTMAP:
+					case stageType_t::ST_STYLECOLORMAP:
+						stage->active = false;
+						break;
+
+					default:
+						break;
 				}
 			}
 
@@ -3944,7 +4125,6 @@ static bool ParseShader( const char *_text )
 		// noShadows
 		else if ( !Q_stricmp( token, "noShadows" ) )
 		{
-			shader.noShadows = true;
 			continue;
 		}
 		// translucent
@@ -4003,6 +4183,12 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "nopicmip" ) )
 		{
 			shader.noPicMip = true;
+			continue;
+		}
+		// fit screen adjustment
+		else if ( !Q_stricmp( token, "fitScreen" ) )
+		{
+			shader.fitScreen = true;
 			continue;
 		}
 		// imageMinDimension enforcement
@@ -4093,9 +4279,8 @@ static bool ParseShader( const char *_text )
 			SkipRestOfLine( text );
 			continue;
 		}
-		else if ( *r_dpMaterial && !Q_stricmp( token, "dpoffsetmapping" ) )
+		else if ( r_dpMaterial.Get() && !Q_stricmp( token, "dpoffsetmapping" ) )
 		{
-			char* keyword = token;
 			token = COM_ParseExt2( text, false );
 
 			if ( !Q_stricmp( token, "none" ) )
@@ -4121,7 +4306,7 @@ static bool ParseShader( const char *_text )
 			else if ( !Q_stricmp( token, "linear" ) )
 			{
 				// not implemented yet
-				Log::Warn("unsupported parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("unsupported parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 			}
 			else if ( !Q_stricmp( token, "relief" ) )
 			{
@@ -4135,7 +4320,7 @@ static bool ParseShader( const char *_text )
 			}
 			else
 			{
-				Log::Warn("invalid parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("invalid parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 				SkipRestOfLine( text );
 				continue;
 			}
@@ -4144,7 +4329,7 @@ static bool ParseShader( const char *_text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("missing parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 				continue;
 			}
 
@@ -4184,7 +4369,7 @@ static bool ParseShader( const char *_text )
 			}
 			else
 			{
-				Log::Warn("invalid parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("invalid parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 				SkipRestOfLine( text );
 				continue;
 			}
@@ -4193,7 +4378,7 @@ static bool ParseShader( const char *_text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("missing parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 				continue;
 			}
 
@@ -4252,17 +4437,17 @@ static bool ParseShader( const char *_text )
 			shader.sort = Util::ordinal(shaderSort_t::SS_PORTAL);
 			shader.isPortal = true;
 
+			/* Quake3 shaders required the portalRange to be set at stage level
+			as “alphaGen portal <range>”, we choose to make it totally optional,
+			allowing to set it there or fallback to the default value if is set
+			nowhere. Allowing to set the portal range ther allows to set the
+			range for portals that don't blend with textures. */
 			token = COM_ParseExt2( text, false );
 
 			if ( token[ 0 ] )
 			{
 				shader.portalRange = atof( token );
 			}
-			else
-			{
-				shader.portalRange = 256;
-			}
-
 			continue;
 		}
 		// portal or mirror
@@ -4270,6 +4455,11 @@ static bool ParseShader( const char *_text )
 		{
 			shader.sort = Util::ordinal(shaderSort_t::SS_PORTAL);
 			shader.isPortal = true;
+
+			/* Mirrors don't use any portal range, probably because they always
+			render the room the mirror is in, and then the renderer processes the
+			same geometry that would be processed with or without mirror. In case
+			there is more than a mirror visible, there is a recursion limit. */
 			continue;
 		}
 		// skyparms <cloudheight> <outerbox> <innerbox>
@@ -4381,8 +4571,7 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "diffuseMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseDiffuseMap( &stages[ s ], text, TB_COLORMAP );
-			stages[ s ].implicitLightmap = true;
+			ParseLegacyDiffuseStage( &stages[ s ], text );
 			s++;
 			continue;
 		}
@@ -4390,7 +4579,7 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "normalMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseNormalMap( &stages[ s ], text, TB_COLORMAP );
+			ParseLegacyNormalStage( &stages[ s ], text );
 			SetNormalFormat( &stages[ s ], dxNormalFormat );
 			s++;
 			continue;
@@ -4399,7 +4588,7 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "bumpMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better use 'normalMap' keyword and move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseNormalMap( &stages[ s ], text, TB_COLORMAP );
+			ParseLegacyNormalStage( &stages[ s ], text );
 			SetNormalFormat( &stages[ s ], dxNormalFormat );
 			s++;
 			continue;
@@ -4408,23 +4597,16 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "specularMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseSpecularMap( &stages[ s ], text, TB_COLORMAP );
+			ParseLegacySpecularStage( &stages[ s ], text );
 			s++;
 			continue;
 		}
-		// physicalMap <image>
-		else if ( !Q_stricmp( token, "physicalMap" ) )
-		{
-			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParsePhysicalMap( &stages[ s ], text, TB_COLORMAP );
-			s++;
-			continue;
-		}
+		// physicalMap <image> did not exist
 		// glowMap <image>
 		else if ( !Q_stricmp( token, "glowMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseGlowMap( &stages[ s ], text, TB_COLORMAP );
+			ParseLegacyGlowStage( &stages[ s ], text );
 			s++;
 			continue;
 		}
@@ -4432,7 +4614,7 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "reflectionMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseReflectionMap( &stages[ s ], text, TB_COLORMAP );
+			ParseReflectionStage( &stages[ s ], text );
 			s++;
 			continue;
 		}
@@ -4440,28 +4622,21 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "reflectionMapBlended" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseReflectionMapBlended( &stages[ s ], text, TB_COLORMAP );
+			ParseReflectionStageBlended( &stages[ s ], text );
 			s++;
 			continue;
 		}
 		else if ( !Q_stricmp( token, "dpreflectcube" ) )
 		{
-			if ( *r_dpMaterial )
+			if ( r_dpMaterial.Get() )
 			{
-				ParseReflectionMapBlended( &stages[ s ], text, TB_COLORMAP );
+				ParseReflectionStageBlended( &stages[ s ], text );
 				s++;
 			}
 			else
 			{
 				Log::Warn("disabled DarkPlaces shader parameter '%s' in '%s'", token, shader.name );
 			}
-			continue;
-		}
-		// lightFalloffImage <image>
-		else if ( !Q_stricmp( token, "lightFalloffImage" ) )
-		{
-			ParseLightFalloffImage( &stages[ s ], text );
-			s++;
 			continue;
 		}
 		// Doom 3 DECAL_MACRO
@@ -4531,7 +4706,7 @@ static bool ParseShader( const char *_text )
 		}
 		else if ( !Q_strnicmp( token, "dp", 2 ) )
 		{
-			if ( *r_dpMaterial )
+			if ( r_dpMaterial.Get() )
 			{
 				Log::Warn("unknown DarkPlaces shader parameter '%s' in '%s'", token, shader.name );
 			}
@@ -4550,10 +4725,10 @@ static bool ParseShader( const char *_text )
 		}
 	}
 
-	// ignore shaders that don't have any stages, unless it is a sky or fog
+	// Make shaders without stages that are not fog and not sky as blend (they are fully transparent).
 	if ( s == 0 && !shader.forceOpaque && !shader.isSky && !( shader.contentFlags & CONTENTS_FOG ) && implicitMap[ 0 ] == '\0' )
 	{
-		return false;
+		shader.sort = Util::ordinal( shaderSort_t::SS_BLEND0 );
 	}
 
 	return true;
@@ -4567,6 +4742,31 @@ SHADER OPTIMIZATION AND FOGGING
 ========================================================================================
 */
 
+// Group all active stages to the begining of the array.
+static void GroupActiveStages()
+{
+	size_t numActiveStages = 0;
+
+	for ( size_t i = 0; i < numStages; i++ )
+	{
+		if ( !stages[ i ].active )
+		{
+			continue;
+		}
+
+		if ( i != numActiveStages )
+		{
+			stages[ numActiveStages ] = stages[ i ];
+
+			stages[ i ].active = false;
+		}
+
+		numActiveStages++;
+	}
+
+	numStages = numActiveStages;
+}
+
 /*
 ================
 CollapseMultitexture
@@ -4575,6 +4775,7 @@ CollapseMultitexture
 // *INDENT-OFF*
 static void CollapseStages()
 {
+	int colorStage = -1;
 	int diffuseStage = -1;
 	int normalStage = -1;
 	int specularStage = -1;
@@ -4583,28 +4784,181 @@ static void CollapseStages()
 	int lightStage = -1;
 	int glowStage = -1;
 
-	int lightMapCount = 0;
+	/* DarkPlaces only supports one kind of lightmap blend:
+	   https://gitlab.com/xonotic/darkplaces/blob/324a5329d33ef90df59e6488abce6433d90ac04c/model_shared.c#L1886-1887
 
-	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
+	So we may implement specific code when stages[ i ].dpMaterial
+	is true to hide bugs that may be hidden by the incomplete
+	DarPlaces implementation, in a similar way to r_dpBlend. */
+
+	for ( int i = 0, step = 0; i < MAX_SHADER_STAGES && step < 2; i++ )
 	{
 		if ( !stages[ i ].active )
 		{
 			continue;
 		}
-		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_generic
-			|| stages[ i ].collapseType == collapseType_t::COLLAPSE_lighting_PBR )
+
+		bool isLightStage = false;
+		bool isColorStage = false;
+		bool isCollapseColorStage = false;
+
+		switch ( stages[ i ].type )
 		{
-			stages[ i ].type = stageType_t::ST_COLLAPSE_lighting_PBR;
-			continue;
+			case stageType_t::ST_LIGHTMAP:
+				isLightStage = true;
+				break;
+			case stageType_t::ST_COLORMAP:
+				isColorStage = true;
+				break;
+			case stageType_t::ST_COLLAPSE_COLORMAP:
+				isCollapseColorStage = true;
+				break;
+			case stageType_t::ST_NORMALMAP:
+			case stageType_t::ST_HEIGHTMAP:
+			case stageType_t::ST_PHYSICALMAP:
+			case stageType_t::ST_SPECULARMAP:
+				continue;
+			default:
+				break;
 		}
-		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
+
+		bool rgbGen_identity =
+			stages[ i ].rgbGen == colorGen_t::CGEN_IDENTITY
+			|| ( stages[ i ].rgbGen == colorGen_t::CGEN_IDENTITY_LIGHTING && !r_overbrightQ3.Get() );
+
+		bool alphaGen_identity =
+			stages[ i ].alphaGen == alphaGen_t::AGEN_IDENTITY;
+
+		bool blendFunc_add =
+			( stages[ i ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE
+			&& ( stages[ i ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
+
+		bool blendFunc_filter =
+			( stages[ i ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR
+			&& ( stages[ i ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO;
+
+		// Do not collapse lightmap with custom depthFunc.
+		bool depthFunc_lequal =
+			( stages[ i ].stateBits & GLS_DEPTHFUNC_BITS ) == 0;
+
+		bool tcGen_Environment = stages[ i ].tcGen_Environment;
+
+		if ( step == 0 )
 		{
-			stages[ i ].type = stageType_t::ST_COLLAPSE_lighting_PHONG;
-			continue;
+			if ( ( isColorStage || isCollapseColorStage )
+				&& rgbGen_identity
+				&& alphaGen_identity
+				&& !tcGen_Environment )
+			{
+				colorStage = i;
+				step++;
+				continue;
+			}
+			else if ( isLightStage
+				&& rgbGen_identity
+				&& alphaGen_identity
+				&& blendFunc_filter )
+			{
+				lightStage = i;
+				step++;
+				continue;
+			}
 		}
-		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_reflection_CB )
+		else if ( step == 1 )
 		{
-			stages[ i ].type = stageType_t::ST_COLLAPSE_reflection_CB;
+			if ( isLightStage
+				&& rgbGen_identity
+				&& alphaGen_identity
+				&& depthFunc_lequal )
+			{
+				lightStage = i;
+				step++;
+				continue;
+			}
+			else if ( ( isColorStage || isCollapseColorStage )
+				&& rgbGen_identity
+				&& alphaGen_identity
+				&& blendFunc_filter
+				&& colorStage != -1 )
+			{
+				colorStage = i;
+				step++;
+				continue;
+			}
+		}
+		else if ( step == 2 )
+		{
+			if ( isColorStage
+				&& rgbGen_identity
+				&& alphaGen_identity
+				&& blendFunc_add
+				&& !tcGen_Environment )
+			{
+				bool hasGlowMap = stages[ colorStage ].bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
+
+				if ( hasGlowMap )
+				{
+					break;
+				}
+				else
+				{
+					glowStage = i;
+					step++;
+					continue;
+				}
+			}
+		}
+		break;
+	}
+
+	if ( colorStage != -1 && lightStage != -1 )
+	{
+		switch ( stages[ colorStage ].type )
+		{
+			case stageType_t::ST_COLORMAP:
+				// Turn color stage as diffuse stage.
+				// Merge light stage with diffuse stage.
+				stages[ colorStage ].type = stageType_t::ST_DIFFUSEMAP;
+				colorStage = -1;
+
+				// Disable light stage since it's merged.
+				stages[ lightStage ].active = false;
+
+				// The glow stage will be merged later.
+				if ( glowStage != -1 )
+				{
+					stages[ glowStage ].type = stageType_t::ST_GLOWMAP;
+				}
+
+				// The glow stage will be rediscovered later.
+				glowStage = -1;
+				break;
+
+			case stageType_t::ST_COLLAPSE_COLORMAP:
+				// Turn collapse color stage as collapse diffuse stage.
+				// Merge light stage with color diffuse stage.
+				stages[ colorStage ].type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
+				colorStage = -1;
+
+				// Disable light stage since it's merged.
+				stages[ lightStage ].active = false;
+
+				// The can't be a glowStage to merge.
+				break;
+
+			default:
+				break;
+		}
+	}
+	else
+	{
+		lightStage = -1;
+	}
+
+	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
+	{
+		if ( !stages[ i ].active )
+		{
 			continue;
 		}
 		else if ( stages[ i ].type == stageType_t::ST_DIFFUSEMAP )
@@ -4664,9 +5018,11 @@ static void CollapseStages()
 		}
 		else if ( stages[ i ].type == stageType_t::ST_LIGHTMAP )
 		{
-			lightMapCount++;
-
-			if ( lightStage == -1 )
+			if ( lightStage != -1 )
+			{
+				Log::Warn( "more than one lightmap stage in shader '%s'", shader.name );
+			}
+			else
 			{
 				lightStage = i;
 			}
@@ -4684,42 +5040,17 @@ static void CollapseStages()
 		}
 	}
 
-	if ( lightMapCount > 1 )
-	{
-		Log::Debug( "found %d light map stages in shader '%s'", lightMapCount, shader.name );
-	}
-
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
-		/* Store hethaze and liquid normal map in normal map slot.
+		/* Store heathaze and liquid normal map in normal map slot.
 
 		NOTE: liquidMap may be entirely redesigned in the future
-		to be a variant of diffuseMap (hence supporting all others textures).
-		*/
+		to be a variant of diffuseMap (hence supporting all others textures). */
 		if ( stages[ i ].type == stageType_t::ST_HEATHAZEMAP
 			|| stages[ i ].type == stageType_t::ST_LIQUIDMAP )
 		{
 			stages[ i ].bundle[ TB_NORMALMAP ] = stages[ i ].bundle[ TB_COLORMAP ];
 			stages[ i ].bundle[ TB_COLORMAP ] = {};
-		}
-
-		if ( lightStage != -1 && stages[ i ].collapseType != collapseType_t::COLLAPSE_none )
-		{
-			if ( stages[ i ].dpMaterial )
-			{
-				// DarkPlaces only supports one kind of lightmap blend:
-				//   https://gitlab.com/xonotic/darkplaces/blob/324a5329d33ef90df59e6488abce6433d90ac04c/model_shared.c#L1886-1887
-				Log::Debug("found custom lightmap stage in DarkPlaces '%s' shader, disable it and enable implicit one instead", shader.name);
-				stages[ i ].implicitLightmap = true;
-				stages[ lightStage ].active = false;
-				lightStage = -1;
-			}
-			else
-			{
-				// custom lightmap stage, disable the implicit light stage
-				Log::Debug("found custom lightmap stage in '%s' shader, disabling implicit one", shader.name);
-				stages[ i ].implicitLightmap = false;
-			}
 		}
 	}
 
@@ -4732,9 +5063,9 @@ static void CollapseStages()
 		// note that if uncollapsed reflectionStage had to be merged in another stage
 		// it would have to be backed-up somewhere
 
-		Log::Debug("found reflection collapsable stage in shader '%s':", shader.name);
-		stages[ reflectionStage ].collapseType = collapseType_t::COLLAPSE_reflection_CB;
-		stages[ reflectionStage ].type = stageType_t::ST_COLLAPSE_reflection_CB;
+		Log::Debug("found reflection collapsible stage in shader '%s':", shader.name);
+		stages[ reflectionStage ].collapseType = collapseType_t::COLLAPSE_REFLECTIONMAP;
+		stages[ reflectionStage ].type = stageType_t::ST_COLLAPSE_REFLECTIONMAP;
 
 		// merge with reflection stage
 		stages[ reflectionStage ].bundle[ TB_NORMALMAP ] = stages[ normalStage ].bundle[ TB_COLORMAP ];
@@ -4742,177 +5073,182 @@ static void CollapseStages()
 		stages[ normalStage ].active = false;
 	}
 
+	if ( specularStage != -1 && physicalStage != -1 )
+	{
+		Log::Warn("Supposedly you shouldn't have both specularMap and physicalMap (in shader '%s')?", shader.name);
+		// keep specular stage
+		stages[ physicalStage ].active = false;
+		physicalStage = -1;
+	}
+
 	if ( diffuseStage != -1
 		&& ( specularStage != -1
 			|| normalStage != -1
+			|| specularStage != -1
 			|| physicalStage != -1
-			|| lightStage != -1
 			|| glowStage != -1 ) )
 	{
-		// note that if uncollapsed diffuseStage had to be merged in another stage
-		// it would have to be backed-up somewhere
-
-		if ( specularStage != -1 && physicalStage != -1 )
+		if ( physicalStage != -1 )
 		{
-			Log::Warn("Supposedly you shouldn't have both specularMap and physicalMap (in shader '%s')?", shader.name);
+			Log::Debug("found PBR lighting collapsible stage in shader '%s'", shader.name);
+			stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_PBR;
 		}
 		else
 		{
-			if ( physicalStage != -1 )
-			{
-				Log::Debug("found PBR lighting collapsible stage in shader '%s'", shader.name);
-				stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_lighting_PBR;
-				stages[ diffuseStage ].type = stageType_t::ST_COLLAPSE_lighting_PBR;
-			}
-			else
-			{
-				Log::Debug("found Phong lighting collapsible stage in shader '%s'", shader.name);
-				stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_lighting_PHONG;
-				stages[ diffuseStage ].type = stageType_t::ST_COLLAPSE_lighting_PHONG;
-			}
-
-			if ( normalStage != -1 )
-			{
-				// merge with diffuse stage
-				stages[ diffuseStage ].bundle[ TB_NORMALMAP ] = stages[ normalStage ].bundle[ TB_COLORMAP ];
-
-				stages[ diffuseStage ].normalIntensityExp = stages[ normalStage ].normalIntensityExp;
-
-				for ( int i = 0; i < 3; i++ )
-				{
-					stages[ diffuseStage ].normalFormat[ i ] = stages[ normalStage ].normalFormat[ i ];
-					stages[ diffuseStage ].normalScale[ i ] = stages[ normalStage ].normalScale[ i ];
-				}
-
-				stages[ diffuseStage ].hasNormalFormat = stages[ normalStage ].hasNormalFormat;
-				stages[ diffuseStage ].hasNormalScale = stages[ normalStage ].hasNormalScale;
-
-				stages[ diffuseStage ].isHeightMapInNormalMap = stages[ normalStage ].isHeightMapInNormalMap;
-
-				// disable since it's merged
-				stages[ normalStage ].active = false;
-			}
-
-			if ( specularStage != -1 )
-			{
-				// merge with diffuse stage
-				stages[ diffuseStage ].bundle[ TB_SPECULARMAP ] = stages[ specularStage ].bundle[ TB_COLORMAP ];
-				stages[ diffuseStage ].specularExponentMin = stages[ specularStage ].specularExponentMin;
-				stages[ diffuseStage ].specularExponentMax = stages[ specularStage ].specularExponentMax;
-				// disable since it's merged
-				stages[ specularStage ].active = false;
-			}
-
-			if ( physicalStage != -1 )
-			{
-				// merge with diffuse stage
-				stages[ diffuseStage ].bundle[ TB_PHYSICALMAP ] = stages[ physicalStage ].bundle[ TB_COLORMAP ];
-				// disable since it's merged
-				stages[ physicalStage ].active = false;
-			}
-
-			// always test for this stage before glow stage
-			if ( lightStage != -1 )
-			{
-				// “blendFunc filter” is same as “blendFunc GL_DST_COLOR GL_ZERO” and the default
-				if ( ( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR
-					&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO )
-				{
-					// common lightmap stage
-					// disable to not paint it over implicit light stage and glow map
-					stages[ lightStage ].active = false;
-					stages[ diffuseStage ].implicitLightmap = true;
-				}
-				else
-				{
-					// custom lightmap stage, disable the implicit light stage and keep
-					// this one uncollapsed
-					Log::Debug("found custom lightmap stage in '%s' shader, not collapsing", shader.name);
-					stages[ diffuseStage ].implicitLightmap = false;
-				}
-			}
-
-			// always test for this stage after light stage
-			if ( glowStage != -1 )
-			{
-				// if there is no custom light stage, collapse to the diffuse stage
-				// that will rely on the implicit light stage
-				if ( stages[ diffuseStage ].implicitLightmap )
-				{
-					// merge with diffuse stage
-					stages[ diffuseStage ].bundle[ TB_GLOWMAP ] = stages[ glowStage ].bundle[ TB_COLORMAP ];
-					// disable since it's merged
-					stages[ glowStage ].active = false;
-				}
-				// if there is a custom light stage, keep the glow stage uncollapsed
-				// and make sure the diffuse stage precedes the light stage
-				// and the light stage (known to exist because of implicitLightmap == false) precedes the glow stage
-				else
-				{
-					ASSERT_GE(lightStage, 0);
-					Log::Debug("found glow map with custom lightmap stage in '%s' shader, not collapsing", shader.name);
-					stages[ glowStage ].type = stageType_t::ST_COLORMAP;
-					// not required since it's already how it is expected to be
-					// stages[ glowStage ].bundle[ TB_COLORMAP ] = stages[ glowStage ].bundle[ TB_COLORMAP ];
-
-					// put diffuse stage in the first of the three spots
-					int& minStageIndex = lightStage < glowStage ? lightStage : glowStage; // note the reference!
-					if ( minStageIndex < diffuseStage )
-					{
-						std::swap(stages[diffuseStage], stages[minStageIndex]);
-						std::swap(diffuseStage, minStageIndex);
-					}
-					// fix 2nd and 3rd spots
-					if ( glowStage < lightStage )
-					{
-						std::swap(stages[glowStage], stages[lightStage]);
-						std::swap(glowStage, lightStage);
-					}
-				}
-			}
+			Log::Debug("found Phong lighting collapsible stage in shader '%s'", shader.name);
+			stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_PHONG;
 		}
-	}
 
-	// move all active stages at beginning
-	// note that the 'active' field is still used instead of numStages in some code that runs later
-	int numActiveStages = 0;
-	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
-	{
-		if ( stages[ i ].active )
+		if ( normalStage != -1 )
 		{
-			if ( i != numActiveStages )
-			{
-				stages[ numActiveStages ] = stages[ i ];
+			// merge with diffuse stage
+			stages[ diffuseStage ].bundle[ TB_NORMALMAP ] = stages[ normalStage ].bundle[ TB_COLORMAP ];
 
-				stages[ i ].active = false;
+			stages[ diffuseStage ].normalIntensityExp = stages[ normalStage ].normalIntensityExp;
+
+			for ( int i = 0; i < 3; i++ )
+			{
+				stages[ diffuseStage ].normalFormat[ i ] = stages[ normalStage ].normalFormat[ i ];
+				stages[ diffuseStage ].normalScale[ i ] = stages[ normalStage ].normalScale[ i ];
 			}
 
-			numActiveStages++;
+			stages[ diffuseStage ].hasHeightMapInNormalMap = stages[ normalStage ].hasHeightMapInNormalMap;
+
+			// disable since it's merged
+			stages[ normalStage ].active = false;
+		}
+
+		if ( specularStage != -1 )
+		{
+			// merge with diffuse stage
+			stages[ diffuseStage ].bundle[ TB_SPECULARMAP ] = stages[ specularStage ].bundle[ TB_COLORMAP ];
+			stages[ diffuseStage ].specularExponentMin = stages[ specularStage ].specularExponentMin;
+			stages[ diffuseStage ].specularExponentMax = stages[ specularStage ].specularExponentMax;
+			// disable since it's merged
+			stages[ specularStage ].active = false;
+		}
+
+		if ( physicalStage != -1 )
+		{
+			// merge with diffuse stage
+			stages[ diffuseStage ].bundle[ TB_PHYSICALMAP ] = stages[ physicalStage ].bundle[ TB_COLORMAP ];
+			// disable since it's merged
+			stages[ physicalStage ].active = false;
+		}
+
+		if ( glowStage != -1 )
+		{
+			// merge with diffuse stage
+			stages[ diffuseStage ].bundle[ TB_GLOWMAP ] = stages[ glowStage ].bundle[ TB_COLORMAP ];
+			// disable since it's merged
+			stages[ glowStage ].active = false;
 		}
 	}
 
-	shader.numStages = numActiveStages;
+	GroupActiveStages();
+}
 
-	// Do some precomputation.
-	for ( int s = 0; s < shader.numStages; s++ )
+// Make shader stages ready to be used by renderer functions.
+static void FinishStages()
+{
+	bool lightStageFound = false;
+
+	/* Skip standalone lightmaps, they are assumed to be buggy,
+	see: https://github.com/DaemonEngine/Daemon/issues/322 */
+	if ( numStages == 1 && stages[ 0 ].type == stageType_t::ST_LIGHTMAP )
+	{
+		Log::Warn("Skipping standalone lightmap in shader '%s', assumed to be buggy.", shader.name);
+		stages[ 0 ].active = false;
+		numStages = 0;
+	}
+
+	for ( size_t s = 0; s < numStages; s++ )
 	{
 		shaderStage_t *stage = &stages[ s ];
 
+		if ( r_showLightMaps->integer && lightStageFound )
+		{
+			stage->active = false;
+			continue;
+		}
+
+		switch ( stage->type )
+		{
+			case stageType_t::ST_HEATHAZEMAP:
+				stage->stateBits &= ~( GLS_ATEST_BITS | GLS_DEPTHMASK_TRUE );
+				break;
+
+			case stageType_t::ST_LIQUIDMAP:
+				if ( !r_liquidMapping->integer )
+				{
+					stage->type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
+					stage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
+				}
+				break;
+
+			case stageType_t::ST_REFLECTIONMAP:
+			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
+				stage->active = glConfig.reflectionMappingAvailable;
+				break;
+
+			case stageType_t::ST_LIGHTMAP:
+				// standalone lightmap stage: paint shadows over a white texture
+				stage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
+				lightStageFound = true;
+				break;
+
+			case stageType_t::ST_DIFFUSEMAP:
+			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
+				lightStageFound = true;
+				break;
+
+			default:
+				break;
+		}
+
+		memset( stage->variantOffsets, -1, ShaderStageVariant::ALL * sizeof( int ) );
+	}
+
+	GroupActiveStages();
+
+	int deformIndex = shader.numDeforms > 0
+		? gl_shaderManager.GetDeformShaderIndex( shader.deforms, shader.numDeforms )
+		: 0;
+
+	for ( size_t s = 0; s < numStages; s++ )
+	{
+		shaderStage_t *stage = &stages[ s ];
+
+		stage->deformIndex = deformIndex;
+
 		// Available textures.
-		stage->hasNormalMap = stage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
-		stage->hasHeightMap = stage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
-		stage->isHeightMapInNormalMap = stage->isHeightMapInNormalMap && stage->hasNormalMap;
-		stage->hasMaterialMap = stage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
-		stage->hasGlowMap = stage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
-		stage->isMaterialPhysical = stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
+		bool hasNormalMap = stage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+		bool hasHeightMap = stage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
+		bool hasMaterialMap = stage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
+		bool hasGlowMap = stage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
+
+		// Texture storage variants.
+		stage->hasHeightMapInNormalMap = stage->hasHeightMapInNormalMap && hasNormalMap;
 
 		// Available features.
-		stage->enableNormalMapping = r_normalMapping->integer && stage->hasNormalMap;
-		stage->enableDeluxeMapping = r_deluxeMapping->integer && stage->hasNormalMap;
-		stage->enableReliefMapping = r_reliefMapping->integer && !shader.disableReliefMapping && ( stage->hasHeightMap || stage->isHeightMapInNormalMap );
-		stage->enablePhysicalMapping = r_physicalMapping->integer && stage->hasMaterialMap && stage->isMaterialPhysical;
-		stage->enableSpecularMapping = r_specularMapping->integer && stage->hasMaterialMap && !stage->isMaterialPhysical;
-		stage->enableGlowMapping = r_glowMapping->integer && stage->hasGlowMap;
+		stage->enableNormalMapping = glConfig.normalMapping && hasNormalMap;
+		stage->enableDeluxeMapping = glConfig.deluxeMapping && ( hasNormalMap || hasMaterialMap );
+
+		stage->enableReliefMapping = glConfig.reliefMapping && !shader.disableReliefMapping
+			&& ( hasHeightMap || stage->hasHeightMapInNormalMap );
+
+		stage->enableGlowMapping = r_glowMapping->integer && hasGlowMap;
+
+		if ( stage->collapseType == collapseType_t::COLLAPSE_PBR )
+		{
+			stage->enablePhysicalMapping = glConfig.physicalMapping && hasMaterialMap;
+			stage->enableSpecularMapping = false;
+		}
+		else
+		{
+			stage->enableSpecularMapping = glConfig.specularMapping && hasMaterialMap;
+			stage->enablePhysicalMapping = false;
+		}
 
 		// FIXME: Workaround for textures having both an alpha mask (like gratings) with an height map,
 		// The engine does not displace the depth test map yet so we disable relief mapping to prevent garbage
@@ -4926,17 +5262,24 @@ static void CollapseStages()
 
 		// Finally disable useless heightMapInNormalMap if both normal and relief mapping are disabled.
 		// see https://github.com/DaemonEngine/Daemon/issues/376
-		stage->isHeightMapInNormalMap = stage->isHeightMapInNormalMap && ( stage->enableNormalMapping || stage->enableReliefMapping );
+		stage->hasHeightMapInNormalMap = stage->hasHeightMapInNormalMap
+			&& ( stage->enableNormalMapping || stage->enableReliefMapping );
 
 		// Bind fallback textures if required.
-		if ( !stage->enableNormalMapping && !( stage->enableReliefMapping && stage->isHeightMapInNormalMap) )
+		if ( !stage->enableNormalMapping && !( stage->enableReliefMapping && stage->hasHeightMapInNormalMap) )
 		{
 			stage->bundle[ TB_NORMALMAP ].image[ 0 ] = tr.flatImage;
 		}
 
-		if ( !stage->enablePhysicalMapping && !stage->enableSpecularMapping )
+		if ( !stage->enableSpecularMapping && !stage->enablePhysicalMapping )
 		{
-			stage->bundle[ TB_MATERIALMAP ].image[ 0 ] = tr.blackImage;
+			// If specular mapping is enabled always use the specular mapping
+			// shader to avoid costly GLSL shader switching.
+			if ( glConfig.specularMapping )
+			{
+				stage->enableSpecularMapping = true;
+				stage->bundle[ TB_MATERIALMAP ].image[ 0 ] = tr.blackImage;
+			}
 		}
 
 		if ( !stage->enableGlowMapping )
@@ -4945,54 +5288,174 @@ static void CollapseStages()
 		}
 
 		// Compute normal scale.
-		for ( int i = 0; i < 3; i++ )
+		if ( hasNormalMap )
 		{
-			if ( stage->hasNormalMap )
+			/* Please make sure the parser sets a normal format
+			when adding a new normal map syntax. */
+			DAEMON_ASSERT( HasNormalFormat( stage ) );
+
+			/* Without true as third argument, this function does
+			nothing if a normal format is already set, this is done
+			here as a fallback, GL format is 1,1,1. */
+			SetNormalFormat( stage, glNormalFormat );
+			
+			stage->normalScale[ 0 ] *= stage->normalFormat[ 0 ];
+			stage->normalScale[ 1 ] *= stage->normalFormat[ 1 ];
+
+			/* Because Z reconstruction is destructive on alpha channel
+			Z reconstruction is never done on normal map shipping height
+			map in alpha channel and Z is read from the file itself.
+			Those files always provide Z anyway.
+
+			If height map is not stored in normal map alpha channel,
+			the Z component will be reconstructed from X and Y whatever
+			Z is provided by the file or not) and Z will be fine from
+			the start, so we must not apply the format translation on
+			the Z channel.
+
+			So this test means X and Y formats are always applied,
+			but Z format is applied only when Z is not reconstructed.
+
+			The XYZ format translations are not done on RGB channels
+			from the file but on the RGB channels as seen in GLSL shader,
+			there is no need to worry about DXn storing X in alpha channel.
+
+			This way the material syntax is expected to work the same with
+			both the PNG source and the released CRN. */
+			if ( stage->hasHeightMapInNormalMap )
 			{
-				if ( !stage->hasNormalFormat )
-				{
-					// Please make sure the parser sets a normal format
-					// when adding a new normal map syntax.
-					ASSERT_UNREACHABLE();
-				}
-
-				if ( !stage->hasNormalScale )
-				{
-					stage->normalScale[ i ] = 1.0;
-				}
-
-				/* Because Z reconstruction is destructive on alpha channel
-				Z reconstruction is never done on normal map shipping height
-				map in alpha channel and Z is read from the file itself.
-				Those files always provide Z anyway.
-
-				If height map is not stored in normal map alpha channel,
-				the Z component will be reconstructed from X and Y whatever
-				Z is provided by the file or not) and Z will be fine from
-				the start, so we must not apply the format translation on
-				the Z channel.
-
-				So this test means X and Y formats are always applied,
-				but Z format is applied only when Z is not reconstructed.
-
-				Note the XYZ format translations are not done on RGB channels
-				from the file but on the RGB channels as seen in GLSL shader,
-				there is no need to worry about DXn storing X in alpha channel.
-
-				This way the material syntax is expected to work the same with
-				both the PNG source and the released CRN.
-				*/
-				if ( i < 2 || stage->isHeightMapInNormalMap )
-				{
-					stage->normalScale[ i ] *= stage->normalFormat[ i ];
-				}
-			}
-			else
-			{
-				stage->normalScale[ i ] = 1.0;
+				stage->normalScale[ 2 ] *= stage->normalFormat[ 2 ];
 			}
 		}
 	}
+
+	GroupActiveStages();
+}
+
+// Preselect the renderers to be used to render the stages.
+static void SetStagesRenderers()
+{
+	struct stageRendererOptions_t {
+		// Core renderer (code path for when only OpenGL Core is available, or compatible OpenGL 2).
+		stageRenderer_t colorRenderer;
+		stageShaderBuildMarker_t shaderBuildMarker;
+
+		// Material renderer (code path for advanced OpenGL techniques like bindless textures).
+		surfaceDataUpdater_t surfaceDataUpdater;
+		stageShaderBinder_t shaderBinder;
+		stageMaterialProcessor_t materialProcessor;
+	};
+
+	for ( size_t s = 0; s < numStages; s++ )
+	{
+		shaderStage_t *stage = &stages[ s ];
+
+		stageRendererOptions_t stageRendererOptions = {
+			&Render_NONE, &MarkShaderBuildNONE,
+			&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
+		};
+
+		switch ( stage->type )
+		{
+			case stageType_t::ST_COLORMAP:
+				stageRendererOptions = {
+					&Render_generic, &MarkShaderBuildGeneric3D,
+					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
+				};
+				break;
+			case stageType_t::ST_STYLELIGHTMAP:
+			case stageType_t::ST_STYLECOLORMAP:
+				stageRendererOptions = {
+					&Render_generic3D, &MarkShaderBuildGeneric3D,
+					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
+				};
+				break;
+			case stageType_t::ST_LIGHTMAP:
+			case stageType_t::ST_DIFFUSEMAP:
+			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
+				stageRendererOptions = {
+					&Render_lightMapping, &MarkShaderBuildLightMapping,
+					&UpdateSurfaceDataLightMapping, &BindShaderLightMapping, &ProcessMaterialLightMapping,
+				};
+				break;
+			case stageType_t::ST_COLLAPSE_COLORMAP:
+				stageRendererOptions = {
+					&Render_lightMapping, &MarkShaderBuildLightMapping,
+					&UpdateSurfaceDataLightMapping, &BindShaderLightMapping, &ProcessMaterialLightMapping,
+				};
+				break;
+			case stageType_t::ST_REFLECTIONMAP:
+			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
+				stageRendererOptions = {
+					&Render_reflection_CB, &MarkShaderBuildReflection,
+					&UpdateSurfaceDataReflection, &BindShaderReflection, &ProcessMaterialReflection,
+				};
+				break;
+			case stageType_t::ST_SKYBOXMAP:
+				stageRendererOptions = {
+					&Render_skybox, &MarkShaderBuildSkybox,
+					&UpdateSurfaceDataSkybox, &BindShaderSkybox, &ProcessMaterialSkybox,
+				};
+				break;
+			case stageType_t::ST_SCREENMAP:
+				stageRendererOptions = {
+					&Render_screen, &MarkShaderBuildScreen,
+					&UpdateSurfaceDataScreen, &BindShaderScreen, &ProcessMaterialScreen,
+				};
+				break;
+			case stageType_t::ST_PORTALMAP:
+				/* Comment from the Material code:
+				This is supposedly used for alphagen portal and portal surfaces should never get here. */
+				stageRendererOptions = {
+					&Render_portal, &MarkShaderBuildPortal,
+					&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
+				};
+				break;
+			case stageType_t::ST_HEATHAZEMAP:
+				stageRendererOptions = {
+					&Render_heatHaze, &MarkShaderBuildHeatHaze,
+					&UpdateSurfaceDataHeatHaze, &BindShaderHeatHaze, &ProcessMaterialHeatHaze,
+				};
+				break;
+			case stageType_t::ST_LIQUIDMAP:
+				stageRendererOptions = {
+					&Render_liquid, &MarkShaderBuildLiquid,
+					&UpdateSurfaceDataLiquid, &BindShaderLiquid, &ProcessMaterialLiquid,
+				};
+				break;
+			case stageType_t::ST_FOGMAP:
+				stageRendererOptions = {
+					// All q3 fog shaders are built in RE_EndRegistration because they're assigned to surfaces dynamically
+					&Render_fog, &MarkShaderBuildNOP,
+					&UpdateSurfaceDataFog, &BindShaderFog, &ProcessMaterialFog,
+				};
+				break;
+			default:
+				Log::Warn( "Missing renderer for stage type %d in shader %s, stage %d",
+					Util::ordinal(stage->type), shader.name, s );
+				stageRendererOptions = {
+					&Render_NOP, &MarkShaderBuildNOP,
+					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
+				};
+				break;
+		}
+
+		stage->colorRenderer = stageRendererOptions.colorRenderer;
+		stage->shaderBuildMarker = stageRendererOptions.shaderBuildMarker;
+
+		stage->surfaceDataUpdater = stageRendererOptions.surfaceDataUpdater;
+		stage->shaderBinder = stageRendererOptions.shaderBinder;
+		stage->materialProcessor = stageRendererOptions.materialProcessor;
+
+		// Disable stages that have no renderer yet.
+		if ( stage->colorRenderer == &Render_NONE )
+		{
+			stage->active = false;
+			continue;
+		}
+	}
+
+	GroupActiveStages();
 }
 
 // *INDENT-ON*
@@ -5032,35 +5495,18 @@ static void SortNewShader()
 	tr.sortedShaders[ i + 1 ] = newShader;
 }
 
-/*
-====================
-GeneratePermanentShader
-====================
-*/
-static shader_t *GeneratePermanentShader()
+// Copy the current global shader to a newly allocated shader.
+static shader_t *MakeShaderPermanent()
 {
-	shader_t *newShader;
-	int      i, b;
-	int      size, hash;
-
 	if ( tr.numShaders == MAX_SHADERS )
 	{
-		Log::Warn("GeneratePermanentShader - MAX_SHADERS hit" );
+		Log::Warn("MakeShaderPermanent - MAX_SHADERS hit" );
 		return tr.defaultShader;
 	}
 
-	newShader = (shader_t*) ri.Hunk_Alloc( sizeof( shader_t ), ha_pref::h_low );
+	shader_t *newShader = (shader_t*) ri.Hunk_Alloc( sizeof( shader_t ), ha_pref::h_low );
 
 	*newShader = shader;
-
-	if ( shader.sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
-	{
-		newShader->fogPass = fogPass_t::FP_EQUAL;
-	}
-	else if ( shader.contentFlags & CONTENTS_FOG )
-	{
-		newShader->fogPass = fogPass_t::FP_LE;
-	}
 
 	tr.shaders[ tr.numShaders ] = newShader;
 	newShader->index = tr.numShaders;
@@ -5070,27 +5516,29 @@ static shader_t *GeneratePermanentShader()
 
 	tr.numShaders++;
 
-	for ( i = 0; i < newShader->numStages; i++ )
+	ASSERT( numStages <= MAX_SHADER_STAGES );
+
+	newShader->stages = (shaderStage_t*) ri.Hunk_Alloc( sizeof( shaderStage_t ) * numStages, ha_pref::h_low );
+	std::copy_n( stages.data(), numStages, newShader->stages );
+
+	for ( size_t s = 0; s < numStages; s++ )
 	{
-		if ( !stages[ i ].active )
+		for ( size_t b = 0; b < MAX_TEXTURE_BUNDLES; b++ )
 		{
-			break;
+			size_t size = newShader->stages[ s ].bundle[ b ].numTexMods * sizeof( texModInfo_t );
+			newShader->stages[ s ].bundle[ b ].texMods = (texModInfo_t*) ri.Hunk_Alloc( size, ha_pref::h_low );
+			std::copy_n( stages[ s ].bundle[ b ].texMods, newShader->stages[ s ].bundle[ b ].numTexMods,
+			             newShader->stages[ s ].bundle[ b ].texMods );
 		}
 
-		newShader->stages[ i ] = (shaderStage_t*) ri.Hunk_Alloc( sizeof( stages[ i ] ), ha_pref::h_low );
-		*newShader->stages[ i ] = stages[ i ];
-
-		for ( b = 0; b < MAX_TEXTURE_BUNDLES; b++ )
-		{
-			size = newShader->stages[ i ]->bundle[ b ].numTexMods * sizeof( texModInfo_t );
-			newShader->stages[ i ]->bundle[ b ].texMods = (texModInfo_t*) ri.Hunk_Alloc( size, ha_pref::h_low );
-			memcpy( newShader->stages[ i ]->bundle[ b ].texMods, stages[ i ].bundle[ b ].texMods, size );
-		}
+		newShader->stages[ s ].shader = newShader;
 	}
+
+	newShader->lastStage = newShader->stages + numStages;
 
 	SortNewShader();
 
-	hash = generateHashValue( newShader->name, FILE_HASH_SIZE );
+	int hash = generateHashValue( newShader->name, FILE_HASH_SIZE );
 	newShader->next = shaderHashTable[ hash ];
 	shaderHashTable[ hash ] = newShader;
 
@@ -5144,6 +5592,177 @@ static void GeneratePermanentShaderTable( const float *values, int numValues )
 	shaderTableHashTable[ hash ] = newTable;
 }
 
+bool CheckShaderNameLength( const char* func_err, const char* name, const char* suffix )
+{
+	if ( strlen( name ) + strlen( suffix ) >= MAX_QPATH )
+	{
+		Log::Warn("%s Shader name %s%s length longer than MAX_QPATH %d", func_err, name, suffix, MAX_QPATH );
+		return false;
+	}
+
+	return true;
+}
+
+static void ValidateStage( shaderStage_t *pStage )
+{
+	struct stageCheck_t {
+		bool expected;
+		bool check;
+		bool fallback;
+		const std::string name;
+	};
+
+	static const std::unordered_map<stageType_t, stageCheck_t> stageTypeCheck = {
+		{ stageType_t::ST_COLORMAP, { true, true, true, "color map" } },
+		{ stageType_t::ST_GLOWMAP, { true, true, false, "glowMap" } },
+		{ stageType_t::ST_DIFFUSEMAP, { true, true, true, "diffuseMap" } },
+		{ stageType_t::ST_NORMALMAP, { true, true, false, "normalMap" } },
+		{ stageType_t::ST_HEIGHTMAP, { true, true, false, "heightMap" } },
+		// There is no standalone physicalMap stage.
+		{ stageType_t::ST_PHYSICALMAP, { false, false, false, "physicalMap" } },
+		{ stageType_t::ST_SPECULARMAP, { true, true, false, "specularMap" } },
+		{ stageType_t::ST_HEATHAZEMAP, { true, true, false, "heatHazeMap" } },
+		{ stageType_t::ST_LIQUIDMAP, { true, true, false, "liquidMap" } },
+		{ stageType_t::ST_FOGMAP, { true, false, false, "fogMap" } },
+		// The lightmap is fetched at render time.
+		{ stageType_t::ST_LIGHTMAP, { true, false, false, "light map" } },
+		// The lightmap is fetched at render time.
+		{ stageType_t::ST_STYLELIGHTMAP, { true, false, false, "style light map" } },
+		{ stageType_t::ST_STYLECOLORMAP, { true, true, false, "style color map" } },
+		{ stageType_t::ST_COLLAPSE_COLORMAP, { true, true, true, "collapsed color map" } },
+		{ stageType_t::ST_COLLAPSE_DIFFUSEMAP, { true, true, true, "collapsed diffuseMap" } },
+		// TODO: Document the remaining stage types.
+	};
+
+	auto it = stageTypeCheck.find( pStage->type );
+	if ( it != stageTypeCheck.end()  )
+	{
+		stageCheck_t stageCheck = it->second;
+
+		if ( stageCheck.expected )
+		{
+			if ( stageCheck.check )
+			{
+				// Check for a missing texture.
+				if ( !pStage->bundle[ 0 ].image[ 0 ] )
+				{
+					if ( stageCheck.fallback )
+					{
+						Log::Warn("Shader %s has a %s stage with no image (using default as a fallback)",
+							shader.name, stageCheck.name );
+
+						pStage->bundle[ 0 ].image[ 0 ] = tr.defaultImage;
+					}
+					else
+					{
+						Log::Warn("Shader %s has a %s stage with no image (ignored)", 
+							shader.name, stageCheck.name );
+
+						pStage->active = false;
+					}
+				}
+			}
+		}
+		else
+		{
+			Log::Warn("Shader %s has unexpected standalone %s stage (ignored)", 
+				shader.name, stageCheck.name );
+
+			pStage->active = false;
+		}
+	}
+	else if ( !pStage->bundle[ 0 ].image[ 0 ] )
+	{
+		Log::Warn("Shader %s has an undocumented type %d stage with no image (ignored)",
+			shader.name, Util::ordinal(pStage->type) );
+
+		pStage->active = false;
+	}
+}
+
+// Note: this code was written to be exactly equivalent to previous sort determination code, which
+// was scattered chaotically throughout FinishShader(). So which conditions take priority over
+// which won't make sense. For example if there is an explicit "sort" keyword, probably that should
+// override anything else? But maybe there are some buggy legacy assets so I won't change it
+// without a thorough investigation.
+static float DetermineShaderSort()
+{
+	for ( size_t stage = numStages; stage--; )
+	{
+		ASSERT( stages[ stage ].active );
+
+		if ( shader.isSky && stages[ stage ].noFog )
+		{
+			return Util::ordinal(shaderSort_t::SS_ENVIRONMENT_NOFOG);
+		}
+	}
+
+	if ( shader.forceOpaque )
+	{
+		return Util::ordinal(shaderSort_t::SS_OPAQUE);
+	}
+
+	// set sky stuff appropriate
+	if ( shader.isSky )
+	{
+		if ( shader.noFog )
+		{
+			return Util::ordinal(shaderSort_t::SS_ENVIRONMENT_NOFOG);
+		}
+		else
+		{
+			return Util::ordinal(shaderSort_t::SS_ENVIRONMENT_FOG);
+		}
+	}
+
+	// If we get to this point without overriding it, we use the sort which was already set before
+	// calling FinishShader(). This may be set by an explicit "sort XXX", or various other shader-
+	// or stage-level keywords which cause it to be set automatically. (TODO: move the other things
+	// that set it automatically to this function.)
+	if ( shader.sort )
+	{
+		return shader.sort;
+	}
+
+	// set polygon offset
+	if ( shader.polygonOffset )
+	{
+		return Util::ordinal(shaderSort_t::SS_DECAL);
+	}
+
+	for ( size_t stage = 0; stage < numStages; stage++ )
+	{
+		if ( stages[ stage ].type == stageType_t::ST_HEATHAZEMAP )
+		{
+			return Util::ordinal(shaderSort_t::SS_BLEND0);
+		}
+
+		// determine sort order and fog color adjustment
+		if ( ( stages[ stage ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) &&
+		     ( stages[ 0 ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) )
+		{
+			// see through item, like a grill or grate
+			if ( stages[ stage ].stateBits & GLS_DEPTHMASK_TRUE)
+			{
+				return Util::ordinal(shaderSort_t::SS_SEE_THROUGH);
+			}
+			else
+			{
+				return Util::ordinal(shaderSort_t::SS_BLEND0);
+			}
+		}
+	}
+
+	// there are times when you will need to manually apply a sort to
+	// opaque alpha tested shaders that have later blend passes
+	if ( shader.translucent )
+	{
+		return Util::ordinal(shaderSort_t::SS_DECAL);
+	}
+
+	return Util::ordinal(shaderSort_t::SS_OPAQUE);
+}
+
 /*
 =========================
 FinishShader
@@ -5154,249 +5773,98 @@ from the current global working shader
 */
 static shader_t *FinishShader()
 {
-	int      stage, i;
-	shader_t *ret;
-
-	// set sky stuff appropriate
-	if ( shader.isSky )
+	if ( !shader.portalRange )
 	{
-		if ( shader.noFog )
-		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_ENVIRONMENT_NOFOG);
-		}
-		else
-		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_ENVIRONMENT_FOG);
-		}
+		/* Mirrors will not use that range but we need all
+		other portals to have it set. */
+		shader.portalRange = r_portalDefaultRange.Get();
 	}
 
-	if ( shader.forceOpaque )
-	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_OPAQUE);
-	}
-
-	// set polygon offset
-	if ( shader.polygonOffset && !shader.sort )
-	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_DECAL);
-	}
-
-	// all light materials need at least one z attenuation stage as first stage
-	if ( shader.type == shaderType_t::SHADER_LIGHT )
-	{
-		if ( stages[ 0 ].type != stageType_t::ST_ATTENUATIONMAP_Z )
-		{
-			// move up subsequent stages
-			memmove( &stages[ 1 ], &stages[ 0 ], sizeof( stages[ 0 ] ) * ( MAX_SHADER_STAGES - 1 ) );
-
-			stages[ 0 ].active = true;
-			stages[ 0 ].type = stageType_t::ST_ATTENUATIONMAP_Z;
-			stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY;
-			stages[ 0 ].stateBits = GLS_DEFAULT;
-			stages[ 0 ].overrideWrapType = true;
-			stages[ 0 ].wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
-
-			const char *squarelight1a = "lights/squarelight1a";
-			Log::Debug( "loading '%s' image as shader", squarelight1a );
-			LoadMap( &stages[ 0 ], squarelight1a );
-		}
-
-		// force following shader stages to be xy attenuation stages
-		for ( stage = 1; stage < MAX_SHADER_STAGES; stage++ )
-		{
-			shaderStage_t *pStage = &stages[ stage ];
-
-			if ( !pStage->active )
-			{
-				break;
-			}
-
-			pStage->type = stageType_t::ST_ATTENUATIONMAP_XY;
-		}
-	}
+	numStages = MAX_SHADER_STAGES;
+	GroupActiveStages();
 
 	// set appropriate stage information
-	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ )
+	for ( size_t stage = 0; stage < numStages; stage++ )
 	{
 		shaderStage_t *pStage = &stages[ stage ];
 
+		ValidateStage( pStage );
+
 		if ( !pStage->active )
 		{
-			break;
-		}
-
-		// check for a missing texture
-		switch ( pStage->type )
-		{
-			case stageType_t::ST_LIQUIDMAP:
-			case stageType_t::ST_LIGHTMAP:
-				// skip
-				break;
-
-			case stageType_t::ST_COLORMAP:
-			default:
-				{
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a colormap stage with no image", shader.name );
-						pStage->active = false;
-						continue;
-					}
-
-					break;
-				}
-
-			case stageType_t::ST_DIFFUSEMAP:
-				{
-					if ( !shader.isSky )
-					{
-						shader.interactLight = true;
-					}
-
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a diffusemap stage with no image", shader.name );
-						pStage->bundle[ 0 ].image[ 0 ] = tr.defaultImage;
-					}
-
-					break;
-				}
-
-			case stageType_t::ST_NORMALMAP:
-				{
-					if ( !shader.isSky )
-					{
-						shader.interactLight = true;
-					}
-
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a normalmap stage with no image", shader.name );
-						pStage->bundle[ 0 ].image[ 0 ] = tr.flatImage;
-					}
-
-					break;
-				}
-
-			case stageType_t::ST_SPECULARMAP:
-				{
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a specularmap stage with no image", shader.name );
-						pStage->bundle[ 0 ].image[ 0 ] = tr.blackImage;
-					}
-
-					break;
-				}
-
-			case stageType_t::ST_ATTENUATIONMAP_XY:
-				{
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a xy attenuationmap stage with no image", shader.name );
-						pStage->active = false;
-						continue;
-					}
-
-					break;
-				}
-
-			case stageType_t::ST_ATTENUATIONMAP_Z:
-				{
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a z attenuationmap stage with no image", shader.name );
-						pStage->active = false;
-						continue;
-					}
-
-					break;
-				}
+			continue;
 		}
 
 		if ( shader.forceOpaque )
 		{
 			pStage->stateBits |= GLS_DEPTHMASK_TRUE;
 		}
-
-		if ( shader.isSky && pStage->noFog )
-		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_ENVIRONMENT_NOFOG);
-		}
-
-		// determine sort order and fog color adjustment
-		if ( ( pStage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) &&
-		     ( stages[ 0 ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) )
-		{
-			// don't screw with sort order if this is a portal or environment
-			if ( !shader.sort )
-			{
-				// see through item, like a grill or grate
-				if ( pStage->stateBits & GLS_DEPTHMASK_TRUE )
-				{
-					shader.sort = Util::ordinal(shaderSort_t::SS_SEE_THROUGH);
-				}
-				else
-				{
-					shader.sort = Util::ordinal(shaderSort_t::SS_BLEND0);
-				}
-			}
-		}
 	}
 
-	shader.numStages = stage;
+	GroupActiveStages();
 
-	// there are times when you will need to manually apply a sort to
-	// opaque alpha tested shaders that have later blend passes
-	if ( !shader.sort )
-	{
-		if ( shader.translucent && !shader.forceOpaque )
-		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_DECAL);
-		}
-		else
-		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_OPAQUE);
-		}
+	shader.sort = DetermineShaderSort();
+
+	if ( shader.sort <= Util::ordinal( shaderSort_t::SS_OPAQUE ) ) {
+		shader.fogPass = fogPass_t::FP_EQUAL;
+	} else if ( shader.contentFlags & CONTENTS_FOG ) {
+		shader.fogPass = fogPass_t::FP_LE;
 	}
 
-	// HACK: allow alpha tested surfaces to create shadowmaps
-	if ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) )
-	{
-		if ( shader.noShadows && shader.alphaTest )
-		{
-			shader.noShadows = false;
-		}
-	}
+	shader.noFog = shader.noFog || shader.fogPass == fogPass_t::FP_NONE;
 
 	// look for multitexture potential
 	CollapseStages();
 
-	// fogonly shaders don't have any stage passes
-	if ( shader.numStages == 0 && !shader.isSky )
-	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_FOG);
-	}
+	// Make shader stages ready to be used by renderer functions.
+	FinishStages();
 
-	if ( shader.numDeforms > 0 ) {
-		for( i = 0; i < shader.numStages; i++ ) {
-			stages[i].deformIndex = gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms );
+	// Preselect the renderers to be used to render the stages.
+	SetStagesRenderers();
+
+	// Copy the current global shader to a newly allocated shader.
+	shader_t *ret = MakeShaderPermanent();
+
+	if ( !shader.noFog ) {
+		if ( shader.fogPass == fogPass_t::FP_EQUAL ) {
+			ret->fogShader = tr.fogEqualShader;
+		} else {
+			ret->fogShader = tr.fogLEShader;
 		}
 	}
 
-	ret = GeneratePermanentShader();
-
 	// generate depth-only shader if necessary
-	if( !shader.isSky &&
-	    shader.numStages > 0 &&
+	if( r_depthShaders.Get() &&
+	    !shader.isSky &&
+	    numStages > 0 &&
 	    (stages[0].stateBits & GLS_DEPTHMASK_TRUE) &&
 	    !(stages[0].stateBits & GLS_DEPTHFUNC_EQUAL) &&
-	    !(shader.type == shaderType_t::SHADER_2D) &&
+	    !( shader.registerFlags & RSF_2D ) &&
 	    !shader.polygonOffset ) {
 		// keep only the first stage
 		stages[1].active = false;
-		shader.numStages = 1;
-		strcat(shader.name, "$depth");
+		numStages = 1;
+		shader.noFog = true;
+		shader.fogShader = nullptr;
+
+		const char* depthShaderSuffix = "$depth";
+
+		if ( !CheckShaderNameLength( "FinishShader", shader.name, depthShaderSuffix ) )
+		{
+			ret->depthShader = nullptr;
+
+			if ( glConfig.usingMaterialSystem && !tr.worldLoaded ) {
+				uint8_t maxStages = ret->lastStage - ret->stages;
+
+				// Add 1 for potential fog stages
+				maxStages = PAD( maxStages + 1, 4 ); // Aligned to 4 components
+				materialSystem.maxStages = std::max( maxStages, materialSystem.maxStages );
+			}
+
+			return ret;
+		}
+
+		strcat( shader.name, depthShaderSuffix );
 
 		if( stages[0].stateBits & GLS_ATEST_BITS ) {
 			// alpha test requires a custom depth shader
@@ -5405,7 +5873,11 @@ static shader_t *FinishShader()
 			stages[0].stateBits |= GLS_COLORMASK_BITS;
 			stages[0].type = stageType_t::ST_COLORMAP;
 
-			ret->depthShader = GeneratePermanentShader();
+			// Preselect the renderers to be used to render the stages.
+			SetStagesRenderers();
+
+			// Copy the current global shader to a newly allocated shader.
+			ret->depthShader = MakeShaderPermanent();
 		} else if ( shader.cullType == 0 &&
 			    shader.numDeforms == 0 &&
 			    tr.defaultShader ) {
@@ -5426,161 +5898,41 @@ static shader_t *FinishShader()
 			stages[0].rgbGen = colorGen_t::CGEN_IDENTITY;
 			stages[0].alphaGen = alphaGen_t::AGEN_IDENTITY;
 
-			ret->depthShader = GeneratePermanentShader();
+			// Preselect the renderers to be used to render the stages.
+			SetStagesRenderers();
+
+			// Copy the current global shader to a newly allocated shader.
+			ret->depthShader = MakeShaderPermanent();
 		}
+
 		// disable depth writes in the main pass
-		ret->stages[0]->stateBits &= ~GLS_DEPTHMASK_TRUE;
+		ret->stages[0].stateBits &= ~GLS_DEPTHMASK_TRUE;
 	} else {
 		ret->depthShader = nullptr;
 	}
 
+	if ( glConfig.usingMaterialSystem && !tr.worldLoaded ) {
+		uint8_t maxStages = ret->lastStage - ret->stages;
+
+		// Add 1 for potential depth stages
+		// Add 1 for potential fog stages
+		maxStages = PAD( maxStages + 2, 4 ); // Aligned to 4 components
+		materialSystem.maxStages = std::max( maxStages, materialSystem.maxStages );
+	}
+
 	// load all altShaders recursively
-	for ( i = 1; i < MAX_ALTSHADERS; ++i )
+	for ( int i = 1; i < MAX_ALTSHADERS; ++i )
 	{
 		if ( ret->altShader[ i ].name )
 		{
 			// flags were previously stashed in altShader[0].index
-			shader_t *sh = R_FindShader( ret->altShader[ i ].name, ret->type, (RegisterShaderFlags_t)ret->altShader[ 0 ].index );
+			shader_t *sh = R_FindShader( ret->altShader[ i ].name, ret->registerFlags );
 
 			ret->altShader[ i ].index = sh->defaultShader ? 0 : sh->index;
 		}
 	}
 
 	return ret;
-}
-
-//========================================================================================
-
-//bani - dynamic shader list
-struct dynamicshader_t
-{
-	char            *shadertext;
-	dynamicshader_t *next;
-};
-
-static dynamicshader_t *dshader = nullptr;
-
-/*
-====================
-RE_LoadDynamicShader
-
-bani - load a new dynamic shader
-
-if shadertext is nullptr, looks for matching shadername and removes it
-
-returns true if request was successful, false if the gods were angered
-====================
-*/
-bool RE_LoadDynamicShader( const char *shadername, const char *shadertext )
-{
-	const char      *func_err = "RE_LoadDynamicShader";
-	dynamicshader_t *dptr, *lastdptr;
-	const char            *q, *token;
-
-	Log::Warn("RE_LoadDynamicShader( name = '%s', text = '%s' )", shadername, shadertext );
-
-	if ( !shadername && shadertext )
-	{
-		Log::Warn("%s called with NULL shadername and non-NULL shadertext:\n%s", func_err, shadertext );
-		return false;
-	}
-
-	if ( shadername && strlen( shadername ) >= MAX_QPATH )
-	{
-		Log::Warn("%s shadername %s exceeds MAX_QPATH", func_err, shadername );
-		return false;
-	}
-
-	//empty the whole list
-	if ( !shadername && !shadertext )
-	{
-		dptr = dshader;
-
-		while ( dptr )
-		{
-			lastdptr = dptr->next;
-			ri.Free( dptr->shadertext );
-			ri.Free( dptr );
-			dptr = lastdptr;
-		}
-
-		dshader = nullptr;
-		return true;
-	}
-
-	//walk list for existing shader to delete, or end of the list
-	dptr = dshader;
-	lastdptr = nullptr;
-
-	while ( dptr )
-	{
-		q = dptr->shadertext;
-
-		token = COM_ParseExt( &q, true );
-
-		if ( ( token[ 0 ] != 0 ) && !Q_stricmp( token, shadername ) )
-		{
-			//request to nuke this dynamic shader
-			if ( !shadertext )
-			{
-				if ( !lastdptr )
-				{
-					dshader = nullptr;
-				}
-				else
-				{
-					lastdptr->next = dptr->next;
-				}
-
-				ri.Free( dptr->shadertext );
-				ri.Free( dptr );
-				return true;
-			}
-
-			Log::Warn("%s shader %s already exists!", func_err, shadername );
-			return false;
-		}
-
-		lastdptr = dptr;
-		dptr = dptr->next;
-	}
-
-	//can't add a new one with empty shadertext
-	if ( !shadertext || !strlen( shadertext ) )
-	{
-		Log::Warn("%s new shader %s has NULL shadertext!", func_err, shadername );
-		return false;
-	}
-
-	//create a new shader
-	dptr = ( dynamicshader_t * ) ri.Z_Malloc( sizeof( *dptr ) );
-
-	if ( !dptr )
-	{
-		Sys::Error( "Couldn't allocate struct for dynamic shader %s", shadername );
-	}
-
-	if ( lastdptr )
-	{
-		lastdptr->next = dptr;
-	}
-
-	dptr->shadertext = (char*) ri.Z_Malloc( strlen( shadertext ) + 1 );
-
-	if ( !dptr->shadertext )
-	{
-		Sys::Error( "Couldn't allocate buffer for dynamic shader %s", shadername );
-	}
-
-	Q_strncpyz( dptr->shadertext, shadertext, strlen( shadertext ) + 1 );
-	dptr->next = nullptr;
-
-	if ( !dshader )
-	{
-		dshader = dptr;
-	}
-
-	return true;
 }
 
 //========================================================================================
@@ -5620,45 +5972,11 @@ static const char    *FindShaderInShaderText( const char *shaderName )
 	return nullptr;
 }
 
-/*
-==================
-R_FindShaderByName
-
-Will always return a valid shader, but it might be the
-default shader if the real one can't be found.
-==================
-*/
-shader_t       *R_FindShaderByName( const char *name )
+static void ClearGlobalShader()
 {
-	char     strippedName[ MAX_QPATH ];
-	int      hash;
-	shader_t *sh;
-
-	if ( ( name == nullptr ) || ( name[ 0 ] == 0 ) )
-	{
-		// bk001205
-		return tr.defaultShader;
-	}
-
-	COM_StripExtension3( name, strippedName, sizeof( strippedName ) );
-
-	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
-
-	// see if the shader is already loaded
-	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
-	{
-		// NOTE: if there was no shader or image available with the name strippedName
-		// then a default shader is created with type == SHADER_3D_DYNAMIC, so we
-		// have to check all default shaders otherwise for every call to R_FindShader
-		// with that same strippedName a new default shader is created.
-		if ( Q_stricmp( sh->name, strippedName ) == 0 )
-		{
-			// match found
-			return sh;
-		}
-	}
-
-	return tr.defaultShader;
+	ResetStruct( shader );
+	ResetStruct( stages );
+	numStages = 0;
 }
 
 /*
@@ -5669,23 +5987,16 @@ Will always return a valid shader, but it might be the
 default shader if the real one can't be found.
 
 In the interest of not requiring an explicit shader text entry to
-be defined for every single image used in the game, three default
-shader behaviors can be auto-created for any image:
-
-If type == SHADER_2D, then the image will be used
-for 2D rendering unless an explicit shader is found
-
-If type == SHADER_3D_DYNAMIC, then the image will have
-dynamic diffuse lighting applied to it, as appropriate for most
-entity skin surfaces.
-
-If type == SHADER_3D_STATIC, then the image will use
-the vertex rgba modulate values, as appropriate for misc_model
-pre-lit surfaces.
+be defined for every single image used in the game, shaders
+can be auto-created for any image that does not
+have an explicit shader. RSF_ flags like RSF_2D and RSF_3D
+can influence the behaviors of these implicit shaders. For example
+among other effects, RSF_3D will cause an implicit shader to use the
+appropriate precomputed
+lighting: lightmap, (precomputed) vertex or light grid.
 ===============
 */
-shader_t       *R_FindShader( const char *name, shaderType_t type,
-			      RegisterShaderFlags_t flags )
+shader_t       *R_FindShader( const char *name, int flags )
 {
 	char     strippedName[ MAX_QPATH ];
 	char     fileName[ MAX_QPATH ];
@@ -5699,38 +6010,50 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 		return tr.defaultShader;
 	}
 
+	// TODO(0.56): RSF_DEFAULT should be 0!
+	flags &= ~RSF_DEFAULT;
+
 	COM_StripExtension3( name, strippedName, sizeof( strippedName ) );
 
 	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
 
+	const shader_t *firstRegistration = nullptr;
+
 	// see if the shader is already loaded
 	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
 	{
-		// NOTE: if there was no shader or image available with the name strippedName
-		// then a default shader is created with type == SHADER_3D_DYNAMIC, so we
-		// have to check all default shaders otherwise for every call to R_FindShader
-		// with that same strippedName a new default shader is created.
-		if ( ( sh->type == type || sh->defaultShader ) && !Q_stricmp( sh->name, strippedName ) )
+		if ( !Q_stricmp( sh->name, strippedName ) )
 		{
-			// match found
-			return sh;
+			// NOTE: if there was no shader or image available with the name strippedName
+			// then a default shader is created, so we
+			// have to check all default shaders otherwise for every call to R_FindShader
+			// with that same strippedName a new default shader is created.
+			if ( sh->registerFlags == flags || sh->defaultShader )
+			{
+				// match found
+				return sh;
+			}
+
+			firstRegistration = sh;
 		}
+	}
+
+	if ( firstRegistration != nullptr )
+	{
+		Log::Verbose( "shader %s registered with varying flags: first time with 0x%X, now with 0x%X",
+		              strippedName, firstRegistration->registerFlags, flags );
 	}
 
 	shader.altShader[ 0 ].index = flags; // save for later use (in case of alternative shaders)
 
 	// make sure the render thread is stopped, because we are probably
 	// going to have to upload an image
-	if ( r_smp->integer )
-	{
-		R_SyncRenderThread();
-	}
+	R_SyncRenderThread();
 
-	// clear the global shader
-	memset( &shader, 0, sizeof( shader ) );
-	memset( &stages, 0, sizeof( stages ) );
+	ClearGlobalShader();
+
 	Q_strncpyz( shader.name, strippedName, sizeof( shader.name ) );
-	shader.type = type;
+	shader.registerFlags = flags;
 
 	for ( i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
@@ -5740,17 +6063,29 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 	// ydnar: default to no implicit mappings
 	implicitMap[ 0 ] = '\0';
 	implicitStateBits = GLS_DEFAULT;
-	if( shader.type == shaderType_t::SHADER_2D )
-	{
-		implicitCullType = CT_TWO_SIDED;
-	}
-	else
+
+	if ( shader.registerFlags & RSF_3D )
 	{
 		implicitCullType = CT_FRONT_SIDED;
 	}
+	else
+	{
+		implicitCullType = CT_TWO_SIDED;
+	}
 
-	if( flags & RSF_SPRITE ) {
-		shader.autoSpriteMode = 1;
+	if ( flags & RSF_NOMIP )
+	{
+		shader.noPicMip = true;
+	}
+
+	if ( flags & RSF_FITSCREEN )
+	{
+		shader.fitScreen = true;
+	}
+
+	if ( flags & RSF_SPRITE )
+	{
+		shader.entitySpriteFaceViewDirection = true;
 	}
 
 	// attempt to define shader from an explicit parameter file
@@ -5794,19 +6129,30 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 	// if not defined in the in-memory shader descriptions,
 	// look for a single supported image file
 	bits = IF_NONE;
-	if( flags & RSF_NOMIP )
-		bits |= IF_NOPICMIP;
-	else
-		shader.noPicMip = true;
 
-	if( flags & RSF_NOLIGHTSCALE )
-		bits |= IF_NOLIGHTSCALE;
+	if ( flags & RSF_NOMIP )
+	{
+		bits |= IF_NOPICMIP;
+	}
+
+	if ( flags & RSF_FITSCREEN )
+	{
+		bits |= IF_FITSCREEN;
+	}
 
 	Log::Debug( "loading '%s' image as shader", fileName );
 
-	// choosing filter based on the NOMIP flag seems strange,
-	// maybe it should be changed to type == SHADER_2D
-	if( !(bits & RSF_NOMIP) ) {
+	if ( flags & RSF_2D )
+	{
+		imageParams_t imageParams = {};
+		imageParams.bits = bits;
+		imageParams.filterType = filterType_t::FT_LINEAR;
+		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+
+		image = R_FindImageFile( fileName, imageParams );
+	}
+	else
+	{
 		LoadExtraMaps( &stages[ 0 ], fileName );
 
 		imageParams_t imageParams = {};
@@ -5814,12 +6160,10 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 		imageParams.filterType = filterType_t::FT_DEFAULT;
 		imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
 
-		image = R_FindImageFile( fileName, imageParams );
-	} else {
-		imageParams_t imageParams = {};
-		imageParams.bits = bits;
-		imageParams.filterType = filterType_t::FT_LINEAR;
-		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+		if ( tr.worldLinearizeTexture )
+		{
+			imageParams.bits |= IF_SRGB;
+		}
 
 		image = R_FindImageFile( fileName, imageParams );
 	}
@@ -5837,101 +6181,40 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 		shader.cullType = implicitCullType;
 	}
 
-	// create the default shading commands
-	switch ( shader.type )
+	if ( flags & RSF_3D )
 	{
-		case shaderType_t::SHADER_2D:
-			{
-				// GUI elements
-				stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
-				stages[ 0 ].active = true;
-				stages[ 0 ].rgbGen = colorGen_t::CGEN_VERTEX;
-				stages[ 0 ].alphaGen = alphaGen_t::AGEN_VERTEX;
-				stages[ 0 ].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-				break;
-			}
-
-		case shaderType_t::SHADER_3D_DYNAMIC:
-			{
-				// dynamic colors at vertexes
-				stages[ 0 ].type = stageType_t::ST_DIFFUSEMAP;
-				stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
-				stages[ 0 ].active = true;
-				stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY_LIGHTING;
-				stages[ 0 ].stateBits = implicitStateBits;
-				break;
-			}
-
-		case shaderType_t::SHADER_3D_STATIC:
-			{
-				// explicit colors at vertexes
-				stages[ 0 ].type = stageType_t::ST_DIFFUSEMAP;
-				stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
-				stages[ 0 ].active = true;
-				stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY;
-				stages[ 0 ].stateBits = implicitStateBits;
-				break;
-			}
-
-		case shaderType_t::SHADER_LIGHT:
-			{
-				stages[ 0 ].type = stageType_t::ST_ATTENUATIONMAP_Z;
-				stages[ 0 ].bundle[ 0 ].image[ 0 ] = tr.noFalloffImage; // FIXME should be attenuationZImage
-				stages[ 0 ].active = true;
-				stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY;
-				stages[ 0 ].stateBits = GLS_DEFAULT;
-
-				stages[ 1 ].type = stageType_t::ST_ATTENUATIONMAP_XY;
-				stages[ 1 ].bundle[ 0 ].image[ 0 ] = image;
-				stages[ 1 ].active = true;
-				stages[ 1 ].rgbGen = colorGen_t::CGEN_IDENTITY;
-				stages[ 1 ].stateBits = GLS_DEFAULT;
-				break;
-			}
-
-		default:
-			break;
+		stages[ 0 ].type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
+		stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
+		stages[ 0 ].active = true;
+		stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY;
+		stages[ 0 ].stateBits = implicitStateBits;
+	}
+	else
+	{
+		// preset appropriate for GUI elements
+		stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
+		stages[ 0 ].active = true;
+		stages[ 0 ].rgbGen = colorGen_t::CGEN_VERTEX;
+		stages[ 0 ].alphaGen = alphaGen_t::AGEN_VERTEX;
+		stages[ 0 ].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
 	}
 
 	return FinishShader();
 }
 
+// This is used for textures for 2D rendering generated at runtime.
 qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image )
 {
-	int      i, hash;
-	shader_t *sh;
-
-	hash = generateHashValue( name, FILE_HASH_SIZE );
-
-	// see if the shader is already loaded
-	for ( sh = shaderHashTable[ hash ]; sh; sh = sh->next )
-	{
-		// NOTE: if there was no shader or image available with the name strippedName
-		// then a default shader is created with type == SHADER_3D_DYNAMIC, so we
-		// have to check all default shaders otherwise for every call to R_FindShader
-		// with that same strippedName a new default shader is created.
-		if ( ( sh->type == shaderType_t::SHADER_2D || sh->defaultShader ) && !Q_stricmp( sh->name, name ) )
-		{
-			// match found
-			return sh->index;
-		}
-	}
-
 	// make sure the render thread is stopped, because we are probably
 	// going to have to upload an image
-	if ( r_smp->integer )
-	{
-		R_SyncRenderThread();
-	}
+	R_SyncRenderThread();
 
-	// clear the global shader
-	memset( &shader, 0, sizeof( shader ) );
-	memset( &stages, 0, sizeof( stages ) );
+	ClearGlobalShader();
+
 	Q_strncpyz( shader.name, name, sizeof( shader.name ) );
-	shader.type = shaderType_t::SHADER_2D;
 	shader.cullType = CT_TWO_SIDED;
 
-	for ( i = 0; i < MAX_SHADER_STAGES; i++ )
+	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
 		stages[ i ].bundle[ 0 ].texMods = texMods[ i ];
 	}
@@ -5945,8 +6228,7 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image )
 	stages[ 0 ].alphaGen = alphaGen_t::AGEN_VERTEX;
 	stages[ 0 ].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
 
-	sh = FinishShader();
-	return sh->index;
+	return FinishShader()->index;
 }
 
 /*
@@ -5955,24 +6237,19 @@ RE_RegisterShader
 
 This is the exported shader entry point for the rest of the system
 It will always return an index that will be valid.
-
-This should really only be used for explicit shaders, because there is no
-way to ask for different implicit lighting modes (vertex, lightmap, etc)
 ====================
 */
-qhandle_t RE_RegisterShader( const char *name, RegisterShaderFlags_t flags )
+qhandle_t RE_RegisterShader( const char *name, int flags )
 {
 	shader_t *sh;
 
-	if ( strlen( name ) >= MAX_QPATH )
+	if ( !CheckShaderNameLength( "RE_RegisterShader", name, "" ) )
 	{
-		Log::Notice( "Shader name exceeds MAX_QPATH\n" );
 		return 0;
 	}
 
-	sh = R_FindShader( name,
-			   (flags & RSF_LIGHT_ATTENUATION) ? shaderType_t::SHADER_LIGHT : shaderType_t::SHADER_2D,
-			   flags );
+	int oldNumShaders = tr.numShaders;
+	sh = R_FindShader( name, flags );
 
 	// we want to return 0 if the shader failed to
 	// load for some reason, but R_FindShader should
@@ -5982,6 +6259,15 @@ qhandle_t RE_RegisterShader( const char *name, RegisterShaderFlags_t flags )
 	if ( sh->defaultShader )
 	{
 		return 0;
+	}
+
+	if ( tr.numShaders > oldNumShaders && r_lazyShaders.Get() == 1 ) // the shader is actually newly registered
+	{
+		// RE_RegisterShader is used for directly user-registered shaders. So assume it will be
+		// used for drawing explicitly specified polygons - not BSP, not models. This is usually right
+		// but one exception is shaders used as `customShader` for models.
+		// This is a no-op if EndRegistration has already been called (unless glsl_restart?).
+		MarkShaderBuild( sh, -1, false, false, false );
 	}
 
 	return sh->index;
@@ -6014,191 +6300,218 @@ shader_t       *R_GetShaderByHandle( qhandle_t hShader )
 
 /*
 ===============
-R_ShaderList_f
-
 Dump information on all valid shaders to the console
 A second parameter will cause it to print in sorted order
 ===============
 */
-void R_ShaderList_f()
+class ListShadersCmd : public Cmd::StaticCmd
 {
-	const char *prefix = ri.Cmd_Argc() > 1 ? ri.Cmd_Argv( 1 ) : nullptr;
+public:
+	ListShadersCmd() : StaticCmd(
+		"listShaders", Cmd::RENDERER, "list q3shaders currently registered in the renderer") {}
 
-	std::unordered_map<shaderType_t, std::string> shaderTypeStrings;
-	shaderTypeStrings[shaderType_t::SHADER_2D] = "2D";
-	shaderTypeStrings[shaderType_t::SHADER_3D_DYNAMIC] = "3D_DYNAMIC";
-	shaderTypeStrings[shaderType_t::SHADER_3D_STATIC] = "3D_STATIC";
-	shaderTypeStrings[shaderType_t::SHADER_LIGHT] = "LIGHT";
-
-	std::string shaderTypeHeader = "shaderType";
-	size_t maxShaderTypeStringLen = shaderTypeHeader.length();
-
-	for ( const auto& kv : shaderTypeStrings )
+	void Run( const Cmd::Args &args ) const override
 	{
-		maxShaderTypeStringLen = std::max( maxShaderTypeStringLen, kv.second.length() );
-	}
+		static const std::unordered_map<shaderSort_t, std::string> shaderSortName = {
+			{ shaderSort_t::SS_BAD, "BAD" },
+			{ shaderSort_t::SS_PORTAL, "PORTAL" },
+			{ shaderSort_t::SS_DEPTH, "DEPTH" },
+			{ shaderSort_t::SS_ENVIRONMENT_FOG, "ENV_FOG" },
+			{ shaderSort_t::SS_ENVIRONMENT_NOFOG, "ENV_NOFOG" },
+			{ shaderSort_t::SS_OPAQUE, "OPAQUE" },
+			{ shaderSort_t::SS_DECAL, "DECAL" },
+			{ shaderSort_t::SS_SEE_THROUGH, "SEE_THROUGH" },
+			{ shaderSort_t::SS_BANNER, "BANNER" },
+			{ shaderSort_t::SS_FOG, "FOG" },
+			{ shaderSort_t::SS_UNDERWATER, "UNDERWATER" },
+			{ shaderSort_t::SS_FAR, "FAR" },
+			{ shaderSort_t::SS_MEDIUM, "MEDIUM" },
+			{ shaderSort_t::SS_CLOSE, "CLOSE" },
+			{ shaderSort_t::SS_BLEND0, "BLEND0" },
+			{ shaderSort_t::SS_BLEND1, "BLEND1" },
+			{ shaderSort_t::SS_ALMOST_NEAREST, "ALMOST_NEAREST" },
+			{ shaderSort_t::SS_NEAREST, "NEAREST" },
+			{ shaderSort_t::SS_POST_PROCESS, "POST_PROCESS" },
+		};
 
-	std::unordered_map<shaderSort_t, std::string> shaderSortStrings;
-	shaderSortStrings[shaderSort_t::SS_BAD] = "BAD";
-	shaderSortStrings[shaderSort_t::SS_PORTAL] = "PORTAL";
-	shaderSortStrings[shaderSort_t::SS_DEPTH] = "DEPTH";
-	shaderSortStrings[shaderSort_t::SS_ENVIRONMENT_FOG] = "ENVIRONMENT_FOG";
-	shaderSortStrings[shaderSort_t::SS_ENVIRONMENT_NOFOG] = "ENVIRONMENT_NOFOG";
-	shaderSortStrings[shaderSort_t::SS_OPAQUE] = "OPAQUE";
-	shaderSortStrings[shaderSort_t::SS_DECAL] = "DECAL";
-	shaderSortStrings[shaderSort_t::SS_SEE_THROUGH] = "SEE_THROUGH";
-	shaderSortStrings[shaderSort_t::SS_BANNER] = "BANNER";
-	shaderSortStrings[shaderSort_t::SS_FOG] = "FOG";
-	shaderSortStrings[shaderSort_t::SS_UNDERWATER] = "UNDERWATER";
-	shaderSortStrings[shaderSort_t::SS_WATER] = "WATER";
-	shaderSortStrings[shaderSort_t::SS_FAR] = "FAR";
-	shaderSortStrings[shaderSort_t::SS_MEDIUM] = "MEDIUM";
-	shaderSortStrings[shaderSort_t::SS_CLOSE] = "CLOSE";
-	shaderSortStrings[shaderSort_t::SS_BLEND0] = "BLEND0";
-	shaderSortStrings[shaderSort_t::SS_BLEND1] = "BLEND1";
-	shaderSortStrings[shaderSort_t::SS_BLEND2] = "BLEND2";
-	shaderSortStrings[shaderSort_t::SS_BLEND3] = "BLEND3";
-	shaderSortStrings[shaderSort_t::SS_BLEND6] = "BLEND6";
-	shaderSortStrings[shaderSort_t::SS_ALMOST_NEAREST] = "ALMOST_NEAREST";
-	shaderSortStrings[shaderSort_t::SS_NEAREST] = "NEAREST";
-	shaderSortStrings[shaderSort_t::SS_POST_PROCESS] = "POST_PROCESS";
+		static const std::unordered_map<stageType_t, std::string> stageTypeName = {
+			{ stageType_t::ST_COLORMAP, "COLORMAP" },
+			{ stageType_t::ST_GLOWMAP, "GLOWMAP" },
+			{ stageType_t::ST_DIFFUSEMAP, "DIFFUSEMAP" },
+			{ stageType_t::ST_NORMALMAP, "NORMALMAP" },
+			{ stageType_t::ST_HEIGHTMAP, "HEIGHTMAP" },
+			{ stageType_t::ST_PHYSICALMAP, "PHYSICALMAP" },
+			{ stageType_t::ST_SPECULARMAP, "SPECULARMAP" },
+			{ stageType_t::ST_REFLECTIONMAP, "REFLECTIONMAP" },
+			{ stageType_t::ST_SKYBOXMAP, "SKYBOXMAP" },
+			{ stageType_t::ST_SCREENMAP, "SCREENMAP" },
+			{ stageType_t::ST_PORTALMAP, "PORTALMAP" },
+			{ stageType_t::ST_HEATHAZEMAP, "HEATHAZEMAP" },
+			{ stageType_t::ST_LIQUIDMAP, "LIQUIDMAP" },
+			{ stageType_t::ST_FOGMAP, "FOGMAP" },
+			{ stageType_t::ST_LIGHTMAP, "LIGHTMAP" },
+			{ stageType_t::ST_STYLELIGHTMAP, "STYLELIGHTMAP" },
+			{ stageType_t::ST_STYLECOLORMAP, "STYLECOLORMAP" },
+			{ stageType_t::ST_COLLAPSE_COLORMAP, "COLLAPSE_COLORMAP" },
+			{ stageType_t::ST_COLLAPSE_DIFFUSEMAP, "COLLAPSE_DIFFUSEMAP" },
+			{ stageType_t::ST_COLLAPSE_REFLECTIONMAP, "COLLAPSE_REFLECTIONMAP" },
+		};
 
-	std::string shaderSortHeader = "shaderSort";
-	size_t maxShaderSortStringLen = shaderSortHeader.length();
+		const char *prefix = args.Argc() > 1 ? args.Argv( 1 ).c_str() : nullptr;
 
-	for ( const auto& kv : shaderSortStrings )
-	{
-		maxShaderSortStringLen = std::max( maxShaderSortStringLen, kv.second.length() );
-	}
+		// Header names
+		std::string num = "num";
+		std::string regFlags = "regFlags";
+		std::string shaderSort = "shaderSort";
+		std::string stageType = "stageType";
+		std::string stageNumber = "stageNumber";
+		std::string shaderName = "shaderName";
 
-	std::unordered_map<stageType_t, std::string> stageTypeStrings;
-	stageTypeStrings[stageType_t::ST_COLORMAP] = "COLORMAP";
-	stageTypeStrings[stageType_t::ST_GLOWMAP] = "GLOWMAP";
-	stageTypeStrings[stageType_t::ST_DIFFUSEMAP] = "DIFFUSEMAP";
-	stageTypeStrings[stageType_t::ST_NORMALMAP] = "NORMALMAP";
-	stageTypeStrings[stageType_t::ST_HEIGHTMAP] = "HEIGHTMAP";
-	stageTypeStrings[stageType_t::ST_PHYSICALMAP] = "PHYSICALMAP";
-	stageTypeStrings[stageType_t::ST_SPECULARMAP] = "SPECULARMAP";
-	stageTypeStrings[stageType_t::ST_REFLECTIONMAP] = "REFLECTIONMAP";
-	stageTypeStrings[stageType_t::ST_REFRACTIONMAP] = "REFRACTIONMAP";
-	stageTypeStrings[stageType_t::ST_DISPERSIONMAP] = "DISPERSIONMAP";
-	stageTypeStrings[stageType_t::ST_SKYBOXMAP] = "SKYBOXMAP";
-	stageTypeStrings[stageType_t::ST_SCREENMAP] = "SCREENMAP";
-	stageTypeStrings[stageType_t::ST_PORTALMAP] = "PORTALMAP";
-	stageTypeStrings[stageType_t::ST_HEATHAZEMAP] = "HEATHAZEMAP";
-	stageTypeStrings[stageType_t::ST_LIQUIDMAP] = "LIQUIDMAP";
-	stageTypeStrings[stageType_t::ST_LIGHTMAP] = "LIGHTMAP";
-	stageTypeStrings[stageType_t::ST_COLLAPSE_lighting_PBR] = "LIGHTING_PBR";
-	stageTypeStrings[stageType_t::ST_COLLAPSE_lighting_PHONG] = "LIGHTING_PHONG";
-	stageTypeStrings[stageType_t::ST_COLLAPSE_reflection_CB] = "REFLECTION_CB";
-	stageTypeStrings[stageType_t::ST_ATTENUATIONMAP_XY] = "ATTENUATIONMAP_XY";
-	stageTypeStrings[stageType_t::ST_ATTENUATIONMAP_Z] = "ATTENUATIONMAP_XZ";
+		// Number sizes
+		size_t numLen = 5;
 
-	std::string stageTypeHeader = "stageType";
-	size_t maxStageTypeStringLen = stageTypeHeader.length();
+		// Header number sizes
+		numLen = std::max( numLen, num.length() );
+		size_t regFlagsLen = regFlags.length();
+		size_t shaderSortLen = shaderSort.length();
+		size_t stageTypeLen = stageType.length();
 
-	for ( const auto& kv : stageTypeStrings )
-	{
-		maxStageTypeStringLen = std::max( maxStageTypeStringLen, kv.second.length() );
-	}
+		// Value size
 
-	std::string interactLightHeader = "interactLight";
-	int maxInteractLightStringLen = interactLightHeader.length();
-
-	std::string separator = " ";
-
-	std::string header = Str::Format(
-		"%-*s" "%s%-*s" "%s%-*s" "%s%-*s" "%s%s",
-		maxShaderTypeStringLen, shaderTypeHeader,
-		separator, maxShaderSortStringLen, shaderSortHeader,
-		separator, maxInteractLightStringLen, interactLightHeader,
-		separator, maxStageTypeStringLen, stageTypeHeader,
-		separator, "stageNumber:shaderName" );
-
-	std::string lineSeparator( header.length(), '-' );
-
-	Log::CommandInteractionMessage( lineSeparator );
-	Log::CommandInteractionMessage( header );
-	Log::CommandInteractionMessage( lineSeparator );
-
-	int stageCount = 0;
-	uint8_t highestShaderStageCount = 0;
-
-	for ( int i = 0; i < tr.numShaders; i++ )
-	{
-		shader_t *shader = ri.Cmd_Argc() > 2 ? tr.sortedShaders[ i ] : tr.shaders[ i ];
-
-		// Only display shaders starting with prefix if prefix is not empty.
-		if ( prefix && !Com_Filter( prefix, shader->name, false ) )
+		for ( const auto& kv : shaderSortName )
 		{
-			continue;
+			shaderSortLen = std::max( shaderSortLen, kv.second.length() );
 		}
 
-		stageCount += shader->numStages;
-		highestShaderStageCount = std::max( highestShaderStageCount, shader->numStages );
-
-		std::string foundShaderTypeString = shaderTypeStrings[ shader->type ];
-		std::string foundShaderSortString = shaderSortStrings[ (shaderSort_t) shader->sort ];
-
-		std::string foundInteractLightString = shader->interactLight ? "INTERACTLIGHT" : "";
-
-		std::string shaderNameString = shader->name;
-		shaderNameString += shader->defaultShader ? " (DEFAULTED)" : "";
-
-		for ( int j = 0; j < shader->numStages; j++ )
+		for ( const auto& kv : stageTypeName )
 		{
-			shaderStage_t *stage = shader->stages[ j ];
-
-			std::string foundStageTypeString = stageTypeStrings[ stage->type ];
-
-			std::string line = Str::Format(
-				"%-*s" "%s%-*s" "%s%-*s" "%s%-*s" "%s%i:%s",
-				maxShaderTypeStringLen, foundShaderTypeString,
-				separator, maxShaderSortStringLen, foundShaderSortString,
-				separator, maxInteractLightStringLen, foundInteractLightString,
-				separator, maxStageTypeStringLen, foundStageTypeString,
-				separator, j, shaderNameString );
-
-			Log::CommandInteractionMessage( line );
+			stageTypeLen = std::max( stageTypeLen, kv.second.length() );
 		}
+
+		std::string separator = " ";
+		std::stringstream lineStream;
+
+		// Print header
+		lineStream << std::left;
+		lineStream << std::setw(numLen) << num << separator;
+		lineStream << std::setw(regFlagsLen) << regFlags << separator;
+		lineStream << std::setw(shaderSortLen) << shaderSort << separator;
+		lineStream << std::setw(stageTypeLen) << stageType << separator;
+		lineStream << stageNumber << ":" << shaderName;
+
+		std::string lineSeparator( lineStream.str().length(), '-' );
+
+		Print( lineSeparator );
+		Print( lineStream.str() );
+		Print( lineSeparator );
+
+		size_t totalStageCount = 0;
+		size_t highestShaderStageCount = 0;
+
+		for ( int i = 0; i < tr.numShaders; i++ )
+		{
+			shader_t *shader = args.Argc() > 2 ? tr.sortedShaders[ i ] : tr.shaders[ i ];
+
+			// Only display shaders starting with prefix if prefix is not empty.
+			if ( prefix && !Com_Filter( prefix, shader->name, false ) )
+			{
+				continue;
+			}
+
+			auto PrintStage = [&]( const std::string & stageNum )
+			{
+				lineStream.clear();
+				lineStream.str("");
+
+				lineStream << std::left;
+				lineStream << std::setw(numLen) << i << separator;
+				lineStream << std::setw(regFlagsLen) << regFlags << separator;
+				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
+				lineStream << std::setw(stageTypeLen) << stageType << separator;
+				lineStream << stageNum << ":" << shaderName;
+
+				Print( lineStream.str() );
+			};
+
+			regFlags = {
+				shader->registerFlags & RSF_2D ? '2' : '_',
+				shader->registerFlags & RSF_NOMIP ? 'N' : '_',
+				shader->registerFlags & RSF_FITSCREEN ? 'F' : '_',
+				shader->registerFlags & RSF_SPRITE ? 'S' : '_',
+				shader->registerFlags & RSF_3D ? '3' : '_',
+			};
+
+			if ( !shaderSortName.count( (shaderSort_t) shader->sort ) )
+			{
+				shaderSort.clear();
+				Log::Debug( "Undocumented shader sort %f for shader %s",
+					shader->sort, shader->name );
+			}
+			else
+			{
+				shaderSort = shaderSortName.at( (shaderSort_t) shader->sort );
+			}
+
+			shaderName = shader->name;
+			shaderName += shader->defaultShader ? " (DEFAULTED)" : "";
+
+			if ( shader->stages == shader->lastStage )
+			{
+				stageType = "n/a";
+				PrintStage( "-" );
+				continue;
+			}
+
+			const size_t stageCount = shader->lastStage - shader->stages;
+			totalStageCount += stageCount;
+			highestShaderStageCount = std::max( highestShaderStageCount, stageCount );
+
+			for ( size_t j = 0; j < stageCount; j++ )
+			{
+				shaderStage_t *stage = &shader->stages[ j ];
+
+				if ( !stageTypeName.count( stage->type ) )
+				{
+					stageType.clear();
+					Log::Debug( "Undocumented stage type %i for shader stage %s:%d",
+						Util::ordinal( stage->type ), shader->name, j );
+				}
+				else
+				{
+					stageType = stageTypeName.at( stage->type );
+				}
+
+				PrintStage( std::to_string( j ) );
+			}
+		}
+
+		Print( lineSeparator );
+		Print( "%i total shaders, %i total stages, largest shader has %i stages",
+			tr.numShaders, totalStageCount, highestShaderStageCount );
+		Print( lineSeparator );
 	}
+};
+static ListShadersCmd listShadersCmdRegistration;
 
-	Log::CommandInteractionMessage( lineSeparator );
-
-	std::string summary = Str::Format(
-		"%i total shaders, %i total stages, largest shader has %i stages",
-		tr.numShaders, stageCount, highestShaderStageCount );
-
-	Log::CommandInteractionMessage( summary );
-}
-
-void R_ShaderExp_f()
+class ShaderExpCmd : public Cmd::StaticCmd
 {
-	expression_t exp;
+public:
+	ShaderExpCmd() : StaticCmd(
+		"shaderexp", Cmd::RENDERER, "evaluate a q3shader expression (RB_EvalExpression)") {}
 
-	strcpy( shader.name, "dummy" );
-
-	Log::Notice("-----------------------" );
-
-	std::string buffer;
-
-	for ( int i = 1; i < ri.Cmd_Argc(); i++ )
+	void Run( const Cmd::Args &args ) const override
 	{
-		if ( i > 1 )
-		{
-			buffer += ' ';
-		}
+		std::string expStr = args.ConcatArgs( 1 );
+		const char* buffer_p = expStr.c_str();
+		expression_t exp;
 
-		buffer += ri.Cmd_Argv( i );
+		ParseExpression( &buffer_p, &exp );
+
+		Print( "%i total ops", exp.numOps );
+		Print( "%f result", RB_EvalExpression( &exp, 0 ) );
 	}
-
-	const char* buffer_p = buffer.c_str();
-	ParseExpression( &buffer_p, &exp );
-
-	Log::Notice("%i total ops", exp.numOps );
-	Log::Notice("%f result", RB_EvalExpression( &exp, 0 ) );
-	Log::Notice("------------------" );
-}
+};
+static ShaderExpCmd shaderExpCmdRegistration;
 
 /*
 ====================
@@ -6364,8 +6677,8 @@ static void ScanAndLoadShaderFiles()
 			shaderTable_t *tb;
 			bool      alreadyCreated;
 
-			// zeroes all shaders, booleans can be assumed as false
-			memset( &table, 0, sizeof( table ) );
+			// zeroes shader table, booleans can be assumed as false
+			table = {};
 
 			token = COM_ParseExt2( &p, true );
 
@@ -6452,27 +6765,39 @@ static void CreateInternalShaders()
 
 	tr.numShaders = 0;
 
-	// init the default shader
-	memset( &shader, 0, sizeof( shader ) );
-	memset( &stages, 0, sizeof( stages ) );
+	ClearGlobalShader();
 
 	Q_strncpyz( shader.name, "<default>", sizeof( shader.name ) );
 
-	shader.type = shaderType_t::SHADER_3D_DYNAMIC;
+	shader.noFog = true;
+	shader.fogShader = nullptr;
 	stages[ 0 ].type = stageType_t::ST_DIFFUSEMAP;
 	stages[ 0 ].bundle[ 0 ].image[ 0 ] = tr.defaultImage;
 	stages[ 0 ].active = true;
 	stages[ 0 ].stateBits = GLS_DEFAULT;
 	tr.defaultShader = FinishShader();
-}
 
-static void CreateExternalShaders()
-{
-	Log::Debug("----- CreateExternalShaders -----" );
+	Q_strncpyz( shader.name, "<fogEqual>", sizeof( shader.name ) );
 
-	tr.defaultPointLightShader = R_FindShader( "lights/defaultPointLight", shaderType_t::SHADER_LIGHT, RSF_DEFAULT );
-	tr.defaultProjectedLightShader = R_FindShader( "lights/defaultProjectedLight", shaderType_t::SHADER_LIGHT, RSF_DEFAULT );
-	tr.defaultDynamicLightShader = R_FindShader( "lights/defaultDynamicLight", shaderType_t::SHADER_LIGHT, RSF_DEFAULT );
+	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
+	stages[0].type = stageType_t::ST_FOGMAP;
+	for ( int i = 0; i < 5; i++ ) {
+		stages[0].bundle[i].image[0] = nullptr;
+	}
+	stages[0].active = true;
+	stages[0].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_EQUAL;
+	tr.fogEqualShader = FinishShader();
+
+	Q_strncpyz( shader.name, "<fogLE>", sizeof( shader.name ) );
+
+	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
+	stages[0].type = stageType_t::ST_FOGMAP;
+	for ( int i = 0; i < 5; i++ ) {
+		stages[0].bundle[i].image[0] = nullptr;
+	}
+	stages[0].active = true;
+	stages[0].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+	tr.fogLEShader = FinishShader();
 }
 
 /*
@@ -6482,14 +6807,16 @@ R_InitShaders
 */
 void R_InitShaders()
 {
+	Cvar::Latch(r_dpMaterial);
+	Cvar::Latch(r_depthShaders);
+	Cvar::Latch(r_portalDefaultRange);
+
 	memset( shaderTableHashTable, 0, sizeof( shaderTableHashTable ) );
 	memset( shaderHashTable, 0, sizeof( shaderHashTable ) );
 
 	CreateInternalShaders();
 
 	ScanAndLoadShaderFiles();
-
-	CreateExternalShaders();
 }
 
 /*
@@ -6502,9 +6829,7 @@ void R_SetAltShaderTokens( const char *list )
 	memset( whenTokens, 0, sizeof( whenTokens ) );
 	Q_strncpyz( whenTokens, list, sizeof( whenTokens ) - 1 ); // will have double-NUL termination
 
-	char* p = whenTokens - 1;
-
-	while ( ( p = strchr( p + 1, ',' ) ) )
+	for ( char* p = whenTokens; ( p = strchr( p, ',' ) ); p++ )
 	{
 		*p = '\0';
 	}

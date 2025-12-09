@@ -126,7 +126,13 @@ void CL_ClearKeyBinding() {
 void CL_ConsoleKeyEvent() {
 }
 
-void CL_KeyEvent( const Key&, bool, unsigned ) {
+void CL_KeyDownEvent( const Key&, const Key&, unsigned ) {
+}
+
+void CL_KeyRepeatEvent( const Key& ) {
+}
+
+void CL_KeyUpEvent( const Key&, unsigned ) {
 }
 
 void CL_CharEvent( int ) {

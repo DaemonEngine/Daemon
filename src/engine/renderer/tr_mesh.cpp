@@ -22,13 +22,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_mesh.c -- triangle model functions
 #include "tr_local.h"
+#include "GeometryOptimiser.h"
 
 /*
 =============
 R_CullMDV
 =============
 */
-static void R_CullMDV( mdvModel_t *model, trRefEntity_t *ent )
+static cullResult_t R_CullMDV( mdvModel_t *model, trRefEntity_t *ent )
 {
 	mdvFrame_t *oldFrame, *newFrame;
 	int        i;
@@ -58,13 +59,11 @@ static void R_CullMDV( mdvModel_t *model, trRefEntity_t *ent )
 			{
 				case cullResult_t::CULL_OUT:
 					tr.pc.c_sphere_cull_mdv_out++;
-					ent->cull = cullResult_t::CULL_OUT;
-					return;
+					return cullResult_t::CULL_OUT;
 
 				case cullResult_t::CULL_IN:
 					tr.pc.c_sphere_cull_mdv_in++;
-					ent->cull = cullResult_t::CULL_IN;
-					return;
+					return cullResult_t::CULL_IN;
 
 				case cullResult_t::CULL_CLIP:
 					tr.pc.c_sphere_cull_mdv_clip++;
@@ -90,14 +89,12 @@ static void R_CullMDV( mdvModel_t *model, trRefEntity_t *ent )
 				if ( sphereCull == cullResult_t::CULL_OUT )
 				{
 					tr.pc.c_sphere_cull_mdv_out++;
-					ent->cull = cullResult_t::CULL_OUT;
-					return;
+					return cullResult_t::CULL_OUT;
 				}
 				else if ( sphereCull == cullResult_t::CULL_IN )
 				{
 					tr.pc.c_sphere_cull_mdv_in++;
-					ent->cull = cullResult_t::CULL_IN;
-					return;
+					return cullResult_t::CULL_IN;
 				}
 				else
 				{
@@ -111,19 +108,16 @@ static void R_CullMDV( mdvModel_t *model, trRefEntity_t *ent )
 	{
 		case cullResult_t::CULL_IN:
 			tr.pc.c_box_cull_mdv_in++;
-			ent->cull = cullResult_t::CULL_IN;
-			return;
+			return cullResult_t::CULL_IN;
 
 		case cullResult_t::CULL_CLIP:
 			tr.pc.c_box_cull_mdv_clip++;
-			ent->cull = cullResult_t::CULL_CLIP;
-			return;
+			return cullResult_t::CULL_CLIP;
 
 		case cullResult_t::CULL_OUT:
 		default:
 			tr.pc.c_box_cull_mdv_out++;
-			ent->cull = cullResult_t::CULL_OUT;
-			return;
+			return cullResult_t::CULL_OUT;
 	}
 }
 
@@ -295,24 +289,16 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 
 	// cull the entire model if merged bounding box of both frames
 	// is outside the view frustum.
-	R_CullMDV( model, ent );
-
-	if ( ent->cull == CULL_OUT )
+	if ( R_CullMDV( model, ent ) == CULL_OUT )
 	{
 		return;
-	}
-
-	// set up lighting now that we know we aren't culled
-	if ( !personalModel || r_shadows->integer > Util::ordinal(shadowingMode_t::SHADOWING_BLOB) )
-	{
-		R_SetupEntityLighting( &tr.refdef, ent, nullptr );
 	}
 
 	// see if we are in a fog volume
 	fogNum = R_FogWorldBox( ent->worldBounds );
 
 	// draw all surfaces
-	if ( r_vboModels->integer && model->numVBOSurfaces )
+	if ( r_vboModels.Get() && model->numVBOSurfaces )
 	{
 		srfVBOMDVMesh_t *vboSurface;
 
@@ -348,129 +334,18 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 	}
 }
 
-/*
-=================
-R_AddMDVInteractions
-=================
-*/
-void R_AddMDVInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType )
-{
-	mdvModel_t        *model = nullptr;
-	mdvSurface_t      *mdvSurface = nullptr;
-	int               lod;
-	bool          personalModel;
-	byte              cubeSideBits;
+void MarkShaderBuildMDV( const mdvModel_t* model ) {
+	for ( int i = 0; i < model->numVBOSurfaces; i++ ) {
+		srfVBOMDVMesh_t* surface = model->vboSurfaces[i];
+		MarkShaderBuild( surface->mdvSurface->shader, -1, false, false, true );
 
-	// cull the entire model if merged bounding box of both frames
-	// is outside the view frustum and we don't care about proper shadowing
-	if ( ent->cull == CULL_OUT )
-	{
-		iaType = (interactionType_t) (iaType & ~IA_LIGHT);
-	}
-
-	if ( !iaType )
-	{
-		return;
-	}
-
-	// avoid drawing of certain objects
-#if defined( USE_REFENTITY_NOSHADOWID )
-
-	if ( light->l.inverseShadows )
-	{
-		if ( (iaType & IA_SHADOW) && ( light->l.noShadowID && ( light->l.noShadowID != ent->e.noShadowID ) ) )
-		{
-			return;
-		}
-	}
-	else
-	{
-		if ( (iaType & IA_SHADOW) && ( light->l.noShadowID && ( light->l.noShadowID == ent->e.noShadowID ) ) )
-		{
-			return;
-		}
-	}
-
-#endif
-
-	// don't add third_person objects if not in a portal
-	personalModel = ( ent->e.renderfx & RF_THIRD_PERSON ) &&
-	  tr.viewParms.portalLevel == 0;
-
-	// compute LOD
-	lod = R_ComputeLOD( ent );
-
-	model = tr.currentModel->mdv[ lod ];
-
-	// do a quick AABB cull
-	if ( !BoundsIntersect( light->worldBounds[ 0 ], light->worldBounds[ 1 ], ent->worldBounds[ 0 ], ent->worldBounds[ 1 ] ) )
-	{
-		tr.pc.c_dlightSurfacesCulled += model->numSurfaces;
-		return;
-	}
-
-	// do a more expensive and precise light frustum cull
-	if ( !r_noLightFrustums->integer )
-	{
-		if ( R_CullLightWorldBounds( light, ent->worldBounds ) == CULL_OUT )
-		{
-			tr.pc.c_dlightSurfacesCulled += model->numSurfaces;
-			return;
-		}
-	}
-
-	cubeSideBits = R_CalcLightCubeSideBits( light, ent->worldBounds );
-
-	// generate interactions with all surfaces
-	if ( r_vboModels->integer && model->numVBOSurfaces )
-	{
-		// new brute force method: just render everthing with static VBOs
-		srfVBOMDVMesh_t *vboSurface;
-
-		// static VBOs are fine for lighting and shadow mapping
-		for ( int i = 0; i < model->numVBOSurfaces; i++ )
-		{
-			vboSurface = model->vboSurfaces[ i ];
-			mdvSurface = vboSurface->mdvSurface;
-
-			shader_t *shader = GetMDVSurfaceShader( ent, mdvSurface );
-
-			// skip all surfaces that don't matter for lighting only pass
-			if ( shader->isSky || ( !shader->interactLight && shader->noShadows ) )
-			{
-				continue;
-			}
-
-			// we will add shadows even if the main object isn't visible in the view
-
-			// don't add third_person objects if not viewing through a portal
-			if ( !personalModel )
-			{
-				R_AddLightInteraction( light, ( surfaceType_t * ) vboSurface, shader, cubeSideBits, iaType );
-				tr.pc.c_dlightSurfaces++;
-			}
-		}
-	}
-	else
-	{
-		int i;
-		for ( i = 0, mdvSurface = model->surfaces; i < model->numSurfaces; i++, mdvSurface++ )
-		{
-			shader_t *shader = GetMDVSurfaceShader( ent, mdvSurface );
-
-			// skip all surfaces that don't matter for lighting only pass
-			if ( shader->isSky || ( !shader->interactLight && shader->noShadows ) )
-			{
-				continue;
-			}
-
-			// we will add shadows even if the main object isn't visible in the view
-
-			// don't add third_person objects if not viewing through a portal
-			if ( !personalModel )
-			{
-				R_AddLightInteraction( light, ( surfaceType_t * ) mdvSurface, shader, cubeSideBits, iaType );
-				tr.pc.c_dlightSurfaces++;
+		for ( int j = 0; j < tr.numSkins; j++ ) {
+			skin_t* skin = tr.skins[j];
+			for ( int k = 0; k < skin->numSurfaces; k++ ) {
+				// the names have both been lowercased
+				if ( !strcmp( skin->surfaces[k]->name, surface->mdvSurface->name ) ) {
+					MarkShaderBuild( skin->surfaces[k]->shader, -1, false, false, true );
+				}
 			}
 		}
 	}

@@ -26,11 +26,13 @@
 
 set(PLATFORM_PREFIX ${DEPS_DIR}/pnacl/bin)
 set(PLATFORM_TRIPLET "pnacl")
+
 if (WIN32)
     set(PNACL_BIN_EXT ".bat")
 else()
     set(PNACL_BIN_EXT "")
 endif()
+
 set(PLATFORM_EXE_SUFFIX ".pexe")
 
 set(CMAKE_SYSTEM_NAME "Generic")
@@ -39,6 +41,8 @@ set(CMAKE_C_COMPILER      "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-clang${PNACL_B
 set(CMAKE_CXX_COMPILER    "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-clang++${PNACL_BIN_EXT}")
 set(CMAKE_AR              "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-ar${PNACL_BIN_EXT}" CACHE FILEPATH "Archiver" FORCE)
 set(CMAKE_RANLIB          "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-ranlib${PNACL_BIN_EXT}")
+set(PNACL_TRANSLATE       "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-translate${PNACL_BIN_EXT}")
+set(PNACL_STRIP           "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-strip${PNACL_BIN_EXT}")
 set(CMAKE_FIND_ROOT_PATH  "${PLATFORM_PREFIX}/../le32-nacl")
 
 set(CMAKE_C_USE_RESPONSE_FILE_FOR_LIBRARIES 1)
@@ -49,6 +53,16 @@ set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES 1)
 set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES 1)
 set(CMAKE_C_RESPONSE_FILE_LINK_FLAG "@")
 set(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
+
+set(CMAKE_C_FLAGS_MINSIZEREL_INIT "-Os -DNDEBUG")
+set(CMAKE_C_FLAGS_RELEASE_INIT "-O3 -DNDEBUG")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO_INIT "-O2 -g -DNDEBUG")
+set(CMAKE_C_FLAGS_DEBUG_INIT "-g")
+
+set(CMAKE_CXX_FLAGS_MINSIZEREL_INIT "${CMAKE_C_FLAGS_MINSIZEREL_INIT}")
+set(CMAKE_CXX_FLAGS_RELEASE_INIT "${CMAKE_C_FLAGS_RELEASE_INIT}")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT "${CMAKE_C_FLAGS_RELWITHDEBINFO_INIT}")
+set(CMAKE_CXX_FLAGS_DEBUG_INIT "${CMAKE_C_FLAGS_DEBUG_INIT}")
 
 if (NOT CMAKE_HOST_WIN32)
     find_package(Python)
@@ -82,30 +96,30 @@ set(NACL ON)
 set(CMAKE_C_FLAGS "")
 set(CMAKE_CXX_FLAGS "")
 
-function(pnacl_finalize target)
-    add_custom_command(TARGET ${target} POST_BUILD
-        COMMENT "Finalising ${target}"
-        COMMAND
-            ${PNACLPYTHON_PREFIX2}
-            "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-finalize${PNACL_BIN_EXT}"
-            "$<TARGET_FILE:${target}>"
+function(pnacl_finalize dir module arch)
+    include(DaemonBuildTypeGeneratorExpression)
+
+    set(PNACL_TRANSLATE_OPTIONS
+        --allow-llvm-bitcode-input # FIXME: finalize as part of the build process
+        --pnacl-allow-exceptions
+        $<${RELEASE_GENEXP_COND}:-O3>
+        $<${DEBUG_GENEXP_COND}:-O0>
+        $<${RELWITHDEBINFO_GENEXP_COND}:-O2>
+        $<${MINSIZEREL_GENEXP_COND}:-O2>
     )
-endfunction()
-
-set(NACL_TRANSLATE_OPTIONS
-    --allow-llvm-bitcode-input # FIXME: finalize as part of the build process
-    --pnacl-allow-exceptions
-    $<$<CONFIG:None>:-O3>
-    $<$<CONFIG:Release>:-O3>
-    $<$<CONFIG:Debug>:-O0>
-    $<$<CONFIG:RelWithDebInfo>:-O2>
-    $<$<CONFIG:MinSizeRel>:-O2>
-)
-
-function(pnacl_translate dir module nacl_option arch)
     set(PEXE ${dir}/${module}.pexe)
     set(NEXE ${dir}/${module}-${arch}.nexe)
     set(STRIPPED_NEXE ${dir}/${module}-${arch}-stripped.nexe)
+
+    if (arch STREQUAL "i686")
+        set(PNACL_ARCH "i686")
+    elseif (arch STREQUAL "amd64")
+        set(PNACL_ARCH "x86-64")
+    elseif (arch STREQUAL "armhf")
+        set(PNACL_ARCH "arm")
+    else()
+        message(FATAL_ERROR "Unknown NaCl architecture ${arch}")
+    endif()
 
     add_custom_command(
         OUTPUT ${NEXE}
@@ -113,19 +127,20 @@ function(pnacl_translate dir module nacl_option arch)
         DEPENDS ${PEXE}
         COMMAND
             ${PNACLPYTHON_PREFIX2}
-            "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-translate${PNACL_BIN_EXT}"
-            ${NACL_TRANSLATE_OPTIONS}
-            -arch ${nacl_option}
+            "${PNACL_TRANSLATE}"
+            ${PNACL_TRANSLATE_OPTIONS}
+            -arch ${PNACL_ARCH}
             ${PEXE}
             -o ${NEXE}
     )
+
     add_custom_command(
         OUTPUT ${STRIPPED_NEXE}
         COMMENT "Stripping ${module} (${arch})"
         DEPENDS ${NEXE}
         COMMAND
             ${PNACLPYTHON_PREFIX2}
-            "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-strip${PNACL_BIN_EXT}"
+            "${PNACL_STRIP}"
             -s
             ${NEXE}
             -o ${STRIPPED_NEXE}

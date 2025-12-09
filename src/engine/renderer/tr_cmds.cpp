@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_cmds.c
 #include "tr_local.h"
+#include "GLUtils.h"
 
 volatile bool            renderThreadActive;
 
@@ -35,8 +36,8 @@ void R_PerformanceCounters()
 	if ( !r_speeds->integer )
 	{
 		// clear the counters even if we aren't printing
-		memset( &tr.pc, 0, sizeof( tr.pc ) );
-		memset( &backEnd.pc, 0, sizeof( backEnd.pc ) );
+		tr.pc = {};
+		backEnd.pc = {};
 		return;
 	}
 
@@ -45,12 +46,6 @@ void R_PerformanceCounters()
 		Log::Notice("%i views %i portals %i batches %i surfs %i leafs %i verts %i tris",
 		           backEnd.pc.c_views, backEnd.pc.c_portals, backEnd.pc.c_batches, backEnd.pc.c_surfaces, tr.pc.c_leafs,
 		           backEnd.pc.c_vertexes, backEnd.pc.c_indexes / 3 );
-
-		Log::Notice("%i lights %i bout %i pvsout %i interactions",
-		           tr.pc.c_dlights + tr.pc.c_slights,
-		           tr.pc.c_box_cull_light_out,
-		           tr.pc.c_pvs_cull_light_out,
-		           tr.pc.c_dlightInteractions + tr.pc.c_slightInteractions );
 
 		Log::Notice("%i draws %i vbos %i ibos %i verts %i tris",
 		           backEnd.pc.c_drawElements,
@@ -79,46 +74,17 @@ void R_PerformanceCounters()
 	{
 		Log::Notice("viewcluster: %i", tr.visClusters[ tr.visIndex ] );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_LIGHTS ))
-	{
-		Log::Notice("dlight srf:%i culled:%i", tr.pc.c_dlightSurfaces, tr.pc.c_dlightSurfacesCulled );
-
-		Log::Notice("dlights:%i interactions:%i", tr.pc.c_dlights, tr.pc.c_dlightInteractions );
-
-		Log::Notice("slights:%i interactions:%i", tr.pc.c_slights, tr.pc.c_slightInteractions );
-	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADOWCUBE_CULLING ))
-	{
-		Log::Notice("omni pyramid tests:%i bin:%i bclip:%i bout:%i",
-		           tr.pc.c_pyramidTests, tr.pc.c_pyramid_cull_ent_in, tr.pc.c_pyramid_cull_ent_clip, tr.pc.c_pyramid_cull_ent_out );
-	}
 	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_FOG ))
 	{
 		Log::Notice("fog srf:%i batches:%i", backEnd.pc.c_fogSurfaces, backEnd.pc.c_fogBatches );
-	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_FLARES ))
-	{
-		Log::Notice("flare adds:%i tests:%i renders:%i",
-		           backEnd.pc.c_flareAdds, backEnd.pc.c_flareTests, backEnd.pc.c_flareRenders );
-	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADING_TIMES ))
-	{
-		Log::Notice("forward shading times: ambient:%i lighting:%i", backEnd.pc.c_forwardAmbientTime,
-			           backEnd.pc.c_forwardLightingTime );
 	}
 	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_NEAR_FAR ))
 	{
 		Log::Notice("zNear: %.0f zFar: %.0f", tr.viewParms.zNear, tr.viewParms.zFar );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_DECALS ))
-	{
-		Log::Notice("decal projectors: %d test surfs: %d clip surfs: %d decal surfs: %d created: %d",
-		           tr.pc.c_decalProjectors, tr.pc.c_decalTestSurfaces, tr.pc.c_decalClipSurfaces, tr.pc.c_decalSurfaces,
-		           tr.pc.c_decalSurfacesCreated );
-	}
 
-	memset( &tr.pc, 0, sizeof( tr.pc ) );
-	memset( &backEnd.pc, 0, sizeof( backEnd.pc ) );
+	tr.pc = {};
+	backEnd.pc = {};
 }
 
 /*
@@ -201,6 +167,8 @@ OpenGL calls until R_IssueRenderCommands is called.
 */
 void R_SyncRenderThread()
 {
+	ASSERT( Sys::OnMainThread() ); // only call this from the frontend
+
 	if ( !tr.registered )
 	{
 		return;
@@ -256,6 +224,11 @@ R_AddSetupLightsCmd
 */
 void R_AddSetupLightsCmd()
 {
+	if ( !glConfig.realtimeLighting )
+	{
+		return;
+	}
+
 	SetupLightsCommand *cmd;
 
 	cmd = R_GetRenderCommand<SetupLightsCommand>();
@@ -408,6 +381,11 @@ void RE_SetColorGrading( int slot, qhandle_t hShader )
 	shader_t *shader = R_GetShaderByHandle( hShader );
 	image_t *image;
 
+	if ( !glConfig.colorGrading )
+	{
+		return;
+	}
+
 	if ( !tr.registered )
 	{
 		return;
@@ -418,12 +396,12 @@ void RE_SetColorGrading( int slot, qhandle_t hShader )
 		return;
 	}
 
-	if ( shader->defaultShader || !shader->stages[ 0 ] )
+	if ( shader->defaultShader || shader->stages == shader->lastStage )
 	{
 		return;
 	}
 
-	image = shader->stages[ 0 ]->bundle[ 0 ].image[ 0 ];
+	image = shader->stages[ 0 ].bundle[ 0 ].image[ 0 ];
 
 	if ( !image )
 	{
@@ -607,7 +585,7 @@ void RE_2DPolyies( polyVert_t *verts, int numverts, qhandle_t hShader )
 
 	cmd->verts = &backEndData[ tr.smpFrame ]->polyVerts[ r_numPolyVerts ];
 	cmd->numverts = numverts;
-	memcpy( cmd->verts, verts, sizeof( polyVert_t ) * numverts );
+	std::copy_n( verts, numverts, cmd->verts );
 	cmd->shader = R_GetShaderByHandle( hShader );
 
 	r_numPolyVerts += numverts;
@@ -636,10 +614,10 @@ void RE_2DPolyiesIndexed( polyVert_t *verts, int numverts, int *indexes, int num
 
 	cmd->verts = &backEndData[ tr.smpFrame ]->polyVerts[ r_numPolyVerts ];
 	cmd->numverts = numverts;
-	memcpy( cmd->verts, verts, sizeof( polyVert_t ) * numverts );
+	std::copy_n( verts, numverts, cmd->verts );
 	cmd->shader = R_GetShaderByHandle( hShader );
 	cmd->indexes = &backEndData[ tr.smpFrame ]->polyIndexes[ r_numPolyIndexes ];
-	memcpy( cmd->indexes, indexes, sizeof( int ) * numindexes );
+	std::copy_n( indexes, numindexes, cmd->indexes );
 	cmd->numIndexes = numindexes;
 	cmd->translation[ 0 ] = trans_x;
 	cmd->translation[ 1 ] = trans_y;
@@ -658,7 +636,7 @@ void RE_ScissorEnable( bool enable )
 	// scissor disable sets scissor to full screen
 	// scissor enable is a no-op
 	if( !enable ) {
-		RE_ScissorSet( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+		RE_ScissorSet( 0, 0, windowConfig.vidWidth, windowConfig.vidHeight );
 	}
 }
 
@@ -799,41 +777,17 @@ void RE_BeginFrame()
 		return;
 	}
 
-	GLimp_LogComment( "--- RE_BeginFrame ---\n" );
+	GLIMP_LOGCOMMENT( "--- RE_BeginFrame ---" );
 
 	tr.frameCount++;
 	tr.frameSceneNum = 0;
 	tr.viewCount = 0;
 
-	// do overdraw measurement
-	if ( r_measureOverdraw->integer )
-	{
-		R_SyncRenderThread();
-		glEnable( GL_STENCIL_TEST );
-		glStencilMask( ~0U );
-		GL_ClearStencil( 0U );
-		glStencilFunc( GL_ALWAYS, 0U, ~0U );
-		glStencilOp( GL_KEEP, GL_INCR, GL_INCR );
-		r_measureOverdraw->modified = false;
-	}
-	else
-	{
-		// this is only reached if it was on and is now off
-		if ( r_measureOverdraw->modified )
-		{
-			R_SyncRenderThread();
-			glDisable( GL_STENCIL_TEST );
-		}
-
-		r_measureOverdraw->modified = false;
-	}
-
 	// texturemode stuff
-	if ( r_textureMode->modified )
+	if ( Util::optional<std::string> textureMode = r_textureMode.GetModifiedValue() )
 	{
 		R_SyncRenderThread();
-		GL_TextureMode( r_textureMode->string );
-		r_textureMode->modified = false;
+		GL_TextureMode( textureMode->c_str() );
 	}
 
 	// check for errors
@@ -936,25 +890,4 @@ void RE_TakeVideoFrame( int width, int height, byte *captureBuffer, byte *encode
 	cmd->captureBuffer = captureBuffer;
 	cmd->encodeBuffer = encodeBuffer;
 	cmd->motionJpeg = motionJpeg;
-}
-
-//bani
-
-/*
-==================
-RE_Finish
-==================
-*/
-void RE_Finish()
-{
-	RenderFinishCommand *cmd;
-
-	Log::Notice("RE_Finish\n" );
-
-	cmd = R_GetRenderCommand<RenderFinishCommand>();
-
-	if ( !cmd )
-	{
-		return;
-	}
 }

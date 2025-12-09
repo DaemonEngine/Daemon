@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+// null_client.cpp: no-op client functions built with the dedicated server
+
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
 
@@ -65,19 +67,6 @@ void CL_MapLoading()
 {
 }
 
-void CL_ForwardCommandToServer( const char *cmd )
-{
-	Log::Notice( "Unknown command \"%s\"\n", cmd );
-}
-
-void CL_ConsolePrint( std::string )
-{
-}
-
 void CL_JoystickEvent( int, int )
-{
-}
-
-void CL_ShutdownAll()
 {
 }

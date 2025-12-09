@@ -127,10 +127,11 @@ namespace FS {
 #ifdef BUILD_ENGINE
 static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "also load pk3s, ignoring version", Cvar::NONE, false);
 static Cvar::Cvar<int> fs_maxSymlinkDepth("fs_maxSymlinkDepth", "max depth of symlinks in zip paks (0 means disabled)", Cvar::NONE, 1);
+static Cvar::Cvar<std::string> fs_pakprefixes("fs_pakprefixes", "prefixes to look for paks to load", 0, "");
 
 bool UseLegacyPaks()
 {
-	return *fs_legacypaks;
+	return fs_legacypaks.Get();
 }
 #else
 bool UseLegacyPaks()
@@ -191,8 +192,8 @@ inline int my_open(Str::StringRef path, openMode_t mode)
 	int fd = _open_osfhandle(reinterpret_cast<intptr_t>(h), modes[mode_] | O_BINARY | O_NOINHERIT);
 	if (fd == -1)
 		CloseHandle(h);
-#elif defined(__APPLE__)
-	// O_CLOEXEC is supported from 10.7 onwards
+#elif defined(__FreeBSD__) || defined(__APPLE__)
+	// O_CLOEXEC is supported in macOS from 10.7 onwards
 	int fd = open(path.c_str(), modes[mode_] | O_CLOEXEC, 0666);
 #elif defined(__linux__)
 	int fd = open64(path.c_str(), modes[mode_] | O_CLOEXEC | O_LARGEFILE, 0666);
@@ -237,7 +238,7 @@ inline offset_t my_ftell(FILE* fd)
 {
 #ifdef _WIN32
 	return _ftelli64(fd);
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
 	return ftello(fd);
 #elif defined(__linux__)
 	return ftello64(fd);
@@ -247,7 +248,7 @@ inline int my_fseek(FILE* fd, offset_t off, int whence)
 {
 #ifdef _WIN32
 	return _fseeki64(fd, off, whence);
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
 	return fseeko(fd, off, whence);
 #elif defined(__linux__)
 	return fseeko64(fd, off, whence);
@@ -255,7 +256,7 @@ inline int my_fseek(FILE* fd, offset_t off, int whence)
 }
 #ifdef _WIN32
 typedef struct _stati64 my_stat_t;
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
 using my_stat_t = struct stat;
 #elif defined(__linux__)
 using my_stat_t = struct stat64;
@@ -264,7 +265,7 @@ inline int my_fstat(int fd, my_stat_t* st)
 {
 #ifdef _WIN32
 	return _fstati64(fd, st);
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
 	return fstat(fd, st);
 #elif defined(__linux__)
 	return fstat64(fd, st);
@@ -274,7 +275,7 @@ inline int my_stat(Str::StringRef path, my_stat_t* st)
 {
 #ifdef _WIN32
 	return _wstati64(Str::UTF8To16(path).c_str(), st);
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
 	return stat(path.c_str(), st);
 #elif defined(__linux__)
 	return stat64(path.c_str(), st);
@@ -293,7 +294,7 @@ inline intptr_t my_pread(int fd, void* buf, size_t count, offset_t offset)
 		return -1;
 	}
 	return bytesRead;
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
 	return pread(fd, buf, count, offset);
 #elif defined(__linux__)
 	return pread64(fd, buf, count, offset);
@@ -889,6 +890,8 @@ public:
 	// OpenFile but with support for symlinks.
 	// Symlinks are a bad feature which you should not use. Therefore, the implementation is as
 	// slow as possible with a full iteration of the archive performed for each symlink.
+	// Although the VFS is case-insensitive, symlink resolution is intentionally case-sensitive.
+	// That way a DPK unpacked to a dpkdir should work correctly on any system.
 	// Returns: Length of the opened file, if successful.
 	offset_t OpenFileWithSymlinkResolution(Str::StringRef name, offset_t offset, std::error_code& err)
 	{
@@ -1076,7 +1079,7 @@ static std::unordered_set<std::pair<std::string, std::string>, stdStringPairHash
 
 // Map of filenames to pak files. The size_t is an offset into loadedPaks and
 // the offset_t is the position within the zip archive (unused for PAK_DIR).
-static std::unordered_map<std::string, std::pair<uint32_t, offset_t>> fileMap;
+static std::unordered_map<std::string, std::pair<uint32_t, offset_t>, Str::IHash, Str::IEqual> fileMap;
 
 #ifndef BUILD_VM
 /* Parse the deleted file list file of a package.
@@ -1473,6 +1476,11 @@ void LoadPakExplicit(const PakInfo& pak, uint32_t expectedChecksum, std::error_c
 	InternalLoadPak(pak, expectedChecksum, "", false, err);
 }
 
+void LoadPakExplicitWithoutChecksum(const PakInfo& pak, std::error_code& err)
+{
+	InternalLoadPak(pak, {}, "", false, err);
+}
+
 void ClearPaks()
 {
 	fsLogs.Verbose("^5Unloading all paks");
@@ -1543,7 +1551,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 	const LoadedPakInfo& pak = loadedPaks[it->second.first];
 	if (pak.type == pakType_t::PAK_DIR) {
 		// Open file
-		File file = RawPath::OpenRead(Path::Build(pak.path, path), err);
+		File file = RawPath::OpenRead(Path::Build(pak.path, it->first), err);
 		if (err)
 			return "";
 
@@ -1564,7 +1572,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 			return "";
 
 		// Open file in zip
-		offset_t length = zipFile.OpenFileWithSymlinkResolution(path, it->second.second, err);
+		offset_t length = zipFile.OpenFileWithSymlinkResolution(it->first, it->second.second, err);
 		if (err)
 			return "";
 
@@ -1597,7 +1605,7 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 
 	const LoadedPakInfo& pak = loadedPaks[it->second.first];
 	if (pak.type == pakType_t::PAK_DIR) {
-		File file = RawPath::OpenRead(Path::Build(pak.path, path), err);
+		File file = RawPath::OpenRead(Path::Build(pak.path, it->first), err);
 		if (err)
 			return;
 		file.CopyTo(dest, err);
@@ -1667,7 +1675,7 @@ std::chrono::system_clock::time_point FileTimestamp(Str::StringRef path, std::er
 	if (pak.type == pakType_t::PAK_DIR) {
 #ifdef BUILD_VM
 		Util::optional<uint64_t> result;
-		VM::SendMsg<VM::FSPakPathTimestampMsg>(it->second.first, path, result);
+		VM::SendMsg<VM::FSPakPathTimestampMsg>(it->second.first, it->first, result);
 		if (result) {
 			ClearErrorCode(err);
 			return std::chrono::system_clock::from_time_t(*result);
@@ -1676,7 +1684,7 @@ std::chrono::system_clock::time_point FileTimestamp(Str::StringRef path, std::er
 			return {};
 		}
 #else
-		return RawPath::FileTimestamp(Path::Build(pak.path, path), err);
+		return RawPath::FileTimestamp(Path::Build(pak.path, it->first), err);
 #endif
 	} else if (pak.type == pakType_t::PAK_ZIP) {
 		return pak.timestamp;
@@ -1713,7 +1721,7 @@ bool DirectoryRange::Advance(std::error_code& err)
 	return InternalAdvance();
 }
 
-DirectoryRange ListFiles(Str::StringRef path, std::error_code& err)
+DirectoryRange ListFiles(Str::StringRef path)
 {
 	DirectoryRange state;
 	state.recursive = false;
@@ -1722,14 +1730,11 @@ DirectoryRange ListFiles(Str::StringRef path, std::error_code& err)
 		state.prefix.push_back('/');
 	state.iter = fileMap.begin();
 	state.iter_end = fileMap.end();
-	if (!state.InternalAdvance())
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_directory, path);
-	else
-		ClearErrorCode(err);
+	state.InternalAdvance();
 	return state;
 }
 
-DirectoryRange ListFilesRecursive(Str::StringRef path, std::error_code& err)
+DirectoryRange ListFilesRecursive(Str::StringRef path)
 {
 	DirectoryRange state;
 	state.recursive = true;
@@ -1738,10 +1743,7 @@ DirectoryRange ListFilesRecursive(Str::StringRef path, std::error_code& err)
 		state.prefix.push_back('/');
 	state.iter = fileMap.begin();
 	state.iter_end = fileMap.end();
-	if (!state.InternalAdvance())
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_directory, path);
-	else
-		ClearErrorCode(err);
+	state.InternalAdvance();
 	return state;
 }
 
@@ -1765,11 +1767,7 @@ Cmd::CompletionResult CompleteFilename(Str::StringRef prefix, Str::StringRef roo
 
 	// ListFiles doesn't return directories for PakPath, so use a recursive
 	// search to get directory names.
-	std::error_code err;
-	DirectoryRange range = ListFilesRecursive(Path::Build(root, prefixDir), err);
-	if (err) {
-		return {};
-	}
+	DirectoryRange range = ListFilesRecursive(Path::Build(root, prefixDir));
 
 	Cmd::CompletionResult out;
 
@@ -2285,7 +2283,7 @@ Cmd::CompletionResult CompleteFilename(Str::StringRef prefix, Str::StringRef roo
 
 #ifndef BUILD_VM
 // Determine path to the executable, default to current directory
-std::string DefaultBasePath()
+std::string DefaultLibPath()
 {
 #ifdef _WIN32
 	wchar_t buffer[MAX_PATH];
@@ -2299,11 +2297,16 @@ std::string DefaultBasePath()
 	*p = L'\0';
 
 	return Str::UTF16To8(buffer);
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__FreeBSD__)
 	ssize_t len = 64;
 	while (true) {
 		std::unique_ptr<char[]> out(new char[len]);
-		ssize_t result = readlink("/proc/self/exe", out.get(), len);
+#if defined(__linux__)
+		const char* proc_file = "/proc/self/exe";
+#elif defined(__FreeBSD__)
+		const char* proc_file = "/proc/curproc/file";
+#endif
+		ssize_t result = readlink(proc_file, out.get(), len);
 		if (result == -1)
 			return "";
 		if (result < len) {
@@ -2337,26 +2340,41 @@ std::string DefaultHomePath()
 {
 #ifdef _WIN32
 	wchar_t buffer[MAX_PATH];
-	if (!SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_PERSONAL, nullptr, SHGFP_TYPE_CURRENT, buffer)))
-		return "";
-	return Str::UTF16To8(buffer) + "\\My Games\\" PRODUCT_NAME;
-#else
+	if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_PERSONAL, nullptr, SHGFP_TYPE_CURRENT, buffer))) {
+		return Path::Build(Path::Build(Str::UTF16To8(buffer), "My Games"), PRODUCT_NAME);
+	}
+#elif defined(__APPLE__)
 	const char* home = getenv("HOME");
-	if (!home)
-		return "";
-#ifdef __APPLE__
-	return std::string(home) + "/Library/Application Support/" PRODUCT_NAME;
+	if (home && home[0]) {
+		return Path::Build(Path::Build(Path::Build(home, "Library"), "Application Support"), PRODUCT_NAME);
+	}
 #else
-	const char* _xdgDataHome = getenv("XDG_DATA_HOME");
-	std::string xdgDataHome = _xdgDataHome == nullptr ? Path::Build(Path::Build(std::string(home), ".local") ,"share") : std::string(_xdgDataHome);
-	std::string xdgHomePath;
-
-	xdgHomePath = Path::Build(xdgDataHome, PRODUCT_NAME_LOWER);
-
-	return xdgHomePath;
+	const char* xdgDataHome_ = getenv("XDG_DATA_HOME");
+	if (xdgDataHome_ && xdgDataHome_[0]) {
+		return Path::Build(xdgDataHome_, PRODUCT_NAME_LOWER);
+	}
+	else {
+		const char* home = getenv("HOME");
+		if (home && home[0]) {
+			std::string xdgDataHome = Path::Build(Path::Build(home, ".local") ,"share");
+			return Path::Build(xdgDataHome, PRODUCT_NAME_LOWER);
+		}
+	}
 #endif
-#endif
+	return "";
 }
+
+// Determine path to temporary directory
+#ifndef _WIN32
+std::string DefaultTempPath()
+{
+	const char* tmpDir = getenv("TMPDIR");
+	if (!tmpDir || !tmpDir[0]) {
+		tmpDir = "/tmp";
+	}
+	return tmpDir;
+}
+#endif
 
 #endif // BUILD_VM
 
@@ -2627,7 +2645,7 @@ void RefreshPaks()
 }
 #endif
 
-const PakInfo* FindPak(Str::StringRef name)
+static const PakInfo* FindPakNoPrefix(Str::StringRef name)
 {
 	// Find the latest version with the matching name
 	auto iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [](Str::StringRef name1, const PakInfo& pakInfo) -> bool {
@@ -2640,7 +2658,21 @@ const PakInfo* FindPak(Str::StringRef name)
 		return &*(iter - 1);
 }
 
-const PakInfo* FindPak(Str::StringRef name, Str::StringRef version)
+const PakInfo* FindPak(Str::StringRef name)
+{
+	Cmd::Args pakprefixes(Cvar::GetValue("fs_pakprefixes"));
+	for (const std::string &pakprefix: pakprefixes)
+	{
+		const FS::PakInfo* pak = FS::FindPakNoPrefix(Path::Build(pakprefix, name));
+		if (pak) {
+			return pak;
+		}
+	}
+
+	return FS::FindPakNoPrefix(name);
+}
+
+static const PakInfo* FindPakNoPrefix(Str::StringRef name, Str::StringRef version)
 {
 	// Find a matching name and version, but prefer the last matching element since that is usually the one with no checksum
 	auto iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [version](Str::StringRef name1, const PakInfo& pakInfo) -> bool {
@@ -2654,6 +2686,20 @@ const PakInfo* FindPak(Str::StringRef name, Str::StringRef version)
 		return nullptr;
 	else
 		return &*(iter - 1);
+}
+
+const PakInfo* FindPak(Str::StringRef name, Str::StringRef version)
+{
+	Cmd::Args pakprefixes(Cvar::GetValue("fs_pakprefixes"));
+	for (const std::string &pakprefix: pakprefixes)
+	{
+		const FS::PakInfo* pak = FS::FindPakNoPrefix(Path::Build(pakprefix, name), version);
+		if (pak) {
+			return pak;
+		}
+	}
+
+	return FS::FindPakNoPrefix(name, version);
 }
 
 const PakInfo* FindPak(Str::StringRef name, Str::StringRef version, uint32_t checksum)
@@ -2796,16 +2842,18 @@ std::set<std::string> GetAvailableMaps(bool allowLegacyPaks)
 				FS::PakPath::LoadPakPrefix(pak, "maps/", ignored);
 			}
 		} else {
-			if (Str::IsPrefix(pakPrefix, pak.name) && pak.name.size() > pakPrefix.size()) {
-				maps.insert(pak.name.substr(pakPrefix.size()));
+			std::string basename = FS::Path::BaseName(pak.name);
+			if (Str::IsPrefix(pakPrefix, basename) && basename.size() > pakPrefix.size()
+			    && FS::FindPak(basename) != nullptr) {
+				// FS::FindPak checked that the pak can be loaded via its base name respecting fs_pakprefixes.
+				maps.insert(basename.substr(pakPrefix.size()));
 			}
 		}
 	}
 
 	if (allowLegacyPaks && UseLegacyPaks()) {
 		const std::string pathSuffix = ".bsp";
-		std::error_code ignored;
-		for (const std::string& path : FS::PakPath::ListFiles("maps/", ignored)) {
+		for (const std::string& path : FS::PakPath::ListFiles("maps/")) {
 			if (Str::IsSuffix(pathSuffix, path) && path.size() > pathSuffix.size()) {
 				maps.insert(path.substr(0, path.size() - pathSuffix.size()));
 			}
@@ -2830,7 +2878,7 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 {
 	switch (minor) {
 	case VM::FS_INITIALIZE:
-		IPC::HandleMsg<VM::FSInitializeMsg>(channel, std::move(reader), [](std::string& homePath, std::string& libPath, std::vector<FS::PakInfo>& availablePaks, std::vector<FS::LoadedPakInfo>& loadedPaks, std::unordered_map<std::string, std::pair<uint32_t, FS::offset_t>>& fileMap) {
+		IPC::HandleMsg<VM::FSInitializeMsg>(channel, std::move(reader), [](std::string& homePath, std::string& libPath, std::vector<FS::PakInfo>& availablePaks, std::vector<FS::LoadedPakInfo>& loadedPaks, std::unordered_map<std::string, std::pair<uint32_t, FS::offset_t>, Str::IHash, Str::IEqual>& fileMap) {
 			homePath = GetHomePath();
 			libPath = GetLibPath();
 			availablePaks = GetAvailablePaks();
@@ -2892,6 +2940,7 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 		});
 		break;
 
+	// This is case-sensitive (if the OS is). The VM side should fix the case to match exactly
 	case VM::FS_PAKPATH_TIMESTAMP:
 		IPC::HandleMsg<VM::FSPakPathTimestampMsg>(channel, std::move(reader), [](uint32_t pakIndex, std::string path, Util::optional<uint64_t>& out) {
 			auto& loadedPaks = FS::PakPath::GetLoadedPaks();

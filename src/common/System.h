@@ -40,6 +40,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Low-level system functions
 namespace Sys {
 
+#if defined(BUILD_ENGINE) && defined(_WIN32)
+bool isRunningOnWine();
+const char* getWineHostSystem();
+#endif
+
+int SetEnv( const char* name, const char* value );
+int UnsetEnv( const char* name );
+
 // The Windows implementation of steady_clock is really bad, use our own
 #ifdef _WIN32
 class SteadyClock {
@@ -68,6 +76,9 @@ void SleepFor(SteadyClock::duration time);
 // Returns approximately the number of milliseconds the engine has been running.
 // Results *within a single module* (engine/cgame/sgame) are monotonic.
 int Milliseconds();
+
+// For a DLL this means the thread starting from the VM's entry point, not the real main thread
+bool OnMainThread();
 
 // Exit with a fatal error. Only critical subsystems are shut down cleanly, and
 // an error message is displayed to the user.

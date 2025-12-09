@@ -84,13 +84,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  define Q3_BYTE_ORDER 1234
 # endif // __ARMEB__
 
-#elif defined( _XBOX )
-//
-// XBox is always big endian??
-//
-# define Q3_BIG_ENDIAN
-# define Q3_BYTE_ORDER 4321
-
 #elif defined(_BIG_ENDIAN) && !defined(_LITTLE_ENDIAN) || \
     defined(__BIG_ENDIAN__) && !defined(__LITTLE_ENDIAN__) || \
     defined(__BIGENDIAN__) && !defined(__LITTLEENDIAN__) || \
@@ -125,6 +118,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 # error The file boost/detail/endian.hpp needs to be set up for your CPU type.
 #endif
+
+// forward declaration
+namespace Util {
+	template<typename ToT, typename FromT>
+	ToT bit_cast(FromT from);
+}
 
 // Compilers are smart enough to optimize these to a single bswap instruction
 inline int16_t Swap16(int16_t x)
@@ -173,15 +172,9 @@ inline uint64_t USwap64(uint64_t x)
 
 inline float SwapFloat(float x)
 {
-	union
-	{
-		float        f;
-		int          i;
-		unsigned int ui;
-	} fi;
-	fi.f = x;
-	fi.i = Swap32(fi.i);
-	return fi.f;
+	int32_t bits = Util::bit_cast<int32_t>(x);
+	bits = Swap32(bits);
+	return Util::bit_cast<float>(bits);
 }
 
 #ifdef Q3_LITTLE_ENDIAN

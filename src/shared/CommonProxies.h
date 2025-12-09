@@ -48,6 +48,32 @@ namespace VM {
 
 }
 
+void trap_AddCommand(const char* cmdName);
+void trap_RemoveCommand(const char* cmdName);
+void trap_CompleteCallback(const char* complete);
+int trap_Argc();
+void trap_Argv(int n, char* buffer, int bufferLength);
+const Cmd::Args& trap_Args();
+void trap_EscapedArgs(char* buffer, int bufferLength);
+void trap_LiteralArgs(char* buffer, int bufferLength);
+void trap_Cvar_Set(const char* varName, const char* value);
+int trap_Cvar_VariableIntegerValue(const char* varName);
+float trap_Cvar_VariableValue(const char* varName);
+void trap_Cvar_VariableStringBuffer(const char* varName, char* buffer, int bufsize);
+void trap_Cvar_AddFlags(const char* varName, int flags);
 int trap_Milliseconds();
+void trap_SendConsoleCommand(const char* text);
+int trap_FS_FOpenFile(const char* qpath, fileHandle_t* f, fsMode_t mode);
+int trap_FS_OpenPakFile(Str::StringRef path, fileHandle_t& f);
+int trap_FS_Read(void* buffer, int len, fileHandle_t f);
+int trap_FS_Write(const void* buffer, int len, fileHandle_t f);
+int trap_FS_Seek(fileHandle_t f, int offset, fsOrigin_t origin);
+int trap_FS_Tell(fileHandle_t f);
+int trap_FS_FileLength(fileHandle_t f);
+void trap_FS_FCloseFile(fileHandle_t f);
+int trap_FS_GetFileList(const char* path, const char* extension, char* listbuf, int bufsize);
+int trap_FS_GetFileListRecursive(const char* path, const char* extension, char* listbuf, int bufsize);
+bool trap_FindPak(const char* name);
+bool trap_FS_LoadPak(const char* pak, const char* prefix);
 
 #endif // SHARED_COMMON_PROXIES_H_

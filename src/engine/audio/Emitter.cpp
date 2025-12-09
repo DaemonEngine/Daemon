@@ -76,13 +76,13 @@ namespace Audio {
         AL::Effect effectParams;
         effectParams.ApplyReverbPreset(*AL::GetPresetByName("generic"));
 
-        for (int i = 0; i < N_REVERB_SLOTS; i++) {
-            reverbSlots[i].effect = new AL::EffectSlot();
-            reverbSlots[i].effect->SetEffect(effectParams);
-            reverbSlots[i].effect->SetGain(1.0f);
-            reverbSlots[i].name = "generic";
-            reverbSlots[i].ratio = 1.0f;
-            reverbSlots[i].askedRatio = 1.0f;
+        for (auto &slot : reverbSlots) {
+            slot.effect = new AL::EffectSlot();
+            slot.effect->SetEffect(effectParams);
+            slot.effect->SetGain(1.0f);
+            slot.name = "generic";
+            slot.ratio = 1.0f;
+            slot.askedRatio = 1.0f;
         }
 
         AL::SetInverseDistanceModel();
@@ -100,14 +100,14 @@ namespace Audio {
 
         localEmitter = nullptr;
 
-        for (int i = 0; i < N_REVERB_SLOTS; i++) {
-            delete reverbSlots[i].effect;
-            reverbSlots[i].effect = nullptr;
+        for (auto &slot : reverbSlots) {
+            delete slot.effect;
+            slot.effect = nullptr;
         }
 
-        for (int i = 0; i < MAX_GENTITIES; i++) {
-            if (entityEmitters[i]) {
-                entityEmitters[i] = nullptr;
+        for (auto &emitter : entityEmitters) {
+            if ( emitter ) {
+                emitter = nullptr;
             }
         }
 
@@ -124,9 +124,7 @@ namespace Audio {
         // Both PositionEmitters and EntityEmitters are ref-counted.
         // If we hold the only reference to them then no sound is still using
         // the Emitter that can be destroyed.
-        for (int i = 0; i < MAX_GENTITIES; i++) {
-            auto emitter = entityEmitters[i];
-
+        for (auto &emitter : entityEmitters) {
             if (not emitter) {
                 continue;
             }
@@ -134,8 +132,8 @@ namespace Audio {
             emitter->Update();
 
             // No sound is using this emitter, destroy it
-            if (emitter.unique()) {
-                entityEmitters[i] = nullptr;
+            if (emitter.use_count() == 1) {
+                emitter = nullptr;
             }
         }
 
@@ -143,7 +141,7 @@ namespace Audio {
             (*it)->Update();
 
             // No sound is using this emitter, destroy it
-            if ((*it).unique()) {
+            if ((*it).use_count() == 1) {
                 it = posEmitters.erase(it);
             } else {
                 it ++;
@@ -151,8 +149,8 @@ namespace Audio {
         }
 
         float reverbVolume = reverbIntensity.Get();
-        for (int i = 0; i < N_REVERB_SLOTS; i++) {
-            reverbSlots[i].effect->SetGain(reverbSlots[i].ratio * reverbVolume);
+        for (auto &slot : reverbSlots) {
+            slot.effect->SetGain(slot.ratio * reverbVolume);
         }
 
         AL::SetDopplerExaggerationFactor(dopplerExaggeration.Get());
@@ -200,7 +198,7 @@ namespace Audio {
     void UpdateReverbSlot(int slotNum, std::string name, float ratio) {
         ASSERT_GE(slotNum, 0);
         ASSERT_LT(slotNum, N_REVERB_SLOTS);
-        ASSERT(!std::isnan(ratio));
+        ASSERT(Math::IsFinite(ratio));
 
         auto& slot = reverbSlots[slotNum];
 
@@ -386,8 +384,8 @@ namespace Audio {
 
                 if (name == "none") {
                     testingReverb = true;
-                    for (int i = 0; i < N_REVERB_SLOTS; i++) {
-                        reverbSlots[i].effect->SetGain(0.0f);
+                    for (auto &slot : reverbSlots) {
+                        slot.effect->SetGain(0.0f);
                     }
                     return;
                 }

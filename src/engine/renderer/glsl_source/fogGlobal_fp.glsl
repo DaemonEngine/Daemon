@@ -22,20 +22,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* fogGlobal_fp.glsl */
 
-uniform sampler2D	u_ColorMap; // fog texture
+#insert common
+#insert fogEquation_fp
+
 uniform sampler2D	u_DepthMap;
-uniform vec3		u_ViewOrigin;
-uniform vec4		u_FogDistanceVector;
-uniform vec4		u_FogDepthVector;
-uniform vec4		u_Color;
-uniform mat4		u_ViewMatrix;
+
+uniform colorPack u_Color;
+
+uniform vec3 u_ViewOrigin;
+uniform float u_FogDensity;
 uniform mat4		u_UnprojectMatrix;
 
-#if __VERSION__ > 120
-out vec4 outputColor;
-#else
-#define outputColor gl_FragColor
-#endif
+DECLARE_OUTPUT(vec4)
 
 void	main()
 {
@@ -47,10 +45,10 @@ void	main()
 	vec4 P = u_UnprojectMatrix * vec4(gl_FragCoord.xy, depth, 1.0);
 	P.xyz /= P.w;
 
-	// calculate the length in fog (t is always 0 if eye is in fog)
-	st.s = dot(P.xyz, u_FogDistanceVector.xyz) + u_FogDistanceVector.w;
-	// st.s = vertexDistanceToCamera;
-	st.t = 1.0;
+	// calculate the length in fog (t is always 1 if eye is in fog)
+	float s = distance(u_ViewOrigin, P.xyz) * u_FogDensity;
 
-	outputColor = u_Color * texture2D(u_ColorMap, st);
+	vec4 color = vec4(1, 1, 1, GetFogAlpha(s, 1.0));
+
+	outputColor = UnpackColor( u_Color ) * color;
 }

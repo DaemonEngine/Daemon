@@ -52,7 +52,6 @@ std::unordered_map<Keyboard::Key, qkey_t, Keyboard::Key::hash> keys;
 static struct {
 	Keyboard::Key key;
 	unsigned int time;
-	bool     valid;
 	int          check;
 } plusCommand;
 
@@ -284,6 +283,44 @@ static void Console_Key( Keyboard::Key key )
 		return;
 	}
 
+	// return if it's a keypad key but numlock is on
+	if ( key.kind() == Key::Kind::KEYNUM ) {
+		switch ( key.AsKeynum() ) {
+		case K_KP_PGUP:
+		case K_KP_EQUALS:
+		case K_KP_5:
+		case K_KP_LEFTARROW:
+		case K_KP_UPARROW:
+		case K_KP_RIGHTARROW:
+		case K_KP_DOWNARROW:
+		case K_KP_END:
+		case K_KP_PGDN:
+		case K_KP_INS:
+		case K_KP_DEL:
+		case K_KP_HOME:
+			if ( IN_IsNumLockOn() )
+			{
+				return;
+			}
+
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	// escape closes the console
+	if ( key == Key(K_ESCAPE) )
+	{
+		if ( consoleState.isOpened )
+		{
+			Con_ToggleConsole_f();
+		}
+
+		return;
+	}
+
 	// ctrl-L clears screen
 	if (key == Key::FromCharacter('l') && keys[ Key(K_CTRL) ].down) {
 		Cmd::BufferCommandText("clear");
@@ -422,26 +459,26 @@ Key_SetKeyData
 */
 static void Key_SetKeyData_f()
 {
-	if ( atoi( Cmd_Argv( 1 ) ) == plusCommand.check )
+	if ( Cmd_Argc() == 4 && atoi( Cmd_Argv( 1 ) ) == plusCommand.check )
 	{
 		plusCommand.key = Keyboard::StringToKey( Cmd_Argv( 2 ) );
 		plusCommand.time = atoi( Cmd_Argv( 3 ) );
-		plusCommand.valid = true;
 	}
 	else
 	{
-		plusCommand.valid = false;
+		plusCommand.key = Keyboard::Key::NONE;
+		plusCommand.time = 0;
 	}
 }
 
 Keyboard::Key Key_GetKeyNumber()
 {
-	return plusCommand.valid ? plusCommand.key : Keyboard::Key::NONE;
+	return plusCommand.key;
 }
 
 unsigned int Key_GetKeyTime()
 {
-	return plusCommand.valid ? plusCommand.time : 0;
+	return plusCommand.time;
 }
 
 
@@ -463,201 +500,175 @@ void CL_ConsoleKeyEvent()
 	Key_ClearStates();
 }
 
-/*
-===================
-CL_KeyEvent
-
-Called by the system for both key up and key down events
-===================
-*/
-
-void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
+// keyboard shortcuts hard-coded into the engine which are always active regardless of key catchers
+static bool DetectBuiltInShortcut( Keyboard::Key key )
 {
 	using Keyboard::Key;
-	bool onlybinds = false;
-
-	if ( !key.IsValid() )
-	{
-		return;
-	}
-
-	if ( key.kind() == Key::Kind::KEYNUM ) {
-		switch ( key.AsKeynum() ) {
-		case K_KP_PGUP:
-		case K_KP_EQUALS:
-		case K_KP_5:
-		case K_KP_LEFTARROW:
-		case K_KP_UPARROW:
-		case K_KP_RIGHTARROW:
-		case K_KP_DOWNARROW:
-		case K_KP_END:
-		case K_KP_PGDN:
-		case K_KP_INS:
-		case K_KP_DEL:
-		case K_KP_HOME:
-			if ( IN_IsNumLockDown() )
-			{
-				onlybinds = true;
-			}
-
-			break;
-
-		default:
-			break;
-		}
-	}
-
-	// update auto-repeat status and BUTTON_ANY status
-	keys[ key ].down = down;
-
-	if ( down )
-	{
-		keys[ key ].repeats++;
-
-		if ( keys[ key ].repeats == 1 )
-		{
-			anykeydown++;
-		}
-	}
-	else
-	{
-		keys[ key ].repeats = 0;
-		anykeydown--;
-
-		if ( anykeydown < 0 )
-		{
-			anykeydown = 0;
-		}
-	}
 
 #ifdef MACOS_X
-	if ( down && keys[ Key(K_COMMAND) ].down )
+	if ( keys[ Key(K_COMMAND) ].down )
 	{
 		if ( key == Key::FromCharacter('f') )
 		{
 			Key_ClearStates();
-			Cmd::BufferCommandText("toggle r_fullscreen; vid_restart");
-			return;
+			r_fullscreen.Set( !r_fullscreen.Get() );
+			return true;
 		}
 		else if ( key == Key::FromCharacter('q') )
 		{
 			Key_ClearStates();
 			Cmd::BufferCommandText("quit");
-			return;
+			return true;
 		}
 		else if ( key == Key(K_TAB) )
 		{
 			Key_ClearStates();
 			Cmd::BufferCommandText("minimize");
-			return;
+			return true;
 		}
 	}
 #else
-	if ( key == Key(K_ENTER) )
+	if ( key == Key(K_ENTER) && keys[ Key(K_ALT) ].down )
 	{
-		if ( down )
-		{
-			if ( keys[ Key(K_ALT) ].down )
-			{
-				r_fullscreen.Set( !r_fullscreen.Get() );
-				return;
-			}
-		}
+		r_fullscreen.Set( !r_fullscreen.Get() );
+		return true;
 	}
 
+	// When not in full-screen mode, the OS should intercept this first
 	if ( cl_altTab->integer && keys[ Key(K_ALT) ].down && key == Key(K_TAB) )
 	{
 		Key_ClearStates();
 		Cmd::BufferCommandText("minimize");
-		return;
+		return true;
 	}
 #endif
 
 	// console key combination is hardcoded, so the user can never unbind it
 	if ( keys[ Key(K_SHIFT) ].down && key == Key(K_ESCAPE) )
 	{
-		if ( !down )
-		{
-			return;
-		}
-
 		CL_ConsoleKeyEvent();
-		return;
+		return true;
 	}
 
-	// escape is always handled special
-	if ( key == Key(K_ESCAPE) && down )
+	return false;
+}
+
+// non-repeat key down
+// This must handle both (if applicable) Keyboard::Key interperations together in order to
+// properly allow the UI to decide to consume a key press, preventing it from activating
+// binds. Say the user selects "3" in a menu. The UI probably used char:3 but the bind
+// probably used hw:3. So it would just do both things if you processed the Key's separately.
+void CL_KeyDownEvent( const Keyboard::Key& key1, const Keyboard::Key& key2, unsigned time )
+{
+	using Keyboard::Key;
+
+	for ( Key key : {key1, key2} )
 	{
-		if ( !( cls.keyCatchers & KEYCATCH_UI ) )
+		if ( key.IsValid() && !keys[ key ].down )
 		{
-			if ( cls.state == connstate_t::CA_ACTIVE )
-			{
-				// Arnout: on request
-				if ( cls.keyCatchers & KEYCATCH_CONSOLE ) // get rid of the console
-				{
-					Con_ToggleConsole_f();
-				}
-				else
-				{
-					Cmd::BufferCommandText( "toggleMenu" );
-				}
-			}
-			return;
+			keys[ key ].down = true;
+			anykeydown++; // update BUTTON_ANY status
 		}
-
-		cgvm.CGameKeyEvent(key, down);
-		return;
 	}
 
-	// Don't do anything if libRocket menus have focus
-	// Everything is handled by libRocket. Also we don't want
-	// to run any binds (since they won't be found).
-	if ( cls.keyCatchers & KEYCATCH_UI && !( cls.keyCatchers & KEYCATCH_CONSOLE ) )
+	if ( DetectBuiltInShortcut( key1 ) || DetectBuiltInShortcut( key2 ) )
 	{
-		cgvm.CGameKeyEvent(key, down);
 		return;
 	}
 
-	//
-	// key up events only perform actions if the game key binding is
-	// a button command (leading + sign).  These will be processed even in
-	// console mode and menu mode, to keep the character from continuing
-	// an action started before a mode switch.
-	//
-	if ( !down )
-	{
-		// Handle any +commands which were invoked on the corresponding key-down
-		Cmd::BufferCommandText(Str::Format("keyup %d %s %u", plusCommand.check, Cmd::Escape(KeyToString(key)), time));
-
-		return;
-	}
-
-	// distribute the key down event to the appropriate handler
+	// When the console is open, binds do not act and the UI can't receive input.
 	if ( cls.keyCatchers & KEYCATCH_CONSOLE )
 	{
-		if ( !onlybinds )
-		{
-			Console_Key( key );
-		}
+		Console_Key( key1 );
+		Console_Key( key2 );
+		return;
 	}
-	else if ( cls.state == connstate_t::CA_DISCONNECTED )
+
+	bool uiConsumed = cls.keyCatchers & KEYCATCH_UI_KEY;
+	uiConsumed |= cgvm.CGameKeyDownEvent( key1, false );
+	uiConsumed |= cgvm.CGameKeyDownEvent( key2, false ); // non-short-circuiting!
+
+	// do binds only if KEYCATCH_UI_KEY is off and also the UI didn't indicate that it
+	// consumed the key
+	if ( uiConsumed )
 	{
-		if ( !onlybinds )
-		{
-			Console_Key( key );
-		}
+		return;
 	}
-	else
+
+	if ( cls.state == connstate_t::CA_DISCONNECTED )
+	{
+		return;
+	}
+
+	for ( Key key : {key1, key2} )
 	{
 		// send the bound action
 		auto kb = Keyboard::GetBinding( key, Keyboard::GetTeam(), true );
 
 		if ( kb )
 		{
-			// down-only command
-			Cmd::BufferCommandTextAfter(Str::Format("setkeydata %d %s %u\n%s", plusCommand.check, Cmd::Escape(KeyToString(key)), time, kb.value()), true);
-			Cmd::BufferCommandTextAfter(va("setkeydata %d", plusCommand.check), true);
+			// The first line of this command sets a global variable (plusCommand) saying what key
+			// was pressed and when, needed for button commands (e.g. +forward). Second line is the
+			// bound command.
+			Cmd::BufferCommandText(Str::Format("setkeydata %d %s %u\n%s", plusCommand.check, Cmd::Escape(KeyToString(key)), time, kb.value()), true);
+
+			// Afterwards, clear the aforementioned global variable.
+			Cmd::BufferCommandText("setkeydata");
 		}
+	}
+}
+
+// key down event from pressing and holding a key
+// Only does a subset of the things that an initial key press does.
+void CL_KeyRepeatEvent( const Keyboard::Key& key )
+{
+	if ( !key.IsValid() )
+	{
+		return;
+	}
+
+	// skip built-in shortcuts which mostly do something drastic like changing to another window
+	// also don't set keys[ key ].down (if Key_ClearStates() was called, keep it clear until pressed anew)
+
+	if ( cls.keyCatchers & KEYCATCH_CONSOLE )
+	{
+		// stuff like PageDown can repeat
+		Console_Key( key );
+	}
+	else
+	{
+		cgvm.CGameKeyDownEvent( key, true );
+	}
+
+	// repeat events don't trigger binds
+	// sad... I can't bind "buy gren; itemact gren" and hold down a key
+	// to spam nades like I did in Tremulous
+}
+
+void CL_KeyUpEvent( const Keyboard::Key& key, unsigned time )
+{
+	if ( !key.IsValid() )
+	{
+		return;
+	}
+
+	if ( keys[ key ].down )
+	{
+		keys[ key ].down = false;
+		anykeydown--; // update BUTTON_ANY status
+	}
+
+	// key up events only perform actions if the game key binding is
+	// a button command (leading + sign).
+	//
+	// Handle any +commands which were invoked on the corresponding key-down
+	Cmd::BufferCommandText(
+		Str::Format( "keyup %d %s %u", plusCommand.check, Cmd::Escape( KeyToString( key ) ), time ) );
+
+	// Send key up event to UI unless console is active
+	if ( !( cls.keyCatchers & KEYCATCH_CONSOLE ) )
+	{
+		cgvm.CGameKeyUpEvent( key );
 	}
 }
 
@@ -693,27 +704,25 @@ void CL_CharEvent( int c )
 /*
 ===================
 Key_ClearStates
+
+Sets all keys to the "not pressed" state. The purpose is to stop all key binds from executing.
+
+Does not send key up events to the UI.
 ===================
 */
 void Key_ClearStates()
 {
 	anykeydown = 0;
 
-	int oldKeyCatcher = Key_GetCatcher();
-	Key_SetCatcher( 0 );
-
 	for ( auto& kv: keys )
 	{
 		if ( kv.second.down )
 		{
-			CL_KeyEvent(kv.first, false, 0 );
+			kv.second.down = false;
+			Cmd::BufferCommandText( Str::Format(
+				"keyup %d %s 0", plusCommand.check, Cmd::Escape( KeyToString( kv.first ) ) ) );
 		}
-
-		kv.second.down = false;
-		kv.second.repeats = 0;
 	}
 
 	plusCommand.check = rand();
-
-	Key_SetCatcher( oldKeyCatcher );
 }

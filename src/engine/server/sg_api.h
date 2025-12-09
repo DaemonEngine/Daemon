@@ -25,8 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "engine/qcommon/q_shared.h"
 
-#define GAME_API_VERSION          3
-
 #define SVF_NOCLIENT              0x00000001
 #define SVF_CLIENTMASK            0x00000002
 #define SVF_VISDUMMY              0x00000004
@@ -65,8 +63,11 @@ struct entityShared_t
 	bool bmodel; // if false, assume an explicit mins/maxs bounding box
 	// only set by trap_SetBrushModel
 	vec3_t   mins, maxs;
-	int      contents; // CONTENTS_TRIGGER, CONTENTS_SOLID, CONTENTS_BODY, etc.
+
+	// CONTENTS_TRIGGER, CONTENTS_SOLID, CONTENTS_BODY, etc.
+	// used when tracing other entities against this one
 	// a non-solid entity should have this set to 0
+	int contents;
 
 	vec3_t absmin, absmax; // derived from mins/maxs and origin + rotation
 
@@ -88,8 +89,6 @@ struct entityShared_t
 	//   ( ent->s.number == passEntityNum || ent->r.ownerNum == passEntityNum ||
 	//     ( ent->r.ownerNum != ENTITYNUM_NONE && ent->r.ownerNum == entities[passEntityNum].r.ownerNum ) ) )
 	int      ownerNum;
-
-	bool snapshotCallback;
 
 	int numClusters; // if -1, use headnode instead
 	int clusternums[ MAX_ENT_CLUSTERS ];

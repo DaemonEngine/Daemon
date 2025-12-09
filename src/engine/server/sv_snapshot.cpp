@@ -57,6 +57,10 @@ A server packet will look something like:
 =============================================================================
 */
 
+static Cvar::Cvar<bool> sv_novis("sv_novis", "skip PVS check when transmitting entities", 0, false);
+
+static Log::Logger bandwidthLog("server.bandwidth");
+
 /*
 =============
 SV_EmitPacketEntities
@@ -235,9 +239,9 @@ static void SV_WriteSnapshotToClient( client_t *client, msg_t *msg )
 	SV_EmitPacketEntities( oldframe, frame, msg );
 
 	// padding for rate debugging
-	if ( sv_padPackets->integer )
+	if ( sv_padPackets.Get() )
 	{
-		for ( i = 0; i < sv_padPackets->integer; i++ )
+		for ( i = 0; i < sv_padPackets.Get(); i++ )
 		{
 			MSG_WriteByte( msg, svc_nop );
 		}
@@ -313,7 +317,7 @@ static int SV_QsortEntityNumbers( const void *a, const void *b )
 SV_AddEntToSnapshot
 ===============
 */
-static void SV_AddEntToSnapshot( sharedEntity_t *clientEnt, svEntity_t *svEnt, sharedEntity_t *gEnt,
+static void SV_AddEntToSnapshot( svEntity_t *svEnt, sharedEntity_t *gEnt,
                                  snapshotEntityNumbers_t *eNums )
 {
 	// if we have already added this entity to this snapshot, don't add again
@@ -328,14 +332,6 @@ static void SV_AddEntToSnapshot( sharedEntity_t *clientEnt, svEntity_t *svEnt, s
 	if ( eNums->numSnapshotEntities == MAX_SNAPSHOT_ENTITIES )
 	{
 		return;
-	}
-
-	if ( gEnt->r.snapshotCallback )
-	{
-		if ( !gvm.GameSnapshotCallback( gEnt->s.number, clientEnt->s.number ) )
-		{
-			return;
-		}
 	}
 
 	eNums->snapshotEntities[ eNums->numSnapshotEntities ] = gEnt->s.number;
@@ -455,10 +451,16 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 			continue;
 		}
 
+		if ( sv_novis.Get() )
+		{
+			SV_AddEntToSnapshot( svEnt, ent, eNums );
+			continue;
+		}
+
 		// broadcast entities are always sent
 		if ( ent->r.svFlags & SVF_BROADCAST )
 		{
-			SV_AddEntToSnapshot( playerEnt, svEnt, ent, eNums );
+			SV_AddEntToSnapshot( svEnt, ent, eNums );
 			continue;
 		}
 
@@ -466,7 +468,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 		if ( (ent->r.svFlags & SVF_CLIENTS_IN_RANGE) &&
 		     Distance( ent->s.origin, playerEnt->s.origin ) <= ent->r.clientRadius )
 		{
-			SV_AddEntToSnapshot( playerEnt, svEnt, ent, eNums );
+			SV_AddEntToSnapshot( svEnt, ent, eNums );
 			continue;
 		}
 
@@ -477,7 +479,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 		{
 			if ( bitvector[ ent->r.originCluster >> 3 ] & ( 1 << ( ent->r.originCluster & 7 ) ) )
 			{
-				SV_AddEntToSnapshot( playerEnt, svEnt, ent, eNums );
+				SV_AddEntToSnapshot( svEnt, ent, eNums );
 			}
 
 			continue;
@@ -557,7 +559,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 					continue;
 				}
 
-				SV_AddEntToSnapshot( playerEnt, master, ment, eNums );
+				SV_AddEntToSnapshot( master, ment, eNums );
 			}
 
 			continue; // master needs to be added, but not this dummy ent
@@ -611,7 +613,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 
 					if ( ment->s.otherEntityNum == ent->s.number )
 					{
-						SV_AddEntToSnapshot( playerEnt, master, ment, eNums );
+						SV_AddEntToSnapshot( master, ment, eNums );
 					}
 				}
 
@@ -620,7 +622,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 		}
 
 		// add it
-		SV_AddEntToSnapshot( playerEnt, svEnt, ent, eNums );
+		SV_AddEntToSnapshot( svEnt, ent, eNums );
 
 		// if it's a portal entity, add everything visible from its camera position
 		if ( ent->r.svFlags & SVF_PORTAL )
@@ -780,9 +782,10 @@ static int SV_RateMsec( client_t *client, int messageSize )
 	}
 
 	// low watermark for sv_maxRate, never 0 < sv_maxRate < 1000 (0 is no limitation)
-	if ( sv_maxRate->integer && sv_maxRate->integer < 1000 )
+	if ( sv_maxRate.Get() > 0 && sv_maxRate.Get() < NETWORK_MIN_RATE )
 	{
-		Cvar_Set( "sv_MaxRate", "1000" );
+		Log::Warn( "sv_maxRate too low, increasing to %d", NETWORK_MIN_RATE );
+		sv_maxRate.Set( NETWORK_MIN_RATE );
 	}
 
 	rate = client->rate;
@@ -790,19 +793,16 @@ static int SV_RateMsec( client_t *client, int messageSize )
 	// work on the appropriate max rate (client or download)
 	if ( !*client->downloadName )
 	{
-		maxRate = sv_maxRate->integer;
+		maxRate = sv_maxRate.Get();
 	}
 	else
 	{
-		maxRate = sv_dl_maxRate->integer;
+		maxRate = sv_dl_maxRate.Get();
 	}
 
-	if ( maxRate )
+	if ( maxRate > 0 )
 	{
-		if ( maxRate < rate )
-		{
-			rate = maxRate;
-		}
+		rate = std::min( rate, maxRate );
 	}
 
 	rateMsec = ( messageSize + HEADER_RATE_BYTES ) * 1000 / rate;
@@ -835,7 +835,7 @@ void SV_SendMessageToClient( msg_t *msg, client_t *client )
 	// TTimo - show_bug.cgi?id=491
 	// added sv_lanForceRate check
 	if ( client->netchan.remoteAddress.type == netadrtype_t::NA_LOOPBACK ||
-	     ( sv_lanForceRate->integer && Sys_IsLANAddress( client->netchan.remoteAddress ) ) )
+	     ( sv_lanForceRate.Get() && Sys_IsLANAddress( client->netchan.remoteAddress ) ) )
 	{
 		client->nextSnapshotTime = svs.time - 1;
 		return;
@@ -907,7 +907,7 @@ void SV_SendClientIdle( client_t *client )
 	// check for overflow
 	if ( msg.overflowed )
 	{
-		Log::Warn( "msg overflowed for %s\n", client->name );
+		Log::Warn( "msg overflowed for %s", client->name );
 		MSG_Clear( &msg );
 
 		SV_DropClient( client, "Msg overflowed" );
@@ -995,7 +995,6 @@ SV_SendClientMessages
 
 void SV_SendClientMessages()
 {
-	int      i;
 	client_t *c;
 	int      numclients = 0; // NERVE - SMF - net debugging
 
@@ -1006,7 +1005,7 @@ void SV_SendClientMessages()
 	SV_UpdateConfigStrings();
 
 	// send a message to each connected client
-	for ( i = 0; i < sv_maxclients->integer; i++ )
+	for ( int i = 0; i < sv_maxClients.Get(); i++ )
 	{
 		c = &svs.clients[ i ];
 
@@ -1045,11 +1044,15 @@ void SV_SendClientMessages()
 	}
 
 	// NERVE - SMF - net debugging
-	if ( sv_showAverageBPS->integer && numclients > 0 )
-	{
+	bandwidthLog.DoDebugCode( [numclients] {
+		if ( numclients <= 0 )
+		{
+			return;
+		}
+
 		float ave = 0, uave = 0;
 
-		for ( i = 0; i < MAX_BPS_WINDOW - 1; i++ )
+		for ( int i = 0; i < MAX_BPS_WINDOW - 1; i++ )
 		{
 			sv.bpsWindow[ i ] = sv.bpsWindow[ i + 1 ];
 			ave += sv.bpsWindow[ i ];
@@ -1089,11 +1092,11 @@ void SV_SendClientMessages()
 			sv.ucompAve += comp_ratio;
 			sv.ucompNum++;
 
-			Log::Debug( "bpspc(%2.0f) bps(%2.0f) pk(%i) ubps(%2.0f) upk(%i) cr(%2.2f) acr(%2.2f)",
+			bandwidthLog.Debug( "bpspc(%2.0f) bps(%2.0f) pk(%i) ubps(%2.0f) upk(%i) cr(%2.2f) acr(%2.2f)",
 			             ave / ( float ) numclients, ave, sv.bpsMaxBytes, uave, sv.ubpsMaxBytes, comp_ratio,
 			             sv.ucompAve / sv.ucompNum );
 		}
-	}
+	});
 
 	// -NERVE - SMF
 }

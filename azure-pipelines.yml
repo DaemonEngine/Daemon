@@ -1,39 +1,135 @@
 # Documentation: https://wiki.unvanquished.net/wiki/Continuous_integration
 
+trigger:
+  branches:
+    include:
+      - master
+      - 'for-*.*.*/sync' # Next-release branch
+
+pr:
+  branches:
+    include:
+      - '*'
+  paths:
+    include:
+      - azure-pipelines.yml
+      # The rest of this list should stay in sync with .appveyor.yml
+      - src/
+      - libs/
+      - cmake/
+      - CMakeLists.txt
+      - '*.cmake'
+      - .gitmodules
+
 jobs:
   - job: Mac
     pool:
-      vmImage: 'macOS-11'
+      vmImage: 'macOS-15'
     steps:
     - bash: |
         set -e
-        git submodule update --init --recursive
+        echo "Variables: PR_TARGET_BRANCH=${PR_TARGET_BRANCH} PR_SOURCE_REF=${PR_SOURCE_REF} BUILD_SOURCE_BRANCH=${BUILD_SOURCE_BRANCH}"
+        curl -fsSL https://gitlab.com/illwieckz/git-checkout-modules/raw/master/git-checkout-modules -o ~/git-checkout-modules
+        if ! [[ "$PR_SOURCE_REF" == '$('* ]]; then  # It is a pull request
+            SOURCE_BRANCH=$(sed -e 's!^refs/heads/users/[^/]*/!!' <<< "$PR_SOURCE_REF")
+            SYNC_ARGS=("--sub-ref=${PR_TARGET_BRANCH}:has=/sync" "--sub-ref=${SOURCE_BRANCH}:has=/sync")
+        elif [[ "$BUILD_SOURCE_BRANCH" == refs/heads/* ]]; then  # It is a branch build
+            BRANCH=$(sed -e 's!^refs/heads/!!' <<< "$BUILD_SOURCE_BRANCH")
+            SYNC_ARGS=("--sub-ref=${BRANCH}:has=/sync")
+        fi
+        echo "${#SYNC_ARGS[@]} branch-name-based checkout arg(s): ${SYNC_ARGS[@]}"
+        bash ~/git-checkout-modules --update ${SYNC_ARGS[@]} --print
+      env:
+        # For example: "master" (on pull requests only)
+        PR_TARGET_BRANCH: $(System.PullRequest.TargetBranch)
+        # For example: "0.52.0/sync" (pull request from within repository)
+        # For example: "refs/heads/users/raisa/new-feature" (pull request from other user)
+        # For example: "$(System.PullRequest.TargetBranch)" (when it's not a PR-triggered build)
+        PR_SOURCE_REF: $(System.PullRequest.SourceBranch)
+        # For example: "refs/heads/master" for a build of the 'master' branch
+        # Other formats exist for builds on pull requests or tags
+        BUILD_SOURCE_BRANCH: $(Build.SourceBranch)
+      displayName: 'Check out submodules'
+    - bash: |
+        set -e
+        set -x
         cmake --version
-        cmake -Wdev -Wdeprecated -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DUSE_DEBUG_OPTIMIZE=0 -DCMAKE_BUILD_TYPE=Debug -H. -Bbuild
+        export CFLAGS='-Wno-c++14-extensions'
+        export CXXFLAGS='-Wno-c++14-extensions'
+        cmake -Wdev -Wdeprecated -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DCMAKE_BUILD_TYPE=Release -DBUILD_DUMMY_APP=1 -DBUILD_DUMMY_GAMELOGIC=1 -DBUILD_TESTS=1 -H. -Bbuild
         cmake --build build -- -j`sysctl -n hw.logicalcpu`
       displayName: 'Build'
+    - bash: |
+        set -e
+        build/test-ttyclient -pakpath pkg -set fs_basepak daemon -set vm.cgame.type 3
+      displayName: 'Test'
 
   - job: Linux
     pool:
-      vmImage: 'ubuntu-18.04'
+      vmImage: 'ubuntu-24.04'
     strategy:
       matrix:
         GCC:
+          BUILD_TYPE: Release
           C_COMPILER: gcc
           CXX_COMPILER: g++
+          EXTRA_PACKAGES:
+          EXTRA_INSTALLS:
+          TOOLCHAIN_FILE:
         Clang:
+          BUILD_TYPE: Release
           C_COMPILER: clang
           CXX_COMPILER: clang++
+          EXTRA_PACKAGES:
+          EXTRA_INSTALLS:
+          TOOLCHAIN_FILE:
+        Mingw:
+          BUILD_TYPE: Debug
+          C_COMPILER: x86_64-w64-mingw32-gcc
+          CXX_COMPILER: x86_64-w64-mingw32-g++
+          EXTRA_PACKAGES: gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
+          EXTRA_INSTALLS: sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix ; sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+          TOOLCHAIN_FILE: cmake/cross-toolchain-mingw64.cmake
+
     steps:
     - bash: |
         set -e
+        echo "Variables: PR_TARGET_BRANCH=${PR_TARGET_BRANCH} PR_SOURCE_REF=${PR_SOURCE_REF} BUILD_SOURCE_BRANCH=${BUILD_SOURCE_BRANCH}"
+        curl -fsSL https://gitlab.com/illwieckz/git-checkout-modules/raw/master/git-checkout-modules -o ~/git-checkout-modules
+        if ! [[ "$PR_SOURCE_REF" == '$('* ]]; then  # It is a pull request
+            SOURCE_BRANCH=$(sed -e 's!^refs/heads/users/[^/]*/!!' <<< "$PR_SOURCE_REF")
+            SYNC_ARGS=("--sub-ref=${PR_TARGET_BRANCH}:has=/sync" "--sub-ref=${SOURCE_BRANCH}:has=/sync")
+        elif [[ "$BUILD_SOURCE_BRANCH" == refs/heads/* ]]; then  # It is a branch build
+            BRANCH=$(sed -e 's!^refs/heads/!!' <<< "$BUILD_SOURCE_BRANCH")
+            SYNC_ARGS=("--sub-ref=${BRANCH}:has=/sync")
+        fi
+        echo "${#SYNC_ARGS[@]} branch-name-based checkout arg(s): ${SYNC_ARGS[@]}"
+        bash ~/git-checkout-modules --update ${SYNC_ARGS[@]} --print
+      env:
+        # For example: "master" (on pull requests only)
+        PR_TARGET_BRANCH: $(System.PullRequest.TargetBranch)
+        # For example: "0.52.0/sync" (pull request from within repository)
+        # For example: "refs/heads/users/raisa/new-feature" (pull request from other user)
+        # For example: "$(System.PullRequest.TargetBranch)" (when it's not a PR-triggered build)
+        PR_SOURCE_REF: $(System.PullRequest.SourceBranch)
+        # For example: "refs/heads/master" for a build of the 'master' branch
+        # Other formats exist for builds on pull requests or tags
+        BUILD_SOURCE_BRANCH: $(Build.SourceBranch)
+      displayName: 'Check out submodules'
+    - bash: |
+        set -e
         sudo apt-get update
-        sudo apt-get -y -q --no-install-recommends install zlib1g-dev libncursesw5-dev libgeoip-dev nettle-dev libgmp-dev libcurl4-gnutls-dev libsdl2-dev libogg-dev libvorbis-dev libopusfile-dev libwebp-dev libjpeg8-dev libpng-dev libfreetype6-dev libglew-dev libopenal-dev liblua5.2-dev ninja-build
+        sudo apt-get -y -q --no-install-recommends install zlib1g-dev libncursesw5-dev nettle-dev libgmp-dev libcurl4-gnutls-dev libogg-dev libvorbis-dev libopusfile-dev libwebp-dev libjpeg8-dev libpng-dev libfreetype6-dev libglew-dev libopenal-dev liblua5.2-dev ninja-build $(EXTRA_PACKAGES)
+        $(EXTRA_INSTALLS)
       displayName: 'Install deps'
     - bash: |
         set -e
-        git submodule update --init --recursive
         cmake --version
-        cmake -G "Ninja" -Wdev -Wdeprecated -DCMAKE_C_COMPILER=$(C_COMPILER) -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DUSE_DEBUG_OPTIMIZE=0 -DCMAKE_BUILD_TYPE=Debug -H. -Bbuild
+        cmake -G "Ninja" -Wdev -Wdeprecated -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN_FILE) -DCMAKE_C_COMPILER=$(C_COMPILER) -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DBUILD_DUMMY_APP=1 -DBUILD_DUMMY_GAMELOGIC=1 -DBUILD_TESTS=1 -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -H. -Bbuild
         cmake --build build -- -j`nproc`
       displayName: 'Build'
+    - bash: |
+        set -e
+        SDL_VIDEODRIVER=offscreen ALSOFT_DRIVERS=null build/test-client -pakpath pkg -set fs_basepak daemon -set vm.cgame.type 3
+      condition: "and(succeeded(), eq(variables.TOOLCHAIN_FILE, ''))"
+      displayName: 'Test'

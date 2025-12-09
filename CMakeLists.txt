@@ -24,17 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required (VERSION 3.12)
-
-# Choose Python versions by location instead of getting whatever is in PYTHON_EXECUTABLE
-# Can be removed once we require CMake 3.15
-if (POLICY CMP0094)
-    cmake_policy(SET CMP0094 NEW)
-endif()
-
-if (POLICY CMP0072)
-    cmake_policy(SET CMP0072 NEW)
-endif()
+cmake_minimum_required(VERSION 3.18.4)
 
 if(NOT DAEMON_DIR)
     set(DAEMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -67,7 +57,16 @@ if (NOT CMAKE_OSX_ARCHITECTURES)
     set(CMAKE_OSX_ARCHITECTURES x86_64)
 endif()
 
-include(DaemonPlatform)
+# FIXME: this reports an unused architecture if only vms are built.
+# We may not be able to avoid this for now without doing a huge rewrite
+# of this file.
+# FIXME: this reports an unused compiler if only vms are built.
+# We cannot avoid this for now without doing a huge rewrite of this files
+# since we also set useless flags using informations provided by this.
+if (NOT (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP))
+    message(NOTICE "You can safely ignore the following reported architecture, it is not used.")
+    message(NOTICE "You can safely ignore the following reported compilers, they are unused.")
+endif()
 
 if (Daemon_OUT)
     set(CMAKE_CURRENT_BINARY_DIR ${Daemon_OUT})
@@ -76,6 +75,9 @@ if (Daemon_OUT)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Daemon_OUT})
 endif()
 
+include(DaemonSourceGenerator)
+include(DaemonPlatform)
+
 ################################################################################
 # Configuration options
 ################################################################################
@@ -83,106 +85,54 @@ endif()
 if(NOT DAEMON_EXTERNAL_APP)
     option(BUILD_CLIENT "Engine client executable, required to play" ON)
     option(BUILD_SERVER "Engine server executable, required to host servers" ON)
-
-    ## About the different ways to host/play games:
-    ## Native DLL: no sandboxing, no cleaning up but debugger support. Use for dev.
-    ## NaCl exe: sandboxing, no leaks, slightly slower, hard to debug. Use for regular players.
-    ## Native exe: no sandboxing, no leaks, hard to debug. Might be used by server owners for perf.
-    ## see VirtualMachine.h for code
-
-    # can be loaded by daemon with vm.[sc]game.type 3
-    option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for debugging changes locally." ON)
-
-    # can be loaded by daemon with vm.[sc]game.type 2
-    option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
-
-    # The NaCl SDK only runs on amd64 or i686.
-    if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
-    AND (ARCH STREQUAL "amd64" OR ARCH STREQUAL "i686"))
-        # can be loaded by daemon with vm.[sc]game.type 0 or 1
-        option(BUILD_GAME_NACL "Build the NaCl \"pexe\" and \"nexe\" gamelogic modules for enabled architecture targets, required to host mods." OFF)
-
-        set(NACL_ALL_TARGETS "amd64;i686;armhf")
-        set(BUILD_GAME_NACL_TARGETS "all" CACHE STRING "Enabled NaCl \"nexe\" architecture targets, values: ${NACL_ALL_TARGETS}, all, native, none.")
-        mark_as_advanced(BUILD_GAME_NACL_TARGETS)
-
-        if (BUILD_GAME_NACL_TARGETS STREQUAL "all")
-            set(NACL_TARGETS "${NACL_ALL_TARGETS}")
-        elseif (BUILD_GAME_NACL_TARGETS STREQUAL "native")
-            set(NACL_TARGETS "${ARCH}")
-        elseif (BUILD_GAME_NACL_TARGETS STREQUAL "none")
-            set(NACL_TARGETS "")
-        else()
-            set(NACL_TARGETS "${BUILD_GAME_NACL_TARGETS}")
-        endif()
-
-        foreach(NACL_TARGET ${NACL_TARGETS})
-            set(IS_NACL_VALID_TARGET OFF)
-            foreach(NACL_VALID_TARGET ${NACL_ALL_TARGETS})
-                if(NACL_TARGET STREQUAL NACL_VALID_TARGET)
-                    set(IS_NACL_VALID_TARGET ON)
-                endif()
-            endforeach()
-
-            if (NOT IS_NACL_VALID_TARGET)
-                message(FATAL_ERROR "Invalid NaCl target ${NACL_TARGET}, must be one of ${NACL_ALL_TARGETS}")
-            endif()
-        endforeach()
-    else()
-        set(BUILD_GAME_NACL OFF)
-        set(NACL_TARGETS "")
-    endif()
-	
-    set(NACL_TARGETS "${NACL_TARGETS}" PARENT_SCOPE)
-
     option(BUILD_TTY_CLIENT "Engine client with no graphical display" ON)
     option(BUILD_DUMMY_APP "Stripped-down engine executable, mostly used to ease incremental porting and debugging" OFF)
     mark_as_advanced(BUILD_DUMMY_APP)
 
     set(NACL_RUNTIME_PATH "" CACHE STRING "Directory containing the NaCl binaries")
 
-    # Not supported on mac because the included version is too old
-    if(APPLE)
-        set(USE_CURSES OFF)
-    elseif(WIN32)
+    if (WIN32)
+        # The alternative code is based on non-curses unix terminal functions.
         set(USE_CURSES ON)
     else()
+        if (NOT APPLE)
+            # Not supported on macOS because the included version is too old.
+            option(USE_CURSES_NCURSES "Use ncurses instead of PDCursesMod" ON)
+        endif()
+
         option(USE_CURSES "Enable fancy colors in terminal's output" ON)
     endif()
-    cmake_dependent_option(USE_SMP "Compile with support for running the renderer in a separate thread" 1 BUILD_CLIENT 0)
+
+    if (BUILD_CLIENT OR BUILD_TTY_CLIENT)
+        option(USE_MUMBLE "Build Daemon with mumblelink sumpport" ON)
+    endif()
+
+    if (BUILD_CLIENT)
+        # option(USE_VULKAN "Use Vulkan rendering API instead of OpenGL." OFF)
+    endif()
+
+    option(USE_SMP "Compile with support for running the renderer in a separate thread" ON)
     option(USE_BREAKPAD "Generate Daemon crash dumps (which require Breakpad tools to read)" OFF)
 endif()
 
 option(BUILD_TESTS "Build unit test applications" OFF)
 
 option(USE_LTO "Use link-time optimization for release builds" OFF)
-cmake_dependent_option(USE_SLIM_LTO "Generate slim LTO objects, improves build times" 1 "USE_LTO AND \"${CMAKE_CXX_COMPILER_ID}\" STREQUAL GNU" 0)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL GNU)
+    option(USE_SLIM_LTO "Generate slim LTO objects, improves build times" OFF)
+endif()
 option(USE_HARDENING "Use stack protection and other hardening flags" OFF)
 option(USE_WERROR "Tell the compiler to make the build fail when warnings are present" OFF)
 option(USE_PEDANTIC "Tell the compiler to be pedantic" OFF)
 option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" ON)
-
-if (APPLE)
-    # Turn off by default because it is reportedly broken
-    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" OFF)
-elseif (CMAKE_GENERATOR EQUAL "Ninja")
-    # It isn't currently supported with Ninja yet:
-    #
-    # > Note that the IMPLICIT_DEPENDS option is currently supported only for
-    # > Makefile generators and will be ignored by other generators. Note that
-    # > the IMPLICIT_DEPENDS option is currently supported only for Makefile
-    # > generators and will be ignored by other generators.
-    # > -- https://cmake.org/cmake/help/latest/command/add_custom_command.html
-    #
-    # It would be better to be able to know if IMPLICIT_DEPENDS is supported
-    # by the current generator instead of comparing generator name.
-    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" OFF)
-else()
-    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" ON)
-endif()
+option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" ON)
 option(USE_ADDRESS_SANITIZER "Try to use the address sanitizer" OFF)
 option(BE_VERBOSE "Tell the compiler to report all warnings" OFF)
 option(USE_STATIC_LIBS "Tries to use static libs where possible. Only works for Linux" OFF)
+
+if (NOT DAEMON_PARENT_SCOPE_DIR)
+    option(BUILD_DUMMY_GAMELOGIC "Build dummy cgame" OFF)
+endif()
 
 # Game VM modules are built with a recursive invocation of CMake, by which all the configuration
 # options are lost, except ones we explicitly choose to pass.
@@ -192,22 +142,20 @@ set(DEFAULT_NACL_VM_INHERITED_OPTIONS
     BUILD_SGAME
     CMAKE_BUILD_TYPE
     DAEMON_CBSE_PYTHON_PATH
+    USE_ARCH_INTRINSICS
+    USE_COMPILER_CUSTOMIZATION
+    USE_COMPILER_INTRINSICS
+    USE_DEBUG_OPTIMIZE
+    USE_HARDENING
     USE_PEDANTIC
     USE_PRECOMPILED_HEADER
+    USE_RECOMMENDED_C_STANDARD
+    USE_RECOMMENDED_CXX_STANDARD
     USE_WERROR
 )
 set(NACL_VM_INHERITED_OPTIONS "${DEFAULT_NACL_VM_INHERITED_OPTIONS}" CACHE STRING
     "Semicolon-separated list of options for which NaCl game VMs should use the same value as the other binaries")
 mark_as_advanced(NACL_VM_INHERITED_OPTIONS)
-
-if (BE_VERBOSE)
-    set(WARNMODE "no-error=")
-else()
-    set(WARNMODE "no-")
-endif()
-if (DAEMON_PARENT_SCOPE_DIR)
-    set(WARNMODE ${WARNMODE} PARENT_SCOPE)
-endif()
 
 ################################################################################
 # Directories
@@ -242,20 +190,22 @@ else()
 endif()
 
 # Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 7)
+set(DEPS_VERSION 11)
 
-if (NOT NACL)
+option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
+
+macro(set_deps_dir)
+    set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/${DEPS_SYSTEM}-${DEPS_ARCH}-${DEPS_COMPILER}_${DEPS_VERSION})
+endmacro()
+
+set(DEFAULT_USE_EXTERNAL_DEPS_LIBS ON)
+
+if (USE_EXTERNAL_DEPS AND NOT NACL)
     set(EXTERNAL_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external_deps" CACHE STRING "Directory in which to store the downloaded dependencies.")
 
     set(DEPS_EXT ".tar.xz")
 
-    if (WIN32)
-        set(DEPS_SYSTEM windows)
-    elseif (APPLE)
-        set(DEPS_SYSTEM macos)
-    elseif (LINUX)
-        set(DEPS_SYSTEM linux)
-    endif()
+    set(DEPS_ARCH "${ARCH}")
 
     if (MSVC)
         set(DEPS_COMPILER msvc)
@@ -265,76 +215,108 @@ if (NOT NACL)
         set(DEPS_COMPILER default)
     endif()
 
-    set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/${DEPS_SYSTEM}-${ARCH}-${DEPS_COMPILER}_${DEPS_VERSION})
+    if (WIN32)
+        set(DEPS_SYSTEM windows)
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
+    elseif (APPLE)
+        set(DEPS_SYSTEM macos)
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64)
 
-	if (DAEMON_PARENT_SCOPE_DIR)
-		set(DEPS_DIR ${DEPS_DIR} PARENT_SCOPE)
-	endif()
+        if (ARCH STREQUAL arm64)
+            set(DEPS_ARCH amd64)
+
+            set_deps_dir()
+
+            if (NOT EXISTS ${DEPS_DIR})
+                set(DEFAULT_USE_EXTERNAL_DEPS_LIBS OFF)
+            endif()
+        endif()
+    elseif (LINUX)
+        set(DEPS_SYSTEM linux)
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686 arm64 armhf)
+    elseif (FREEBSD)
+        set(DEPS_SYSTEM freebsd)
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
+
+        set_deps_dir()
+
+        if (NOT EXISTS ${DEPS_DIR})
+            set(DEFAULT_USE_EXTERNAL_DEPS_LIBS OFF)
+            set(DEPS_SYSTEM linux)
+        endif()
+    endif()
+
+    set_deps_dir()
+
+    if (DEPS_SYSTEM AND DEPS_ARCH IN_LIST SUPPORTED_${DEPS_SYSTEM}_ARCH)
+        set(HAS_NACL ON)
+
+        if (DAEMON_PARENT_SCOPE_DIR)
+            set(DEPS_DIR ${DEPS_DIR} PARENT_SCOPE)
+        endif()
+    else()
+        message(WARNING "No prebuilt dependencies are available for this platform, Native Client is likely unsupported.")
+
+        if (NOT EXISTS ${DEPS_DIR})
+            unset(DEPS_DIR)
+        endif()
+    endif()
+endif()
+
+option(USE_EXTERNAL_DEPS_LIBS "Build and link against libraries from the EXTERNAL_DEPS_DIR" ${DEFAULT_USE_EXTERNAL_DEPS_LIBS})
+
+if (USE_EXTERNAL_DEPS AND NOT NACL)
+    if (DEPS_DIR)
+        message(STATUS "Using external deps dir: ${DEPS_DIR}")
+
+        if (USE_EXTERNAL_DEPS_LIBS)
+            message(STATUS "Building against libraries from external deps dir")
+        else()
+            message(STATUS "Not building against libraries from external deps dir")
+        endif()
+    else()
+        message(STATUS "Not using any external deps dir")
+    endif()
 endif()
 
 ################################################################################
 # Compile and link flags
 ################################################################################
 
+# FIXME: This sets unused flags for an unused compiler if only nacl vms
+# are built and we are not yet running the chainloaded build. We cannot
+# avoid this for now or we would have to do a large rewrite of that file.
+# FIXME: This defines the try_flag function that is used in
+# Unvanquished CMakeLists.txt even if the engine is not built,
+# meaning we have to detect useless engine compiler to set
+# useless engine flags when only building vms.
 include(DaemonFlags)
 
-# Warning options
+# FIXME: Once engine flags would be only set when building the engine
+# this would be likely unused by vms as they are built by DaemonGame.
+# Warning options (for Daemon only)
+# Note the different scopes used for warning options:
+# * set_c_cxx_flag(xxx) or try_c_cxx_flag(xxx) sets it for all code including dependencies
+# * try_flag(WARNINGS xxx) in DaemonFlags.cmake sets it for Daemon and Unvanquished but not deps
+# * try_flag(WARNINGS xxx) below sets it for Daemon only
+
 try_flag(WARNINGS           "-Wshadow=local")
 try_flag(WARNINGS           "-Wno-pragmas")
 try_flag(WARNINGS           "-Wno-unknown-pragmas")
+try_flag(WARNINGS           "-Wno-missing-field-initializers")
 try_flag(WARNINGS           "-W${WARNMODE}old-style-cast")
 try_flag(WARNINGS           "-Woverloaded-virtual")
 try_flag(WARNINGS           "-Wstrict-null-sentinel")
-try_flag(WARNINGS           "-Wno-error=sign-promo")
-try_flag(WARNINGS           "-Wno-error=extern-c-compat")
-try_flag(WARNINGS           "-Wno-error=stringop-overflow=")
-try_flag(WARNINGS           "-Wno-error=maybe-uninitialized")
-try_flag(WARNINGS           "-W${WARNMODE}missing-field-initializers")
 try_flag(WARNINGS           "-W${WARNMODE}sign-compare")
-try_flag(WARNINGS           "-Wno-error=switch")
-try_flag(WARNINGS           "-Wno-error=unused-but-set-parameter")
-try_flag(WARNINGS           "-Wno-error=unused-but-set-variable")
-try_flag(WARNINGS           "-Wno-error=unused-function")
-try_flag(WARNINGS           "-Wno-error=unused-parameter")
-try_flag(WARNINGS           "-Wno-error=unused-variable")
-try_flag(WARNINGS           "-Wno-error=format-truncation")
-try_flag(WARNINGS           "-Wno-error=deprecated-copy") # TODO: Fix these errors.
+try_flag(WARNINGS           "-Wno-nonnull")
 
-################################################################################
-# Git revision info
-################################################################################
-
-if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
-    find_package(Git)
-    if (GIT_FOUND)
-        execute_process(
-            COMMAND ${GIT_EXECUTABLE} describe --tags --long --match v* --dirty=+dirty
-            OUTPUT_VARIABLE GIT_DESCRIBE_REPORT
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        )
-        message(STATUS "git reported ${GIT_DESCRIBE_REPORT}")
-        # this may fail with annotated non-release tags
-        if (GIT_DESCRIBE_REPORT MATCHES "-0-g.......$")
-            set(GIT_DESCRIBE_REPORT)
-        endif()
-    endif()
-endif()
-
-if (GIT_DESCRIBE_REPORT)
-    set(DESIRED_REVISION_H_CONTENTS "#define REVISION \"${GIT_DESCRIBE_REPORT}\"\n")
-endif()
-
-if (EXISTS "${OBJ_DIR}/revision.h")
-    file(READ "${OBJ_DIR}/revision.h" ACTUAL_REVISION_H_CONTENTS)
-    if (NOT "${ACTUAL_REVISION_H_CONTENTS}" STREQUAL "${DESIRED_REVISION_H_CONTENTS}")
-        file(WRITE "${OBJ_DIR}/revision.h" "${DESIRED_REVISION_H_CONTENTS}")
-    endif()
-else()
-    file(WRITE "${OBJ_DIR}/revision.h" "${DESIRED_REVISION_H_CONTENTS}")
-endif()
-
-include_directories("${OBJ_DIR}")
+# MSVC /wd = warning disable
+try_flag(WARNINGS "/wd4127")  # conditional expression is constant
+try_flag(WARNINGS "/wd4324")  # 'XXX': structure was padded due to alignment specifier
+try_flag(WARNINGS "/wd4458")  # declaration of 'XXX' hides class member
+try_flag(WARNINGS "/wd4459")  # declaration of 'XXX' hides global declaration
+try_flag(WARNINGS "/wd4701")  # potentially uninitialized local variable 'XXX' used
+try_flag(WARNINGS "/wd26495") # Variable 'XXX' is uninitialized. Always initialize a member variable.
 
 ################################################################################
 # Group the sources by folder to have folder show in Visual Studio
@@ -361,86 +343,9 @@ endif()
 # Support for precompiled headers
 ################################################################################
 
-# MSVC requires that an extra file be added to a project
-if (USE_PRECOMPILED_HEADER AND MSVC)
-    file(WRITE ${OBJ_DIR}/PrecompiledHeader.cpp "")
-    set(PCH_FILE ${OBJ_DIR}/PrecompiledHeader.cpp)
-    if (DAEMON_PARENT_SCOPE_DIR)
-        set(PCH_FILE ${PCH_FILE} PARENT_SCOPE)
-    endif()
-endif()
-
 function(ADD_PRECOMPILED_HEADER Target)
-    if (NOT USE_PRECOMPILED_HEADER OR CMAKE_VERSION VERSION_LESS 2.8.10)
-        return()
-    endif()
-
-    # Get the common compile flags
-    set(Flags ${CMAKE_CXX_FLAGS} ${WARNINGS})
-    get_target_property(Type ${Target} TYPE)
-    if (Type STREQUAL MODULE_LIBRARY)
-        set(Flags ${Flags} ${CMAKE_SHARED_MODULE_CXX_FLAGS})
-    endif()
-    separate_arguments(Flags)
-
-    # Get the per-configuration compile flags
-    foreach(Config Debug Release RelWithDebInfo MinSizeRel)
-        string(TOUPPER ${Config} CONFIG)
-        set(ConfigFlags ${CMAKE_CXX_FLAGS_${CONFIG}})
-        separate_arguments(ConfigFlags)
-        foreach(Flag ${ConfigFlags})
-            set(Flags ${Flags} $<$<CONFIG:${Config}>:${Flag}>)
-        endforeach()
-    endforeach()
-
-    # Get preprocessor options for the target and directory (global)
-    get_directory_property(DirCompileDefs COMPILE_DEFINITIONS)
-    get_directory_property(DirIncludeDirs INCLUDE_DIRECTORIES)
-    get_target_property(TargetCompileDefs ${Target} COMPILE_DEFINITIONS)
-    get_target_property(TargetIncludeDirs ${Target} INCLUDE_DIRECTORIES)
-    set(Defs)
-    foreach(Def ${TargetCompileDefs})
-        set(Defs ${Defs} -D${Def})
-    endforeach()
-    foreach(Def ${DirCompileDefs})
-        set(Defs ${Defs} -D${Def})
-    endforeach()
-    foreach(Def ${DirIncludeDirs})
-        set(Defs ${Defs} -I${Def})
-    endforeach()
-    foreach(Def ${TargetIncludeDirs})
-        set(Defs ${Defs} -I${Def})
-    endforeach()
-
-    # Specify minimum OSX version
-    if (APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET)
-        set(Flags ${Flags} -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
-    endif()
-
-    set(Header ${COMMON_DIR}/Common.h)
-
-    # Compiler-specific PCH support
-    if (CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR NACL)
-        add_custom_command(OUTPUT "${OBJ_DIR}/${Target}.h.gch"
-            COMMAND ${PNACLPYTHON_PREFIX2} ${CMAKE_CXX_COMPILER} ${Defs} ${Flags} -x c++-header ${Header} -o "${OBJ_DIR}/${Target}.h.gch"
-            DEPENDS ${Header}
-            IMPLICIT_DEPENDS CXX ${Header}
-        )
-
-        add_custom_target(${Target}-pch DEPENDS "${OBJ_DIR}/${Target}.h.gch")
-        add_dependencies(${Target} ${Target}-pch)
-
-        # PNaCl clang doesn't support -include-pch properly
-        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT NACL)
-            set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include-pch;${OBJ_DIR}/${Target}.h.gch")
-        else()
-            set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include;${OBJ_DIR}/${Target}.h;-Winvalid-pch")
-        endif()
-    elseif (MSVC)
-        # /Fp sets the PCH path used by either of the /Yc and /Yu options.
-        # /Yc overrides /Yu.
-        set_source_files_properties(${PCH_FILE} PROPERTIES COMPILE_FLAGS "/Yc${Header}")
-        target_compile_options(${Target} PRIVATE "/Yu${Header}" "/Fp${OBJ_DIR}/${Target}_$<CONFIG>.pch" "/FI${Header}")
+    if (USE_PRECOMPILED_HEADER)
+        target_precompile_headers(${Target} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:\"${COMMON_DIR}/Common.h\">")
     endif()
 endfunction()
 
@@ -450,6 +355,9 @@ endfunction()
 
 include(srclibs.cmake)
 include(src.cmake)
+
+# tinyformat is a header-only library
+set(COMMONLIST ${COMMONLIST} ${TINYFORMATLIST})
 
 ################################################################################
 # Libraries
@@ -478,8 +386,8 @@ if (DEPS_DIR)
         if(OLD_VERSION)
             message(WARNING "You seem to be using a dependency from version ${OLD_VERSION}"
                             " of the external_deps package, but the latest version is"
-                            " ${DEPS_VERSION}. Please delete the build directory and"
-                            " reconfigure to upgrade to the latest dependencies. (Based on"
+                            " ${DEPS_VERSION}. Please delete the build directory (${CMAKE_BINARY_DIR})"
+                            " and reconfigure to upgrade to the latest dependencies. (Based on"
                             " ${cacheVariableName}=${cacheVariableValue})")
             break()
         endif()
@@ -489,22 +397,38 @@ if (DEPS_DIR)
     if (NOT EXISTS ${DEPS_DIR})
         file(MAKE_DIRECTORY ${EXTERNAL_DEPS_DIR})
         get_filename_component(BASENAME ${DEPS_DIR} NAME)
-        set(REMOTE "https://dl.unvanquished.net/deps/${BASENAME}${DEPS_EXT}")
-        message(STATUS "Downloading dependencies from '${REMOTE}'")
-        file(DOWNLOAD ${REMOTE} ${OBJ_DIR}/${BASENAME}${DEPS_EXT}
-            SHOW_PROGRESS
-            STATUS DOWNLOAD_RESULT
-            LOG DOWNLOAD_LOG
-        )
-        list(GET DOWNLOAD_RESULT 0 DOWNLOAD_STATUS)
-        list(GET DOWNLOAD_RESULT 1 DOWNLOAD_STRING)
+		set(DEPS_FILENAME "${BASENAME}${DEPS_EXT}")
+
+		# Download test DEPS archive if DEPS archive isn't available yet.
+		# This makes possible to get the CI working before releasing the DEPS archive.
+		foreach(REMOTE_BASEURL https://dl.unvanquished.net/deps;https://dl.unvanquished.net/test/deps)
+			set(REMOTE "${REMOTE_BASEURL}/${DEPS_FILENAME}")
+			message(STATUS "Downloading dependencies from '${REMOTE}'")
+
+			file(DOWNLOAD "${REMOTE}" "${OBJ_DIR}/${DEPS_FILENAME}"
+				SHOW_PROGRESS
+				STATUS DOWNLOAD_RESULT
+				LOG DOWNLOAD_LOG
+			)
+
+			list(GET DOWNLOAD_RESULT 0 DOWNLOAD_STATUS)
+			list(GET DOWNLOAD_RESULT 1 DOWNLOAD_STRING)
+
+			if (DOWNLOAD_STATUS EQUAL 0)
+				break()
+			else ()
+				message(WARNING "Error downloading '${REMOTE}':
+					Status code: ${DOWNLOAD_STATUS}
+					Error string: ${DOWNLOAD_STRING}
+					Download log: ${DOWNLOAD_LOG}"
+				)
+			endif()
+		endforeach()
+
         if (NOT DOWNLOAD_STATUS EQUAL 0)
-            message(FATAL_ERROR "Error downloading '${REMOTE}':
-                Status code: ${DOWNLOAD_STATUS}
-                Error string: ${DOWNLOAD_STRING}
-                Download log: ${DOWNLOAD_LOG}"
-            )
+            message(FATAL_ERROR "Failed to download '${DEPS_FILENAME}'")
         endif()
+
         message(STATUS "Download completed successfully")
 
         # Extract the downloaded archive
@@ -518,23 +442,19 @@ if (DEPS_DIR)
         endif()
     endif()
 
-    # Add to paths
-    set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH})
-    set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH})
-    set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR} ${CMAKE_FRAMEWORK_PATH})
-    set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH})
-    if (DAEMON_PARENT_SCOPE_DIR)
-        # Also set parent scope so the top level CMakeLists can find precompiled deps
-        set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH} PARENT_SCOPE)
-        set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH} PARENT_SCOPE)
-        set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR} ${CMAKE_FRAMEWORK_PATH} PARENT_SCOPE)
-        set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH} PARENT_SCOPE)
-    endif()
-
-    # Force OpenAL Soft on Mac, otherwise the system framework will be selected
-    if (APPLE)
-        set(OPENAL_INCLUDE_DIR ${DEPS_DIR}/include/AL)
-        set(OPENAL_LIBRARY ${DEPS_DIR}/lib/libopenal.dylib)
+    if (USE_EXTERNAL_DEPS_LIBS)
+        # Add to paths
+        set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH})
+        set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH})
+        set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR}/lib ${CMAKE_FRAMEWORK_PATH})
+        set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH})
+        if (DAEMON_PARENT_SCOPE_DIR)
+            # Also set parent scope so the top level CMakeLists can find precompiled deps
+            set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH} PARENT_SCOPE)
+            set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH} PARENT_SCOPE)
+            set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR} ${CMAKE_FRAMEWORK_PATH} PARENT_SCOPE)
+            set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH} PARENT_SCOPE)
+        endif()
     endif()
 endif()
 
@@ -545,7 +465,7 @@ endif()
 include(DaemonNacl)
 if (NACL)
     add_library(srclibs-nacl-module EXCLUDE_FROM_ALL ${NACLLIST_MODULE})
-    set_target_properties(srclibs-nacl-module PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+    set_target_properties(srclibs-nacl-module PROPERTIES POSITION_INDEPENDENT_CODE ${GAME_PIE} FOLDER "libs")
     set(LIBS_BASE ${LIBS_BASE} srclibs-nacl-module)
 else()
     add_library(srclibs-nacl-native EXCLUDE_FROM_ALL ${NACLLIST_NATIVE})
@@ -563,7 +483,18 @@ if (WIN32)
 elseif (NACL)
     find_library(NACL_EXCEPTION nacl_exception)
     find_library(NACL_MINIDUMP minidump_generator)
-    set(LIBS_BASE ${LIBS_BASE} ${NACL_MINIDUMP} ${NACL_EXCEPTION} )
+
+    # HACK: To be removed when Saigo is repackaged properly.
+    if (NOT NACL_MINIDUMP
+    # NACL_TARGET is specific to Saigo, PNaCl target is le32 and doesn't set NACL_TARGET.
+    AND "${NACL_TARGET}" STREQUAL "i686"
+    # x86_64-nacl/lib32 is specific to Google build, other builds may provide i686-nacl/lib instead.
+    AND EXISTS "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32")
+        set(NACL_EXCEPTION "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32/libnacl_exception.a")
+        set(NACL_MINIDUMP "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32/libminidump_generator.a")
+    endif()
+
+    set(LIBS_BASE ${LIBS_BASE} ${NACL_MINIDUMP} ${NACL_EXCEPTION})
 else()
     find_library(LIBM m)
     if (LIBM)
@@ -596,31 +527,85 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     endif()
 endif()
 
-# Look for OpenGL here before we potentially switch to looking for static libs.
-if (BUILD_CLIENT)
-    find_package(OpenGL REQUIRED)
-    include_directories(${OPENGL_INCLUDE_DIR})
-    set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
+if (USE_VULKAN)
+    add_definitions("-DDAEMON_RENDERER_VULKAN=1")
+    add_definitions("-DVK_NO_PROTOTYPES=1")
+else()
+    add_definitions("-DDAEMON_RENDERER_OPENGL=1")
+
+    # Look for OpenGL here before we potentially switch to looking for static libs.
+    if (BUILD_CLIENT)
+        if (LINUX OR FREEBSD)
+            # Set LEGACY OpenGL ABI if the variable is not explictly set.
+            # The backward-incompatible GLVND OpenGL ABI should only be used
+            # by developers who have a good reason to require it.
+            # See: https://github.com/DaemonEngine/Daemon/issues/945#issuecomment-1835091256
+            set(OpenGL_GL_PREFERENCE "LEGACY" CACHE STRING "Linux OpenGL ABI (LEGACY or GLVND).")
+        endif()
+
+        find_package(OpenGL REQUIRED)
+        include_directories(${OPENGL_INCLUDE_DIR})
+        set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
+
+        # When OpenGL_GL_PREFERENCE is set but neither GLVND nor LEGACY are available,
+        # This code is unreachable since it already errored out at find_package time.
+        # This code only executes if OpenGL is supported, either because the GLVND ABI
+        # is available, either because the LEGACY ABI is available.
+        if (LINUX OR FREEBSD)
+            if (NOT OPENGL_gl_LIBRARY)
+                # When OpenGL_GL_PREFERENCE is supported and GLVND is available
+                # OPENGL_gl_LIBRARY is expected to be empty. So we can use the
+                # emptyness of OPENGL_gl_LIBRARY to detect that CMake supports
+                # OpenGL_GL_PREFERENCE and GLVND is used:
+                # > If the GLVND OpenGL and GLX libraries are available, prefer them.
+                # > This forces OPENGL_gl_LIBRARY to be empty.
+                # -- https://cmake.org/cmake/help/latest/module/FindOpenGL.html
+                set(OpenGL_selected_ABI "GLVND")
+                set(OpenGL_selected_LIBRARY "${OPENGL_opengl_LIBRARY}")
+            else()
+                # When OpenGL_GL_PREFERENCE is not supported or GLVND is not available
+                # the OPENGL_gl_LIBRARY is always set, so if it is set, it means the ABI
+                # is the LEGACY one.
+                set(OpenGL_selected_ABI "LEGACY")
+                set(OpenGL_selected_LIBRARY "${OPENGL_gl_LIBRARY}")
+            endif()
+
+            if (OpenGL_selected_ABI STREQUAL "GLVND")
+                message(WARNING "The GLVND OpenGL ABI is backward incompatible with legacy drivers.\nSee https://github.com/DaemonEngine/Daemon/issues/945")
+            endif()
+
+            if (OpenGL_GL_PREFERENCE STREQUAL "GLVND")
+                if (NOT OPENGL_opengl_LIBRARY)
+                    message(WARNING "GLVND OpenGL ABI not available but LEGACY is.\nTry OpenGL_GL_PREFERENCE=LEGACY")
+                    message(FATAL_ERROR "Could NOT find GLVND libOpenGL.so")
+                endif()
+            else()
+                if (NOT OPENGL_gl_LIBRARY)
+                    message(WARNING "LEGACY OpenGL ABI not available but GLVND is.\nTry OpenGL_GL_PREFERENCE=GLVND")
+                    message(FATAL_ERROR "Could NOT find LEGACY libGL.so")
+                endif()
+            endif()
+
+            message(STATUS "Found OpenGL ABI: ${OpenGL_selected_ABI}")
+            message(STATUS "Found OpenGL library: ${OpenGL_selected_LIBRARY}")
+
+            daemon_add_buildinfo("char*" "DAEMON_OPENGL_ABI_STRING" "\"${OpenGL_selected_ABI}\"")
+            add_definitions("-DDAEMON_OPENGL_ABI_${OpenGL_selected_ABI}")
+            add_definitions("-DDAEMON_OPENGL_ABI")
+        endif()
+    endif()
 endif()
 
 # Prefer static libs
 if ( USE_STATIC_LIBS )
-    if ( LINUX )
+    if (LINUX OR FREEBSD)
         set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
     endif()
 endif()
 
-
 # zlib
-if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP OR NACL)
-    if (NOT NACL)
-        find_package(ZLIB REQUIRED)
-    else()
-        add_library(srclibs-zlib EXCLUDE_FROM_ALL ${ZLIBLIST})
-        set_target_properties(srclibs-zlib PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-        set(ZLIB_INCLUDE_DIRS ${LIB_DIR}/zlib)
-        set(ZLIB_LIBRARIES srclibs-zlib)
-    endif()
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
+    find_package(ZLIB REQUIRED)
     set(LIBS_BASE ${LIBS_BASE} ${ZLIB_LIBRARIES})
     include_directories(${ZLIB_INCLUDE_DIRS})
 endif()
@@ -632,30 +617,32 @@ endif()
 # Curses, pdcurses on Windows and ncursesw on Unix
 if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     if (USE_CURSES)
-        if (WIN32)
-            set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} gdi32 comdlg32)
+        if (USE_CURSES_NCURSES)
+            # Tells FindCurses that ncurses is required.
+            set(CURSES_NEED_NCURSES 1)
 
-            add_definitions(-DPDC_WIDE -DPDC_FORCE_UTF8 -DUSE_CURSES)
-            add_library(srclibs-pdcurses EXCLUDE_FROM_ALL ${PDCURSESLIST})
-            if (MSVC)
-                target_compile_options(srclibs-pdcurses PRIVATE "/W2") # decrease warning level
-            endif()
-            set_target_properties(srclibs-pdcurses PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-            set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-pdcurses)
-            include_directories(${LIB_DIR}/pdcurses)
-        else ()
-            add_definitions(-DUSE_CURSES)
-            set(CURSES_NEED_NCURSES 1) # Tells FindCurses that ncurses is required
+            add_definitions(-DUSE_CURSES -DUSE_CURSES_NCURSES)
             find_package(CursesW REQUIRED)
             set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${CURSESW_LIBRARIES})
             include_directories(${CURSESW_INCLUDE_DIR})
+        else ()
+            if (WIN32)
+                set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} gdi32 comdlg32)
+            endif()
+
+            add_definitions(-DPDC_WIDE -DPDC_FORCE_UTF8 -DPDC_RGB -DUSE_CURSES)
+            add_library(srclibs-pdcurses EXCLUDE_FROM_ALL ${PDCURSESLIST})
+            set_target_properties(srclibs-pdcurses PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+            set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-pdcurses)
+            include_directories(${LIB_DIR}/pdcursesmod)
         endif()
     endif()
 endif()
 
 if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     if (NACL_RUNTIME_PATH)
-        add_definitions("-DNACL_RUNTIME_PATH=${NACL_RUNTIME_PATH}")
+        daemon_add_buildinfo("char*" "DAEMON_NACL_RUNTIME_PATH_STRING" "\"${NACL_RUNTIME_PATH}\"")
+        add_definitions("-DDAEMON_NACL_RUNTIME_PATH")
     endif()
 
     # FindLocale
@@ -680,25 +667,35 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT)
     include_directories(${CURL_INCLUDE_DIRS})
     set(LIBS_CLIENTBASE ${LIBS_CLIENTBASE} ${CURL_LIBRARIES})
 
-    # Mumble link
-    add_library(srclibs-mumblelink EXCLUDE_FROM_ALL ${MUMBLELINKLIST})
-    set_target_properties(srclibs-mumblelink PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-    set(LIBS_CLIENTBASE ${LIBS_CLIENTBASE} srclibs-mumblelink)
+    if (USE_MUMBLE)
+        # Mumble link
+        add_library(srclibs-mumblelink EXCLUDE_FROM_ALL ${MUMBLELINKLIST})
+        set_target_properties(srclibs-mumblelink PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+        set(LIBS_CLIENTBASE ${LIBS_CLIENTBASE} srclibs-mumblelink)
+    endif()
 endif()
 
 # SDL, required for all targets on win32 because of iconv and SDL_SetHint(SDL_TIMER_RESOLUTION, 0)
 if (BUILD_CLIENT OR WIN32)
-    find_package(SDL2 REQUIRED)
-
-    include_directories(${SDL2_INCLUDE_DIR})
-
-    if (WIN32)
-        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${SDL2_LIBRARY})
+    # Use our detected architecture instead of letting SDL do it again
+    # Note that sdlcpu.cmake is only included on a random subset of platforms
+    set(sdlvar_i686 SDL_CPU_X86)
+    set(sdlvar_amd64 SDL_CPU_X64)
+    set(sdlvar_armhf SDL_CPU_ARM32)
+    set(sdlvar_arm64 SDL_CPU_ARM64)
+    if (sdlvar_${ARCH})
+        set(${sdlvar_${ARCH}} 1)
     else()
-        set(LIBS_CLIENT ${LIBS_CLIENT} ${SDL2_LIBRARY})
+        message("Developer TODO: translate architecture ${ARCH} for SDL")
     endif()
 
-    mark_as_advanced(SDL2MAIN_LIBRARY SDL2_LIBRARY SDL2_INCLUDE_DIR)
+    find_package(SDL3 REQUIRED CONFIG)
+
+    if (WIN32)
+        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} SDL3::SDL3)
+    else()
+        set(LIBS_CLIENT ${LIBS_CLIENT} SDL3::SDL3)
+    endif()
 endif()
 
 # Breakpad
@@ -739,12 +736,33 @@ if (USE_BREAKPAD)
     elseif (LINUX)
         add_library(srclibs-breakpad EXCLUDE_FROM_ALL ${BREAKPAD_LIST})
         set_target_properties(srclibs-breakpad PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+        target_compile_definitions(srclibs-breakpad PUBLIC HAVE_GETCONTEXT=1)
         set(LIBS_ENGINE ${LIBS_ENGINE} srclibs-breakpad)
 
         add_executable(crash_server src/engine/crash_server/crash_server_linux.cpp)
         target_link_libraries(crash_server srclibs-breakpad)
     endif()
 endif()
+
+option(PREFER_EXTERNAL_LIBS "Tries to use system libs where possible." ON)
+
+macro(prefer_package LIB_NAME LIB_CMAKE)
+    if (NOT ${LIB_NAME}_FOUND)
+        if (PREFER_EXTERNAL_LIBS AND NOT NACL)
+            find_package(${LIB_NAME})
+
+            if (NOT ${LIB_NAME}_FOUND)
+                message(WARNING "PREFER_EXTERNAL_LIBS is enabled but external ${LIB_NAME} is not found, falling back to vendored ${LIB_NAME}.")
+            endif()
+        endif()
+
+        if (NOT ${LIB_NAME}_FOUND)
+            include(${LIB_CMAKE})
+
+            set(${LIB_NAME}_FOUND ON)
+        endif()
+    endif()
+endmacro()
 
 if (BUILD_CLIENT)
     find_package(Ogg REQUIRED)
@@ -771,26 +789,32 @@ if (BUILD_CLIENT)
     include_directories(${PNG_INCLUDE_DIRS})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${PNG_LIBRARIES})
 
-    find_package(Freetype REQUIRED)
+    prefer_package(Freetype ${DAEMON_DIR}/freetype.cmake)
     include_directories(${FREETYPE_INCLUDE_DIRS})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${FREETYPE_LIBRARIES})
 
     find_package(GLEW REQUIRED)
     include_directories(${GLEW_INCLUDE_DIR})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${GLEW_LIBRARIES})
+    add_definitions(-DGLEW_NO_GLU)
 
+    set(backup_find_framework ${CMAKE_FIND_FRAMEWORK})
+    set(CMAKE_FIND_FRAMEWORK NEVER) # Mac's system OpenAL doesn't have efx.h
     find_package(OpenAL REQUIRED)
+    set(CMAKE_FIND_FRAMEWORK ${backup_find_framework})
     include_directories(${OPENAL_INCLUDE_DIR})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${OPENAL_LIBRARY})
 endif()
 
 if (BUILD_TESTS)
     set(BUILD_GMOCK ON)
+    set(GTEST_HAS_ABSL OFF)
     set(INSTALL_GTEST OFF)
     set(gtest_force_shared_crt ON)
     add_subdirectory(${LIB_DIR}/googletest EXCLUDE_FROM_ALL)
     unset(BUILD_GMOCK CACHE)
     unset(INSTALL_GTEST CACHE)
+    set_target_properties(gmock PROPERTIES FOLDER "libs")
 endif()
 
 ################################################################################
@@ -798,22 +822,24 @@ endif()
 ################################################################################
 macro(AddApplicationInternal Target Executable)
     add_executable(${Target} ${Sources})
-    target_link_libraries(${Target} ${A_Target}-objects)
-    add_dependencies(${Target} runtime_deps)
+    target_link_libraries(${Target} ${A_Target}-objects ${CPP23SupportLibrary})
+
+    if (DEPS_DIR AND HAS_NACL)
+        add_dependencies(${Target} runtime_deps)
+    endif()
+
     set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
     set_property(TARGET ${Target} APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET ${Target} APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
     set_target_properties(${Target} PROPERTIES OUTPUT_NAME "${Executable}" PREFIX "" FOLDER "engine")
 
     # Append Windows specific manifests.
-    if (WIN32)
-        set(WINDOWS_MANIFESTS_DIR ${ENGINE_DIR}/sys/manifests)
-        target_sources(${Target} PRIVATE
-            # App is DPI aware, so Windows doesn't try to scale UI.
-            ${WINDOWS_MANIFESTS_DIR}/dpi-aware.manifest
-            # App supports Windows Vista+, no quirks required.
-            ${WINDOWS_MANIFESTS_DIR}/supported-os.manifest
-        )
+    # Adding the .manifest as a source works better for MSVC, but it has no
+    # effect for MinGW (https://gitlab.kitware.com/cmake/cmake/-/issues/23244).
+    if (MINGW)
+        target_sources(${Target} PRIVATE ${ENGINE_DIR}/sys/windows-resource/manifest.rc)
+    elseif (WIN32)
+        target_sources(${Target} PRIVATE ${ENGINE_DIR}/sys/windows-resource/supported-os.manifest)
     endif()
 
     message(STATUS ${Target})
@@ -821,15 +847,17 @@ endmacro()
 
 function(AddApplication)
     set(oneValueArgs Target ExecutableName)
-    set(multiValueArgs ApplicationMain Definitions Flags Files Libs Tests)
+    set(multiValueArgs ApplicationMain Definitions Flags CompileFeatures Files Libs Tests)
     cmake_parse_arguments(A "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     # Reuse object files between the real application and the test one
     add_library(${A_Target}-objects OBJECT EXCLUDE_FROM_ALL ${A_Files} ${PCH_FILE})
-    target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE})
+    target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE} ${CPP23SupportLibrary})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
+
+    set_target_properties(${A_Target}-objects PROPERTIES FOLDER "engine/objects")
 
     set(Sources WIN32 ${A_ApplicationMain})
     AddApplicationInternal(${A_Target} ${A_ExecutableName})
@@ -842,18 +870,22 @@ function(AddApplication)
         # -Wl,--whole-archive -l<library path> -Wl,--no-whole-archive
         set(Sources ${A_ApplicationMain} ${A_Tests})
         AddApplicationInternal(test-${A_Target} test-${A_Target})
-        target_link_libraries(test-${A_Target} GTest::gmock)
+        target_link_libraries(test-${A_Target} ${CPP23SupportLibrary} GTest::gmock)
     endif()
 
     ADD_PRECOMPILED_HEADER(${A_Target}-objects)
 endfunction()
 
+daemon_write_buildinfo("Engine")
+
 if (NOT NACL)
-    add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${COMMONLIST} ${ENGINELIST})
-    target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE})
+    add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${BUILDINFOLIST} ${COMMONLIST} ${ENGINELIST})
+    target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE} ${CPP23SupportLibrary})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_DEFINITIONS BUILD_ENGINE)
     set_property(TARGET engine-lib APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_OPTIONS ${WARNINGS})
+    set_target_properties(engine-lib PROPERTIES FOLDER "engine/objects")
+
     ADD_PRECOMPILED_HEADER(engine-lib)
 
     if (BUILD_DUMMY_APP)
@@ -876,34 +908,29 @@ if (BUILD_CLIENT)
     if (USE_SMP)
         list(APPEND Definitions USE_SMP)
     endif()
+
+    if (USE_VULKAN)
+        set(CLIENT_EXECUTABLE_NAME daemon-vulkan)
+    else()
+        set(CLIENT_EXECUTABLE_NAME daemon)
+        set(CLIENTTESTLIST ${CLIENTTESTLIST} ${RENDERERTESTLIST})
+    endif()
+
     AddApplication(
         Target client
-        ExecutableName daemon
+        ExecutableName ${CLIENT_EXECUTABLE_NAME}
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions ${Definitions}
         Flags ${WARNINGS}
-        Files ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
+        Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
         Libs ${LIBS_CLIENT} ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
-        Tests ${ENGINETESTLIST}
+        Tests ${CLIENTTESTLIST}
     )
 
-    # generate glsl include files
-    set(GLSL_SOURCE_DIR ${ENGINE_DIR}/renderer/glsl_source)
-    set(EMBED_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/embed_data)
-    file(MAKE_DIRECTORY ${EMBED_INCLUDE_DIR})
-    set_property(TARGET client-objects APPEND PROPERTY INCLUDE_DIRECTORIES ${EMBED_INCLUDE_DIR})
+    # Generate GLSL include files.
+    daemon_embed_files("EngineShaders" "${GLSL_EMBED_DIR}" "${GLSL_EMBED_LIST}" "TEXT" "client-objects")
 
-    foreach(res ${GLSLSOURCELIST})
-        get_filename_component(filename_no_ext ${res} NAME_WE)
-        set(outpath ${EMBED_INCLUDE_DIR}/${filename_no_ext}.glsl.h)
-        add_custom_command(
-            OUTPUT ${outpath}
-            COMMAND ${CMAKE_COMMAND} "-DINPUT_FILE=${res}" "-DOUTPUT_FILE=${outpath}"
-                "-DVARIABLE_NAME=${filename_no_ext}_glsl" -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedText.cmake
-            MAIN_DEPENDENCY ${res}
-        )
-        set_property(TARGET client-objects APPEND PROPERTY SOURCES ${outpath})
-    endforeach()
+    daemon_embed_files(ConsoleFont "${CMAKE_CURRENT_SOURCE_DIR}/libs/unifont" unifont.otf BINARY client-objects)
 endif()
 
 if (BUILD_SERVER)
@@ -913,7 +940,7 @@ if (BUILD_SERVER)
         ApplicationMain ${ENGINE_DIR}/server/ServerApplication.cpp
         Definitions BUILD_ENGINE BUILD_SERVER
         Flags ${WARNINGS}
-        Files ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${DEDSERVERLIST}
+        Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${DEDSERVERLIST}
         Libs ${LIBS_ENGINE}
         Tests ${ENGINETESTLIST}
     )
@@ -926,7 +953,7 @@ if (BUILD_TTY_CLIENT)
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions BUILD_ENGINE BUILD_TTY_CLIENT
         Flags ${WARNINGS}
-        Files ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${TTYCLIENTLIST}
+        Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${TTYCLIENTLIST}
         Libs ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
         Tests ${ENGINETESTLIST}
     )
@@ -936,14 +963,14 @@ endif()
 # Runtime dependencies
 ################################################################################
 
-if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
+if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP))
     add_custom_target(runtime_deps)
     set_target_properties(runtime_deps PROPERTIES FOLDER "CMakePlumbing")
 
     # The NaCl loader and IRT are required to load .nexe files
     add_custom_command(TARGET runtime_deps PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/sel_ldr${CMAKE_EXECUTABLE_SUFFIX}
+            ${DEPS_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
             ${FULL_OUTPUT_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
     )
 
@@ -954,7 +981,7 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     )
 
     # Linux uses a bootstrap program to reserve address space
-    if (LINUX)
+    if (LINUX OR FREEBSD)
         if (ARCH STREQUAL "arm64")
             add_executable(nacl_helper_bootstrap-armhf tools/nacl_helper_bootstrap-armhf/nacl_helper_bootstrap-armhf.cpp)
             add_dependencies(runtime_deps nacl_helper_bootstrap-armhf)
@@ -978,27 +1005,32 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
         )
     endif()
 
-    # Win32 requires nacl_loader64.exe in order to run on Win64
+    # Win32 requires nacl_loader_amd64.exe in order to run on Win64
     if (WIN32 AND ARCH STREQUAL i686)
         add_custom_command(TARGET runtime_deps PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DEPS_DIR}/sel_ldr64${CMAKE_EXECUTABLE_SUFFIX}
-                ${FULL_OUTPUT_DIR}/nacl_loader64${CMAKE_EXECUTABLE_SUFFIX}
+                ${DEPS_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}
+                ${FULL_OUTPUT_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}
         )
         add_custom_command(TARGET runtime_deps PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DEPS_DIR}/irt_core-x86_64.nexe
-                ${FULL_OUTPUT_DIR}/irt_core-x86_64.nexe
+                ${DEPS_DIR}/irt_core-amd64.nexe
+                ${FULL_OUTPUT_DIR}/irt_core-amd64.nexe
         )
     endif()
 
     # Mac requires some libraries from external_deps
     if (APPLE)
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${DEPS_DIR}/SDL2.framework
-                ${FULL_OUTPUT_DIR}/SDL2.framework
-        )
+        file(GLOB RUNTIME_FRAMEWORKS ${DEPS_DIR}/lib/*.framework)
+        foreach(RUNTIME_FRAMEWORK ${RUNTIME_FRAMEWORKS})
+            get_filename_component(RUNTIME_FRAMEWORK_NAME ${RUNTIME_FRAMEWORK} NAME)
+            add_custom_command(TARGET runtime_deps PRE_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${RUNTIME_FRAMEWORK}
+                    ${FULL_OUTPUT_DIR}/${RUNTIME_FRAMEWORK_NAME}
+            )
+        endforeach()
+
         file(GLOB RUNTIME_LIBS ${DEPS_DIR}/lib/*.dylib)
         foreach(RUNTIME_LIB ${RUNTIME_LIBS})
             add_custom_command(TARGET runtime_deps PRE_BUILD
@@ -1011,7 +1043,7 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
 
     # Windows requires some libraries from external_deps
     if (WIN32)
-        file(GLOB RUNTIME_LIBS ${DEPS_DIR}/bin/*.dll)
+        file(GLOB RUNTIME_LIBS ${DEPS_DIR}/bin/*.dll ${DEPS_DIR}/SDL3/lib/*/SDL3.dll)
         foreach(RUNTIME_LIB ${RUNTIME_LIBS})
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -1020,4 +1052,8 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
             )
         endforeach()
     endif()
+endif()
+
+if (BUILD_DUMMY_GAMELOGIC)
+    include(src/dummygame/CMakeLists.txt)
 endif()

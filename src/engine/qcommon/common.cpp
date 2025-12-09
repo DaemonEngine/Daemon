@@ -34,7 +34,6 @@ Maryland 20850 USA.
 
 // common.c -- misc functions used in client and server
 
-#include "revision.h"
 #include "qcommon/q_shared.h"
 #include "qcommon/sys.h"
 #include "q_unicode.h"
@@ -52,10 +51,7 @@ Maryland 20850 USA.
 #include "sys/sys_events.h"
 #include <common/FileSystem.h>
 
-cvar_t *com_pid; // bani - process id
-
 cvar_t *com_speeds;
-cvar_t *com_developer;
 cvar_t *com_timescale;
 cvar_t *com_dropsim; // 0.0 to 1.0, simulated packet drops
 
@@ -65,7 +61,7 @@ Cvar::Cvar<bool> cvar_demo_timedemo(
     Cvar::CHEAT | Cvar::TEMPORARY,
     false
 );
-cvar_t *com_sv_running;
+Cvar::Cvar<bool> com_sv_running("sv_running", "do we have a server running?", Cvar::ROM, false);
 cvar_t *com_cl_running;
 cvar_t *com_version;
 
@@ -128,11 +124,11 @@ void Info_Print( const char *s )
 			*o = 0;
 		}
 
-		Log::Notice( key );
+		Log::defaultLogger.WithoutSuppression().Notice( key );
 
 		if ( !*s )
 		{
-			Log::Notice( "MISSING VALUE\n" );
+			Log::defaultLogger.WithoutSuppression().Notice( "MISSING VALUE" );
 			return;
 		}
 
@@ -151,7 +147,7 @@ void Info_Print( const char *s )
 			s++;
 		}
 
-		Log::Notice( "%s\n", value );
+		Log::defaultLogger.WithoutSuppression().Notice( value );
 	}
 }
 
@@ -187,7 +183,7 @@ bool Com_IsDedicatedServer()
 
 bool Com_ServerRunning()
 {
-	return com_sv_running->integer;
+	return com_sv_running.Get();
 }
 
 /*
@@ -282,7 +278,7 @@ std::unique_ptr<Sys::EventBase> Com_GetEvent()
 		return std::move(eventQueue[( eventTail - 1 ) & MASK_QUEUED_EVENTS ]);
 	}
 
-	// check for console commands
+	// check for tty/curses console commands
 	if ( char* s = CON_Input() )
 	{
 		Com_QueueEvent( Util::make_unique<Sys::ConsoleInputEvent>( s ) );
@@ -335,7 +331,7 @@ static void Com_RunAndTimeServerPacket( const netadr_t *evFrom, msg_t *buf )
 
 		if ( com_speeds->integer == 3 )
 		{
-			Log::Notice( "SV_PacketEvent time: %i\n", msec );
+			Log::Notice( "SV_PacketEvent time: %i", msec );
 		}
 	}
 }
@@ -381,14 +377,14 @@ static void HandlePacketEvent(const Sys::PacketEvent& event)
 	// enough to hold fragment reassembly
 	if ( event.data.size() > static_cast<size_t>(buf.maxsize) )
 	{
-		Log::Notice( "Com_EventLoop: oversize packet\n" );
+		Log::Notice( "Com_EventLoop: oversize packet" );
 		return;
 	}
 
 	buf.cursize = event.data.size();
 	memcpy( buf.data, event.data.data(), buf.cursize );
 
-	if ( com_sv_running->integer )
+	if ( com_sv_running.Get() )
 	{
 		Com_RunAndTimeServerPacket( &event.adr, &buf );
 	}
@@ -436,7 +432,7 @@ void Com_EventLoop()
 			while ( NET_GetLoopPacket( netsrc_t::NS_SERVER, &evFrom, &buf ) )
 			{
 				// if the server just shut down, flush the events
-				if ( com_sv_running->integer )
+				if ( com_sv_running.Get() )
 				{
 					Com_RunAndTimeServerPacket( &evFrom, &buf );
 				}
@@ -457,7 +453,23 @@ void Com_EventLoop()
 			case sysEventType_t::SE_KEY:
 			{
 				auto& keyEvent = ev->Cast<Sys::KeyEvent>();
-				CL_KeyEvent( keyEvent.key, keyEvent.down, keyEvent.time );
+				if ( keyEvent.down )
+				{
+					if ( keyEvent.repeat )
+					{
+						CL_KeyRepeatEvent( keyEvent.key1 );
+						CL_KeyRepeatEvent( keyEvent.key2 );
+					}
+					else
+					{
+						CL_KeyDownEvent( keyEvent.key1, keyEvent.key2, keyEvent.time );
+					}
+				}
+				else
+				{
+					CL_KeyUpEvent( keyEvent.key1, keyEvent.time );
+					CL_KeyUpEvent( keyEvent.key2, keyEvent.time );
+				}
 				break;
 			}
 
@@ -517,93 +529,6 @@ int Com_Milliseconds()
 
 //============================================================================
 
-/*
-=============
-Com_Error_f
-
-Just throw a fatal error to
-test error shutdown procedures
-=============
-*/
-NORETURN static void Com_Error_f()
-{
-	if ( Cmd_Argc() > 1 )
-	{
-		Sys::Drop( "Testing drop error" );
-	}
-	else
-	{
-		Sys::Error( "Testing fatal error" );
-	}
-}
-
-/*
-=============
-Com_Freeze_f
-
-Just freeze in place for a given number of seconds to test
-error recovery
-=============
-*/
-static void Com_Freeze_f()
-{
-	float s;
-	int   start, now;
-
-	if ( Cmd_Argc() != 2 )
-	{
-		Log::Notice( "freeze <seconds>\n" );
-		return;
-	}
-
-	s = atof( Cmd_Argv( 1 ) );
-
-	start = Com_Milliseconds();
-
-	while (true)
-	{
-		now = Com_Milliseconds();
-
-		if ( ( now - start ) * 0.001 > s )
-		{
-			break;
-		}
-	}
-}
-
-/*
-=================
-Com_Crash_f
-
-A way to force a bus error for development reasons
-=================
-*/
-static void Com_Crash_f()
-{
-	* ( volatile int * ) 0 = 0x12345678;
-}
-
-void Com_SetRecommended()
-{
-	cvar_t   *r_highQualityVideo;
-	bool goodVideo;
-
-	// will use this for recommended settings as well.. do i outside the lower check so it gets done even with command line stuff
-	r_highQualityVideo = Cvar_Get( "r_highQualityVideo", "1", 0 );
-	goodVideo = ( r_highQualityVideo && r_highQualityVideo->integer );
-
-	if ( goodVideo )
-	{
-		Log::Notice( "Found high quality video and slow CPU\n" );
-		Cmd::BufferCommandText("preset preset_fast.cfg");
-	}
-	else
-	{
-		Log::Notice( "Found low quality video and slow CPU\n" );
-		Cmd::BufferCommandText("preset preset_fastest.cfg");
-	}
-}
-
 void Com_In_Restart_f()
 {
 	IN_Restart();
@@ -631,32 +556,22 @@ void Com_Init()
 	//
 	// init commands and vars
 	//
-	com_developer = Cvar_Get( "developer", "0", CVAR_TEMP );
-
 	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
 	com_dropsim = Cvar_Get( "com_dropsim", "0", CVAR_CHEAT );
 	com_speeds = Cvar_Get( "com_speeds", "0", 0 );
 
-	com_sv_running = Cvar_Get( "sv_running", "0", CVAR_ROM );
 	com_cl_running = Cvar_Get( "cl_running", "0", CVAR_ROM );
 
 	com_unfocused = Cvar_Get( "com_unfocused", "0", CVAR_ROM );
 	com_minimized = Cvar_Get( "com_minimized", "0", CVAR_ROM );
-
-	if ( com_developer && com_developer->integer )
-	{
-		Cmd_AddCommand( "error", Com_Error_f );
-		Cmd_AddCommand( "crash", Com_Crash_f );
-		Cmd_AddCommand( "freeze", Com_Freeze_f );
-	}
 
 	Cmd_AddCommand( "writeconfig", Com_WriteConfig_f );
 #ifdef BUILD_GRAPHICAL_CLIENT
 	Cmd_AddCommand( "writebindings", Com_WriteBindings_f );
 #endif
 
-	s = va( "%s %s %s %s", Q3_VERSION, PLATFORM_STRING, XSTRING(ARCH_STRING), __DATE__ );
-	com_version = Cvar_Get( "version", s, CVAR_ROM | CVAR_SERVERINFO );
+	s = va( "%s %s %s %s", Q3_VERSION, PLATFORM_STRING, DAEMON_ARCH_STRING, __DATE__ );
+	com_version = Cvar_Get( "version", s, CVAR_ROM | CVAR_SERVERINFO | CVAR_USERINFO );
 
 	Cmd_AddCommand( "in_restart", Com_In_Restart_f );
 
@@ -695,7 +610,7 @@ void Com_WriteConfigToFile( const char *filename, void (*writeConfig)( fileHandl
 
 	if ( !f )
 	{
-		Log::Notice( "Couldn't write %s.\n", filename );
+		Log::Notice( "Couldn't write %s.", filename );
 		return;
 	}
 
@@ -758,7 +673,7 @@ void Com_WriteConfig_f()
 
 	Q_strncpyz( filename, Cmd_Argv( 1 ), sizeof( filename ) );
 	COM_DefaultExtension( filename, sizeof( filename ), ".cfg" );
-	Log::Notice( "Writing %s.\n", filename );
+	Log::Notice( "Writing %s.", filename );
 	Com_WriteConfigToFile( filename, Cvar_WriteVariables );
 }
 
@@ -782,7 +697,7 @@ void Com_WriteBindings_f()
 
 	Q_strncpyz( filename, Cmd_Argv( 1 ), sizeof( filename ) );
 	COM_DefaultExtension( filename, sizeof( filename ), ".cfg" );
-	Log::Notice( "Writing %s.\n", filename );
+	Log::Notice( "Writing %s.", filename );
 	Com_WriteConfigToFile( filename, Keyboard::WriteBindings );
 }
 #endif
@@ -900,10 +815,7 @@ void Com_Frame()
 	//
 	// main event loop
 	//
-	if ( com_speeds->integer )
-	{
-		timeBeforeFirstEvents = Sys::Milliseconds();
-	}
+	timeBeforeFirstEvents = Sys::Milliseconds();
 
 	if ( timeBeforeFirstEvents < 0 || timeBeforeFirstEvents > 0x7F000000 )
 	{
@@ -957,33 +869,46 @@ void Com_Frame()
 	}
 	else
 	{
-		// Bad things happen if minMsec is 0.
 		// It looks like demo played with cvar_demo_timedemo enabled
 		// are not affected by the rendering bugs related to having
 		// minMsec being lower than 3.
-		minMsec = 1;
+		minMsec = 0;
 	}
 
 	Com_EventLoop();
+
+	// It must be called at least once.
+	IN_Frame();
+
 	com_frameTime = Sys::Milliseconds();
 
-	if ( lastTime > com_frameTime )
-	{
-		lastTime = com_frameTime; // possible on first frame
-	}
+	// lastTime can be greater than com_frameTime on first frame.
+	lastTime = std::min( lastTime, com_frameTime );
 
 	msec = com_frameTime - lastTime;
 
-	IN_Frame(); // must be called at least once
+	// For framerates up to 250fps, sleep until 1ms is remaining
+	// use extra margin of 2ms when looking for an higher framerate.
+	int margin = minMsec > 3 ? 1 : 2;
 
 	while ( msec < minMsec )
 	{
-		//give cycles back to the OS
-		Sys::SleepFor(std::chrono::milliseconds(std::min(minMsec - msec, 50)));
-		IN_Frame();
+		// Never sleep more than 50ms.
+		// Never sleep when there is only “margin” left or less remaining.
+		int sleep = std::min( std::max( minMsec - msec - margin, 0 ), 50 );
+
+		if ( sleep )
+		{
+			// Give cycles back to the OS.
+			Sys::SleepFor( std::chrono::milliseconds( sleep ) );
+		}
 
 		Com_EventLoop();
+
+		IN_Frame();
+
 		com_frameTime = Sys::Milliseconds();
+
 		msec = com_frameTime - lastTime;
 	}
 
@@ -1053,7 +978,7 @@ void Com_Frame()
 			}
 			else if ( Sys::Milliseconds() - watchdogTime > watchdogThreshold.Get() * 1000 )
 			{
-				Log::Notice( "Idle server with no map — triggering watchdog\n" );
+				Log::Notice( "Idle server with no map — triggering watchdog" );
 				watchdogTime = 0;
 				watchWarn = false;
 
@@ -1089,7 +1014,7 @@ void Com_Frame()
 		sv -= time_game;
 		cl -= time_frontend + time_backend;
 
-		Log::Notice( "frame:%i all:%3i sv:%3i sev:%3i cev:%3i cl:%3i gm:%3i rf:%3i bk:%3i\n",
+		Log::Notice( "frame:%i all:%3i sv:%3i sev:%3i cev:%3i cl:%3i gm:%3i rf:%3i bk:%3i",
 		            com_frameNumber, all, sv, sev, cev, cl, time_game, time_frontend, time_backend );
 	}
 
@@ -1101,7 +1026,7 @@ void Com_Frame()
 		extern int c_traces, c_brush_traces, c_patch_traces, c_trisoup_traces;
 		extern int c_pointcontents;
 
-		Log::Notice( "%4i traces  (%ib %ip %it) %4i points\n", c_traces, c_brush_traces, c_patch_traces, c_trisoup_traces,
+		Log::Notice( "%4i traces  (%ib %ip %it) %4i points", c_traces, c_brush_traces, c_patch_traces, c_trisoup_traces,
 		            c_pointcontents );
 		c_traces = 0;
 		c_brush_traces = 0;

@@ -80,7 +80,6 @@ void  MSG_BeginReadingUncompressed( msg_t *msg );
 
 int   MSG_ReadBits( msg_t *msg, int bits );
 
-int   MSG_ReadChar( msg_t *sb );
 int   MSG_ReadByte( msg_t *sb );
 int   MSG_ReadShort( msg_t *sb );
 int   MSG_ReadLong( msg_t *sb );
@@ -88,7 +87,6 @@ float MSG_ReadFloat( msg_t *sb );
 char  *MSG_ReadString( msg_t *sb );
 char  *MSG_ReadBigString( msg_t *sb );
 char  *MSG_ReadStringLine( msg_t *sb );
-float MSG_ReadAngle16( msg_t *sb );
 void  MSG_ReadData( msg_t *sb, void *buffer, int size );
 
 void  MSG_WriteDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to );
@@ -151,7 +149,8 @@ extern cvar_t       *net_enabled;
 void       NET_Init();
 void       NET_Shutdown();
 void       NET_Restart_f();
-void       NET_Config( bool enableNetworking );
+void       NET_EnableNetworking( bool serverMode );
+void       NET_DisableNetworking();
 
 void       NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t& to );
 
@@ -160,8 +159,6 @@ bool   NET_CompareBaseAdr( const netadr_t& a, const netadr_t& b );
 bool   NET_IsLocalAddress( const netadr_t& adr );
 // DEPRECATED: Use Net::AddressToString
 const char *NET_AdrToString( const netadr_t& a );
-// DEPRECATED: Use Net::AddressToString
-const char *NET_AdrToStringwPort( const netadr_t& a );
 int        NET_StringToAdr( const char *s, netadr_t *a, netadrtype_t family );
 bool   NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_message );
 void       NET_JoinMulticast6();
@@ -433,7 +430,7 @@ const char* FS_LoadedPaks();
 
 // Returns a space separated string containing all loaded dpk/pk3 files.
 
-bool     FS_LoadPak( const char *name );
+bool FS_LoadPak( const Str::StringRef name );
 void     FS_LoadBasePak();
 bool     FS_LoadServerPaks( const char* paks, bool isDemo );
 
@@ -455,7 +452,8 @@ void IN_Frame();
 void IN_FrameEnd();
 void IN_Restart();
 void IN_Shutdown();
-bool IN_IsNumLockDown();
+void IN_ShutdownJoystick();
+bool IN_IsNumLockOn();
 void IN_DropInputsForFrame();
 void IN_CenterMouse();
 bool IN_IsKeyboardLayoutInfoAvailable();
@@ -522,7 +520,6 @@ unsigned   Com_BlockChecksum( const void *buffer, int length );
 char       *Com_MD5File( const char *filename, int length );
 void       Com_MD5Buffer( const char *pubkey, int size, char *buffer, int bufsize );
 
-void       Com_SetRecommended();
 bool       Com_AreCheatsAllowed();
 bool       Com_IsClient();
 bool       Com_IsDedicatedServer();
@@ -532,10 +529,9 @@ bool       Com_ServerRunning();
 // if match is nullptr, all set commands will be executed, otherwise
 // only a set with the exact name.  Only used during startup.
 
-extern cvar_t       *com_developer;
 extern cvar_t       *com_speeds;
 extern cvar_t       *com_timescale;
-extern cvar_t       *com_sv_running;
+extern Cvar::Cvar<bool> com_sv_running;
 extern cvar_t       *com_cl_running;
 extern cvar_t       *com_version;
 
@@ -546,9 +542,6 @@ extern Cvar::Cvar<bool> com_ansiColor;
 extern cvar_t       *com_unfocused;
 extern cvar_t       *com_minimized;
 
-extern cvar_t       *cl_packetdelay;
-extern cvar_t       *sv_packetdelay;
-
 // com_speeds times
 extern int          time_game;
 extern int          time_frontend;
@@ -557,54 +550,35 @@ extern int          time_backend; // renderer backend time
 extern int          com_frameTime;
 extern int          com_frameMsec;
 
-enum class memtag_t
+// Use malloc instead of the zone allocator...
+
+// Allocations uncategorized as to whether they really need zeroing
+inline MALLOC_LIKE void* Z_Malloc(size_t size)
 {
-  TAG_FREE,
-  TAG_GENERAL,
-  TAG_RENDERER,
-  TAG_SMALL,
-  TAG_CRYPTO,
-  TAG_STATIC
-};
-
-/*
-
---- low memory ----
-server vm
-server clipmap
----mark---
-renderer initialization (shaders, etc)
-UI vm
-cgame vm
-renderer map
-renderer models
-
----free---
-
-temp file loading
---- high memory ---
-
-*/
-
-// Use malloc instead of the zone allocator
-static inline MALLOC_LIKE void* Z_TagMalloc(size_t size, memtag_t tag)
-{
-  Q_UNUSED(tag);
-  return calloc(size, 1);
+  void* p = calloc(size, 1);
+  if (!p && size) Sys::Error("Z_Malloc: Out of memory");
+  return p;
 }
-static inline MALLOC_LIKE void* Z_Malloc(size_t size)
+// Allocates unitialized memory like malloc
+inline MALLOC_LIKE void* Z_AllocUninit(size_t size)
 {
-  return calloc(size, 1);
+    void* p = malloc(size);
+    if (!p && size) Sys::Error("Z_AllocUninit: Out of memory");
+    return p;
 }
-static inline MALLOC_LIKE void* S_Malloc(size_t size)
+// Allocates zeroed memory like calloc
+inline MALLOC_LIKE void* Z_Calloc(size_t size)
 {
-  return malloc(size);
+    void* p = calloc(size, 1);
+    if (!p && size) Sys::Error("Z_Calloc: Out of memory");
+    return p;
 }
-static inline ALLOCATOR char* CopyString(const char* str)
+
+inline ALLOCATOR char* CopyString(const char* str)
 {
   return strdup(str);
 }
-static inline void Z_Free(void* ptr)
+inline void Z_Free(void* ptr)
 {
   free(ptr);
 }
@@ -612,6 +586,7 @@ static inline void Z_Free(void* ptr)
 #ifndef BUILD_SERVER
 void Hunk_Init();
 void     Hunk_Clear();
+void Hunk_Shutdown();
 void *Hunk_Alloc( int size, ha_pref preference );
 void   *Hunk_AllocateTempMemory( int size );
 void   Hunk_FreeTempMemory( void *buf );
@@ -643,7 +618,9 @@ void     CL_Shutdown();
 void     CL_Frame( int msec );
 void     CL_ConsoleKeyEvent();
 namespace Keyboard { class Key; }
-void     CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time );
+void     CL_KeyDownEvent( const Keyboard::Key& key1, const Keyboard::Key& key2, unsigned time );
+void     CL_KeyRepeatEvent( const Keyboard::Key& key );
+void     CL_KeyUpEvent( const Keyboard::Key& key, unsigned time );
 
 void     CL_CharEvent( int c );
 

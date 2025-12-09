@@ -71,7 +71,7 @@ namespace Cmd {
         return map;
     }
 
-    bool commandsInitialized = false;
+    static bool commandsInitialized = false;
 
     static void AddCommandRPC(std::string name, std::string description) {
         VM::SendMsg<VM::AddCommandMsg>(name, description);
@@ -160,8 +160,8 @@ static std::vector<const Cmd::Args*> argStack;
 // then it called the completion syscall CompleteCommand that called trap_CompleteCallback
 // with the potential values. Our new system returns a vector of candidates so we fake the
 // trap_CompleteCallback call to add the candidate to our vector
-Cmd::CompletionResult completeMatches;
-std::string completedPrefix;
+static Cmd::CompletionResult completeMatches;
+static std::string completedPrefix;
 
 void trap_CompleteCallback( const char *complete ) {
     // The callback is called for each valid arg, without filtering so do it here
@@ -272,11 +272,16 @@ namespace Cmd {
 
 namespace Cvar{
 
-    // Commands can be statically initialized so we must store the registration parameters
-    // so that we can register them after main
-
     struct CvarRecord {
         CvarProxy* cvar;
+
+        // Cache values of registered cvars to reduce trap calls.
+        // A Cvar<T> knows its value as a T, but not the string representation, so we also need
+        // to store the string if we want GetValue() to be 100% correct.
+        std::string currentValue;
+
+        // Commands can be statically initialized so we must store the registration parameters
+        // so that we can register them after main
         std::string description;
         int flags;
         std::string defaultValue;
@@ -289,7 +294,7 @@ namespace Cvar{
         return map;
     }
 
-    bool cvarsInitialized = false;
+    static bool cvarsInitialized = false;
 
     void RegisterCvarRPC(const std::string& name, std::string description, int flags, std::string defaultValue) {
         VM::SendMsg<VM::RegisterCvarMsg>(name, description, flags, defaultValue);
@@ -305,15 +310,21 @@ namespace Cvar{
 
     bool Register(CvarProxy* cvar, const std::string& name, std::string description, int flags, const std::string& defaultValue) {
         if (cvarsInitialized) {
-            GetCvarMap()[name] = {cvar, "", 0, defaultValue};
+            GetCvarMap()[name] = {cvar, defaultValue, "", 0, defaultValue};
             RegisterCvarRPC(name, std::move(description), flags, defaultValue);
         } else {
-            GetCvarMap()[name] = {cvar, std::move(description), flags, defaultValue};
+            GetCvarMap()[name] = {cvar, defaultValue, std::move(description), flags, defaultValue};
         }
         return true;
     }
 
     std::string GetValue(const std::string& name) {
+        const CvarMap& map = GetCvarMap();
+        auto it = map.find(name);
+        if (it != map.end()) { // The cache will be used for cvars registered in this VM
+            return it->second.currentValue;
+        }
+
         std::string value;
         VM::SendMsg<VM::GetCvarMsg>(name, value);
         return value;
@@ -333,19 +344,23 @@ namespace Cvar{
 
     void CallOnValueChangedSyscall(Util::Reader& reader, IPC::Channel& channel) {
         IPC::HandleMsg<VM::OnValueChangedMsg>(channel, std::move(reader), [](std::string name, std::string value, bool& success, std::string& description) {
-            auto map = GetCvarMap();
+            CvarMap& map = GetCvarMap();
             auto it = map.find(name);
 
             if (it == map.end()) {
+                Log::Warn("Cvar '%' not registered here", name);
                 success = true;
                 description = "";
                 return;
             }
 
             auto res = it->second.cvar->OnValueChanged(value);
-
             success = res.success;
             description = res.description;
+
+            if (success) {
+                it->second.currentValue = value; // Update cache
+            }
         });
     }
 
@@ -422,14 +437,23 @@ namespace VM {
 
     void InitializeProxies(int milliseconds) {
         baseTime = Sys::SteadyClock::now() - std::chrono::milliseconds(milliseconds);
-        Cmd::InitializeProxy();
         Cvar::InitializeProxy();
+
+#ifdef BUILD_VM_NATIVE_EXE
+        // Set up the crash handler now that we have cvars to know if we want to use it.
+        // The handler wouldn't have worked before StaticInitMsg anyway since it needs IPC to log anything.
+        if (useNativeExeCrashHandler.Get()) {
+            Sys::SetupCrashHandler();
+        }
+#endif
+
+        Cmd::InitializeProxy();
     }
 
     static void HandleMiscSyscall(int minor, Util::Reader& reader, IPC::Channel& channel) {
         switch (minor) {
             case VM::GET_NETCODE_TABLES:
-                IPC::HandleMsg<GetNetcodeTablesMsg>(VM::rootChannel, std::move(reader), [](NetcodeTable& playerStateTable, int& playerStateSize) {
+                IPC::HandleMsg<GetNetcodeTablesMsg>(channel, std::move(reader), [](NetcodeTable& playerStateTable, int& playerStateSize) {
                     GetNetcodeTables(playerStateTable, playerStateSize);
                 });
                 break;
@@ -526,6 +550,7 @@ void trap_FS_FCloseFile(fileHandle_t f)
 	VM::SendMsg<VM::FSFCloseFileMsg>(f);
 }
 
+// TODO: in many cases we want only VFS (pakpath) files, not VFS + gamepath which this gives
 int trap_FS_GetFileList(const char *path, const char *extension, char *listbuf, int bufsize)
 {
 	int res;

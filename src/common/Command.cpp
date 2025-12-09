@@ -493,11 +493,13 @@ namespace Cmd {
         return *Cmd::GetEnv();
     }
 
+#ifndef BUILD_ENGINE
     StaticCmd::StaticCmd(std::string name, std::string description)
     :CmdBase(0){
         //Register this command statically
         AddCommand(std::move(name), *this, std::move(description));
     }
+#endif
 
     StaticCmd::StaticCmd(std::string name, const int flags, std::string description)
     :CmdBase(flags){
@@ -509,9 +511,11 @@ namespace Cmd {
         return {};
     }
 
+#ifndef BUILD_ENGINE
     LambdaCmd::LambdaCmd(std::string name, std::string description, RunFn run, CompleteFn complete)
     :StaticCmd(std::move(name), std::move(description)), run(run), complete(complete) {
     }
+#endif
     LambdaCmd::LambdaCmd(std::string name, int flags, std::string description, RunFn run, CompleteFn complete)
     :StaticCmd(std::move(name), flags, std::move(description)), run(run), complete(complete) {
     }
@@ -523,3 +527,76 @@ namespace Cmd {
         return complete(argNum, args, prefix);
     }
 }
+
+class InjectFaultCmd : public Cmd::StaticCmd
+{
+public:
+    InjectFaultCmd() : StaticCmd(
+        VM_STRING_PREFIX "injectFault", Cmd::BASE, "make the program error and crash") {}
+
+    void Run(const Cmd::Args& args) const override
+    {
+        bool useThread = Str::IsIEqual(args.ArgVector().back(), "thread");
+        if (useThread) {
+            std::thread(&DoFault, Cmd::Args(std::vector<std::string>(args.begin(), args.end() - 1)))
+                .detach();
+        } else {
+            if (!DoFault(args)) {
+                Print("Usage: %s (drop | error | segfault | intdiv | floatinvalid | floatdiv | floatoverflow"
+                      " | unreachable | exception | throw | terminate | abort | freeze <seconds>) [thread]",
+                      args.Argv(0));
+            }
+        }
+    }
+
+private:
+    static bool DoFault(const Cmd::Args& args)
+    {
+        float freezeDuration;
+        if (args.Argc() == 3 && Str::IsIEqual(args.Argv(1), "freeze") &&
+                Cvar::ParseCvarValue(args.Argv(2), freezeDuration)) {
+            int start = Sys::Milliseconds();
+            while (Sys::Milliseconds() < start + freezeDuration * 1000.0f) {} // spin cpu
+            return true;
+        } else if (args.Argc() != 2) {
+            return false;
+        }
+
+        std::string how = Str::ToLower(args.Argv(1));
+        if (how == "drop") {
+            Sys::Drop("drop from injectFault command");
+        } else if (how == "error") {
+            Sys::Error("error from injectFault command");
+        } else if (how == "segfault") {
+            volatile auto p = (volatile char*)1;
+            *p = 'x';
+        } else if (how == "intdiv") {
+            volatile int n = 0;
+            n = n / n;
+		} else if (how == "floatinvalid") {
+			volatile float f = -1.0f;
+			f = sqrtf(f);
+        } else if (how == "floatdiv") {
+            volatile float f = 0;
+            f = 1 / f;
+		} else if (how == "floatoverflow") {
+			volatile float f = std::numeric_limits<float>::max();
+			f = 2 * f;
+        } else if (how == "unreachable") { // May print the usage string :)
+            UNREACHABLE();
+        } else if (how == "exception") { // std::exception
+            std::vector<int> v;
+            (void) v.at(0);
+        } else if (how == "throw") { // other exception
+            throw 2;
+        } else if (how == "terminate") { // std::terminate without an exception
+            std::thread t([]{});
+        } else if (how == "abort") {
+            std::abort();
+        } else {
+            return false;
+        }
+        return true;
+    }
+};
+static InjectFaultCmd injectFaultRegistration;

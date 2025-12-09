@@ -331,7 +331,7 @@ bool CL_OpenAVIForWriting( const char *fileName )
 		return false;
 	}
 
-	memset( &afd, 0, sizeof( aviFileData_t ) );
+	afd = {};
 
 	// Don't start if a framerate has not been chosen
 	if ( cl_aviFrameRate->integer <= 0 )
@@ -355,8 +355,8 @@ bool CL_OpenAVIForWriting( const char *fileName )
 
 	afd.frameRate = cl_aviFrameRate->integer;
 	afd.framePeriod = ( int )( 1000000.0f / afd.frameRate );
-	afd.width = cls.glconfig.vidWidth;
-	afd.height = cls.glconfig.vidHeight;
+	afd.width = cls.windowConfig.vidWidth;
+	afd.height = cls.windowConfig.vidHeight;
 
 	if ( cl_aviMotionJpeg->integer )
 	{
@@ -602,7 +602,7 @@ bool CL_CloseAVI()
 	Z_Free( afd.eBuffer );
 	FS_FCloseFile( afd.f );
 
-	Log::Notice( "Wrote %d:%d frames to %s\n", afd.numVideoFrames, afd.numAudioFrames, afd.fileName );
+	Log::Notice( "Wrote %d:%d frames to %s", afd.numVideoFrames, afd.numAudioFrames, afd.fileName );
 
 	return true;
 }

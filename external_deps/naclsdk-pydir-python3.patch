@@ -476,10 +476,29 @@ index 19c7c46..3647dd8 100755
  
    env.update(EXTRA_ENV)
 diff --git a/pnacl-driver.py b/pnacl-driver.py
-index dd0775f..10ead77 100755
+index dd0775f..edb9b74 100755
 --- a/pnacl-driver.py
 +++ b/pnacl-driver.py
-@@ -469,7 +469,7 @@ def main(argv):
+@@ -442,6 +442,10 @@ def DriverOutputTypes(driver_flag, compiling_to_native):
+ def ReadDriverRevision():
+   rev_file = env.getone('DRIVER_REV_FILE')
+   nacl_ver = DriverOpen(rev_file, 'rb').readlines()[0]
++
++  if isinstance(nacl_ver, bytes) and not isinstance(nacl_ver, str):
++     nacl_ver = nacl_ver.decode()
++
+   m = re.search(r'\[GIT\].*/native_client(?:\.git)?:\s*([0-9a-f]{40})',
+                 nacl_ver)
+   if m:
+@@ -465,11 +469,15 @@ def main(argv):
+     if env.getbool('SHOW_VERSION'):
+       code, stdout, stderr = Run(env.get('CC') + env.get('CC_FLAGS'),
+                                  redirect_stdout=subprocess.PIPE)
++
++      if isinstance(stdout, bytes) and not isinstance(stdout, str):
++         stdout = stdout.decode()
++
+       out = stdout.split('\n')
        nacl_version = ReadDriverRevision()
        out[0] += ' nacl-version=%s' % nacl_version
        stdout = '\n'.join(out)
@@ -488,7 +507,7 @@ index dd0775f..10ead77 100755
      else:
        Run(env.get('CC') + env.get('CC_FLAGS'))
      return 0
-@@ -565,7 +565,7 @@ def main(argv):
+@@ -565,7 +573,7 @@ def main(argv):
    namegen = TempNameGen(flags_and_inputs, output)
  
    # Compile all source files (c/c++/ll) to .po
@@ -497,7 +516,7 @@ index dd0775f..10ead77 100755
      if IsFlag(flags_and_inputs[i]):
        continue
      intype = filetype.FileType(flags_and_inputs[i])
-@@ -574,7 +574,7 @@ def main(argv):
+@@ -574,7 +582,7 @@ def main(argv):
  
    # Compile all .s/.S to .o
    if env.getbool('ALLOW_NATIVE'):

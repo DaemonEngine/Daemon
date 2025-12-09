@@ -44,7 +44,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif // USE_BREAKPAD
 
-Log::Logger crashDumpLogs("common.breakpad", "", Log::Level::NOTICE);
+static Log::Logger crashDumpLogs("common.breakpad", "", Log::Level::NOTICE);
+
+static Cvar::Cvar<bool> enableNaclCrashDump("vm.nacl.crashDump", "save NaCl crash dumps", Cvar::NONE, true);
 
 namespace Sys {
 
@@ -70,6 +72,10 @@ bool CreateCrashDumpPath() {
 // Records a crash dump sent from the VM in minidump format. This is the same
 // format that Breakpad uses, but nacl minidump does not require Breakpad to work.
 void NaclCrashDump(const std::vector<uint8_t>& dump, Str::StringRef vmName) {
+    if (!enableNaclCrashDump.Get()) {
+       Log::Notice("Discarding %s crash dump because NaCl crash dumps are disabled", vmName);
+       return;
+    }
     const size_t maxDumpSize = (512 + 64) * 1024; // from http://src.chromium.org/viewvc/native_client/trunk/src/native_client/src/untrusted/minidump_generator/minidump_generator.cc
     if(dump.size() > maxDumpSize) { // sanity check: shouldn't be bigger than the buffer in nacl
         crashDumpLogs.Warn("Ignoring NaCl crash dump request: size too large");
@@ -100,7 +106,9 @@ static std::string CrashServerPath() {
     return FS::Path::Build(FS::GetLibPath(), name);
 }
 
-static Cvar::Cvar<bool> enableBreakpad("common.breakpad.enabled", "If enabled on startup, starts a process for recording crash dumps", Cvar::TEMPORARY, true);
+static Cvar::Cvar<bool> enableBreakpad(
+    "common.breakpad.enabled", "If enabled on startup, starts a process for recording crash dumps",
+    Cvar::INIT | Cvar::TEMPORARY, true);
 
 #ifdef _WIN32
 

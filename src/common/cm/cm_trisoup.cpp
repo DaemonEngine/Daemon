@@ -210,7 +210,7 @@ static void CM_SurfaceCollideFromTriangleSoup( cTriangleSoup_t *triSoup, cSurfac
 	for ( i = 0; i < triSoup->numTriangles; i++ )
 	{
 		facet = &facets[ numFacets ];
-		memset( facet, 0, sizeof( *facet ) );
+		*facet = {};
 
 		p1 = triSoup->points[ i ][ 0 ];
 		p2 = triSoup->points[ i ][ 1 ];
@@ -265,13 +265,13 @@ static void CM_SurfaceCollideFromTriangleSoup( cTriangleSoup_t *triSoup, cSurfac
 	}
 
 	// copy the results out
-	sc->numPlanes = numPlanes;
-	sc->planes = ( cPlane_t * ) CM_Alloc( numPlanes * sizeof( *sc->planes ) );
-	memcpy( sc->planes, planes, numPlanes * sizeof( *sc->planes ) );
+	sc->numPlanes = numTempPlanes;
+	sc->planes = ( cPlane_t * ) CM_Alloc( numTempPlanes * sizeof( *sc->planes ) );
+	std::copy_n( tempPlanes, numTempPlanes, sc->planes );
 
 	sc->numFacets = numFacets;
 	sc->facets = ( cFacet_t * ) CM_Alloc( numFacets * sizeof( *sc->facets ) );
-	memcpy( sc->facets, facets, numFacets * sizeof( *sc->facets ) );
+	std::copy_n( facets, numFacets, sc->facets );
 }
 
 /*

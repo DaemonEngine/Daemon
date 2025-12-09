@@ -37,12 +37,17 @@ Maryland 20850 USA.
 
 #include "engine/qcommon/net_types.h"
 
+// server->client bandwidth limits in bytes/sec
+#define NETWORK_MIN_RATE 1000
+#define NETWORK_DEFAULT_RATE 25000
+#define NETWORK_MAX_RATE 90000
+#define NETWORK_LAN_RATE 99999
+
 void Sys_SendPacket(int length, const void *data, const netadr_t& to);
 bool Sys_GetPacket(netadr_t *net_from, msg_t *net_message);
 
 bool Sys_StringToAdr(const char *s, netadr_t *a, netadrtype_t family);
 
 bool Sys_IsLANAddress(const netadr_t& adr);
-void Sys_ShowIP();
 
 #endif // ENGINE_QCOMMON_SYS_H_

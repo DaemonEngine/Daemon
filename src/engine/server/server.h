@@ -67,16 +67,18 @@ struct server_t
 	bool      restarting; // if true, send configstring changes during SS_LOADING
 	int           serverId; // changes each server start
 	int           restartedServerId; // serverId before a map_restart
-	int           checksumFeed; // the feed key that we use to compute the pure checksum strings
 	int             snapshotCounter; // incremented for each snapshot built
 	int             timeResidual; // <= 1000 / sv_frame->value
 	int             nextFrameTime; // when time > nextFrameTime, process world
-	struct cmodel_t *models[ MAX_MODELS ];
 
 	char            *configstrings[ MAX_CONFIGSTRINGS ];
 	bool        configstringsmodified[ MAX_CONFIGSTRINGS ];
 	svEntity_t      svEntities[ MAX_GENTITIES ];
 
+	// this is apparently just a proxy, this pointer
+	// is set to contain the strings that define entities
+	// which must be parsed by sgame for spawning map entities,
+	// notably.
 	const char            *entityParsePoint; // used during game VM init
 
 	// the game virtual machine will update these on init and changes
@@ -103,12 +105,6 @@ struct server_t
 	float ucompAve;
 	int   ucompNum;
 	// -NERVE - SMF
-
-	md3Tag_t       tags[ MAX_SERVER_TAGS ];
-	tagHeaderExt_t tagHeadersExt[ MAX_TAG_FILES ];
-
-	int            num_tagheaders;
-	int            num_tags;
 };
 
 struct clientSnapshot_t
@@ -183,7 +179,6 @@ struct client_t
 	// note: this is one-shot, multiple downloads would cause a www download to be attempted again
 
 	int              deltaMessage; // frame last client usercmd message
-	int              nextReliableTime; // svs.time when another reliable command will be allowed
 	int              lastPacketTime; // svs.time when packet was last received
 	int              lastConnectTime; // svs.time when connection started
 	int              nextSnapshotTime; // send another snapshot when svs.time >= nextSnapshotTime
@@ -241,12 +236,14 @@ struct serverStatic_t
 {
 	bool      initialized; // sv_init has completed
 
+	bool warnedNetworkScopeNotAdvertisable;
+
 	int           time; // will be strictly increasing across level changes
 
 	int           snapFlagServerBit; // ^= SNAPFLAG_SERVERCOUNT every SV_SpawnServer()
 
-	client_t      *clients; // [sv_maxclients->integer];
-	int           numSnapshotEntities; // sv_maxclients->integer*PACKET_BACKUP*MAX_PACKET_ENTITIES
+	client_t      *clients; // [sv_maxClients.Get()];
+	int           numSnapshotEntities; // sv_maxClients.Get()*PACKET_BACKUP*MAX_PACKET_ENTITIES
 	int           nextSnapshotEntities; // next snapshotEntities to use
 	std::unique_ptr<entityState_t[]> snapshotEntities; // [numSnapshotEntities]
 	receipt_t     infoReceipts[ MAX_INFO_RECEIPTS ];
@@ -276,7 +273,6 @@ public:
 	void GameClientCommand(int clientNum, const char* command);
 	void GameClientThink(int clientNum);
 	void GameRunFrame(int levelTime);
-	bool GameSnapshotCallback(int entityNum, int clientNum);
 	NORETURN void BotAIStartFrame(int levelTime);
 
 private:
@@ -294,42 +290,33 @@ extern serverStatic_t svs; // persistent server info across maps
 extern server_t       sv; // cleared each map
 extern GameVM         gvm; // game virtual machine
 
-extern cvar_t         *sv_fps;
-extern cvar_t         *sv_timeout;
-extern cvar_t         *sv_zombietime;
-extern cvar_t         *sv_privatePassword;
-extern cvar_t         *sv_allowDownload;
-extern cvar_t         *sv_maxclients;
+extern Cvar::Range<Cvar::Cvar<int>> sv_fps;
+extern Cvar::Cvar<int> sv_timeout;
+extern Cvar::Cvar<int> sv_zombietime;
+extern Cvar::Cvar<std::string> sv_privatePassword;
+extern Cvar::Cvar<bool> sv_allowDownload;
+extern Cvar::Range<Cvar::Cvar<int>> sv_maxClients;
 
 extern Cvar::Range<Cvar::Cvar<int>> sv_privateClients;
-extern cvar_t         *sv_hostname;
-extern cvar_t         *sv_statsURL;
-extern cvar_t         *sv_reconnectlimit;
-extern cvar_t         *sv_padPackets;
+extern Cvar::Cvar<std::string> sv_hostname;
+extern Cvar::Cvar<std::string> sv_statsURL;
+extern Cvar::Cvar<int> sv_reconnectlimit;
+extern Cvar::Cvar<int> sv_padPackets;
 extern cvar_t         *sv_killserver;
-extern cvar_t         *sv_mapname;
+extern Cvar::Cvar<std::string> sv_mapname;
 extern cvar_t         *sv_mapChecksum;
-extern cvar_t         *sv_serverid;
-extern cvar_t         *sv_maxRate;
+extern Cvar::Cvar<int> sv_serverid;
+extern Cvar::Cvar<int> sv_maxRate;
 
-extern cvar_t *sv_floodProtect;
-extern cvar_t *sv_lanForceRate;
-
-extern cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
+extern Cvar::Cvar<bool> sv_lanForceRate;
 
 // TTimo - autodl
-extern cvar_t *sv_dl_maxRate;
-
-// HTTP download params
-extern Cvar::Cvar<bool> sv_wwwDownload;
-extern Cvar::Cvar<std::string> sv_wwwBaseURL;
-extern Cvar::Cvar<std::string> sv_wwwFallbackURL;
-
-//bani
-extern cvar_t *sv_packetdelay;
+extern Cvar::Cvar<int> sv_dl_maxRate;
 
 //fretn
-extern cvar_t *sv_fullmsg;
+extern Cvar::Cvar<std::string> sv_fullmsg;
+
+extern Cvar::Range<Cvar::Cvar<int>> sv_networkScope;
 
 //===========================================================
 
@@ -381,7 +368,7 @@ void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd );
 void SV_FreeClient( client_t *client );
 void SV_DropClient( client_t *drop, const char *reason );
 
-void SV_ExecuteClientCommand( client_t *cl, const char *s, bool clientOK, bool premaprestart );
+void SV_ExecuteClientCommand( client_t *cl, const char *s, bool premaprestart );
 void SV_ClientThink( client_t *cl, usercmd_t *cmd );
 
 void SV_WriteDownloadToClient( client_t *cl, msg_t *msg );
@@ -436,7 +423,6 @@ enum class ServerPrivate
 	Public,      // Actively advertise, don't refuse anything
 	NoAdvertise, // Do not advertise but reply to all out of band messages
 	NoStatus,    // Do not advertise nor reply to status out of band messages but allow all connections
-	LanOnly,     // Block everything except for LAN connections
 };
 
 /*

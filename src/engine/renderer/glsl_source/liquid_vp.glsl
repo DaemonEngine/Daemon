@@ -28,7 +28,10 @@ IN vec3			attr_Tangent;
 IN vec3			attr_Binormal;
 IN vec3			attr_Normal;
 
-uniform mat4		u_TextureMatrix;
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat3x2 u_TextureMatrix;
+#endif
+
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
@@ -40,6 +43,8 @@ OUT(smooth) vec3	var_Normal;
 
 void	main()
 {
+	#insert material_vp
+
 	// transform vertex position into homogenous clip-space
 	gl_Position = u_ModelViewProjectionMatrix * vec4(attr_Position, 1.0);
 
@@ -47,7 +52,7 @@ void	main()
 	var_Position = (u_ModelMatrix * vec4(attr_Position, 1.0)).xyz;
 
 	// transform normalmap texcoords
-	var_TexCoords = (u_TextureMatrix * vec4(attr_TexCoord0, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec3(attr_TexCoord0, 1.0)).st;
 
 	var_Tangent.xyz = (u_ModelMatrix * vec4(attr_Tangent, 0.0)).xyz;
 	var_Binormal.xyz = (u_ModelMatrix * vec4(attr_Binormal, 0.0)).xyz;

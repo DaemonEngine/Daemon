@@ -54,8 +54,8 @@ void trap_DropClient(int clientNum, const char *reason)
 void trap_SendServerCommand(int clientNum, const char *text)
 {
     if (strlen(text) > 1022) {
-        Log::Notice("trap_SendServerCommand( %d, ... ) length exceeds 1022.\n", clientNum);
-        Log::Notice("text [%.950s]... truncated\n", text);
+        Log::Notice("trap_SendServerCommand( %d, ... ) length exceeds 1022.", clientNum);
+        Log::Notice("text [%.950s]... truncated", text);
         return;
     }
 
@@ -124,8 +124,7 @@ int trap_RSA_GenerateMessage(const char *public_key, char *cleartext, char *encr
 
 void trap_GenFingerprint(const char *pubkey, int size, char *buffer, int bufsize)
 {
-    std::vector<char> pubkey2(size, 0);
-    memcpy(pubkey2.data(), pubkey, size);
+    std::vector<char> pubkey2(pubkey, pubkey + size);
     std::string fingerprint;
     VM::SendMsg<GenFingerprintMsg>(size, pubkey2, bufsize, fingerprint);
     Q_strncpyz(buffer, fingerprint.c_str(), bufsize);
@@ -143,11 +142,6 @@ void trap_GetTimeString(char *buffer, int size, const char *format, const qtime_
     std::string text;
     VM::SendMsg<GetTimeStringMsg>(size, format, *tm, text);
     Q_strncpyz(buffer, text.c_str(), size);
-}
-
-void trap_QuoteString(const char *str, char *buffer, int size)
-{
-    Q_strncpyz(buffer, Cmd::Escape(str).c_str(), size);
 }
 
 int trap_BotAllocateClient()

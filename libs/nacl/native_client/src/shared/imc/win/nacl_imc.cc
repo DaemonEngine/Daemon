@@ -175,7 +175,7 @@ int NaClWouldBlock() {
 
 int NaClGetLastErrorString(char* buffer, size_t length) {
   DWORD error = GetLastError();
-  return FormatMessageA(
+  int len = FormatMessageA(
       FORMAT_MESSAGE_FROM_SYSTEM |
       FORMAT_MESSAGE_IGNORE_INSERTS,
       NULL,
@@ -183,7 +183,19 @@ int NaClGetLastErrorString(char* buffer, size_t length) {
       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
       buffer,
       (DWORD) ((64 * 1024 < length) ? 64 * 1024 : length),
-      NULL) ? 0 : -1;
+      NULL);
+  if (len == 0)
+     return -1;
+  if (len > 3) {
+     if (buffer[len - 1] == '\n')
+        --len;
+     if (buffer[len - 1] == '\r')
+        --len;
+     if (buffer[len - 1] == '.')
+        --len;
+     buffer[len] = '\0';
+  }
+  return 0;
 }
 
 NaClHandle NaClBoundSocket(const NaClSocketAddress* address) {

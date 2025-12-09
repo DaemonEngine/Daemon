@@ -88,10 +88,8 @@ public:
         this->traits.defaultHomepath = name;
         free(name);
 #else
-        const char* tmpdir = getenv("TMPDIR");
-        tmpdir = tmpdir ? tmpdir : "/tmp";
-        std::string name = FS::Path::Build(tmpdir, "daemon-test-homepath.XXXXXX");
-        // mktempd creates the directory
+        std::string name = FS::Path::Build(FS::DefaultTempPath(), "daemon-test-homepath.XXXXXX");
+        // mkdtemp creates the directory
         if (mkdtemp(&name[0]) == nullptr) {
             Sys::Error("Couldn't create temp dir for test: %s", strerror(errno));
         }

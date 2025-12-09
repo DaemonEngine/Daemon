@@ -207,10 +207,16 @@ namespace Path {
 } // namespace Path
 
 // Iterator which iterates over all files in a directory
-template<typename State> class DirectoryIterator: public std::iterator<std::input_iterator_tag, std::string> {
+template<typename State> class DirectoryIterator {
 	// State interface:
 	// bool Advance(std::error_code& err);
 	// std::string current;
+	using iterator_category = std::input_iterator_tag;
+	using value_type = std::string;
+	using difference_type = void;
+	using pointer = void;
+	using reference = void;
+
 public:
 	DirectoryIterator()
 		: state(nullptr) {}
@@ -316,6 +322,8 @@ namespace PakPath {
 	// Load a pak into the namespace and verify its checksum but *don't* load its dependencies
 	void LoadPakExplicit(const PakInfo& pak, uint32_t expectedChecksum, std::error_code& err = throws());
 
+	void LoadPakExplicitWithoutChecksum(const PakInfo& pak, std::error_code& err = throws());
+
 #ifndef BUILD_VM
 	// Remove all loaded paks
 	void ClearPaks();
@@ -343,8 +351,8 @@ namespace PakPath {
 	// List all files in the given subdirectory, optionally recursing into subdirectories
 	// Note that unlike RawPath/HomePath, directories are *not* returned by ListFiles
 	class DirectoryRange;
-	DirectoryRange ListFiles(Str::StringRef path, std::error_code& err = throws());
-	DirectoryRange ListFilesRecursive(Str::StringRef path, std::error_code& err = throws());
+	DirectoryRange ListFiles(Str::StringRef path);
+	DirectoryRange ListFilesRecursive(Str::StringRef path);
 
 	// Helper function to complete a filename. The root is prepended to the path but not included
 	// in the completion results.
@@ -368,8 +376,8 @@ namespace PakPath {
 
 	private:
 		friend class DirectoryIterator<DirectoryRange>;
-		friend DirectoryRange ListFiles(Str::StringRef path, std::error_code& err);
-		friend DirectoryRange ListFilesRecursive(Str::StringRef path, std::error_code& err);
+		friend DirectoryRange ListFiles(Str::StringRef path);
+		friend DirectoryRange ListFilesRecursive(Str::StringRef path);
 		bool Advance(std::error_code& err);
 		bool InternalAdvance();
 		std::string current;
@@ -505,8 +513,11 @@ namespace HomePath {
 #ifdef BUILD_VM
 void Initialize();
 #else
-std::string DefaultBasePath();
+std::string DefaultLibPath();
 std::string DefaultHomePath();
+#ifndef _WIN32
+std::string DefaultTempPath();
+#endif
 void Initialize(Str::StringRef homePath, Str::StringRef libPath, const std::vector<std::string>& paths);
 #endif
 

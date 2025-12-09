@@ -37,6 +37,12 @@ Maryland 20850 USA.
 
 #include "common/Defs.h"
 
+#if defined(BUILD_VM)
+#include "DaemonBuildInfo/Game.h"
+#else
+#include "DaemonBuildInfo/Engine.h"
+#endif
+
 // math.h/cmath uses _USE_MATH_DEFINES to decide if to define M_PI etc or not.
 // So define _USE_MATH_DEFINES early before including math.h/cmath
 // and before including any other header in case they bring in math.h/cmath indirectly.
@@ -51,11 +57,7 @@ Maryland 20850 USA.
 #define ENGINE_NAME             "Daemon Engine"
 #define ENGINE_VERSION          PRODUCT_VERSION
 
-#ifdef REVISION
-# define Q3_VERSION             PRODUCT_NAME " " PRODUCT_VERSION " " REVISION
-#else
-# define Q3_VERSION             PRODUCT_NAME " " PRODUCT_VERSION
-#endif
+#define Q3_VERSION              PRODUCT_NAME " " PRODUCT_VERSION
 
 #define Q3_ENGINE               ENGINE_NAME " " ENGINE_VERSION
 #define Q3_ENGINE_DATE          __DATE__
@@ -125,13 +127,11 @@ void ignore_result(T) {}
 
 // vsnprintf is ISO/IEC 9899:1999
 // abstracting this to make it portable
-#ifdef _MSC_VER
+#ifdef _WIN32
 //vsnprintf is non-conformant in MSVC--fails to null-terminate in case of overflow
+//(fixed in newer versions "Beginning with the UCRT in Visual Studio 2015 and Windows 10")
 #define Q_vsnprintf(dest, size, fmt, args) _vsnprintf_s( dest, size, _TRUNCATE, fmt, args )
 #define Q_snprintf(dest, size, fmt, ...) _snprintf_s( dest, size, _TRUNCATE, fmt, __VA_ARGS__ )
-#elif defined( _WIN32 )
-#define Q_vsnprintf _vsnprintf
-#define Q_snprintf  _snprintf
 #else
 #define Q_vsnprintf vsnprintf
 #define Q_snprintf  snprintf
@@ -147,13 +147,6 @@ void ignore_result(T) {}
 	using byte = uint8_t;
 	using uint = unsigned int;
 	enum class qtrinary {qno, qyes, qmaybe};
-
-	union floatint_t
-	{
-		float f;
-		int i;
-		uint ui;
-	};
 
 //=============================================================
 
@@ -231,7 +224,6 @@ void  Com_Free_Aligned( void *ptr );
 
 	using vec_t = float;
 	using vec2_t = vec_t[2];
-
 	using vec3_t = vec_t[3];
 	using vec4_t = vec_t[4];
 
@@ -239,6 +231,11 @@ void  Com_Free_Aligned( void *ptr );
 	using matrix3x3_t = vec_t[3 * 3];
 	using matrix_t = vec_t[4 * 4];
 	using quat_t = vec_t[4];
+
+	struct plane_t {
+		vec3_t normal;
+		vec_t dist;
+	};
 
 	// A transform_t represents a product of basic
 	// transformations, which are a rotation about an arbitrary
@@ -248,7 +245,7 @@ void  Com_Free_Aligned( void *ptr );
 	// floats (quat: 4, scale: 1, translation: 3), which is very
 	// convenient for SSE and GLSL, which operate on 4-dimensional
 	// float vectors.
-#if idx86_sse
+#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
     // Here we have a union of scalar struct and sse struct, transform_u and the
     // scalar struct must match transform_t so we have to use anonymous structs.
     // We disable compiler warnings when using -Wpedantic for this specific case.
@@ -256,7 +253,7 @@ void  Com_Free_Aligned( void *ptr );
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 #endif
-	ALIGNED(16, union transform_t {
+	union alignas(16) transform_t {
 		struct {
 			quat_t rot;
 			vec3_t trans;
@@ -266,16 +263,16 @@ void  Com_Free_Aligned( void *ptr );
 			__m128 sseRot;
 			__m128 sseTransScale;
 		};
-	});
+	};
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
 #else
-	ALIGNED(16, struct transform_t {
+	struct alignas(16) transform_t {
 		quat_t rot;
 		vec3_t trans;
 		vec_t  scale;
-	});
+	};
 #endif
 
 	using fixed4_t = int;
@@ -345,107 +342,261 @@ extern const vec3_t   axisDefault[ 3 ];
 extern const matrix_t matrixIdentity;
 extern const quat_t   quatIdentity;
 
-#define nanmask ( 255 << 23 )
-
-#define IS_NAN( x ) ( ( ( *(int *)&( x ) ) & nanmask ) == nanmask )
-
 #define Q_ftol(x) ((long)(x))
 
-	inline unsigned int Q_floatBitsToUint( float number )
-	{
-		floatint_t t;
+/* The original Q_rsqrt algorithm is:
 
-		t.f = number;
-		return t.ui;
-	}
+float Q_rsqrt( float n )
+{
+	uint32_t magic = 0x5f3759dful;
+	float a = 0.5f;
+	float b = 3.0f;
+	union { float f; uint32_t u; } o = {n};
+	o.u = magic - ( o.u >> 1 );
+	return a * o.f * ( b - n * o.f * o.f );
+}
 
-	inline float Q_uintBitsToFloat( unsigned int number )
-	{
-		floatint_t t;
+It could be written like this, this is what Quake 3 did:
 
-		t.ui = number;
-		return t.f;
-	}
+float Q_rsqrt( float n )
+{
+	uint32_t magic = 0x5f3759dful;
+	float a = 0.5f;
+	float b = 3.0f;
+	float c = a * b; // 1.5f
+	union { float f; uint32_t u; } o = {n};
+	o.u = magic - ( o.u >> 1);
+	float x = n * a;
+	return o.f * ( c - ( x * o.f * o.f ) );
+	o.f *= c - ( x * o.f * o.f );
+//	o.f *= c - ( x * o.f * o.f );
+	return o.f;
+}
 
-	inline float Q_rsqrt( float number )
-	{
-		float x = 0.5f * number;
-		float y;
+It was written with a second iteration commented out.
 
-		Q_UNUSED(x);
+The relative error bound after the initial iteration was: 1.8×10⁻³
+The relative error bound after a second iteration was: 5×10⁻⁶
 
-		// compute approximate inverse square root
-#if defined( idx86_sse )
-		_mm_store_ss( &y, _mm_rsqrt_ss( _mm_load_ss( &number ) ) );
-#elif idppc
+The 0x5f3759df magic constant comes from the Quake 3 source code:
+https://github.com/id-Software/Quake-III-Arena/blob/dbe4ddb/code/game/q_math.c#L56
 
-#ifdef __GNUC__
-		asm( "frsqrte %0, %1" : "=f"( y ) : "f"( number ) );
+That magic constant was good enough but better ones can be used.
+
+Chris lomont computed a better magic constant of 0x5f375a86 while
+keeping the other values of 0.5 and 3.0 for all iterations:
+https://www.lomont.org/papers/2003/InvSqrt.pdf
+
+Jan Kadlec computed an ever better magic constant but it requires
+different values for the first iteration: http://rrrola.wz.cz/inv_sqrt.html
+
+float Q_rsqrt( float n )
+{
+	uint32_t magic = 0x5f1ffff9ul:
+	float a = 0.703952253f;
+	float b = 2.38924456f;
+	union { float f; uint32_t u; } o = {n};
+	o.u = magic - ( o.u >> 1 );
+	return a * o.f * ( b - n * y.f * y.f );
+}
+
+The relative error bound is: 6.50196699×10⁻⁴ */
+
+// Compute approximate inverse square root.
+WARN_UNUSED_RESULT inline float Q_rsqrt_fast( const float n )
+{
+#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+	float o;
+	// The SSE rsqrt relative error bound is 3.7×10⁻⁴.
+	_mm_store_ss( &o, _mm_rsqrt_ss( _mm_load_ss( &n ) ) );
 #else
-		y = __frsqrte( number );
+	/* Magic constants by Jan Kadlec, with a relative error bound
+	of 6.50196699×10⁻⁴.
+	See: http://rrrola.wz.cz/inv_sqrt.html */
+	constexpr float a = 0.703952253f;
+	constexpr float b = 2.38924456f;
+	constexpr uint32_t magic = 0x5f1ffff9ul;
+	float o = Util::bit_cast<float>( magic - ( Util::bit_cast<uint32_t>( n ) >> 1 ) );
+	o *= a * ( b - n * o * o );
 #endif
-#else
-		y = Q_uintBitsToFloat( 0x5f3759df - (Q_floatBitsToUint( number ) >> 1) );
-		y *= ( 1.5f - ( x * y * y ) ); // initial iteration
-#endif
-		y *= ( 1.5f - ( x * y * y ) ); // second iteration for higher precision
-		return y;
-	}
+	return o;
+}
 
-inline float Q_fabs( float x )
+WARN_UNUSED_RESULT inline float Q_rsqrt( const float n )
+{
+	/* When using the magic constants, the relative error bound after the
+	iteration is expected to be at most 5×10⁻⁶. It was achieved with the
+	less-good Quake 3 constants with a first iteration having originally
+	a relative error bound of 1.8×10⁻³.
+	Since the new magic constants provide a better relative error bound of
+	6.50196699×10⁻⁴, the relative error bound is now expected to be smaller.
+	When using the SSE rsqrt, the initial error bound is 3.7×10⁻⁴ so after
+	the iteration it is also expected to be smaller. */
+	constexpr float a = 0.5f;
+	constexpr float b = 3.0f;
+	float o = Q_rsqrt_fast( n );
+	// Do an iteration of Newton's method for finding the zero of: f(x) = 1÷x² - n
+	o *= a * ( b - n * o * o );
+	return o;
+}
+
+WARN_UNUSED_RESULT inline float Q_fabs( float x )
 {
 	return fabsf( x );
 }
 
-byte         ClampByte( int i );
-signed char  ClampChar( int i );
+WARN_UNUSED_RESULT byte         ClampByte( int i );
+WARN_UNUSED_RESULT signed char  ClampChar( int i );
 
 // this isn't a real cheap function to call!
-int          DirToByte( vec3_t const dir );
+WARN_UNUSED_RESULT int DirToByte( vec3_t const dir );
 void         ByteToDir( int b, vec3_t dir );
 
-inline float DotProduct( const vec3_t x, const vec3_t y )
+WARN_UNUSED_RESULT inline vec_t DotProduct( const vec3_t x, const vec3_t y )
 {
 	return x[ 0 ] * y[ 0 ] + x[ 1 ] * y[ 1 ] + x[ 2 ] * y[ 2 ];
 }
-#define VectorSubtract( a,b,c )      ( ( c )[ 0 ] = ( a )[ 0 ] - ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] - ( b )[ 1 ],( c )[ 2 ] = ( a )[ 2 ] - ( b )[ 2 ] )
-#define VectorAdd( a,b,c )           ( ( c )[ 0 ] = ( a )[ 0 ] + ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] + ( b )[ 1 ],( c )[ 2 ] = ( a )[ 2 ] + ( b )[ 2 ] )
-#define VectorCopy( a,b )            ( ( b )[ 0 ] = ( a )[ 0 ],( b )[ 1 ] = ( a )[ 1 ],( b )[ 2 ] = ( a )[ 2 ] )
-#define VectorScale( v, s, o )       ( ( o )[ 0 ] = ( v )[ 0 ] * ( s ),( o )[ 1 ] = ( v )[ 1 ] * ( s ),( o )[ 2 ] = ( v )[ 2 ] * ( s ) )
+
+inline void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross )
+{
+	cross[ 0 ] = v1[ 1 ] * v2[ 2 ] - v1[ 2 ] * v2[ 1 ];
+	cross[ 1 ] = v1[ 2 ] * v2[ 0 ] - v1[ 0 ] * v2[ 2 ];
+	cross[ 2 ] = v1[ 0 ] * v2[ 1 ] - v1[ 1 ] * v2[ 0 ];
+}
+
+template<typename A>
+WARN_UNUSED_RESULT decltype(std::declval<A>() * std::declval<A>()) Square( const A &a )
+{
+	return a * a;
+}
+
+template<typename A, typename B, typename C>
+void VectorSubtract( const A &a, const B &b, C &&c )
+{
+	c[ 0 ] = a[ 0 ] - b[ 0 ];
+	c[ 1 ] = a[ 1 ] - b[ 1 ];
+	c[ 2 ] = a[ 2 ] - b[ 2 ];
+}
+
+template<typename A, typename B, typename C>
+void VectorAdd( const A &a, const B &b, C &&c )
+{
+	c[ 0 ] = a[ 0 ] + b[ 0 ];
+	c[ 1 ] = a[ 1 ] + b[ 1 ];
+	c[ 2 ] = a[ 2 ] + b[ 2 ];
+}
+
+template<typename A, typename B>
+void VectorCopy( const A &a, B &&b )
+{
+	b[ 0 ] = a[ 0 ];
+	b[ 1 ] = a[ 1 ];
+	b[ 2 ] = a[ 2 ];
+}
+
+template<typename V, typename S, typename O>
+void VectorScale( const V &v, S s, O &&o )
+{
+	o[ 0 ] = v[ 0 ] * s;
+	o[ 1 ] = v[ 1 ] * s;
+	o[ 2 ] = v[ 2 ] * s;
+}
+
 /** Stands for MultiplyAdd: adding a vector "b" scaled by "s" to "v" and writing it to "o" */
-#define VectorMA( v, s, b, o )       ( ( o )[ 0 ] = ( v )[ 0 ] + ( b )[ 0 ] * ( s ),( o )[ 1 ] = ( v )[ 1 ] + ( b )[ 1 ] * ( s ),( o )[ 2 ] = ( v )[ 2 ] + ( b )[ 2 ] * ( s ) )
+template<typename V, typename S, typename B, typename O>
+void VectorMA( const V &v, S s, const B &b, O &&o )
+{
+	o[ 0 ] = v[ 0 ] + b[ 0 ] * s;
+	o[ 1 ] = v[ 1 ] + b[ 1 ] * s;
+	o[ 2 ] = v[ 2 ] + b[ 2 ] * s;
+}
+
+template<typename A>
+void VectorClear( A &&a )
+{
+	a[ 0 ] = 0;
+	a[ 1 ] = 0;
+	a[ 2 ] = 0;
+}
+
+template<typename A, typename B>
+void VectorNegate( const A &a, B &&b )
+{
+	b[ 0 ] = -a[ 0 ];
+	b[ 1 ] = -a[ 1 ];
+	b[ 2 ] = -a[ 2 ];
+}
+
+template<typename V, typename X, typename Y, typename Z>
+void VectorSet( V &&v, X x, Y y, Z z )
+{
+	v[ 0 ] = x;
+	v[ 1 ] = y;
+	v[ 2 ] = z;
+}
+
+template<typename A, typename B>
+void Vector2Copy( const A &a, B &&b )
+{
+	b[ 0 ] = a[ 0 ];
+	b[ 1 ] = a[ 1 ];
+}
+
+template<typename V, typename X, typename Y>
+void Vector2Set( V &&v, X x, Y y )
+{
+	v[ 0 ] = x;
+	v[ 1 ] = y;
+}
+
+template<typename A, typename B, typename C>
+void Vector2Subtract( const A &a, const B &b, C &&c )
+{
+	c[ 0 ] = a[ 0 ] - b[ 0 ];
+	c[ 1 ] = a[ 1 ] - b[ 1 ];
+}
+
+template<typename V, typename X, typename Y, typename Z, typename W>
+void Vector4Set( V &&v, X x, Y y, Z z, W w )
+{
+	v[ 0 ] = x;
+	v[ 1 ] = y;
+	v[ 2 ] = z;
+	v[ 3 ] = w;
+}
+
+template<typename A, typename B>
+void Vector4Copy( const A &a, B &&b )
+{
+	b[ 0 ] = a[ 0 ];
+	b[ 1 ] = a[ 1 ];
+	b[ 2 ] = a[ 2 ];
+	b[ 3 ] = a[ 3 ];
+}
+
+// good for floats only
+template<typename V>
+void SnapVector( V &&v )
+{
+	v[ 0 ] = roundf( v[ 0 ] );
+	v[ 1 ] = roundf( v[ 1 ] );
+	v[ 2 ] = roundf( v[ 2 ] );
+}
+
 #define VectorLerpTrem( f, s, e, r ) (( r )[ 0 ] = ( s )[ 0 ] + ( f ) * (( e )[ 0 ] - ( s )[ 0 ] ), \
                                       ( r )[ 1 ] = ( s )[ 1 ] + ( f ) * (( e )[ 1 ] - ( s )[ 1 ] ), \
                                       ( r )[ 2 ] = ( s )[ 2 ] + ( f ) * (( e )[ 2 ] - ( s )[ 2 ] ))
 
-#define VectorClear( a )             ( ( a )[ 0 ] = ( a )[ 1 ] = ( a )[ 2 ] = 0 )
-#define VectorNegate( a,b )          ( ( b )[ 0 ] = -( a )[ 0 ],( b )[ 1 ] = -( a )[ 1 ],( b )[ 2 ] = -( a )[ 2 ] )
-#define VectorSet( v, x, y, z )      ( ( v )[ 0 ] = ( x ), ( v )[ 1 ] = ( y ), ( v )[ 2 ] = ( z ) )
-
-#define Vector2Set( v, x, y )        ( ( v )[ 0 ] = ( x ),( v )[ 1 ] = ( y ) )
-#define Vector2Copy( a,b )           ( ( b )[ 0 ] = ( a )[ 0 ],( b )[ 1 ] = ( a )[ 1 ] )
-#define Vector2Subtract( a,b,c )     ( ( c )[ 0 ] = ( a )[ 0 ] - ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] - ( b )[ 1 ] )
-
-#define Vector4Set( v, x, y, z, n )  ( ( v )[ 0 ] = ( x ),( v )[ 1 ] = ( y ),( v )[ 2 ] = ( z ),( v )[ 3 ] = ( n ) )
-#define Vector4Copy( a,b )           ( ( b )[ 0 ] = ( a )[ 0 ],( b )[ 1 ] = ( a )[ 1 ],( b )[ 2 ] = ( a )[ 2 ],( b )[ 3 ] = ( a )[ 3 ] )
-/** Stands for MultiplyAdd: adding a vector "b" scaled by "s" to "v" and writing it to "o" */
-#define Vector4MA( v, s, b, o )      ( ( o )[ 0 ] = ( v )[ 0 ] + ( b )[ 0 ] * ( s ),( o )[ 1 ] = ( v )[ 1 ] + ( b )[ 1 ] * ( s ),( o )[ 2 ] = ( v )[ 2 ] + ( b )[ 2 ] * ( s ),( o )[ 3 ] = ( v )[ 3 ] + ( b )[ 3 ] * ( s ) )
-#define Vector4Average( v, b, s, o ) ( ( o )[ 0 ] = ( ( v )[ 0 ] * ( 1 - ( s ) ) ) + ( ( b )[ 0 ] * ( s ) ),( o )[ 1 ] = ( ( v )[ 1 ] * ( 1 - ( s ) ) ) + ( ( b )[ 1 ] * ( s ) ),( o )[ 2 ] = ( ( v )[ 2 ] * ( 1 - ( s ) ) ) + ( ( b )[ 2 ] * ( s ) ),( o )[ 3 ] = ( ( v )[ 3 ] * ( 1 - ( s ) ) ) + ( ( b )[ 3 ] * ( s ) ) )
-
-#define DotProduct4(x, y)            (( x )[ 0 ] * ( y )[ 0 ] + ( x )[ 1 ] * ( y )[ 1 ] + ( x )[ 2 ] * ( y )[ 2 ] + ( x )[ 3 ] * ( y )[ 3 ] )
-
-#define SnapVector( v )              do { ( v )[ 0 ] = ( floor( ( v )[ 0 ] + 0.5f ) ); ( v )[ 1 ] = ( floor( ( v )[ 1 ] + 0.5f ) ); ( v )[ 2 ] = ( floor( ( v )[ 2 ] + 0.5f ) ); } while ( 0 )
-
-	float    RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
+	WARN_UNUSED_RESULT float RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
 	void     ZeroBounds( vec3_t mins, vec3_t maxs );
 	void     ClearBounds( vec3_t mins, vec3_t maxs );
 	void     AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs );
 
 	void     BoundsAdd( vec3_t mins, vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
-	bool BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
-	bool BoundsIntersectSphere( const vec3_t mins, const vec3_t maxs, const vec3_t origin, vec_t radius );
-	bool BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t origin );
-	float BoundsMaxExtent( const vec3_t mins, const vec3_t maxs );
+	WARN_UNUSED_RESULT bool BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
+	WARN_UNUSED_RESULT bool BoundsIntersectSphere( const vec3_t mins, const vec3_t maxs, const vec3_t origin, vec_t radius );
+	WARN_UNUSED_RESULT bool BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t origin );
+	WARN_UNUSED_RESULT float BoundsMaxExtent( const vec3_t mins, const vec3_t maxs );
 
 	inline void BoundsToCorners( const vec3_t mins, const vec3_t maxs, vec3_t corners[ 8 ] )
 	{
@@ -459,8 +610,6 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		VectorSet( corners[ 7 ], mins[ 0 ], mins[ 1 ], mins[ 2 ] );
 	}
 
-	int VectorCompare( const vec3_t v1, const vec3_t v2 );
-
 	inline void VectorLerp( const vec3_t from, const vec3_t to, float frac, vec3_t out )
 	{
 		out[ 0 ] = from[ 0 ] + ( ( to[ 0 ] - from[ 0 ] ) * frac );
@@ -468,7 +617,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		out[ 2 ] = from[ 2 ] + ( ( to[ 2 ] - from[ 2 ] ) * frac );
 	}
 
-	inline int VectorCompareEpsilon( const vec3_t v1, const vec3_t v2, float epsilon )
+	WARN_UNUSED_RESULT inline int VectorCompareEpsilon( const vec3_t v1, const vec3_t v2, float epsilon )
 	{
 		vec3_t d;
 
@@ -499,17 +648,94 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		out[2] = a[2] > b[2] ? a[2] : b[2];
 	}
 
-	vec_t VectorLength( const vec3_t v );
-	vec_t VectorLengthSquared( const vec3_t v );
-	vec_t Distance( const vec3_t p1, const vec3_t p2 );
-	vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 );
-	void  CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross );
-	vec_t VectorNormalize( vec3_t v );  // returns vector length
-	void  VectorNormalizeFast( vec3_t v );  // does NOT return vector length, uses rsqrt approximation
-	vec_t VectorNormalize2( const vec3_t v, vec3_t out );
-	void  VectorInverse( vec3_t v );
+WARN_UNUSED_RESULT inline bool VectorCompare( const vec3_t v1, const vec3_t v2 )
+{
+	return !( v1[ 0 ] != v2[ 0 ] || v1[ 1 ] != v2[ 1 ] || v1[ 2 ] != v2[ 2 ] );
+}
 
-	int   NearestPowerOfTwo( int val );
+WARN_UNUSED_RESULT inline vec_t VectorLengthSquared( const vec3_t v )
+{
+	return v[ 0 ] * v[ 0 ] + v[ 1 ] * v[ 1 ] + v[ 2 ] * v[ 2 ];
+}
+
+WARN_UNUSED_RESULT inline vec_t VectorLength( const vec3_t v )
+{
+	return sqrtf( VectorLengthSquared( v ) );
+}
+
+WARN_UNUSED_RESULT inline vec_t Distance( const vec3_t p1, const vec3_t p2 )
+{
+	vec3_t v;
+	VectorSubtract( p2, p1, v );
+	return VectorLength( v );
+}
+
+WARN_UNUSED_RESULT inline vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 )
+{
+	vec3_t v;
+	VectorSubtract( p2, p1, v );
+	return VectorLengthSquared( v );
+}
+
+inline void VectorInverse( vec3_t v )
+{
+	v[ 0 ] = -v[ 0 ];
+	v[ 1 ] = -v[ 1 ];
+	v[ 2 ] = -v[ 2 ];
+}
+
+// returns vector length
+inline vec_t VectorNormalize( vec3_t v )
+{
+	vec_t length = DotProduct( v, v );
+
+	if ( length != 0.0f )
+	{
+		vec_t ilength = Q_rsqrt( length );
+		/* sqrtf(length) = length * (1 / sqrtf(length)) */
+		length *= ilength;
+		VectorScale( v, ilength, v );
+	}
+
+	return length;
+}
+
+// does NOT return vector length, uses rsqrt approximation
+// fast vector normalize routine that does not check to make sure
+// that length != 0, nor does it return length
+inline void VectorNormalizeFast( vec3_t v )
+{
+	vec_t length = DotProduct( v, v );
+
+#if DAEMON_USE_FLOAT_EXCEPTIONS
+	if ( length )
+#endif
+	{
+		vec_t ilength = Q_rsqrt_fast( length );
+		VectorScale( v, ilength, v );
+	}
+}
+
+inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
+{
+	vec_t length = VectorLengthSquared( v );
+
+	if ( length )
+	{
+		vec_t ilength = Q_rsqrt( length );
+		/* sqrtf(length) = length * (1 / sqrtf(length)) */
+		length *= ilength;
+		VectorScale( v, ilength, out );
+	}
+	else
+	{
+		VectorClear( out );
+	}
+
+	return length;
+}
+
+	WARN_UNUSED_RESULT int NearestPowerOfTwo( int val );
 
 	int   Q_rand( int *seed );
 	float Q_random( int *seed );
@@ -531,29 +757,31 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	void  AxisCopy( const vec3_t in[ 3 ], vec3_t out[ 3 ] );
 
 	void  SetPlaneSignbits( struct cplane_t *out );
-	int   BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const struct cplane_t *plane );
+	WARN_UNUSED_RESULT int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const struct cplane_t *plane );
 
-	float AngleMod( float a );
-	float LerpAngle( float from, float to, float frac );
-	float AngleSubtract( float a1, float a2 );
-	void  AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 );
+	WARN_UNUSED_RESULT DEPRECATED float AngleMod( float a );
+	WARN_UNUSED_RESULT float LerpAngle( float from, float to, float frac );
+	WARN_UNUSED_RESULT float AngleSubtract( float a1, float a2 );
+	void  AnglesSubtract( const vec3_t v1, const vec3_t v2, vec3_t v3 );
 
-	float AngleNormalize360( float angle );
-	float AngleNormalize180( float angle );
-	float AngleDelta( float angle1, float angle2 );
-	float AngleBetweenVectors( const vec3_t a, const vec3_t b );
+	WARN_UNUSED_RESULT float AngleNormalize360( float angle );
+	WARN_UNUSED_RESULT float AngleNormalize180( float angle );
+	WARN_UNUSED_RESULT float AngleDelta( float angle1, float angle2 );
+	WARN_UNUSED_RESULT float AngleBetweenVectors( const vec3_t a, const vec3_t b );
 	void  AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up );
 
-	vec_t PlaneNormalize( vec4_t plane );  // returns normal length
+	void PlaneSet( plane_t &out, const vec_t x, const vec_t y, const vec_t z, const vec_t dist );
+	void PlaneSet( plane_t &out, const vec3_t v, const vec_t dist );
+	vec_t PlaneNormalize( plane_t &plane );  // returns normal length
 
 	/* greebo: This calculates the intersection point of three planes.
 	 * Returns <0,0,0> if no intersection point could be found, otherwise returns the coordinates of the intersection point
 	 * (this may also be 0,0,0) */
-	bool PlanesGetIntersectionPoint( const vec4_t plane1, const vec4_t plane2, const vec4_t plane3, vec3_t out );
-	void     PlaneIntersectRay( const vec3_t rayPos, const vec3_t rayDir, const vec4_t plane, vec3_t res );
+	bool PlanesGetIntersectionPoint( const plane_t &plane1, const plane_t &plane2, const plane_t &plane3, vec3_t out );
+	void PlaneIntersectRay( const vec3_t rayPos, const vec3_t rayDir, const plane_t &plane, vec3_t res );
 
-	bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
-	bool PlaneFromPointsOrder( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c, bool cw );
+	bool PlaneFromPoints( plane_t &plane, const vec3_t a, const vec3_t b, const vec3_t c );
+	bool PlaneFromPointsOrder( plane_t &plane, const vec3_t a, const vec3_t b, const vec3_t c, bool cw );
 	void     ProjectPointOnPlane( vec3_t dst, const vec3_t point, const vec3_t normal );
 	void     RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
 
@@ -576,13 +804,10 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	void  AxisMultiply( const float in1[ 3 ][ 3 ], const float in2[ 3 ][ 3 ], float out[ 3 ][ 3 ] );
 	void  PerpendicularVector( vec3_t dst, const vec3_t src );
 
-// Ridah
 	void  GetPerpendicularViewVector( const vec3_t point, const vec3_t p1, const vec3_t p2, vec3_t up );
 	void  ProjectPointOntoVector( const vec3_t point, const vec3_t vStart, const vec3_t vEnd, vec3_t vProj );
 	void  ProjectPointOntoVectorBounded( const vec3_t point, const vec3_t vStart, const vec3_t vEnd, vec3_t vProj );
-	float DistanceFromLineSquared( const vec3_t p, const vec3_t lp1, const vec3_t lp2 );
-
-// done.
+	WARN_UNUSED_RESULT float DistanceFromLineSquared( const vec3_t p, const vec3_t lp1, const vec3_t lp2 );
 
 	vec_t DistanceBetweenLineSegmentsSquared( const vec3_t sP0, const vec3_t sP1,
 	    const vec3_t tP0, const vec3_t tP1, float *s, float *t );
@@ -594,7 +819,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	void     MatrixIdentity( matrix_t m );
 	void     MatrixClear( matrix_t m );
 	void     MatrixCopy( const matrix_t in, matrix_t out );
-	bool MatrixCompare( const matrix_t a, const matrix_t b );
+	WARN_UNUSED_RESULT bool MatrixCompare( const matrix_t a, const matrix_t b );
 	void     MatrixTransposeIntoXMM( const matrix_t m );
 	void     MatrixTranspose( const matrix_t in, matrix_t out );
 
@@ -618,8 +843,10 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	void     MatrixFromVectorsFLU( matrix_t m, const vec3_t forward, const vec3_t left, const vec3_t up );
 	void     MatrixFromVectorsFRU( matrix_t m, const vec3_t forward, const vec3_t right, const vec3_t up );
 	void     MatrixFromQuat( matrix_t m, const quat_t q );
-	void     MatrixFromPlanes( matrix_t m, const vec4_t left, const vec4_t right, const vec4_t bottom, const vec4_t top,
-	                           const vec4_t near, const vec4_t far );
+	void MatrixFromPlanes( matrix_t m,
+		const plane_t left, const plane_t right,
+		const plane_t bottom, const plane_t top,
+		const plane_t near, const plane_t far );
 	void     MatrixToVectorsFLU( const matrix_t m, vec3_t forward, vec3_t left, vec3_t up );
 	void     MatrixToVectorsFRU( const matrix_t m, vec3_t forward, vec3_t right, vec3_t up );
 	void     MatrixSetupTransformFromVectorsFLU( matrix_t m, const vec3_t forward, const vec3_t left, const vec3_t up, const vec3_t origin );
@@ -632,8 +859,8 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	void     MatrixTransformPoint( const matrix_t m, const vec3_t in, vec3_t out );
 	void     MatrixTransformPoint2( const matrix_t m, vec3_t inout );
 	void     MatrixTransform4( const matrix_t m, const vec4_t in, vec4_t out );
-	void     MatrixTransformPlane( const matrix_t m, const vec4_t in, vec4_t out );
-	void     MatrixTransformPlane2( const matrix_t m, vec4_t inout );
+	void MatrixTransformPlane( const matrix_t m, const plane_t &in, plane_t &out );
+	void MatrixTransformPlane2( const matrix_t m, plane_t &inout );
 	void     MatrixTransformBounds( const matrix_t m, const vec3_t mins, const vec3_t maxs, vec3_t omins, vec3_t omaxs );
 	void     MatrixPerspectiveProjection( matrix_t m, vec_t left, vec_t right, vec_t bottom, vec_t top, vec_t near, vec_t far );
 	void     MatrixPerspectiveProjectionLH( matrix_t m, vec_t left, vec_t right, vec_t bottom, vec_t top, vec_t near, vec_t far );
@@ -731,7 +958,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		q[ 3 ] = -q[ 3 ];
 	}
 
-	inline vec_t QuatLength( const quat_t q )
+	WARN_UNUSED_RESULT inline vec_t QuatLength( const quat_t q )
 	{
 		return ( vec_t ) sqrt( q[ 0 ] * q[ 0 ] + q[ 1 ] * q[ 1 ] + q[ 2 ] * q[ 2 ] + q[ 3 ] * q[ 3 ] );
 	}
@@ -769,7 +996,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 //=============================================
 // combining Transformations
 
-#if idx86_sse
+#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
 /* swizzles for _mm_shuffle_ps instruction */
 #define SWZ_XXXX 0x00
 #define SWZ_YXXX 0x01
@@ -1030,43 +1257,47 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 #define sseSwizzle( a, mask ) _mm_shuffle_ps( (a), (a), SWZ_##mask )
 
 	inline __m128 unitQuat() {
-		return _mm_set_ps( 1.0f, 0.0f, 0.0f, 0.0f ); // order is reversed
+		return _mm_setr_ps( 0.0f, 0.0f, 0.0f, 1.0f );
 	}
 	inline __m128 sseLoadInts( const int vec[4] ) {
 		return *(__m128 *)vec;
 	}
 	inline __m128 mask_0000() {
-		static const ALIGNED(16, int vec[4]) = {  0,  0,  0,  0 };
-		return sseLoadInts( vec );
+		alignas(16) static const std::array<int, 4> vec = { 0, 0, 0, 0 };
+		return sseLoadInts( vec.data() );
 	}
-	inline __m128 mask_000W() {
-		static const ALIGNED(16, int vec[4]) = {  0,  0,  0, -1 };
-		return sseLoadInts( vec );
-	}
-	inline __m128 mask_XYZ0() {
-		static const ALIGNED(16, int vec[4]) = { -1, -1, -1,  0 };
-		return sseLoadInts( vec );
+
+	// {first.x, first,y, first.z, second.w}
+	inline __m128 first_XYZ_second_W( __m128 first, __m128 second)
+	{
+		// second.w, dontcare, first.z, dontcare
+		__m128 tmp = _mm_shuffle_ps(second, first, 3 << 0 | 2 << 4);
+		// first.x, first.y, tmp.z, tmp.x
+		return _mm_shuffle_ps(first, tmp, 0 << 0 | 1 << 2 | 2 << 4 | 0 << 6);
 	}
 
 	inline __m128 sign_000W() {
-		static const ALIGNED(16, int vec[4]) = { 0, 0, 0, 1<<31 };
-		return sseLoadInts( vec );
+		alignas(16) static const std::array<int, 4> vec = { 0, 0, 0, 1<<31 };
+		return sseLoadInts( vec.data() );
 	}
 	inline __m128 sign_XYZ0() {
-		static const ALIGNED(16, int vec[4]) = { 1<<31, 1<<31, 1<<31,  0 };
-		return sseLoadInts( vec );
+		alignas(16) static const std::array<int, 4> vec = { 1<<31, 1<<31, 1<<31, 0 };
+		return sseLoadInts( vec.data() );
 	}
 	inline __m128 sign_XYZW() {
-		static const ALIGNED(16, int vec[4]) = { 1<<31, 1<<31, 1<<31, 1<<31 };
-		return sseLoadInts( vec );
+		alignas(16) static const std::array<int, 4> vec = { 1<<31, 1<<31, 1<<31, 1<<31 };
+		return sseLoadInts( vec.data() );
 	}
 
+	// returns the dot product in all 4 elements
 	inline __m128 sseDot4( __m128 a, __m128 b ) {
 		__m128 prod = _mm_mul_ps( a, b );
 		__m128 sum1 = _mm_add_ps( prod, sseSwizzle( prod, YXWZ ) );
 		__m128 sum2 = _mm_add_ps( sum1, sseSwizzle( sum1, ZWXY ) );
 		return sum2;
 	}
+
+	// returns 0 in w component if input w's are finite
 	inline __m128 sseCrossProduct( __m128 a, __m128 b ) {
 		__m128 a_yzx = sseSwizzle( a, YZXW );
 		__m128 b_yzx = sseSwizzle( b, YZXW );
@@ -1102,6 +1333,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		t = _mm_mul_ps( h, t );
 		return _mm_mul_ps( q, t );
 	}
+	// rotates (3-dimensional) vec. vec's w component is unchanged
 	inline __m128 sseQuatTransform( __m128 q, __m128 vec ) {
 		__m128 t, t2;
 		t = sseCrossProduct( q, vec );
@@ -1110,23 +1342,11 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		t = _mm_mul_ps( sseSwizzle( q, WWWW ), t );
 		return _mm_add_ps( _mm_add_ps( vec, t2 ), t );
 	}
-	inline __m128 sseQuatTransformInverse( __m128 q, __m128 vec ) {
-		__m128 t, t2;
-		t = sseCrossProduct( vec, q );
-		t = _mm_add_ps( t, t );
-		t2 = sseCrossProduct( t, q );
-		t = _mm_mul_ps( sseSwizzle( q, WWWW ), t );
-		return _mm_add_ps( _mm_add_ps( vec, t2 ), t );
-	}
 	inline __m128 sseLoadVec3( const vec3_t vec ) {
 		__m128 v = _mm_load_ss( &vec[ 2 ] );
 		v = sseSwizzle( v, YYXY );
 		v = _mm_loadl_pi( v, (__m64 *)vec );
 		return v;
-	}
-	ATTRIBUTE_NO_SANITIZE_ADDRESS inline __m128 sseLoadVec3Unsafe( const vec3_t vec ) {
-		// Returns garbage in 4th element
-		return _mm_loadu_ps( vec );
 	}
 	inline void sseStoreVec3( __m128 in, vec3_t out ) {
 		_mm_storel_pi( (__m64 *)out, in );
@@ -1138,53 +1358,23 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		t->sseRot = u;
 		t->sseTransScale = u;
 	}
-	inline void TransCopy( const transform_t *in, transform_t *out ) {
-		out->sseRot = in->sseRot;
-		out->sseTransScale = in->sseTransScale;
-	}
 	inline void TransformPoint(
 			const transform_t *t, const vec3_t in, vec3_t out ) {
 		__m128 ts = t->sseTransScale;
-		__m128 tmp = sseQuatTransform( t->sseRot, sseLoadVec3Unsafe( in ) );
+		__m128 tmp = sseQuatTransform( t->sseRot, sseLoadVec3( in ) );
 		tmp = _mm_mul_ps( tmp, sseSwizzle( ts, WWWW ) );
 		tmp = _mm_add_ps( tmp, ts );
 		sseStoreVec3( tmp, out );
 	}
-	inline void TransformPointInverse(
-			const transform_t *t, const vec3_t in, vec3_t out ) {
-		__m128 ts = t->sseTransScale;
-		__m128 v = _mm_sub_ps( sseLoadVec3Unsafe( in ), ts );
-		v = _mm_mul_ps( v, _mm_rcp_ps( sseSwizzle( ts, WWWW ) ) );
-		v = sseQuatTransformInverse( t->sseRot, v );
-		sseStoreVec3( v, out );
-	}
 	inline void TransformNormalVector(
 			const transform_t *t, const vec3_t in, vec3_t out ) {
-		__m128 v = sseLoadVec3Unsafe( in );
+		__m128 v = sseLoadVec3( in );
 		v = sseQuatTransform( t->sseRot, v );
 		sseStoreVec3( v, out );
-	}
-	inline void TransformNormalVectorInverse( const transform_t *t,
-							 const vec3_t in, vec3_t out ) {
-		__m128 v = sseLoadVec3Unsafe( in );
-		v = sseQuatTransformInverse( t->sseRot, v );
-		sseStoreVec3( v, out );
-	}
-	inline __m128 sseAxisAngleToQuat( const vec3_t axis, float angle ) {
-		__m128 sa = _mm_set1_ps( sinf( 0.5f * angle ) );
-		__m128 ca = _mm_set1_ps( cosf( 0.5f * angle ) );
-		__m128 a = sseLoadVec3( axis );
-		a = _mm_mul_ps( a, sa );
-		return _mm_or_ps( a, _mm_and_ps( ca, mask_000W() ) );
 	}
 	inline void TransInitRotationQuat( const quat_t quat,
 						  transform_t *t ) {
 		t->sseRot = _mm_loadu_ps( quat );
-		t->sseTransScale = unitQuat();
-	}
-	inline void TransInitRotation( const vec3_t axis, float angle,
-					      transform_t *t ) {
-		t->sseRot = sseAxisAngleToQuat( axis, angle );
 		t->sseTransScale = unitQuat();
 	}
 	inline void TransInitTranslation( const vec3_t vec, transform_t *t ) {
@@ -1193,34 +1383,17 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		t->sseTransScale = _mm_or_ps( v, unitQuat() );
 	}
 	inline void TransInitScale( float factor, transform_t *t ) {
-		__m128 f = _mm_set1_ps( factor );
-		f = _mm_and_ps( f, mask_000W() );
 		t->sseRot = unitQuat();
-		t->sseTransScale = f;
+		t->sseTransScale = _mm_setr_ps( 0.0f, 0.0f, 0.0f, factor );
 	}
 	inline void TransInsRotationQuat( const quat_t quat, transform_t *t ) {
 		__m128 q = _mm_loadu_ps( quat );
 		t->sseRot = sseQuatMul( t->sseRot, q );
 	}
-	inline void TransInsRotation( const vec3_t axis, float angle,
-					     transform_t *t ) {
-		__m128 q = sseAxisAngleToQuat( axis, angle );
-		t->sseRot = sseQuatMul( q, t->sseRot );
-	}
 	inline void TransAddRotationQuat( const quat_t quat, transform_t *t ) {
 		__m128 q = _mm_loadu_ps( quat );
-		__m128 transformed = sseQuatTransform( q, t->sseTransScale );
 		t->sseRot = sseQuatMul( q, t->sseRot );
-		t->sseTransScale = _mm_or_ps( _mm_and_ps( transformed, mask_XYZ0() ),
-					      _mm_and_ps( t->sseTransScale, mask_000W() ) );
-	}
-	inline void TransAddRotation( const vec3_t axis, float angle,
-					     transform_t *t ) {
-		__m128 q = sseAxisAngleToQuat( axis, angle );
-		__m128 transformed = sseQuatTransform( q, t->sseTransScale );
-		t->sseRot = sseQuatMul( t->sseRot, q );
-		t->sseTransScale = _mm_or_ps( _mm_and_ps( transformed, mask_XYZ0() ),
-					      _mm_and_ps( t->sseTransScale, mask_000W() ) );
+		t->sseTransScale = sseQuatTransform( q, t->sseTransScale );
 	}
 	inline void TransInsScale( float factor, transform_t *t ) {
 		t->scale *= factor;
@@ -1231,11 +1404,10 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	}
 	inline void TransInsTranslation(
 			const vec3_t vec, transform_t *t ) {
-		__m128 v = sseLoadVec3Unsafe( vec );
+		__m128 v = sseLoadVec3( vec );
 		__m128 ts = t->sseTransScale;
 		v = sseQuatTransform( t->sseRot, v );
 		v = _mm_mul_ps( v, sseSwizzle( ts, WWWW ) );
-		v = _mm_and_ps( v, mask_XYZ0() );
 		t->sseTransScale = _mm_add_ps( ts, v );
 	}
 	inline void TransAddTranslation(
@@ -1251,10 +1423,9 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		__m128 bRot = b->sseRot;
 		__m128 bTS = b->sseTransScale;
 		__m128 tmp = sseQuatTransform( bRot, aTS );
-		tmp = _mm_or_ps( _mm_and_ps( tmp, mask_XYZ0() ),
-				 _mm_and_ps( aTS, mask_000W() ) );
 		tmp = _mm_mul_ps( tmp, sseSwizzle( bTS, WWWW ) );
-		out->sseTransScale = _mm_add_ps( tmp, _mm_and_ps( bTS, mask_XYZ0() ) );
+		__m128 bT = first_XYZ_second_W( bTS, mask_0000() );
+		out->sseTransScale = _mm_add_ps( tmp, bT );
 		out->sseRot = sseQuatMul( bRot, aRot );
 	}
 	inline void TransInverse( const transform_t *in,
@@ -1267,8 +1438,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		__m128 tmp = sseQuatTransform( invRot, invT );
 		tmp = _mm_mul_ps( tmp, invS );
 		out->sseRot = invRot;
-		out->sseTransScale = _mm_or_ps( _mm_and_ps( tmp, mask_XYZ0() ),
-						_mm_and_ps( invS, mask_000W() ) );
+		out->sseTransScale = first_XYZ_second_W( tmp, invS );
 	}
 	inline void TransStartLerp( transform_t *t ) {
 		t->sseRot = mask_0000();
@@ -1288,29 +1458,26 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		t->sseRot = sseQuatNormalize( t->sseRot );
 	}
 #else
+	// The non-SSE variants are in q_math.cpp file.
 	void TransInit( transform_t *t );
-	void TransCopy( const transform_t *in, transform_t *out );
 
 	void TransformPoint( const transform_t *t, const vec3_t in, vec3_t out );
-	void TransformPointInverse( const transform_t *t, const vec3_t in, vec3_t out );
 	void TransformNormalVector( const transform_t *t, const vec3_t in, vec3_t out );
-	void TransformNormalVectorInverse( const transform_t *t, const vec3_t in, vec3_t out );
 
 	void TransInitRotationQuat( const quat_t quat, transform_t *t );
-	void TransInitRotation( const vec3_t axis, float angle,
-				transform_t *t );
 	void TransInitTranslation( const vec3_t vec, transform_t *t );
 	void TransInitScale( float factor, transform_t *t );
 
 	void TransInsRotationQuat( const quat_t quat, transform_t *t );
 	void TransInsRotation( const vec3_t axis, float angle, transform_t *t );
 	void TransAddRotationQuat( const quat_t quat, transform_t *t );
-	void TransAddRotation( const vec3_t axis, float angle, transform_t *t );
 	void TransInsScale( float factor, transform_t *t );
 	void TransAddScale( float factor, transform_t *t );
 	void TransInsTranslation( const vec3_t vec, transform_t *t );
 	void TransAddTranslation( const vec3_t vec, transform_t *t );
 
+	// "a" is the first one that would be applied to a vector
+	// so as a matrix multiplication this is B * A
 	void TransCombine( const transform_t *a, const transform_t *b,
 			   transform_t *c );
 	void TransInverse( const transform_t *in, transform_t *out );
@@ -1319,23 +1486,6 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	void TransAddWeight( float weight, const transform_t *a, transform_t *t );
 	void TransEndLerp( transform_t *t );
 #endif
-
-//=============================================
-
-	struct growList_t
-	{
-		bool frameMemory;
-		int      currentElements;
-		int      maxElements; // will reallocate and move when exceeded
-		void     **elements;
-	};
-
-// you don't need to init the growlist if you don't mind it growing and moving
-// the list as it expands
-	void Com_InitGrowList( growList_t *list, int maxElements );
-	void Com_DestroyGrowList( growList_t *list );
-	int  Com_AddToGrowList( growList_t *list, void *data );
-	void *Com_GrowListElement( const growList_t *list, int index );
 
 //=============================================================================
 
@@ -1349,13 +1499,13 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	void       COM_DefaultExtension( char *path, int maxSize, const char *extension );
 
 	void       COM_BeginParseSession( const char *name );
-	char       *COM_Parse( const char **data_p );
+	const char *COM_Parse( const char **data_p );
 
 // RB: added COM_Parse2 for having a Doom 3 style tokenizer.
-	char       *COM_Parse2( const char **data_p );
-	char       *COM_ParseExt2( const char **data_p, bool allowLineBreak );
+	const char *COM_Parse2( const char **data_p );
+	const char *COM_ParseExt2( const char **data_p, bool allowLineBreak );
 
-	char       *COM_ParseExt( const char **data_p, bool allowLineBreak );
+	const char *COM_ParseExt( const char **data_p, bool allowLineBreak );
 	int        COM_Compress( char *data_p );
 	void       COM_ParseError( const char *format, ... ) PRINTF_LIKE(1);
 	void       COM_ParseWarning( const char *format, ... ) PRINTF_LIKE(1);
@@ -1363,10 +1513,6 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	int        Com_ParseInfos( const char *buf, int max, char infos[][ MAX_INFO_STRING ] );
 
 	int        Com_HashKey( char *string, int maxlen );
-
-// data is an in/out parm, returns a parsed out token
-
-	void      COM_MatchToken( char **buf_p, char *match );
 
 	bool  SkipBracedSection( const char **program );
 	bool  SkipBracedSection_Depth( const char **program, int depth );  // start at given depth if already
@@ -1491,12 +1637,6 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 #define CVAR_SYSTEMINFO          BIT(3)    /*< these cvars will be duplicated on all clients */
 
 /**
- * don't allow change from console at all,
- * but can be set from the command line
- */
-#define CVAR_INIT                BIT(4)
-
-/**
  * will only change when C code next does a Cvar_Get(),
  * so it can't be changed without proper initialization.
  * modified will be set, even though the value hasn't changed yet
@@ -1550,7 +1690,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 
 #define PlaneTypeForNormal( x ) ( x[ 0 ] == 1.0f ? PLANE_X : ( x[ 1 ] == 1.0f ? PLANE_Y : ( x[ 2 ] == 1.0f ? PLANE_Z : ( x[ 0 ] == 0.f && x[ 1 ] == 0.f && x[ 2 ] == 0.f ? PLANE_NON_PLANAR : PLANE_NON_AXIAL ) ) ) )
 
-// plane_t structure
+// cplane_t structure
 	struct cplane_t
 	{
 		vec3_t normal;
@@ -1566,27 +1706,85 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 
 	  TT_AABB,
 	  TT_CAPSULE,
-	  TT_BISPHERE,
 
 	  TT_NUM_TRACE_TYPES
 	};
 
-// a trace is returned when a box is swept through the world
+// A trace sweeps a (possibly zero-sized) box along a (possibly zero-length) line segment and
+// reports when the box hits something. BUT a thing that overlaps the box at the starting point
+// is *ignored*, UNLESS that thing is not a patch facet and still overlaps the box at the ending
+// point. Got it?
+//
+// The idea is that if you are overlapping a wall a little bit due to numerical difficulties, then
+// you can run out of it (because your end point is not overlapping the wall), but you can't run
+// further into it (because then the entire path overlaps the wall). Additionally, these
+// semantics allow you to test whether there is anything at a given stationary point, or in a given
+// box, by using a trace with zero length (start = end).
+//
+// I said that a thing that overlaps the start is ignored. This is not entirely true as it results
+// in the startsolid flag being set, if it is a brush or entity and not a patch surface.
+// But otherwise the thing is ignored.
+//
+// Trace results can be divided into three classes.
+// - If there exists a single geometry element that the box overlaps throughout the entire trace:
+//   * allsolid = startsolid = true
+//   * fraction = 0
+//   * contents pertains to a geometry element that overlaps the entire trace path
+//   * plane and surfaceFlags are not valid
+// - Otherwise if the trace hit something:
+//   * allsolid = false
+//   * startsolid could be either true or false
+//   * 0 <= fraction < 1
+//   * contents, plane, and surfaceFlags pertain to the geometry that the trace hit
+// - If the trace does not hit anything:
+//   * allsolid = false
+//   * startsolid could be either true or false
+//   * fraction = 1
+//   * contents and surfaceFlags are 0
+//   * plane is not valid
+//
+// endpos is always valid. It is just for convenience; it can be rederived by interpolating
+// start and end by fraction.
+//
+// What do we know about whether certain points on the trace are free vs. obstructed?
+// - If allsolid is true, everywhere from start to end is obstructed.
+// - if startsolid is false, the start is unobstructed (*)
+// - if startsolid is true and fraction is not 1.0, we do not know whether there is any unobstructed point.
+// - if startsolid is false, the entire path from start to endpos is unobustructed. (*)
+// - if fraction is 1.0, end/endpos is unobstructed (*)
+// (*) The guarantee of being unobstructed does not hold with facets (the polygons used to
+// approximate patches) when the trace is nonzero-length. If (a) the trace starts behind the back
+// side of a facet and passes into the facet, or (b) the trace starts overlapping a facet,
+// a hit is not reported, and thus part of the trace path could be obstructed by the facet.
+// On most maps this only happens if the trace started outside of the level's playable area,
+// so it's probably fine to ignore this.
+//
+// startsolid should be used with caution. It means that start is supposedly obstructed, but it is
+// prone to false positives due to numerical issues. Sometimes an entity that is just touching
+// geometry is falsely reported to overlap it.
+//
+// allsolid is not prone to false positives, as long as the trace has nonzero length. However if
+// it is false, that does not necessarily mean there is any unobstructed part of the path because
+// it is only true if a single brush (or entity bounding box) or patch facet obstructs the entire
+// path. All of the path could still be blocked by multiple brushes together.
+//
+// Note: in all of the above discussion I have ignored the possibilities of capsule traces and
+// triangle soup surfaces, which are apparently supported by the code. I believe that these are
+// not used in Unvanquished.
 	struct trace_t
 	{
 		bool allsolid; // if true, plane is not valid
 		bool startsolid; // if true, the initial point was in a solid area
-		float    fraction; // time completed, 1.0 = didn't hit anything
+		float    fraction; // portion of line traversed 0-1. 1.0 = didn't hit anything
 		vec3_t   endpos; // final position
-		cplane_t plane; // surface normal at impact, transformed to world space
-		int      surfaceFlags; // surface hit
-		int      contents; // contents on other side of surface hit
-		int      entityNum; // entity the contacted surface is a part of
-		float    lateralFraction; // fraction of collision tangetially to the trace direction
+		struct {
+			vec3_t normal; // surface normal at impact, transformed to world space
+			float dist; // DO NOT USE - not yet implemented correctly
+		} plane; // valid if !allsolid && fraction < 1
+		int      surfaceFlags; // surface hit. valid if !allsolid && fraction < 1
+		int      contents; // contents on other side of surface hit (or intersecting contents if allsolid). valid if fraction < 1
+		int      entityNum; // entity the contacted surface is a part of. Not set by CM_xxx, only gamelogic tracing functions
 	};
-
-// trace->entityNum can also be 0 to (MAX_GENTITIES-1)
-// or ENTITYNUM_NONE, ENTITYNUM_WORLD
 
 // markfragments are returned by CM_MarkFragments()
 	struct markFragment_t
@@ -1603,10 +1801,25 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 
 //=====================================================================
 
-// in order from highest priority to lowest
-// if none of the catchers are active, bound key strings will be executed
-#define KEYCATCH_CONSOLE 0x0001
-#define KEYCATCH_UI      0x0002
+// Key catcher flags control which subsytems receive mouse and keyboard inputs.
+//
+// Mouse movements are processed by:
+// 1. if KEYCATCH_CONSOLE is active, nothing.
+// 2. otherwise if KEYCATCH_MOUSE_UI is active, by the UI (in the cgame).
+// 3. otherwise, by the gameplay movement code (in the cgame).
+//
+// Key inputs (which include mouse buttons and mouse wheels!) are processed by:
+// 1. if KEYCATCH_CONSOLE is active, the console.
+// 2. otherwise, if KEYCATCH_UI_KEY is active, only by the UI (in the cgame).
+// 3. otherwise, by the UI first; then, if the UI does not indicate that it consumed the key, also as binds.
+//
+// We can consider nuking KEYCATCH_UI_KEY and just having the UI consume all events if
+// if it does not want binds to execute. The only thing that really depends on this flag is
+// BUTTON_TALK / BUTTON_ANY. But BUTTON_TALK could simply be determined by the cgame, and
+// BUTTON_ANY does not seem useful at all.
+#define KEYCATCH_CONSOLE    0x0001
+#define KEYCATCH_UI_KEY     0x0002
+#define KEYCATCH_UI_MOUSE   0x0004
 
 // sound channels
 // channel 0 never willingly overrides
@@ -1645,7 +1858,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 //
 #define MAX_CLIENTS         64 // JPW NERVE back to q3ta default was 128    // absolute limit
 
-#define GENTITYNUM_BITS     10 // JPW NERVE put q3ta default back for testing // don't need to send any more
+#define GENTITYNUM_BITS     13 // This is a large number, typically we don't need more than 10 (1024 entities)
 
 #define MAX_GENTITIES       ( 1 << GENTITYNUM_BITS )
 
@@ -1679,6 +1892,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 
 using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
 
+// TODO(0.56): NUKE all
 #define REF_FORCE_DLIGHT       ( 1 << 31 ) // RF, passed in through overdraw parameter, force this dlight under all conditions
 #define REF_JUNIOR_DLIGHT      ( 1 << 30 ) // (SA) this dlight does not light surfaces.  it only affects dynamic light grid
 #define REF_DIRECTED_DLIGHT    ( 1 << 29 ) // ydnar: global directional light, origin should be interpreted as a normal vector
@@ -1866,56 +2080,10 @@ union OpaquePlayerState {
 //----(SA)  removed
 	};
 
-// entityState_t is the information conveyed from the server
-// in an update message about entities that the client will
-// need to render in some way
-// Different eTypes may use the information in different ways
-// The messages are delta compressed, so it doesn't really matter if
-// the structure size is fairly large
-//
-// NOTE: all fields in here must be 32 bits (or those within sub-structures)
-//
-// You can use Com_EntityTypeName to get a String representation of this enum
-	enum class entityType_t
-	{
-		ET_GENERAL,
-		ET_PLAYER,
-		ET_ITEM,
-
-		ET_BUILDABLE,       // buildable type
-
-		ET_LOCATION,
-
-		ET_MISSILE,
-		ET_MOVER,
-		ET_UNUSED,
-		ET_PORTAL,
-		ET_SPEAKER,
-		ET_PUSHER,
-		ET_TELEPORTER,
-		ET_INVISIBLE,
-		ET_FIRE,
-
-		ET_CORPSE,
-		ET_PARTICLE_SYSTEM,
-		ET_ANIMMAPOBJ,
-		ET_MODELDOOR,
-		ET_LIGHTFLARE,
-		ET_LEV2_ZAP_CHAIN,
-
-		ET_BEACON,
-
-		ET_EVENTS       // any of the EV_* events can be added freestanding
-		// by setting eType to ET_EVENTS + eventNum
-		// this avoids having to set eFlags and eventNum
-	};
-
-	const char *Com_EntityTypeName(entityType_t entityType);
-
 	struct entityState_t
 	{
 		int          number; // entity index
-		entityType_t eType; // entityType_t
+		int eType; // entityType_t
 		int          eFlags;
 
 		trajectory_t pos; // for calculating position
@@ -1981,47 +2149,6 @@ union OpaquePlayerState {
 	  CA_ACTIVE, // game views should be displayed
 	};
 
-// font support
-
-#define GLYPH_START     0
-#define GLYPH_END       255
-#define GLYPH_CHARSTART 32
-#define GLYPH_CHAREND   127
-#define GLYPHS_PER_FONT ( GLYPH_END - GLYPH_START + 1 )
-struct glyphInfo_t
-{
-	int       height; // number of scan lines
-	int       top; // top of glyph in buffer
-	int       bottom; // bottom of glyph in buffer
-	int       pitch; // width for copying
-	int       xSkip; // x adjustment
-	int       imageWidth; // width of actual image
-	int       imageHeight; // height of actual image
-	float     s; // x offset in image where glyph starts
-	float     t; // y offset in image where glyph starts
-	float     s2;
-	float     t2;
-	qhandle_t glyph; // handle to the shader with the glyph
-	char      shaderName[ 32 ];
-};
-
-// Unlike with many other handle types, 0 is valid, not an error or default return value.
-using fontHandle_t = int;
-
-using glyphBlock_t = glyphInfo_t[256];
-
-struct fontInfo_t
-{
-	void         *face, *faceData, *fallback, *fallbackData;
-	glyphInfo_t  *glyphBlock[0x110000 / 256]; // glyphBlock_t
-	int           pointSize;
-	int           height;
-	float         glyphScale;
-	char          name[ MAX_QPATH ];
-};
-
-#define Square( x ) ( ( x ) * ( x ) )
-
 // real time
 //=============================================
 
@@ -2054,8 +2181,6 @@ int        Com_GMTime( qtime_t *qtime );
 
 #define MAX_GLOBAL_SERVERS       4096
 #define MAX_OTHER_SERVERS        128
-#define MAX_PINGREQUESTS         16
-#define MAX_SERVERSTATUSREQUESTS 16
 
 #define GENTITYNUM_MASK           ( MAX_GENTITIES - 1 )
 

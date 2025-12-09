@@ -241,7 +241,7 @@ bool LoadInMemoryKTX( const char *name, void *ktxData, size_t ktxSize,
 	}
 
 	ptr = firstImageDataPtr;
-	data[ 0 ] = (byte *)ri.Z_Malloc(totalImageSize);
+	data[ 0 ] = (byte *)Z_Malloc(totalImageSize);
 
 	uint32_t imageSize{ GetImageSize( ptr, needReverseBytes ) };
 	ptr += sizeof(uint32_t);
@@ -754,13 +754,20 @@ void LoadKTX( const char *name, byte **pic, int *width, int *height,
 	*numLayers = 0;
 
 	std::error_code err;
-	std::string ktxData = FS::PakPath::ReadFile( name, err );
+	std::string ktxData;
+	if ( ( *bits ) & IF_HOMEPATH ) {
+		ktxData = FS::HomePath::OpenRead( name, err ).ReadAll();
+	} else {
+		ktxData = FS::PakPath::ReadFile( name, err );
+	}
+	
 	if ( err ) {
 		return;
 	}
+
 	if ( !LoadInMemoryKTX( name, &ktxData[0], ktxData.size(), pic, width, height, numLayers, numMips, bits ) ) {
 		if (*pic) {
-			ri.Free(*pic);
+			Z_Free(*pic);
 		}
 		*pic = nullptr; // This signals failure.
 	}
@@ -768,8 +775,7 @@ void LoadKTX( const char *name, byte **pic, int *width, int *height,
 
 void SaveImageKTX( const char *path, image_t *img )
 {
-	KTX_header_t hdr;
-	memset( &hdr, 0, sizeof(hdr) );
+	KTX_header_t hdr{};
 	memcpy( &hdr.identifier, KTX_identifier, sizeof( KTX_identifier ) );
 	hdr.endianness = KTX_endianness;
 

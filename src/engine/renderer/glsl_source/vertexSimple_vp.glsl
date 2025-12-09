@@ -38,7 +38,7 @@ void QTangentToLocalBasis( in vec4 qtangent, out localBasis LB ) {
 	LB.binormal = QuatTransVec( qtangent, vec3( 0.0, 1.0, 0.0 ) );
 }
 
-#if !defined(USE_VERTEX_ANIMATION) && !defined(USE_VERTEX_SKINNING) && !defined(USE_VERTEX_SPRITE)
+#if !defined(USE_VERTEX_ANIMATION) && !defined(USE_VERTEX_SKINNING)
 
 IN vec3 attr_Position;
 IN vec4 attr_Color;

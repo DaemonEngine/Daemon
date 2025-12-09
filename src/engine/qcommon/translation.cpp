@@ -39,8 +39,16 @@ extern "C" {
     #include "findlocale/findlocale.h"
 }
 
-static Cvar::Cvar<std::string> language("language", "language for UI text", Cvar::ARCHIVE, "");
+static Cvar::Cvar<std::string> language("language", "language for UI text", Cvar::NONE, "");
 
+// Auto-detect the language, but not any further locale information.
+// If other information such as country is desired in the future, note that FindLocale isn't very
+// accurate with the country or "variant" components. A GNU-compliant locale name [1] could have
+// up to 4 components, e.g. "sr_RS@latin.UTF-8", and all of them except the language are optional.
+// FindLocale naively assumes that the order is always (language, country, "variant") and
+// that any punctuation mark is a separator. So "C.UTF-8" would be language C, country UTF and
+// variant 8.
+// [1] https://www.gnu.org/software/gettext/manual/html_node/Locale-Names.html
 void Trans_LoadDefaultLanguage()
 {
 	FL_Locale           *locale;
@@ -55,13 +63,9 @@ void Trans_LoadDefaultLanguage()
 		{
 			language.Set( "en" );
 		}
-		else if ( locale->country && locale->country[0] )
-		{
-			language.Set( va( "%s_%s", locale->lang, locale->country ) );
-		}
 		else
 		{
-			language.Set(  locale->lang );
+			language.Set( locale->lang );
 		}
 
 		FL_FreeLocale( &locale );

@@ -38,23 +38,16 @@ Maryland 20850 USA.
 #include "common/Cvar.h"
 #include "common/Log.h"
 #include "engine/qcommon/qcommon.h"
+#include "engine/qcommon/qfiles.h"
 
 // fake submodel handles
 #define CAPSULE_MODEL_HANDLE ( MAX_SUBMODELS )
 #define BOX_MODEL_HANDLE     ( MAX_SUBMODELS + 1)
 
-struct cbrushedge_t
-{
-	vec3_t p0;
-	vec3_t p1;
-};
-
 struct cNode_t
 {
 	cplane_t  *plane;
-	int       planeNum;
 	int       children[ 2 ]; // negative numbers are leafs
-	winding_t *winding;
 };
 
 struct cLeaf_t
@@ -78,9 +71,7 @@ struct cmodel_t
 struct cbrushside_t
 {
 	cplane_t  *plane;
-	int       planeNum;
 	int       surfaceFlags;
-	winding_t *winding;
 };
 
 struct cbrush_t
@@ -90,29 +81,50 @@ struct cbrush_t
 	int          numsides;
 	cbrushside_t *sides;
 	int          checkcount; // to avoid repeated testings
-	bool     collided; // marker for optimisation
-	cbrushedge_t *edges;
-	int          numEdges;
 };
 
 struct cPlane_t
 {
-	float           plane[ 4 ];
-	int             signbits; // signx + (signy<<1) + (signz<<2), used as lookup during collision
+	plane_t plane;
+	// signx + (signy<<1) + (signz<<2), used as lookup during collision
+	// used to determine which corner of a box would pass through a plane first/last
+	int             signbits;
 	cPlane_t *hashChain;
 };
 
 // 3 or four + 6 axial bevels + 4 or 3 * 4 edge bevels
 #define MAX_FACET_BEVELS ( 4 + 6 + 16 )
 
-// a facet is a subdivided element of a patch approximation or model
+// a facet is a subdivided element of a patch approximation or model, used for collisions
+// It's basically a 2-dimensional degenerate brush. Like a brush, it encompasses a region
+// defined by bounding planes, but surfacePlane and borderPlanes[numBorders-1] are always the
+// same except with opposite normals. So the region is a convex polygon on the surface plane.
+//
+// There is a difference with how it is treated compared to brushes - a trace that hits the
+// "back" side can pass through without colliding. This detail usually doesn't matter much,
+// but the idea may be to make the patch surface (approximated by one or more facets), in the
+// case that the facets enclose some space and form a complete "object",
+// behave as a whole more similarly to a brush, in that a trace that starts
+// overlapping and ends completely outside does not hit anything. However, a patch surface
+// is still different from a brush in that the interior is not solid. The design of making
+// the inward-facing plane non-collidable makes the trace API a bit less semantically
+// consistent since a trace starting in the interior and ending outside will say that the
+// path is completely free, while reversing the direction will hit something.
+//
+// For nonzero-length traces, a facet that overlaps the start position is always completely ignored.
+// Thus it is impossible to get the startsolid or allsolid flags from a patch. But for a zero-length
+// trace, a patch does set allsolid. So there is some inconsistency between the zero- and nonzero-
+// length cases.
+//
+// A few mappers have exploited the patch back-side behavior to construct one-way doors. These
+// consist of a planar patch that is converted to a single facet. Players can pass into the patch
+// (and then move freely due to the overlap behavior) from one side, but not the other.
 struct cFacet_t
 {
 	int      surfacePlane;
 	int      numBorders;
 	int      borderPlanes[ MAX_FACET_BEVELS ];
 	bool     borderInward[ MAX_FACET_BEVELS ];
-	bool borderNoAdjust[ MAX_FACET_BEVELS ];
 };
 
 struct cSurfaceCollide_t
@@ -191,7 +203,15 @@ struct clipMap_t
 
 // keep 1/8 unit away to keep the position valid before network snapping
 // and to avoid various numeric issues
-#define SURFACE_CLIP_EPSILON ( 0.125 )
+// FIXME: it seems like the way this is used just makes brushes 0.1 unit bigger and does not
+// actually fix numerical stability. For example in PM_GroundTrace(), a trace against the
+// ground the player is standing on frequently has a spurious startsolid=true. What we would
+// want is for traces to stop 0.1 unit away from the world (as they do now), but for the
+// startsolid flag *not* to be set when there is something 0.1 unit away.
+// TODO: find out why this happens and see if it might affect patches at well. Since
+// a movement trace that starts inside a patch always ignores the patch completely,
+// this might allow going through patches when it shouldn't be possible.
+#define SURFACE_CLIP_EPSILON ( 0.125f )
 
 extern clipMap_t cm;
 extern int       c_pointcontents;
@@ -200,12 +220,6 @@ extern Cvar::Cvar<bool> cm_forceTriangles;
 extern Log::Logger cmLog;
 
 // cm_test.c
-
-struct biSphere_t
-{
-	float startRadius;
-	float endRadius;
-};
 
 // Used for oriented capsule collision detection
 struct sphere_t
@@ -231,8 +245,6 @@ struct traceWork_t
 	bool    isPoint; // optimized case
 	trace_t     trace; // returned from trace call
 	sphere_t    sphere; // sphere for oriendted capsule collision
-	biSphere_t  biSphere;
-	bool    testLateralCollision; // whether or not to test for lateral collision
 };
 
 struct leafList_t
@@ -247,11 +259,8 @@ struct leafList_t
 };
 
 #define SUBDIVIDE_DISTANCE 16 //4 // never more than this units away from curve
-#define PLANE_TRI_EPSILON  0.1
-#define WRAP_POINT_EPSILON 0.1
 
 cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, const vec3_t *points );
-void              CM_ClearLevelPatches();
 
 // cm_trisoup.c
 
@@ -268,20 +277,24 @@ struct cTriangleSoup_t
 cSurfaceCollide_t              *CM_GenerateTriangleSoupCollide( int numVertexes, vec3_t *vertexes, int numIndexes, int *indexes );
 
 
-void* CM_Alloc( int size );
+void* CM_Alloc( size_t size );
 
 // cm_plane.c
 
-extern int numPlanes;
-extern cPlane_t planes[];
+// Temporary plane cache, used during construction of a surface collide
+extern int numTempPlanes;
+extern cPlane_t tempPlanes[];
 
+// Functions acting on the temporary plane cache
+void     CM_ResetPlaneCounts();
+int CM_FindPlane2( const plane_t &plane, bool *flipped );
+int      CM_FindPlane( const float *p1, const float *p2, const float *p3 );
+planeSide_t CM_PointOnPlaneSide( float *p, int planeNum );
+
+// Temporary facets buffer, used during construction of a surface collide
 extern int numFacets;
 extern cFacet_t facets[];
 
-void     CM_ResetPlaneCounts();
-int      CM_FindPlane2( float plane[ 4 ], bool *flipped );
-int      CM_FindPlane( const float *p1, const float *p2, const float *p3 );
-planeSide_t CM_PointOnPlaneSide( float *p, int planeNum );
 bool CM_ValidateFacet( cFacet_t *facet );
 void     CM_AddFacetBevels( cFacet_t *facet );
 bool CM_GenerateFacetFor3Points( cFacet_t *facet, const vec3_t p1, const vec3_t p2, const vec3_t p3 );
@@ -289,11 +302,6 @@ bool CM_GenerateFacetFor4Points( cFacet_t *facet, const vec3_t p1, const vec3_t 
 
 
 // cm_test.c
-extern const cSurfaceCollide_t *debugSurfaceCollide;
-extern const cFacet_t          *debugFacet;
-extern bool                debugBlock;
-extern vec3_t                  debugBlockPoints[ 4 ];
-
 void                           CM_StoreLeafs( leafList_t *ll, int nodenum );
 
 void                           CM_BoxLeafnums_r( leafList_t *ll, int nodenum );

@@ -85,9 +85,9 @@ void WriteToStdout(const char* text) {
 
 	if (ret < 0) {
 		// Do not log to stdout
-		Log::Dispatch( Str::Format("Error writing to the terminal: %d", errno),
+		Log::Dispatch( Str::Format("Error writing to the terminal: %s", strerror(errno)),
                         ((1<<Log::MAX_TARGET_ID)-1) & ~(1<<Log::TTY_CONSOLE)
-                    );
+		);
 	}
 }
 

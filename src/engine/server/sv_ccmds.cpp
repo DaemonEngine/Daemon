@@ -47,11 +47,11 @@ These commands can only be entered from stdin or by a remote operator datagram
 class MapCmd: public Cmd::StaticCmd {
     public:
         MapCmd(Str::StringRef name, Str::StringRef description, bool cheat):
-            Cmd::StaticCmd(name, Cmd::SYSTEM, description), cheat(cheat) {
+            Cmd::StaticCmd(name, Cmd::SERVER, description), cheat(cheat) {
         }
 
         void Run(const Cmd::Args& args) const override {
-            if (args.Argc() < 2) {
+            if (args.Argc() < 2 || args.Argv(1).empty()) {
                 PrintUsage(args, "<mapname> (layoutname)", "loads a new map");
                 return;
             }
@@ -64,6 +64,12 @@ class MapCmd: public Cmd::StaticCmd {
             }
 
             const std::string& mapName = args.Argv(1);
+
+            if (mapName.find_first_of("/\\") != mapName.npos) {
+                Print("Map name '%s' must not contain directory separators", mapName);
+                return;
+            }
+
             // For non-legacy paks, a map named "foo" must be in the pak "map-foo"
             std::string pakName;
 
@@ -153,25 +159,9 @@ static void SV_MapRestart_f()
 	}
 
 	// make sure server is running
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
-		Log::Notice( "Server is not running.\n" );
-		return;
-	}
-
-	// check for changes in variables that can't just be restarted
-	// check for maxclients change
-	if ( sv_maxclients->modified )
-	{
-		char mapname[ MAX_QPATH ];
-		char pakname[ MAX_OSPATH ];
-
-		Log::Notice( "sv_maxclients variable change — restarting.\n" );
-		// restart the map the slow way
-		Q_strncpyz( mapname, Cvar_VariableString( "mapname" ), sizeof( mapname ) );
-		Q_strncpyz( pakname, Cvar_VariableString( "pakname" ), sizeof( pakname ) );
-
-		SV_SpawnServer(pakname, mapname);
+		Log::Notice( "Server is not running." );
 		return;
 	}
 
@@ -182,7 +172,7 @@ static void SV_MapRestart_f()
 	// generate a new serverid
 	// TTimo - don't update restartedserverId there, otherwise we won't deal correctly with multiple map_restart
 	sv.serverId = com_frameTime;
-	Cvar_Set( "sv_serverid", va( "%i", sv.serverId ) );
+	Cvar::SetValueForce( "sv_serverid", va( "%i", sv.serverId ) );
 
 	// reset all the VM data in place without changing memory allocation
 	// note that we do NOT set sv.state = SS_LOADING, so configstrings that
@@ -208,7 +198,7 @@ static void SV_MapRestart_f()
 	sv.restarting = false;
 
 	// connect and begin all the clients
-	for ( i = 0; i < sv_maxclients->integer; i++ )
+	for ( i = 0; i < sv_maxClients.Get(); i++ )
 	{
 		client = &svs.clients[ i ];
 
@@ -234,7 +224,7 @@ static void SV_MapRestart_f()
 
 			if ( !isBot )
 			{
-				Log::Notice( "SV_MapRestart_f: dropped client %i: denied!\n", i );
+				Log::Notice( "SV_MapRestart_f: dropped client %i: denied!", i );
 			}
 
 			continue;
@@ -255,15 +245,15 @@ class StatusCmd: public Cmd::StaticCmd
 {
 public:
 	StatusCmd():
-		StaticCmd("status", Cmd::SYSTEM, "Shows a table with server and player information")
+		StaticCmd("status", Cmd::SERVER, "Shows a table with server and player information")
 	{}
 
 	void Run(const Cmd::Args&) const override
 	{
 		// make sure server is running
-		if ( !com_sv_running->integer )
+		if ( !com_sv_running.Get() )
 		{
-			Log::Notice( "Server is not running.\n" );
+			Log::Notice( "Server is not running." );
 			return;
 		}
 
@@ -276,7 +266,7 @@ public:
 
 		auto players = std::count_if(
 			svs.clients,
-			svs.clients+sv_maxclients->integer,
+			svs.clients+sv_maxClients.Get(),
 			[](const client_t& cl) {
 				return cl.state != clientState_t::CS_FREE;
 			}
@@ -302,17 +292,17 @@ public:
 			"players:  %d / %d\n"
 			"num score connection address                port   name\n"
 			"--- ----- ---------- ---------------------- ------ ----",
-			sv_hostname->string,
+			sv_hostname.Get(),
 			Q3_VERSION " on " Q3_ENGINE,
 			PROTOCOL_VERSION,
 			cpu,
 			time_string,
-			sv_mapname->string,
+			sv_mapname.Get(),
 			players,
-			sv_maxclients->integer
+			sv_maxClients.Get()
 		);
 
-		for ( int i = 0; i < sv_maxclients->integer; i++ )
+		for ( int i = 0; i < sv_maxClients.Get(); i++ )
 		{
 			const client_t& cl = svs.clients[i];
 			if ( cl.state == clientState_t::CS_FREE )
@@ -368,13 +358,13 @@ Examine the serverinfo string
 static void SV_Serverinfo_f()
 {
 	// make sure server is running
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
-		Log::Notice( "Server is not running.\n" );
+		Log::Notice( "Server is not running." );
 		return;
 	}
 
-	Log::Notice( "Server info settings:\n" );
+	Log::Notice( "Server info settings:" );
 	Info_Print( Cvar_InfoString( CVAR_SERVERINFO, false ) );
 }
 
@@ -388,13 +378,13 @@ Examine the systeminfo string
 static void SV_Systeminfo_f()
 {
 	// make sure server is running
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
-		Log::Notice( "Server is not running.\n" );
+		Log::Notice( "Server is not running." );
 		return;
 	}
 
-	Log::Notice( "System info settings:\n" );
+	Log::Notice( "System info settings:" );
 	Info_Print( Cvar_InfoString( CVAR_SYSTEMINFO, false ) );
 }
 
@@ -402,7 +392,7 @@ class ListMapsCmd: public Cmd::StaticCmd
 {
 public:
 	ListMapsCmd():
-		StaticCmd("listmaps", Cmd::SYSTEM, "Lists all maps available to the server")
+		StaticCmd("listmaps", Cmd::SERVER, "Lists all maps available to the server")
 	{}
 
 	void Run(const Cmd::Args&) const override
@@ -429,7 +419,7 @@ SV_AddOperatorCommands
 */
 void SV_AddOperatorCommands()
 {
-	if ( com_sv_running->integer )
+	if ( com_sv_running.Get() )
 	{
 		// These commands should only be available while the server is running.
 		Cmd_AddCommand( "fieldinfo",   SV_FieldInfo_f );
@@ -451,6 +441,5 @@ void SV_RemoveOperatorCommands()
 	Cmd_RemoveCommand( "heartbeat" );
 	Cmd_RemoveCommand( "map_restart" );
 	Cmd_RemoveCommand( "serverinfo" );
-	Cmd_RemoveCommand( "status" );
 	Cmd_RemoveCommand( "systeminfo" );
 }

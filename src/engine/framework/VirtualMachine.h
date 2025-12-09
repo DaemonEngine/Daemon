@@ -110,12 +110,11 @@ struct VMParams {
 // Base class for a virtual machine instance
 class VMBase {
 public:
-	VMBase(std::string name, int vmTypeCvarFlags)
-		: processHandle(Sys::INVALID_HANDLE), name(name), type(TYPE_NACL), params(name, vmTypeCvarFlags) {}
+	VMBase(std::string name_, int vmTypeCvarFlags)
+		: processHandle(Sys::INVALID_HANDLE), name(name_), type(TYPE_NACL), params(name_, vmTypeCvarFlags) {}
 
-	// Create the VM for the named module. Returns the ABI version reported
-	// by the module. This will automatically free any existing VM.
-	uint32_t Create();
+	// Create the VM for the named module. This will automatically free any existing VM.
+	void Create();
 
 	// Free the VM
 	void Free();
@@ -127,10 +126,7 @@ public:
 	}
 
 	// Make sure the VM is closed on exit
-	virtual ~VMBase()
-	{
-		Free();
-	}
+	virtual ~VMBase();
 
 	// Send a message to the VM
 	template<typename Msg, typename... Args> void SendMsg(Args&&... args)

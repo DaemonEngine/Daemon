@@ -37,6 +37,10 @@ Maryland 20850 USA.
 #include "client.h"
 #include "qcommon/q_unicode.h"
 
+#if defined(__APPLE__) && defined(BUILD_GRAPHICAL_CLIENT)
+#include <SDL3/SDL.h>
+#endif
+
 bool scr_initialized; // ready to draw
 
 /*
@@ -52,8 +56,8 @@ void SCR_AdjustFrom640( float *x, float *y, float *w, float *h )
 	float yscale;
 
 	// scale for screen sizes
-	xscale = cls.glconfig.vidWidth / 640.0;
-	yscale = cls.glconfig.vidHeight / 480.0;
+	xscale = cls.windowConfig.vidWidth / 640.0;
+	yscale = cls.windowConfig.vidHeight / 480.0;
 
 	if ( x )
 	{
@@ -103,12 +107,6 @@ static glyphInfo_t *Glyph( int ch )
 
 void SCR_DrawConsoleFontUnichar( float x, float y, int ch )
 {
-	if ( cls.useLegacyConsoleFont )
-	{
-		SCR_DrawSmallUnichar( ( int ) x, ( int ) y, ch );
-		return;
-	}
-
 	if ( ch != ' ' )
 	{
 		glyphInfo_t *glyph = Glyph( ch );
@@ -119,53 +117,6 @@ void SCR_DrawConsoleFontUnichar( float x, float y, int ch )
 		                   glyph->s, glyph->t,
 		                   glyph->s2, glyph->t2,
 		                   glyph->glyph );
-	}
-}
-
-/*
-** SCR_DrawSmallUnichar
-** small chars are drawn at native screen resolution
-*/
-void SCR_DrawSmallUnichar( int x, int y, int ch )
-{
-	int   row, col;
-	float frow, fcol;
-	float size;
-
-	if ( ch < 0x100 || cls.useLegacyConsoleFont )
-	{
-		if ( ch == ' ' ) {
-			return;
-		}
-
-		if ( y < -SMALLCHAR_HEIGHT ) {
-			return;
-		}
-
-		if ( ch >= 0x100 ) { ch = 0; }
-
-		row = ch>>4;
-		col = ch&15;
-
-		frow = row*0.0625;
-		fcol = col*0.0625;
-		size = 0.0625;
-
-		// adjust for baseline
-		re.DrawStretchPic( x, y - (int)( SMALLCHAR_HEIGHT / ( CONSOLE_FONT_VPADDING + 1 ) ),
-		                SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT,
-				fcol, frow,
-				fcol + size, frow + size,
-				cls.charSetShader );
-	} else {
-		glyphInfo_t *glyph = Glyph( ch );
-
-		re.DrawStretchPic( x, y, SMALLCHAR_WIDTH, glyph->imageHeight,
-				glyph->s,
-				glyph->t,
-				glyph->s2,
-				glyph->t2,
-				glyph->glyph );
 	}
 }
 
@@ -230,18 +181,6 @@ void SCR_DrawScreenField()
 {
 	re.BeginFrame();
 
-	// wide aspect ratio screens need to have the sides cleared
-	// unless they are displaying game renderings
-	if ( cls.state != connstate_t::CA_ACTIVE )
-	{
-		if ( cls.glconfig.vidWidth * 480 > cls.glconfig.vidHeight * 640 )
-		{
-			re.SetColor( Color::Black );
-			re.DrawStretchPic( 0, 0, cls.glconfig.vidWidth, cls.glconfig.vidHeight, 0, 0, 0, 0, cls.whiteShader );
-			re.SetColor( Color::White );
-		}
-	}
-
 	if ( cgvm.IsActive() )
 	{
 		switch ( cls.state )
@@ -267,7 +206,7 @@ void SCR_DrawScreenField()
 
 				// also draw the connection information, so it doesn't
 				// flash away too briefly on local or LAN games
-				//if (!com_sv_running->value || Cvar_VariableIntegerValue("sv_cheats")) // Ridah, don't draw useless text if not in dev mode
+				//if (!com_sv_running.Get() || Cvar_VariableIntegerValue("sv_cheats")) // Ridah, don't draw useless text if not in dev mode
 				break;
 
 			case connstate_t::CA_ACTIVE:
@@ -311,6 +250,16 @@ void SCR_UpdateScreen()
 
 	recursive = 1;
 
+#if defined(__APPLE__) && defined(BUILD_GRAPHICAL_CLIENT)
+	if ( cls.state == connstate_t::CA_LOADING )
+	{
+		// Mitigate #1812. Calling SDL_PumpEvents 3 times makes the loading screen frames show up,
+		// except the first one.
+		SDL_PumpEvents();
+		SDL_PumpEvents();
+		SDL_PumpEvents();
+	}
+#endif
 	// If there is no VM, there are also no rendering commands issued. Stop the renderer in
 	// that case.
 	if ( cgvm.IsActive() )
@@ -333,9 +282,7 @@ void SCR_UpdateScreen()
 
 float SCR_ConsoleFontUnicharWidth( int ch )
 {
-	return cls.useLegacyConsoleFont
-	       ? SMALLCHAR_WIDTH
-	       : Glyph( ch )->xSkip + cl_consoleFontKerning->value;
+	return Glyph( ch )->xSkip + cl_consoleFontKerning->value;
 }
 
 float SCR_ConsoleFontCharWidth( const char *s )
@@ -345,43 +292,17 @@ float SCR_ConsoleFontCharWidth( const char *s )
 
 float SCR_ConsoleFontCharHeight()
 {
-	return cls.useLegacyConsoleFont
-	       ? SMALLCHAR_HEIGHT
-	       : cls.consoleFont->glyphBlock[0][(unsigned)'I'].imageHeight + CONSOLE_FONT_VPADDING * cl_consoleFontSize->value;
+	return cls.consoleFont->glyphBlock[0][(unsigned)'I'].imageHeight + CONSOLE_FONT_VPADDING * cl_consoleFontSize->value;
 }
 
 float SCR_ConsoleFontCharVPadding()
 {
-	return cls.useLegacyConsoleFont
-	       ? 0
-	       : std::max( 0, -cls.consoleFont->glyphBlock[0][(unsigned)'g'].bottom >> 6);
+	return std::max( 0, -cls.consoleFont->glyphBlock[0][(unsigned)'g'].bottom >> 6);
 }
 
 float SCR_ConsoleFontStringWidth( const char* s, int len )
 {
 	float width = 0;
-
-	if( cls.useLegacyConsoleFont )
-	{
-		if( cls.useLegacyConsoleFace )
-		{
-			return len * SMALLCHAR_WIDTH;
-		}
-		else
-		{
-			int l = 0;
-			const char *str = s;
-
-			while( *str && len > 0 )
-			{
-				l++;
-				str += Q_UTF8_Width( str );
-				len--;
-			}
-
-			return l * SMALLCHAR_WIDTH;
-		}
-	}
 
 	while( *s && len > 0 )
 	{

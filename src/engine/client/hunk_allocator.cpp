@@ -36,6 +36,7 @@ Maryland 20850 USA.
 
 #include "engine/client/client.h"
 #include "engine/qcommon/qcommon.h"
+#include "framework/CvarSystem.h"
 
 /*
 ==============================================================================
@@ -71,10 +72,9 @@ Goals:
 ==============================================================================
 */
 
-#define MIN_COMHUNKMEGS 256
-#define DEF_COMHUNKMEGS 512
-
 cvar_t *com_hunkused; // Ridah
+static Cvar::Range<Cvar::Cvar<int>> com_hunkMegs(
+	"com_hunkMegs", "megabytes of memory to allocate for renderer", Cvar::NONE, 512, 256, 2047);
 
 static const int HUNK_MAGIC      = 0x89537892;
 static const int HUNK_FREE_MAGIC = 0x89537893;
@@ -105,27 +105,27 @@ Com_Meminfo_f
 */
 static void Com_Meminfo_f()
 {
-	Log::Notice( "%9i bytes (%6.2f MB) total hunk\n", s_hunkTotal, s_hunkTotal / Square( 1024.f ) );
-	Log::Notice( "\n" );
-	Log::Notice( "%9i bytes (%6.2f MB) low permanent\n", hunk_low.permanent, hunk_low.permanent / Square( 1024.f ) );
+	Log::Notice( "%9i bytes (%6.2f MB) total hunk", s_hunkTotal, s_hunkTotal / Square( 1024.f ) );
+	Log::Notice( "" );
+	Log::Notice( "%9i bytes (%6.2f MB) low permanent", hunk_low.permanent, hunk_low.permanent / Square( 1024.f ) );
 
 	if ( hunk_low.temp != hunk_low.permanent )
 	{
-		Log::Notice( "%9i bytes (%6.2f MB) low temp\n", hunk_low.temp, hunk_low.temp / Square( 1024.f ) );
+		Log::Notice( "%9i bytes (%6.2f MB) low temp", hunk_low.temp, hunk_low.temp / Square( 1024.f ) );
 	}
 
-	Log::Notice( "%9i bytes (%6.2f MB) low tempHighwater\n", hunk_low.tempHighwater, hunk_low.tempHighwater / Square( 1024.f ) );
-	Log::Notice( "\n" );
-	Log::Notice( "%9i bytes (%6.2f MB) high permanent\n", hunk_high.permanent, hunk_high.permanent / Square( 1024.f ) );
+	Log::Notice( "%9i bytes (%6.2f MB) low tempHighwater", hunk_low.tempHighwater, hunk_low.tempHighwater / Square( 1024.f ) );
+	Log::Notice( "" );
+	Log::Notice( "%9i bytes (%6.2f MB) high permanent", hunk_high.permanent, hunk_high.permanent / Square( 1024.f ) );
 
 	if ( hunk_high.temp != hunk_high.permanent )
 	{
-		Log::Notice( "%9i bytes (%6.2f MB) high temp\n", hunk_high.temp, hunk_high.temp / Square( 1024.f ) );
+		Log::Notice( "%9i bytes (%6.2f MB) high temp", hunk_high.temp, hunk_high.temp / Square( 1024.f ) );
 	}
 
-	Log::Notice( "%9i bytes (%6.2f MB) high tempHighwater\n", hunk_high.tempHighwater, hunk_high.tempHighwater / Square( 1024.f ) );
-	Log::Notice( "\n" );
-	Log::Notice( "%9i bytes (%6.2f MB) total hunk in use\n", hunk_low.permanent + hunk_high.permanent,
+	Log::Notice( "%9i bytes (%6.2f MB) high tempHighwater", hunk_high.tempHighwater, hunk_high.tempHighwater / Square( 1024.f ) );
+	Log::Notice( "" );
+	Log::Notice( "%9i bytes (%6.2f MB) total hunk in use", hunk_low.permanent + hunk_high.permanent,
 	            ( hunk_low.permanent + hunk_high.permanent ) / Square( 1024.f ) );
 	int unused = 0;
 
@@ -139,7 +139,7 @@ static void Com_Meminfo_f()
 		unused += hunk_high.tempHighwater - hunk_high.permanent;
 	}
 
-	Log::Notice( "%9i bytes (%6.2f MB) unused highwater\n", unused, unused / Square( 1024.f ) );
+	Log::Notice( "%9i bytes (%6.2f MB) unused highwater", unused, unused / Square( 1024.f ) );
 }
 
 /*
@@ -151,27 +151,16 @@ This should be called once, on application startup.
 */
 void Hunk_Init()
 {
-	cvar_t *cv;
-
 	// allocate the stack based hunk allocator
-	cv = Cvar_Get( "com_hunkMegs", XSTRING(DEF_COMHUNKMEGS), CVAR_LATCH  );
-
-	if ( cv->integer < MIN_COMHUNKMEGS )
-	{
-		s_hunkTotal = 1024 * 1024 * MIN_COMHUNKMEGS;
-		Log::Notice( "Minimum com_hunkMegs is " XSTRING(MIN_COMHUNKMEGS) ", allocating " XSTRING(MIN_COMHUNKMEGS) "MB." );
-	}
-	else
-	{
-		s_hunkTotal = cv->integer * 1024 * 1024;
-	}
+	Cvar::AddFlags(com_hunkMegs.Name(), Cvar::INIT);
+	s_hunkTotal = com_hunkMegs.Get() * 1024 * 1024;
 
 	// cacheline aligned
 	s_hunkData = ( byte * ) Com_Allocate_Aligned( 64, s_hunkTotal );
 
 	if ( !s_hunkData )
 	{
-		Sys::Error( "Hunk data failed to allocate %iMB", s_hunkTotal / ( 1024 * 1024 ) );
+		Sys::Error( "Hunk data failed to allocate %iMB", com_hunkMegs.Get() );
 	}
 
 	Hunk_Clear();
@@ -197,6 +186,11 @@ void Hunk_Clear()
 	Cvar_Set( "com_hunkused", va( "%i", hunk_low.permanent + hunk_high.permanent ) );
 
 	Log::Debug( "Hunk_Clear: reset the hunk ok" );
+}
+
+void Hunk_Shutdown()
+{
+	Com_Free_Aligned( s_hunkData );
 }
 
 static void Hunk_SwapBanks()
@@ -283,15 +277,6 @@ void           *Hunk_AllocateTempMemory( int size )
 	void         *buf;
 	hunkHeader_t *hdr;
 
-	// return a Z_Malloc'd block if the hunk has not been initialized
-	// this allows the config and product id files ( journal files too ) to be loaded
-	// by the file system without redundant routines in the file system utilizing different
-	// memory systems
-	if ( s_hunkData == nullptr )
-	{
-		return Z_Malloc( size );
-	}
-
 	Hunk_SwapBanks();
 
 	size = PAD( size, sizeof( intptr_t ) ) + sizeof( hunkHeader_t );
@@ -336,16 +321,6 @@ void Hunk_FreeTempMemory( void *buf )
 {
 	hunkHeader_t *hdr;
 
-	// free with Z_Free if the hunk has not been initialized
-	// this allows the config and product id files ( journal files too ) to be loaded
-	// by the file system without redundant routines in the file system utilizing different
-	// memory systems
-	if ( s_hunkData == nullptr )
-	{
-		Z_Free( buf );
-		return;
-	}
-
 	hdr = ( ( hunkHeader_t * ) buf ) - 1;
 
 	if ( hdr->magic != (int) HUNK_MAGIC )
@@ -365,7 +340,7 @@ void Hunk_FreeTempMemory( void *buf )
 		}
 		else
 		{
-			Log::Notice( "Hunk_FreeTempMemory: not the final block\n" );
+			Log::Notice( "Hunk_FreeTempMemory: not the final block" );
 		}
 	}
 	else
@@ -376,7 +351,7 @@ void Hunk_FreeTempMemory( void *buf )
 		}
 		else
 		{
-			Log::Notice( "Hunk_FreeTempMemory: not the final block\n" );
+			Log::Notice( "Hunk_FreeTempMemory: not the final block" );
 		}
 	}
 }

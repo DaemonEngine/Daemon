@@ -1,0 +1,3 @@
+// The constants below can supposedly be #included from "winuser.h", but this just seems
+// like an invitation to get errors about it not being found on other people's machines
+/*CREATEPROCESS_MANIFEST_RESOURCE_ID*/1  /*RT_MANIFEST*/24  "supported-os.manifest"

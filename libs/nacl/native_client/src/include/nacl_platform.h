@@ -12,7 +12,7 @@
 
 #include "native_client/src/include/elf.h"
 
-#if NACL_LINUX || NACL_OSX
+#if NACL_LINUX || NACL_FREEBSD || NACL_OSX
 #include <sys/types.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -26,7 +26,7 @@
 #ifndef MAP_ANONYMOUS
 #define MAP_ANONYMOUS MAP_ANON
 #endif
-#elif NACL_LINUX
+#elif NACL_LINUX || NACL_FREEBSD
 # include <sys/mman.h>
 #endif
 

@@ -34,7 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* depthtile2_fp.glsl */
 
-uniform sampler2D u_DepthMap;
+uniform sampler2D u_DepthTile1;
 
 #if __VERSION__ > 120
 out vec4 outputColor;
@@ -47,22 +47,15 @@ void	main()
   vec2 st = gl_FragCoord.st * r_tileStep;
   float x, y;
   vec4 accum = vec4( 0.0, 99999.0, 0.0, 0.0 );
-  float count = 0.0;
 
   for( x = -0.375; x < 0.5; x += 0.25 ) {
     for( y = -0.375; y < 0.5; y += 0.25 ) {
-      vec4 data = texture2D( u_DepthMap, st + vec2(x, y) * r_tileStep );
+      vec4 data = texture2D( u_DepthTile1, st + vec2(x, y) * r_tileStep );
       if( data.y < 99999.0 ) {
 	accum.x = max( accum.x, data.x );
 	accum.y = min( accum.y, data.y );
-	accum.zw += data.zw;
-	count += 1.0;
       }
     }
-  }
-
-  if( count >= 1.0 ) {
-    accum.zw *= 1.0 / count;
   }
 
   outputColor = accum;

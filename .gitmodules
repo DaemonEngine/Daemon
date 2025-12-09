@@ -4,6 +4,12 @@
 [submodule "libs/crunch"]
 	path = libs/crunch
 	url = https://github.com/DaemonEngine/crunch.git
+[submodule "libs/freetype"]
+	path = libs/freetype
+	url = https://github.com/DaemonEngine/freetype.git
 [submodule "libs/googletest"]
 	path = libs/googletest
 	url = https://github.com/DaemonEngine/googletest.git
+[submodule "libs/pdcursesmod"]
+	path = libs/pdcursesmod
+	url = https://github.com/DaemonEngine/PDCursesMod.git

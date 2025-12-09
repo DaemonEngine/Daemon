@@ -35,7 +35,7 @@ bool LoadInMemoryWEBP( const char *path, const uint8_t* webpData, size_t webpSiz
 
 	const size_t stride{ *width * sizeof( u8vec4_t ) };
 	const size_t size{ *height * stride };
-	auto *out = (byte*)ri.Z_Malloc( size );
+	auto *out = (byte*)Z_Malloc( size );
 
 	// Decode into RGBA.
 	if ( !WebPDecodeRGBAInto( webpData, webpSize, out, size, stride ) )
@@ -62,11 +62,13 @@ void LoadWEBP( const char *path, byte **pic, int *width, int *height, int *, int
 	
 	std::error_code err;
 	std::string webpData = FS::PakPath::ReadFile( path, err );
+
 	if ( err ) {
 		return;
 	}
+
 	if ( !LoadInMemoryWEBP( path, reinterpret_cast<const uint8_t*>(webpData.data()), webpData.size(), pic, width, height ) ) {
-		ri.Free( *pic );
+		Z_Free( *pic );
 		*pic = nullptr; // This signals failure.
 	}
 }

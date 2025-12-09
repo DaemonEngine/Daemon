@@ -31,18 +31,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "VMMain.h"
 #include "CommonProxies.h"
 #include "common/IPC/CommonSyscalls.h"
-#ifndef _WIN32
-#include <unistd.h>
-#endif
+
+#include "common/StackTrace.h"
 
 IPC::Channel VM::rootChannel;
 
-// Special exception type used to cleanly exit a thread for in-process VMs
+#ifdef BUILD_VM_NATIVE_EXE
+// When using native exe, turn this off if you want to use core dumps (*nix) or attach a debugger
+// upon crashing (Windows). Disabling it is like -nocrashhandler for Daemon.
+Cvar::Cvar<bool> VM::useNativeExeCrashHandler(
+	VM_STRING_PREFIX "nativeExeCrashHandler", "catch and log crashes/fatal exceptions in native exe VM", Cvar::NONE, true);
+#endif
+
 #ifdef BUILD_VM_IN_PROCESS
+// Special exception type used to cleanly exit a thread for in-process VMs
 // Using an anonymous namespace so the compiler knows that the exception is
 // only used in the current file.
 namespace {
 class ExitException {};
+}
+
+namespace Sys {
+extern std::thread::id mainThread;
 }
 #endif
 
@@ -51,9 +61,11 @@ static void CommonInit(Sys::OSHandle rootSocket)
 {
 	VM::rootChannel = IPC::Channel(IPC::Socket::FromHandle(rootSocket));
 
-	// Send syscall ABI version, also acts as a sign that the module loaded
+	// Send ABI version information, also acts as a sign that the module loaded
 	Util::Writer writer;
-	writer.Write<uint32_t>(VM::VM_API_VERSION);
+	writer.Write<uint32_t>(IPC::ABI_VERSION_DETECTION_ABI_VERSION);
+	writer.Write<std::string>(IPC::SYSCALL_ABI_VERSION);
+	writer.Write<bool>(IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES);
 	VM::rootChannel.SendMsg(writer);
 
 	// Start the main loop
@@ -67,7 +79,7 @@ static void CommonInit(Sys::OSHandle rootSocket)
 	}
 }
 
-void Sys::Error(Str::StringRef message)
+static void SendErrorMsg(Str::StringRef message)
 {
 	// Only try sending an ErrorMsg once
 	static std::atomic_flag errorEntered;
@@ -81,6 +93,38 @@ void Sys::Error(Str::StringRef message)
 			VM::SendMsg<VM::ErrorMsg>(message);
 		} catch (...) {}
 	}
+}
+
+#ifdef __native_client__
+// HACK: when we get a fatal exception in the terminate handler and call abort() to trigger
+// a crash dump (as there doesn't seem to be an API for requesting a minidump directly),
+// the error message is passed through this variable.
+static char realErrorMessage[256];
+#endif
+
+void Sys::Error(Str::StringRef message)
+{
+	if (!OnMainThread()) {
+		// On a non-main thread we can't use IPC, so we can't communicate the error message. Just exit.
+		// Also note that throwing ExitException would only work as intended on the main thread.
+#ifdef __native_client__
+		// Don't abort, to avoid "nacl_loader.exe has stopped working" popup on Windows
+		_exit(222);
+#else
+		// Trigger a core dump if enabled. Would give us something to work with since the
+		// error message can't be shown.
+		std::abort();
+#endif
+	}
+
+#ifdef __native_client__
+	if (realErrorMessage[0]) {
+		message = realErrorMessage;
+	}
+#endif
+
+	PrintStackTrace();
+	SendErrorMsg(message);
 
 #ifdef BUILD_VM_IN_PROCESS
 	// Then engine will close the root socket when it wants us to exit, which
@@ -99,6 +143,7 @@ void Sys::Error(Str::StringRef message)
 // Entry point called in a new thread inside the existing process
 extern "C" DLLEXPORT ALIGN_STACK_FOR_MINGW void vmMain(Sys::OSHandle rootSocket)
 {
+	Sys::mainThread = std::this_thread::get_id();
 	try {
 		try {
 			CommonInit(rootSocket);
@@ -115,6 +160,39 @@ extern "C" DLLEXPORT ALIGN_STACK_FOR_MINGW void vmMain(Sys::OSHandle rootSocket)
 }
 
 #else
+
+// The terminate handler feature lets us print the exception message WITHOUT unwinding the stack,
+// so that the full stack where the exception arose can be seen in an NaCl crash dump, a
+// traditional Unix core dump (for native exe), a debugger, etc.
+NORETURN static void TerminateHandler()
+{
+#ifdef __native_client__
+	// Using a lambda triggers -Wformat-security...
+#	define DispatchError(...) snprintf(realErrorMessage, sizeof(realErrorMessage), __VA_ARGS__)
+#elif defined(BUILD_VM_NATIVE_EXE)
+	auto DispatchError = [](const char* msg, const auto&... fmtArgs) {
+		if (VM::useNativeExeCrashHandler.Get()) {
+			Sys::Error(msg, fmtArgs...);
+		} else {
+			Log::Warn(XSTRING(VM_NAME) " VM terminating:");
+			Log::Warn(msg, fmtArgs...);
+			// fall through to abort() for core dump etc.
+		}
+	};
+#endif
+
+	if (Sys::OnMainThread()) {
+		try {
+			// A terminate handler is only called if there is an active exception
+			std::rethrow_exception(std::current_exception());
+		} catch (std::exception& err) {
+			DispatchError("Unhandled exception (%s): %s", typeid(err).name(), err.what());
+		} catch (...) {
+			DispatchError("Unhandled exception of unknown type");
+		}
+	}
+	std::abort();
+}
 
 // Entry point called in a new process
 int main(int argc, char** argv)
@@ -135,24 +213,19 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
+	std::set_terminate(TerminateHandler);
 	// Set up crash handling for this process. This will allow crashes to be
 	// sent back to the engine and reported to the user.
+#ifdef __native_client__
 	Sys::SetupCrashHandler();
+#endif
 
-	// For NaCl avoid catching the exceptions so we can get a crash dump. You get have either
-	// the exception message or a crash dump with a useful backtrace, not both. The trace
-	// seems more informative on average.
 	try {
 		CommonInit(rootSocket);
 	} catch (Sys::DropErr& err) {
 		Sys::Error(err.what());
-#ifndef __native_client__
-	} catch (std::exception& err) {
-		Sys::Error("Unhandled exception (%s): %s", typeid(err).name(), err.what());
-	} catch (...) {
-		Sys::Error("Unhandled exception of unknown type");
-#endif
 	}
+	// Other exceptions go to TerminateHandler()
 }
 
 #endif

@@ -165,20 +165,19 @@ qhandle_t RE_RegisterSkin( const char *name )
 	qhandle_t     hSkin;
 	skin_t        *skin;
 	skinSurface_t *surf;
-	skinModel_t   *model; //----(SA) added
 	const char    *text_p;
 	const char    *token;
 	char          surfName[ MAX_QPATH ];
 
 	if ( !name || !name[ 0 ] )
 	{
-		Log::Notice( "Empty name passed to RE_RegisterSkin\n" );
+		Log::Notice( "Empty name passed to RE_RegisterSkin" );
 		return 0;
 	}
 
 	if ( strlen( name ) >= MAX_QPATH )
 	{
-		Log::Notice( "Skin name exceeds MAX_QPATH\n" );
+		Log::Notice( "Skin name exceeds MAX_QPATH" );
 		return 0;
 	}
 
@@ -226,7 +225,6 @@ qhandle_t RE_RegisterSkin( const char *name )
 	tr.skins[ hSkin ] = skin;
 	Q_strncpyz( skin->name, name, sizeof( skin->name ) );
 	skin->numSurfaces = 0;
-	skin->numModels = 0; //----(SA) added
 
 //----(SA)  end
 
@@ -256,22 +254,6 @@ qhandle_t RE_RegisterSkin( const char *name )
 			continue;
 		}
 
-		if ( !Q_strnicmp( token, "md3_", 4 ) )
-		{
-			// this is specifying a model
-			model = skin->models[ skin->numModels ] = (skinModel_t*) ri.Hunk_Alloc( sizeof( *skin->models[ 0 ] ), ha_pref::h_low );
-			Q_strncpyz( model->type, token, sizeof( model->type ) );
-			model->hash = Com_HashKey( model->type, sizeof( model->type ) );
-
-			// get the model name
-			token = CommaParse( &text_p );
-
-			Q_strncpyz( model->model, token, sizeof( model->model ) );
-
-			skin->numModels++;
-			continue;
-		}
-
 		// parse the shader name
 		token = CommaParse( &text_p );
 
@@ -279,7 +261,7 @@ qhandle_t RE_RegisterSkin( const char *name )
 		Q_strncpyz( surf->name, surfName, sizeof( surf->name ) );
 
 		// RB: bspSurface_t does not have ::hash yet
-		surf->shader = R_FindShader( token, shaderType_t::SHADER_3D_DYNAMIC, RSF_DEFAULT );
+		surf->shader = R_FindShader( token, RSF_3D );
 		skin->numSurfaces++;
 	}
 
@@ -327,29 +309,31 @@ skin_t         *R_GetSkinByHandle( qhandle_t hSkin )
 	return tr.skins[ hSkin ];
 }
 
-/*
-===============
-R_SkinList_f
-===============
-*/
-void R_SkinList_f()
+class ListSkinsCmd : public Cmd::StaticCmd
 {
-	int    i, j;
-	skin_t *skin;
+public:
+	ListSkinsCmd() : StaticCmd("listSkins", Cmd::RENDERER, "list model skins") {}
 
-	Log::Notice("------------------" );
-
-	for ( i = 0; i < tr.numSkins; i++ )
+	void Run( const Cmd::Args & ) const override
 	{
-		skin = tr.skins[ i ];
+		int    i, j;
+		skin_t *skin;
 
-		Log::Notice("%3i:%s", i, skin->name );
+		Print("------------------" );
 
-		for ( j = 0; j < skin->numSurfaces; j++ )
+		for ( i = 0; i < tr.numSkins; i++ )
 		{
-			Log::Notice("       %s = %s", skin->surfaces[ j ]->name, skin->surfaces[ j ]->shader->name );
-		}
-	}
+			skin = tr.skins[ i ];
 
-	Log::Notice("------------------" );
-}
+			Print("%3i:%s", i, skin->name );
+
+			for ( j = 0; j < skin->numSurfaces; j++ )
+			{
+				Print("       %s = %s", skin->surfaces[ j ]->name, skin->surfaces[ j ]->shader->name );
+			}
+		}
+
+		Print("------------------" );
+	}
+};
+static ListSkinsCmd listSkinsCmdRegistration;

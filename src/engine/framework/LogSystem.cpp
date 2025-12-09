@@ -34,16 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "LogSystem.h"
 
 namespace Log {
-
-    static Cvar::Cvar<bool> suppressionEnabled(
-        "logs.suppression.enabled", "Whether to suppress log messages that are printed too many times", Cvar::NONE, true);
-    static Cvar::Range<Cvar::Cvar<int>> suppressionInterval(
-        "logs.suppression.interval", "Interval in milliseconds for detecting log spam", Cvar::NONE, 2000, 1, 1000000);
-    static Cvar::Range<Cvar::Cvar<int>> suppressionCount(
-        "logs.suppression.count", "Number of occurrences for a message to be considered log spam", Cvar::NONE, 10, 1, 1000000);
-    static Cvar::Range<Cvar::Cvar<int>> suppressionBufSize(
-        "logs.suppression.bufferSize", "How many distinct messages to track for log suppression", Cvar::NONE, 50, 1, 1000000);
-
     static Target* targets[MAX_TARGET_ID];
 
 
@@ -107,10 +97,10 @@ namespace Log {
     static TTYTarget tty;
 
     //TODO add a Callback on these that will make the logFile open a new file or something?
-    Cvar::Cvar<bool> useLogFile("logs.logFile.active", "are the logs sent in the logfile", Cvar::NONE, true);
-    Cvar::Cvar<std::string> logFileName("logs.logFile.filename", "the name of the logfile", Cvar::NONE, "daemon.log");
-    Cvar::Cvar<bool> overwrite("logs.logFile.overwrite", "if true the logfile is deleted at each run else the logs are just appended", Cvar::NONE, true);
-    Cvar::Cvar<bool> forceFlush("logs.logFile.forceFlush", "are all the logs flushed immediately (more accurate but slower)", Cvar::NONE, false);
+    static Cvar::Cvar<bool> useLogFile("logs.logFile.active", "are the logs sent in the logfile", Cvar::NONE, true);
+    static Cvar::Cvar<std::string> logFileName("logs.logFile.filename", "the name of the logfile", Cvar::INIT | Cvar::TEMPORARY, "daemon.log");
+    static Cvar::Cvar<bool> overwrite("logs.logFile.overwrite", "if true the logfile is deleted at each run else the logs are just appended", Cvar::INIT | Cvar::TEMPORARY, true);
+    static Cvar::Cvar<bool> forceFlush("logs.logFile.forceFlush", "are all the logs flushed immediately (more accurate but slower)", Cvar::INIT | Cvar::TEMPORARY, false);
     class LogFileTarget: public Target {
         public:
             LogFileTarget() {

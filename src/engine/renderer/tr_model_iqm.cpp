@@ -33,6 +33,7 @@ Maryland 20850 USA.
 */
 
 #include "tr_local.h"
+#include "GeometryOptimiser.h"
 
 /* Flags -O2, -O3 and -0s produce SIGBUS in R_LoadIQModel() on armhf,
 see https://github.com/DaemonEngine/Daemon/issues/736 */
@@ -408,6 +409,36 @@ static bool LoadIQMFile( const void *buffer, unsigned filesize, const char *mod_
 	return true;
 }
 
+static size_t SanitizeFloatVertexArray( iqmHeader_t *header, iqmVertexArray_t *vertexarray,
+	const char *array_name, const char *mod_name )
+{
+	float *input = ( float* ) IQMPtr( header, vertexarray->offset );
+
+	size_t nanCount = 0;
+
+	for ( unsigned int i = 0; i < header->num_vertexes; i++, input += vertexarray->size )
+	{
+		for ( unsigned int j = 0; j < vertexarray->size; j++ )
+		{
+			if ( !Math::IsFinite ( input[ j ] ) )
+			{
+				Log::Debug( "IQM model “%s” has NaN in %s[%d][%d].", mod_name, array_name, i, j );
+				input[ j ] = 0.0f;
+				nanCount++;
+			}
+		}
+	}
+
+	return nanCount;
+}
+
+template<typename T>
+static void CopyVertexArray( iqmHeader_t *header, iqmVertexArray_t *vertexarray, T* dest )
+{
+	unsigned int n = header->num_vertexes * vertexarray->size;
+	memcpy( dest, IQMPtr( header, vertexarray->offset ), static_cast<size_t>(n) * sizeof( T ) );
+}
+
 /*
 =================
 BuildTangents
@@ -415,21 +446,20 @@ BuildTangents
 Compute Tangent and Bitangent vectors from the IQM 4-float input data
 =================
 */
-void BuildTangents( int n, float *input, float *normals, float *tangents,
-		    float *bitangents )
+static void BuildTangents( iqmHeader_t *header, iqmVertexArray_t *vertexarray,
+	float *normals, float *tangents, float *bitangents )
 {
-	int i;
-	vec3_t crossProd;
+	float *input = (float*)IQMPtr( header, vertexarray->offset );
 
-	for( i = 0; i < n; i++ ) {
+	for ( unsigned int i = 0; i < header->num_vertexes; i++, input += 4,
+		normals += 3, tangents += 3, bitangents += 3 )
+	{
 		VectorCopy( input, tangents );
-		CrossProduct( normals, input, crossProd );
-		VectorScale( crossProd, input[ 3 ], bitangents );
+		float sign = input[ 3 ];
 
-		input      += 4;
-		normals    += 3;
-		tangents   += 3;
-		bitangents += 3;
+		vec3_t crossProd;
+		CrossProduct( normals, tangents, crossProd );
+		VectorScale( crossProd, sign, bitangents );
 	}
 }
 
@@ -458,14 +488,9 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 	IQModel_t		*IQModel;
 	IQAnim_t		*IQAnim;
 	srfIQModel_t		*surface;
-	vboData_t               vboData;
-	float                   *weightbuf;
-	int                     *indexbuf;
-	i16vec4_t               *qtangentbuf;
 	VBO_t                   *vbo;
 	IBO_t                   *ibo;
 	void                    *ptr;
-	u8vec4_t                *weights;
 
 	if( !LoadIQMFile( buffer, filesize, mod_name, &len_names ) ) {
 		return false;
@@ -486,7 +511,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 	size += header->num_vertexes * 3 * sizeof(float);	// normals
 	size += header->num_vertexes * 3 * sizeof(float);	// tangents
 	size += header->num_vertexes * 3 * sizeof(float);	// bitangents
-	size += header->num_vertexes * 2 * sizeof(f16_t);	// texcoords
+	size += header->num_vertexes * 2 * sizeof(float);	// texcoords
 	size += header->num_vertexes * 4 * sizeof(byte);	// blendIndexes
 	size += header->num_vertexes * 4 * sizeof(byte);	// blendWeights
 	size += header->num_vertexes * 4 * sizeof(byte);	// colors
@@ -546,7 +571,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 	IQModel->bitangents = (float *)ptr;
 	ptr = IQModel->bitangents + 3 * header->num_vertexes;
 
-	IQModel->texcoords = (f16_t *)ptr;
+	IQModel->texcoords = (float *)ptr;
 	ptr = IQModel->texcoords + 2 * header->num_vertexes;
 
 	IQModel->blendIndexes = (byte *)ptr;
@@ -630,6 +655,8 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 		IQModel->jointParents[i] = joint->parent;
 	}
 
+	size_t nanCount = 0;
+
 	// calculate pose transforms
 	framedata = ( short unsigned int* )IQMPtr( header, header->ofs_frames );
 	trans = poses;
@@ -639,6 +666,23 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 			vec3_t	translate;
 			quat_t	rotate;
 			vec3_t	scale;
+
+			for ( size_t k = 0; k < 10; k++ )
+			{
+				if ( !Math::IsFinite ( pose->channeloffset[ k ] ) )
+				{
+					Log::Debug( "IQM model “%s” frame %d has NaN in pose[%d]->channeloffset[%d].", mod_name, i, j, k );
+					pose->channeloffset[ k ] = 0.0f;
+					nanCount++;
+				}
+
+				if ( !Math::IsFinite ( pose->channelscale[ k ] ) )
+				{
+					Log::Debug( "IQM model “%s” frame %d has NaN in pose[%d]->channelscale[%d].", mod_name, i, j, k );
+					pose->channelscale[ k ] = 0.0f;
+					nanCount++;
+				}
+			}
 
 			translate[0] = pose->channeloffset[0];
 			if( pose->mask & 0x001)
@@ -685,71 +729,83 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 		}
 	}
 
+	u8vec4_t *weights = nullptr;
+
 	// copy vertexarrays and indexes
 	vertexarray = static_cast<iqmVertexArray_t*>( IQMPtr( header, header->ofs_vertexarrays ) );
 	for(unsigned i = 0; i < header->num_vertexarrays; i++, vertexarray++ ) {
-		int	n;
-
-		// total number of values
-		n = header->num_vertexes * vertexarray->size;
-
 		switch( vertexarray->type ) {
 		case IQM_POSITION:
 			ClearBounds( IQModel->bounds[ 0 ], IQModel->bounds[ 1 ] );
-			memcpy( IQModel->positions,
-				    IQMPtr( header, vertexarray->offset ),
-				    n * sizeof(float) );
-			for( int j = 0; j < n; j += vertexarray->size ) {
-				AddPointToBounds( &IQModel->positions[ j ],
-						  IQModel->bounds[ 0 ],
-						  IQModel->bounds[ 1 ] );
-			}
-			IQModel->internalScale = BoundsMaxExtent( IQModel->bounds[ 0 ], IQModel->bounds[ 1 ] );
-			if( IQModel->internalScale > 0.0f ) {
-				float inverseScale = 1.0f / IQModel->internalScale;
-				for( int j = 0; j < n; j += vertexarray->size ) {
-					VectorScale( &IQModel->positions[ j ],
-						     inverseScale,
-						     &IQModel->positions[ j ] );
+
+			nanCount += SanitizeFloatVertexArray( header, vertexarray, "position", mod_name );
+			CopyVertexArray( header, vertexarray, IQModel->positions );
+
+			{
+				unsigned int n = header->num_vertexes * vertexarray->size;
+
+				for ( unsigned int j = 0; j < n; j += vertexarray->size )
+				{
+					AddPointToBounds( &IQModel->positions[ j ], IQModel->bounds[ 0 ], IQModel->bounds[ 1 ] );
+				}
+
+				IQModel->internalScale = BoundsMaxExtent( IQModel->bounds[ 0 ], IQModel->bounds[ 1 ] );
+
+				if ( IQModel->internalScale > 0.0f )
+				{
+					float inverseScale = 1.0f / IQModel->internalScale;
+
+					for ( unsigned int j = 0; j < n; j += vertexarray->size )
+					{
+						VectorScale( &IQModel->positions[ j ], inverseScale, &IQModel->positions[ j ] );
+					}
 				}
 			}
 
 			break;
 		case IQM_NORMAL:
-			memcpy( IQModel->normals,
-				    IQMPtr( header, vertexarray->offset ),
-				    n * sizeof(float) );
+			nanCount += SanitizeFloatVertexArray( header, vertexarray, "normal", mod_name );
+			CopyVertexArray( header, vertexarray, IQModel->normals );
 			break;
 		case IQM_TANGENT:
-			BuildTangents( header->num_vertexes,
-				       ( float* )IQMPtr( header, vertexarray->offset ),
-				       IQModel->normals, IQModel->tangents,
-				       IQModel->bitangents );
+			nanCount += SanitizeFloatVertexArray( header, vertexarray, "tangents", mod_name );
+			BuildTangents( header, vertexarray, IQModel->normals, IQModel->tangents, IQModel->bitangents );
 			break;
 		case IQM_TEXCOORD:
-			for( int j = 0; j < n; j++ ) {
-				IQModel->texcoords[ j ] = floatToHalf( ((float *)IQMPtr( header, vertexarray->offset ))[ j ] );
-			}
+			nanCount += SanitizeFloatVertexArray( header, vertexarray, "texcoord", mod_name );
+			CopyVertexArray( header, vertexarray, IQModel->texcoords );
 			break;
 		case IQM_BLENDINDEXES:
-			memcpy( IQModel->blendIndexes,
-				    IQMPtr( header, vertexarray->offset ),
-				    n * sizeof(byte) );
+			CopyVertexArray( header, vertexarray, IQModel->blendIndexes );
 			break;
 		case IQM_BLENDWEIGHTS:
+			// blendWeights[*][0] is always rewritten later.
+			CopyVertexArray( header, vertexarray, IQModel->blendWeights );
 			weights = static_cast<u8vec4_t *>( IQMPtr( header, vertexarray->offset ) );
-			for(unsigned j = 0; j < header->num_vertexes; j++ ) {
-				IQModel->blendWeights[ 4 * j + 0 ] = 255 - weights[ j ][ 1 ] - weights[ j ][ 2 ] - weights[ j ][ 3 ];
-				IQModel->blendWeights[ 4 * j + 1 ] = weights[ j ][ 1 ];
-				IQModel->blendWeights[ 4 * j + 2 ] = weights[ j ][ 2 ];
-				IQModel->blendWeights[ 4 * j + 3 ] = weights[ j ][ 3 ];
-			}
 			break;
 		case IQM_COLOR:
-			memcpy( IQModel->colors,
-				    IQMPtr( header, vertexarray->offset ),
-				    n * sizeof(byte) );
+			CopyVertexArray( header, vertexarray, IQModel->colors );
 			break;
+		}
+	}
+
+	if ( nanCount )
+	{
+		Log::Warn( "IQM Model “%s” contains %d NaN.", mod_name, nanCount );
+	}
+
+	if ( weights )
+	{
+		for ( unsigned j = 0; j < header->num_vertexes; j++ )
+		{
+			IQModel->blendWeights[ 4 * j + 0 ] = 255 - weights[ j ][ 1 ] - weights[ j ][ 2 ] - weights[ j ][ 3 ];
+		}
+	}
+	else
+	{
+		for ( unsigned j = 0; j < header->num_vertexes; j++ )
+		{
+			IQModel->blendWeights[ 4 * j + 0 ] = 255;
 		}
 	}
 
@@ -762,41 +818,20 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 	}
 
 	// convert data where necessary and create VBO
-	if( r_vboModels->integer && glConfig2.vboVertexSkinningAvailable
-	    && IQModel->num_joints <= glConfig2.maxVertexSkinningBones ) {
+	if( r_vboModels.Get() && glConfig.vboVertexSkinningAvailable
+	    && IQModel->num_joints <= glConfig.maxVertexSkinningBones ) {
 
-		if( IQModel->blendIndexes ) {
-			indexbuf = (int *)ri.Hunk_AllocateTempMemory( sizeof(int[4]) * IQModel->num_vertexes );
-			for(int i = 0; i < IQModel->num_vertexes; i++ ) {
-				indexbuf[ 4 * i + 0 ] = IQModel->blendIndexes[ 4 * i + 0 ];
-				indexbuf[ 4 * i + 1 ] = IQModel->blendIndexes[ 4 * i + 1 ];
-				indexbuf[ 4 * i + 2 ] = IQModel->blendIndexes[ 4 * i + 2 ];
-				indexbuf[ 4 * i + 3 ] = IQModel->blendIndexes[ 4 * i + 3 ];
-			}
-		} else {
-			indexbuf = nullptr;
-		}
-		if( IQModel->blendWeights ) {
-			const float weightscale = 1.0f / 255.0f;
+		uint16_t *boneFactorBuf = (uint16_t*)ri.Hunk_AllocateTempMemory( IQModel->num_vertexes * ( 4 * sizeof(uint16_t) ) );
 
-			weightbuf = (float *)ri.Hunk_AllocateTempMemory( sizeof(vec4_t) * IQModel->num_vertexes );
-			for(int i = 0; i < IQModel->num_vertexes; i++ ) {
-				if( IQModel->blendWeights[ 4 * i + 0 ] == 0 &&
-				    IQModel->blendWeights[ 4 * i + 1 ] == 0 &&
-				    IQModel->blendWeights[ 4 * i + 2 ] == 0 &&
-				    IQModel->blendWeights[ 4 * i + 3 ] == 0 )
-					IQModel->blendWeights[ 4 * i + 0 ] = 255;
-
-				weightbuf[ 4 * i + 0 ] = weightscale * IQModel->blendWeights[ 4 * i + 0 ];
-				weightbuf[ 4 * i + 1 ] = weightscale * IQModel->blendWeights[ 4 * i + 1 ];
-				weightbuf[ 4 * i + 2 ] = weightscale * IQModel->blendWeights[ 4 * i + 2 ];
-				weightbuf[ 4 * i + 3 ] = weightscale * IQModel->blendWeights[ 4 * i + 3 ];
-			}
-		} else {
-			weightbuf = nullptr;
+		for (int i = 0; i < IQModel->num_vertexes; i++ ) {
+			boneFactorBuf[ 4 * i + 0 ] = uint16_t(IQModel->blendWeights[ 4 * i + 0 ]) << 8 | IQModel->blendIndexes[ 4 * i + 0 ];
+			boneFactorBuf[ 4 * i + 1 ] = uint16_t(IQModel->blendWeights[ 4 * i + 1 ]) << 8 | IQModel->blendIndexes[ 4 * i + 1 ];
+			boneFactorBuf[ 4 * i + 2 ] = uint16_t(IQModel->blendWeights[ 4 * i + 2 ]) << 8 | IQModel->blendIndexes[ 4 * i + 2 ];
+			boneFactorBuf[ 4 * i + 3 ] = uint16_t(IQModel->blendWeights[ 4 * i + 3 ]) << 8 | IQModel->blendIndexes[ 4 * i + 3 ];
 		}
 		
-		qtangentbuf = static_cast<i16vec4_t *>( ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * IQModel->num_vertexes ) );
+		i16vec4_t *qtangentbuf = static_cast<i16vec4_t *>(
+			ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * IQModel->num_vertexes ) );
 
 		for(int i = 0; i < IQModel->num_vertexes; i++ ) {
 			R_TBNtoQtangents( &IQModel->tangents[ 3 * i ],
@@ -805,45 +840,32 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 					  qtangentbuf[ i ] );
 		}
 
-		vboData.xyz = (vec3_t *)IQModel->positions;
-		vboData.qtangent = qtangentbuf;
-		vboData.numFrames = 0;
-		vboData.color = (u8vec4_t *)IQModel->colors;
-		vboData.st = (f16vec2_t *)IQModel->texcoords;
-		vboData.noLightCoords = true;
-		vboData.boneIndexes = (int (*)[4])indexbuf;
-		vboData.boneWeights = (vec4_t *)weightbuf;
-		vboData.numVerts = IQModel->num_vertexes;
+		const vertexAttributeSpec_t attrs[] {
+			{ ATTR_INDEX_BONE_FACTORS, GL_UNSIGNED_SHORT, GL_UNSIGNED_SHORT, boneFactorBuf, 4, sizeof( u16vec4_t ), 0 },
+			{ ATTR_INDEX_POSITION, GL_FLOAT, GL_SHORT, IQModel->positions, 3, sizeof( float[ 3 ] ), ATTR_OPTION_NORMALIZE },
+			{ ATTR_INDEX_QTANGENT, GL_SHORT, GL_SHORT, qtangentbuf, 4, sizeof( i16vec4_t ), ATTR_OPTION_NORMALIZE, },
+			{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, IQModel->texcoords, 2, sizeof( float[ 2 ] ), 0 },
+			{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, IQModel->colors, 4, sizeof( u8vec4_t ), ATTR_OPTION_NORMALIZE },
+		};
 
+		std::string name = mod->name;
+		vbo = R_CreateStaticVBO( "IQM surface VBO " + name,
+		                         std::begin( attrs ), std::end( attrs ), IQModel->num_vertexes );
 
-		vbo = R_CreateStaticVBO( "IQM surface VBO", vboData,
-					 vboLayout_t::VBO_LAYOUT_SKELETAL );
-
-		if( qtangentbuf ) {
-			ri.Hunk_FreeTempMemory( qtangentbuf );
-		}
-		if( weightbuf ) {
-			ri.Hunk_FreeTempMemory( weightbuf );
-		}
-		if( indexbuf ) {
-			ri.Hunk_FreeTempMemory( indexbuf );
-		}
+		ri.Hunk_FreeTempMemory( qtangentbuf );
+		ri.Hunk_FreeTempMemory( boneFactorBuf );
 
 		// create IBO
-		ibo = R_CreateStaticIBO( "IQM surface IBO", ( glIndex_t* )IQModel->triangles, IQModel->num_triangles * 3 );
+		ibo = R_CreateStaticIBO( ( "IQM surface IBO " + name ).c_str(),
+		                         ( glIndex_t* )IQModel->triangles, IQModel->num_triangles * 3 );
+
+		SetupVAOBuffers( vbo, ibo, 
+			ATTR_BONE_FACTORS | ATTR_POSITION | ATTR_QTANGENT | ATTR_TEXCOORD
+			| ATTR_COLOR,
+			&vbo->VAO );
 	} else {
 		vbo = nullptr;
 		ibo = nullptr;
-
-		if( IQModel->blendWeights ) {
-			for( int i = 0; i < IQModel->num_vertexes; i++ ) {
-				if( IQModel->blendWeights[ 4 * i + 0 ] == 0 &&
-				    IQModel->blendWeights[ 4 * i + 1 ] == 0 &&
-				    IQModel->blendWeights[ 4 * i + 2 ] == 0 &&
-				    IQModel->blendWeights[ 4 * i + 3 ] == 0 )
-					IQModel->blendWeights[ 4 * i + 0 ] = 255;
-			}
-		}
 	}
 
 	// register shaders
@@ -863,8 +885,8 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 			surface->name = nullptr;
 		}
 
-		surface->shader = R_FindShader( ( char* )IQMPtr(header, header->ofs_text + mesh->material),
-						shaderType_t::SHADER_3D_DYNAMIC, RSF_DEFAULT );
+		surface->shader = R_FindShader(
+			( char* )IQMPtr(header, header->ofs_text + mesh->material), RSF_3D );
 		if( surface->shader->defaultShader )
 			surface->shader = tr.defaultShader;
 		surface->data = IQModel;
@@ -913,7 +935,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 R_CullIQM
 =============
 */
-static void R_CullIQM( trRefEntity_t *ent ) {
+static cullResult_t R_CullIQM( trRefEntity_t *ent ) {
 	vec3_t     localBounds[ 2 ];
 	float      scale = ent->e.skeleton.scale;
 	IQModel_t *model = tr.currentModel->iqm;
@@ -945,17 +967,14 @@ static void R_CullIQM( trRefEntity_t *ent ) {
 	{
 	case cullResult_t::CULL_IN:
 		tr.pc.c_box_cull_md5_in++;
-		ent->cull = cullResult_t::CULL_IN;
-		return;
+		return cullResult_t::CULL_IN;
 	case cullResult_t::CULL_CLIP:
 		tr.pc.c_box_cull_md5_clip++;
-		ent->cull = cullResult_t::CULL_CLIP;
-		return;
+		return cullResult_t::CULL_CLIP;
 	case cullResult_t::CULL_OUT:
 	default:
 		tr.pc.c_box_cull_md5_out++;
-		ent->cull = cullResult_t::CULL_OUT;
-		return;
+		return cullResult_t::CULL_OUT;
 	}
 }
 
@@ -982,30 +1001,14 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 	personalModel = (ent->e.renderfx & RF_THIRD_PERSON) &&
 	  tr.viewParms.portalLevel == 0;
 
-	//
-	// cull the entire model if merged bounding box of both frames
-	// is outside the view frustum.
-	//
-	R_CullIQM( ent );
-
 	// HACK: Never cull first-person models, due to issues with a certain model's bounds
 	// A first-person model not in the player's sight seems like something that should not happen in any case
-	// But R_CullIQM is always called because it sets some fields used by other code
-	if ( ent->cull == cullResult_t::CULL_OUT && !( ent->e.renderfx & RF_FIRST_PERSON ) )
+	if ( !( ent->e.renderfx & RF_FIRST_PERSON ) && R_CullIQM( ent ) == cullResult_t::CULL_OUT )
 	{
 		return;
 	}
 
-	//
-	// set up lighting now that we know we aren't culled
-	//
-	if ( !personalModel || r_shadows->integer > Util::ordinal(shadowingMode_t::SHADOWING_BLOB) ) {
-		R_SetupEntityLighting( &tr.refdef, ent, nullptr );
-	}
-
-	//
 	// see if we are in a fog volume
-	//
 	fogNum = R_FogWorldBox( ent->worldBounds );
 
 	for ( i = 0 ; i < IQModel->num_surfaces ; i++ ) {
@@ -1049,5 +1052,16 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 		}
 
 		surface++;
+	}
+}
+
+void MarkShaderBuildIQM( const IQModel_t* model ) {
+	for ( srfIQModel_t* surface = model->surfaces; surface < model->surfaces + model->num_surfaces; surface++ ) {
+		MarkShaderBuild( surface->shader, -1, false, true, false );
+
+		for ( int i = 0; i < MAX_ALTSHADERS; i++ ) {
+			shader_t* shader = R_GetShaderByHandle( surface->shader->altShader[i].index );
+			MarkShaderBuild( shader, -1, false, true, false );
+		}
 	}
 }

@@ -99,12 +99,7 @@ static float GetOpValue( const expOperation_t *op )
 			break;
 
 		case opcode_t::OP_PARM0:
-			if ( backEnd.currentLight )
-			{
-				value = backEnd.currentLight->l.color[ 0 ];
-				break;
-			}
-			else if ( backEnd.currentEntity )
+			if ( backEnd.currentEntity )
 			{
 				value = backEnd.currentEntity->e.shaderRGBA.Red() * inv255;
 			}
@@ -116,12 +111,7 @@ static float GetOpValue( const expOperation_t *op )
 			break;
 
 		case opcode_t::OP_PARM1:
-			if ( backEnd.currentLight )
-			{
-				value = backEnd.currentLight->l.color[ 1 ];
-				break;
-			}
-			else if ( backEnd.currentEntity )
+			if ( backEnd.currentEntity )
 			{
 				value = backEnd.currentEntity->e.shaderRGBA.Green() * inv255;
 			}
@@ -133,12 +123,7 @@ static float GetOpValue( const expOperation_t *op )
 			break;
 
 		case opcode_t::OP_PARM2:
-			if ( backEnd.currentLight )
-			{
-				value = backEnd.currentLight->l.color[ 2 ];
-				break;
-			}
-			else if ( backEnd.currentEntity )
+			if ( backEnd.currentEntity )
 			{
 				value = backEnd.currentEntity->e.shaderRGBA.Blue() * inv255;
 			}
@@ -150,12 +135,7 @@ static float GetOpValue( const expOperation_t *op )
 			break;
 
 		case opcode_t::OP_PARM3:
-			if ( backEnd.currentLight )
-			{
-				value = 1.0;
-				break;
-			}
-			else if ( backEnd.currentEntity )
+			if ( backEnd.currentEntity )
 			{
 				value = backEnd.currentEntity->e.shaderRGBA.Alpha() * inv255;
 			}
@@ -222,32 +202,28 @@ static float GetOpValue( const expOperation_t *op )
 
 const char* GetOpName(opcode_t type);
 
-float RB_EvalExpression( const expression_t *exp, float defaultValue )
+static float EvalExpression( const expression_t *exp, float defaultValue )
 {
-	int                     i;
-	expOperation_t          op;
-	expOperation_t          ops[ MAX_EXPRESSION_OPS ];
-	int                     numOps;
-	float                   value;
-	float                   value1;
-	float                   value2;
+	ASSERT( exp );
 
-	numOps = 0;
-	value = 0;
-	value1 = 0;
-	value2 = 0;
-
-	if ( !exp || !exp->active )
+	if ( !exp->numOps )
 	{
 		return defaultValue;
 	}
 
+	expOperation_t ops[ MAX_EXPRESSION_OPS ];
+
+	size_t numOps = 0;
+	float value = 0.0;
+	float value1 = 0.0;
+	float value2 = 0.0;
+
 	// http://www.qiksearch.com/articles/cs/postfix-evaluation/
 	// http://www.kyz.uklinux.net/evaluate/
 
-	for ( i = 0; i < exp->numOps; i++ )
+	for ( size_t i = 0; i < exp->numOps; i++ )
 	{
-		op = exp->ops[ i ];
+		expOperation_t op = exp->ops[ i ];
 
 		switch ( op.type )
 		{
@@ -459,6 +435,25 @@ float RB_EvalExpression( const expression_t *exp, float defaultValue )
 	return GetOpValue( &ops[ 0 ] );
 }
 
+float RB_EvalExpression( const expression_t *exp, float defaultValue )
+{
+	ASSERT( exp );
+
+	float value = EvalExpression( exp, defaultValue );
+
+	if ( exp->bits & EXP_CLAMP )
+	{
+		value = Math::Clamp( value, 0.0f, 1.0f );
+	}
+
+	if ( exp->bits & EXP_SRGB )
+	{
+		value = tr.convertFloatFromSRGB( value );
+	}
+
+	return value;
+}
+
 /*
 ====================================================================
 
@@ -467,87 +462,75 @@ DEFORMATIONS
 ====================================================================
 */
 
+static void GlobalVectorToLocal( const vec3_t in, vec3_t out )
+{
+	out[ 0 ] = DotProduct( in, backEnd.orientation.axis[ 0 ] );
+	out[ 1 ] = DotProduct( in, backEnd.orientation.axis[ 1 ] );
+	out[ 2 ] = DotProduct( in, backEnd.orientation.axis[ 2 ] );
+}
+
 /*
 =====================
 AutospriteDeform
 
 Assuming all the triangles for this shader are independent
 quads, rebuild them as forward facing sprites
+They face toward the *view direction* like autosprite2 style 0. We could implement style
+1 (toward viewer) here as well, but the difference seems less noticeable.
 =====================
 */
-static void ComputeCorner( int firstVertex, int numVertexes )
+static void AutospriteDeform( uint32_t numVertexes )
 {
-	int i, j;
-	shaderVertex_t *v;
-	vec4_t tc, midtc;
+	vec3_t leftDir, upDir;
 
-	for ( i = 0; i < numVertexes; i += 4 ) {
+	if ( backEnd.currentEntity != &tr.worldEntity )
+	{
+		GlobalVectorToLocal( backEnd.viewParms.orientation.axis[ 1 ], leftDir );
+		GlobalVectorToLocal( backEnd.viewParms.orientation.axis[ 2 ], upDir );
+	}
+	else
+	{
+		VectorCopy( backEnd.viewParms.orientation.axis[ 1 ], leftDir );
+		VectorCopy( backEnd.viewParms.orientation.axis[ 2 ], upDir );
+	}
+
+	float scale = 1.0 / M_SQRT2;
+
+	if ( backEnd.currentEntity->e.nonNormalizedAxes )
+	{
+		float axisLength = VectorLength( backEnd.currentEntity->e.axis[ 0 ] );
+
+		if ( axisLength )
+		{
+			scale /= axisLength;
+		}
+	}
+
+	for ( uint32_t i = 0; i < numVertexes; i += 4 )
+	{
+		const shaderVertex_t *v = tess.vertsBuffer + i;
+
 		// find the midpoint
-		v = &tess.verts[ firstVertex + i ];
+		vec3_t center;
+		VectorAdd( v[ 0 ].xyz, v[ 1 ].xyz, center );
+		VectorAdd( center, v[ 2 ].xyz, center );
+		VectorAdd( center, v[ 3 ].xyz, center );
+		VectorScale( center, 0.25f, center );
 
-		Vector4Set( midtc, 0.0f, 0.0f, 0.0f, 0.0f );
-		for( j = 0; j < 4; j++ ) {
-			halfToFloat( v[ j ].texCoords, tc );
-			VectorAdd( tc, midtc, midtc );
-			midtc[ 3 ] += tc[ 3 ];
+		vec3_t delta;
+		VectorSubtract( v[ 0 ].xyz, center, delta );
+		float radius = VectorLength( delta ) * scale;
+
+		vec3_t left, up;
+		VectorScale( leftDir, radius, left );
+		VectorScale( upDir, radius, up );
+
+		if ( backEnd.viewParms.mirrorLevel & 1 )
+		{
+			VectorNegate( left, left );
 		}
 
-		midtc[ 0 ] = 0.25f * midtc[ 0 ];
-		midtc[ 1 ] = 0.25f * midtc[ 1 ];
-
-		for ( j = 0; j < 4; j++ ) {
-			halfToFloat( v[ j ].texCoords, tc );
-			if( tc[ 0 ] < midtc[ 0 ] ) {
-				tc[ 2 ] = -tc[ 2 ];
-			}
-			if( tc[ 1 ] < midtc[ 1 ] ) {
-				tc[ 3 ] = -tc[ 3 ];
-			}
-			floatToHalf( tc, v[ j ].texCoords );
-		}
-	}
-}
-
-static void AutospriteDeform( int firstVertex, int numVertexes, int numIndexes )
-{
-	int    i, j;
-	shaderVertex_t *v;
-	vec3_t mid, delta;
-	float  radius;
-
-	if ( numVertexes & 3 )
-	{
-		Log::Warn("Autosprite shader %s had odd vertex count", tess.surfaceShader->name );
-	}
-
-	if ( numIndexes != ( numVertexes >> 2 ) * 6 )
-	{
-		Log::Warn("Autosprite shader %s had odd index count", tess.surfaceShader->name );
-	}
-
-	ComputeCorner( firstVertex, numVertexes );
-
-	for ( i = 0; i < numVertexes; i += 4 )
-	{
-		// find the midpoint
-		v = &tess.verts[ firstVertex + i ];
-
-		mid[ 0 ] = 0.25f * ( v[ 0 ].xyz[ 0 ] + v[ 1 ].xyz[ 0 ] + v[ 2 ].xyz[ 0 ] + v[ 3 ].xyz[ 0 ] );
-		mid[ 1 ] = 0.25f * ( v[ 0 ].xyz[ 1 ] + v[ 1 ].xyz[ 1 ] + v[ 2 ].xyz[ 1 ] + v[ 3 ].xyz[ 1 ] );
-		mid[ 2 ] = 0.25f * ( v[ 0 ].xyz[ 2 ] + v[ 1 ].xyz[ 2 ] + v[ 2 ].xyz[ 2 ] + v[ 3 ].xyz[ 2 ] );
-
-		VectorSubtract( v[ 0 ].xyz, mid, delta );
-		radius = VectorLength( delta ) * 0.5f * M_SQRT2;
-
-		// add 4 identical vertices
-		for ( j = 0; j < 4; j++ ) {
-			VectorCopy( mid, v[ j ].xyz );
-			Vector4Set( v[ j ].spriteOrientation,
-				floatToHalf( 0 ),
-				floatToHalf( 0 ),
-				floatToHalf( 0 ),
-				floatToHalf( radius ) );
-		}
+		Tess_AddQuadStamp( center, left, up, v->color );
 	}
 }
 
@@ -558,125 +541,106 @@ Autosprite2Deform
 Autosprite2 will pivot a rectangular quad along the center of its long axis
 =====================
 */
-static const int edgeVerts[ 6 ][ 2 ] =
+// Style 0 is what Tremulous did but style 1 generally looks better, even with Tremulous assets.
+// Style 0 looks stupid because you can see the sprite rotating if you stand still and move the
+// mouse. Style 1 does a better job for making something look cylindrical, like the "pillar of flame"
+// suggested in the Q3 manual. Either one will look bad beyond the ends of the long axis.
+static Cvar::Range<Cvar::Cvar<int>> r_autosprite2Style(
+	"r_autosprite2Style", "display autosprite2 surfaces facing (0) in view direction or (1) toward viewer",
+	Cvar::NONE, 1, 0, 1);
+static void Autosprite2Deform( uint32_t numVertexes )
 {
-	{ 0, 1 },
-	{ 0, 2 },
-	{ 0, 3 },
-	{ 1, 2 },
-	{ 1, 3 },
-	{ 2, 3 }
-};
-
-static void Autosprite2Deform( int firstVertex, int numVertexes, int numIndexes )
-{
-	shaderVertex_t *v = &tess.verts[ firstVertex ];
-	int    i, j, k;
-	vec3_t oldPos[4];
-
-	if ( numVertexes & 3 )
-	{
-		Log::Warn("Autosprite2 shader %s had odd vertex count", tess.surfaceShader->name );
-	}
-
-	if ( numIndexes != ( numVertexes >> 2 ) * 6 )
-	{
-		Log::Warn("Autosprite2 shader %s had odd index count", tess.surfaceShader->name );
-	}
-
-	ComputeCorner( firstVertex, numVertexes );
+	tess.numVertexes = numVertexes;
+	tess.numIndexes = ( numVertexes >> 2 ) * 6;
+	std::copy_n( tess.indexesBuffer, tess.numIndexes, tess.indexes );
 
 	// this is a lot of work for two triangles...
 	// we could precalculate a lot of it is an issue, but it would mess up
 	// the shader abstraction
-	for ( i = 0; i < numVertexes; i += 4, v += 4 )
+	for ( uint32_t i = 0, indexes = 0; i < tess.numVertexes; i += 4, indexes += 6 )
 	{
-		float  lengths[ 2 ];
-		int    nums[ 2 ];
-		vec3_t mid[ 2 ];
-		vec3_t normal, cross;
-		vec3_t major, minor;
-		shaderVertex_t *v1, *v2;
+		struct TriSide {
+			vec3_t firstVert;
+			float lengthSq;
+			vec3_t vector; // second point minus first point
+		};
 
-		VectorCopy( v[0].xyz, oldPos[0] );
-		VectorCopy( v[1].xyz, oldPos[1] );
-		VectorCopy( v[2].xyz, oldPos[2] );
-		VectorCopy( v[3].xyz, oldPos[3] );
+		TriSide sides[ 3 ];
+		VectorCopy( tess.vertsBuffer[ tess.indexesBuffer[ indexes + 0 ] ].xyz, sides[ 0 ].firstVert );
+		VectorCopy( tess.vertsBuffer[ tess.indexesBuffer[ indexes + 1 ] ].xyz, sides[ 1 ].firstVert );
+		VectorCopy( tess.vertsBuffer[ tess.indexesBuffer[ indexes + 2 ] ].xyz, sides[ 2 ].firstVert );
 
-		R_QtangentsToNormal( v->qtangents, normal );
-
-		// find the midpoint
-
-		// identify the two shortest edges
-		nums[ 0 ] = nums[ 1 ] = 0;
-		lengths[ 0 ] = lengths[ 1 ] = 999999;
-
-		for ( j = 0; j < 6; j++ )
+		for ( int j = 0; j < 3; j++ )
 		{
-			float  l;
-			vec3_t temp;
-
-			v1 = v + edgeVerts[ j ][ 0 ];
-			v2 = v + edgeVerts[ j ][ 1 ];
-
-			VectorSubtract( v1->xyz, v2->xyz, temp );
-
-			l = DotProduct( temp, temp );
-
-			if ( l < lengths[ 0 ] )
-			{
-				nums[ 1 ] = nums[ 0 ];
-				lengths[ 1 ] = lengths[ 0 ];
-				nums[ 0 ] = j;
-				lengths[ 0 ] = l;
-			}
-			else if ( l < lengths[ 1 ] )
-			{
-				nums[ 1 ] = j;
-				lengths[ 1 ] = l;
-			}
+			VectorSubtract( sides[ (j + 1) % 3 ].firstVert, sides[ j ].firstVert, sides[ j ].vector );
+			sides[ j ].lengthSq = VectorLengthSquared( sides[ j ].vector );
 		}
 
-		for ( j = 0; j < 2; j++ )
-		{
-			v1 = v + edgeVerts[ nums[ j ] ][ 0 ];
-			v2 = v + edgeVerts[ nums[ j ] ][ 1 ];
+		std::sort( std::begin( sides ), std::end( sides ),
+		           []( TriSide &a, TriSide &b ) { return a.lengthSq < b.lengthSq; } );
+		// Now sides[ 0 ] should be a short side of the rectangle, sides[ 1 ] a long side,
+		// and sides[ 2 ] a diagonal
 
-			mid[ j ][ 0 ] = 0.5f * ( v1->xyz[ 0 ] + v2->xyz[ 0 ] );
-			mid[ j ][ 1 ] = 0.5f * ( v1->xyz[ 1 ] + v2->xyz[ 1 ] );
-			mid[ j ][ 2 ] = 0.5f * ( v1->xyz[ 2 ] + v2->xyz[ 2 ] );
+		vec3_t forward;
+		if ( backEnd.currentEntity != &tr.worldEntity )
+		{
+			// FIXME: implement style 1 here
+			GlobalVectorToLocal( backEnd.viewParms.orientation.axis[ 0 ], forward );
+		}
+		else if ( r_autosprite2Style.Get() == 0 )
+		{
+			VectorCopy( backEnd.viewParms.orientation.axis[ 0 ], forward );
+		}
+		else
+		{
+			vec3_t quadCenter;
+			VectorMA( sides[ 2 ].firstVert, 0.5f, sides[ 2 ].vector, quadCenter );
+			VectorSubtract( quadCenter, backEnd.viewParms.orientation.origin, forward );
+			VectorNormalize( forward );
 		}
 
-		// find the vector of the major axis
-		VectorSubtract( mid[ 1 ], mid[ 0 ], major );
-		CrossProduct( major, normal, cross );
+		vec3_t newMinorAxis;
+		CrossProduct( sides[ 1 ].vector, forward, newMinorAxis);
+		VectorNormalize( newMinorAxis );
+		plane_t projection;
+		VectorNormalize2( sides[ 0 ].vector, projection.normal );
+		projection.dist = DotProduct( sides[ 0 ].firstVert, projection.normal )
+		                  + 0.5f * sqrtf( sides[ 0 ].lengthSq );
+		vec3_t minorAxisReplace;
+		VectorSubtract( newMinorAxis, projection.normal, minorAxisReplace );
 
-		// update the vertices
-		for ( j = 0; j < 4; j++ )
+		if ( tess.skipTangents )
 		{
-			vec4_t orientation;
-
-			v1 = v + j;
-			lengths[ 0 ] = Distance( mid[ 0 ], v1->xyz );
-			lengths[ 1 ] = Distance( mid[ 1 ], v1->xyz );
-
-			// pick the closer midpoint
-			if ( lengths[ 0 ] <= lengths[ 1 ] )
-				k = 0;
-			else
-				k = 1;
-
-			VectorSubtract( v1->xyz, mid[ k ], minor );
-			// I guess this works, since the sign bit is the MSB for both floating point and integers
-			if ( ( DotProduct( cross, minor ) * static_cast<int16_t>(v1->texCoords[ 3 ].bits) ) < 0  ) {
-				VectorNegate( major, orientation );
-			} else {
-				VectorCopy( major, orientation );
+			for ( uint32_t j = i; j <= i + 4; j++ )
+			{
+				shaderVertex_t v = tess.vertsBuffer[ j ];
+				float d = DotProduct( projection.normal, v.xyz ) - projection.dist;
+				VectorMA( v.xyz, d, minorAxisReplace, v.xyz );
+				tess.verts[ j ] = v;
 			}
-			orientation[ 3 ] = -lengths[ k ];
+		}
+		else
+		{
+			i16vec4_t qtangents;
+			vec3_t normal;
+			CrossProduct( newMinorAxis, sides[ 1 ].vector, normal );
+			if ( DotProduct( normal, forward ) > 0 )
+			{
+				VectorNegate( normal, normal );
+			}
+			VectorNormalize( normal );
+			// What the fuck are tangent and binormal even for?
+			// I'll just put in zeroes and let R_TBNtoQtangents make some up for me.
+			R_TBNtoQtangents( vec3_origin, vec3_origin, normal, qtangents );
 
-			floatToHalf( orientation, v1->spriteOrientation );
-			VectorCopy( mid[ k ], v1->xyz );
+			for ( uint32_t j = i; j <= i + 4; j++ )
+			{
+				shaderVertex_t v = tess.vertsBuffer[ j ];
+				float d = DotProduct( projection.normal, v.xyz ) - projection.dist;
+				VectorMA( v.xyz, d, minorAxisReplace, v.xyz );
+				Vector4Copy( qtangents, v.qtangents );
+				tess.verts[ j ] = v;
+			}
 		}
 	}
 }
@@ -684,22 +648,48 @@ static void Autosprite2Deform( int firstVertex, int numVertexes, int numIndexes 
 /*
 =====================
 Tess_AutospriteDeform
+
 =====================
 */
-void Tess_AutospriteDeform( int mode, int firstVertex, int numVertexes,
-			    int firstIndex, int numIndexes )
+void Tess_AutospriteDeform( int mode )
 {
-	(void)firstIndex;
+	if ( tess.verts != tess.vertsBuffer )
+	{
+		Log::Warn( "Tess_AutospriteDeform: CPU vertex buffer not active" );
+		return;
+	}
+
+	uint32_t numVertexes = tess.numVertexes;
+	uint32_t numIndexes = tess.numIndexes;
+
+	// Tess_MapVBOs( true ) should have been called previously. Now we take the original verts from
+	// the CPU-only buffer and write the rotated verts to the shared GPU buffer. (If the GPU buffer
+	// is not supported, the source and dest buffers are the same.)
+	Tess_Clear();
+	Tess_MapVBOs( false );
+
+	if ( numVertexes & 3 )
+	{
+		Log::Warn( "Autosprite shader %s had odd vertex count", tess.surfaceShader->name );
+		return; // drop vertexes
+	}
+
+	if ( numIndexes != ( numVertexes >> 2 ) * 6 )
+	{
+		Log::Warn( "Autosprite shader %s had odd index count", tess.surfaceShader->name );
+		return; // drop vertexes
+	}
 
 	switch( mode ) {
 	case 1:
-		AutospriteDeform( firstVertex, numVertexes, numIndexes );
+		AutospriteDeform( numVertexes );
 		break;
 	case 2:
-		Autosprite2Deform( firstVertex, numVertexes, numIndexes );
+		Autosprite2Deform( numVertexes );
 		break;
+	default:
+		ASSERT_UNREACHABLE();
 	}
-	GL_CheckErrors();
 }
 
 /*
@@ -710,6 +700,48 @@ TEX COORDS
 ====================================================================
 */
 
+static inline void Mat3x2MultiplyScale( matrix_t m, const float x, const float y ) {
+	m[0] *= x;
+	m[4] *= y;
+	m[1] *= x;
+	m[5] *= y;
+}
+
+static inline void Mat3x2MultiplyTranslation( matrix_t m, const float x, const float y ) {
+	m[12] += m[0] * x + m[4] * y;
+	m[13] += m[1] * x + m[5] * y;
+}
+
+static inline void Mat3x2MultiplyZRotation( matrix_t m, const float degrees ) {
+	float angle = DEG2RAD( degrees );
+	float s = sinf( angle );
+	float c = cosf( angle );
+
+	const float tmp[] = { m[0], m[1], m[4], m[5] };
+	m[0] = tmp[0] * c + tmp[2] * s;
+	m[1] = tmp[1] * c + tmp[3] * s;
+	m[4] = tmp[0] * -s + tmp[2] * c;
+	m[5] = tmp[1] * -s + tmp[3] * c;
+}
+
+static inline void Mat3x2MultiplyShear( matrix_t m, const float x, const float y ) {
+	const float tmp[] = { m[0], m[1] };
+	m[0] += m[4] * y;
+	m[1] += m[5] * y;
+	m[4] += tmp[0] * x;
+	m[5] += tmp[1] * x;
+}
+
+static inline void ComputeTextureWrapModifer( const matrix_t matrix, const vec2_t scroll, vec2_t modifier ) {
+	const float xDiv = ( matrix[0] * scroll[0] + matrix[4] * scroll[1] );
+	const float yDiv = ( matrix[1] * scroll[0] + matrix[5] * scroll[1] );
+	const float xPeriod = xDiv ? 1.0f / xDiv : 1.0f;
+	const float yPeriod = yDiv ? 1.0f / yDiv : 1.0f;
+
+	modifier[0] = xPeriod ? fmodf( backEnd.refdef.floatTime, xPeriod ) : 0.0f;
+	modifier[1] = yPeriod ? fmodf( backEnd.refdef.floatTime, yPeriod ) : 0.0f;
+}
+
 /*
 ===============
 RB_CalcTexMatrix
@@ -717,152 +749,149 @@ RB_CalcTexMatrix
 */
 void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 {
-	int   j;
-	float x, y;
 
 	MatrixIdentity( matrix );
 
-	for ( j = 0; j < bundle->numTexMods; j++ )
+	texModInfo_t *texMod = bundle->texMods;
+	texModInfo_t *lastTexMod = texMod + bundle->numTexMods;
+
+	for ( ; texMod < lastTexMod; texMod++ )
 	{
-		switch ( bundle->texMods[ j ].type )
+		switch ( texMod->type )
 		{
 			case texMod_t::TMOD_NONE:
-				j = TR_MAX_TEXMODS; // break out of for loop
+				texMod = lastTexMod; // break out of for loop
 				break;
 
 			case texMod_t::TMOD_TURBULENT:
 				{
-					waveForm_t *wf;
+					waveForm_t *wf = &texMod->wave;
 
-					wf = &bundle->texMods[ j ].wave;
+					float x = ( 1.0f / 4.0f );
+					float y = ( wf->phase + backEnd.refdef.floatTime * wf->frequency );
 
-					x = ( 1.0f / 4.0f );
-					y = ( wf->phase + backEnd.refdef.floatTime * wf->frequency );
-
-					MatrixMultiplyScale( matrix, 1.0f + ( wf->amplitude * sinf( y ) + wf->base ) * x,
-					                     1.0f + ( wf->amplitude * sinf( y + 0.25f ) + wf->base ) * x, 0.0 );
+					Mat3x2MultiplyScale( matrix, 1.0f + ( wf->amplitude * sinf( y ) + wf->base ) * x,
+					                     1.0f + ( wf->amplitude * sinf( y + 0.25f ) + wf->base ) * x );
 					break;
 				}
 
 			case texMod_t::TMOD_ENTITY_TRANSLATE:
 				{
-					x = backEnd.currentEntity->e.shaderTexCoord[ 0 ] * backEnd.refdef.floatTime;
-					y = backEnd.currentEntity->e.shaderTexCoord[ 1 ] * backEnd.refdef.floatTime;
+					float x = backEnd.currentEntity->e.shaderTexCoord[ 0 ];
+					float y = backEnd.currentEntity->e.shaderTexCoord[ 1 ];
 
 					// clamp so coordinates don't continuously get larger, causing problems
 					// with hardware limits
-					x = x - floor( x );
-					y = y - floor( y );
+					vec2_t modifier;
+					vec2_t scroll { x, y };
+					ComputeTextureWrapModifer( matrix, scroll, modifier );
 
-					MatrixMultiplyTranslation( matrix, x, y, 0.0 );
+					matrix[12] += matrix[0] * x * modifier[0] + matrix[4] * x * modifier[0];
+					matrix[13] += matrix[1] * y * modifier[1] + matrix[5] * y * modifier[1];
 					break;
 				}
 
 			case texMod_t::TMOD_SCROLL:
 				{
-					x = bundle->texMods[ j ].scroll[ 0 ] * backEnd.refdef.floatTime;
-					y = bundle->texMods[ j ].scroll[ 1 ] * backEnd.refdef.floatTime;
-
 					// clamp so coordinates don't continuously get larger, causing problems
 					// with hardware limits
-					x = x - floor( x );
-					y = y - floor( y );
+					vec2_t modifier;
+					ComputeTextureWrapModifer( matrix, texMod->scroll, modifier );
 
-					MatrixMultiplyTranslation( matrix, x, y, 0.0 );
+					matrix[12] += matrix[0] * texMod->scroll[0] * modifier[0] + matrix[4] * texMod->scroll[1] * modifier[0];
+					matrix[13] += matrix[1] * texMod->scroll[0] * modifier[1] + matrix[5] * texMod->scroll[1] * modifier[1];
 					break;
 				}
 
 			case texMod_t::TMOD_SCALE:
 				{
-					x = bundle->texMods[ j ].scale[ 0 ];
-					y = bundle->texMods[ j ].scale[ 1 ];
+					float x = texMod->scale[ 0 ];
+					float y = texMod->scale[ 1 ];
 
-					MatrixMultiplyScale( matrix, x, y, 0.0 );
+					Mat3x2MultiplyScale( matrix, x, y );
 					break;
 				}
 
 			case texMod_t::TMOD_STRETCH:
 				{
-					float p;
+					float p = 1.0f / RB_EvalWaveForm( &texMod->wave );
 
-					p = 1.0f / RB_EvalWaveForm( &bundle->texMods[ j ].wave );
-
-					MatrixMultiplyTranslation( matrix, 0.5, 0.5, 0.0 );
-					MatrixMultiplyScale( matrix, p, p, 0.0 );
-					MatrixMultiplyTranslation( matrix, -0.5, -0.5, 0.0 );
+					Mat3x2MultiplyTranslation( matrix, 0.5, 0.5 );
+					Mat3x2MultiplyScale( matrix, p, p );
+					Mat3x2MultiplyTranslation( matrix, -0.5, -0.5 );
 					break;
 				}
 
 			case texMod_t::TMOD_TRANSFORM:
 				{
-					const texModInfo_t *tmi = &bundle->texMods[ j ];
-
-					MatrixMultiply2( matrix, tmi->matrix );
+					MatrixMultiply2( matrix, texMod->matrix );
 					break;
 				}
 
 			case texMod_t::TMOD_ROTATE:
 				{
-					x = -bundle->texMods[ j ].rotateSpeed * backEnd.refdef.floatTime;
+					float x = -texMod->rotateSpeed * backEnd.refdef.floatTime;
 
-					MatrixMultiplyTranslation( matrix, 0.5, 0.5, 0.0 );
-					MatrixMultiplyZRotation( matrix, x );
-					MatrixMultiplyTranslation( matrix, -0.5, -0.5, 0.0 );
+					Mat3x2MultiplyTranslation( matrix, 0.5, 0.5 );
+					Mat3x2MultiplyZRotation( matrix, x );
+					Mat3x2MultiplyTranslation( matrix, -0.5, -0.5 );
 					break;
 				}
 
 			case texMod_t::TMOD_SCROLL2:
 				{
-					x = RB_EvalExpression( &bundle->texMods[ j ].sExp, 0 );
-					y = RB_EvalExpression( &bundle->texMods[ j ].tExp, 0 );
+					float x = RB_EvalExpression( &texMod->sExp, 0 );
+					float y = RB_EvalExpression( &texMod->tExp, 0 );
 
 					// clamp so coordinates don't continuously get larger, causing problems
 					// with hardware limits
-					x = x - floor( x );
-					y = y - floor( y );
+					vec2_t modifier;
+					vec2_t scroll{ x, y };
+					ComputeTextureWrapModifer( matrix, scroll, modifier );
 
-					MatrixMultiplyTranslation( matrix, x, y, 0.0 );
+					matrix[12] += matrix[0] * x * modifier[0] + matrix[4] * x * modifier[0];
+					matrix[13] += matrix[1] * y * modifier[1] + matrix[5] * y * modifier[1];
 					break;
 				}
 
 			case texMod_t::TMOD_SCALE2:
 				{
-					x = RB_EvalExpression( &bundle->texMods[ j ].sExp, 0 );
-					y = RB_EvalExpression( &bundle->texMods[ j ].tExp, 0 );
+					float x = RB_EvalExpression( &texMod->sExp, 0 );
+					float y = RB_EvalExpression( &texMod->tExp, 0 );
 
-					MatrixMultiplyScale( matrix, x, y, 0.0 );
+					Mat3x2MultiplyScale( matrix, x, y );
 					break;
 				}
 
 			case texMod_t::TMOD_CENTERSCALE:
 				{
-					x = RB_EvalExpression( &bundle->texMods[ j ].sExp, 0 );
-					y = RB_EvalExpression( &bundle->texMods[ j ].tExp, 0 );
+					float x = RB_EvalExpression( &texMod->sExp, 0 );
+					float y = RB_EvalExpression( &texMod->tExp, 0 );
 
-					MatrixMultiplyTranslation( matrix, 0.5, 0.5, 0.0 );
-					MatrixMultiplyScale( matrix, x, y, 0.0 );
-					MatrixMultiplyTranslation( matrix, -0.5, -0.5, 0.0 );
+					Mat3x2MultiplyTranslation( matrix, 0.5, 0.5 );
+					Mat3x2MultiplyScale( matrix, x, y );
+					Mat3x2MultiplyTranslation( matrix, -0.5, -0.5 );
 					break;
 				}
 
 			case texMod_t::TMOD_SHEAR:
 				{
-					x = RB_EvalExpression( &bundle->texMods[ j ].sExp, 0 );
-					y = RB_EvalExpression( &bundle->texMods[ j ].tExp, 0 );
+					const float x = RB_EvalExpression( &texMod->sExp, 0 );
+					const float y = RB_EvalExpression( &texMod->tExp, 0 );
 
-					MatrixMultiplyTranslation( matrix, 0.5, 0.5, 0.0 );
-					MatrixMultiplyShear( matrix, x, y );
-					MatrixMultiplyTranslation( matrix, -0.5, -0.5, 0.0 );
+					Mat3x2MultiplyTranslation( matrix, 0.5, 0.5 );
+					Mat3x2MultiplyShear( matrix, x, y );
+					Mat3x2MultiplyTranslation( matrix, -0.5, -0.5 );
 					break;
 				}
 
 			case texMod_t::TMOD_ROTATE2:
 				{
-					x = RB_EvalExpression( &bundle->texMods[ j ].rExp, 0 );
+					float x = RB_EvalExpression( &texMod->rExp, 0 );
 
-					MatrixMultiplyTranslation( matrix, 0.5, 0.5, 0.0 );
-					MatrixMultiplyZRotation( matrix, x );
-					MatrixMultiplyTranslation( matrix, -0.5, -0.5, 0.0 );
+					Mat3x2MultiplyTranslation( matrix, 0.5, 0.5 );
+					Mat3x2MultiplyZRotation( matrix, x );
+					Mat3x2MultiplyTranslation( matrix, -0.5, -0.5 );
 					break;
 				}
 

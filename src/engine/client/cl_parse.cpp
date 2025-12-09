@@ -53,7 +53,7 @@ static void SHOWNET( msg_t *msg, const char *s )
 {
 	if ( cl_shownet->integer >= 2 )
 	{
-		Log::Notice( "%3i:%s\n", msg->readcount - 1, s );
+		Log::Notice( "%3i:%s", msg->readcount - 1, s );
 	}
 }
 
@@ -236,7 +236,7 @@ void CL_ParseSnapshot( msg_t *msg )
 		if ( !old->valid )
 		{
 			// should never happen
-			Log::Notice( "Delta from invalid frame (not supposed to happen!).\n" );
+			Log::Notice( "Delta from invalid frame (not supposed to happen!)." );
 		}
 		else if ( old->messageNum != newSnap.deltaNum )
 		{
@@ -320,7 +320,7 @@ void CL_ParseSnapshot( msg_t *msg )
 
 	if ( cl_shownet->integer == 3 )
 	{
-		Log::Notice( "   snapshot:%i  delta:%i  ping:%i\n", cl.snap.messageNum, cl.snap.deltaNum, cl.snap.ping );
+		Log::Notice( "   snapshot:%i  delta:%i  ping:%i", cl.snap.messageNum, cl.snap.deltaNum, cl.snap.ping );
 	}
 
 	cl.newSnapshots = true;
@@ -352,7 +352,7 @@ void CL_SystemInfoChanged()
 	cl.serverId = atoi( Info_ValueForKey( systemInfo, "sv_serverid" ) );
 
 	// load paks sent by the server, but not if we are running a local server
-	if (!com_sv_running->integer) {
+	if (!com_sv_running.Get()) {
 		FS::PakPath::ClearPaks();
 		if (!FS_LoadServerPaks(Info_ValueForKey(systemInfo, "sv_paks"), clc.demoplaying)) {
 			if (!cl_allowDownload->integer) {
@@ -397,7 +397,6 @@ void CL_ParseGamestate( msg_t *msg )
 	int           i;
 	entityState_t *es;
 	int           newnum;
-	entityState_t nullstate;
 	int           cmd;
 
 	Con_Close();
@@ -441,7 +440,7 @@ void CL_ParseGamestate( msg_t *msg )
 				Sys::Drop( "Baseline number out of range: %i", newnum );
 			}
 
-			memset( &nullstate, 0, sizeof( nullstate ) );
+			entityState_t nullstate{};
 			es = &cl.entityBaselines[ newnum ];
 			MSG_ReadDeltaEntity( msg, &nullstate, es, newnum );
 		}
@@ -452,8 +451,6 @@ void CL_ParseGamestate( msg_t *msg )
 	}
 
 	clc.clientNum = MSG_ReadLong( msg );
-	// read the checksum feed
-	clc.checksumFeed = MSG_ReadLong( msg );
 
 	// parse serverId and other cvars
 	CL_SystemInfoChanged();
@@ -512,7 +509,7 @@ void CL_ParseServerMessage( msg_t *msg )
 	}
 	else if ( cl_shownet->integer >= 2 )
 	{
-		Log::Notice( "------------------\n" );
+		Log::Notice( "------------------" );
 	}
 
 	MSG_Bitstream( msg );
@@ -548,7 +545,7 @@ void CL_ParseServerMessage( msg_t *msg )
 		{
 			if ( !svc_strings[ cmd ] )
 			{
-				Log::Notice( "%3i:BAD CMD %i\n", msg->readcount - 1, cmd );
+				Log::Notice( "%3i:BAD CMD %i", msg->readcount - 1, cmd );
 			}
 			else
 			{

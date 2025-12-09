@@ -22,14 +22,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "common/Common.h"
 #include "con_common.h"
+#include "framework/Application.h"
 #include "framework/CommandSystem.h"
 #include "framework/ConsoleField.h"
 
-#ifdef _WIN32
-extern "C" {
-#include <pdcurses/win32a/pdcwin.h> // for PDC_set_function_key
-}
-#else
+#ifndef _WIN32
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -47,10 +44,6 @@ static const int LOG_SCROLL    = 5;
 static const int MAX_LOG_LINES = 1024;
 static const int LOG_BUF_SIZE  = 65536;
 
-#ifdef _WIN32
-constexpr int QUIT_KEY = 0xACEBEEF; // arbitrary
-#endif
-
 // TTY Console prototypes
 void CON_Shutdown_TTY();
 void CON_Init_TTY();
@@ -64,6 +57,7 @@ static WINDOW   *borderwin;
 static WINDOW   *logwin;
 static WINDOW   *inputwin;
 static WINDOW   *clockwin;
+static WINDOW   *FPSwin;
 
 static char     logbuf[ LOG_BUF_SIZE ];
 static char     *insert = logbuf;
@@ -74,6 +68,8 @@ static bool     forceRedraw = false;
 #ifndef _WIN32
 static int      stderr_fd;
 #endif
+
+static Util::optional<Cvar::Cvar<bool>> showFPS;
 
 static int NumLogLines() {
 	return LINES - 3;
@@ -107,12 +103,12 @@ static void CON_SetColor( WINDOW *win, const Color::Color& color )
 static void CON_UpdateCursor()
 {
 // pdcurses uses a different mechanism to move the cursor than ncurses
-#ifdef _WIN32
-	move( LINES - 1, Color::StrlenNocolor( PROMPT ) + 8 + input_field.GetViewCursorPos() );
-	wnoutrefresh( stdscr );
-#else
+#ifdef USE_CURSES_NCURSES
 	wmove( inputwin, 0, input_field.GetViewCursorPos() );
 	wnoutrefresh( inputwin );
+#else
+	move( LINES - 1, Color::StrlenNocolor( PROMPT ) + 8 + input_field.GetViewCursorPos() );
+	wnoutrefresh( stdscr );
 #endif
 }
 
@@ -174,7 +170,7 @@ static void CON_ColorPrint( WINDOW *win, const char *msg, bool stripcodes )
 ==================
 CON_UpdateClock
 
-Update the clock
+Update the clock and maybe FPS
 ==================
 */
 static void CON_UpdateClock()
@@ -184,6 +180,29 @@ static void CON_UpdateClock()
 	werase( clockwin );
 	CON_ColorPrint( clockwin, va( "^0[^3%02d%c%02d^0] ", realtime.tm_hour, ( realtime.tm_sec & 1 ) ? ':' : ' ', realtime.tm_min ), true );
 	wnoutrefresh( clockwin );
+
+	if ( showFPS->Get() )
+	{
+		if ( !FPSwin )
+		{
+			FPSwin = newwin( 1, 8, 0, COLS - 8);
+		}
+		// Show FPS in top right
+		werase( FPSwin );
+		std::string fps = Str::Format( "FPS:%4.0f", Application::GetFPS() );
+		if ( fps.size() > 8 )
+		{
+			fps = "FPS: ...";
+		}
+		CON_ColorPrint( FPSwin, fps.c_str(), true );
+		wnoutrefresh( FPSwin );
+	}
+	else if ( FPSwin )
+	{
+		delwin( FPSwin );
+		FPSwin = nullptr;
+		forceRedraw = true;
+	}
 }
 
 /*
@@ -209,7 +228,12 @@ static void CON_Redraw()
 		{
 			return;
 		}
-		resizeterm( winsz.ws_row, winsz.ws_col );
+
+		#if defined(USE_CURSES_NCURSES)
+			resizeterm( winsz.ws_row, winsz.ws_col );
+		#else
+			resize_term( winsz.ws_row, winsz.ws_col );
+		#endif
 #endif
 
 		delwin( logwin );
@@ -234,7 +258,7 @@ static void CON_Redraw()
 	{
 		scrollline = 0;
 	}
-	pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS );
+	pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS - 1 );
 
 	// Create the input field
 	inputwin = newwin( 1, COLS - Color::StrlenNocolor( PROMPT ) - 8, LINES - 1, Color::StrlenNocolor( PROMPT ) + 8 );
@@ -332,12 +356,22 @@ void CON_Init()
 	}
 #endif
 
+	if ( !showFPS ) // optional is empty
+	{
+		auto const& traits = Application::GetTraits();
+		bool defaultValue = !traits.isClient || traits.isTTYClient; // on if not graphical client
+		showFPS.emplace( "common.cursesShowFPS", "show FPS in curses console",
+		                 Cvar::NONE, defaultValue);
+	}
+
 	// Initialize curses and set up the root window
 	if ( !curses_on )
 	{
 #ifdef _WIN32
 		// Let us handle this to do /quit instead of exit()
-		PDC_set_function_key(FUNCTION_KEY_SHUT_DOWN, QUIT_KEY);
+		// We have to translate it to a key rather than handling it directly
+		// I've never heard of the "abort/terminate" key but it sounds reasonable?
+		PDC_set_function_key(FUNCTION_KEY_SHUT_DOWN, KEY_ABORT);
 #else
 		// Enable more colors
 		const char* term = getenv("TERM");
@@ -407,14 +441,6 @@ char *CON_Input()
 		return CON_Input_TTY();
 	}
 
-    /*
-	if ( com_ansiColor->modified )
-	{
-		CON_Redraw();
-		com_ansiColor->modified = false;
-	}
-    */
-
 	if ( Com_Time( nullptr ) != lasttime )
 	{
 		lasttime = Com_Time( nullptr );
@@ -453,7 +479,7 @@ char *CON_Input()
 				return nullptr;
 
 #ifdef _WIN32
-			case QUIT_KEY:
+			case KEY_ABORT:
 				Cmd::BufferCommandText("quit");
 				return nullptr;
 #endif
@@ -522,7 +548,7 @@ char *CON_Input()
 						scrollline = lastline - NumLogLines();
 					}
 
-					pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS );
+					pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS - 1 );
 				}
 				if (scrollline >= lastline - NumLogLines()) {
 					CON_SetColor( stdscr, Color::Green );
@@ -542,7 +568,7 @@ char *CON_Input()
 						scrollline = 0;
 					}
 
-					pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS );
+					pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS - 1 );
 				}
 				if (scrollline < lastline - NumLogLines()) {
 					CON_SetColor( stdscr, Color::Red );
@@ -701,8 +727,7 @@ void CON_Print( const char *msg )
 		{
 			scrollline = 0;
 		}
-
-		pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS );
+		pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS - 1 );
 	}
 
 	// Add the message to the log buffer

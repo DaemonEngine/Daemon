@@ -34,7 +34,7 @@ Maryland 20850 USA.
 
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
-#include "renderer/tr_public.h"
+#include "engine/RefAPI.h"
 
 
 void RE_Shutdown( bool ) { }
@@ -46,15 +46,19 @@ qhandle_t RE_RegisterSkin( const char *name )
 {
 	return FS_FOpenFileRead( name, nullptr );
 }
-qhandle_t RE_RegisterShader( const char *, RegisterShaderFlags_t )
+qhandle_t RE_RegisterShader( const char *, int )
 {
 	return 1;
 }
-fontInfo_t* RE_RegisterFont( const char *, const char *, int )
+fontInfo_t* RE_RegisterFont( const char *, int )
 {
-	return nullptr;
+	return new fontInfo_t{};
 }
-void RE_Glyph( fontInfo_t *, const char *, glyphInfo_t *glyph )
+void RE_UnregisterFont( fontInfo_t* p )
+{
+	delete p;
+}
+void RE_GlyphChar( fontInfo_t *, int, glyphInfo_t *glyph )
 {
 	glyph->height = 1;
 	glyph->top = 1;
@@ -70,11 +74,6 @@ void RE_Glyph( fontInfo_t *, const char *, glyphInfo_t *glyph )
 	glyph->glyph = 1;
 	glyph->shaderName[0] = '\0';
 }
-void RE_GlyphChar( fontInfo_t *font, int, glyphInfo_t *glyph )
-{
-	RE_Glyph( font, nullptr, glyph );
-}
-void RE_UnregisterFont( fontInfo_t* ) { }
 void RE_LoadWorldMap( const char * ) { }
 void RE_SetWorldVisData( const byte * ) { }
 void RE_EndRegistration() { }
@@ -102,8 +101,6 @@ int R_MarkFragments( int, const vec3_t*, const vec3_t, int, vec3_t, int, markFra
 {
 	return 0;
 }
-void RE_ProjectDecal( qhandle_t, int, vec3_t*, vec4_t, const Color::Color&, int, int ) { }
-void RE_ClearDecals() { }
 int R_LerpTag( orientation_t*, const refEntity_t*, const char*, int )
 {
 	return 0;
@@ -122,13 +119,7 @@ bool R_inPVVS( const vec3_t, const vec3_t )
 {
 	return false;
 }
-bool RE_LoadDynamicShader( const char*, const char* )
-{
-	return true;
-}
-void RE_Finish() { }
 void RE_TakeVideoFrame( int, int, byte*, byte*, bool ) { }
-void RE_AddRefLightToScene( const refLight_t* ) { }
 int RE_RegisterAnimation( const char* )
 {
 	return 1;
@@ -188,21 +179,23 @@ const char *RE_ShaderNameFromHandle( qhandle_t )
     return "";
 }
 
-bool RE_BeginRegistration( glconfig_t *config, glconfig2_t *glconfig2 )
+bool RE_BeginRegistration( WindowConfig* windowCfg )
 {
-	*config = glconfig_t{};
-	config->vidWidth = 640;
-	config->vidHeight = 480;
-	*glconfig2 = glconfig2_t{};
+	*windowCfg = WindowConfig{};
+    windowCfg->vidWidth = 640;
+    windowCfg->vidHeight = 480;
 
 	return true;
 }
+
+void RE_SetMatrixTransform( const matrix_t ) {}
+void RE_ResetMatrixTransform() {}
 
 refexport_t    *GetRefAPI( int, refimport_t* )
 {
     static refexport_t re;
 
-    memset( &re, 0, sizeof( re ) );
+    re = {};
 
     re.Shutdown = RE_Shutdown;
 
@@ -211,7 +204,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.RegisterSkin = RE_RegisterSkin;
     re.RegisterShader = RE_RegisterShader;
     re.RegisterFont = RE_RegisterFont;
-    re.Glyph = RE_Glyph;
     re.GlyphChar = RE_GlyphChar;
     re.UnregisterFont = RE_UnregisterFont;
     re.LoadWorld = RE_LoadWorldMap;
@@ -242,8 +234,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.SendBotDebugDrawCommands = RE_SendBotDebugDrawCommands;
 
     re.MarkFragments = R_MarkFragments;
-    re.ProjectDecal = RE_ProjectDecal;
-    re.ClearDecals = RE_ClearDecals;
 
     re.LerpTag = R_LerpTag;
     re.ModelBounds = R_ModelBounds;
@@ -254,13 +244,7 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.inPVS = R_inPVS;
     re.inPVVS = R_inPVVS;
 
-    //bani
-    re.LoadDynamicShader = RE_LoadDynamicShader;
-    //bani
-    re.Finish = RE_Finish;
-
     re.TakeVideoFrame = RE_TakeVideoFrame;
-    re.AddRefLightToScene = RE_AddRefLightToScene;
 
     // RB: alternative skeletal animation system
     re.RegisterAnimation = RE_RegisterAnimation;
@@ -286,6 +270,8 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.Add2dPolysIndexed = RE_Add2dPolysIndexed;
     re.GenerateTexture = RE_GenerateTexture;
     re.ShaderNameFromHandle = RE_ShaderNameFromHandle;
+    re.SetMatrixTransform = RE_SetMatrixTransform;
+    re.ResetMatrixTransform = RE_ResetMatrixTransform;
 
     return &re;
 }

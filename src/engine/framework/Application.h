@@ -58,22 +58,29 @@ class Application {
 
         virtual void LoadInitialConfig(bool resetConfig);
         virtual void Initialize();
-        virtual void Frame() {}
+        virtual void Frame();
 
         virtual void OnDrop(bool error, Str::StringRef reason);
         virtual void Shutdown(bool error, Str::StringRef message);
 
         virtual void OnUnhandledCommand(const Cmd::Args& args);
 
+        float GetFPS() const;
+
         const Traits& GetTraits() const;
 
     protected:
         Traits traits;
+
+    private:
+        int lastFrame_;
+        float fps_;
 };
 
 void LoadInitialConfig(bool resetConfig);
 void Initialize();
 void Frame();
+float GetFPS();
 
 void OnDrop(bool error, Str::StringRef reason);
 void Shutdown(bool error, Str::StringRef message);

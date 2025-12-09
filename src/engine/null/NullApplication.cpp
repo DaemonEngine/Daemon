@@ -65,6 +65,8 @@ class NullApplication : public Application {
             Cmd::DelayFrame();
             Cmd::ExecuteCommandBuffer();
 
+            ::Application::Application::Frame(); // call base class
+
             Sys::SleepFor(std::chrono::milliseconds(60));
         }
 };

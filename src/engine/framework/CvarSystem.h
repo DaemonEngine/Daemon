@@ -63,21 +63,25 @@ namespace Cvar {
 
     // Generic ways to access cvars, might specialize it to parse and serialize automatically
 
-    void SetValue(const std::string& cvarName, const std::string& value);
     //Used for ROM cvars, will trigger a warning if the cvar is not ROM
     void SetValueForce(const std::string& cvarName, const std::string& value);
-    std::string GetValue(const std::string& cvarName);
 
     // Returns a list of cvars matching the prefix as well as their description
     Cmd::CompletionResult Complete(Str::StringRef prefix);
 
+    // Returns true if the cvar exists. Outputs to flags
+    bool GetFlags(const std::string& cvarName, int& flags);
+
     // Alter flags, returns true if the variable exists
-    bool AddFlags(const std::string& cvarName, int flags);
     bool ClearFlags(const std::string& cvarName, int flags);
 
     // Used by statically defined cvar.
     bool Register(CvarProxy* proxy, const std::string& name, std::string description, int flags, const std::string& defaultValue);
     void Unregister(const std::string& cvarName);
+
+    // Marks the cvar as latch and sets the new value if any
+    // TODO: support it in gamelogic too
+    void Latch(CvarProxy& cvar);
 
     // Used by the C API
     cvar_t* FindCCvar(const std::string& cvarName);
@@ -89,7 +93,6 @@ namespace Cvar {
 
     void SetCheatsAllowed(bool allowed);
     // Use the stored values for new-style cvars with LATCH flag
-    void SetLatchedValues();
     void Shutdown();
 
     //Kept as a reference for cvar flags
@@ -100,7 +103,6 @@ namespace Cvar {
     // Remove eventually
     //CVAR_UNSAFE, not sure <- no support for now
     //CVAR_USER_CREATED is kept for now but not really needed
-    //CVAR_INIT is no longer supported, will be implemented by the proxy
 
     //CVAR_NORESTART is not used will be killed
     //CVAR_TEMP seems useless, don't put the CVAR_ARCHIVE and CVAR_CHEAT

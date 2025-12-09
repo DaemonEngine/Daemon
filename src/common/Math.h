@@ -35,11 +35,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Math {
 
-    // Returns min if value is NaN
+    // This is designed to return min if value is NaN. That's not guaranteed to work when
+    // compiling with fast-math flags though.
     template<typename T> inline WARN_UNUSED_RESULT
     T Clamp(T value, T min, T max)
     {
-        ASSERT_LE(min, max);
+        DAEMON_ASSERT_LE(min, max);
         if (!(value >= min))
             return min;
         if (!(value <= max))
@@ -47,6 +48,22 @@ namespace Math {
         return value;
     }
 
+    // IsFinite: Replacements for std::isfinite that should work even with fast-math flags
+
+    // An IEEE754 float is finite when the exponent is not all ones.
+    // 'volatile' serves as an optimization barrier against the compiler assuming that
+    // the float can never have a NaN bit pattern.
+    inline bool IsFinite(float x)
+    {
+        volatile uint32_t bits = Util::bit_cast<uint32_t>(x);
+        return ~bits & 0x7f800000;
+    }
+
+    inline bool IsFinite(double x)
+    {
+        volatile uint64_t bits = Util::bit_cast<uint64_t>(x);
+        return ~bits & 0x7ff0000000000000;
+    }
 }
 
 #include "math/Vector.h"

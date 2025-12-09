@@ -36,23 +36,7 @@ Maryland 20850 USA.
 
 #include "cm_patch.h"
 
-int                     c_totalPatchBlocks;
-
-const cSurfaceCollide_t *debugSurfaceCollide;
-const cFacet_t          *debugFacet;
-bool                debugBlock;
-vec3_t                  debugBlockPoints[ 4 ];
-
-/*
-=================
-CM_ClearLevelPatches
-=================
-*/
-void CM_ClearLevelPatches()
-{
-	debugSurfaceCollide = nullptr;
-	debugFacet = nullptr;
-}
+static int                     c_totalPatchBlocks;
 
 /*
 ================================================================================
@@ -70,7 +54,7 @@ Returns true if the given quadratic curve is not flat enough for our
 collision detection purposes
 =================
 */
-static bool CM_NeedsSubdivision( vec3_t a, vec3_t b, vec3_t c )
+static bool CM_NeedsSubdivision( const vec3_t a, const vec3_t b, const vec3_t c )
 {
 	vec3_t cmid;
 	vec3_t lmid;
@@ -105,7 +89,7 @@ a, b, and c are control points.
 the subdivided sequence will be: a, out1, out2, out3, c
 ===============
 */
-static void CM_Subdivide( vec3_t a, vec3_t b, vec3_t c, vec3_t out1, vec3_t out2, vec3_t out3 )
+static void CM_Subdivide( const vec3_t a, const vec3_t b, const vec3_t c, vec3_t out1, vec3_t out2, vec3_t out3 )
 {
 	int i;
 
@@ -124,7 +108,7 @@ CM_TransposeGrid
 Swaps the rows and columns in place
 =================
 */
-static void CM_TransposeGrid( cGrid_t *grid )
+void CM_TransposeGrid( cGrid_t *grid )
 {
 	int      i, j, l;
 	vec3_t   temp;
@@ -189,8 +173,10 @@ CM_SetGridWrapWidth
 If the left and right columns are exactly equal, set grid->wrapWidth true
 ===================
 */
-static void CM_SetGridWrapWidth( cGrid_t *grid )
+void CM_SetGridWrapWidth( cGrid_t *grid )
 {
+	constexpr float WRAP_POINT_EPSILON = 0.1f;
+
 	int   i, j;
 	float d;
 
@@ -231,7 +217,7 @@ all the approximating points are within SUBDIVIDE_DISTANCE
 from the true curve
 =================
 */
-static void CM_SubdivideGridColumns( cGrid_t *grid )
+void CM_SubdivideGridColumns( cGrid_t *grid )
 {
 	int i, j, k;
 
@@ -344,7 +330,7 @@ CM_RemoveDegenerateColumns
 If there are any identical columns, remove them
 =================
 */
-static void CM_RemoveDegenerateColumns( cGrid_t *grid )
+void CM_RemoveDegenerateColumns( cGrid_t *grid )
 {
 	int i, j, k;
 
@@ -432,42 +418,42 @@ static int CM_EdgePlaneNum( cGrid_t *grid, int gridPlanes[ MAX_GRID_SIZE ][ MAX_
 			p1 = grid->points[ i ][ j ];
 			p2 = grid->points[ i + 1 ][ j ];
 			p = CM_GridPlane( gridPlanes, i, j, 0 );
-			VectorMA( p1, 4, planes[ p ].plane, up );
+			VectorMA( p1, 4, tempPlanes[ p ].plane.normal, up );
 			return CM_FindPlane( p1, p2, up );
 
 		case 2: // bottom border
 			p1 = grid->points[ i ][ j + 1 ];
 			p2 = grid->points[ i + 1 ][ j + 1 ];
 			p = CM_GridPlane( gridPlanes, i, j, 1 );
-			VectorMA( p1, 4, planes[ p ].plane, up );
+			VectorMA( p1, 4, tempPlanes[ p ].plane.normal, up );
 			return CM_FindPlane( p2, p1, up );
 
 		case 3: // left border
 			p1 = grid->points[ i ][ j ];
 			p2 = grid->points[ i ][ j + 1 ];
 			p = CM_GridPlane( gridPlanes, i, j, 1 );
-			VectorMA( p1, 4, planes[ p ].plane, up );
+			VectorMA( p1, 4, tempPlanes[ p ].plane.normal, up );
 			return CM_FindPlane( p2, p1, up );
 
 		case 1: // right border
 			p1 = grid->points[ i + 1 ][ j ];
 			p2 = grid->points[ i + 1 ][ j + 1 ];
 			p = CM_GridPlane( gridPlanes, i, j, 0 );
-			VectorMA( p1, 4, planes[ p ].plane, up );
+			VectorMA( p1, 4, tempPlanes[ p ].plane.normal, up );
 			return CM_FindPlane( p1, p2, up );
 
 		case 4: // diagonal out of triangle 0
 			p1 = grid->points[ i + 1 ][ j + 1 ];
 			p2 = grid->points[ i ][ j ];
 			p = CM_GridPlane( gridPlanes, i, j, 0 );
-			VectorMA( p1, 4, planes[ p ].plane, up );
+			VectorMA( p1, 4, tempPlanes[ p ].plane.normal, up );
 			return CM_FindPlane( p1, p2, up );
 
 		case 5: // diagonal out of triangle 1
 			p1 = grid->points[ i ][ j ];
 			p2 = grid->points[ i + 1 ][ j + 1 ];
 			p = CM_GridPlane( gridPlanes, i, j, 1 );
-			VectorMA( p1, 4, planes[ p ].plane, up );
+			VectorMA( p1, 4, tempPlanes[ p ].plane.normal, up );
 			return CM_FindPlane( p1, p2, up );
 	}
 
@@ -554,15 +540,6 @@ static void CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid,
 			// bisecting side border
 			cmLog.Warn( "CM_SetBorderInward: mixed plane sides" );
 			facet->borderInward[ k ] = false;
-
-			if ( !debugBlock )
-			{
-				debugBlock = true;
-				VectorCopy( grid->points[ i ][ j ], debugBlockPoints[ 0 ] );
-				VectorCopy( grid->points[ i + 1 ][ j ], debugBlockPoints[ 1 ] );
-				VectorCopy( grid->points[ i + 1 ][ j + 1 ], debugBlockPoints[ 2 ] );
-				VectorCopy( grid->points[ i ][ j + 1 ], debugBlockPoints[ 3 ] );
-			}
 		}
 	}
 }
@@ -691,7 +668,7 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 			}
 
 			facet = &facets[ numFacets ];
-			memset( facet, 0, sizeof( *facet ) );
+			*facet = {};
 
 			if ( gridPlanes[ i ][ j ][ 0 ] == gridPlanes[ i ][ j ][ 1 ] )
 			{
@@ -703,13 +680,9 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 				facet->surfacePlane = gridPlanes[ i ][ j ][ 0 ];
 				facet->numBorders = 4;
 				facet->borderPlanes[ 0 ] = borders[ EN_TOP ];
-				facet->borderNoAdjust[ 0 ] = noAdjust[ EN_TOP ];
 				facet->borderPlanes[ 1 ] = borders[ EN_RIGHT ];
-				facet->borderNoAdjust[ 1 ] = noAdjust[ EN_RIGHT ];
 				facet->borderPlanes[ 2 ] = borders[ EN_BOTTOM ];
-				facet->borderNoAdjust[ 2 ] = noAdjust[ EN_BOTTOM ];
 				facet->borderPlanes[ 3 ] = borders[ EN_LEFT ];
-				facet->borderNoAdjust[ 3 ] = noAdjust[ EN_LEFT ];
 				CM_SetBorderInward( facet, grid, i, j, -1 );
 
 				if ( CM_ValidateFacet( facet ) )
@@ -724,9 +697,7 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 				facet->surfacePlane = gridPlanes[ i ][ j ][ 0 ];
 				facet->numBorders = 3;
 				facet->borderPlanes[ 0 ] = borders[ EN_TOP ];
-				facet->borderNoAdjust[ 0 ] = noAdjust[ EN_TOP ];
 				facet->borderPlanes[ 1 ] = borders[ EN_RIGHT ];
-				facet->borderNoAdjust[ 1 ] = noAdjust[ EN_RIGHT ];
 				facet->borderPlanes[ 2 ] = gridPlanes[ i ][ j ][ 1 ];
 
 				if ( facet->borderPlanes[ 2 ] == -1 )
@@ -753,14 +724,12 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 				}
 
 				facet = &facets[ numFacets ];
-				memset( facet, 0, sizeof( *facet ) );
+				*facet = {};
 
 				facet->surfacePlane = gridPlanes[ i ][ j ][ 1 ];
 				facet->numBorders = 3;
 				facet->borderPlanes[ 0 ] = borders[ EN_BOTTOM ];
-				facet->borderNoAdjust[ 0 ] = noAdjust[ EN_BOTTOM ];
 				facet->borderPlanes[ 1 ] = borders[ EN_LEFT ];
-				facet->borderNoAdjust[ 1 ] = noAdjust[ EN_LEFT ];
 				facet->borderPlanes[ 2 ] = gridPlanes[ i ][ j ][ 0 ];
 
 				if ( facet->borderPlanes[ 2 ] == -1 )
@@ -785,12 +754,12 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 	}
 
 	// copy the results out
-	sc->numPlanes = numPlanes;
+	sc->numPlanes = numTempPlanes;
 	sc->numFacets = numFacets;
 	sc->facets = ( cFacet_t * ) CM_Alloc( numFacets * sizeof( *sc->facets ) );
-	memcpy( sc->facets, facets, numFacets * sizeof( *sc->facets ) );
-	sc->planes = ( cPlane_t * ) CM_Alloc( numPlanes * sizeof( *sc->planes ) );
-	memcpy( sc->planes, planes, numPlanes * sizeof( *sc->planes ) );
+	std::copy_n( facets, numFacets, sc->facets );
+	sc->planes = ( cPlane_t * ) CM_Alloc( numTempPlanes * sizeof( *sc->planes ) );
+	std::copy_n( tempPlanes, numTempPlanes, sc->planes );
 }
 
 /*

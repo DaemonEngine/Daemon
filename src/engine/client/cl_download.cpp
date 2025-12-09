@@ -288,7 +288,7 @@ void CL_WWWDownload()
 		if ( strlen( clc.redirectedList ) + strlen( cls.originalDownloadName ) + 1 >= sizeof( clc.redirectedList ) )
 		{
 			// just to be safe
-			Log::Warn( "redirectedList overflow (%s)\n", clc.redirectedList );
+			Log::Warn( "redirectedList overflow (%s)", clc.redirectedList );
 		}
 		else
 		{
@@ -299,7 +299,7 @@ void CL_WWWDownload()
 	else
 	{
 		// see CL_ParseDownload, same abort strategy
-		Log::Notice( "Download failure while getting '%s'\n", cls.downloadName );
+		Log::Notice( "Download failure while getting '%s'", cls.downloadName );
 		CL_AddReliableCommand( "wwwdl fail" );
 		clc.bWWWDlAborting = true;
 
@@ -323,7 +323,7 @@ bool CL_WWWBadChecksum( const char *pakname )
 {
 	if ( strstr( clc.redirectedList, va( "@%s@", pakname ) ) )
 	{
-		Log::Warn("file %s obtained through download redirect has wrong checksum\n"
+		Log::Warn("file %s obtained through download redirect has wrong checksum"
 		              "\tthis likely means the server configuration is broken", pakname );
 
 		if ( strlen( clc.badChecksumList ) + strlen( pakname ) + 1 >= sizeof( clc.badChecksumList ) )
@@ -356,7 +356,7 @@ void CL_ParseDownload( msg_t *msg )
 
 	if ( !*cls.downloadTempName )
 	{
-		Log::Notice( "Server sending download, but no download was requested\n" );
+		Log::Notice( "Server sending download, but no download was requested" );
 		// Eat the packet anyway
 		block = MSG_ReadShort( msg );
 		if (block == -1) {
@@ -402,7 +402,7 @@ void CL_ParseDownload( msg_t *msg )
 			// make sure the server is not trying to redirect us again on a bad checksum
 			if ( strstr( clc.badChecksumList, va( "@%s", cls.originalDownloadName ) ) )
 			{
-				Log::Notice( "refusing redirect to %s by server (bad checksum)\n", cls.downloadName );
+				Log::Notice( "refusing redirect to %s by server (bad checksum)", cls.downloadName );
 				CL_AddReliableCommand( "wwwdl fail" );
 				clc.bWWWDlAborting = true;
 				return;
@@ -416,7 +416,7 @@ void CL_ParseDownload( msg_t *msg )
 				// we count on server sending us a gamestate to start up clean again
 				CL_AddReliableCommand( "wwwdl fail" );
 				clc.bWWWDlAborting = true;
-				Log::Notice( "Failed to initialize download for '%s'\n", cls.downloadName );
+				Log::Notice( "Failed to initialize download for '%s'", cls.downloadName );
 			}
 
 			return;
@@ -470,7 +470,7 @@ void CL_ParseDownload( msg_t *msg )
 
 		if ( !clc.download )
 		{
-			Log::Notice( "Could not create %s\n", cls.downloadTempName );
+			Log::Notice( "Could not create %s", cls.downloadTempName );
 			CL_AddReliableCommand( "stopdl" );
 			CL_NextDownload();
 			return;

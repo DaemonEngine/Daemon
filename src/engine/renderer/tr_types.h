@@ -45,6 +45,8 @@ Maryland 20850 USA.
 #define bool DO_NOT_USE_BOOL_IN_IPC_MESSAGE_TYPES
 using bool8_t = uint8_t;
 
+// TODO(0.56): Remove all shadow stuff in here?
+
 // XreaL BEGIN
 #define MAX_REF_LIGHTS     1024
 #define MAX_REF_ENTITIES   1023 // can't be increased without changing drawsurf bit packing
@@ -52,7 +54,6 @@ using bool8_t = uint8_t;
 #define MAX_WEIGHTS        4 // GPU vertex skinning limit, never change this without rewriting many GLSL shaders
 // XreaL END
 
-#define MAX_DLIGHTS        32 // can't be increased, because bit flags are used on surfaces
 #define MAX_ENTITIES       MAX_REF_ENTITIES // RB: for compatibility
 
 // renderfx flags
@@ -93,12 +94,30 @@ using bool8_t = uint8_t;
 #define GL_INDEX_TYPE GL_UNSIGNED_INT
 using glIndex_t = unsigned int;
 
+// "[implicit only]" means the flag only has effect if there is no shader text and the
+// shader was auto-generated from an image.
+// TODO(0.56): drop RSF_LIGHT_ATTENUATION, RSF_NOLIGHTSCALE
 enum RegisterShaderFlags_t {
-	RSF_DEFAULT           = 0x00,
-	RSF_NOMIP             = 0x01,
-	RSF_LIGHT_ATTENUATION = 0x02,
-	RSF_NOLIGHTSCALE      = 0x04,
-	RSF_SPRITE            = 0x08
+	// nothing
+	RSF_DEFAULT = BIT( 0 ),
+
+	// [implicit only] alter filter and wrap type
+	RSF_2D = BIT( 1 ),
+
+	// load images without mipmaps
+	RSF_NOMIP = BIT( 2 ),
+
+	// mip images to the screen size when they are larger than the screen
+	RSF_FITSCREEN = BIT( 3 ),
+
+	// nothing
+	RSF_LIGHT_ATTENUATION = BIT( 4 ),
+
+	// nothing
+	RSF_NOLIGHTSCALE = BIT( 5 ),
+
+	// when the shader is used on an entity sprite, face view direction instead of viewer
+	RSF_SPRITE = BIT( 6 ),
 };
 
 struct polyVert_t
@@ -118,16 +137,16 @@ struct poly_t
 enum class refEntityType_t
 {
   RT_MODEL,
+
+  // A square 3D polygon at the specified `origin` with size `radius` with its face
+  // oriented toward the viewer. By default the square's edges will be aligned so they are
+  // drawn parallel to the edges of the screen; this can be changed by setting `rotation`.
   RT_SPRITE,
+
   RT_PORTALSURFACE, // doesn't draw anything, just info for portals
 
   RT_MAX_REF_ENTITY_TYPE
 };
-
-// XreaL BEGIN
-
-// RB: defining any of the following macros would break the compatibility to old ET mods
-//#define USE_REFENTITY_NOSHADOWID 1
 
 // RB: having bone names for each refEntity_t takes several MiBs
 // in backEndData_t so only use it for debugging and development
@@ -149,7 +168,7 @@ enum class refSkeletonType_t
   SK_ABSOLUTE
 };
 
-ALIGNED(16, struct refSkeleton_t
+struct alignas(16) refSkeleton_t
 {
 	refSkeletonType_t type; // skeleton has been reset
 
@@ -159,7 +178,7 @@ ALIGNED(16, struct refSkeleton_t
 	vec_t             scale;
 
 	refBone_t         bones[ MAX_BONES ];
-});
+};
 
 // XreaL END
 
@@ -197,11 +216,6 @@ struct refEntity_t
 	float radius;
 	float rotation;
 
-#if defined( USE_REFENTITY_NOSHADOWID )
-	// extra light interaction information
-	short noShadowID;
-#endif
-
 	int altShaderIndex;
 
 	// KEEP SKELETON AT THE END OF THE STRUCTURE
@@ -210,52 +224,6 @@ struct refEntity_t
 	refSkeleton_t skeleton;
 
 };
-
-// ================================================================================================
-
-// XreaL BEGIN
-
-enum class refLightType_t
-{
-  RL_OMNI, // point light
-  RL_PROJ, // spot light
-  RL_DIRECTIONAL, // sun light
-
-  RL_MAX_REF_LIGHT_TYPE
-};
-
-struct refLight_t
-{
-	refLightType_t rlType;
-//  int             lightfx;
-
-	qhandle_t attenuationShader;
-
-	vec3_t    origin;
-	quat_t    rotation;
-	vec3_t    center;
-	vec3_t    color; // range from 0.0 to 1.0, should be color normalized
-
-	float     scale; // r_lightScale if not set
-
-	// omni-directional light specific
-	float     radius;
-
-	// projective light specific
-	vec3_t   projTarget;
-	vec3_t   projRight;
-	vec3_t   projUp;
-	vec3_t   projStart;
-	vec3_t   projEnd;
-
-	bool8_t noShadows;
-	short    noShadowID; // don't cast shadows of all entities with this id
-
-	bool8_t inverseShadows; // don't cast light and draw shadows by darken the scene
-	// this is useful for drawing player shadows with shadow mapping
-};
-
-// XreaL END
 
 // ================================================================================================
 
@@ -298,20 +266,13 @@ enum class textureCompression_t
   TC_EXT_COMP_S3TC
 };
 
-// Keep the list in sdl_glimp.c:reportDriverType in sync with this
+// TODO(0.56): remove.
 enum class glDriverType_t
 {
   GLDRV_UNKNOWN = -1,
-  GLDRV_ICD, // driver is integrated with window system
-  // WARNING: there are tests that check for
-  // > GLDRV_ICD for minidriverness, so this
-  // should always be the lowest value in this
-  // enum set
-  GLDRV_STANDALONE, // driver is a non-3Dfx standalone driver
-
-// XreaL BEGIN
-  GLDRV_OPENGL3, // new driver system
-// XreaL END
+  GLDRV_ICD,
+  GLDRV_STANDALONE,
+  GLDRV_OPENGL3,
 };
 
 // Keep the list in sdl_glimp.c:reportHardwareType in sync with this
@@ -344,13 +305,11 @@ struct glconfig_t
 	glHardwareType_t     hardwareType;
 
 	textureCompression_t textureCompression;
-	bool8_t             textureEnvAddAvailable;
-	bool8_t             anisotropicAvailable; //----(SA)  added
-	float                maxAnisotropy; //----(SA)  added
 
-	int      vidWidth, vidHeight;
-
-	int   displayFrequency;
+	int displayIndex;
+	float displayAspect;
+	int displayWidth, displayHeight; // the entire monitor (the one indicated by displayIndex)
+	int vidWidth, vidHeight; // what the game is using
 
 	bool8_t smpActive; // dual processor
 };

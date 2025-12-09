@@ -22,9 +22,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* reflection_CB_fp.glsl */
 
-uniform samplerCube	u_ColorMap;
+#insert reliefMapping_fp
+
+#define REFLECTION_CB_GLSL
+
+uniform samplerCube	u_ColorMapCube;
 uniform vec3		u_ViewOrigin;
-uniform mat4		u_ModelMatrix;
 
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexCoords;
@@ -36,6 +39,8 @@ DECLARE_OUTPUT(vec4)
 
 void	main()
 {
+	#insert material_fp
+
 	// compute view direction in world space
 	vec3 viewDir = normalize(var_Position - u_ViewOrigin);
 
@@ -45,17 +50,26 @@ void	main()
 
 #if defined(USE_RELIEF_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ReliefTexOffset(texNormal, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ReliefTexOffset(texNormal, viewDir, tangentToWorldMatrix, u_HeightMap);
 
 	texNormal += texOffset;
 #endif // USE_RELIEF_MAPPING
 
 	// compute normal in tangent space from normal map
-	vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
+	#if defined(r_normalMapping)
+		vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix, u_NormalMap);
+	#else // !r_normalMapping
+		vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
+	#endif // !r_normalMapping
 
 	// compute reflection ray
 	vec3 reflectionRay = reflect(viewDir, normal);
 
-	outputColor = textureCube(u_ColorMap, reflectionRay).rgba;
+	outputColor = textureCube(u_ColorMapCube, reflectionRay).rgba;
+
+	#if defined(r_showCubeProbes)
+		viewDir = normalize(var_Position);
+		outputColor = textureCube(u_ColorMapCube, viewDir);
+	#endif
 	// outputColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

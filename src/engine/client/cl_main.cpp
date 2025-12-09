@@ -43,7 +43,10 @@ Maryland 20850 USA.
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
 
+#if defined(USE_MUMBLE)
 #include "mumblelink/libmumblelink.h"
+#endif
+
 #include "qcommon/crypto.h"
 #include "framework/Rcon.h"
 #include "framework/Crypto.h"
@@ -53,13 +56,13 @@ Maryland 20850 USA.
 #include <sys/stat.h>
 #endif
 #ifdef BUILD_GRAPHICAL_CLIENT
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #endif
 
-static Log::Logger serverInfoLog("client.serverinfo", "");
-
+#if defined(USE_MUMBLE)
 cvar_t *cl_useMumble;
 cvar_t *cl_mumbleScale;
+#endif
 
 cvar_t *cl_nodelta;
 
@@ -72,9 +75,7 @@ cvar_t *cl_timeNudge;
 cvar_t *cl_showTimeDelta;
 
 cvar_t *cl_shownet = nullptr; // NERVE - SMF - This is referenced in msg.c and we need to make sure it is nullptr
-cvar_t *cl_shownuments; // DHM - Nerve
 cvar_t *cl_showSend;
-cvar_t *cl_showServerCommands; // NERVE - SMF
 
 Cvar::Cvar<bool> cvar_demo_status_isrecording(
     "demo.status.isrecording",
@@ -92,43 +93,34 @@ Cvar::Cvar<std::string> cvar_demo_status_filename(
 
 cvar_t *cl_aviFrameRate;
 
-cvar_t *cl_freelook;
-cvar_t *cl_sensitivity;
-cvar_t *cl_gameControllerAvailable;
+Cvar::Cvar<bool> cl_freelook("cl_freelook", "vertical mouse movement always controls pitch", Cvar::NONE, true);
 
 cvar_t *cl_mouseAccelOffset;
 cvar_t *cl_mouseAccel;
 cvar_t *cl_mouseAccelStyle;
-cvar_t *cl_showMouseRate;
 
-cvar_t *m_pitch;
-cvar_t *m_yaw;
-cvar_t *m_forward;
-cvar_t *m_side;
-cvar_t *m_filter;
+Cvar::Cvar<float> m_pitch("m_pitch", "mouse sensitivity modifier for looking up/down", Cvar::NONE, 0.022);
+Cvar::Cvar<float> m_yaw("m_yaw", "mouse sensitivity modifier for looking left/right", Cvar::NONE, 0.022);
+Cvar::Cvar<float> m_forward("m_forward", "mouse sensitivity modifier for (mlook off) walking", Cvar::NONE, 0.25);
+Cvar::Cvar<float> m_side("m_side", "mouse sensitivity modifier for +strafe", Cvar::NONE, 0.25);
+Cvar::Cvar<bool> m_filter("m_filter", "smooth mouse inputs over 2 frames", Cvar::NONE, false);
 
-cvar_t *j_pitch;
-cvar_t *j_yaw;
-cvar_t *j_forward;
-cvar_t *j_side;
-cvar_t *j_up;
-cvar_t *j_pitch_axis;
-cvar_t *j_yaw_axis;
-cvar_t *j_forward_axis;
-cvar_t *j_side_axis;
-cvar_t *j_up_axis;
+Cvar::Cvar<float> j_pitch("j_pitch", "joystick move scale for pitch axis", Cvar::NONE, 0.022);
+Cvar::Cvar<float> j_yaw("j_yaw", "joystick move scale for yaw axis", Cvar::NONE, -0.022);
+Cvar::Cvar<float> j_forward("j_forward", "joystick move scale for forward axis", Cvar::NONE, -0.25);
+Cvar::Cvar<float> j_side("j_side", "joystick move scale for side (strafe) axis", Cvar::NONE, 0.25);
+Cvar::Cvar<float> j_up("j_up", "joystick move scale for up axis", Cvar::NONE, 1.0);
+Cvar::Range<Cvar::Cvar<int>> j_pitch_axis("j_pitch_axis", "joystick pitch axis number", Cvar::NONE, 3, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_yaw_axis("j_yaw_axis", "joystick yaw axis number", Cvar::NONE, 4, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_forward_axis("j_forward_axis", "joystick forward axis number", Cvar::NONE, 1, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_side_axis("j_side_axis", "joystick side (strafe) axis number", Cvar::NONE, 0, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
+Cvar::Range<Cvar::Cvar<int>> j_up_axis("j_up_axis", "joystick up axis number", Cvar::NONE, 2, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
 
 cvar_t *cl_activeAction;
 
 cvar_t *cl_autorecord;
 
 cvar_t *cl_allowDownload;
-cvar_t *cl_inGameVideo;
-
-cvar_t *cl_serverStatusResendTime;
-
-cvar_t                 *cl_packetloss; //bani
-cvar_t                 *cl_packetdelay; //bani
 
 cvar_t                 *cl_consoleFont;
 cvar_t                 *cl_consoleFontSize;
@@ -139,8 +131,6 @@ cvar_t                 *cl_consoleCommand; //see also com_consoleCommand for ter
 struct rsa_public_key  public_key;
 struct rsa_private_key private_key;
 
-cvar_t             *cl_gamename;
-
 cvar_t             *cl_altTab;
 
 // XreaL BEGIN
@@ -148,8 +138,6 @@ cvar_t             *cl_aviMotionJpeg;
 // XreaL END
 
 cvar_t             *cl_rate;
-
-cvar_t             *cl_cgameSyscallStats;
 
 clientActive_t     cl;
 clientConnection_t clc;
@@ -159,26 +147,9 @@ CGameVM            cgvm;
 // Structure containing functions exported from refresh DLL
 refexport_t        re;
 
-ping_t             cl_pinglist[ MAX_PINGREQUESTS ];
-
-struct serverStatus_t
-{
-	char     string[ BIG_INFO_STRING ];
-	netadr_t address;
-	int      time, startTime;
-	bool pending;
-	bool print;
-	bool retrieved;
-};
-
-serverStatus_t cl_serverStatusList[ MAX_SERVERSTATUSREQUESTS ];
-int            serverStatusCount;
-
 void        CL_CheckForResend();
-void        CL_ShowIP_f();
-void        CL_ServerStatus_f();
-void        CL_ServerStatusResponse( const netadr_t& from, msg_t *msg );
 
+#if defined(USE_MUMBLE)
 static void CL_UpdateMumble()
 {
 	vec3_t pos, forward, up;
@@ -215,6 +186,7 @@ static void CL_UpdateMumble()
 
 	mumble_update_coordinates( pos, forward, up );
 }
+#endif
 
 /*
 =======================================================================
@@ -316,7 +288,7 @@ class DemoRecordStopCmd: public Cmd::StaticCmd
 {
 public:
     DemoRecordStopCmd()
-        : Cmd::StaticCmd("demo_record_stop", Cmd::SYSTEM, "Stops recording a demo")
+        : Cmd::StaticCmd("demo_record_stop", Cmd::CLIENT, "Stops recording a demo")
     {}
 
     void Run(const Cmd::Args&) const override
@@ -336,7 +308,7 @@ class DemoRecordCmd : public Cmd::StaticCmd
 {
 public:
     DemoRecordCmd()
-        : Cmd::StaticCmd("demo_record", Cmd::SYSTEM, "Begins recording a demo from the current position")
+        : Cmd::StaticCmd("demo_record", Cmd::CLIENT, "Begins recording a demo from the current position")
     {}
 
     void Run(const Cmd::Args& args) const override
@@ -451,8 +423,7 @@ void CL_Record(std::string demo_name)
     }
 
     // baselines
-    entityState_t nullstate;
-    memset( &nullstate, 0, sizeof( nullstate ) );
+    entityState_t nullstate{};
 
     for ( int i = 0; i < MAX_GENTITIES; i++ )
     {
@@ -473,8 +444,6 @@ void CL_Record(std::string demo_name)
 
     // write the client num
     MSG_WriteLong( &buf, clc.clientNum );
-    // write the checksum feed
-    MSG_WriteLong( &buf, clc.checksumFeed );
 
     // finished writing the client packet
     MSG_WriteByte( &buf, svc_EOF );
@@ -589,7 +558,7 @@ void CL_ReadDemoMessage()
 
 class DemoPlayCmd: public Cmd::StaticCmd {
     public:
-        DemoPlayCmd(): Cmd::StaticCmd("demo_play", Cmd::SYSTEM, "Starts playing a demo file") {
+        DemoPlayCmd(): Cmd::StaticCmd("demo_play", Cmd::CLIENT, "Starts playing a demo file") {
         }
 
         void Run(const Cmd::Args& args) const override {
@@ -717,13 +686,10 @@ void CL_ShutdownAll()
 	// Gordon: stop recording on map change etc, demos aren't valid over map changes anyway
 	CL_StopRecord();
 
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		void SV_ShutdownGameProgs();
 		SV_ShutdownGameProgs();
-
-		// clear collision map data
-		CM_ClearMap();
 	}
 
 	Hunk_Clear();
@@ -787,8 +753,7 @@ Called before parsing a gamestate
 */
 void CL_ClearState()
 {
-	cl.~clientActive_t();
-	new(&cl) clientActive_t{}; // Using {} instead of () to work around MSVC bug
+	ResetStruct( cl );
 }
 
 /*
@@ -823,11 +788,13 @@ void CL_Disconnect( bool showMainMenu )
 
 	CL_SendDisconnect();
 
+#if defined(USE_MUMBLE)
 	if ( cl_useMumble->integer && mumble_islinked() )
 	{
 		Log::Notice("Mumble: Unlinking from Mumble application" );
 		mumble_unlink();
 	}
+#endif
 
 	if ( clc.download )
 	{
@@ -849,8 +816,7 @@ void CL_Disconnect( bool showMainMenu )
 	CL_ClearState();
 
 	// wipe the client connection
-	clc.~clientConnection_t();
-	new(&clc) clientConnection_t{}; // Using {} instead of () to work around MSVC bug
+	ResetStruct( clc );
 
 	CL_ClearStaticDownload();
 
@@ -900,7 +866,7 @@ void CL_ForwardCommandToServer( const char *string )
 
 	if ( clc.demoplaying || cls.state < connstate_t::CA_CONNECTED || cmd[ 0 ] == '+' || cmd[ 0 ] == '\0' )
 	{
-		Log::Notice( "Unknown command \"%s\"\n", cmd );
+		Log::Notice( "Unknown command \"%s\"", cmd );
 		return;
 	}
 
@@ -984,7 +950,6 @@ void CL_Connect_f()
 {
 	char         *server;
 	char password[ 64 ];
-	const char   *serverString;
 	char         *offset;
 	int          argc = Cmd_Argc();
 	netadrtype_t family = netadrtype_t::NA_UNSPEC;
@@ -1046,7 +1011,7 @@ void CL_Connect_f()
 	// clear any previous "server full" type messages
 	clc.serverMessage[ 0 ] = 0;
 
-	if ( com_sv_running->integer && !strcmp( server, "loopback" ) )
+	if ( com_sv_running.Get() && !strcmp( server, "loopback" ) )
 	{
 		// if running a local server, kill it
 		SV_Shutdown( "Server quit" );
@@ -1075,7 +1040,7 @@ void CL_Connect_f()
 		clc.serverAddress.port = UBigShort( PORT_SERVER );
 	}
 
-	serverString = NET_AdrToStringwPort( clc.serverAddress );
+	std::string serverString = Net::AddressToString( clc.serverAddress, true );
 
 	Log::Debug( "%s resolved to %s", cls.servername, serverString );
 
@@ -1099,7 +1064,7 @@ void CL_Connect_f()
 
 	// server connection string
 	Cvar_Set( "cl_currentServerAddress", server );
-	Cvar_Set( "cl_currentServerIP", serverString );
+	Cvar_Set( "cl_currentServerIP", serverString.c_str() );
 }
 
 
@@ -1169,7 +1134,7 @@ static void CL_RconSend(const Rcon::Message &message)
 	}
 	else
 	{
-		Log::Notice("Invalid rcon message: %s\n", invalid_reason.c_str());
+		Log::Notice("Invalid rcon message: %s", invalid_reason.c_str());
 	}
 }
 
@@ -1254,7 +1219,7 @@ class RconCmd: public Cmd::StaticCmd
 {
 public:
 	RconCmd():
-		StaticCmd("rcon", Cmd::SYSTEM, "Sends a remote console command")
+		StaticCmd("rcon", Cmd::CLIENT, "Sends a remote console command")
 	{}
 
 	void Run(const Cmd::Args& args) const override
@@ -1318,7 +1283,7 @@ class RconDiscoverCmd: public Cmd::StaticCmd
 {
 public:
 	RconDiscoverCmd():
-		StaticCmd("rconDiscover", Cmd::SYSTEM, "Sends a request to the server to populate rcon.client cvars")
+		StaticCmd("rconDiscover", Cmd::CLIENT, "Sends a request to the server to populate rcon.client cvars")
 	{}
 
 	void Run(const Cmd::Args&) const override
@@ -1371,7 +1336,7 @@ static void CL_GenerateRSAKeys( const char *fileName )
 		Sys::Error( "Error converting RSA keypair to sexp" );
 	}
 
-	Log::Notice( "^5Regenerating RSA keypair; writing to %s\n" , fileName );
+	Log::Notice( "^5Regenerating RSA keypair; writing to %s" , fileName );
 
 #ifndef _WIN32
 	int old_umask = umask(0077);
@@ -1419,12 +1384,12 @@ static void CL_LoadRSAKeys()
 
 	if ( !f || len < 1 )
 	{
-		Log::Notice( "^2%s", "Daemon RSA public-key file not found, regenerating\n" );
+		Log::Notice( "^2Daemon RSA public-key file not found, regenerating" );
 		CL_GenerateRSAKeys( fileName );
 		return;
 	}
 
-	buf = (uint8_t*) Z_TagMalloc( len, memtag_t::TAG_CRYPTO );
+	buf = (uint8_t*) Z_Malloc( len );
 	FS_Read( buf, len, f );
 	FS_FCloseFile( f );
 
@@ -1472,8 +1437,7 @@ void CL_Vid_Restart_f()
 	Audio::StopAllSounds();
 	// shutdown the CGame
 	CL_ShutdownCGame();
-	// clear the font cache
-	re.UnregisterFont( nullptr );
+	re.UnregisterFont( cls.consoleFont );
 	cls.consoleFont = nullptr;
 	// shutdown the renderer and clear the renderer interface
 	CL_ShutdownRef();
@@ -1507,22 +1471,10 @@ void CL_Snd_Restart_f()
 {
 	Audio::Shutdown();
 
-	if( !cls.cgameStarted )
-	{
-		// In the main menu case the cgame is not restarted... but is there anything preventing
-		// the main menu from also using sound handles?
-		if (!Audio::Init()) {
-			Log::Warn("Couldn't initialize the audio subsystem.");
-		}
-		//TODO S_BeginRegistration()
+	if (!Audio::Init()) {
+		Log::Warn("Couldn't initialize the audio subsystem.");
 	}
-	else
-	{
-		if (!Audio::Init()) {
-			Log::Warn("Couldn't initialize the audio subsystem.");
-		}
-		CL_Vid_Restart_f();
-	}
+	CL_Vid_Restart_f();
 }
 
 /*
@@ -1547,7 +1499,7 @@ void CL_Configstrings_f()
 			continue;
 		}
 
-		Log::Notice( "%4i: %s\n", i, cl.gameState[i].c_str() );
+		Log::Notice( "%4i: %s", i, cl.gameState[i].c_str() );
 	}
 }
 
@@ -1571,7 +1523,7 @@ class DemoVideoCmd: public Cmd::StaticCmd
 {
 public:
     DemoVideoCmd()
-        : Cmd::StaticCmd("demo_video", Cmd::SYSTEM,
+        : Cmd::StaticCmd("demo_video", Cmd::CLIENT,
                          "Begins recording a video from the current demo")
     {}
 
@@ -1629,7 +1581,7 @@ class DemoStopVideoCmd: public Cmd::StaticCmd
 {
 public:
     DemoStopVideoCmd()
-        : Cmd::StaticCmd("demo_video_stop", Cmd::SYSTEM, "Stops recording a video")
+        : Cmd::StaticCmd("demo_video_stop", Cmd::CLIENT, "Stops recording a video")
     {}
 
     void Run(const Cmd::Args&) const override
@@ -1769,443 +1721,14 @@ void CL_PrintPacket( msg_t *msg )
 	if ( !Q_strnicmp( s, "[err_dialog]", 12 ) )
 	{
 		Q_strncpyz( clc.serverMessage, s + 12, sizeof( clc.serverMessage ) );
-		// Cvar_Set("com_errorMessage", clc.serverMessage );
-		Sys::Drop( "%s", clc.serverMessage );
+		Sys::Drop( "^3Server disconnected:\n^7%s", clc.serverMessage );
 	}
 	else
 	{
 		Q_strncpyz( clc.serverMessage, s, sizeof( clc.serverMessage ) );
 	}
 
-	Log::Notice("%s\n", clc.serverMessage );
-}
-
-/*
-===================
-CL_InitServerInfo
-===================
-*/
-void CL_InitServerInfo( serverInfo_t *server, netadr_t *address )
-{
-	server->adr = *address;
-	server->clients = 0;
-	server->hostName[ 0 ] = '\0';
-	server->mapName[ 0 ] = '\0';
-	server->label[ 0 ] = '\0';
-	server->maxClients = 0;
-	server->maxPing = 0;
-	server->minPing = 0;
-	server->ping = -1;
-	server->game[ 0 ] = '\0';
-	server->netType = netadrtype_t::NA_BOT;
-}
-
-/*
-===================
-CL_GSRSequenceInformation
-
-Parses this packet's index and the number of packets from a master server's
-response. Updates the packet count and returns the index. Advances the data
-pointer as appropriate (but only when parsing was successful)
-
-The sequencing information isn't terribly useful at present (we can skip
-duplicate packets, but we don't bother to make sure we've got all of them).
-===================
-*/
-int CL_GSRSequenceInformation( byte **data )
-{
-	char *p = ( char * ) *data, *e;
-	int  ind, num;
-
-	// '\0'-delimited fields: this packet's index, total number of packets
-	if ( *p++ != '\0' )
-	{
-		return -1;
-	}
-
-	ind = strtol( p, &e, 10 );
-
-	if ( *e++ != '\0' )
-	{
-		return -1;
-	}
-
-	num = strtol( e, &p, 10 );
-
-	if ( *p++ != '\0' )
-	{
-		return -1;
-	}
-
-	if ( num <= 0 || ind <= 0 || ind > num )
-	{
-		return -1; // nonsensical response
-	}
-
-	if ( cls.numMasterPackets > 0 && num != cls.numMasterPackets )
-	{
-		// Assume we sent two getservers and somehow they changed in
-		// between - only use the results that arrive later
-		Log::Debug( "Master changed its mind about packet count!" );
-		cls.receivedMasterPackets = 0;
-		cls.numglobalservers = 0;
-		cls.numGlobalServerAddresses = 0;
-	}
-
-	cls.numMasterPackets = num;
-
-	// successfully parsed
-	*data = ( byte * ) p;
-	return ind;
-}
-
-/*
-===================
-CL_GSRFeaturedLabel
-
-Parses from the data an arbitrary text string labelling the servers in the
-following getserversresponse packet.
-The result is copied to *buf, and *data is advanced as appropriate
-===================
-*/
-void CL_GSRFeaturedLabel( byte **data, char *buf, int size )
-{
-	char *l = buf;
-	buf[ 0 ] = '\0';
-
-	// copy until '\0' which indicates field break
-	// or slash which indicates beginning of server list
-	while ( **data && **data != '\\' && **data != '/' )
-	{
-		if ( l < &buf[ size - 1 ] )
-		{
-			*l = **data;
-		}
-		else if ( l == &buf[ size - 1 ] )
-		{
-			Log::Warn( "CL_GSRFeaturedLabel: overflow" );
-		}
-
-		l++, ( *data ) ++;
-	}
-}
-
-static const int MAX_SERVERSPERPACKET = 256;
-
-/*
-===================
-CL_ServerLinksResponsePacket
-===================
-*/
-void CL_ServerLinksResponsePacket( msg_t *msg )
-{
-	uint16_t      port;
-	byte      *buffptr;
-	byte      *buffend;
-
-	Log::Debug( "CL_ServerLinksResponsePacket" );
-
-	if ( msg->data[ 30 ] != 0 )
-	{
-		return;
-	}
-
-	// parse through server response string
-	cls.numserverLinks = 0;
-	buffptr = msg->data + 31; // skip header
-	buffend = msg->data + msg->cursize;
-
-	// Each link contains:
-	// * an IPv4 address & port
-	// * an IPv6 address & port
-	while ( buffptr < buffend - 20 && cls.numserverLinks < ARRAY_LEN( cls.serverLinks ) )
-	{
-		cls.serverLinks[ cls.numserverLinks ].type = netadrtype_t::NA_IP_DUAL;
-
-		// IPv4 address
-		memcpy( cls.serverLinks[ cls.numserverLinks ].ip, buffptr, 4 );
-		port = buffptr[ 4 ] << 8 | buffptr[ 5 ];
-		cls.serverLinks[ cls.numserverLinks ].port4 = UBigShort( port );
-		buffptr += 6;
-
-		// IPv4 address
-		memcpy( cls.serverLinks[ cls.numserverLinks ].ip6, buffptr, 16 );
-		port = buffptr[ 16 ] << 8 | buffptr[ 17 ];
-		cls.serverLinks[ cls.numserverLinks ].port6 = UBigShort( port );
-		buffptr += 18;
-
-		++cls.numserverLinks;
-	}
-
-	Log::Debug( "%d server address pairs parsed", cls.numserverLinks );
-}
-
-/*
-===================
-CL_ServersResponsePacket
-===================
-*/
-void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
-{
-	int      count, duplicate_count, parsed_count, total;
-	netadr_t addresses[ MAX_SERVERSPERPACKET ];
-	int      numservers;
-	byte     *buffptr;
-	byte     *buffend;
-	char     label[ MAX_FEATLABEL_CHARS ] = "";
-
-	Log::Debug( "CL_ServersResponsePacket" );
-
-	duplicate_count = 0;
-
-	if ( cls.numglobalservers == -1 )
-	{
-		// state to detect lack of servers or lack of response
-		cls.numglobalservers = 0;
-		cls.numGlobalServerAddresses = 0;
-		cls.numMasterPackets = 0;
-		cls.receivedMasterPackets = 0;
-	}
-
-	// parse through server response string
-	numservers = 0;
-	buffptr = msg->data;
-	buffend = buffptr + msg->cursize;
-
-	// advance to initial token
-	// skip header
-	buffptr += 4;
-
-	// advance to initial token
-	// I considered using strchr for this but I don't feel like relying
-	// on its behaviour with '\0'
-	while ( *buffptr && *buffptr != '\\' && *buffptr != '/' )
-	{
-		buffptr++;
-
-		if ( buffptr + 1 >= buffend )
-		{
-			break;
-		}
-	}
-
-	if ( *buffptr == '\0' )
-	{
-		int ind = CL_GSRSequenceInformation( &buffptr );
-
-		if ( ind >= 0 )
-		{
-
-			// TODO: detect dropped packets and make another
-			// request
-			Log::Debug( "CL_ServersResponsePacket: packet "
-			             "%d of %d", ind, cls.numMasterPackets );
-			cls.receivedMasterPackets |= ( 1 << ( ind - 1 ) );
-
-			CL_GSRFeaturedLabel( &buffptr, label, sizeof( label ) );
-		}
-
-		// now skip to the server list
-		for ( ; buffptr < buffend && *buffptr != '\\' && *buffptr != '/';
-		      buffptr++ ) {; }
-	}
-
-	while ( buffptr + 1 < buffend )
-	{
-		bool duplicate = false;
-		byte ip6[16];
-		byte ip[4];
-		uint16_t port;
-
-		// IPv4 address
-		if ( *buffptr == '\\' )
-		{
-			buffptr++;
-
-			if ( buffend - buffptr < (ptrdiff_t) (sizeof( addresses[ numservers ].ip ) + sizeof( addresses[ numservers ].port ) + 1) )
-			{
-				break;
-			}
-
-			// parse out ip
-			memcpy( ip, buffptr, sizeof( ip ) );
-			buffptr += sizeof( ip );
-
-			// parse out port
-			port = ( *buffptr++ ) << 8;
-			port += *buffptr++;
-			port = UBigShort( port );;
-
-			// deduplicate server list, do not add known server
-			for ( int i = 0; i < cls.numglobalservers; i++ )
-			{
-				if ( cls.globalServers[ i ].adr.port == port && !memcmp( cls.globalServers[ i ].adr.ip, ip, sizeof( ip ) ) )
-				{
-					duplicate = true;
-					duplicate_count++;
-					break;
-				}
-			}
-
-			memcpy( addresses[ numservers ].ip, ip, sizeof( ip ) );
-
-			addresses[ numservers ].port = port;
-			addresses[ numservers ].type = netadrtype_t::NA_IP;
-
-			// look up this address in the links list
-			for (unsigned j = 0; j < cls.numserverLinks && !duplicate; ++j )
-			{
-				if ( addresses[ numservers ].port == cls.serverLinks[ j ].port4 && !memcmp( addresses[ numservers ].ip, cls.serverLinks[ j ].ip, sizeof( addresses[ numservers ].ip ) ) )
-				{
-					// found it, so look up the corresponding address
-					char s[ NET_ADDR_W_PORT_STR_MAX_LEN ];
-
-					// hax to get the IP address & port as a string (memcmp etc. SHOULD work, but...)
-					cls.serverLinks[ j ].type = netadrtype_t::NA_IP6;
-					cls.serverLinks[ j ].port = cls.serverLinks[ j ].port6;
-					strcpy( s, NET_AdrToStringwPort( cls.serverLinks[ j ] ) );
-					cls.serverLinks[j].type = netadrtype_t::NA_IP_DUAL;
-
-					for ( int i = 0; i < numservers; ++i )
-					{
-						if ( !strcmp( s, NET_AdrToStringwPort( addresses[ i ] ) ) )
-						{
-							// found: replace with the preferred address, exit both loops
-							addresses[ i ] = cls.serverLinks[ j ];
-							addresses[ i ].type = NET_TYPE( cls.serverLinks[ j ].type );
-							addresses[ i ].port = ( addresses[ i ].type == netadrtype_t::NA_IP ) ? cls.serverLinks[ j ].port4 : cls.serverLinks[ j ].port6;
-							duplicate = true;
-							duplicate_count++;
-							break;
-						}
-					}
-				}
-			}
-		}
-		// IPv6 address, if it's an extended response
-		else if ( extended && *buffptr == '/' )
-		{
-			buffptr++;
-
-			if ( buffend - buffptr < (ptrdiff_t) (sizeof( addresses[ numservers ].ip6 ) + sizeof( addresses[ numservers ].port ) + 1) )
-			{
-				break;
-			}
-
-			for ( unsigned i = 0; i < sizeof( addresses[ numservers ].ip6 ); i++ )
-			{
-				addresses[ numservers ].ip6[ i ] = *buffptr++;
-			}
-
-			// parse out ip
-			memcpy( ip6, buffptr, sizeof( ip6 ) );
-			buffptr += sizeof( ip6 );
-
-			// parse out port
-			port = ( *buffptr++ ) << 8;
-			port += *buffptr++;
-			port = UBigShort( port );;
-
-			// deduplicate server list, do not add known server
-			for ( int i = 0; i < cls.numglobalservers; i++ )
-			{
-				if ( cls.globalServers[ i ].adr.port == port && !memcmp( cls.globalServers[ i ].adr.ip6, ip6, sizeof( ip6 ) ) )
-				{
-					duplicate = true;
-					duplicate_count++;
-					break;
-				}
-			}
-
-			memcpy( addresses[ numservers ].ip6, ip6, sizeof( ip6 ) );
-
-			addresses[ numservers ].port = port;
-			addresses[ numservers ].type = netadrtype_t::NA_IP6;
-			addresses[ numservers ].scope_id = from->scope_id;
-
-			// look up this address in the links list
-			for ( unsigned j = 0; j < cls.numserverLinks && !duplicate; ++j )
-			{
-				if ( addresses[ numservers ].port == cls.serverLinks[ j ].port6 && !memcmp( addresses[ numservers ].ip6, cls.serverLinks[ j ].ip6, sizeof( addresses[ numservers ].ip6 ) ) )
-				{
-					// found it, so look up the corresponding address
-					char s[ NET_ADDR_W_PORT_STR_MAX_LEN ];
-
-					// hax to get the IP address & port as a string (memcmp etc. SHOULD work, but...)
-					cls.serverLinks[ j ].type = netadrtype_t::NA_IP;
-					cls.serverLinks[ j ].port = cls.serverLinks[ j ].port4;
-					strcpy( s, NET_AdrToStringwPort( cls.serverLinks[ j ] ) );
-					cls.serverLinks[j].type = netadrtype_t::NA_IP_DUAL;
-
-					for ( int i = 0; i < numservers; ++i )
-					{
-						if ( !strcmp( s, NET_AdrToStringwPort( addresses[ i ] ) ) )
-						{
-							// found: replace with the preferred address, exit both loops
-							addresses[ i ] = cls.serverLinks[ j ];
-							addresses[ i ].type = NET_TYPE( cls.serverLinks[ j ].type );
-							addresses[ i ].port = ( addresses[ i ].type == netadrtype_t::NA_IP ) ? cls.serverLinks[ j ].port4 : cls.serverLinks[ j ].port6;
-							duplicate = true;
-							duplicate_count++;
-							break;
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			// syntax error!
-			break;
-		}
-
-		// syntax check
-		if ( *buffptr != '\\' && *buffptr != '/' )
-		{
-			break;
-		}
-
-		if ( !duplicate )
-		{
-			++numservers;
-
-			if ( numservers >= MAX_SERVERSPERPACKET )
-			{
-				break;
-			}
-		}
-	}
-
-	count = cls.numglobalservers;
-
-	int i;
-	for ( i = 0; i < numservers && count < MAX_GLOBAL_SERVERS; i++ )
-	{
-		// build net address
-		serverInfo_t *server = &cls.globalServers[ count ];
-
-		CL_InitServerInfo( server, &addresses[ i ] );
-		Q_strncpyz( server->label, label, sizeof( server->label ) );
-		// advance to next slot
-		count++;
-	}
-
-	// if getting the global list
-	if ( count >= MAX_GLOBAL_SERVERS && cls.numGlobalServerAddresses < MAX_GLOBAL_SERVERS )
-	{
-		// if we couldn't store the servers in the main list anymore
-		for ( ; i < numservers && cls.numGlobalServerAddresses < MAX_GLOBAL_SERVERS; i++ )
-		{
-			// just store the addresses in an additional list
-			cls.globalServerAddresses[ cls.numGlobalServerAddresses++ ] = addresses[ i ];
-		}
-	}
-
-	cls.numglobalservers = count;
-	total = count + cls.numGlobalServerAddresses;
-	parsed_count = numservers + duplicate_count;
-
-	Log::Debug( "%d servers parsed, %s new, %d duplicate (total %d)", parsed_count, numservers, duplicate_count, total );
+	Log::Notice("%s", clc.serverMessage );
 }
 
 /*
@@ -2227,7 +1750,7 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 		return;
 	}
 
-	Log::Debug( "CL packet %s: %s", NET_AdrToStringwPort( from ), args.Argv(0).c_str() );
+	Log::Debug( "CL packet %s: %s", Net::AddressToString( from, true ), args.Argv(0).c_str() );
 
 	// challenge from the server we are connecting to
 
@@ -2252,7 +1775,7 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 		}
 		else if ( !RconCmdRegistration.HandleChallenge(from, args.Argv(1)) )
 		{
-			Log::Notice( "Unwanted challenge response received.  Ignored.\n" );
+			Log::Notice( "Unwanted challenge response received.  Ignored." );
 		}
 
 		return;
@@ -2263,21 +1786,21 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	{
 		if ( cls.state >= connstate_t::CA_CONNECTED )
 		{
-			Log::Notice( "Dup connect received. Ignored.\n" );
+			Log::Notice( "Dup connect received. Ignored." );
 			return;
 		}
 
 		if ( cls.state != connstate_t::CA_CHALLENGING )
 		{
-			Log::Notice( "connectResponse packet while not connecting. Ignored.\n" );
+			Log::Notice( "connectResponse packet while not connecting. Ignored." );
 			return;
 		}
 
 		if ( !NET_CompareAdr( from, clc.serverAddress ) )
 		{
-			Log::Notice( "connectResponse from a different address. Ignored.\n" );
-			Log::Notice( "%s should have been %s\n", NET_AdrToString( from ),
-			            NET_AdrToStringwPort( clc.serverAddress ) );
+			Log::Notice( "connectResponse from a different address. Ignored." );
+			Log::Notice( "%s should have been %s", NET_AdrToString( from ),
+			             Net::AddressToString( clc.serverAddress, true ) );
 			return;
 		}
 
@@ -2387,7 +1910,7 @@ void CL_PacketEvent( const netadr_t& from, msg_t *msg )
 
 	if ( msg->cursize < 4 )
 	{
-		Log::Notice( "%s: Runt packet\n", NET_AdrToStringwPort( from ) );
+		Log::Notice( "%s: Runt packet", Net::AddressToString( from, true ) );
 		return;
 	}
 
@@ -2396,7 +1919,7 @@ void CL_PacketEvent( const netadr_t& from, msg_t *msg )
 	//
 	if ( !NET_CompareAdr( from, clc.netchan.remoteAddress ) )
 	{
-		Log::Debug( "%s: sequenced packet without connection", NET_AdrToStringwPort( from ) );
+		Log::Debug( "%s: sequenced packet without connection", Net::AddressToString( from, true ) );
 		// FIXME: send a client disconnect?
 		return;
 	}
@@ -2548,21 +2071,13 @@ void CL_Frame( int msec )
 	// update the sound
 	Audio::Update();
 
+#if defined(USE_MUMBLE)
 	CL_UpdateMumble();
+#endif
 
 	Con_RunConsole();
 
 	cls.framecount++;
-}
-
-/*
-================
-CL_SetRecommended_f
-================
-*/
-void CL_SetRecommended_f()
-{
-	Com_SetRecommended();
 }
 
 static bool CL_InitRef();
@@ -2578,56 +2093,52 @@ bool CL_InitRenderer()
 		return false;
 	}
 
-	fileHandle_t f;
-
 	// this sets up the renderer and calls R_Init
-	if ( !re.BeginRegistration( &cls.glconfig, &cls.glconfig2 ) )
+	if ( !re.BeginRegistration( &cls.windowConfig ) )
 	{
 		return false;
 	}
 
-	cl_consoleFont = Cvar_Get( "cl_consoleFont", "fonts/unifont.ttf",  CVAR_LATCH );
+	cl_consoleFont = Cvar_Get( "cl_consoleFont", "",  CVAR_LATCH );
 	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
 	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
 
-	// load character sets
-	cls.charSetShader = re.RegisterShader( "gfx/2d/bigchars", RSF_DEFAULT );
-	cls.useLegacyConsoleFont = cls.useLegacyConsoleFace = true;
+	// Register console font specified by cl_consoleFont. Empty string means use the embbed Unifont
 
-	// Register console font specified by cl_consoleFont, if any
-	// filehandle is unused but forces FS_FOpenFileRead() to heed purecheck because it does not when filehandle is nullptr
-	if ( cl_consoleFont->string[0] )
+	int fontSize = cl_consoleFontSize->integer;
+
+	if ( cl_consoleFontScaling->integer )
 	{
-		if ( FS_FOpenFileRead( cl_consoleFont->string, &f ) >= 0 )
+		// This gets 12px on 1920×1080 screen, which is libRocket default for 1em
+		int fontScale = std::min(cls.windowConfig.vidWidth, cls.windowConfig.vidHeight) / 90;
+
+		// fontScale / 12px gets 1px on 1920×1080 screen
+		fontSize = cl_consoleFontSize->integer * fontScale / 12;
+	}
+
+	if ( cl_consoleFont->string[ 0 ] )
+	{
+		cls.consoleFont = re.RegisterFont( cl_consoleFont->string, fontSize );
+		if ( cls.consoleFont == nullptr )
 		{
-			if ( cl_consoleFontScaling->value == 0 )
-			{
-				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer );
-			}
-			else
-			{
-				// This gets 12px on 1920×1080 screen, which is libRocket default for 1em
-				int fontScale = std::min(cls.glconfig.vidWidth, cls.glconfig.vidHeight) / 90;
-
-				// fontScale / 12px gets 1px on 1920×1080 screen
-				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer * fontScale / 12 );
-			}
-
-			if ( cls.consoleFont != nullptr )
-				cls.useLegacyConsoleFont = false;
+			Log::Warn( "Couldn't load font file '%s', falling back to default console font",
+			            cl_consoleFont->string );
 		}
-		else
+	}
+
+	if ( cls.consoleFont == nullptr )
+	{
+		cls.consoleFont = re.RegisterFont( "", fontSize );
+
+		if ( cls.consoleFont == nullptr )
 		{
-			Log::Warn("Font file '%s' not found", cl_consoleFont->string);
+			Sys::Error( "Failed to load built-in console font" );
 		}
-
-		FS_FCloseFile( f );
 	}
 
 	cls.whiteShader = re.RegisterShader( "white", RSF_NOMIP );
-	cls.consoleShader = re.RegisterShader( "console", RSF_DEFAULT );
 
-	g_console_field_width = cls.glconfig.vidWidth / SMALLCHAR_WIDTH - 2;
+	g_console_field_width = cls.windowConfig.vidWidth / SMALLCHAR_WIDTH - 2;
 	g_consoleField.SetWidth(g_console_field_width);
 
 	return true;
@@ -2652,8 +2163,6 @@ void CL_StartHunkUsers()
 	{
 		return;
 	}
-
-	Cvar::SetLatchedValues();
 
 	if ( !cls.rendererStarted && CL_InitRenderer() )
 	{
@@ -2684,25 +2193,6 @@ void CL_StartHunkUsers()
 	}
 }
 
-/*
-============
-CL_RefMalloc
-============
-*/
-MALLOC_LIKE void           *CL_RefMalloc( int size )
-{
-	return Z_TagMalloc( size, memtag_t::TAG_RENDERER );
-}
-
-/*
-============
-CL_RefTagFree
-============
-*/
-void CL_RefTagFree()
-{
-}
-
 int CL_ScaledMilliseconds()
 {
 	return Sys::Milliseconds() * com_timescale->value;
@@ -2720,24 +2210,12 @@ static bool CL_InitRef()
 	refimport_t ri;
 	refexport_t *ret;
 
-	ri.Cmd_AddCommand = Cmd_AddCommand;
-	ri.Cmd_RemoveCommand = Cmd_RemoveCommand;
-	ri.Cmd_Argc = Cmd_Argc;
-	ri.Cmd_Argv = Cmd_Argv;
-	ri.Cmd_QuoteString = Cmd_QuoteString;
-
 	ri.Milliseconds = Sys::Milliseconds;
 	ri.RealTime = Com_RealTime;
 
-	ri.Z_Malloc = CL_RefMalloc;
-	ri.Free = Z_Free;
-	ri.Tag_Free = CL_RefTagFree;
 	ri.Hunk_Alloc = Hunk_Alloc;
 	ri.Hunk_AllocateTempMemory = Hunk_AllocateTempMemory;
 	ri.Hunk_FreeTempMemory = Hunk_FreeTempMemory;
-
-	ri.CM_PointContents = CM_PointContents;
-	ri.CM_DrawDebugSurface = CM_DrawDebugSurface;
 
 	ri.FS_ReadFile = FS_ReadFile;
 	ri.FS_FreeFile = FS_FreeFile;
@@ -2764,7 +2242,7 @@ static bool CL_InitRef()
 
 	if ( !ret )
 	{
-		Log::Notice( "Couldn't initialize refresh module\n" );
+		Log::Notice( "Couldn't initialize refresh module" );
 		return false;
 	}
 
@@ -2786,7 +2264,7 @@ void CL_ShutdownRef()
 	}
 
 	re.Shutdown( true );
-	memset( &re, 0, sizeof( re ) );
+	re = {};
 }
 
 //===========================================================================================
@@ -2796,6 +2274,12 @@ void CL_ShutdownRef()
 CL_Init
 ====================
 */
+static Cvar::Cvar<int> cvar_snaps(
+	"snaps", "snapshots per second that the client wants from the server", Cvar::USERINFO, 40);
+static Cvar::Cvar<std::string> cvar_password(
+	"password", "client's password to get into the server", Cvar::USERINFO, "");
+static Cvar::Cvar<std::string> cvar_name(
+	"name", "player display name", Cvar::USERINFO | Cvar::ARCHIVE, UNNAMED_PLAYER);
 void CL_Init()
 {
 	PrintBanner( "Client Initialization" )
@@ -2821,8 +2305,6 @@ void CL_Init()
 
 	cl_timeNudge = Cvar_Get( "cl_timeNudge", "0", CVAR_TEMP );
 	cl_shownet = Cvar_Get( "cl_shownet", "0", CVAR_TEMP );
-	cl_shownuments = Cvar_Get( "cl_shownuments", "0", CVAR_TEMP );
-	cl_showServerCommands = Cvar_Get( "cl_showServerCommands", "0", 0 );
 	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
 	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP );
@@ -2834,77 +2316,24 @@ void CL_Init()
 	cl_aviMotionJpeg = Cvar_Get( "cl_aviMotionJpeg", "1", 0 );
 	// XreaL END
 
-	cl_yawspeed = Cvar_Get( "cl_yawspeed", "140", 0 );
-	cl_pitchspeed = Cvar_Get( "cl_pitchspeed", "140", 0 );
-	cl_anglespeedkey = Cvar_Get( "cl_anglespeedkey", "1.5", 0 );
-
 	cl_maxpackets = Cvar_Get( "cl_maxpackets", "125", 0 );
 	cl_packetdup = Cvar_Get( "cl_packetdup", "1", 0 );
 
-	cl_run = Cvar_Get( "cl_run", "1", 0 );
-	cl_sensitivity = Cvar_Get( "sensitivity", "5", CVAR_ARCHIVE );
-	cl_mouseAccel = Cvar_Get( "cl_mouseAccel", "0", 0 );
-	cl_freelook = Cvar_Get( "cl_freelook", "1", CVAR_ARCHIVE );
-
-	cl_gameControllerAvailable = Cvar_Get( "in_gameControllerAvailable", "0", CVAR_ROM );
-
-	// 0: legacy mouse acceleration
-	// 1: new implementation
-
-	cl_mouseAccelStyle = Cvar_Get( "cl_mouseAccelStyle", "0", 0 );
-	// offset for the power function (for style 1, ignored otherwise)
-	// this should be set to the max rate value
-	cl_mouseAccelOffset = Cvar_Get( "cl_mouseAccelOffset", "5", 0 );
-
-	cl_showMouseRate = Cvar_Get( "cl_showmouserate", "0", 0 );
-
 	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", 0 );
-
-	cl_inGameVideo = Cvar_Get( "r_inGameVideo", "1", 0 );
-
-	cl_serverStatusResendTime = Cvar_Get( "cl_serverStatusResendTime", "750", 0 );
-
-	cl_doubletapdelay = Cvar_Get( "cl_doubletapdelay", "250", 0 );  // Arnout: double tap
-	m_pitch = Cvar_Get( "m_pitch", "0.022", CVAR_ARCHIVE );
-	m_yaw = Cvar_Get( "m_yaw", "0.022", 0 );
-	m_forward = Cvar_Get( "m_forward", "0.25", 0 );
-	m_side = Cvar_Get( "m_side", "0.25", 0 );
-	m_filter = Cvar_Get( "m_filter", "0", CVAR_ARCHIVE );
-
-	j_pitch = Cvar_Get( "j_pitch", "0.022", 0 );
-	j_yaw = Cvar_Get( "j_yaw", "-0.022", 0 );
-	j_forward = Cvar_Get( "j_forward", "-0.25", 0 );
-	j_side = Cvar_Get( "j_side", "0.25", 0 );
-	j_up = Cvar_Get ("j_up", "1", 0);
-
-	j_pitch_axis = Cvar_Get( "j_pitch_axis", "3", 0 );
-	j_yaw_axis = Cvar_Get( "j_yaw_axis", "4", 0 );
-	j_forward_axis = Cvar_Get( "j_forward_axis", "1", 0 );
-	j_side_axis = Cvar_Get( "j_side_axis", "0", 0 );
-	j_up_axis = Cvar_Get( "j_up_axis", "2", 0 );
 
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
 
 	cl_consoleCommand = Cvar_Get( "cl_consoleCommand", "say", 0 );
 
-	cl_gamename = Cvar_Get( "cl_gamename", GAMENAME_FOR_MASTER, CVAR_TEMP );
 	cl_altTab = Cvar_Get( "cl_altTab", "1", 0 );
 
-	//bani
-	cl_packetloss = Cvar_Get( "cl_packetloss", "0", CVAR_CHEAT );
-	cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
-
-	Cvar_Get( "cl_maxPing", "800", 0 );
 	// userinfo
-	Cvar_Get( "name", UNNAMED_PLAYER, CVAR_USERINFO | CVAR_ARCHIVE );
-	cl_rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE );
-	Cvar_Get( "snaps", "40", CVAR_USERINFO  );
+	cl_rate = Cvar_Get( "rate", XSTRING(NETWORK_DEFAULT_RATE), CVAR_USERINFO | CVAR_ARCHIVE);
 
-	Cvar_Get( "password", "", CVAR_USERINFO );
-
+#if defined(USE_MUMBLE)
 	cl_useMumble = Cvar_Get( "cl_useMumble", "0",  CVAR_LATCH );
 	cl_mumbleScale = Cvar_Get( "cl_mumbleScale", "0.0254", 0 );
-	cl_cgameSyscallStats = Cvar_Get( "cl_cgameSyscallStats", "0", 0 );
+#endif
 
 	//
 	// register our commands
@@ -2922,12 +2351,9 @@ void CL_Init()
 
 	Cmd_AddCommand( "ping", CL_Ping_f );
 	Cmd_AddCommand( "serverstatus", CL_ServerStatus_f );
-	Cmd_AddCommand( "showip", CL_ShowIP_f );
 
 	Cmd_AddCommand( "updatescreen", SCR_UpdateScreen );
 	// done.
-
-	Cmd_AddCommand( "setRecommended", CL_SetRecommended_f );
 
 	SCR_Init();
 
@@ -2971,6 +2397,10 @@ void CL_Shutdown()
 		CL_SendDisconnect();
 		CL_StopRecord();
 		StopVideo();
+
+		// Just to avoid the SDL nag message "Leaked SDL_Gamepad (0x123456)" making us look bad
+		IN_ShutdownJoystick();
+
 		// TODO: call DL_StopDownload when deleting the temp file is implemented
 		return;
 	}
@@ -2984,7 +2414,7 @@ void CL_Shutdown()
 
 	if ( re.UnregisterFont )
 	{
-		re.UnregisterFont( nullptr );
+		re.UnregisterFont( cls.consoleFont );
 		cls.consoleFont = nullptr;
 	}
 
@@ -2992,18 +2422,14 @@ void CL_Shutdown()
 
 	Cmd_RemoveCommand( "cmd" );
 	Cmd_RemoveCommand( "configstrings" );
-	Cmd_RemoveCommand( "userinfo" );
 	Cmd_RemoveCommand( "snd_restart" );
 	Cmd_RemoveCommand( "vid_restart" );
 	Cmd_RemoveCommand( "disconnect" );
 	Cmd_RemoveCommand( "connect" );
 	Cmd_RemoveCommand( "localservers" );
 	Cmd_RemoveCommand( "globalservers" );
-	Cmd_RemoveCommand( "rcon" );
 	Cmd_RemoveCommand( "ping" );
 	Cmd_RemoveCommand( "serverstatus" );
-	Cmd_RemoveCommand( "showip" );
-	Cmd_RemoveCommand( "model" );
 
 	CL_ClearKeyBinding();
 	CL_ClearInput();
@@ -3017,975 +2443,10 @@ void CL_Shutdown()
 	recursive = false;
 
 	// do not leak.
-	cls.~clientStatic_t();
-	new(&cls) clientStatic_t{};
+	ResetStruct( cls );
 
 	Log::Debug( "-----------------------" );
 
-}
-
-static void CL_SetServerInfo( serverInfo_t *server, const char *info, int ping )
-{
-	if ( server )
-	{
-		if ( info )
-		{
-			server->clients = atoi( Info_ValueForKey( info, "clients" ) );
-			server->bots = atoi( Info_ValueForKey( info, "bots" ) );
-			Q_strncpyz( server->hostName, Info_ValueForKey( info, "hostname" ), MAX_NAME_LENGTH );
-			server->load = atoi( Info_ValueForKey( info, "serverload" ) );
-			Q_strncpyz( server->mapName, Info_ValueForKey( info, "mapname" ), MAX_NAME_LENGTH );
-			server->maxClients = atoi( Info_ValueForKey( info, "sv_maxclients" ) );
-			Q_strncpyz( server->game, Info_ValueForKey( info, "game" ), MAX_NAME_LENGTH );
-			server->netType = Util::enum_cast<netadrtype_t>(atoi(Info_ValueForKey(info, "nettype")));
-			server->minPing = atoi( Info_ValueForKey( info, "minping" ) );
-			server->maxPing = atoi( Info_ValueForKey( info, "maxping" ) );
-			server->needpass = atoi( Info_ValueForKey( info, "g_needpass" ) );   // NERVE - SMF
-			Q_strncpyz( server->gameName, Info_ValueForKey( info, "gamename" ), MAX_NAME_LENGTH );   // Arnout
-		}
-
-		server->ping = ping;
-	}
-}
-
-static void CL_SetServerInfoByAddress( const netadr_t& from, const char *info, int ping )
-{
-	int i;
-
-	for ( i = 0; i < MAX_OTHER_SERVERS; i++ )
-	{
-		if ( NET_CompareAdr( from, cls.localServers[ i ].adr ) )
-		{
-			CL_SetServerInfo( &cls.localServers[ i ], info, ping );
-		}
-	}
-
-	for ( i = 0; i < MAX_GLOBAL_SERVERS; i++ )
-	{
-		if ( NET_CompareAdr( from, cls.globalServers[ i ].adr ) )
-		{
-			CL_SetServerInfo( &cls.globalServers[ i ], info, ping );
-		}
-	}
-}
-
-/*
-===================
-CL_ServerInfoPacket
-===================
-*/
-void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
-{
-	int  i, type;
-	char info[ MAX_INFO_STRING ];
-//	char*   str;
-	char *infoString;
-	int  prot;
-	const char *gameName;
-
-	infoString = MSG_ReadString( msg );
-
-	// if this isn't the correct protocol version, ignore it
-	prot = atoi( Info_ValueForKey( infoString, "protocol" ) );
-
-	if ( prot != PROTOCOL_VERSION )
-	{
-		serverInfoLog.Verbose( "Different protocol info packet: %s", infoString );
-		return;
-	}
-
-	// Arnout: if this isn't the correct game, ignore it
-	gameName = Info_ValueForKey( infoString, "gamename" );
-
-	if ( !gameName[ 0 ] || Q_stricmp( gameName, GAMENAME_STRING ) )
-	{
-		serverInfoLog.Verbose( "Different game info packet: %s", infoString );
-		return;
-	}
-
-	// iterate servers waiting for ping response
-	for ( i = 0; i < MAX_PINGREQUESTS; i++ )
-	{
-		if ( cl_pinglist[ i ].adr.port && !cl_pinglist[ i ].time && NET_CompareAdr( from, cl_pinglist[ i ].adr ) )
-		{
-			// calc ping time
-			cl_pinglist[ i ].time = Sys::Milliseconds() - cl_pinglist[ i ].start;
-
-			serverInfoLog.Debug( "ping time %dms from %s", cl_pinglist[ i ].time, NET_AdrToString( from ) );
-
-			// save of info
-			Q_strncpyz( cl_pinglist[ i ].info, infoString, sizeof( cl_pinglist[ i ].info ) );
-
-			// tack on the net type
-			// NOTE: make sure these types are in sync with the netnames strings in the UI
-			switch ( from.type )
-			{
-				case netadrtype_t::NA_BROADCAST:
-				case netadrtype_t::NA_IP:
-					//str = "udp";
-					type = 1;
-					break;
-
-				case netadrtype_t::NA_IP6:
-					type = 2;
-					break;
-
-				default:
-					//str = "???";
-					type = 0;
-					break;
-			}
-
-			Info_SetValueForKey( cl_pinglist[ i ].info, "nettype", va( "%d", type ), false );
-			CL_SetServerInfoByAddress( from, infoString, cl_pinglist[ i ].time );
-
-			return;
-		}
-	}
-
-	// if not just sent a local broadcast or pinging local servers
-	if ( cls.pingUpdateSource != AS_LOCAL )
-	{
-		return;
-	}
-
-	for ( i = 0; i < MAX_OTHER_SERVERS; i++ )
-	{
-		// empty slot
-		if ( cls.localServers[ i ].adr.port == 0 )
-		{
-			break;
-		}
-
-		// avoid duplicate
-		if ( NET_CompareAdr( from, cls.localServers[ i ].adr ) )
-		{
-			return;
-		}
-	}
-
-	if ( i == MAX_OTHER_SERVERS )
-	{
-		serverInfoLog.Notice("MAX_OTHER_SERVERS hit, dropping infoResponse" );
-		return;
-	}
-
-	// add this to the list
-	cls.numlocalservers = i + 1;
-	cls.localServers[ i ].adr = from;
-	cls.localServers[ i ].clients = 0;
-	cls.localServers[ i ].hostName[ 0 ] = '\0';
-	cls.localServers[ i ].load = -1;
-	cls.localServers[ i ].mapName[ 0 ] = '\0';
-	cls.localServers[ i ].maxClients = 0;
-	cls.localServers[ i ].maxPing = 0;
-	cls.localServers[ i ].minPing = 0;
-	cls.localServers[ i ].ping = -1;
-	cls.localServers[ i ].game[ 0 ] = '\0';
-	cls.localServers[ i ].netType = from.type;
-	cls.localServers[ i ].needpass = 0;
-	cls.localServers[ i ].gameName[ 0 ] = '\0'; // Arnout
-
-	Q_strncpyz( info, MSG_ReadString( msg ), MAX_INFO_STRING );
-
-	// TODO when does this happen?
-	if ( info[ 0 ] )
-	{
-		char *last = info + strlen( info ) - 1;
-		if ( *last == '\n' )
-		{
-			*last = '\0';
-		}
-
-		Log::Notice( "%s: %s", NET_AdrToStringwPort( from ), info );
-	}
-}
-
-/*
-===================
-CL_GetServerStatus
-===================
-*/
-static serverStatus_t *CL_GetServerStatus( const netadr_t& from )
-{
-//	serverStatus_t *serverStatus;
-	int i, oldest, oldestTime;
-
-//	serverStatus = nullptr;
-	for ( i = 0; i < MAX_SERVERSTATUSREQUESTS; i++ )
-	{
-		if ( NET_CompareAdr( from, cl_serverStatusList[ i ].address ) )
-		{
-			return &cl_serverStatusList[ i ];
-		}
-	}
-
-	for ( i = 0; i < MAX_SERVERSTATUSREQUESTS; i++ )
-	{
-		if ( cl_serverStatusList[ i ].retrieved )
-		{
-			return &cl_serverStatusList[ i ];
-		}
-	}
-
-	oldest = -1;
-	oldestTime = 0;
-
-	for ( i = 0; i < MAX_SERVERSTATUSREQUESTS; i++ )
-	{
-		if ( oldest == -1 || cl_serverStatusList[ i ].startTime < oldestTime )
-		{
-			oldest = i;
-			oldestTime = cl_serverStatusList[ i ].startTime;
-		}
-	}
-
-	if ( oldest != -1 )
-	{
-		return &cl_serverStatusList[ oldest ];
-	}
-
-	serverStatusCount++;
-	return &cl_serverStatusList[ serverStatusCount & ( MAX_SERVERSTATUSREQUESTS - 1 ) ];
-}
-
-/*
-===================
-CL_ServerStatus
-===================
-*/
-int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen )
-{
-	int            i;
-	netadr_t       to;
-	serverStatus_t *serverStatus;
-
-	// if no server address then reset all server status requests
-	if ( !serverAddress )
-	{
-		for ( i = 0; i < MAX_SERVERSTATUSREQUESTS; i++ )
-		{
-			cl_serverStatusList[ i ].address.port = 0;
-			cl_serverStatusList[ i ].retrieved = true;
-		}
-
-		return false;
-	}
-
-	// get the address
-	if ( !NET_StringToAdr( serverAddress, &to, netadrtype_t::NA_UNSPEC ) )
-	{
-		return false;
-	}
-
-	serverStatus = CL_GetServerStatus( to );
-
-	// if no server status string then reset the server status request for this address
-	if ( !serverStatusString )
-	{
-		serverStatus->retrieved = true;
-		return false;
-	}
-
-	// if this server status request has the same address
-	if ( NET_CompareAdr( to, serverStatus->address ) )
-	{
-		// if we received a response for this server status request
-		if ( !serverStatus->pending )
-		{
-			Q_strncpyz( serverStatusString, serverStatus->string, maxLen );
-			serverStatus->retrieved = true;
-			serverStatus->startTime = 0;
-			return true;
-		}
-		// resend the request regularly
-		else if ( serverStatus->startTime < Sys::Milliseconds() - cl_serverStatusResendTime->integer )
-		{
-			serverStatus->print = false;
-			serverStatus->pending = true;
-			serverStatus->retrieved = false;
-			serverStatus->time = 0;
-			serverStatus->startTime = Sys::Milliseconds();
-			Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getstatus" );
-			return false;
-		}
-	}
-	// if retrieved
-	else if ( serverStatus->retrieved )
-	{
-		serverStatus->address = to;
-		serverStatus->print = false;
-		serverStatus->pending = true;
-		serverStatus->retrieved = false;
-		serverStatus->startTime = Sys::Milliseconds();
-		serverStatus->time = 0;
-		Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getstatus" );
-		return false;
-	}
-
-	return false;
-}
-
-/*
-===================
-CL_ServerStatusResponse
-===================
-*/
-void CL_ServerStatusResponse( const netadr_t& from, msg_t *msg )
-{
-	const char           *s;
-	int            i, score, ping;
-	int            len;
-	serverStatus_t *serverStatus;
-
-	serverStatus = nullptr;
-
-	for ( i = 0; i < MAX_SERVERSTATUSREQUESTS; i++ )
-	{
-		if ( NET_CompareAdr( from, cl_serverStatusList[ i ].address ) )
-		{
-			serverStatus = &cl_serverStatusList[ i ];
-			break;
-		}
-	}
-
-	// if we didn't request this server status
-	if ( !serverStatus )
-	{
-		return;
-	}
-
-	s = MSG_ReadStringLine( msg );
-
-	len = 0;
-	Com_sprintf( &serverStatus->string[ len ], sizeof( serverStatus->string ) - len, "%s", s );
-
-	if ( serverStatus->print )
-	{
-		Log::CommandInteractionMessage("Server settings:" );
-		// print cvars
-		for (const auto& kv: InfoStringToMap(s)) {
-			Log::CommandInteractionMessage(Str::Format("%-24s%s", kv.first, kv.second));
-		}
-	}
-
-	len = strlen( serverStatus->string );
-	Com_sprintf( &serverStatus->string[ len ], sizeof( serverStatus->string ) - len, "\\" );
-
-	if ( serverStatus->print )
-	{
-		Log::CommandInteractionMessage( "\nPlayers:" );
-		Log::CommandInteractionMessage( "num: score: ping: name:" );
-	}
-
-	for ( i = 0, s = MSG_ReadStringLine( msg ); *s; s = MSG_ReadStringLine( msg ), i++ )
-	{
-		len = strlen( serverStatus->string );
-		Com_sprintf( &serverStatus->string[ len ], sizeof( serverStatus->string ) - len, "\\%s", s );
-
-		if ( serverStatus->print )
-		{
-			score = ping = 0;
-			sscanf( s, "%d %d", &score, &ping );
-			s = strchr( s, ' ' );
-
-			if ( s )
-			{
-				s = strchr( s + 1, ' ' );
-			}
-
-			if ( s )
-			{
-				s++;
-			}
-			else
-			{
-				s = "unknown";
-			}
-
-			Log::CommandInteractionMessage(Str::Format("%-2d   %-3d    %-3d   %s", i, score, ping, s));
-		}
-	}
-
-	len = strlen( serverStatus->string );
-	Com_sprintf( &serverStatus->string[ len ], sizeof( serverStatus->string ) - len, "\\" );
-
-	serverStatus->time = Sys::Milliseconds();
-	serverStatus->address = from;
-	serverStatus->pending = false;
-
-	if ( serverStatus->print )
-	{
-		serverStatus->retrieved = true;
-	}
-}
-
-/*
-==================
-CL_LocalServers_f
-==================
-*/
-void CL_LocalServers_f()
-{
-	const char *message;
-	int      i, j;
-	netadr_t to;
-
-	serverInfoLog.Verbose( "Scanning for servers on the local network…" );
-
-	// reset the list, waiting for response
-	cls.numlocalservers = 0;
-	cls.pingUpdateSource = AS_LOCAL;
-
-	for ( i = 0; i < MAX_OTHER_SERVERS; i++ )
-	{
-		bool b = cls.localServers[ i ].visible;
-		memset( &cls.localServers[ i ], 0, sizeof( cls.localServers[ i ] ) );
-		cls.localServers[ i ].visible = b;
-	}
-
-	memset( &to, 0, sizeof( to ) );
-
-	// The 'xxx' in the message is a challenge that will be echoed back
-	// by the server.  We don't care about that here, but master servers
-	// can use that to prevent spoofed server responses from invalid IP addresses
-	message = "\377\377\377\377getinfo xxx";
-	int messageLen = strlen(message);
-
-	// send each message twice in case one is dropped
-	for ( i = 0; i < 2; i++ )
-	{
-		// send a broadcast packet on each server port
-		// we support multiple server ports so a single machine
-		// can nicely run multiple servers
-		for ( j = 0; j < NUM_SERVER_PORTS; j++ )
-		{
-			to.port = UBigShort( ( uint16_t )( PORT_SERVER + j ) );
-
-			to.type = netadrtype_t::NA_BROADCAST;
-			NET_SendPacket( netsrc_t::NS_CLIENT, messageLen, message, to );
-
-			to.type = netadrtype_t::NA_MULTICAST6;
-			NET_SendPacket( netsrc_t::NS_CLIENT, messageLen, message, to );
-		}
-	}
-}
-
-/*
-==================
-CL_GlobalServers_f
-==================
-*/
-void CL_GlobalServers_f()
-{
-	netadr_t to;
-	int      count, i, masterNum, protocol;
-	char     command[ 1024 ], *masteraddress;
-	bool     wildcard = false;
-	bool     active_master_servers[MAX_MASTER_SERVERS] = { false, false, false, false, false };
-
-	count = Cmd_Argc();
-	protocol = atoi( Cmd_Argv( 2 ) );   // Do this right away, otherwise weird things happen when you use the ingame "Get New Servers" button.
-
-	if ( ! strcmp( Cmd_Argv( 1 ), "*" ) )
-	{
-		wildcard = true;
-		for ( masterNum = 0; masterNum < MAX_MASTER_SERVERS; masterNum++ )
-		{
-			active_master_servers[ masterNum ] = true;
-		}
-	}
-	else {
-		masterNum = atoi( Cmd_Argv( 1 ) );
-		active_master_servers[ masterNum ] = true;
-	}
-
-	if ( count < 2 || ( ( masterNum < 0 || masterNum > MAX_MASTER_SERVERS - 1 ) && !wildcard ) )
-	{
-		Cmd_PrintUsage("(<master# 0-" XSTRING(MAX_MASTER_SERVERS - 1) "> | *) [<protocol>] [<keywords>]", nullptr);
-		return;
-	}
-
-	for ( masterNum = 0; masterNum < MAX_MASTER_SERVERS; masterNum++ )
-	{
-		if ( !active_master_servers[ masterNum ] ) {
-			continue;
-		}
-
-		sprintf( command, "sv_master%d", masterNum + 1 );
-		masteraddress = Cvar_VariableString( command );
-
-		if ( !*masteraddress )
-		{
-			if ( !wildcard )
-			{
-				Log::Warn( "CL_GlobalServers_f: No master server address given.\n" );
-			}
-			continue;
-		}
-
-		serverInfoLog.Debug( "CL_GlobalServers_f: Resolving %s", masteraddress );
-
-		// reset the list, waiting for response
-		// -1 is used to distinguish a "no response"
-
-		i = NET_StringToAdr( masteraddress, &to, netadrtype_t::NA_UNSPEC );
-
-		if ( !i )
-		{
-			serverInfoLog.Warn( "CL_GlobalServers_f: Could not resolve address of master %s", masteraddress );
-			continue;
-		}
-		else if ( i == 2 )
-		{
-			to.port = UBigShort( PORT_MASTER );
-		}
-
-		serverInfoLog.Verbose(
-			"CL_GlobalServers_f: %s resolved to %s", masteraddress, NET_AdrToStringwPort( to ) );
-
-		serverInfoLog.Debug( "CL_GlobalServers_f: Requesting servers from master %s…", masteraddress );
-
-		cls.numglobalservers = -1;
-		cls.numserverLinks = 0;
-		cls.pingUpdateSource = AS_GLOBAL;
-
-		Com_sprintf( command, sizeof( command ), "getserversExt %s %d dual",
-		             cl_gamename->string, protocol );
-
-		// TODO: test if we only have IPv4/IPv6, if so request only the relevant
-		// servers with getserversExt %s %d ipvX
-		// not that big a deal since the extra servers won't respond to getinfo
-		// anyway.
-
-		for ( i = 3; i < count; i++ )
-		{
-			Q_strcat( command, sizeof( command ), " " );
-			Q_strcat( command, sizeof( command ), Cmd_Argv( i ) );
-		}
-
-		Net::OutOfBandPrint( netsrc_t::NS_SERVER, to, "%s", command );
-	}
-}
-
-/*
-==================
-CL_GetPing
-==================
-*/
-void CL_GetPing( int n, char *buf, int buflen, int *pingtime )
-{
-	const char *str;
-	int        time;
-	int        maxPing;
-
-	if ( n < 0 || n >= MAX_PINGREQUESTS || !cl_pinglist[ n ].adr.port )
-	{
-		// invalid or empty slot
-		buf[ 0 ] = '\0';
-		*pingtime = 0;
-		return;
-	}
-
-	str = NET_AdrToStringwPort( cl_pinglist[ n ].adr );
-	Q_strncpyz( buf, str, buflen );
-
-	time = cl_pinglist[ n ].time;
-
-	if ( !time )
-	{
-		// check for timeout
-		time = Sys::Milliseconds() - cl_pinglist[ n ].start;
-		maxPing = Cvar_VariableIntegerValue( "cl_maxPing" );
-
-		if ( maxPing < 100 )
-		{
-			maxPing = 100;
-		}
-
-		if ( time < maxPing )
-		{
-			// not timed out yet
-			time = 0;
-		}
-	}
-
-	CL_SetServerInfoByAddress( cl_pinglist[ n ].adr, cl_pinglist[ n ].info, cl_pinglist[ n ].time );
-
-	*pingtime = time;
-}
-
-/*
-==================
-CL_ClearPing
-==================
-*/
-void CL_ClearPing( int n )
-{
-	if ( n < 0 || n >= MAX_PINGREQUESTS )
-	{
-		return;
-	}
-
-	cl_pinglist[ n ].adr.port = 0;
-}
-
-/*
-==================
-CL_GetPingQueueCount
-==================
-*/
-int CL_GetPingQueueCount()
-{
-	int    i;
-	int    count;
-	ping_t *pingptr;
-
-	count = 0;
-	pingptr = cl_pinglist;
-
-	for ( i = 0; i < MAX_PINGREQUESTS; i++, pingptr++ )
-	{
-		if ( pingptr->adr.port )
-		{
-			count++;
-		}
-	}
-
-	return ( count );
-}
-
-/*
-==================
-CL_GetFreePing
-==================
-*/
-ping_t         *CL_GetFreePing()
-{
-	ping_t *pingptr;
-	ping_t *best;
-	int    oldest;
-	int    i;
-	int    time;
-
-	pingptr = cl_pinglist;
-
-	for ( i = 0; i < MAX_PINGREQUESTS; i++, pingptr++ )
-	{
-		// find free ping slot
-		if ( pingptr->adr.port )
-		{
-			if ( !pingptr->time )
-			{
-				if ( Sys::Milliseconds() - pingptr->start < 500 )
-				{
-					// still waiting for response
-					continue;
-				}
-			}
-			else if ( pingptr->time < 500 )
-			{
-				// results have not been queried
-				continue;
-			}
-		}
-
-		// clear it
-		pingptr->adr.port = 0;
-		return ( pingptr );
-	}
-
-	// use oldest entry
-	pingptr = cl_pinglist;
-	best = cl_pinglist;
-	oldest = INT_MIN;
-
-	for ( i = 0; i < MAX_PINGREQUESTS; i++, pingptr++ )
-	{
-		// scan for oldest
-		time = Sys::Milliseconds() - pingptr->start;
-
-		if ( time > oldest )
-		{
-			oldest = time;
-			best = pingptr;
-		}
-	}
-
-	return ( best );
-}
-
-/*
-==================
-CL_Ping_f
-==================
-*/
-void CL_Ping_f()
-{
-	netadr_t     to;
-	ping_t        *pingptr;
-	const char   *server;
-	int          argc;
-	netadrtype_t family = netadrtype_t::NA_UNSPEC;
-
-	argc = Cmd_Argc();
-
-	if ( argc != 2 && argc != 3 )
-	{
-		Cmd_PrintUsage("[-4|-6] <server>", nullptr);
-		return;
-	}
-
-	if ( argc == 2 )
-	{
-		server = Cmd_Argv( 1 );
-	}
-	else
-	{
-		if ( !strcmp( Cmd_Argv( 1 ), "-4" ) )
-		{
-			family = netadrtype_t::NA_IP;
-		}
-		else if ( !strcmp( Cmd_Argv( 1 ), "-6" ) )
-		{
-			family = netadrtype_t::NA_IP6;
-		}
-		else
-		{
-			Log::Warn("only -4 or -6 as address type understood." );
-		}
-
-		server = Cmd_Argv( 2 );
-	}
-
-	memset( &to, 0, sizeof( netadr_t ) );
-
-	if ( !NET_StringToAdr( server, &to, family ) )
-	{
-		return;
-	}
-
-	pingptr = CL_GetFreePing();
-
-	memcpy( &pingptr->adr, &to, sizeof( netadr_t ) );
-	pingptr->start = Sys::Milliseconds();
-	pingptr->time = 0;
-
-	CL_SetServerInfoByAddress( pingptr->adr, nullptr, 0 );
-
-	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getinfo xxx" );
-}
-
-/*
-==================
-CL_UpdateVisiblePings_f
-==================
-*/
-bool CL_UpdateVisiblePings_f( int source )
-{
-	int      slots, i;
-	char     buff[ MAX_STRING_CHARS ];
-	int      pingTime;
-	int      max;
-	bool status = false;
-
-	if ( source < 0 || source >= AS_NUM_TYPES )
-	{
-		return false;
-	}
-
-	cls.pingUpdateSource = source;
-
-	slots = CL_GetPingQueueCount();
-
-	if ( slots < MAX_PINGREQUESTS )
-	{
-		serverInfo_t *server = nullptr;
-
-		max = ( source == AS_GLOBAL ) ? MAX_GLOBAL_SERVERS : MAX_OTHER_SERVERS;
-
-		switch ( source )
-		{
-			case AS_LOCAL:
-				server = &cls.localServers[ 0 ];
-				max = cls.numlocalservers;
-				break;
-
-			case AS_GLOBAL:
-				server = &cls.globalServers[ 0 ];
-				max = cls.numglobalservers;
-				break;
-		}
-
-		for ( i = 0; i < max; i++ )
-		{
-			if ( server[ i ].visible )
-			{
-				if ( server[ i ].ping == -1 )
-				{
-					int j;
-
-					if ( slots >= MAX_PINGREQUESTS )
-					{
-						break;
-					}
-
-					for ( j = 0; j < MAX_PINGREQUESTS; j++ )
-					{
-						if ( !cl_pinglist[ j ].adr.port )
-						{
-							continue;
-						}
-
-						if ( NET_CompareAdr( cl_pinglist[ j ].adr, server[ i ].adr ) )
-						{
-							// already on the list
-							break;
-						}
-					}
-
-					// Not in the list, so find and use a free slot.
-					// If all slots are full, the server won't be pinged.
-					if ( j >= MAX_PINGREQUESTS )
-					{
-						status = true;
-
-						for ( j = 0; j < MAX_PINGREQUESTS; j++ )
-						{
-							if ( !cl_pinglist[ j ].adr.port )
-							{
-								memcpy( &cl_pinglist[ j ].adr, &server[ i ].adr, sizeof( netadr_t ) );
-								cl_pinglist[ j ].start = Sys::Milliseconds();
-								cl_pinglist[ j ].time = 0;
-								Net::OutOfBandPrint( netsrc_t::NS_CLIENT, cl_pinglist[ j ].adr, "getinfo xxx" );
-								slots++;
-								break;
-							}
-						}
-					}
-				}
-				// if the server has a ping higher than cl_maxPing or
-				// the ping packet got lost
-				else if ( server[ i ].ping == 0 )
-				{
-					// if we are updating global servers
-					if ( source == AS_GLOBAL )
-					{
-						//
-						if ( cls.numGlobalServerAddresses > 0 )
-						{
-							// overwrite this server with one from the additional global servers
-							cls.numGlobalServerAddresses--;
-							CL_InitServerInfo( &server[ i ], &cls.globalServerAddresses[ cls.numGlobalServerAddresses ] );
-							// NOTE: the server[i].visible flag stays untouched
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if ( slots )
-	{
-		status = true;
-	}
-
-	for ( i = 0; i < MAX_PINGREQUESTS; i++ )
-	{
-		if ( !cl_pinglist[ i ].adr.port )
-		{
-			continue;
-		}
-
-		CL_GetPing( i, buff, MAX_STRING_CHARS, &pingTime );
-
-		if ( pingTime != 0 )
-		{
-			CL_ClearPing( i );
-			status = true;
-		}
-	}
-
-	return status;
-}
-
-/*
-==================
-CL_ServerStatus_f
-==================
-*/
-void CL_ServerStatus_f()
-{
-	netadr_t       to, *toptr = nullptr;
-	const char     *server;
-	serverStatus_t *serverStatus;
-	int            argc;
-	netadrtype_t   family = netadrtype_t::NA_UNSPEC;
-
-	argc = Cmd_Argc();
-
-	if ( argc != 2 && argc != 3 )
-	{
-		if ( cls.state != connstate_t::CA_ACTIVE || clc.demoplaying )
-		{
-			Log::Notice( "Not connected to a server.\n" );
-			Cmd_PrintUsage("[-4|-6] <server>", nullptr);
-			return;
-		}
-
-		toptr = &clc.serverAddress;
-	}
-
-	if ( !toptr )
-	{
-		memset( &to, 0, sizeof( netadr_t ) );
-
-		if ( argc == 2 )
-		{
-			server = Cmd_Argv( 1 );
-		}
-		else
-		{
-			if ( !strcmp( Cmd_Argv( 1 ), "-4" ) )
-			{
-				family = netadrtype_t::NA_IP;
-			}
-			else if ( !strcmp( Cmd_Argv( 1 ), "-6" ) )
-			{
-				family = netadrtype_t::NA_IP6;
-			}
-			else
-			{
-				Log::Warn( "only -4 or -6 as address type understood." );
-			}
-
-			server = Cmd_Argv( 2 );
-		}
-
-		toptr = &to;
-
-		if ( !NET_StringToAdr( server, toptr, family ) )
-		{
-			return;
-		}
-	}
-
-	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, *toptr, "getstatus" );
-
-	serverStatus = CL_GetServerStatus( *toptr );
-	serverStatus->address = *toptr;
-	serverStatus->print = true;
-	serverStatus->pending = true;
-}
-
-/*
-==================
-CL_ShowIP_f
-==================
-*/
-void CL_ShowIP_f()
-{
-	Sys_ShowIP();
 }
 
 /*

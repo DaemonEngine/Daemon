@@ -61,7 +61,7 @@ namespace Resource {
     class Handle {
         public:
             Handle(std::shared_ptr<T> value, const Manager<T>* manager): value(value), manager(manager) {
-                ASSERT(!!value); // Should not be null
+                DAEMON_ASSERT(!!value); // Should not be null
             }
 
             // Returns a pointer to the resource, or to the default value if the
@@ -209,7 +209,7 @@ namespace Resource {
     Manager<T>::Manager(Str::StringRef defaultName): inRegistration(false), immediate(false) {
         defaultValue = RegisterInternal(defaultName);
         if (not defaultValue) {
-            Sys::Error("Couldn't load the default resource for %s\n", typeid(T).name());
+            Sys::Error("Couldn't load the default resource for %s", typeid(T).name());
         }
     }
 
@@ -287,7 +287,7 @@ namespace Resource {
         auto it = resources.begin();
 
         while (it != resources.end()) {
-            if (not it->second->keep and it->second.unique()) {
+            if (not it->second->keep and it->second.use_count() == 1) {
                 it->second->Cleanup();
                 it = resources.erase(it);
             } else {

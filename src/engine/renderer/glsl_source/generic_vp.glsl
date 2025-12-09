@@ -22,81 +22,80 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* generic_vp.glsl */
 
-uniform mat4		u_TextureMatrix;
-#if !defined(USE_VERTEX_SPRITE)
-uniform vec3		u_ViewOrigin;
+#insert common
+#insert vertexSimple_vp
+#insert vertexSkinning_vp
+#insert vertexAnimation_vp
+#insert shaderProfiler_vp
+
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat3x2 u_TextureMatrix;
 #endif
 
-uniform float		u_Time;
+uniform vec3 u_ViewOrigin;
 
-uniform vec4		u_ColorModulate;
-uniform vec4		u_Color;
+uniform float u_Time;
+
+uniform colorModulatePack u_ColorModulateColorGen;
+uniform colorPack u_Color;
+
+
 #if defined(USE_TCGEN_ENVIRONMENT)
-uniform mat4		u_ModelMatrix;
+	uniform mat4 u_ModelMatrix;
 #endif
-uniform mat4		u_ModelViewProjectionMatrix;
+uniform mat4 u_ModelViewProjectionMatrix;
 
-#if defined(USE_VERTEX_SPRITE)
-OUT(smooth) vec2	var_FadeDepth;
-uniform mat4		u_ProjectionMatrixTranspose;
-#elif defined(USE_DEPTH_FADE)
-uniform float           u_DepthScale;
-OUT(smooth) vec2	var_FadeDepth;
+#if defined(USE_DEPTH_FADE)
+	uniform float u_DepthScale;
+	OUT(smooth) float var_FadeDepth;
 #endif
 
-OUT(smooth) vec2	var_TexCoords;
-OUT(smooth) vec4	var_Color;
+OUT(smooth) vec2 var_TexCoords;
+OUT(smooth) vec4 var_Color;
 
-void DeformVertex( inout vec4 pos,
-		   inout vec3 normal,
-		   inout vec2 st,
-		   inout vec4 color,
-		   in    float time);
+void DeformVertex( inout vec4 pos, inout vec3 normal, inout vec2 st, inout vec4 color, in float time );
 
-void	main()
-{
+void main() {
+	#insert material_vp
+
 	vec4 position;
 	localBasis LB;
 	vec4 color;
 	vec2 texCoord, lmCoord;
 
 	VertexFetch( position, LB, color, texCoord, lmCoord );
-	color = color * u_ColorModulate + u_Color;
+	ColorModulateColor_lightFactor( u_ColorModulateColorGen, u_Color, color );
 
-	DeformVertex( position,
-		      LB.normal,
-		      texCoord,
-		      color,
-		      u_Time);
+	DeformVertex( position, LB.normal, texCoord, color, u_Time );
 
 	// transform vertex position into homogenous clip-space
 	gl_Position = u_ModelViewProjectionMatrix * position;
 
 	// transform texcoords
-#if defined(USE_TCGEN_ENVIRONMENT)
-	{
+	#if defined(USE_TCGEN_ENVIRONMENT)
 		// TODO: Explain why only the rotational part of u_ModelMatrix is relevant
-		position.xyz = mat3(u_ModelMatrix) * position.xyz;
+		position.xyz = mat3( u_ModelMatrix ) * position.xyz;
 
-		vec3 viewer = normalize(u_ViewOrigin - position.xyz);
+		vec3 viewer = normalize( u_ViewOrigin - position.xyz );
 
-		float d = dot(LB.normal, viewer);
+		float d = dot( LB.normal, viewer );
 
 		vec3 reflected = LB.normal * 2.0 * d - viewer;
 
-		var_TexCoords = 0.5 + vec2(0.5, -0.5) * reflected.yz;
-	}
-#elif defined(USE_TCGEN_LIGHTMAP)
-	var_TexCoords = (u_TextureMatrix * vec4(lmCoord, 0.0, 1.0)).xy;
-#else
-	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).xy;
-#endif
+		var_TexCoords = 0.5 + vec2( 0.5, -0.5 ) * reflected.yz;
+	#elif defined(USE_TCGEN_LIGHTMAP)
+		var_TexCoords = ( u_TextureMatrix * vec3( lmCoord, 1.0 ) ).xy;
+	#else
+		var_TexCoords = ( u_TextureMatrix * vec3( texCoord, 1.0 ) ).xy;
+	#endif
 
-#if defined(USE_DEPTH_FADE) || defined(USE_VERTEX_SPRITE)
-	// compute z of end of fading effect
-	vec4 fadeDepth = u_ModelViewProjectionMatrix * (position - u_DepthScale * vec4(LB.normal, 0.0));
-	var_FadeDepth = fadeDepth.zw;
-#endif
+	#if defined(USE_DEPTH_FADE)
+		// compute z of end of fading effect
+		vec4 fadeDepth = u_ModelViewProjectionMatrix * ( position - u_DepthScale * vec4(LB.normal, 0.0) );
+		var_FadeDepth = fadeDepth.z / fadeDepth.w;
+	#endif
+
+	SHADER_PROFILER_SET
 
 	var_Color = color;
 }

@@ -50,6 +50,10 @@ void IN_Shutdown()
 {
 }
 
+void IN_ShutdownJoystick()
+{
+}
+
 void IN_CenterMouse()
 {
 }
@@ -58,7 +62,7 @@ void IN_DropInputsForFrame()
 {
 }
 
-bool IN_IsNumLockDown()
+bool IN_IsNumLockOn()
 {
     return false;
 }

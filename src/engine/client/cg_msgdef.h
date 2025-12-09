@@ -24,39 +24,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define CG_MSGDEF_H
 
 #include "cg_api.h"
+#include "engine/RefAPI.h"
 #include "common/IPC/CommonSyscalls.h"
 #include "common/KeyIdentification.h"
 
 namespace Util {
-	template<> struct SerializeTraits<snapshot_t> {
-#ifdef BUILD_ENGINE
-		static void Write(Writer& stream, const snapshot_t& snap)
+	template<> struct SerializeTraits<ipcSnapshot_t> {
+		static void Write(Writer& stream, const ipcSnapshot_t& snap)
 		{
-
-			stream.Write<uint32_t>(snap.snapFlags);
-			stream.Write<uint32_t>(snap.ping);
-			stream.Write<uint32_t>(snap.serverTime);
-			stream.WriteData(&snap.areamask, MAX_MAP_AREA_BYTES);
+			stream.Write<uint32_t>(snap.b.snapFlags);
+			stream.Write<uint32_t>(snap.b.ping);
+			stream.Write<uint32_t>(snap.b.serverTime);
+			stream.WriteData(&snap.b.areamask, MAX_MAP_AREA_BYTES);
 			stream.Write<OpaquePlayerState>(snap.ps);
-			stream.Write<std::vector<entityState_t>>(snap.entities);
-			stream.Write<std::vector<std::string>>(snap.serverCommands);
+			stream.Write<std::vector<entityState_t>>(snap.b.entities);
+			stream.Write<std::vector<std::string>>(snap.b.serverCommands);
 		}
-#endif
-#ifdef BUILD_CGAME
-		static snapshot_t Read(Reader& stream)
+
+		static ipcSnapshot_t Read(Reader& stream)
 		{
-			snapshot_t snap;
-			snap.snapFlags = stream.Read<uint32_t>();
-			snap.ping = stream.Read<uint32_t>();
-			snap.serverTime = stream.Read<uint32_t>();
-			stream.ReadData(&snap.areamask, MAX_MAP_AREA_BYTES);
-			auto ops = stream.Read<OpaquePlayerState>();
-			memcpy(&snap.ps, &ops, sizeof(snap.ps));
-			snap.entities = stream.Read<std::vector<entityState_t>>();
-			snap.serverCommands = stream.Read<std::vector<std::string>>();
+			ipcSnapshot_t snap;
+			snap.b.snapFlags = stream.Read<uint32_t>();
+			snap.b.ping = stream.Read<uint32_t>();
+			snap.b.serverTime = stream.Read<uint32_t>();
+			stream.ReadData(&snap.b.areamask, MAX_MAP_AREA_BYTES);
+			snap.ps = stream.Read<OpaquePlayerState>();
+			snap.b.entities = stream.Read<std::vector<entityState_t>>();
+			snap.b.serverCommands = stream.Read<std::vector<std::string>>();
 			return snap;
 		}
-#endif
 	};
 
 	// For skeletons, only send the bones which are used
@@ -132,6 +128,7 @@ enum cgameImport_t
   CG_SENDCLIENTCOMMAND,
   CG_UPDATESCREEN,
   CG_CM_MARKFRAGMENTS,
+  CG_CM_BATCHMARKFRAGMENTS,
   CG_GETCURRENTSNAPSHOTNUMBER,
   CG_GETSNAPSHOT,
   CG_GETCURRENTCMDNUMBER,
@@ -155,6 +152,7 @@ enum cgameImport_t
   CG_S_STARTBACKGROUNDTRACK,
   CG_S_STOPBACKGROUNDTRACK,
   CG_S_UPDATEENTITYVELOCITY,
+  CG_S_UPDATEENTITYPOSITIONVELOCITY,
   CG_S_SETREVERB,
   CG_S_BEGINREGISTRATION,
   CG_S_ENDREGISTRATION,
@@ -189,6 +187,7 @@ enum cgameImport_t
   CG_R_LERPTAG,
   CG_R_REMAP_SHADER,
   CG_R_INPVS,
+  CG_R_BATCHINPVS,
   CG_R_LIGHTFORPOINT,
   CG_R_REGISTERANIMATION,
   CG_R_BUILDSKELETON,
@@ -245,6 +244,15 @@ using CMMarkFragmentsMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_CM_MARKFRAGMENTS>, std::vector<std::array<float, 3>>, std::array<float, 3>, int, int>,
 	IPC::Reply<std::vector<std::array<float, 3>>, std::vector<markFragment_t>>
 >;
+using CMBatchMarkFragments = IPC::SyncMessage<
+	IPC::Message<
+		IPC::Id<VM::QVM, CG_CM_BATCHMARKFRAGMENTS>,
+		unsigned,
+		unsigned,
+		std::vector<markMsgInput_t>>,
+	IPC::Reply<
+		std::vector<markMsgOutput_t>>
+>;
 // TODO send all snapshots at the beginning of the frame
 using GetCurrentSnapshotNumberMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_GETCURRENTSNAPSHOTNUMBER>>,
@@ -252,7 +260,7 @@ using GetCurrentSnapshotNumberMsg = IPC::SyncMessage<
 >;
 using GetSnapshotMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_GETSNAPSHOT>, int>,
-	IPC::Reply<bool, snapshot_t>
+	IPC::Reply<bool, ipcSnapshot_t>
 >;
 using GetCurrentCmdNumberMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_GETCURRENTCMDNUMBER>>,
@@ -301,6 +309,7 @@ namespace Audio {
 	using StartBackgroundTrackMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STARTBACKGROUNDTRACK>, std::string, std::string>;
 	using StopBackgroundTrackMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STOPBACKGROUNDTRACK>>;
 	using UpdateEntityVelocityMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYVELOCITY>, int, Vec3>;
+	using UpdateEntityPositionVelocityMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYPOSITIONVELOCITY>, int, Vec3, Vec3>;
 	using SetReverbMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_SETREVERB>, int, std::string, float>;
 	using BeginRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_BEGINREGISTRATION>>;
 	using EndRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_ENDREGISTRATION>>;
@@ -344,6 +353,13 @@ namespace Render {
 	using InPVSMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_R_INPVS>, std::array<float, 3>, std::array<float, 3>>,
 		IPC::Reply<bool>
+	>;
+	using BatchInPVSMsg = IPC::SyncMessage<
+		IPC::Message<IPC::Id<
+			VM::QVM, CG_R_BATCHINPVS>,
+			std::array<float, 3>,
+			std::vector<std::array<float, 3>>>,
+		IPC::Reply<std::vector<bool>>
 	>;
 	using LightForPointMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_R_LIGHTFORPOINT>, std::array<float, 3>>,
@@ -496,7 +512,8 @@ enum cgameExport_t
   CG_DRAW_ACTIVE_FRAME,
 
 //  void    (*CG_KeyEvent)( Keyboard::Key key, bool down );
-  CG_KEY_EVENT,
+  CG_KEY_DOWN_EVENT,
+  CG_KEY_UP_EVENT,
 
 //  void    (*CG_MouseEvent)( int dx, int dy );
   CG_MOUSE_EVENT,
@@ -531,8 +548,12 @@ using CGameShutdownMsg = IPC::SyncMessage<
 using CGameDrawActiveFrameMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_DRAW_ACTIVE_FRAME>, int, bool>
 >;
-using CGameKeyEventMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_KEY_EVENT>, Keyboard::Key, bool>
+using CGameKeyDownEventMsg = IPC::SyncMessage<
+	IPC::Message<IPC::Id<VM::QVM, CG_KEY_DOWN_EVENT>, Keyboard::Key, bool>,
+	IPC::Reply<bool>
+>;
+using CGameKeyUpEventMsg = IPC::SyncMessage<
+	IPC::Message<IPC::Id<VM::QVM, CG_KEY_UP_EVENT>, Keyboard::Key>
 >;
 using CGameMouseEventMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_MOUSE_EVENT>, int, int>

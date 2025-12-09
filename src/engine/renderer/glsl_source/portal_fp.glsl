@@ -23,25 +23,23 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* portal_fp.glsl */
 
 uniform sampler2D	u_CurrentMap;
-uniform float		u_PortalRange;
+uniform float		u_InversePortalRange;
 
 IN(smooth) vec3		var_Position;
 IN(smooth) vec4		var_Color;
+IN(smooth) vec2	var_TexCoords;
 
 DECLARE_OUTPUT(vec4)
 
 void	main()
 {
-	// calculate the screen texcoord in the 0.0 to 1.0 range
-	vec2 st = gl_FragCoord.st / r_FBufSize;
-
-	vec4 color = texture2D(u_CurrentMap, st);
+	vec4 color = texture2D(u_CurrentMap, var_TexCoords);
 	color *= var_Color;
 
 	float len = length(var_Position);
 
-	len /= u_PortalRange;
-	color.rgb *= 1.0 - clamp(len, 0.0, 1.0);
+	len *= u_InversePortalRange;
+	color.a = clamp(len, 0.0, 1.0);
 
 	outputColor = color;
 }

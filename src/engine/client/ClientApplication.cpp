@@ -34,13 +34,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "client.h"
 
 #if defined(_WIN32) || defined(BUILD_GRAPHICAL_CLIENT)
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #ifdef BUILD_GRAPHICAL_CLIENT
 extern SDL_Window *window;
 #else
 #define window nullptr
 #endif
 #endif
+
+static Cvar::Cvar<bool> client_errorPopup("client.errorPopup", "Enable the error popup window", Cvar::NONE, true);
 
 namespace Application {
 
@@ -87,6 +89,7 @@ class ClientApplication : public Application {
 
         void Frame() override {
             Com_Frame();
+            ::Application::Application::Frame(); // call base class
         }
 
         void OnDrop(bool error, Str::StringRef reason) override {
@@ -95,12 +98,16 @@ class ClientApplication : public Application {
             SV_Shutdown(Str::Format("Server %s: %s", error ? "crashed" : "shutdown", reason).c_str());
             CL_Disconnect(true);
             CL_ShutdownAll();
+            if (error)
+            {
+                Cvar::SetValue("com_errorMessage", Str::Format("^3%s", reason));
+            }
             CL_StartHunkUsers();
         }
 
         void Shutdown(bool error, Str::StringRef message) override {
             #if defined(_WIN32) || defined(BUILD_GRAPHICAL_CLIENT)
-                if (error) {
+                if (error && client_errorPopup.Get()) {
                     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, PRODUCT_NAME, message.c_str(), window);
                 }
             #endif
@@ -110,6 +117,7 @@ class ClientApplication : public Application {
             if (Sys::PedanticShutdown()) {
                 TRY_SHUTDOWN(SV_Shutdown(message.c_str()));
                 TRY_SHUTDOWN(NET_Shutdown());
+                Hunk_Shutdown();
             } else {
                 TRY_SHUTDOWN(SV_QuickShutdown(message.c_str()));
             }
