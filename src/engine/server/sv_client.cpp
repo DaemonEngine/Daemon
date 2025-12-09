@@ -804,64 +804,72 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 
 				if ( SV_CheckFallbackURL( cl, pakName.c_str(), downloadSize, msg ) )
 				{
-					return;
+					return; // success (?)
 				}
 
-				Log::Warn("Client '%s^*': falling back to regular downloading for failed file %s", cl->name,
+
+				Log::Warn("Client \"%s^*\" downloading file \"%s\" failed", cl->name,
 						 cl->downloadName );
 			}
+			return; // failure
 		}
+		else
+		{
+			/////
+			// Old-style udp downloads, attempted only if sv_wwwDownload is not set
+			/////
 
-		// find file
-		cl->bWWWDl = false;
-		std::string name, version;
-		Util::optional<uint32_t> checksum;
+			// find file
+			cl->bWWWDl = false;
+			std::string name, version;
+			Util::optional<uint32_t> checksum;
 
-		success = FS::ParsePakName(cl->downloadName, cl->downloadName + strlen(cl->downloadName), name, version, checksum);
+			success = FS::ParsePakName(cl->downloadName, cl->downloadName + strlen(cl->downloadName), name, version, checksum);
 
-		if (success) {
-			// legacy paks have empty version but no checksum
-			// looking for that special version ensures the client load the legacy pk3 if server is using it, even if client has non-legacy dpk
-			// dpks have version and can have checksum
-			pak = checksum ? FS::FindPak(name, version) : FS::FindPak(name, version, *checksum);
+			if (success) {
+				// legacy paks have empty version but no checksum
+				// looking for that special version ensures the client load the legacy pk3 if server is using it, even if client has non-legacy dpk
+				// dpks have version and can have checksum
+				pak = checksum ? FS::FindPak(name, version) : FS::FindPak(name, version, *checksum);
 
-			if (pak) {
-				try {
-					cl->download = new FS::File(FS::RawPath::OpenRead(pak->path));
+				if (pak) {
+					try {
+						cl->download = new FS::File(FS::RawPath::OpenRead(pak->path));
 
-					const FS::offset_t length{cl->download->Length()};
+						const FS::offset_t length{cl->download->Length()};
 
-					if (length > std::numeric_limits<decltype(cl->downloadSize)>::max()) {
-						throw std::system_error{Util::ordinal(std::errc::value_too_large), std::system_category(),
-							"Pak file '" + pak->path + "' size '" + std::to_string(length) + "' is larger than max client download size"};
+						if (length > std::numeric_limits<decltype(cl->downloadSize)>::max()) {
+							throw std::system_error{Util::ordinal(std::errc::value_too_large), std::system_category(),
+								"Pak file '" + pak->path + "' size '" + std::to_string(length) + "' is larger than max client download size"};
+						}
+
+						cl->downloadSize = length;
+					} catch (std::system_error& ex) {
+						Log::Notice("clientDownload: %d : \"%s\" file download failed - %s", (int)(cl - svs.clients), cl->downloadName, ex.what());
+						success = false;
 					}
-
-					cl->downloadSize = length;
-				} catch (std::system_error& ex) {
-					Log::Notice("clientDownload: %d : \"%s\" file download failed - %s", (int)(cl - svs.clients), cl->downloadName, ex.what());
+				} else {
 					success = false;
 				}
-			} else {
-				success = false;
 			}
+
+			if ( !success )
+			{
+				Log::Notice( "clientDownload: %d : \"%s\" file not found on server", ( int )( cl - svs.clients ), cl->downloadName );
+				Com_sprintf( errorMessage, sizeof( errorMessage ), "File \"%s\" not found on server for autodownloading.\n",
+					     cl->downloadName );
+				SV_BadDownload( cl, msg );
+				MSG_WriteString( msg, errorMessage );  // (could SV_DropClient instead?)
+				return;
+			}
+
+			// is valid source, init
+			cl->downloadCurrentBlock = cl->downloadClientBlock = cl->downloadXmitBlock = 0;
+			cl->downloadCount = 0;
+			cl->downloadEOF = false;
+
+			bTellRate = true;
 		}
-
-		if ( !success )
-		{
-			Log::Notice( "clientDownload: %d : \"%s\" file not found on server", ( int )( cl - svs.clients ), cl->downloadName );
-			Com_sprintf( errorMessage, sizeof( errorMessage ), "File \"%s\" not found on server for autodownloading.\n",
-			             cl->downloadName );
-			SV_BadDownload( cl, msg );
-			MSG_WriteString( msg, errorMessage );  // (could SV_DropClient instead?)
-			return;
-		}
-
-		// is valid source, init
-		cl->downloadCurrentBlock = cl->downloadClientBlock = cl->downloadXmitBlock = 0;
-		cl->downloadCount = 0;
-		cl->downloadEOF = false;
-
-		bTellRate = true;
 	}
 
 	// Perform any reads that we need to
