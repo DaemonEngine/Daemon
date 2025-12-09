@@ -28,7 +28,7 @@
 
 option(USE_NACL_SAIGO "Use Saigo toolchain to build NaCl executables" OFF)
 
-if( NACL )
+if (DAEMON_SYSTEM_NaCl)
   # Build nexe binary.
   if(USE_NACL_SAIGO)
     # DAEMON_NACL_ARCH is "pnacl" here, NACL_TARGET carries the architecture.
@@ -53,13 +53,13 @@ if( NACL )
   endif()
 else()
   # Build native dll or native exe.
-  if( APPLE )
+  if (DAEMON_SYSTEM_macOS)
     add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=0 -DNACL_ANDROID=0 -DNACL_FREEBSD=0 -DNACL_OSX=1 )
-  elseif( LINUX )
+  elseif (DAEMON_SYSTEM_Linux)
     add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=1 -DNACL_ANDROID=0 -DNACL_FREEBSD=0 -DNACL_OSX=0 )
-  elseif( FREEBSD )
+  elseif (DAEMON_SYSTEM_FreeBSD)
     add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=0 -DNACL_ANDROID=0 -DNACL_FREEBSD=1 -DNACL_OSX=0 )
-  elseif( WIN32 )
+  elseif (DAEMON_SYSTEM_Windows)
     add_definitions( -DNACL_WINDOWS=1 -DNACL_LINUX=0 -DNACL_ANDROID=0 -DNACL_FREEBSD=0 -DNACL_OSX=0 )
   endif()
 
