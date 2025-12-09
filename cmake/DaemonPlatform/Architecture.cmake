@@ -74,14 +74,14 @@ daemon_add_buildinfo("char*" "DAEMON_ARCH_STRING" "\"${DAEMON_ARCH}\"")
 # Modifying NACL_ARCH breaks engine compatibility with nexe game binaries
 # since NACL_ARCH contributes to the nexe file name.
 set(DAEMON_NACL_ARCH "${DAEMON_ARCH}")
-if (LINUX OR FREEBSD)
+if (DAEMON_SYSTEM_Unix_COMPATIBILITY)
 	set(ARMHF_USAGE arm64 armel)
 	if (DAEMON_ARCH IN_LIST ARMHF_USAGE)
 		# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
 		# The nexe is system agnostic so there should be no difference with armel.
 		set(DAEMON_NACL_ARCH "armhf")
 	endif()
-elseif(APPLE)
+elseif(DAEMON_SYSTEM_macOS)
 	if ("${DAEMON_ARCH}" STREQUAL arm64)
 		# You can get emulated NaCl going like this:
 		# cp external_deps/macos-amd64-default_10/{nacl_loader,irt_core-amd64.nexe} build/

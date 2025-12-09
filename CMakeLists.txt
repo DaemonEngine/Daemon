@@ -90,11 +90,11 @@ if(NOT DAEMON_EXTERNAL_APP)
 
     set(NACL_RUNTIME_PATH "" CACHE STRING "Directory containing the NaCl binaries")
 
-    if (WIN32)
+    if (DAEMON_SYSTEM_Windows)
         # The alternative code is based on non-curses unix terminal functions.
         set(USE_CURSES ON)
     else()
-        if (NOT APPLE)
+        if (NOT DAEMON_SYSTEM_macOS)
             # Not supported on macOS because the included version is too old.
             option(USE_CURSES_NCURSES "Use ncurses instead of PDCursesMod" ON)
         endif()
@@ -199,7 +199,7 @@ endmacro()
 
 set(DEFAULT_USE_EXTERNAL_DEPS_LIBS ON)
 
-if (USE_EXTERNAL_DEPS AND NOT NACL)
+if (USE_EXTERNAL_DEPS AND NOT DAEMON_SYSTEM_NaCl)
     set(EXTERNAL_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external_deps" CACHE STRING "Directory in which to store the downloaded dependencies.")
 
     set(DEPS_EXT ".tar.xz")
@@ -214,10 +214,10 @@ if (USE_EXTERNAL_DEPS AND NOT NACL)
         set(DEPS_COMPILER default)
     endif()
 
-    if (WIN32)
+    if (DAEMON_SYSTEM_Windows)
         set(DEPS_SYSTEM windows)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
-    elseif (APPLE)
+    elseif (DAEMON_SYSTEM_macOS)
         set(DEPS_SYSTEM macos)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64)
 
@@ -230,10 +230,10 @@ if (USE_EXTERNAL_DEPS AND NOT NACL)
                 set(DEFAULT_USE_EXTERNAL_DEPS_LIBS OFF)
             endif()
         endif()
-    elseif (LINUX)
+    elseif (DAEMON_SYSTEM_Linux)
         set(DEPS_SYSTEM linux)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686 arm64 armhf)
-    elseif (FREEBSD)
+    elseif (DAEMON_SYSTEM_FreeBSD)
         set(DEPS_SYSTEM freebsd)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
 
@@ -264,7 +264,7 @@ endif()
 
 option(USE_EXTERNAL_DEPS_LIBS "Build and link against libraries from the EXTERNAL_DEPS_DIR" ${DEFAULT_USE_EXTERNAL_DEPS_LIBS})
 
-if (USE_EXTERNAL_DEPS AND NOT NACL)
+if (USE_EXTERNAL_DEPS AND NOT DAEMON_SYSTEM_NaCl)
     if (DEPS_DIR)
         message(STATUS "Using external deps dir: ${DEPS_DIR}")
 
@@ -462,13 +462,13 @@ endif()
 
 # Native client
 include(DaemonNacl)
-if (NACL)
+if (DAEMON_SYSTEM_NaCl)
     add_library(srclibs-nacl-module EXCLUDE_FROM_ALL ${NACLLIST_MODULE})
     set(LIBS_BASE ${LIBS_BASE} srclibs-nacl-module)
 else()
     add_library(srclibs-nacl-native EXCLUDE_FROM_ALL ${NACLLIST_NATIVE})
     set_target_properties(srclibs-nacl-native PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-    if (APPLE)
+    if (DAEMON_SYSTEM_macOS)
         # Do not error for OSAtomic* deprecation notices
         target_compile_options(srclibs-nacl-native PRIVATE "-Wno-error=deprecated-declarations")
     endif()
@@ -476,9 +476,9 @@ else()
 endif()
 
 # Base OS libs
-if (WIN32)
+if (DAEMON_SYSTEM_Windows)
     set(LIBS_BASE ${LIBS_BASE} winmm ws2_32)
-elseif (NACL)
+elseif (DAEMON_SYSTEM_NaCl)
     find_library(NACL_EXCEPTION nacl_exception)
     find_library(NACL_MINIDUMP minidump_generator)
 
@@ -510,7 +510,7 @@ else()
     set(LIBS_BASE ${LIBS_BASE} ${CMAKE_DL_LIBS})
     find_package(Threads REQUIRED)
     set(LIBS_BASE ${LIBS_BASE} ${CMAKE_THREAD_LIBS_INIT})
-    if (APPLE)
+    if (DAEMON_SYSTEM_macOS)
         set(LIBS_CLIENT ${LIBS_CLIENT} "-framework Carbon" "-framework IOKit" "-framework Cocoa")
     endif()
 endif()
@@ -533,7 +533,7 @@ else()
 
     # Look for OpenGL here before we potentially switch to looking for static libs.
     if (BUILD_CLIENT)
-        if (LINUX OR FREEBSD)
+        if (DAEMON_SYSTEM_Unix_COMPATIBILITY)
             # Set LEGACY OpenGL ABI if the variable is not explictly set.
             # The backward-incompatible GLVND OpenGL ABI should only be used
             # by developers who have a good reason to require it.
@@ -549,7 +549,7 @@ else()
         # This code is unreachable since it already errored out at find_package time.
         # This code only executes if OpenGL is supported, either because the GLVND ABI
         # is available, either because the LEGACY ABI is available.
-        if (LINUX OR FREEBSD)
+        if (DAEMON_SYSTEM_Unix_COMPATIBILITY)
             if (NOT OPENGL_gl_LIBRARY)
                 # When OpenGL_GL_PREFERENCE is supported and GLVND is available
                 # OPENGL_gl_LIBRARY is expected to be empty. So we can use the
@@ -596,7 +596,7 @@ endif()
 
 # Prefer static libs
 if ( USE_STATIC_LIBS )
-    if (LINUX OR FREEBSD)
+    if (DAEMON_SYSTEM_Unix_COMPATIBILITY)
         set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
     endif()
 endif()
@@ -624,7 +624,7 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
             set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${CURSESW_LIBRARIES})
             include_directories(${CURSESW_INCLUDE_DIR})
         else ()
-            if (WIN32)
+            if (DAEMON_SYSTEM_Windows)
                 set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} gdi32 comdlg32)
             endif()
 
@@ -674,7 +674,7 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT)
 endif()
 
 # SDL, required for all targets on win32 because of iconv and SDL_SetHint(SDL_TIMER_RESOLUTION, 0)
-if (BUILD_CLIENT OR WIN32)
+if (BUILD_CLIENT OR DAEMON_SYSTEM_Windows)
     # Use our detected architecture instead of letting SDL do it again
     # Note that sdlcpu.cmake is only included on a random subset of platforms
     set(sdlvar_i686 SDL_CPU_X86)
@@ -689,7 +689,7 @@ if (BUILD_CLIENT OR WIN32)
 
     find_package(SDL3 REQUIRED CONFIG)
 
-    if (WIN32)
+    if (DAEMON_SYSTEM_Windows)
         set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} SDL3::SDL3)
     else()
         set(LIBS_CLIENT ${LIBS_CLIENT} SDL3::SDL3)
@@ -701,7 +701,7 @@ if (USE_BREAKPAD)
     add_definitions(-DUSE_BREAKPAD)
     include_directories(${LIB_DIR}/breakpad/src)
 
-    if (WIN32)
+    if (DAEMON_SYSTEM_Windows)
         add_library(srclibs-breakpad-common EXCLUDE_FROM_ALL ${BREAKPAD_COMMON_LIST})
         add_library(srclibs-breakpad-crash_generation_server EXCLUDE_FROM_ALL ${BREAKPAD_CRASHGENERATIONSERVER_LIST})
         add_library(srclibs-breakpad-exception_handler EXCLUDE_FROM_ALL ${BREAKPAD_EXCEPTIONHANDLER_LIST})
@@ -731,7 +731,7 @@ if (USE_BREAKPAD)
         set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-breakpad-exception_handler
             srclibs-breakpad-crash_generation_client srclibs-breakpad-common)
 
-    elseif (LINUX)
+    elseif (DAEMON_SYSTEM_Linux_COMPATIBILITY)
         add_library(srclibs-breakpad EXCLUDE_FROM_ALL ${BREAKPAD_LIST})
         set_target_properties(srclibs-breakpad PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
         target_compile_definitions(srclibs-breakpad PUBLIC HAVE_GETCONTEXT=1)
@@ -746,7 +746,7 @@ option(PREFER_EXTERNAL_LIBS "Tries to use system libs where possible." ON)
 
 macro(prefer_package LIB_NAME LIB_CMAKE)
     if (NOT ${LIB_NAME}_FOUND)
-        if (PREFER_EXTERNAL_LIBS AND NOT NACL)
+        if (PREFER_EXTERNAL_LIBS AND NOT DAEMON_SYSTEM_NaCl)
             find_package(${LIB_NAME})
 
             if (NOT ${LIB_NAME}_FOUND)
@@ -876,7 +876,7 @@ endfunction()
 
 daemon_write_buildinfo("Engine")
 
-if (NOT NACL)
+if (NOT DAEMON_SYSTEM_NaCl)
     add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${BUILDINFOLIST} ${COMMONLIST} ${ENGINELIST})
     target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE} ${CPP23SupportLibrary})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_DEFINITIONS BUILD_ENGINE)
@@ -979,7 +979,7 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     )
 
     # Linux uses a bootstrap program to reserve address space
-    if (LINUX OR FREEBSD)
+    if (DAEMON_SYSTEM_Unix_COMPATIBILITY)
         if (DAEMON_ARCH_arm64)
             add_executable(nacl_helper_bootstrap-armhf tools/nacl_helper_bootstrap-armhf/nacl_helper_bootstrap-armhf.cpp)
             add_dependencies(runtime_deps nacl_helper_bootstrap-armhf)
@@ -1004,7 +1004,7 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     endif()
 
     # Win32 requires nacl_loader_amd64.exe in order to run on Win64
-    if (WIN32 AND DAEMON_ARCH_i686)
+    if (DAEMON_SYSTEM_Windows AND DAEMON_ARCH_i686)
         add_custom_command(TARGET runtime_deps PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 ${DEPS_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}
@@ -1018,7 +1018,7 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     endif()
 
     # Mac requires some libraries from external_deps
-    if (APPLE)
+    if (DAEMON_SYSTEM_macOS)
         file(GLOB RUNTIME_FRAMEWORKS ${DEPS_DIR}/lib/*.framework)
         foreach(RUNTIME_FRAMEWORK ${RUNTIME_FRAMEWORKS})
             get_filename_component(RUNTIME_FRAMEWORK_NAME ${RUNTIME_FRAMEWORK} NAME)
@@ -1040,7 +1040,7 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     endif()
 
     # Windows requires some libraries from external_deps
-    if (WIN32)
+    if (DAEMON_SYSTEM_Windows)
         file(GLOB RUNTIME_LIBS ${DEPS_DIR}/bin/*.dll ${DEPS_DIR}/SDL3/lib/*/SDL3.dll)
         foreach(RUNTIME_LIB ${RUNTIME_LIBS})
             add_custom_command(TARGET runtime_deps PRE_BUILD

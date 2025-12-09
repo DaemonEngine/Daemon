@@ -362,7 +362,7 @@ else()
 		endif()
 	endif()
 
-	if (NACL AND USE_NACL_SAIGO AND SAIGO_DAEMON_ARCH_arm)
+	if (DAEMON_SYSTEM_NaCl AND USE_NACL_SAIGO AND SAIGO_DAEMON_ARCH_arm)
 		# This should be set for every build type because build type flags
 		# are set after the other custom flags and then have the last word.
 		# DEBUG should already use -O0 anyway.
@@ -413,7 +413,7 @@ else()
 		try_flag(WARNINGS "-Werror")
 	endif()
 
-	if (NACL AND NOT USE_NACL_SAIGO)
+	if (DAEMON_SYSTEM_NaCl AND NOT USE_NACL_SAIGO)
 		# PNaCl only supports libc++ as standard library.
 		set_c_cxx_flag("-stdlib=libc++")
 		set_c_cxx_flag("--pnacl-allow-exceptions")
@@ -425,12 +425,12 @@ else()
 	try_cxx_flag(FNO_GNU_UNIQUE "-fno-gnu-unique")
 
 	# Use MSVC-compatible bitfield layout
-	if (WIN32)
+	if (DAEMON_SYSTEM_Windows)
 		set_c_cxx_flag("-mms-bitfields")
 	endif()
 
 	# Linker flags
-	if (NOT APPLE)
+	if (NOT DAEMON_SYSTEM_macOS)
 		try_linker_flag(LINKER_O1 "-Wl,-O1")
 		try_linker_flag(LINKER_SORT_COMMON "-Wl,--sort-common")
 		try_linker_flag(LINKER_AS_NEEDED "-Wl,--as-needed")
@@ -443,7 +443,7 @@ else()
 		try_linker_flag(LINKER_Z_NOW "-Wl,-z,now")
 	endif()
 
-	if (WIN32)
+	if (DAEMON_SYSTEM_Windows)
 		try_linker_flag(LINKER_DYNAMICBASE "-Wl,--dynamicbase")
 		try_linker_flag(LINKER_NXCOMPAT "-Wl,--nxcompat")
 		try_linker_flag(LINKER_LARGE_ADDRESS_AWARE "-Wl,--large-address-aware")
@@ -456,7 +456,7 @@ else()
 
 	# The -pthread flag sets some preprocessor defines,
 	# it is also used to link with libpthread on Linux.
-	if (NOT APPLE)
+	if (NOT DAEMON_SYSTEM_macOS)
 		try_c_cxx_flag(PTHREAD "-pthread")
 	endif()
 
@@ -480,7 +480,7 @@ else()
 
 	if (USE_HARDENING)
 		# PNaCl accepts the flags but does not define __stack_chk_guard and __stack_chk_fail.
-		if (NOT NACL)
+		if (NOT DAEMON_SYSTEM_NaCl)
 			try_c_cxx_flag(FSTACK_PROTECTOR_STRONG "-fstack-protector-strong")
 
 			if (NOT FLAG_FSTACK_PROTECTOR_STRONG)
@@ -491,12 +491,12 @@ else()
 		try_c_cxx_flag(FNO_STRICT_OVERFLOW "-fno-strict-overflow")
 		try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
 
-		if (NOT NACL)
+		if (NOT DAEMON_SYSTEM_NaCl)
 			# The -pie flag requires -fPIC:
 			# > ld: error: relocation R_X86_64_64 cannot be used against local symbol; recompile with -fPIC
 			# This flag isn't used on macOS:
 			# > clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
-			if (FLAG_FPIC AND NOT APPLE)
+			if (FLAG_FPIC AND NOT DAEMON_SYSTEM_macOS)
 				try_exe_linker_flag(LINKER_PIE "-pie")
 			endif()
 		endif()
@@ -519,7 +519,7 @@ else()
 	# PNaCl accepts the flag but does nothing with it, underlying clang doesn't support it.
 	# Saigo NaCl compiler doesn't support LTO, the flag is accepted but linking fails
 	# with “unable to pass LLVM bit-code files to linker” error.
-	if (USE_LTO AND NOT NACL)
+	if (USE_LTO AND NOT DAEMON_SYSTEM_NaCl)
 		try_c_cxx_flag(LTO_AUTO "-flto=auto")
 
 		if (NOT FLAG_LTO_AUTO)
@@ -585,7 +585,7 @@ if (MSVC)
             set_c_cxx_flag("/arch:IA32") # minimum
         endif()
     endif()
-elseif (NOT NACL)
+elseif (NOT DAEMON_SYSTEM_NaCl)
 	# Among the required hardware features, the NX bit (No eXecute bit)
 	# feature may be required for NativeClient to work. Some early
 	# Intel EM64T processors are known to not implement the NX bit.
@@ -672,7 +672,7 @@ elseif (NOT NACL)
 endif()
 
 # Windows-specific definitions
-if (WIN32)
+if (DAEMON_SYSTEM_Windows)
     add_definitions(
         -DWINVER=0x501  # Minimum Windows version: XP
         -DWIN32         # Define WIN32 for compatibility (compiler defines _WIN32)
@@ -687,7 +687,7 @@ if (MSVC)
 endif()
 
 # Mac-specific definitions
-if (APPLE)
+if (DAEMON_SYSTEM_macOS)
     add_definitions(-DMACOS_X)
     set(CMAKE_INSTALL_RPATH "@executable_path")
     set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
