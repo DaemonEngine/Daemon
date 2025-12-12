@@ -46,7 +46,7 @@ struct AlignedAtomicUint32 {
 	ALIGN_CACHE std::atomic<uint32> value;
 
 	void operator=( const uint32 newValue ) {
-		value = newValue;
+		value.store( newValue, std::memory_order_relaxed );
 	}
 
 	void operator++() {
@@ -62,7 +62,7 @@ struct AlignedAtomicUint64 {
 	ALIGN_CACHE std::atomic<uint64> value;
 
 	void operator=( const uint64 newValue ) {
-		value = newValue;
+		value.store( newValue, std::memory_order_relaxed );
 	}
 
 	void operator++() {

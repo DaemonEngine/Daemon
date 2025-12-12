@@ -57,17 +57,17 @@ class Timer {
 	std::string FormatTime( const TimeUnit maxTimeUnit = s );
 
 	uint64 Time() const;
-	void Start();
-	void Stop();
-	void Clear();
+	void   Start();
+	void   Stop();
+	void   Clear();
 	uint64 Restart();
 
 	private:
 	uint64* timeVar;
 
-	bool running = false;
-	uint64 time;
-	uint64 runTime = 0;
+	bool    running = false;
+	uint64  time;
+	uint64  runTime = 0;
 };
 
 class GlobalTimer :
