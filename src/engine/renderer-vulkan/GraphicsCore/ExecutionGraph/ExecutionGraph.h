@@ -205,6 +205,10 @@ class ExecutionGraph {
 	void Exec();
 
 	private:
+	static constexpr uint32 cmdBits     = 6;
+	static constexpr uint32 cmdPoolBits = 8;
+	static constexpr uint32 genIDBits   = 50;
+
 	DynamicArray<ExecutionNode> processedNodes;
 
 	std::atomic<uint64>         cmdID = 0;

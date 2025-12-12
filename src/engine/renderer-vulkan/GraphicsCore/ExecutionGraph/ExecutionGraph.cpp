@@ -318,18 +318,24 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 	processedNodes.Zero();
 
 	uint64 state        = cmdBufferStates[TLM.id].value.load( std::memory_order_relaxed );
-	uint64 resetState   = cmdBufferResetStates[TLM.id].value.load( std::memory_order_relaxed );
+	uint64 allocState   = cmdBufferAllocStates[TLM.id].value.load( std::memory_order_relaxed );
 	uint32 bufID        = FindZeroBitFast( state );
 
-	const bool resetReq = BitSet( resetState, bufID );
+	const bool allocReq = !BitSet( allocState, bufID );
+
+	if ( allocReq ) {
+		VkCommandBufferAllocateInfo cmdInfo {
+			.commandPool        = GMEM.graphicsCmdPool,
+			.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			.commandBufferCount = 1
+		};
+
+		vkAllocateCommandBuffers( device, &cmdInfo, &cmdBuffers[TLM.id][bufID] );
+
+		cmdBufferAllocStates[TLM.id].value.fetch_add( SetBit( 0ull, bufID ) );
+	}
 
 	VkCommandBuffer cmd = cmdBuffers[TLM.id][bufID];
-
-	if ( resetReq ) {
-		vkResetCommandBuffer( cmd, 0 );
-
-		cmdBufferResetStates[TLM.id].value.fetch_add( SetBit( 0u, bufID ), std::memory_order_relaxed );
-	}
 
 	cmdBufferStates[TLM.id].value.fetch_add( SetBit( 0u, bufID ), std::memory_order_relaxed );
 
@@ -511,7 +517,7 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 			{
 				BufferNode& bufferNode = *( BufferNode* ) &node;
 
-				uint32 id = node.id; // GetNodeID( node.id );
+				uint32 id = node.id;
 
 				if ( id < buffers.elements ) {
 					if ( buffers[id].buffer ) {
@@ -553,7 +559,7 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 
 	vkEndCommandBuffer( cmd );
 
-	uint64 combinedGenID = SetBits( ( uint64 ) ( TLM.id << 6 ) | bufID, newGenID, 14, 50 );
+	uint64 combinedGenID = SetBits( ( uint64 ) ( TLM.id << cmdBits ) | bufID, newGenID, cmdPoolBits + cmdBits, genIDBits );
 	uint64 expected      = cmdID.load( std::memory_order_relaxed );
 
 	do {
@@ -568,7 +574,7 @@ void ExecutionGraph::Exec() {
 	const uint64 cmd = cmdID.load( std::memory_order_relaxed );
 
 	VkCommandBufferSubmitInfo cmdInfo {
-		.commandBuffer = cmdBuffers[GetBits( cmd, 6, 8 )][GetBits( cmd, 0, 6 )]
+		.commandBuffer = cmdBuffers[GetBits( cmd, cmdBits, cmdPoolBits )][GetBits( cmd, 0, cmdBits )]
 	};
 
 	VkSubmitInfo2 submitInfo {
@@ -577,6 +583,14 @@ void ExecutionGraph::Exec() {
 	};
 
 	vkQueueSubmit2( graphicsQueue.queues[0], 1, &submitInfo, nullptr );
+}
+
+void ResetCmdBuffer( const uint32 bufID ) {
+	VkCommandBuffer cmd = cmdBuffers[TLM.id][bufID];
+
+	vkResetCommandBuffer( cmd, 0 );
+
+	cmdBufferStates[TLM.id].value.fetch_sub( SetBit( 0u, bufID ), std::memory_order_relaxed );
 }
 
 void TestCmd() {
@@ -614,16 +628,6 @@ void TestCmd() {
 	DynamicArray<ExecutionNode> nodes { *( ExecutionNode* ) &testBuffer, *( ExecutionNode* ) &testPush, testExec };
 
 	InitCmdPools();
-
-	VkCommandBuffer cmd;
-
-	VkCommandBufferAllocateInfo cmdInfo {
-		.commandPool = GMEM.graphicsCmdPool,
-		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-		.commandBufferCount = 1
-	};
-
-	vkAllocateCommandBuffers( device, &cmdInfo, &cmdBuffers[TLM.id][63] );
 
 	ExecutionGraph testEG;
 	testEG.Build( 0, nodes );
