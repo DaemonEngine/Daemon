@@ -36,9 +36,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef EXECUTION_GRAPH_H
 #define EXECUTION_GRAPH_H
 
+#include <atomic>
 #include <initializer_list>
 
 #include "../../Memory/BitStream.h"
+
+#include "../../Sync/AccessLock.h"
 
 #include "../Decls.h"
 
@@ -138,8 +141,7 @@ struct PushConstNode {
 	uint8  type = NODE_PUSH;
 	uint8  id;
 	uint8  offset;
-	// uint32 specialIDs;
-	// uint64 data[2];
+
 	struct Data {
 		uint8 size          = 0;
 		uint8 specialIDs[4] = {};
@@ -199,15 +201,17 @@ struct BufferNode {
 class ExecutionGraph {
 	public:
 	void Init( const char* engineName, const char* appName );
-	void Build( DynamicArray<ExecutionNode>& nodes, VkCommandPool cmdPool, VkCommandBuffer cmd );
+	void Build( const uint64 newGenID, DynamicArray<ExecutionNode>& nodes );
+	void Exec();
 
 	private:
 	DynamicArray<ExecutionNode> processedNodes;
+
+	std::atomic<uint64>         cmdID = 0;
 };
 
 bool BuildExecutionNode( const uint32 SPIRVID, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout );
 void Build();
-void Build( DynamicArray<ExecutionNode>& nodes, VkCommandPool cmdPool, VkCommandBuffer cmd );
 
 void TestCmd();
 

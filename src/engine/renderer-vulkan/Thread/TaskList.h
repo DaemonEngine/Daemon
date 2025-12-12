@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
+#include "ThreadCommon.h"
 #include "Thread.h"
 
 #include "../Memory/SysAllocator.h"
@@ -92,13 +93,11 @@ class TaskList :
 	public:
 	friend class Thread;
 
-	static constexpr uint32 MAX_THREADS = 256;
-
-	static constexpr uint32 MAX_TASKS = 2048;
+	static constexpr uint32 MAX_TASKS         = 2048;
 	static constexpr uint32 MAX_DATA_PER_TASK = 128;
-	static constexpr uint32 MAX_TASK_DATA = MAX_TASKS * MAX_DATA_PER_TASK;
+	static constexpr uint32 MAX_TASK_DATA     = MAX_TASKS * MAX_DATA_PER_TASK;
 
-	static constexpr uint16 TASK_SHIFT_ADDED = 0;
+	static constexpr uint16 TASK_SHIFT_ADDED              = 0;
 	static constexpr uint16 TASK_SHIFT_HAS_UNTRACKED_DEPS = 1;
 	static constexpr uint16 TASK_SHIFT_TRACKED_DEPENDENCY = 2;
 	static constexpr uint16 TASK_SHIFT_UPDATED_DEPENDENCY = 3;

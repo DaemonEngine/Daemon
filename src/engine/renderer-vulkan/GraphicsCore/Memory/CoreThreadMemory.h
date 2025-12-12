@@ -38,13 +38,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../Math/NumberTypes.h"
 
+#include "../../Sync/AlignedAtomic.h"
+
+#include "../../Thread/ThreadCommon.h"
+
 #include "../Decls.h"
 
 #include "../QueuesConfig.h"
 #include "../Queue.h"
 #include "../GraphicsCoreStore.h"
 
-struct GrphicsCoreMemory {
+struct GraphicsCoreMemory {
 	VkCommandPool graphicsCmdPool;
 	VkCommandPool computeCmdPool;
 	VkCommandPool transferCmdPool;
@@ -58,6 +62,14 @@ struct GrphicsCoreMemory {
 
 void InitCmdPools();
 
-extern thread_local GrphicsCoreMemory GMEM;
+constexpr uint32              maxThreadCmdBuffers = 64;
+
+extern    AlignedAtomicUint64 cmdBufferStates[MAX_THREADS];
+extern    AlignedAtomicUint64 cmdBufferResetStates[MAX_THREADS];
+
+extern    VkCommandBuffer     cmdBuffers[MAX_THREADS][maxThreadCmdBuffers];
+extern    VkFence             cmdBufferFences[MAX_THREADS][maxThreadCmdBuffers];
+
+extern thread_local GraphicsCoreMemory GMEM;
 
 #endif // CORE_THREAD_MEMORY_H

@@ -66,6 +66,8 @@ VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkPipelineLayout )
 VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkPipeline )
 VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkCommandPool )
 
+VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkFence )
+
 struct GraphicsQueueRingBuffer;
 
 extern GraphicsQueueRingBuffer graphicsQueue;

@@ -40,6 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../Memory/Array.h"
 #include "../../Memory/DynamicArray.h"
 
+#include "../../Thread/ThreadMemory.h"
+
 #include "../../Sys/MemoryInfo.h"
 
 #include "../Vulkan.h"
@@ -306,7 +308,7 @@ static void ExecPushConstNode( PushConstNode* node, VkCommandBuffer cmd, VkPipel
 		node->offset, node->data.size, data );
 }
 
-void ExecutionGraph::Build( DynamicArray<ExecutionNode>& nodes, VkCommandPool cmdPool, VkCommandBuffer cmd ) {
+void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& nodes ) {
 	if ( !buffers.size ) {
 		buffers.Resize( 32 );
 		buffers.Zero();
@@ -315,13 +317,30 @@ void ExecutionGraph::Build( DynamicArray<ExecutionNode>& nodes, VkCommandPool cm
 	processedNodes.Resize( nodes.size );
 	processedNodes.Zero();
 
+	uint64 state        = cmdBufferStates[TLM.id].value.load( std::memory_order_relaxed );
+	uint64 resetState   = cmdBufferResetStates[TLM.id].value.load( std::memory_order_relaxed );
+	uint32 bufID        = FindZeroBitFast( state );
+
+	const bool resetReq = BitSet( resetState, bufID );
+
+	VkCommandBuffer cmd = cmdBuffers[TLM.id][bufID];
+
+	if ( resetReq ) {
+		vkResetCommandBuffer( cmd, 0 );
+
+		cmdBufferResetStates[TLM.id].value.fetch_add( SetBit( 0u, bufID ), std::memory_order_relaxed );
+	}
+
+	cmdBufferStates[TLM.id].value.fetch_add( SetBit( 0u, bufID ), std::memory_order_relaxed );
+
+	VkCommandBufferBeginInfo cmdBegin {
+		.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT
+	};
+
+	vkBeginCommandBuffer( cmd, &cmdBegin );
+
 	VkPipelineLayout pipelineLayout;
 	VkPipeline       pipeline;
-
-	vkResetCommandBuffer( cmd, 0 );
-
-	VkCommandBufferBeginInfo cmdBegin {};
-	vkBeginCommandBuffer( cmd, &cmdBegin );
 
 	VkBuffer indirectBuffer;
 	VkBuffer countBuffer;
@@ -533,10 +552,35 @@ void ExecutionGraph::Build( DynamicArray<ExecutionNode>& nodes, VkCommandPool cm
 	}
 
 	vkEndCommandBuffer( cmd );
+
+	uint64 combinedGenID = SetBits( ( uint64 ) ( TLM.id << 6 ) | bufID, newGenID, 14, 50 );
+	uint64 expected      = cmdID.load( std::memory_order_relaxed );
+
+	do {
+		if ( combinedGenID < expected ) {
+			vkResetCommandBuffer( cmd, 0 );
+			break;
+		}
+	} while ( !cmdID.compare_exchange_strong( expected, combinedGenID ) );
+}
+
+void ExecutionGraph::Exec() {
+	const uint64 cmd = cmdID.load( std::memory_order_relaxed );
+
+	VkCommandBufferSubmitInfo cmdInfo {
+		.commandBuffer = cmdBuffers[GetBits( cmd, 6, 8 )][GetBits( cmd, 0, 6 )]
+	};
+
+	VkSubmitInfo2 submitInfo {
+		.commandBufferInfoCount = 1,
+		.pCommandBufferInfos    = &cmdInfo
+	};
+
+	vkQueueSubmit2( graphicsQueue.queues[0], 1, &submitInfo, nullptr );
 }
 
 void TestCmd() {
-	extraBuffers[0] = engineAllocator.AllocDedicatedBuffer(engineAllocator.memoryHeapStagingBuffer.id, 65536, 0, true);
+	extraBuffers[0] = engineAllocator.AllocDedicatedBuffer( engineAllocator.memoryHeapStagingBuffer.id, 65536, 0, true );
 	memset( extraBuffers[0].memory, 0, 65536 );
 
 	for ( int i = 0; i < 64; i++ ) {
@@ -579,10 +623,10 @@ void TestCmd() {
 		.commandBufferCount = 1
 	};
 
-	vkAllocateCommandBuffers( device, &cmdInfo, &cmd );
+	vkAllocateCommandBuffers( device, &cmdInfo, &cmdBuffers[TLM.id][63] );
 
 	ExecutionGraph testEG;
-	testEG.Build( nodes, GMEM.graphicsCmdPool, cmd );
+	testEG.Build( 0, nodes );
 
 	VkSemaphoreTypeCreateInfo sInfo {
 		.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
@@ -603,7 +647,8 @@ void TestCmd() {
 	vkGetSwapchainImagesKHR( device, mainSwapChain.swapChain, &imageCount, images.memory );
 
 	uint64 waitValue = 1;
-	for ( int j = 0; j < 1000; j++ ) {
+	Timer t;
+	for ( int j = 0; j < 100; j++ ) {
 		VkSemaphoreWaitInfo waitInfo {
 			.semaphoreCount = 1,
 			.pSemaphores = &semaphore,
@@ -615,7 +660,7 @@ void TestCmd() {
 			.pSignalSemaphoreValues = &waitValue
 		};
 
-		VkSubmitInfo qInfo {
+		/* VkSubmitInfo qInfo {
 			.pNext = &qsInfo,
 			.commandBufferCount = 1,
 			.pCommandBuffers = &cmd,
@@ -625,16 +670,18 @@ void TestCmd() {
 
 		vkQueueSubmit( graphicsQueue.queues[0], 1, &qInfo, nullptr );
 
-		vkWaitSemaphores( device, &waitInfo, UINT64_MAX );
+		vkWaitSemaphores( device, &waitInfo, UINT64_MAX ); */
 
-		std::string a;
+		testEG.Exec();
+
+		/* std::string a;
 		for ( int i = 0; i < 64; i++ ) {
 			a += Str::Format( "%u ", extraBuffers[1].memory[i] );
 		}
 
-		Log::Notice( a );
+		Log::Notice( a ); */
 
-		uint32 index;
+		/* uint32 index;
 		while ( true ) {
 			VkResult res = vkAcquireNextImageKHR( device, mainSwapChain.swapChain, UINT64_MAX, nullptr, nullptr, &index );
 			if ( res == VK_SUCCESS ) {
@@ -653,8 +700,10 @@ void TestCmd() {
 
 		vkQueuePresentKHR( graphicsQueue.queues[0], &presentInfo );
 
-		vkDeviceWaitIdle( device );
+		vkDeviceWaitIdle( device ); */
 
 		waitValue++;
 	}
+	vkDeviceWaitIdle( device );
+	Log::Notice( t.FormatTime() );
 }

@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SrcDebug/Tag.h"
 
 #include "Thread/TaskList.h"
+#include "Thread/ThreadCommon.h"
 #include "Sys/CPUInfo.h"
 #include "Memory/MemoryChunk.h"
 
@@ -65,7 +66,7 @@ Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount( "r_vkThreadCount",
 		}
 
 		taskList.AdjustThreadCount( value );
-	}, 0, TaskList::MAX_THREADS );
+	}, 0, MAX_THREADS );
 
 Cvar::Cvar<std::string> r_vkMemoryChunkConfig( "r_vkMemoryChunkConfig",
 	"Configuration for memory chunk system: \"[chunkSize]:[chunkCount] .. [chunkSize]:[chunkCount]\", sizes are in kb."
