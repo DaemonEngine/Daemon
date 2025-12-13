@@ -225,19 +225,25 @@ void ThreadQueue::AddTask( const uint16 bufferID ) {
 	TLM.addQueueWaitTimer.Stop();
 }
 
-void TaskList::AddToThreadQueue( Task& task ) {
+void TaskList::AddToThreadQueue( Task& task, const int threadID ) {
 	while ( !SM.taskTimesLock.Lock() );
 	TaskTime taskTime;
 
 	if ( SM.taskTimes.contains( task.Execute ) ) {
 		GlobalTaskTime& SMTaskTime = SM.taskTimes[task.Execute];
-		taskTime.count = SMTaskTime.count.load( std::memory_order_relaxed );
-		taskTime.time  = SMTaskTime.time.load( std::memory_order_relaxed );
+		taskTime.count             = SMTaskTime.count.load( std::memory_order_relaxed );
+		taskTime.time              = SMTaskTime.time.load( std::memory_order_relaxed );
 	} else {
 		TLM.unknownTaskCount++;
 	}
 
 	SM.taskTimesLock.Unlock();
+
+	if ( threadID != -1 ) {
+		threadQueues[threadID].AddTask( task.bufferID );
+		
+		return;
+	}
 
 	const uint32 projectedTime = taskTime.time / std::max( taskTime.count, 1ull ) / 1000;
 
@@ -297,22 +303,22 @@ Task* TaskList::GetTaskMemory( Task& task ) {
 		return &tasks[task.bufferID];
 	}
 
-	Task* taskMemory = tasks.GetNextElementMemory();
+	Task* taskMemory     = tasks.GetNextElementMemory();
 	taskMemory->data     = task.data;
 	taskMemory->dataSize = task.dataSize;
 
-	taskMemory->active = true;
-	task.active        = true;
+	taskMemory->active   = true;
+	task.active          = true;
 
-	task.bufferID = taskMemory - tasks.memory;
+	task.bufferID        = taskMemory - tasks.memory;
 
-	*taskMemory = task;
+	*taskMemory          = task;
 
 	return taskMemory;
 }
 
 template<IsTask T>
-void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
+void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies, const int threadID ) {
 	if ( exiting.load( std::memory_order_relaxed ) && !task.shutdownTask ) {
 		return;
 	}
@@ -331,12 +337,12 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 		const uint32 counter = taskMemory->dependencyCounter.fetch_sub( 1, std::memory_order_relaxed ) - 1;
 
 		if ( !counter ) {
-			AddToThreadQueue( *taskMemory );
+			AddToThreadQueue( *taskMemory, threadID );
 		} else {
 			taskWithDependenciesCount.fetch_add( 1, std::memory_order_relaxed );
 		}
 	} else if ( dependencies.start == dependencies.end ) {
-		AddToThreadQueue( *taskMemory );
+		AddToThreadQueue( *taskMemory, threadID );
 	}
 
 	taskCount.fetch_add( 1, std::memory_order_relaxed );
@@ -346,7 +352,7 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 
 template<IsTask T>
 void TaskList::MarkDependencies( Task& task, TaskInitList<T>&& dependencies ) {
-	Task* mainTask = GetTaskMemory( task );
+	Task* mainTask           = GetTaskMemory( task );
 	uint32 dependencyCounter = 0;
 
 	for ( const T* dep = dependencies.start; dep < dependencies.end; dep++ ) {
@@ -379,10 +385,10 @@ void TaskList::UnMarkDependencies( TaskInitList<T>&& dependencies ) {
 	}
 }
 
-void TaskList::AddTask( Task& task, std::initializer_list<TaskProxy> dependencies ) {
+void TaskList::AddTask( Task& task, std::initializer_list<TaskProxy> dependencies, const int threadID ) {
 	MarkDependencies( task, TaskInitList { dependencies.begin(), dependencies.end() } );
 
-	AddTask( task, TaskInitList { dependencies.begin(), dependencies.end() } );
+	AddTask( task, TaskInitList { dependencies.begin(), dependencies.end() }, threadID );
 
 	UnMarkDependencies( TaskInitList{ dependencies.begin(), dependencies.end() } );
 }
@@ -401,7 +407,7 @@ void TaskList::AddTasksExt( std::initializer_list<TaskInit> dependencies ) {
 	for ( const TaskInit& taskInit : dependencies ) {
 		for ( const TaskProxy* task = &taskInit.begin()[1]; task < taskInit.end(); task++ ) {
 			if ( IsTrackedDependency( task->task.id ) && !IsUpdatedDependency( task->task.id ) ) {
-				Task* taskMemory = GetTaskMemory( task->task );
+				Task* taskMemory               = GetTaskMemory( task->task );
 				taskMemory->forwardTaskCounter = taskMemory->forwardTaskCounterFast;
 
 				SetBit( &task->task.id, TASK_SHIFT_UPDATED_DEPENDENCY );
@@ -430,8 +436,8 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 	Q_UNUSED( longestTask );
 
 	ThreadQueue& threadQueue = threadQueues[TLM.id];
-	uint8  current = threadQueue.current;
-	uint16 id      = threadQueue.tasks[current];
+	uint8  current           = threadQueue.current;
+	uint16 id                = threadQueue.tasks[current];
 	if ( id == ThreadQueue::TASK_NONE ) {
 		currentThreadExecutionNode.store( TLM.id, std::memory_order_relaxed );
 		return nullptr;

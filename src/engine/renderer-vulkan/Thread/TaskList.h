@@ -105,6 +105,8 @@ class TaskList :
 	AccessLock threadCountLock;
 	std::atomic<uint32> currentMaxThreads = 0;
 
+	std::atomic<uint32> threadExecutionNodes[MAX_THREADS];
+
 	FenceMain exitFence;
 
 	TaskList();
@@ -122,7 +124,7 @@ class TaskList :
 
 	byte* AllocTaskData( const uint16 dataSize );
 
-	void AddTask( Task& task, std::initializer_list<TaskProxy> dependencies = {} );
+	void AddTask( Task& task, std::initializer_list<TaskProxy> dependencies = {}, const int threadID = -1 );
 	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
 	Task* FetchTask( Thread* thread, const bool longestTask );
 
@@ -143,7 +145,6 @@ class TaskList :
 
 	Thread threads[MAX_THREADS];
 
-	std::atomic<uint32> threadExecutionNodes[MAX_THREADS];
 	ThreadQueue threadQueues[MAX_THREADS];
 	std::atomic<uint32> currentThreadExecutionNode = UINT32_MAX;
 	std::atomic<uint32> taskCount;
@@ -152,7 +153,7 @@ class TaskList :
 	ALIGN_CACHE std::atomic<uint32> executingThreads = 1;
 	ALIGN_CACHE std::atomic<bool> exiting = false;
 
-	void AddToThreadQueue( Task& task );
+	void AddToThreadQueue( Task& task, const int threadID = -1 );
 
 	Task* GetTaskMemory( Task& task );
 
@@ -160,7 +161,7 @@ class TaskList :
 	void ResolveDependencies( Task& task, TaskInitList<T>& dependencies );
 
 	template<IsTask T>
-	void AddTask( Task& task, TaskInitList<T>&& dependencies );
+	void AddTask( Task& task, TaskInitList<T>&& dependencies, const int threadID = -1 );
 
 	template<IsTask T>
 	void MarkDependencies( Task& task, TaskInitList<T>&& dependencies );

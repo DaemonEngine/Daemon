@@ -27,6 +27,8 @@ set( syncList
     ${ENGINE_DIR}/renderer-vulkan/Sync/AccessLock.cpp
     ${ENGINE_DIR}/renderer-vulkan/Sync/AccessLock.h
     ${ENGINE_DIR}/renderer-vulkan/Sync/AlignedAtomic.h
+    ${ENGINE_DIR}/renderer-vulkan/Sync/Barrier.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Sync/Barrier.h
     ${ENGINE_DIR}/renderer-vulkan/Sync/Fence.cpp
     ${ENGINE_DIR}/renderer-vulkan/Sync/Fence.h
     ${ENGINE_DIR}/renderer-vulkan/Sync/SyncPoint.cpp

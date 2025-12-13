@@ -31,59 +31,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// SyncPoint.h
+// Barrier.h
 
-#ifndef SYNC_POINT_H
-#define SYNC_POINT_H
+#ifndef BARRIER_H
+#define BARRIER_H
 
 #include <atomic>
 
 #include "../Math/NumberTypes.h"
 
-#include "../Error.h"
+#include "../Thread/ThreadMemory.h"
 
-#include "Fence.h"
+struct Barrier {
+	std::atomic<uint64> threadCount = 0;
+	std::atomic<uint64> genID       = 0;
 
-struct SyncPoint {
-	using SyncFunction = void( * )( void* );
+	bool operator()( const uint32 targetThreadCount );
 
-	SyncFunction      Execute;
-	void*             data;
-
-	FenceMain         fence;
-	Fence             done;
-	std::atomic<bool> active = false;
-
-	void Access();
-
-	template<typename FunctionType, typename DataType>
-	void Sync( FunctionType func, DataType newData, const uint64 syncCount ) {
-		if ( active.load( std::memory_order_relaxed ) ) {
-			Err( "SyncPoint: tried to start when already active" );
-			return;
-		}
-
-		Execute      = ( SyncFunction ) func;
-		data         = ( void* ) newData;
-		fence.target = fence.value.load( std::memory_order_relaxed ) + syncCount;
-
-		active.store( true, std::memory_order_release );
-	}
-
-	template<typename FunctionType, typename DataType>
-	void Sync( FunctionType func, DataType newData, const uint64 syncCount, Fence& newDone ) {
-		if ( active.load( std::memory_order_relaxed ) ) {
-			Err( "SyncPoint: tried to start when already active" );
-			return;
-		}
-
-		Execute      = ( SyncFunction ) func;
-		data         = ( void* ) newData;
-		fence.target = fence.value.load( std::memory_order_relaxed ) + syncCount;
-		done         = newDone;
-
-		active.store( true, std::memory_order_release );
-	}
+	bool operator()();
 };
 
-#endif // SYNC_POINT_H
+#define barrier() { \
+	static Barrier syncBarrier; \
+	syncBarrier(); \
+}
+
+#define threadElectOne( ... ) { \
+	static Barrier syncBarrier; \
+	const bool thisThreadElected = syncBarrier(); \
+	 \
+	if ( thisThreadElected ) { \
+		__VA_ARGS__ \
+	} \
+}
+
+#endif // BARRIER_H

@@ -31,59 +31,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// SyncPoint.h
+// Barrier.cpp
 
-#ifndef SYNC_POINT_H
-#define SYNC_POINT_H
+#include "Barrier.h"
 
-#include <atomic>
+bool Barrier::operator()( const uint32 targetThreadCount ) {
+	const uint64 count = threadCount.fetch_add( 1, std::memory_order_relaxed ) + 1;
+	const uint64 gen   = genID.load( std::memory_order_relaxed );
 
-#include "../Math/NumberTypes.h"
+	if( !( count % targetThreadCount ) ) {
+		genID.store( gen + 1, std::memory_order_relaxed );
+		genID.notify_all();
 
-#include "../Error.h"
-
-#include "Fence.h"
-
-struct SyncPoint {
-	using SyncFunction = void( * )( void* );
-
-	SyncFunction      Execute;
-	void*             data;
-
-	FenceMain         fence;
-	Fence             done;
-	std::atomic<bool> active = false;
-
-	void Access();
-
-	template<typename FunctionType, typename DataType>
-	void Sync( FunctionType func, DataType newData, const uint64 syncCount ) {
-		if ( active.load( std::memory_order_relaxed ) ) {
-			Err( "SyncPoint: tried to start when already active" );
-			return;
-		}
-
-		Execute      = ( SyncFunction ) func;
-		data         = ( void* ) newData;
-		fence.target = fence.value.load( std::memory_order_relaxed ) + syncCount;
-
-		active.store( true, std::memory_order_release );
+		return true;
 	}
 
-	template<typename FunctionType, typename DataType>
-	void Sync( FunctionType func, DataType newData, const uint64 syncCount, Fence& newDone ) {
-		if ( active.load( std::memory_order_relaxed ) ) {
-			Err( "SyncPoint: tried to start when already active" );
-			return;
-		}
+	genID.wait( gen, std::memory_order_relaxed );
 
-		Execute      = ( SyncFunction ) func;
-		data         = ( void* ) newData;
-		fence.target = fence.value.load( std::memory_order_relaxed ) + syncCount;
-		done         = newDone;
+	return false;
+}
 
-		active.store( true, std::memory_order_release );
-	}
-};
-
-#endif // SYNC_POINT_H
+bool Barrier::operator()() {
+	return operator()( TLM.currentMaxThreads );
+}
