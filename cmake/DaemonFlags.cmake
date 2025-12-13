@@ -476,7 +476,16 @@ else()
 		# Don't set _FORTIFY_SOURCE in debug builds.
 	endif()
 
-	try_c_cxx_flag(FPIC "-fPIC")
+	if (NOT NACL)
+		# Saigo reports weird errors when building some cgame and sgame arm nexe with PIC:
+		# > error: Cannot represent a difference across sections
+		# > error: expected relocatable expression
+		# Google-built Saigo crashes when building amd64 cgame with PIC:
+		# > UNREACHABLE executed at llvm/lib/Target/X86/X86ISelLowering.cpp
+		# Self-built Saigo doesn't crash, maybe because assertions are disabled.
+		# PIC is not useful with NaCl under any circumstances, so we don't use PIC with NaCl.
+		try_c_cxx_flag(FPIC "-fPIC")
+	endif()
 
 	if (USE_HARDENING)
 		# PNaCl accepts the flags but does not define __stack_chk_guard and __stack_chk_fail.
