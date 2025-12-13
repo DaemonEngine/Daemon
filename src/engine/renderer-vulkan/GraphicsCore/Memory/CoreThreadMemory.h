@@ -65,7 +65,7 @@ void InitCmdPools();
 constexpr uint32              maxThreadCmdBuffers = 64;
 
 extern    AlignedAtomicUint64 cmdBufferStates[MAX_THREADS];
-extern    AlignedAtomicUint64 cmdBufferAllocStates[MAX_THREADS];
+extern thread_local uint64    cmdBufferAllocState;
 
 extern    VkCommandBuffer     cmdBuffers[MAX_THREADS][maxThreadCmdBuffers];
 extern    VkFence             cmdBufferFences[MAX_THREADS][maxThreadCmdBuffers];

@@ -210,7 +210,7 @@ bool BuildGraphicsNode( const uint32 SPIRVIDVertex, const uint32 SPIRVIDFragment
 	};
 
 	VkPipelineRasterizationStateCreateInfo rasterisationInfo {
-		.cullMode = VK_CULL_MODE_BACK_BIT, // VK_CULL_MODE_NONE for transparent materials
+		.cullMode  = VK_CULL_MODE_BACK_BIT, // VK_CULL_MODE_NONE for transparent materials
 		.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 		.lineWidth = 1.0f
 	};
@@ -268,7 +268,7 @@ bool BuildGraphicsNode( const uint32 SPIRVIDVertex, const uint32 SPIRVIDFragment
 
 	ResultCheckRet( vkCreateGraphicsPipelines( device, nullptr, 1, &graphicsInfo, nullptr, pipeline ) );
 
-	return pipeline;
+	return true;
 }
 
 Buffer BuildBufferNode( BufferNode* node ) {
@@ -318,12 +318,9 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 	processedNodes.Zero();
 
 	uint64 state        = cmdBufferStates[TLM.id].value.load( std::memory_order_relaxed );
-	uint64 allocState   = cmdBufferAllocStates[TLM.id].value.load( std::memory_order_relaxed );
 	uint32 bufID        = FindZeroBitFast( state );
 
-	const bool allocReq = !BitSet( allocState, bufID );
-
-	if ( allocReq ) {
+	if ( !BitSet( cmdBufferAllocState, bufID ) ) {
 		VkCommandBufferAllocateInfo cmdInfo {
 			.commandPool        = GMEM.graphicsCmdPool,
 			.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
@@ -332,7 +329,7 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 
 		vkAllocateCommandBuffers( device, &cmdInfo, &cmdBuffers[TLM.id][bufID] );
 
-		cmdBufferAllocStates[TLM.id].value.fetch_add( SetBit( 0ull, bufID ) );
+		UnSetBit( &cmdBufferAllocState, bufID );
 	}
 
 	VkCommandBuffer cmd = cmdBuffers[TLM.id][bufID];
