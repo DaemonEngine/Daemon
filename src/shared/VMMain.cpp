@@ -34,6 +34,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/StackTrace.h"
 
+#if defined(__native_client__)
+#include <unistd.h>
+#endif
+
 IPC::Channel VM::rootChannel;
 
 #ifdef BUILD_VM_NATIVE_EXE
