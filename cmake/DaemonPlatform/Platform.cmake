@@ -30,11 +30,7 @@
 ################################################################################
 
 # Source generation.
-include(${CMAKE_CURRENT_LIST_DIR}/SourceGenerator.cmake)
+include("${CMAKE_CURRENT_LIST_DIR}/SourceGenerator.cmake")
 
-# Target detection.
-include(${CMAKE_CURRENT_LIST_DIR}/System.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/Architecture.cmake)
-
-# Compiler detection.
-include(${CMAKE_CURRENT_LIST_DIR}/Compiler.cmake)
+# System, architecture and compiler detection.
+include("${CMAKE_CURRENT_LIST_DIR}/Detection.cmake")
