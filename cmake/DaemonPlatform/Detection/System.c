@@ -28,19 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
+#define REPORT_SLUG "SYSTEM"
+#include "report.h"
+
 #if defined(__APPLE__) && defined(__MACH__)
 #include <TargetConditionals.h>
 #endif
-
-#define STRING(s) #s
-#define XSTRING(s) STRING(s)
-
-#define REPORT(key, value) \
-	"<REPORT<DAEMON_SYSTEM_" key "=" value ">REPORT>"
-#define REPORT_COMPATIBILITY(name) \
-	REPORT(name "_COMPATIBILITY", "ON")
-#define REPORT_NAME(name) \
-	REPORT("NAME", name)
 
 #if defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
 	#pragma message(REPORT_COMPATIBILITY("Linux"))
