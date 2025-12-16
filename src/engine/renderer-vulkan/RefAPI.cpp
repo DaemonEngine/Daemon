@@ -44,10 +44,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Thread/ThreadMemory.h"
 #include "Thread/ThreadUplink.h"
 
-Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen( "r_fullscreen", "use full-screen window", CVAR_ARCHIVE, true );
-
-cvar_t* r_allowResize;
-
 // struct SDL_Window* window;
 
 #include "Surface/Surface.h"
@@ -56,7 +52,12 @@ cvar_t* r_allowResize;
 #include "engine/framework/System.h"
 #include "Thread/SyncTask.h"
 
+#include "GraphicsCore/GraphicsCoreCVars.h"
+
 SDL_Window* window;
+
+Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen( "r_fullscreen", "Fullscreen", Cvar::ARCHIVE, true );
+cvar_t*                          r_allowResize;
 
 static Cvar::Cvar<int> r_width( "r_width", "width", Cvar::NONE, 0 );
 static Cvar::Cvar<int> r_height( "r_height", "height", Cvar::NONE, 0 );

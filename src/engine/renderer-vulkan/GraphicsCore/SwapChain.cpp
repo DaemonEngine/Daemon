@@ -63,7 +63,7 @@ static std::unordered_map<VkFormat, int, VkFormatHasher> surfaceFormatPriorities
 };
 
 static VkSurfaceFormat2KHR SelectSurfaceFormat( DynamicArray<VkSurfaceFormat2KHR>& formats ) {
-	VkFormat bestFormat = VK_FORMAT_UNDEFINED;
+	VkFormat bestFormat          = VK_FORMAT_UNDEFINED;
 	VkSurfaceFormat2KHR* bestFmt = &formats[0];
 
 	for ( VkSurfaceFormat2KHR& format : formats ) {
@@ -79,7 +79,7 @@ static VkSurfaceFormat2KHR SelectSurfaceFormat( DynamicArray<VkSurfaceFormat2KHR
 
 		if ( surfaceFormatPriorities[surfaceFormat] > surfaceFormatPriorities[bestFormat] ) {
 			bestFormat = surfaceFormat;
-			bestFmt = &format;
+			bestFmt    = &format;
 		}
 	}
 
@@ -106,6 +106,7 @@ static std::unordered_map<VkPresentModeKHR, uint32, VkPresentModeKHRHasher> pres
 
 static VkPresentModeKHR SelectPresentMode( DynamicArray<VkPresentModeKHR>& presentModes ) {
 	VkPresentModeKHR bestMode = presentModes[0];
+
 	for ( VkPresentModeKHR mode : presentModes ) {
 		if ( mode == r_vkPresentMode.Get() ) {
 			return mode;
@@ -127,7 +128,7 @@ void SwapChain::Init( const VkInstance instance ) {
 
 	#ifdef _MSC_VER
 		VkSurfaceFullScreenExclusiveInfoEXT fullscreenInfo {
-			.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_ALLOWED_EXT
+			.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT
 		};
 
 		surfaceInfo.pNext = &fullscreenInfo;
@@ -164,24 +165,36 @@ void SwapChain::Init( const VkInstance instance ) {
 	}
 
 	VkSurfaceCapabilitiesKHR& capabilities = capabilities2.surfaceCapabilities;
-	imageCount =
+	const uint32 minImageCount =
 		capabilities.minImageCount > 2
-		?   capabilities.minImageCount
+		? capabilities.minImageCount
 		: ( 2 <= capabilities.maxImageCount ? 2 : capabilities.maxImageCount );
 
 	minImages = capabilities.minImageCount;
 	maxImages = capabilities.maxImageCount;
 
+	VkExtent2D swapChainSize;
+
+	switch ( r_mode.Get() ) {
+		case -2:
+		default:
+			swapChainSize = capabilities.minImageExtent;
+			break;
+		case -1:
+			swapChainSize = { ( uint32 ) r_customWidth.Get(), ( uint32 ) r_customHeight.Get() };
+			break;
+	}
+
 	VkSwapchainCreateInfoKHR swapChainInfo {
-		.flags = 0,
+		.flags            = 0,
 
-		.surface = surface,
+		.surface          = surface,
 
-		.minImageCount    = imageCount,
+		.minImageCount    = minImageCount,
 		.imageFormat      = format.surfaceFormat.format,
 		.imageColorSpace  = format.surfaceFormat.colorSpace,
 
-		.imageExtent      = capabilities.minImageExtent,
+		.imageExtent      = swapChainSize,
 		.imageArrayLayers = 1,
 		.imageUsage       = capabilities.supportedUsageFlags,
 		.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -193,10 +206,24 @@ void SwapChain::Init( const VkInstance instance ) {
 
 		.clipped          = VK_TRUE,
 
-		.oldSwapchain = nullptr
+		.oldSwapchain     = nullptr
 	};
 
 	vkCreateSwapchainKHR( device, &swapChainInfo, nullptr, &swapChain );
+
+	#ifdef _MSC_VER
+		/* VkResult res = vkAcquireFullScreenExclusiveModeEXT( device, swapChain );
+
+		if ( res == VK_SUCCESS ) {
+			Log::Notice( "SwapChain: acquired exclusive fullscreen" );
+		} */
+	#endif
+
+	vkGetSwapchainImagesKHR( device, swapChain, &imageCount, nullptr );
+
+	images.Resize( mainSwapChain.imageCount );
+
+	vkGetSwapchainImagesKHR( device, swapChain, &imageCount, images.memory );
 }
 
 void SwapChain::Free() {

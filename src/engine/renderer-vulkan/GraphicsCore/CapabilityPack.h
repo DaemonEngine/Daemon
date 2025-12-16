@@ -81,7 +81,10 @@ constexpr Array instanceExtensions {
 
 constexpr Array extensionsMinimal {
 	"VK_EXT_descriptor_indexing",
-	"VK_KHR_swapchain"
+	"VK_KHR_swapchain",
+	#ifdef _MSC_VER
+		"VK_EXT_full_screen_exclusive"
+	#endif
 };
 
 constexpr Array featuresMinimal {

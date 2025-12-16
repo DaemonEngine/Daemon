@@ -38,14 +38,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 
-extern Cvar::Cvar<int> r_rendererAPI;
+#include "../Math/NumberTypes.h"
 
-extern Cvar::Cvar<std::string> r_vkVersion;
+extern Cvar::Cvar<int>              r_rendererAPI;
+
+extern Cvar::Cvar<std::string>      r_vkVersion;
 
 extern Cvar::Range<Cvar::Cvar<int>> r_vkCapabilityPack;
 
-extern Cvar::Cvar<int> r_vkDevice;
+extern Cvar::Cvar<int>              r_vkDevice;
+
+extern Cvar::Cvar<int>              r_displayIndex;
 
 extern Cvar::Range<Cvar::Cvar<int>> r_vkPresentMode;
+extern Cvar::Range<Cvar::Cvar<int>> r_mode;
+extern Cvar::Cvar<int>              r_customWidth;
+extern Cvar::Cvar<int>              r_customHeight;
+extern Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen;
+extern Cvar::Cvar<bool>             r_noBorder;
+// extern cvar_t*                      r_allowResize;
+
+extern Cvar::Range<Cvar::Cvar<int>> r_vkGraphicsMaxMemory;
+extern Cvar::Cvar<bool>             r_vkGraphicsMaxMemoryAuto;
 
 #endif // GRAPHICS_CORE_CVARS_H

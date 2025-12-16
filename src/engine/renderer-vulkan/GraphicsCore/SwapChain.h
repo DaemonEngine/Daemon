@@ -40,6 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
+#include "../Memory/DynamicArray.h"
+
 #include "GraphicsResource.h"
 
 namespace PresentMode {
@@ -53,12 +55,14 @@ namespace PresentMode {
 }
 
 struct SwapChain : public GraphicsResource {
-	VkSurfaceKHR surface;
+	VkSurfaceKHR   surface;
 	VkSwapchainKHR swapChain;
 
-	uint32 minImages;
-	uint32 maxImages;
-	uint32 imageCount;
+	uint32         minImages;
+	uint32         maxImages;
+	uint32         imageCount;
+
+	DynamicArray<VkImage> images;
 
 	void Init( const VkInstance instance );
 	void Free() override;

@@ -39,18 +39,41 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "SwapChain.h"
 
+#include "Memory/EngineAllocator.h"
+
 #include "GraphicsCoreCVars.h"
 
-Cvar::Cvar<int> r_rendererApi( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 1 );
+Cvar::Cvar<int>              r_rendererApi( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 1 );
 
-Cvar::Cvar<std::string> r_vkVersion( "r_vkVersion", "Daemon-vulkan version", Cvar::ROM, DAEMON_VULKAN_VERSION.FormatVersion() );
+Cvar::Cvar<std::string>      r_vkVersion( "r_vkVersion", "Daemon-vulkan version", Cvar::ROM, DAEMON_VULKAN_VERSION.FormatVersion() );
 
 Cvar::Range<Cvar::Cvar<int>> r_vkCapabilityPack( "r_vkCapabilityPack", "CapabilityPack override",
 	Cvar::NONE, CapabilityPackType::MINIMAL, CapabilityPackType::MINIMAL, CapabilityPackType::EXPERIMENTAL );
 
-Cvar::Cvar<int> r_vkDevice( "r_vkDevice", "Use specific GPU (-1: auto)", Cvar::NONE, -1 );
+Cvar::Cvar<int>              r_vkDevice( "r_vkDevice", "Use specific GPU (-1: auto)", Cvar::NONE, -1 );
+
+Cvar::Cvar<int>              r_displayIndex( "r_displayIndex", "Display index to create the window in", Cvar::NONE, 0 );
 
 Cvar::Range<Cvar::Cvar<int>> r_vkPresentMode( "r_vkPresentMode",
 	"Presentation mode: 0 - immediate, 1 - vsync on last frame, 2 - vsync on first new frame, "
 	"3 - relaxed vsync on first new frame, 4 - vsync on the closest frame to scanout",
 	Cvar::NONE, PresentMode::IMMEDIATE, PresentMode::IMMEDIATE, PresentMode::SCANOUT_SYNC_LATEST );
+
+Cvar::Range<Cvar::Cvar<int>> r_mode( "r_mode",
+	"Window mode: -2: use display size, -1: use r_customWidth / r_customHeight",
+	Cvar::NONE, -2, -2, -1 );
+
+Cvar::Cvar<int>              r_customWidth( "r_customWidth", "Window width when using r_mode -1", Cvar::NONE, 1920 );
+Cvar::Cvar<int>              r_customHeight( "r_customHeight", "Window height when using r_mode -1", Cvar::NONE, 1080 );
+
+// Cvar::Cvar<bool>             r_fullscreen( "r_fullscreen", "Fullscreen", Cvar::ARCHIVE, true );
+Cvar::Cvar<bool>             r_noBorder( "r_noBorder", "Borderless window", Cvar::ARCHIVE, false );
+// Cvar::Cvar<bool>             r_allowResize( "r_allowResize", "Resizable window", Cvar::ARCHIVE, false );
+
+Cvar::Range<Cvar::Cvar<int>> r_vkGraphicsMaxMemory( "r_vkGraphicsMaxMemory",
+	"Select memory allocation size for graphics engine; requires r_vkGraphicsMaxMemoryAuto",
+	Cvar::NONE, EngineAllocator::minGraphicsMemorySize, EngineAllocator::minGraphicsMemorySize, EngineAllocator::maxGraphicsMemorySize );
+
+Cvar::Cvar<bool>             r_vkGraphicsMaxMemoryAuto( "r_vkGraphicsMaxMemoryAuto",
+	"Automatically select memory allocation size based on available memory; use r_vkResourceSystemMaxMemory to set size manually",
+	Cvar::NONE, true );
