@@ -98,6 +98,8 @@ daemon_set_intrinsics()
 set("DAEMON_ARCH_${DAEMON_ARCH}" ON)
 set("DAEMON_NACL_ARCH_${DAEMON_NACL_ARCH}" ON)
 
-# Add printable strings to the executable.
-daemon_add_buildinfo("char*" "DAEMON_ARCH_STRING" "\"${DAEMON_ARCH}\"")
-daemon_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${DAEMON_NACL_ARCH}\"")
+if (DAEMON_SOURCE_GENERATOR)
+	# Add printable strings to the executable.
+	daemon_add_buildinfo("char*" "DAEMON_ARCH_STRING" "\"${DAEMON_ARCH}\"")
+	daemon_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${DAEMON_NACL_ARCH}\"")
+endif()

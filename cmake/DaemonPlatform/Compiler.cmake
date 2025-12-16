@@ -197,6 +197,8 @@ foreach(lang C;CXX)
 	# > if (DAEMON_CXX_COMPILER_Clang)
 	set("${compiler_var_name}" ON)
 
-	# Add printable string to the executable.
-	daemon_add_buildinfo("char*" "DAEMON_${lang}_COMPILER_STRING" "\"${DAEMON_${lang}_COMPILER_STRING}\"")
+	if (DAEMON_SOURCE_GENERATOR)
+		# Add printable string to the executable.
+		daemon_add_buildinfo("char*" "DAEMON_${lang}_COMPILER_STRING" "\"${DAEMON_${lang}_COMPILER_STRING}\"")
+	endif()
 endforeach()
