@@ -79,7 +79,7 @@ void InitCmdPools() {
 }
 
 AlignedAtomicUint64 cmdBufferStates[MAX_THREADS];
-AlignedAtomicUint64 cmdBufferAllocStates[MAX_THREADS];
+thread_local uint64 cmdBufferAllocState;
 
 VkCommandBuffer     cmdBuffers[MAX_THREADS][maxThreadCmdBuffers];
 VkFence             cmdBufferFences[MAX_THREADS][maxThreadCmdBuffers];
