@@ -27,23 +27,33 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Test script not used by the CMake build system. Usage example:
-# ./Compiler.sh gcc
+# ./detect gcc
 
 set -ueo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-file_path="${script_dir}/Compiler.c"
 
-# PNaCl doesn't work with “-o /dev/null” as it uses the output path as a
-# pattern for temporary files and then the parent folder should be writable.
-# Zig caches the build if both the source and the output don't change. Since
-# the /dev/null file never changes, Zig skips the compilation once done once.
-# So we need to use a randomly named path in a writable directory.
-temp_file="$(mktemp)"
+if [ -z "${1:-}" ]
+then
+	echo "ERROR: missing compiler" >&2
+	false
+fi
 
-"${@}" "${file_path}" -o "${temp_file}" 2>&1 \
-	| grep '<REPORT<' \
-	| sed -e 's/.*<REPORT<//;s/>REPORT>.*//' \
-|| "${@}" "${file_path}" -o "${temp_file}"
+for base_name in Compiler System Architecture
+do
+	file_path="${script_dir}/${base_name}.c"
 
-rm "${temp_file}"
+	# PNaCl doesn't work with “-o /dev/null” as it uses the output path as a
+	# pattern for temporary files and then the parent folder should be writable.
+	# Zig caches the build if both the source and the output don't change. Since
+	# the /dev/null file never changes, Zig skips the compilation once done once.
+	# So we need to use a randomly named path in a writable directory.
+	temp_file="$(mktemp)"
+
+	"${@}" "${file_path}" -o "${temp_file}" 2>&1 \
+		| grep '<REPORT<' \
+		| sed -e 's/.*<REPORT<//;s/>REPORT>.*//' \
+	|| "${@}" "${file_path}" -o "${temp_file}"
+
+	rm "${temp_file}"
+done
