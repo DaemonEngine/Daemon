@@ -206,9 +206,9 @@ if (USE_EXTERNAL_DEPS AND NOT DAEMON_SYSTEM_NaCl)
 
     set(DEPS_ARCH "${DAEMON_ARCH}")
 
-    if (MSVC)
+    if (DAEMON_CXX_COMPILER_MSVC)
         set(DEPS_COMPILER msvc)
-    elseif (WIN32)
+    elseif (DAEMON_CXX_COMPILER_MinGW)
         set(DEPS_COMPILER mingw)
     else()
         set(DEPS_COMPILER default)
@@ -834,9 +834,9 @@ macro(AddApplicationInternal Target Executable)
     # Append Windows specific manifests.
     # Adding the .manifest as a source works better for MSVC, but it has no
     # effect for MinGW (https://gitlab.kitware.com/cmake/cmake/-/issues/23244).
-    if (MINGW)
+    if (DAEMON_CXX_COMPILER_MinGW)
         target_sources(${Target} PRIVATE ${ENGINE_DIR}/sys/windows-resource/manifest.rc)
-    elseif (WIN32)
+    elseif (DAEMON_CXX_COMPILER_MSVC)
         target_sources(${Target} PRIVATE ${ENGINE_DIR}/sys/windows-resource/supported-os.manifest)
     endif()
 

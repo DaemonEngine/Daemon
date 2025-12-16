@@ -55,7 +55,7 @@ mark_as_advanced(USE_RECOMMENDED_CXX_STANDARD)
 
 option(USE_CPP23 "Use C++23 standard where possible" OFF)
 
-if (MSVC)
+if (DAEMON_CXX_COMPILER_MSVC)
 	set(DEFAULT_STRIP_SOURCE_PATHS ON)
 else()
 	set(DEFAULT_STRIP_SOURCE_PATHS OFF)
@@ -153,7 +153,7 @@ function(try_flag LIST FLAG)
     # Other compilers might interpret it as a filename so reject without testing.
     string(SUBSTRING "${FLAG}" 0 1 FLAG_FIRST_CHAR)
     if ("${FLAG_FIRST_CHAR}" STREQUAL "/")
-        if (MSVC)
+        if (DAEMON_CXX_COMPILER_MSVC)
             set(${TEST} 1)
         else()
             set(${TEST} 0)
@@ -233,7 +233,7 @@ if (STRIP_SOURCE_PATHS)
 		set(FILENAME_STRIP_DIRS ${FILENAME_STRIP_DIRS} "${DAEMON_DIR}/src" "${DAEMON_DIR}")
 	endif()
 	foreach(strip_dir ${FILENAME_STRIP_DIRS})
-		if (MSVC)
+		if (DAEMON_CXX_COMPILER_MSVC)
 			string(REPLACE "/" "\\" backslashed_dir ${strip_dir})
 			# set_c_cxx_flag can't be used because macros barf if the input contains backslashes
 			# https://gitlab.kitware.com/cmake/cmake/-/issues/19281
@@ -259,7 +259,7 @@ if (USE_FLOAT_EXCEPTIONS)
     add_definitions(-DDAEMON_USE_FLOAT_EXCEPTIONS)
 endif()
 
-if (MSVC)
+if (DAEMON_CXX_COMPILER_MSVC)
     set_c_cxx_flag("/MP")
 
     # There is no flag for standards before C++17
@@ -577,7 +577,7 @@ endif()
 option(USE_CPU_RECOMMENDED_FEATURES "Use some common hardware features like SSE2, NEON, VFP, MCX16, etc." ON)
 
 # Target options.
-if (MSVC)
+if (DAEMON_CXX_COMPILER_MSVC)
     if (DAEMON_ARCH_i686)
         if (USE_CPU_RECOMMENDED_FEATURES)
             set_c_cxx_flag("/arch:SSE2") # This is the default
@@ -682,7 +682,7 @@ if (DAEMON_SYSTEM_Windows)
     set(CMAKE_FIND_LIBRARY_PREFIXES ${CMAKE_FIND_LIBRARY_PREFIXES} "" "lib")
 endif()
 
-if (MSVC)
+if (DAEMON_CXX_COMPILER_MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
