@@ -67,36 +67,7 @@ function(daemon_detect_host_system)
 endfunction()
 
 function(daemon_detect_system)
-	try_compile(BUILD_RESULT
-		"${CMAKE_BINARY_DIR}"
-		"${CMAKE_CURRENT_LIST_DIR}/System/System.c"
-		CMAKE_FLAGS CMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-		OUTPUT_VARIABLE BUILD_LOG
-	)
-
-	if (NOT BUILD_RESULT)
-		message(WARNING "Failed to build System.c, relying on CMake builtin detection.")
-		set(system_name "Unknown")
-	else()
-		set(BUILD_LOG "\n${BUILD_LOG}\n")
-		string(REGEX REPLACE "\n[^\n]*<REPORT<" "\n" BUILD_LOG "${BUILD_LOG}")
-		string(REGEX REPLACE ">REPORT>[^\n]*\n" "\n" BUILD_LOG "${BUILD_LOG}")
-
-		string(REGEX REPLACE ".*\nDAEMON_SYSTEM_NAME=([^\n]*)\n.*" "\\1"
-			system_name "${BUILD_LOG}")
-
-		foreach(name Linux;Unix;${system_name})
-			set(compatibility_regex ".*\nDAEMON_SYSTEM_${name}_COMPATIBILITY=([^\n]*)\n.*")
-			if ("${BUILD_LOG}" MATCHES ${compatibility_regex})
-				string(REGEX REPLACE ${compatibility_regex} "\\1"
-				system_${name}_compatibility "${BUILD_LOG}")
-			endif()
-
-			set(DAEMON_SYSTEM_${name}_COMPATIBILITY
-				"${system_${name}_compatibility}"
-				PARENT_SCOPE)
-		endforeach()
-	endif()
+	daemon_run_detection("" "SYSTEM" "System.c" "Linux;Unix")
 
 	if (system_name STREQUAL "Unknown")
 		detect_cmake_host_system("system_name")
@@ -133,7 +104,7 @@ if (NOT "${DAEMON_HOST_SYSTEM_NAME}" STREQUAL "${DAEMON_SYSTEM_NAME}")
 	message(STATUS "Detected cross-compilation")
 endif()
 
-# Makes possible to do things like:
+# Makes possible to do that in CMake code:
 # > if (DAEMON_HOST_SYSTEM_Linux)
 # > if (DAEMON_SYSTEM_Windows)
 set("DAEMON_HOST_SYSTEM_${DAEMON_HOST_SYSTEM_NAME}" ON)

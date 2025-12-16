@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 Daemon BSD Source Code
-Copyright (c) 2024, Daemon Developers
+Copyright (c) 2024-2025, Daemon Developers
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,23 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#define STRING(s) #s
-#define XSTRING(s) STRING(s)
-
-#define REPORT(key, value) \
-	"<REPORT<DAEMON_COMPILER_" key "=" value ">REPORT>"
-#define REPORT_VERSION_3(name, major, minor, patch) \
-	REPORT(name "_VERSION", XSTRING(major) "." XSTRING(minor) "." XSTRING(patch))
-#define REPORT_VERSION_2(name, major, minor) \
-	REPORT(name "_VERSION", XSTRING(major) "." XSTRING(minor))
-#define REPORT_VERSION_1(name, major) \
-	REPORT(name "_VERSION", XSTRING(major))
-#define REPORT_VERSION_STRING(name, value) \
-	REPORT(name "_VERSION_STRING", value)
-#define REPORT_COMPATIBILITY(name) \
-	REPORT(name "_COMPATIBILITY", "ON")
-#define REPORT_NAME(name) \
-	REPORT("NAME", name)
+#define REPORT_SLUG "COMPILER"
+#include "report.h"
 
 // GCC
 
