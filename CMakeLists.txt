@@ -204,7 +204,7 @@ if (USE_EXTERNAL_DEPS AND NOT NACL)
 
     set(DEPS_EXT ".tar.xz")
 
-    set(DEPS_ARCH "${ARCH}")
+    set(DEPS_ARCH "${DAEMON_ARCH}")
 
     if (MSVC)
         set(DEPS_COMPILER msvc)
@@ -221,7 +221,7 @@ if (USE_EXTERNAL_DEPS AND NOT NACL)
         set(DEPS_SYSTEM macos)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64)
 
-        if (ARCH STREQUAL arm64)
+        if (DAEMON_ARCH_arm64)
             set(DEPS_ARCH amd64)
 
             set_deps_dir()
@@ -681,10 +681,10 @@ if (BUILD_CLIENT OR WIN32)
     set(sdlvar_amd64 SDL_CPU_X64)
     set(sdlvar_armhf SDL_CPU_ARM32)
     set(sdlvar_arm64 SDL_CPU_ARM64)
-    if (sdlvar_${ARCH})
-        set(${sdlvar_${ARCH}} 1)
+    if (sdlvar_${DAEMON_ARCH})
+        set(${sdlvar_${DAEMON_ARCH}} 1)
     else()
-        message("Developer TODO: translate architecture ${ARCH} for SDL")
+        message("Developer TODO: translate architecture ${DAEMON_ARCH} for SDL")
     endif()
 
     find_package(SDL3 REQUIRED CONFIG)
@@ -974,13 +974,13 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
 
     add_custom_command(TARGET runtime_deps PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/irt_core-${NACL_ARCH}.nexe
-            ${FULL_OUTPUT_DIR}/irt_core-${NACL_ARCH}.nexe
+            ${DEPS_DIR}/irt_core-${DAEMON_NACL_ARCH}.nexe
+            ${FULL_OUTPUT_DIR}/irt_core-${DAEMON_NACL_ARCH}.nexe
     )
 
     # Linux uses a bootstrap program to reserve address space
     if (LINUX OR FREEBSD)
-        if (ARCH STREQUAL "arm64")
+        if (DAEMON_ARCH_arm64)
             add_executable(nacl_helper_bootstrap-armhf tools/nacl_helper_bootstrap-armhf/nacl_helper_bootstrap-armhf.cpp)
             add_dependencies(runtime_deps nacl_helper_bootstrap-armhf)
 
@@ -1004,7 +1004,7 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     endif()
 
     # Win32 requires nacl_loader_amd64.exe in order to run on Win64
-    if (WIN32 AND ARCH STREQUAL i686)
+    if (WIN32 AND DAEMON_ARCH_i686)
         add_custom_command(TARGET runtime_deps PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 ${DEPS_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}

@@ -28,7 +28,7 @@
 # Architecture detection.
 ################################################################################
 
-# When adding a new architecture, look at all the places ARCH is used
+# When adding a new architecture, look at all the places DAEMON_ARCH is used.
 
 try_compile(BUILD_RESULT
 	"${CMAKE_BINARY_DIR}"
@@ -52,42 +52,46 @@ if (NOT BUILD_RESULT)
 	)
 endif()
 
-string(REGEX MATCH "DAEMON_ARCH_([a-zA-Z0-9_]+)" ARCH_DEFINE "${BUILD_LOG}")
-string(REPLACE "DAEMON_ARCH_" "" ARCH "${ARCH_DEFINE}")
+string(REGEX MATCH "DAEMON_ARCH_([a-zA-Z0-9_]+)" DAEMON_ARCH_DEFINE "${BUILD_LOG}")
+string(REPLACE "DAEMON_ARCH_" "" DAEMON_ARCH "${DAEMON_ARCH_DEFINE}")
 
-if (NOT ARCH)
+set("DAEMON_ARCH_${DAEMON_ARCH}" ON)
+
+if (NOT DAEMON_ARCH)
 	message(FATAL_ERROR
 		"Missing DAEMON_ARCH, there is a mistake in Architecture.cpp\n"
 		"${BUILD_LOG}"
 	)
 endif()
 
-message(STATUS "Detected target architecture: ${ARCH}")
+message(STATUS "Detected target architecture: ${DAEMON_ARCH}")
 
-add_definitions(-D${ARCH_DEFINE})
+add_definitions(-D${DAEMON_ARCH_DEFINE})
 
 # This string can be modified without breaking compatibility.
-daemon_add_buildinfo("char*" "DAEMON_ARCH_STRING" "\"${ARCH}\"")
+daemon_add_buildinfo("char*" "DAEMON_ARCH_STRING" "\"${DAEMON_ARCH}\"")
 
 # Modifying NACL_ARCH breaks engine compatibility with nexe game binaries
 # since NACL_ARCH contributes to the nexe file name.
-set(NACL_ARCH "${ARCH}")
+set(DAEMON_NACL_ARCH "${DAEMON_ARCH}")
 if (LINUX OR FREEBSD)
 	set(ARMHF_USAGE arm64 armel)
-	if (ARCH IN_LIST ARMHF_USAGE)
+	if (DAEMON_ARCH IN_LIST ARMHF_USAGE)
 		# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
 		# The nexe is system agnostic so there should be no difference with armel.
-		set(NACL_ARCH "armhf")
+		set(DAEMON_NACL_ARCH "armhf")
 	endif()
 elseif(APPLE)
-	if ("${ARCH}" STREQUAL arm64)
+	if ("${DAEMON_ARCH}" STREQUAL arm64)
 		# You can get emulated NaCl going like this:
 		# cp external_deps/macos-amd64-default_10/{nacl_loader,irt_core-amd64.nexe} build/
-		set(NACL_ARCH "amd64")
+		set(DAEMON_NACL_ARCH "amd64")
 	endif()
 endif()
 
-daemon_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${NACL_ARCH}\"")
+set("DAEMON_NACL_ARCH_${DAEMON_NACL_ARCH}" ON)
+
+daemon_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${DAEMON_NACL_ARCH}\"")
 
 option(USE_ARCH_INTRINSICS "Enable custom code using intrinsics functions or asm declarations" ON)
 mark_as_advanced(USE_ARCH_INTRINSICS)
@@ -105,11 +109,11 @@ if (USE_ARCH_INTRINSICS)
     add_definitions(-DDAEMON_USE_ARCH_INTRINSICS=1)
 endif()
 
-set_arch_intrinsics(${ARCH})
+set_arch_intrinsics(${DAEMON_ARCH})
 
 set(amd64_PARENT "i686")
 set(arm64_PARENT "armhf")
 
-if (${ARCH}_PARENT)
-	set_arch_intrinsics(${${ARCH}_PARENT})
+if (${DAEMON_ARCH}_PARENT)
+	set_arch_intrinsics(${${DAEMON_ARCH}_PARENT})
 endif()

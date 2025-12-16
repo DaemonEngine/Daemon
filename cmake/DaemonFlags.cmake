@@ -362,7 +362,7 @@ else()
 		endif()
 	endif()
 
-	if (NACL AND USE_NACL_SAIGO AND SAIGO_ARCH STREQUAL "arm")
+	if (NACL AND USE_NACL_SAIGO AND SAIGO_DAEMON_ARCH_arm)
 		# This should be set for every build type because build type flags
 		# are set after the other custom flags and then have the last word.
 		# DEBUG should already use -O0 anyway.
@@ -503,12 +503,12 @@ else()
 
 		if ("${FLAG_LINKER_PIE}" AND MINGW)
 			# https://github.com/msys2/MINGW-packages/issues/4100
-			if (ARCH STREQUAL "i686")
+			if (DAEMON_ARCH_i686)
 				set_linker_flag("-Wl,-e,_mainCRTStartup")
-			elseif(ARCH STREQUAL "amd64")
+			elseif(DAEMON_ARCH_amd64)
 				set_linker_flag("-Wl,-e,mainCRTStartup")
 			else()
-				message(FATAL_ERROR "Unsupported architecture ${ARCH}")
+				message(FATAL_ERROR "Unsupported architecture ${DAEMON_ARCH}")
 			endif()
 		endif()
 	endif()
@@ -578,7 +578,7 @@ option(USE_CPU_RECOMMENDED_FEATURES "Use some common hardware features like SSE2
 
 # Target options.
 if (MSVC)
-    if (ARCH STREQUAL "i686")
+    if (DAEMON_ARCH_i686)
         if (USE_CPU_RECOMMENDED_FEATURES)
             set_c_cxx_flag("/arch:SSE2") # This is the default
         else()
@@ -598,7 +598,7 @@ elseif (NOT NACL)
 	# Running a server with a native executable game is also a valid usage
 	# not requiring the NX bit.
 
-	if (ARCH STREQUAL "amd64")
+	if (DAEMON_ARCH_amd64)
 		# K8 or EM64T minimum: AMD Athlon 64 ClawHammer, Intel Xeon Nocona, Intel Pentium 4 model F (Prescott revision EO), VIA Nano.
 		if (DAEMON_CXX_COMPILER_ICC)
 			set(GCC_GENERIC_ARCH "pentium4")
@@ -608,15 +608,15 @@ elseif (NOT NACL)
 			set(GCC_GENERIC_ARCH "x86-64")
 		endif()
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (ARCH STREQUAL "i686")
+	elseif (DAEMON_ARCH_i686)
 		# P6 or K6 minimum: Intel Pentium Pro, AMD K6, Via Cyrix III, Via C3.
 		set(GCC_GENERIC_ARCH "i686")
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (ARCH STREQUAL "arm64")
+	elseif (DAEMON_ARCH_arm64)
 		# Armv8-A minimum: Cortex-A50.
 		set(GCC_GENERIC_ARCH "armv8-a")
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (ARCH STREQUAL "armhf")
+	elseif (DAEMON_ARCH_armhf)
 		# Armv7-A minimum with VFPv3 and optional NEONv1: Cortex-A5.
 		# Hard float ABI (mainstream 32-bit ARM Linux distributions).
 		# An FPU should be explicitly set on recent compilers or this
@@ -625,7 +625,7 @@ elseif (NOT NACL)
 		#   lacks an FPU
 		set(GCC_GENERIC_ARCH "armv7-a+fp")
 		set(GCC_GENERIC_TUNE "generic-armv7-a")
-	elseif (ARCH STREQUAL "armel")
+	elseif (DAEMON_ARCH_armel)
 		# Armv6 minimum with optional VFP: ARM11.
 		# Soft float ABI (previous mainstream 32-bit ARM Linux
 		# distributions, mainstream 32-bit ARM Android distributions).
@@ -633,7 +633,7 @@ elseif (NOT NACL)
 		# There is no generic tuning option for armv6.
 		unset(GCC_GENERIC_TUNE)
 	else()
-		message(WARNING "Unknown architecture ${ARCH}")
+		message(WARNING "Unknown architecture ${DAEMON_ARCH}")
 	endif()
 
 	if ("${DAEMON_CXX_COMPILER_NAME}" STREQUAL "Zig")
@@ -652,18 +652,18 @@ elseif (NOT NACL)
 	endif()
 
 	if (USE_CPU_RECOMMENDED_FEATURES)
-		if (ARCH STREQUAL "amd64")
+		if (DAEMON_ARCH_amd64)
 			# CMPXCHG16B minimum (x86-64-v2): AMD64 revision F.
 			try_c_cxx_flag_werror(MCX16 "-mcx16")
-		elseif (ARCH STREQUAL "i686")
+		elseif (DAEMON_ARCH_i686)
 			# SSE2 minimum: Intel Pentium 4 (Prescott),
 			# Intel Pentium M (Banias), AMD K8, Via C7.
 			try_c_cxx_flag_werror(MSSE2 "-msse2")
 			try_c_cxx_flag_werror(MFPMATH_SSE "-mfpmath=sse")
-		elseif (ARCH STREQUAL "armhf")
+		elseif (DAEMON_ARCH_armhf)
 			# NEONv1 minimum.
 			try_c_cxx_flag_werror(MFPU_NEON "-mfpu=neon")
-		elseif (ARCH STREQUAL "armel")
+		elseif (DAEMON_ARCH_armel)
 			# VFP minimum, hard float with soft float ABI.
 			try_c_cxx_flag_werror(MFPU_VFP "-mfpu=vfp")
 			try_c_cxx_flag_werror(MFLOAT_ABI_SOFTFP "-mfloat-abi=softfp")

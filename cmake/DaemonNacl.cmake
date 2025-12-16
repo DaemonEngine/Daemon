@@ -31,7 +31,7 @@ option(USE_NACL_SAIGO "Use Saigo toolchain to build NaCl executables" OFF)
 if( NACL )
   # Build nexe binary.
   if(USE_NACL_SAIGO)
-    # NACL_ARCH is "pnacl" here, NACL_TARGET carries the architecture.
+    # DAEMON_NACL_ARCH is "pnacl" here, NACL_TARGET carries the architecture.
     if (NACL_TARGET STREQUAL "amd64")
       add_definitions(-DNACL_BUILD_ARCH=x86)
       add_definitions(-DNACL_BUILD_SUBARCH=64)
@@ -47,7 +47,7 @@ if( NACL )
     # Those defines looks to be meaningless to produce arch-independent pexe
     # with PNaCl but they must be set to anything supported by native builds.
     # This requirement looks to be a PNaCl bug.
-    # NACL_ARCH is "pnacl" here, NACL_TARGET is not set.
+    # DAEMON_NACL_ARCH is "pnacl" here, NACL_TARGET is not set.
     add_definitions( -DNACL_BUILD_ARCH=x86 )
     add_definitions( -DNACL_BUILD_SUBARCH=64 )
   endif()
@@ -63,16 +63,16 @@ else()
     add_definitions( -DNACL_WINDOWS=1 -DNACL_LINUX=0 -DNACL_ANDROID=0 -DNACL_FREEBSD=0 -DNACL_OSX=0 )
   endif()
 
-  if( NACL_ARCH STREQUAL "amd64" )
+  if (DAEMON_NACL_ARCH_amd64)
     add_definitions( -DNACL_BUILD_ARCH=x86 )
     add_definitions( -DNACL_BUILD_SUBARCH=64 )
-  elseif( NACL_ARCH STREQUAL "i686" )
+  elseif (DAEMON_NACL_ARCH_i686)
     add_definitions( -DNACL_BUILD_ARCH=x86 )
     add_definitions( -DNACL_BUILD_SUBARCH=32 )
-  elseif( NACL_ARCH STREQUAL "armhf" )
+  elseif (DAEMON_NACL_ARCH_armhf)
     add_definitions( -DNACL_BUILD_ARCH=arm )
   else()
-    message(WARNING "Unknown architecture ${NACL_ARCH}")
+    message(WARNING "Unknown architecture ${DAEMON_NACL_ARCH}")
   endif()
 endif()
 
