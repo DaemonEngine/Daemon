@@ -57,8 +57,8 @@ care of platform name variants that are meant to distinguish
 platform variants we cannot support anyway. */
 
 /* PNaCl virtual machines. */
-#if defined(__native_client__)
-	#pragma message(REPORT_NAME("nacl"))
+#if defined(__pnacl__)
+	#pragma message(REPORT_NAME("pnacl"))
 
 /* Wasm virtual machines, work in progress. */
 #elif defined(Q_PROCESSOR_WASM)
@@ -106,6 +106,11 @@ platform variants we cannot support anyway. */
 
 #elif defined(Q_PROCESSOR_RISCV_64)
 	#pragma message(REPORT_NAME("riscv64"))
+
+/* Remaining native NaCl architecture. */
+
+#elif defined(Q_PROCESSOR_MIPS_32) && Q_BYTE_ORDER == Q_LITTLE_ENDIAN
+	#pragma message(REPORT_NAME("mipsel"))
 
 #else
 	#pragma message(REPORT_NAME("unknown"))
