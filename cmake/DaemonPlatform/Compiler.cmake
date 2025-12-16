@@ -185,6 +185,7 @@ foreach(lang C;CXX)
 	if (MSVC)
 		# Let CMake do the job, it does it very well,
 		# and there is probably no variant to take care about.
+		set(DAEMON_${lang}_COMPILER_MSVC_COMPATIBILITY ON)
 		set(DAEMON_${lang}_COMPILER_NAME "${CMAKE_${lang}_COMPILER_ID}")
 		set(DAEMON_${lang}_COMPILER_VERSION "${CMAKE_${lang}_COMPILER_VERSION}")
 		get_filename_component(DAEMON_${lang}_COMPILER_BASENAME "${CMAKE_${lang}_COMPILER}" NAME)
