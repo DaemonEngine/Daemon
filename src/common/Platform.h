@@ -33,18 +33,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Platform-specific configuration
 #if defined(_WIN32)
-#define PLATFORM_STRING "Windows"
 #elif defined(__APPLE__)
-#define PLATFORM_STRING "macOS"
 #elif defined(__linux__)
-#define PLATFORM_STRING "Linux"
 #elif defined(__FreeBSD__)
-#define PLATFORM_STRING "FreeBSD"
 #elif defined(__native_client__)
-#define PLATFORM_STRING "NaCl"
 #else
 #error "Platform not supported"
 #endif
+
+// TODO: Remove once the game code is ported to DAEMON_SYSTEM_STRING.
+#define PLATFORM_STRING DAEMON_SYSTEM_STRING
 
 #if defined(__native_client__)
 #elif defined(_WIN32)
