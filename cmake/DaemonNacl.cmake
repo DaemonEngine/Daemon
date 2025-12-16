@@ -72,7 +72,7 @@ else()
   elseif (DAEMON_NACL_ARCH_armhf)
     add_definitions( -DNACL_BUILD_ARCH=arm )
   else()
-    message(WARNING "Unknown architecture ${DAEMON_NACL_ARCH}")
+    message(WARNING "Unknown NaCl architecture ${DAEMON_NACL_ARCH_NAME}")
   endif()
 endif()
 

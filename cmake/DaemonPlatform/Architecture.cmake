@@ -36,7 +36,7 @@ mark_as_advanced(USE_ARCH_INTRINSICS)
 function(daemon_detect_arch)
 	daemon_run_detection("" "ARCH" "Architecture.c" "")
 
-	set(DAEMON_ARCH "${arch_name}" PARENT_SCOPE)
+	set(DAEMON_ARCH_NAME "${arch_name}" PARENT_SCOPE)
 
 	message(STATUS "Detected target architecture: ${arch_name}")
 
@@ -59,7 +59,7 @@ function(daemon_detect_arch)
 	endif()
 
 	# The DAEMON_NACL_ARCH variable contributes to the nexe file name.
-	set(DAEMON_NACL_ARCH "${nacl_arch}" PARENT_SCOPE)
+	set(DAEMON_NACL_ARCH_NAME "${nacl_arch}" PARENT_SCOPE)
 endfunction()
 
 function(daemon_set_arch_intrinsics name)
@@ -76,16 +76,16 @@ function(daemon_set_intrinsics)
 		# Makes possible to do that in C++ code:
 		# > if defined(DAEMON_USE_ARCH_INTRINSICS_amd64)
 		# > if defined(DAEMON_USE_ARCH_INTRINSICS_i686)
-		daemon_set_arch_intrinsics("${DAEMON_ARCH}")
+		daemon_set_arch_intrinsics("${DAEMON_ARCH_NAME}")
 
 		set(amd64_PARENT "i686")
 		set(arm64_PARENT "armhf")
 
-		if ("${DAEMON_ARCH}_PARENT")
-			daemon_set_arch_intrinsics("${${DAEMON_ARCH}_PARENT}")
+		if ("${DAEMON_ARCH_NAME}_PARENT")
+			daemon_set_arch_intrinsics("${${DAEMON_ARCH_NAME}_PARENT}")
 		endif()
 	else()
-		message(STATUS "Disabling ${DAEMON_ARCH} architecture intrinsics")
+		message(STATUS "Disabling ${DAEMON_ARCH_NAME} architecture intrinsics")
 	endif()
 endfunction()
 
@@ -95,11 +95,11 @@ daemon_set_intrinsics()
 # Makes possible to do that in CMake code:
 # > if (DAEMON_ARCH_arm64)
 # > if (DAEMON_NACL_ARCH_armhf)
-set("DAEMON_ARCH_${DAEMON_ARCH}" ON)
-set("DAEMON_NACL_ARCH_${DAEMON_NACL_ARCH}" ON)
+set("DAEMON_ARCH_${DAEMON_ARCH_NAME}" ON)
+set("DAEMON_NACL_ARCH_${DAEMON_NACL_ARCH_NAME}" ON)
 
 if (DAEMON_SOURCE_GENERATOR)
 	# Add printable strings to the executable.
-	daemon_add_buildinfo("char*" "DAEMON_ARCH_STRING" "\"${DAEMON_ARCH}\"")
-	daemon_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${DAEMON_NACL_ARCH}\"")
+	daemon_add_buildinfo("char*" "DAEMON_ARCH_STRING" "\"${DAEMON_ARCH_NAME}\"")
+	daemon_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${DAEMON_NACL_ARCH_NAME}\"")
 endif()

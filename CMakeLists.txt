@@ -204,7 +204,7 @@ if (USE_EXTERNAL_DEPS AND NOT DAEMON_SYSTEM_NaCl)
 
     set(DEPS_EXT ".tar.xz")
 
-    set(DEPS_ARCH "${DAEMON_ARCH}")
+    set(DEPS_ARCH "${DAEMON_ARCH_NAME}")
 
     if (DAEMON_CXX_COMPILER_MSVC)
         set(DEPS_COMPILER msvc)
@@ -681,10 +681,10 @@ if (BUILD_CLIENT OR DAEMON_SYSTEM_Windows)
     set(sdlvar_amd64 SDL_CPU_X64)
     set(sdlvar_armhf SDL_CPU_ARM32)
     set(sdlvar_arm64 SDL_CPU_ARM64)
-    if (sdlvar_${DAEMON_ARCH})
-        set(${sdlvar_${DAEMON_ARCH}} 1)
+    if (sdlvar_${DAEMON_ARCH_NAME})
+        set(${sdlvar_${DAEMON_ARCH_NAME}} 1)
     else()
-        message("Developer TODO: translate architecture ${DAEMON_ARCH} for SDL")
+        message("Developer TODO: translate architecture ${DAEMON_ARCH_NAME} for SDL")
     endif()
 
     find_package(SDL3 REQUIRED CONFIG)
@@ -974,8 +974,8 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
 
     add_custom_command(TARGET runtime_deps PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/irt_core-${DAEMON_NACL_ARCH}.nexe
-            ${FULL_OUTPUT_DIR}/irt_core-${DAEMON_NACL_ARCH}.nexe
+            ${DEPS_DIR}/irt_core-${DAEMON_NACL_ARCH_NAME}.nexe
+            ${FULL_OUTPUT_DIR}/irt_core-${DAEMON_NACL_ARCH_NAME}.nexe
     )
 
     # Linux uses a bootstrap program to reserve address space
