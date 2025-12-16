@@ -40,7 +40,7 @@ try_compile(BUILD_RESULT
 # Setting -Werror in CXXFLAGS would produce errors instead of warning
 # but that should not break the architecture detection,
 # so we only print a CMake warning there and use BUILD_LOG content to
-# detect unsupported platforms.
+# detect unknown platforms.
 # Catching compilation error is still useful, for example to detect
 # undefined types, missing header or things like that.
 # Setting USE_WERROR to ON doesn't print this warning.
@@ -60,8 +60,6 @@ if (NOT ARCH)
 		"Missing DAEMON_ARCH, there is a mistake in DaemonArchitecture.cpp\n"
 		"${BUILD_LOG}"
 	)
-elseif(ARCH STREQUAL "unsupported")
-	message(FATAL_ERROR "Architecture not supported")
 endif()
 
 message(STATUS "Detected architecture: ${ARCH}")
