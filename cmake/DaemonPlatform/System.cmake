@@ -109,3 +109,8 @@ endif()
 # > if (DAEMON_SYSTEM_Windows)
 set("DAEMON_HOST_SYSTEM_${DAEMON_HOST_SYSTEM_NAME}" ON)
 set("DAEMON_SYSTEM_${DAEMON_SYSTEM_NAME}" ON)
+
+if (DAEMON_SOURCE_GENERATOR)
+	# Add printable string to the executable.
+	daemon_add_buildinfo("char*" "DAEMON_SYSTEM_STRING" "\"${DAEMON_SYSTEM_NAME}\"")
+endif()
