@@ -122,3 +122,8 @@ foreach(name Linux;FreeBSD)
 		endif()
 	endforeach()
 endforeach()
+
+if (DAEMON_SOURCE_GENERATOR)
+	# Add printable string to the executable.
+	daemon_add_buildinfo("char*" "DAEMON_SYSTEM_STRING" "\"${DAEMON_SYSTEM_NAME}\"")
+endif()
