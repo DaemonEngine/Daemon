@@ -55,7 +55,7 @@ mark_as_advanced(USE_RECOMMENDED_CXX_STANDARD)
 
 option(USE_CPP23 "Use C++23 standard where possible" OFF)
 
-if (MSVC)
+if (DAEMON_CXX_COMPILER_MSVC)
 	set(DEFAULT_STRIP_SOURCE_PATHS ON)
 else()
 	set(DEFAULT_STRIP_SOURCE_PATHS OFF)
@@ -153,7 +153,7 @@ function(try_flag LIST FLAG)
     # Other compilers might interpret it as a filename so reject without testing.
     string(SUBSTRING "${FLAG}" 0 1 FLAG_FIRST_CHAR)
     if ("${FLAG_FIRST_CHAR}" STREQUAL "/")
-        if (MSVC)
+        if (DAEMON_CXX_COMPILER_MSVC)
             set(${TEST} 1)
         else()
             set(${TEST} 0)
@@ -233,7 +233,7 @@ if (STRIP_SOURCE_PATHS)
 		set(FILENAME_STRIP_DIRS ${FILENAME_STRIP_DIRS} "${DAEMON_DIR}/src" "${DAEMON_DIR}")
 	endif()
 	foreach(strip_dir ${FILENAME_STRIP_DIRS})
-		if (MSVC)
+		if (DAEMON_CXX_COMPILER_MSVC)
 			string(REPLACE "/" "\\" backslashed_dir ${strip_dir})
 			# set_c_cxx_flag can't be used because macros barf if the input contains backslashes
 			# https://gitlab.kitware.com/cmake/cmake/-/issues/19281
@@ -259,7 +259,7 @@ if (USE_FLOAT_EXCEPTIONS)
     add_definitions(-DDAEMON_USE_FLOAT_EXCEPTIONS)
 endif()
 
-if (MSVC)
+if (DAEMON_CXX_COMPILER_MSVC)
     set_c_cxx_flag("/MP")
 
     # There is no flag for standards before C++17
@@ -362,7 +362,7 @@ else()
 		endif()
 	endif()
 
-	if (NACL AND USE_NACL_SAIGO AND SAIGO_ARCH STREQUAL "arm")
+	if (DAEMON_SYSTEM_NaCl AND USE_NACL_SAIGO AND SAIGO_DAEMON_ARCH_arm)
 		# This should be set for every build type because build type flags
 		# are set after the other custom flags and then have the last word.
 		# DEBUG should already use -O0 anyway.
@@ -413,7 +413,7 @@ else()
 		try_flag(WARNINGS "-Werror")
 	endif()
 
-	if (NACL AND NOT USE_NACL_SAIGO)
+	if (DAEMON_SYSTEM_NaCl AND NOT USE_NACL_SAIGO)
 		# PNaCl only supports libc++ as standard library.
 		set_c_cxx_flag("-stdlib=libc++")
 		set_c_cxx_flag("--pnacl-allow-exceptions")
@@ -425,12 +425,12 @@ else()
 	try_cxx_flag(FNO_GNU_UNIQUE "-fno-gnu-unique")
 
 	# Use MSVC-compatible bitfield layout
-	if (WIN32)
+	if (DAEMON_SYSTEM_Windows)
 		set_c_cxx_flag("-mms-bitfields")
 	endif()
 
 	# Linker flags
-	if (NOT APPLE)
+	if (NOT DAEMON_SYSTEM_macOS)
 		try_linker_flag(LINKER_O1 "-Wl,-O1")
 		try_linker_flag(LINKER_SORT_COMMON "-Wl,--sort-common")
 		try_linker_flag(LINKER_AS_NEEDED "-Wl,--as-needed")
@@ -443,7 +443,7 @@ else()
 		try_linker_flag(LINKER_Z_NOW "-Wl,-z,now")
 	endif()
 
-	if (WIN32)
+	if (DAEMON_SYSTEM_Windows)
 		try_linker_flag(LINKER_DYNAMICBASE "-Wl,--dynamicbase")
 		try_linker_flag(LINKER_NXCOMPAT "-Wl,--nxcompat")
 		try_linker_flag(LINKER_LARGE_ADDRESS_AWARE "-Wl,--large-address-aware")
@@ -456,7 +456,7 @@ else()
 
 	# The -pthread flag sets some preprocessor defines,
 	# it is also used to link with libpthread on Linux.
-	if (NOT APPLE)
+	if (NOT DAEMON_SYSTEM_macOS)
 		try_c_cxx_flag(PTHREAD "-pthread")
 	endif()
 
@@ -480,7 +480,7 @@ else()
 
 	if (USE_HARDENING)
 		# PNaCl accepts the flags but does not define __stack_chk_guard and __stack_chk_fail.
-		if (NOT NACL)
+		if (NOT DAEMON_SYSTEM_NaCl)
 			try_c_cxx_flag(FSTACK_PROTECTOR_STRONG "-fstack-protector-strong")
 
 			if (NOT FLAG_FSTACK_PROTECTOR_STRONG)
@@ -491,24 +491,24 @@ else()
 		try_c_cxx_flag(FNO_STRICT_OVERFLOW "-fno-strict-overflow")
 		try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
 
-		if (NOT NACL OR (NACL AND GAME_PIE))
+		if (NOT DAEMON_SYSTEM_NaCl)
 			# The -pie flag requires -fPIC:
 			# > ld: error: relocation R_X86_64_64 cannot be used against local symbol; recompile with -fPIC
 			# This flag isn't used on macOS:
 			# > clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
-			if (FLAG_FPIC AND NOT APPLE)
+			if (FLAG_FPIC AND NOT DAEMON_SYSTEM_macOS)
 				try_exe_linker_flag(LINKER_PIE "-pie")
 			endif()
 		endif()
 
 		if ("${FLAG_LINKER_PIE}" AND MINGW)
 			# https://github.com/msys2/MINGW-packages/issues/4100
-			if (ARCH STREQUAL "i686")
+			if (DAEMON_ARCH_i686)
 				set_linker_flag("-Wl,-e,_mainCRTStartup")
-			elseif(ARCH STREQUAL "amd64")
+			elseif(DAEMON_ARCH_amd64)
 				set_linker_flag("-Wl,-e,mainCRTStartup")
 			else()
-				message(FATAL_ERROR "Unsupported architecture ${ARCH}")
+				message(FATAL_ERROR "Unsupported architecture ${DAEMON_ARCH_NAME}")
 			endif()
 		endif()
 	endif()
@@ -519,7 +519,7 @@ else()
 	# PNaCl accepts the flag but does nothing with it, underlying clang doesn't support it.
 	# Saigo NaCl compiler doesn't support LTO, the flag is accepted but linking fails
 	# with “unable to pass LLVM bit-code files to linker” error.
-	if (USE_LTO AND NOT NACL)
+	if (USE_LTO AND NOT DAEMON_SYSTEM_NaCl)
 		try_c_cxx_flag(LTO_AUTO "-flto=auto")
 
 		if (NOT FLAG_LTO_AUTO)
@@ -577,15 +577,15 @@ endif()
 option(USE_CPU_RECOMMENDED_FEATURES "Use some common hardware features like SSE2, NEON, VFP, MCX16, etc." ON)
 
 # Target options.
-if (MSVC)
-    if (ARCH STREQUAL "i686")
+if (DAEMON_CXX_COMPILER_MSVC)
+    if (DAEMON_ARCH_i686)
         if (USE_CPU_RECOMMENDED_FEATURES)
             set_c_cxx_flag("/arch:SSE2") # This is the default
         else()
             set_c_cxx_flag("/arch:IA32") # minimum
         endif()
     endif()
-elseif (NOT NACL)
+elseif (NOT DAEMON_SYSTEM_NaCl)
 	# Among the required hardware features, the NX bit (No eXecute bit)
 	# feature may be required for NativeClient to work. Some early
 	# Intel EM64T processors are known to not implement the NX bit.
@@ -598,7 +598,7 @@ elseif (NOT NACL)
 	# Running a server with a native executable game is also a valid usage
 	# not requiring the NX bit.
 
-	if (ARCH STREQUAL "amd64")
+	if (DAEMON_ARCH_amd64)
 		# K8 or EM64T minimum: AMD Athlon 64 ClawHammer, Intel Xeon Nocona, Intel Pentium 4 model F (Prescott revision EO), VIA Nano.
 		if (DAEMON_CXX_COMPILER_ICC)
 			set(GCC_GENERIC_ARCH "pentium4")
@@ -608,15 +608,15 @@ elseif (NOT NACL)
 			set(GCC_GENERIC_ARCH "x86-64")
 		endif()
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (ARCH STREQUAL "i686")
+	elseif (DAEMON_ARCH_i686)
 		# P6 or K6 minimum: Intel Pentium Pro, AMD K6, Via Cyrix III, Via C3.
 		set(GCC_GENERIC_ARCH "i686")
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (ARCH STREQUAL "arm64")
+	elseif (DAEMON_ARCH_arm64)
 		# Armv8-A minimum: Cortex-A50.
 		set(GCC_GENERIC_ARCH "armv8-a")
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (ARCH STREQUAL "armhf")
+	elseif (DAEMON_ARCH_armhf)
 		# Armv7-A minimum with VFPv3 and optional NEONv1: Cortex-A5.
 		# Hard float ABI (mainstream 32-bit ARM Linux distributions).
 		# An FPU should be explicitly set on recent compilers or this
@@ -625,7 +625,7 @@ elseif (NOT NACL)
 		#   lacks an FPU
 		set(GCC_GENERIC_ARCH "armv7-a+fp")
 		set(GCC_GENERIC_TUNE "generic-armv7-a")
-	elseif (ARCH STREQUAL "armel")
+	elseif (DAEMON_ARCH_armel)
 		# Armv6 minimum with optional VFP: ARM11.
 		# Soft float ABI (previous mainstream 32-bit ARM Linux
 		# distributions, mainstream 32-bit ARM Android distributions).
@@ -633,7 +633,7 @@ elseif (NOT NACL)
 		# There is no generic tuning option for armv6.
 		unset(GCC_GENERIC_TUNE)
 	else()
-		message(WARNING "Unknown architecture ${ARCH}")
+		message(WARNING "Unknown architecture ${DAEMON_ARCH_NAME}")
 	endif()
 
 	if ("${DAEMON_CXX_COMPILER_NAME}" STREQUAL "Zig")
@@ -652,18 +652,18 @@ elseif (NOT NACL)
 	endif()
 
 	if (USE_CPU_RECOMMENDED_FEATURES)
-		if (ARCH STREQUAL "amd64")
+		if (DAEMON_ARCH_amd64)
 			# CMPXCHG16B minimum (x86-64-v2): AMD64 revision F.
 			try_c_cxx_flag_werror(MCX16 "-mcx16")
-		elseif (ARCH STREQUAL "i686")
+		elseif (DAEMON_ARCH_i686)
 			# SSE2 minimum: Intel Pentium 4 (Prescott),
 			# Intel Pentium M (Banias), AMD K8, Via C7.
 			try_c_cxx_flag_werror(MSSE2 "-msse2")
 			try_c_cxx_flag_werror(MFPMATH_SSE "-mfpmath=sse")
-		elseif (ARCH STREQUAL "armhf")
+		elseif (DAEMON_ARCH_armhf)
 			# NEONv1 minimum.
 			try_c_cxx_flag_werror(MFPU_NEON "-mfpu=neon")
-		elseif (ARCH STREQUAL "armel")
+		elseif (DAEMON_ARCH_armel)
 			# VFP minimum, hard float with soft float ABI.
 			try_c_cxx_flag_werror(MFPU_VFP "-mfpu=vfp")
 			try_c_cxx_flag_werror(MFLOAT_ABI_SOFTFP "-mfloat-abi=softfp")
@@ -672,7 +672,7 @@ elseif (NOT NACL)
 endif()
 
 # Windows-specific definitions
-if (WIN32)
+if (DAEMON_SYSTEM_Windows)
     add_definitions(
         -DWINVER=0x501  # Minimum Windows version: XP
         -DWIN32         # Define WIN32 for compatibility (compiler defines _WIN32)
@@ -682,12 +682,12 @@ if (WIN32)
     set(CMAKE_FIND_LIBRARY_PREFIXES ${CMAKE_FIND_LIBRARY_PREFIXES} "" "lib")
 endif()
 
-if (MSVC)
+if (DAEMON_CXX_COMPILER_MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
 # Mac-specific definitions
-if (APPLE)
+if (DAEMON_SYSTEM_macOS)
     add_definitions(-DMACOS_X)
     set(CMAKE_INSTALL_RPATH "@executable_path")
     set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)

@@ -1,5 +1,5 @@
 # Daemon BSD Source Code
-# Copyright (c) 2013-2016, Daemon Developers
+# Copyright (c) 2025, Daemon Developers
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,29 +25,12 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ################################################################################
-# Determine platform
+# Collection of reusable CMake helpers written for the Dæmon engine and related
+# projects.
 ################################################################################
 
-# When adding a new platform, look at all the places WIN32, APPLE and LINUX are used
-if( CMAKE_SYSTEM_NAME MATCHES "Linux" )
-  set( LINUX ON )
-elseif( CMAKE_SYSTEM_NAME MATCHES "FreeBSD" )
-  set( FREEBSD ON )
-elseif( WIN32 )
-elseif( APPLE )
-elseif( NACL )
-else()
-  message( FATAL_ERROR "Platform not supported" )
-endif()
+# Source generation.
+include("${CMAKE_CURRENT_LIST_DIR}/SourceGenerator.cmake")
 
-if (NACL AND USE_NACL_SAIGO)
-	# Saigo clang reports weird errors when building some cgame and sgame arm nexe with PIE.
-	# Saigo clang crashes when building amd64 cgame with PIE, sgame builds properly though.
-	set(GAME_PIE 0)
-else()
-	set(GAME_PIE 1)
-endif()
-
-
-include(DaemonArchitecture)
-include(DaemonCompiler)
+# System, architecture and compiler detection.
+include("${CMAKE_CURRENT_LIST_DIR}/Detection.cmake")

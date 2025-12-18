@@ -844,7 +844,7 @@ static void Init(int argc, char** argv)
 #endif
 
 	// Print a banner and a copy of the command-line arguments
-	Log::Notice("%s %s %s (%s) %s", Q3_VERSION, PLATFORM_STRING, DAEMON_ARCH_STRING, DAEMON_CXX_COMPILER_STRING, __DATE__);
+	Log::Notice("%s %s %s (%s) %s", Q3_VERSION, DAEMON_SYSTEM_STRING, DAEMON_ARCH_STRING, DAEMON_CXX_COMPILER_STRING, __DATE__);
 
 	std::string argsString = "cmdline:";
 	for (int i = 1; i < argc; i++) {

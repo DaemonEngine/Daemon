@@ -207,7 +207,7 @@ set(ENGINELIST
     ${ENGINE_DIR}/RefAPI.h
 )
 
-if (WIN32)
+if (DAEMON_SYSTEM_Windows)
     set(ENGINELIST ${ENGINELIST}
         ${ENGINE_DIR}/sys/con_passive.cpp
     )
@@ -296,7 +296,7 @@ set(CLIENTLIST
     ${RENDERERLIST}
 )
 
-if (APPLE)
+if (DAEMON_SYSTEM_macOS)
     set(CLIENTLIST ${CLIENTLIST} ${ENGINE_DIR}/sys/DisableAccentMenu.m)
 endif()
 
