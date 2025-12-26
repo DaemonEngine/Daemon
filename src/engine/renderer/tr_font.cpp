@@ -39,6 +39,8 @@ Maryland 20850 USA.
 #include "qcommon/qcommon.h"
 #include "qcommon/q_unicode.h"
 
+#include "DaemonEmbeddedFiles/ConsoleFont.h"
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_ERRORS_H
@@ -417,28 +419,46 @@ void RE_RenderChunk( fontInfo_t *font, const int chunk )
 
 static int RE_LoadFontFile( const char *name, void **buffer )
 {
-	void *tmp;
-	int  length = ri.FS_ReadFile( name, &tmp );
+	if ( !*name )
+	{
+		*buffer = (void *)( ConsoleFont::unifont_otf.data );
+		return ConsoleFont::unifont_otf.size;
+	}
 
-	if ( length <= 0 )
+	std::string tmp;
+
+	try
+	{
+		tmp = FS::HomePath::OpenRead( name ).ReadAll();
+	}
+	catch ( const std::system_error &exc )
+	{
+		Log::Warn( "Failed to read font file: %s", exc.what() );
+		return 0;
+	}
+
+	if ( tmp.size() > 1000 * 1000 * 1000 )
 	{
 		return 0;
 	}
 
-	void *data = Z_AllocUninit( length );
+	void *data = Z_AllocUninit( tmp.size() );
 	*buffer = data;
 
-	memcpy( data, tmp, length );
-	ri.FS_FreeFile( tmp );
+	memcpy( data, tmp.data(), tmp.size() );
 
-	return length;
+	return tmp.size();
 }
 
 static void RE_FreeFontFile( void *data )
 {
-	Z_Free( data );
+	if ( data != ConsoleFont::unifont_otf.data )
+	{
+		Z_Free( data );
+	}
 }
 
+// If name is the empty string, load the embedded Unifont
 fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize )
 {
 	FT_Face       face;
