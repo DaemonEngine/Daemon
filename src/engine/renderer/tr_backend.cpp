@@ -1623,7 +1623,7 @@ void RB_RenderSSAO()
 
 	RB_PrepareForSamplingDepthMap();
 
-	TransitionMSAAToMain( GL_DEPTH_BUFFER_BIT );
+	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -1655,6 +1655,8 @@ void RB_RenderSSAO()
 	);
 
 	Tess_InstantScreenSpaceQuad();
+
+	TransitionMainToMSAA( GL_COLOR_BUFFER_BIT );
 
 	GL_CheckErrors();
 }
