@@ -4659,9 +4659,11 @@ static void SetConstUniforms() {
 			globalUBOProxy->SetUniform_ColorMap3DBindless( GL_BindToTMU( 3, tr.colorGradeImage ) );
 		}
 
-		globalUBOProxy->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.currentDepthImage ) );
+		globalUBOProxy->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.depthSamplerImage ) );
 
-		globalUBOProxy->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
+		if ( r_liquidMapping->integer ) {
+			globalUBOProxy->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
+		}
 
 		if ( glConfig.realtimeLighting ) {
 			globalUBOProxy->SetUniform_DepthTile1Bindless(

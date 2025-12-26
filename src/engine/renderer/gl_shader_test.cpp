@@ -36,13 +36,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
-struct u_float_A : GLUniform1f { u_float_A(GLShader* s) : GLUniform1f(s, "u_float_A") {} };
-struct u_float_B : GLUniform1f { u_float_B(GLShader* s) : GLUniform1f(s, "u_float_B") {} };
-struct u_vec2_A : GLUniform2f { u_vec2_A(GLShader* s) : GLUniform2f(s, "u_vec2_A") {} };
-struct u_vec3_A : GLUniform3f { u_vec3_A(GLShader* s) : GLUniform3f(s, "u_vec3_A") {} };
-struct u_vec3_B : GLUniform3f { u_vec3_B(GLShader* s) : GLUniform3f(s, "u_vec3_B") {} };
-struct u_mat4_A: GLUniformMatrix4f { u_mat4_A(GLShader* s) : GLUniformMatrix4f(s, "u_mat4_A") {} };
-struct u_vec4Array6_A : GLUniform4fv { u_vec4Array6_A(GLShader* s) : GLUniform4fv( s, "u_Vec4Array6_A", 6 ) {} };
+struct u_float_A : GLUniform1f { u_float_A(GLShader* s) : GLUniform1f(s, "u_float_A", MATERIAL_OR_PUSH) {} };
+struct u_float_B : GLUniform1f { u_float_B(GLShader* s) : GLUniform1f(s, "u_float_B", MATERIAL_OR_PUSH) {} };
+struct u_vec2_A : GLUniform2f { u_vec2_A(GLShader* s) : GLUniform2f(s, "u_vec2_A", MATERIAL_OR_PUSH) {} };
+struct u_vec3_A : GLUniform3f { u_vec3_A(GLShader* s) : GLUniform3f(s, "u_vec3_A", MATERIAL_OR_PUSH) {} };
+struct u_vec3_B : GLUniform3f { u_vec3_B(GLShader* s) : GLUniform3f(s, "u_vec3_B", MATERIAL_OR_PUSH) {} };
+struct u_mat4_A: GLUniformMatrix4f { u_mat4_A(GLShader* s) : GLUniformMatrix4f(s, "u_mat4_A", MATERIAL_OR_PUSH) {} };
+struct u_vec4Array6_A : GLUniform4fv { u_vec4Array6_A(GLShader* s) : GLUniform4fv( s, "u_Vec4Array6_A", 6, MATERIAL_OR_PUSH ) {} };
 
 class MaterialUniformPackingTestShaderBase : public GLShader
 {
