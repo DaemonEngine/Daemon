@@ -51,7 +51,7 @@ class GLBuffer {
 	std::string name;
 	const GLuint64 SYNC_TIMEOUT = 10000000000; // 10 seconds
 
-	GLuint id;
+	GLuint id = 0;
 
 	GLBuffer( const char* newName, const GLuint newBindingPoint, const GLbitfield newFlags, const GLbitfield newMapFlags ) :
 		name( newName ),
@@ -329,12 +329,6 @@ struct PushBuffer {
 	uint32_t frameUniformsSize;
 	uint32_t globalUBOSize;
 	uint32_t* globalUBOData;
-
-	uint32_t pushStart = UINT32_MAX;
-	uint32_t pushEnd = 0;
-
-	uint32_t sector = 0;
-	const uint32_t MAX_SECTORS = 1024;
 
 	GLUBO globalUBO = GLUBO( "globalUniforms", BufferBind::GLOBAL_DATA, 0, 0 );
 
