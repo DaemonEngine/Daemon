@@ -51,18 +51,24 @@ struct Barrier {
 	bool operator()();
 };
 
-#define barrier() { \
+#define barrier( ... ) { \
 	static Barrier syncBarrier; \
-	syncBarrier(); \
+	syncBarrier( __VA_ARGS__ ); \
 }
 
-#define threadElectOne( ... ) { \
+#define _threadElectOne2( targetThreadCount, ... ) { \
 	static Barrier syncBarrier; \
-	const bool thisThreadElected = syncBarrier(); \
+	const bool thisThreadElected = syncBarrier( targetThreadCount ); \
 	 \
 	if ( thisThreadElected ) { \
 		__VA_ARGS__ \
 	} \
 }
+
+#define _threadElectOne( ... ) _threadElectOne2( TLM.currentMaxThreads, __VA_ARGS__ )
+
+#define EXPAND( x )                           x
+#define GET_MACRO( _0, _1, name, ... )        name
+#define threadElectOne( ... ) EXPAND( GET_MACRO( __VA_ARGS__, _threadElectOne2, _threadElectOne ) ( __VA_ARGS__ ) )
 
 #endif // BARRIER_H
