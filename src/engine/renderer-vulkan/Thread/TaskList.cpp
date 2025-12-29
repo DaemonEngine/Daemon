@@ -68,19 +68,19 @@ void TaskList::AdjustThreadCount( uint32 newMaxThreads ) {
 
 	const uint32 currentThreads = currentMaxThreads.load( std::memory_order_relaxed );
 	if ( newMaxThreads > currentThreads ) {
+		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
 		threadCommands.UpdateThreadCommand( ThreadCommands::SYNC_THREAD_COUNT, newMaxThreads );
+
 		for ( uint32 i = currentThreads; i < newMaxThreads; i++ ) {
 			threads[i].Start( i );
 		}
-
-		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
 	} else if ( newMaxThreads < currentThreads ) {
+		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
 		threadCommands.UpdateThreadCommand( ThreadCommands::SYNC_THREAD_COUNT, currentThreads );
+
 		for ( uint32 i = newMaxThreads; i < currentThreads; i++ ) {
 			threads[i].exiting = true;
 		}
-
-		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
 	}
 
 	TLM.currentMaxThreads = newMaxThreads;
@@ -89,7 +89,7 @@ void TaskList::AdjustThreadCount( uint32 newMaxThreads ) {
 		threadUplink.AddCommand( ThreadUplink::CMD_SYNC_THREAD_COUNT );
 	}
 
-	Log::NoticeTag( "Changed thread count to %u", currentThreads );
+	Log::NoticeTag( "Changed thread count to %u", TLM.currentMaxThreads );
 
 	threadCountLock.UnlockWrite();
 }
