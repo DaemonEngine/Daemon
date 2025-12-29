@@ -79,7 +79,7 @@ macro( GenerateVulkanShaders target )
 	# glslang
 	find_program( glslangV glslang HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/ )
 
-	if( glslangV STREQUAL "glslang-NOTFOUND" )
+	if( glslangV STREQUAL "glslangV-NOTFOUND" )
 		message( FATAL_ERROR "glslang not found; make sure you have the Vulkan SDK installed or build glslang from source" )
 	endif()
 
