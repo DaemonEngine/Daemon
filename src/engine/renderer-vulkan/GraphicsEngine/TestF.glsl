@@ -49,8 +49,6 @@ BufferWS restrict IndexCache {
 };
 
 layout ( scalar, push_constant ) uniform Push {
-    MsgStreamRead  msgStreamRead;
-    MsgStreamWrite msgStreamWrite;
 	VertexCache    vertexCache;
 	IndexCache     indexCache;
 } push;

@@ -49,8 +49,6 @@ BufferWS restrict IndexCache {
 };
 
 layout ( scalar, push_constant ) uniform Push {
-    MsgStreamRead  msgStreamRead;
-    MsgStreamWrite msgStreamWrite;
 	VertexCache    vertexCache;
 	IndexCache     indexCache;
 } push;
@@ -60,7 +58,7 @@ layout ( location = 0 ) out vec3 outColour;
 void main() {
 	Vertex vertex = push.vertexCache.vertices[gl_VertexIndex];
 
-	gl_Position = vertex.position;
+	gl_Position = vec4( vertex.position, 1.0 );
 
 	outColour = vec3( 0.0, 1.0, 0.0 );
 }
