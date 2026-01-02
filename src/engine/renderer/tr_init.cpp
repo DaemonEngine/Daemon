@@ -571,6 +571,16 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 		buffer = ( byte * ) ri.Hunk_AllocateTempMemory( offset + paddedLineLen * height + packAlign - 1 );
 
 		pixels = ( byte * ) PADP( buffer + offset, packAlign );
+
+		int fb;
+		glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &fb);
+		const char *fbname = "";
+		for (int f = tr.numFBOs; f--;) {
+			if (fb == tr.fbos[f]->frameBuffer)
+				fbname = tr.fbos[f]->name;
+		}
+		Log::Notice("^6screenshot from framebuffer %d (%s)", fb, fbname);
+
 		glReadPixels( x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels );
 
 		// Drop alignment and line padding bytes
