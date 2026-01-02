@@ -119,7 +119,7 @@ FBO_t          *R_CreateFBO( const char *name, int width, int height )
 		Sys::Drop( "R_CreateFBO: MAX_FBOS hit" );
 	}
 
-	fbo = tr.fbos[ tr.numFBOs ] = (FBO_t*) ri.Hunk_Alloc( sizeof( *fbo ), ha_pref::h_low );
+	fbo = tr.fbos[ tr.numFBOs++ ] = (FBO_t*) ri.Hunk_Alloc( sizeof( *fbo ), ha_pref::h_low );
 	Q_strncpyz( fbo->name, name, sizeof( fbo->name ) );
 	fbo->width = width;
 	fbo->height = height;
