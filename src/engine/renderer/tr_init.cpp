@@ -653,6 +653,8 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	*/
 	const RenderCommand *ScreenshotCommand::ExecuteSelf( ) const
 	{
+		R_BindFBO( GL_READ_FRAMEBUFFER, nullptr );
+
 		switch ( format )
 		{
 			case ssFormat_t::SSF_TGA:
