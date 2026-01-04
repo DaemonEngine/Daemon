@@ -202,27 +202,26 @@ GLuint64 GL_BindToTMU( int unit, image_t *image )
 static void BlitFBOToMSAA( FBO_t* fbo, const GLbitfield mask ) {
 	R_BindFBO( GL_READ_FRAMEBUFFER, fbo );
 	R_BindFBO( GL_DRAW_FRAMEBUFFER, tr.msaaFBO );
+
 	glBlitFramebuffer( 0, 0, fbo->width, fbo->height, 0, 0, tr.msaaFBO->width, tr.msaaFBO->height,
 		mask, GL_NEAREST );
 
-	R_BindFBO( GL_DRAW_FRAMEBUFFER, fbo );
-	glState.currentFBO = fbo;
+	R_BindFBO( GL_READ_FRAMEBUFFER, tr.msaaFBO );
 }
 
 static void BlitMSAAToFBO( FBO_t* fbo, const GLbitfield mask ) {
 	R_BindFBO( GL_READ_FRAMEBUFFER, tr.msaaFBO );
 	R_BindFBO( GL_DRAW_FRAMEBUFFER, fbo );
+
 	glBlitFramebuffer( 0, 0, tr.msaaFBO->width, tr.msaaFBO->height, 0, 0, fbo->width, fbo->height,
 		mask, GL_NEAREST );
 
 	R_BindFBO( GL_READ_FRAMEBUFFER, fbo );
-	glState.currentFBO = fbo;
 }
 
 void TransitionMainToMSAA( const GLbitfield mask ) {
 	if ( glConfig.MSAA ) {
 		BlitFBOToMSAA( tr.mainFBO[backEnd.currentMainFBO], mask );
-		R_BindFBO( tr.msaaFBO );
 	}
 }
 
