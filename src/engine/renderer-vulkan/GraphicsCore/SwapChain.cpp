@@ -221,7 +221,7 @@ void SwapChain::Init( const VkInstance instance ) {
 
 	vkGetSwapchainImagesKHR( device, swapChain, &imageCount, nullptr );
 
-	images.Resize( mainSwapChain.imageCount );
+	images.Resize( imageCount );
 
 	vkGetSwapchainImagesKHR( device, swapChain, &imageCount, images.memory );
 }
