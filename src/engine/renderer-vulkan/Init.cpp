@@ -45,26 +45,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Memory/MemoryChunkSystem.h"
 #include "Memory/SysAllocator.h"
 #include "MiscCVarStore.h"
-#include "RefAPI.h"
+#include "../RefAPI.h"
+
+#include "Surface/Surface.h"
 
 #include "GraphicsCore/Init.h"
+#include "GraphicsCore/GraphicsCoreStore.h"
 
-void Init() {
-	/* TLM.main = true;
-	taskList.Init();
-
-	glconfig->vidWidth = 1920;
-	glconfig->vidHeight = 1080;
-
-	r_width.Set( 1920 );
-	r_height.Set( 1080 );
-
-	window = mainSurface.window;
-
-	IN_Init( window ); */
-
-	// memoryChunkSystem.InitConfig( r_vkMemoryChunkConfig.Get().c_str() );
-
+void Init( WindowConfig* windowConfig ) {
 	sysAllocator.Init();
 	taskList.Init();
 
@@ -75,6 +63,16 @@ void Init() {
 	Task initTLMTask { &UpdateThreadCommand, ThreadCommandTask { ThreadCommands::INIT_TLM, initTLMFence } };
 
 	taskList.AddTasks( { initMemTask }, { initTLMTask, initMemTask } );
+
+	mainSurface.Init();
+
+	windowConfig->displayWidth  = mainSurface.width;
+	windowConfig->displayHeight = mainSurface.height;
+	windowConfig->displayAspect = ( float ) windowConfig->displayWidth / windowConfig->displayHeight;
+	windowConfig->vidWidth      = mainSurface.screenWidth;
+	windowConfig->vidHeight     = mainSurface.screenHeight;
+
+	IN_Init( mainSurface.window );
 
 	initTLMFence.Wait();
 

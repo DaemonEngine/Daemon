@@ -42,7 +42,13 @@ class Surface {
 	public:
 	SDL_Window* window;
 
-	Surface();
+	int         width;
+	int         height;
+
+	int         screenWidth;
+	int         screenHeight;
+
+	void Init();
 
 	~Surface();
 };

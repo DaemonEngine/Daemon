@@ -33,4 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Init.cpp
 
-void Init();
+#include "engine/RefAPI.h"
+
+void Init( WindowConfig* windowConfig );

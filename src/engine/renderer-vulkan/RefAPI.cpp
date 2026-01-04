@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/Common.h"
 #include "qcommon/qcommon.h"
 
-#include "RefAPI.h"
+#include "../RefAPI.h"
 #include "Init.h"
 
 #include "Thread/TaskList.h"
@@ -74,20 +74,8 @@ namespace TempAPI {
 	bool BeginRegistration( WindowConfig* windowConfig ) {
 		TLM.main = true;
 
-		Init();
+		Init( windowConfig );
 
-		windowConfig->displayWidth = 1920;
-		windowConfig->displayHeight = 1080;
-		windowConfig->displayAspect = ( float ) windowConfig->displayWidth / windowConfig->displayHeight;
-		windowConfig->vidWidth = 1920;
-		windowConfig->vidHeight = 1080;
-
-		r_width.Set( 1920 );
-		r_height.Set( 1080 );
-
-		window = mainSurface.window;
-
-		IN_Init( window );
 		return true;
 	}
 
@@ -490,8 +478,6 @@ refexport_t* GetRefAPI( int apiVersion, refimport_t* rimp ) {
 	re.GenerateTexture = TempAPI::GenerateTexture;
 	re.ShaderNameFromHandle = TempAPI::ShaderNameFromHandle;
 	re.SendBotDebugDrawCommands = TempAPI::SendBotDebugDrawCommands;
-
-	re.TestTask = TempAPI::TestTask;
 
 	return &re;
 }

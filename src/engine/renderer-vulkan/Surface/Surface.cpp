@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Surface.h"
 
-Surface::Surface() {
+void Surface::Init() {
 	SDL_InitSubSystem( SDL_INIT_VIDEO );
 
 	// See the SDL wiki page for details: https://wiki.libsdl.org/SDL3/SDL_SetAppMetadataProperty
@@ -89,6 +89,9 @@ Surface::Surface() {
 			height = r_customHeight.Get();
 			break;
 	}
+
+	screenWidth  = displayMode->w;
+	screenHeight = displayMode->h;
 
 	SDL_WindowFlags flags = SDL_WINDOW_VULKAN;
 
