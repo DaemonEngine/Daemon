@@ -180,11 +180,16 @@ static void EnableAvailableFeatures()
 		}
 	}
 
-	glConfig.MSAA = r_msaa.Get();
-	const int maxSamples = std::min( glConfig.maxColorTextureSamples, glConfig.maxDepthTextureSamples );
-	if ( glConfig.MSAA > maxSamples ) {
-		Log::Warn( "MSAA samples %i > %i, setting to %i", r_msaa.Get(), maxSamples, maxSamples );
-		glConfig.MSAA = maxSamples;
+	if ( std::make_pair( glConfig.glMajor, glConfig.glMinor ) >= std::make_pair( 3, 2 ) ) {
+		glConfig.MSAA = r_msaa.Get();
+		const int maxSamples = std::min( glConfig.maxColorTextureSamples, glConfig.maxDepthTextureSamples );
+
+		if ( glConfig.MSAA > maxSamples ) {
+			Log::Warn( "MSAA samples %i > %i, setting to %i", r_msaa.Get(), maxSamples, maxSamples );
+			glConfig.MSAA = maxSamples;
+		}
+	} else if ( r_msaa.Get() ) {
+		Log::Warn( "MSAA unavailable because GL version is lower than required (%i.%i < %i.%i)", glConfig.glMajor, glConfig.glMinor, 3, 2 );
 	}
 
 	glConfig.usingMaterialSystem = r_materialSystem.Get() && glConfig.materialSystemAvailable;
