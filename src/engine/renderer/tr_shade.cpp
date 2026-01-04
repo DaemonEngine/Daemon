@@ -891,17 +891,12 @@ void Render_generic3D( shaderStage_t *pStage )
 	bool hasDepthFade = pStage->hasDepthFade;
 	bool needDepthMap = pStage->hasDepthFade;
 
-	const bool needMSAATransion = needDepthMap && backEnd.dirtyDepthBuffer;
-
-	if ( needDepthMap && backEnd.dirtyDepthBuffer && glConfig.textureBarrierAvailable )
+	if ( needDepthMap )
 	{
 		RB_PrepareForSamplingDepthMap();
-	}
 
-	if ( needMSAATransion ) {
-		TransitionMSAAToMain( GL_DEPTH_BUFFER_BIT );
-
-		if ( glConfig.MSAA ) {
+		if ( glConfig.MSAA && backEnd.dirtyDepthBuffer ) {
+			TransitionMSAAToMain( GL_DEPTH_BUFFER_BIT );
 			R_BindFBO( GL_DRAW_FRAMEBUFFER, tr.msaaFBO );
 		}
 	}
