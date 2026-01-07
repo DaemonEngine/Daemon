@@ -827,7 +827,8 @@ macro(AddApplicationInternal Target Executable)
         add_dependencies(${Target} runtime_deps)
     endif()
 
-    set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
+    set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS ${A_CompileFlags})
+    set_property(TARGET ${Target} APPEND PROPERTY LINK_OPTIONS ${A_LinkFlags})
     set_property(TARGET ${Target} APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET ${Target} APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
     set_target_properties(${Target} PROPERTIES OUTPUT_NAME "${Executable}" PREFIX "" FOLDER "engine")
@@ -846,13 +847,14 @@ endmacro()
 
 function(AddApplication)
     set(oneValueArgs Target ExecutableName)
-    set(multiValueArgs ApplicationMain Definitions Flags Files Libs Tests)
+    set(multiValueArgs ApplicationMain Definitions CompileFlags LinkFlags Files Libs Tests)
     cmake_parse_arguments(A "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     # Reuse object files between the real application and the test one
     add_library(${A_Target}-objects OBJECT EXCLUDE_FROM_ALL ${A_Files} ${PCH_FILE})
     target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE} ${CPP23SupportLibrary})
-    set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
+    set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_OPTIONS ${A_CompileFlags})
+    set_property(TARGET ${A_Target}-objects APPEND PROPERTY LINK_OPTIONS ${A_LinkFlags})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
 
@@ -893,7 +895,7 @@ if (NOT NACL)
             ExecutableName dummyapp
             Definitions USELESS_DEFINITION_TO_AVOID_PCH_ISSUE
             ApplicationMain ${ENGINE_DIR}/null/NullApplication.cpp
-            Flags ${WARNINGS}
+            CompileFlags ${WARNINGS}
             Files ${COMMON_DIR}/Util.h  # must be nonempty
             Tests ${ENGINETESTLIST}
         )
@@ -920,7 +922,7 @@ if (BUILD_CLIENT)
         ExecutableName ${CLIENT_EXECUTABLE_NAME}
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions ${Definitions}
-        Flags ${WARNINGS}
+        CompileFlags ${WARNINGS}
         Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
         Libs ${LIBS_CLIENT} ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
         Tests ${CLIENTTESTLIST}
@@ -938,7 +940,7 @@ if (BUILD_SERVER)
         ExecutableName daemonded
         ApplicationMain ${ENGINE_DIR}/server/ServerApplication.cpp
         Definitions BUILD_ENGINE BUILD_SERVER
-        Flags ${WARNINGS}
+        CompileFlags ${WARNINGS}
         Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${DEDSERVERLIST}
         Libs ${LIBS_ENGINE}
         Tests ${ENGINETESTLIST}
@@ -951,7 +953,7 @@ if (BUILD_TTY_CLIENT)
         ExecutableName daemon-tty
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions BUILD_ENGINE BUILD_TTY_CLIENT
-        Flags ${WARNINGS}
+        CompileFlags ${WARNINGS}
         Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${TTYCLIENTLIST}
         Libs ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
         Tests ${ENGINETESTLIST}
