@@ -846,7 +846,7 @@ endmacro()
 
 function(AddApplication)
     set(oneValueArgs Target ExecutableName)
-    set(multiValueArgs ApplicationMain Definitions Flags CompileFeatures Files Libs Tests)
+    set(multiValueArgs ApplicationMain Definitions Flags Files Libs Tests)
     cmake_parse_arguments(A "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     # Reuse object files between the real application and the test one
