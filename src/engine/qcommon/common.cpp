@@ -47,6 +47,7 @@ Maryland 20850 USA.
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
 #include "framework/LogSystem.h"
+#include "framework/OmpSystem.h"
 #include "framework/System.h"
 #include "sys/sys_events.h"
 #include <common/FileSystem.h>
@@ -783,6 +784,8 @@ static Cvar::Cvar<bool> showTraceStats("common.showTraceStats", "are physics tra
 
 void Com_Frame()
 {
+	Omp::SetupThreads();
+
 	int             msec, minMsec;
 	static int      lastTime = 0;
 	//int             key;
