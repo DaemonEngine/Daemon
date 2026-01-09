@@ -900,10 +900,7 @@ void Render_generic3D( shaderStage_t *pStage )
 	{
 		RB_PrepareForSamplingDepthMap();
 
-		if ( glConfig.MSAA && backEnd.dirtyDepthBuffer ) {
-			TransitionMSAAToMain( GL_DEPTH_BUFFER_BIT );
-			R_BindFBO( GL_DRAW_FRAMEBUFFER, tr.msaaFBO );
-		}
+		TransitionMSAAToMain( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	}
 
 	// choose right shader program ----------------------------------
@@ -991,6 +988,10 @@ void Render_generic3D( shaderStage_t *pStage )
 	gl_genericShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
+
+	if ( needDepthMap ) {
+		TransitionMainToMSAA( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	}
 
 	GL_CheckErrors();
 }
