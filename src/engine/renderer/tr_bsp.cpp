@@ -4618,6 +4618,57 @@ static void SetWorldLight() {
 	}
 }
 
+static void SetConstUniforms() {
+	GLIMP_LOGCOMMENT( "--- SetConstUniforms ---" );
+
+	uint32_t* data = pushBuffer.MapGlobalUniformData( GLUniform::CONST );
+
+	globalUBOProxy->SetUniform_LightGridOrigin( tr.world->lightGridGLOrigin );
+	globalUBOProxy->SetUniform_LightGridScale( tr.world->lightGridGLScale );
+
+	globalUBOProxy->SetUniform_GlobalLightFactor( 1.0f / tr.identityLight );
+	globalUBOProxy->SetUniform_SRGB( tr.worldLinearizeTexture );
+
+	globalUBOProxy->SetUniform_ProfilerZero();
+
+	if ( glConfig.usingBindlessTextures ) {
+		if ( glConfig.colorGrading ) {
+			globalUBOProxy->SetUniform_ColorMap3DBindless( GL_BindToTMU( 3, tr.colorGradeImage ) );
+		}
+
+		globalUBOProxy->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.depthSamplerImage ) );
+
+		if ( r_liquidMapping->integer ) {
+			globalUBOProxy->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
+		}
+
+		if ( glConfig.realtimeLighting ) {
+			globalUBOProxy->SetUniform_DepthTile1Bindless(
+				GL_BindToTMU( 0, tr.depthtile1RenderImage )
+			);
+
+			globalUBOProxy->SetUniform_DepthTile2Bindless(
+				GL_BindToTMU( 1, tr.depthtile2RenderImage )
+			);
+
+			globalUBOProxy->SetUniform_LightTilesBindless(
+				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
+			);
+		}
+
+		globalUBOProxy->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTGRID1, tr.lightGrid1Image ) );
+		globalUBOProxy->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_LIGHTGRID2, tr.lightGrid2Image ) );
+	}
+
+	if ( glConfig.usingMaterialSystem ) {
+		materialSystem.SetConstUniforms();
+	}
+
+	globalUBOProxy->WriteUniformsToBuffer( data, GLShader::PUSH, GLUniform::CONST );
+
+	pushBuffer.PushGlobalUniforms();
+}
+
 /*
 =================
 RE_LoadWorldMap
@@ -4772,6 +4823,10 @@ void RE_LoadWorldMap( const char *name )
 	tr.worldLoaded = true;
 	tr.loadingMap = "";
 	GLSL_InitWorldShaders();
+
+	if ( glConfig.pushBufferAvailable ) {
+		SetConstUniforms();
+	}
 
 	if ( glConfig.reflectionMappingAvailable ) {
 		tr.cubeProbeSpacing = r_cubeProbeSpacing.Get();

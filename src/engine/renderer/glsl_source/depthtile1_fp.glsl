@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* depthtile1_fp.glsl */
 
+#define DEPTHMAP_GLSL
+
 uniform sampler2D u_DepthMap;
 IN(flat) vec3 unprojectionParams;
 
@@ -63,6 +65,8 @@ float min16(in vec4 data0, in vec4 data1, in vec4 data2, in vec4 data3)
 }
 void	main()
 {
+  #insert material_fp
+
   vec2 st = gl_FragCoord.st * 4.0 * pixelScale;
   vec4 depth[4], mask[4];
 

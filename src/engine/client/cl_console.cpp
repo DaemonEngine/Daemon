@@ -49,10 +49,9 @@ console_t consoleState;
 
 Console::Field g_consoleField(INT_MAX);
 
-cvar_t    *con_animationSpeed;
-cvar_t    *con_animationType;
+Cvar::Range<Cvar::Cvar<float>> con_animationSpeed("con_animationSpeed", "speed of console fade in/out and scrolling", Cvar::NONE, 3, 0.1, 100);
 
-cvar_t    *con_autoclear;
+Cvar::Cvar<bool> con_autoclear("con_autoclear", "drop input upon closing console", Cvar::NONE, true);
 Cvar::Cvar<bool> con_persistOnMapChange( "con_persistOnMapChange", "Current console input will be saved when changing map", Cvar::NONE, false );
 
 /**
@@ -61,34 +60,40 @@ Cvar::Cvar<bool> con_persistOnMapChange( "con_persistOnMapChange", "Current cons
  * 2: lock scrolling if in scrollback, even for own output
  * 3: always lock scrolling
  */
-cvar_t    *con_scrollLock;
+Cvar::Range<Cvar::Cvar<int>> con_scrollLock("con_scrollLock",
+	"go to end of console buffer upon (0) any output (1) pressing enter (2) new output when already at end (3) none of the above",
+	Cvar::NONE, 2, 0, 3);
 
-cvar_t	  *con_prompt;
+Cvar::Cvar<std::string> con_prompt("con_prompt", "text at start of console input line", Cvar::NONE, "^3->");
 
-cvar_t    *con_borderWidth;
-cvar_t    *con_borderColorAlpha;
-cvar_t    *con_borderColorRed;
-cvar_t    *con_borderColorBlue;
-cvar_t    *con_borderColorGreen;
+Cvar::Cvar<int> con_borderWidth("con_borderWidth", "thickness of console border and scrollbar", Cvar::NONE, 1);
+Cvar::Range<Cvar::Cvar<float>> con_borderColorAlpha("con_borderColorAlpha", "alpha component of console border color", Cvar::NONE, 0.2, 0.0, 1.0);
+Cvar::Range<Cvar::Cvar<float>> con_borderColorRed("con_borderColorRed", "red component of console border color", Cvar::NONE, 1, 0.0, 1.0);
+Cvar::Range<Cvar::Cvar<float>> con_borderColorBlue("con_borderColorBlue", "blue component of console border color", Cvar::NONE, 1, 0.0, 1.0);
+Cvar::Range<Cvar::Cvar<float>> con_borderColorGreen("con_borderColorGreen", "green component of console border color", Cvar::NONE, 1, 0.0, 1.0);
 
-cvar_t    *con_margin;
-cvar_t    *con_horizontalPadding;
+Cvar::Cvar<float> con_margin("con_margin", "distance between console and screen edges (sides only if negative)", Cvar::NONE, 10);
+Cvar::Cvar<float> con_horizontalPadding("con_horizontalPadding", "space between console edges and text (auto if 0)", Cvar::NONE, 0);
 
-cvar_t    *con_height;
-cvar_t    *con_colorAlpha;
-cvar_t    *con_colorRed;
-cvar_t    *con_colorBlue;
-cvar_t    *con_colorGreen;
+Cvar::Range<Cvar::Cvar<float>> con_height("con_height", "console height as percent of screen", Cvar::NONE, 55, 1, 100);
+Cvar::Range<Cvar::Cvar<float>> con_colorAlpha("con_colorAlpha", "alpha component of console background color", Cvar::NONE, 0.5, 0.0, 1.0);
+Cvar::Range<Cvar::Cvar<float>> con_colorRed("con_colorRed", "red component of console background color", Cvar::NONE, 0, 0.0, 1.0);
+Cvar::Range<Cvar::Cvar<float>> con_colorBlue("con_colorBlue", "blue component of console background color", Cvar::NONE, 0.3, 0.0, 1.0);
+Cvar::Range<Cvar::Cvar<float>> con_colorGreen("con_colorGreen", "green component of console background color", Cvar::NONE, 0.18, 0.0, 1.0);
 
 /**
  * allows for debugging the console without using the consoles scrollback,
  * which might otherwise end in loops or unnecessary verbose output
  */
-cvar_t    *con_debug;
+Cvar::Cvar<bool> con_debug("con_debug", "show stats about console drawing", Cvar::NONE, false);
 
 static const int ANIMATION_TYPE_NONE   = 0;
 static const int ANIMATION_TYPE_SCROLL_DOWN = 1;
 static const int ANIMATION_TYPE_FADE   = 2;
+
+Cvar::Range<Cvar::Cvar<int>> con_animationType("con_animationType",
+	"show console open/close with (0) nothing (1) grow/shrink (2) fade in/out (3) both",
+	Cvar::NONE, ANIMATION_TYPE_FADE, 0, ANIMATION_TYPE_SCROLL_DOWN | ANIMATION_TYPE_FADE);
 
 /*
 ================
@@ -98,7 +103,7 @@ Con_ToggleConsole_f
 void Con_ToggleConsole_f()
 {
 	// ydnar: persistent console input is more useful
-	if ( con_autoclear->integer && !( con_persistOnMapChange.Get() && consoleState.changedMap ) )
+	if ( con_autoclear.Get() && !( con_persistOnMapChange.Get() && consoleState.changedMap ) )
 	{
 		g_consoleField.Clear();
 	}
@@ -302,6 +307,7 @@ bool Con_CheckResize()
 	{
 		int consoleVidWidth = cls.windowConfig.vidWidth - 2 * (consoleState.margin.sides + consoleState.padding.sides );
 		textWidthInChars = consoleVidWidth / SCR_ConsoleFontUnicharWidth( 'W' );
+		textWidthInChars = std::max( 1, textWidthInChars );
 	}
 	else
 	{
@@ -372,10 +378,9 @@ bool Con_CheckResize()
 		consoleState.scrollLineIndex = consoleState.lines.size() - 1;
 	}
 
-	if ( con_prompt )
 	{
 		// 8 spaces for clock, 1 for cursor
-		g_console_field_width = consoleState.textWidthInChars - 9 - Color::StrlenNocolor( con_prompt->string );
+		g_console_field_width = consoleState.textWidthInChars - 9 - Color::StrlenNocolor( con_prompt.Get().c_str() );
 		g_consoleField.SetWidth(g_console_field_width);
 	}
 
@@ -389,30 +394,6 @@ Con_Init
 */
 void Con_Init()
 {
-	con_animationSpeed = Cvar_Get( "con_animationSpeed", "3", 0 );
-	con_animationType = Cvar_Get( "con_animationType", "2", 0 );
-
-	con_autoclear = Cvar_Get( "con_autoclear", "1", 0 );
-	con_scrollLock = Cvar_Get( "con_scrollLock", "2", 0 );
-
-	con_prompt = Cvar_Get( "con_prompt", "^3->", 0 );
-
-	con_height = Cvar_Get( "con_height", "55", 0 );
-	con_colorRed = Cvar_Get( "con_colorRed", "0", 0 );
-	con_colorBlue = Cvar_Get( "con_colorBlue", "0.3", 0 );
-	con_colorGreen = Cvar_Get( "con_colorGreen", "0.18", 0 );
-	con_colorAlpha = Cvar_Get( "con_colorAlpha", "0.5", 0 );
-
-	con_margin = Cvar_Get( "con_margin", "10", 0 );
-	con_horizontalPadding = Cvar_Get( "con_horizontalPadding", "0", 0 );
-
-	con_borderWidth = Cvar_Get( "con_borderWidth", "1", 0 );
-	con_borderColorRed = Cvar_Get( "con_borderColorRed", "1", 0 );
-	con_borderColorBlue = Cvar_Get( "con_borderColorBlue", "1", 0 );
-	con_borderColorGreen = Cvar_Get( "con_borderColorGreen", "1", 0 );
-	con_borderColorAlpha = Cvar_Get( "con_borderColorAlpha", "0.2", 0 );
-
-	con_debug = Cvar_Get( "con_debug", "0", 0 );
 
 	// Done defining cvars for console colors
 
@@ -436,7 +417,7 @@ Con_Linefeed
 */
 void Con_Linefeed()
 {
-	const int scrollLockMode = con_scrollLock ? con_scrollLock->integer : 0;
+	const int scrollLockMode = con_scrollLock.Get();
 
 	//fall down to input line if scroll lock is configured to do so
 	if(scrollLockMode <= 0)
@@ -590,39 +571,40 @@ void Con_DrawBackground()
 
 	// draw the background
 	Color::Color color (
-		con_colorRed->value,
-		con_colorGreen->value,
-		con_colorBlue->value,
-		con_colorAlpha->value * consoleState.currentAlphaFactor
+		con_colorRed.Get(),
+		con_colorGreen.Get(),
+		con_colorBlue.Get(),
+		con_colorAlpha.Get() * consoleState.currentAlphaFactor
 	);
 
 	SCR_FillRect( consoleState.margin.sides, consoleState.margin.top, consoleWidth, consoleState.height, color );
 
 	// draw the backgrounds borders
 	Color::Color borderColor (
-		con_borderColorRed->value,
-		con_borderColorGreen->value,
-		con_borderColorBlue->value,
-		con_borderColorAlpha->value * consoleState.currentAlphaFactor
+		con_borderColorRed.Get(),
+		con_borderColorGreen.Get(),
+		con_borderColorBlue.Get(),
+		con_borderColorAlpha.Get() * consoleState.currentAlphaFactor
 	);
 
-	if ( con_margin->integer )
+	if ( con_margin.Get() != 0 )
 	{
 		//top border
 		SCR_FillRect( consoleState.margin.sides - consoleState.border.sides,
 		              consoleState.margin.top - consoleState.border.top,
-		              consoleWidth + consoleState.border.sides, consoleState.border.top, borderColor );
+		              consoleWidth + 2 * consoleState.border.sides, consoleState.border.top, borderColor );
+
 		//left border
 		SCR_FillRect( consoleState.margin.sides - consoleState.border.sides, consoleState.margin.top,
-		              consoleState.border.sides, consoleState.height + consoleState.border.bottom, borderColor );
+		              consoleState.border.sides, consoleState.height, borderColor );
 
 		//right border
-		SCR_FillRect( cls.windowConfig.vidWidth - consoleState.margin.sides, consoleState.margin.top - consoleState.border.top,
-		              consoleState.border.sides, consoleState.border.top + consoleState.height, borderColor );
+		SCR_FillRect( cls.windowConfig.vidWidth - consoleState.margin.sides, consoleState.margin.top,
+		              consoleState.border.sides, consoleState.height, borderColor );
 
 		//bottom border
-		SCR_FillRect( consoleState.margin.sides, consoleState.height + consoleState.margin.top + consoleState.border.top - consoleState.border.bottom,
-		              consoleWidth + consoleState.border.sides, consoleState.border.bottom, borderColor );
+		SCR_FillRect( consoleState.margin.sides - consoleState.border.sides, consoleState.height + consoleState.margin.top,
+		              consoleWidth + 2 * consoleState.border.sides, consoleState.border.bottom, borderColor );
 	}
 	else
 	{
@@ -644,7 +626,7 @@ void Con_DrawInput( int linePosition, float overrideAlpha )
 	qtime_t realtime;
 
 	Com_RealTime( &realtime );
-	Com_sprintf( prompt,  sizeof( prompt ), "^0[^3%02d%c%02d^0]^* %s", realtime.tm_hour, ( realtime.tm_sec & 1 ) ? ':' : ' ', realtime.tm_min, con_prompt->string );
+	Com_sprintf( prompt,  sizeof( prompt ), "^0[^3%02d%c%02d^0]^* %s", realtime.tm_hour, ( realtime.tm_sec & 1 ) ? ':' : ' ', realtime.tm_min, con_prompt.Get().c_str() );
 
 	Color::Color color = console_color;
 	color.SetAlpha( consoleState.currentAlphaFactor * overrideAlpha );
@@ -769,7 +751,7 @@ void Con_DrawConsoleScrollbar()
 		SCR_FillRect( scrollBarX, scrollBarY, scrollBarWidth, scrollHandleLength, color );
 	}
 
-	if(con_debug->integer) {
+	if(con_debug.Get()) {
 		Con_DrawRightFloatingTextLine( 6, Color::White, va( "Scrollbar (px): Size %d HandleSize %d Position %d", (int) scrollBarLength, (int) scrollHandleLength, (int) scrollHandlePostition ) );
 	}
 }
@@ -848,7 +830,7 @@ void Con_DrawConsoleContent()
 		return;
 	}
 
-	if(con_debug->integer) {
+	if(con_debug.Get()) {
 		Con_DrawRightFloatingTextLine( 3, Color::White, va( "Buffer (lines): ScrollbackLength %d", (int) consoleState.lines.size() ) );
 		Con_DrawRightFloatingTextLine( 4, Color::White, va( "Display (lines): From %d to %d (%d a %i px)",
 			0, consoleState.scrollLineIndex, consoleState.visibleAmountOfLines, charHeight ) );
@@ -895,7 +877,7 @@ void Con_DrawConsoleContent()
 
 		re.SetColor( console_color_alpha );
 
-        for ( const auto& token : Color::Parser( consoleState.lines[row].c_str(), console_color_alpha ) )
+        for ( const auto& token : Color::Parser( consoleState.lines.at( row ).c_str(), console_color_alpha ) )
 		{
 			if ( token.Type() == Color::Token::TokenType::COLOR )
 			{
@@ -941,7 +923,7 @@ void Con_DrawAnimatedConsole()
 	//build info, projectname/copyrights, meta information or similar
 	Con_DrawAboutText();
 
-	if(con_debug->integer) {
+	if(con_debug.Get()) {
 			Con_DrawRightFloatingTextLine( 8, Color::White, va( "Animation: target %d current fraction %f alpha %f", (int) consoleState.isOpened, consoleState.currentAnimationFraction, consoleState.currentAlphaFactor) );
 	}
 
@@ -972,17 +954,17 @@ void Con_UpdateConsoleState()
 	 * different widths for horizontal and vertical borders due to different resolution-ratios
 	 * since that isn't as nice looking as with areas
 	 */
-	consoleState.border.bottom = std::max( 0, con_borderWidth->integer );
+	consoleState.border.bottom = std::max( 0, con_borderWidth.Get() );
 
-	if(con_margin->value > 0) {
-		horizontalMargin = con_margin->value;
-		verticalMargin = con_margin->value;
+	if(con_margin.Get() > 0) {
+		horizontalMargin = con_margin.Get();
+		verticalMargin = con_margin.Get();
 		consoleState.border.sides = consoleState.border.bottom;
 		consoleState.border.top = consoleState.border.bottom;
 	} else {
-		horizontalMargin = - con_margin->value;
+		horizontalMargin = - con_margin.Get();
 		verticalMargin = 0;
-		consoleState.border.sides = 0;
+		consoleState.border.sides = con_margin.Get() != 0 ? consoleState.border.bottom : 0;
 		consoleState.border.top = 0;
 	}
 
@@ -999,9 +981,9 @@ void Con_UpdateConsoleState()
 	consoleState.padding.bottom = std::max( 3, consoleState.padding.top );
 
 	// on wide screens, this will lead to somewhat of a centering of the text
-	if(con_horizontalPadding->integer)
+	if(con_horizontalPadding.Get() > 0)
 	{
-		float horizontalVidPadding = con_horizontalPadding->value;
+		float horizontalVidPadding = con_horizontalPadding.Get();
 		SCR_AdjustFrom640( &horizontalVidPadding, nullptr, nullptr, nullptr );
 		consoleState.padding.sides = horizontalVidPadding;
 	}
@@ -1014,12 +996,12 @@ void Con_UpdateConsoleState()
 	 * calculate global alpha factor
 	 * apply the fade animation if the type is set, otherwise remain completely visible
 	 */
-	consoleState.currentAlphaFactor = ( con_animationType->integer & ANIMATION_TYPE_FADE ) ? consoleState.currentAnimationFraction : 1.0f;
+	consoleState.currentAlphaFactor = ( con_animationType.Get() & ANIMATION_TYPE_FADE ) ? consoleState.currentAnimationFraction : 1.0f;
 
 	/*
 	 * calculate current console height
 	 */
-	consoleState.height = con_height->integer * 0.01f * (cls.windowConfig.vidHeight
+	consoleState.height = con_height.Get() * 0.01f * (cls.windowConfig.vidHeight
 						- consoleState.margin.top - consoleState.margin.bottom
 						- consoleState.border.top - consoleState.border.bottom
 						);
@@ -1033,7 +1015,7 @@ void Con_UpdateConsoleState()
 
 
 	//animate via scroll animation if the type is set
-	if ( con_animationType->integer & ANIMATION_TYPE_SCROLL_DOWN)
+	if ( con_animationType.Get() & ANIMATION_TYPE_SCROLL_DOWN)
 	{
 		consoleState.height *= consoleState.currentAnimationFraction;
 	}
@@ -1063,34 +1045,25 @@ void Con_RunAnimatedConsole()
 {
 	int consoleVidWidth;
 
-	if (con_height->value > 100.0f || con_height->value < 1.0f )
-	{
-		Cvar_Reset(con_height->name);
-	}
-	if (con_animationSpeed->value <= 0.0f)
-	{
-		Cvar_Reset(con_animationSpeed->name);
-	}
-
 	Con_UpdateConsoleState( );
 
 	//now check everything that is depending on the consolestate
-	if (con_height->value < con_margin->value || ( consoleState.visibleAmountOfLines < 1 && consoleState.currentAnimationFraction == 1.0f ) )
+	if (con_height.Get() < con_margin.Get() || ( consoleState.visibleAmountOfLines < 1 && consoleState.currentAnimationFraction == 1.0f ) )
 	{
-		Cvar_Reset(con_height->name);
-		Cvar_Reset(con_margin->name);
+		con_height.Reset();
+		con_margin.Reset();
 		Con_UpdateConsoleState( ); //recalculate
 	}
 
 	consoleVidWidth = cls.windowConfig.vidWidth - 2 * (consoleState.margin.sides + consoleState.padding.sides );
 
-	if( 2 * con_horizontalPadding->value >= consoleVidWidth )
+	if( 2 * con_horizontalPadding.Get() >= consoleVidWidth )
 	{
-		Cvar_Reset(con_horizontalPadding->name);
+		con_horizontalPadding.Reset();
 
 		//to be sure, its not the caus of this happening and resulting in a loop
-		Cvar_Reset(con_borderWidth->name);
-		Cvar_Reset(con_margin->name);
+		con_borderWidth.Reset();
+		con_margin.Reset();
 		Con_UpdateConsoleState( );  //recalculate
 	}
 
@@ -1136,9 +1109,9 @@ void Con_RunConsole()
 
 	if ( !consoleState.isOpened && consoleState.currentAnimationFraction >= 0.0f )
 	{
-		consoleState.currentAnimationFraction -= con_animationSpeed->value * cls.realFrametime * 0.001f;
+		consoleState.currentAnimationFraction -= con_animationSpeed.Get() * cls.realFrametime * 0.001f;
 
-		if ( consoleState.currentAnimationFraction <= 0.0f  || con_animationType->integer == ANIMATION_TYPE_NONE )
+		if ( consoleState.currentAnimationFraction <= 0.0f  || con_animationType.Get() == ANIMATION_TYPE_NONE )
 		{	//we are closed, do some last onClose work
 			consoleState.currentAnimationFraction = 0.0f;
 			consoleState.lastReadLineIndex = consoleState.lines.size()-1;
@@ -1146,9 +1119,9 @@ void Con_RunConsole()
 	}
 	else if ( consoleState.isOpened && consoleState.currentAnimationFraction <= 1.0f)
 	{
-		consoleState.currentAnimationFraction += con_animationSpeed->value * cls.realFrametime * 0.001f;
+		consoleState.currentAnimationFraction += con_animationSpeed.Get() * cls.realFrametime * 0.001f;
 
-		if ( consoleState.currentAnimationFraction > 1.0f  || con_animationType->integer == ANIMATION_TYPE_NONE  )
+		if ( consoleState.currentAnimationFraction > 1.0f  || con_animationType.Get() == ANIMATION_TYPE_NONE  )
 		{
 			consoleState.currentAnimationFraction = 1.0f;
 		}
@@ -1159,16 +1132,16 @@ void Con_RunConsole()
 		const float scrollDifference = std::max( 0.5f, fabsf( consoleState.bottomDisplayedLine - consoleState.scrollLineIndex ) );
 		if( consoleState.bottomDisplayedLine < consoleState.scrollLineIndex )
 		{
-			consoleState.bottomDisplayedLine += con_animationSpeed->value * cls.realFrametime * 0.005f * scrollDifference;
-			if( consoleState.bottomDisplayedLine > consoleState.scrollLineIndex || con_animationType->integer == ANIMATION_TYPE_NONE )
+			consoleState.bottomDisplayedLine += con_animationSpeed.Get() * cls.realFrametime * 0.005f * scrollDifference;
+			if( consoleState.bottomDisplayedLine > consoleState.scrollLineIndex || con_animationType.Get() == ANIMATION_TYPE_NONE )
 			{
 				consoleState.bottomDisplayedLine = consoleState.scrollLineIndex;
 			}
 		}
 		else if ( consoleState.bottomDisplayedLine > consoleState.scrollLineIndex )
 		{
-			consoleState.bottomDisplayedLine -= con_animationSpeed->value * cls.realFrametime * 0.005f * scrollDifference;
-			if( consoleState.bottomDisplayedLine < consoleState.scrollLineIndex || con_animationType->integer == ANIMATION_TYPE_NONE )
+			consoleState.bottomDisplayedLine -= con_animationSpeed.Get() * cls.realFrametime * 0.005f * scrollDifference;
+			if( consoleState.bottomDisplayedLine < consoleState.scrollLineIndex || con_animationType.Get() == ANIMATION_TYPE_NONE )
 			{
 				consoleState.bottomDisplayedLine = consoleState.scrollLineIndex;
 			}

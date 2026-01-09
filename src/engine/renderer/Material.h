@@ -362,6 +362,8 @@ class MaterialSystem {
 	
 	void StartFrame();
 	void EndFrame();
+	void SetConstUniforms();
+	void SetFrameUniforms();
 
 	void GenerateDepthImages( const int width, const int height, imageParams_t imageParms );
 

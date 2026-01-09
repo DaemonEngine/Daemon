@@ -363,14 +363,12 @@ else()
 	endif()
 
 	if (NACL AND USE_NACL_SAIGO AND SAIGO_ARCH STREQUAL "arm")
-		# This should be set for every build type because build type flags
-		# are set after the other custom flags and then have the last word.
-		# DEBUG should already use -O0 anyway.
+		# Saigo produces broken arm builds when optimizing them.
 		# See: https://github.com/Unvanquished/Unvanquished/issues/3297
-		set_c_cxx_flag("-O0" DEBUG)
-		set_c_cxx_flag("-O0" RELEASE)
-		set_c_cxx_flag("-O0" RELWITHDEBINFO)
-		set_c_cxx_flag("-O0" MINSIZEREL)
+		# When setting this clang-specific option, we don't have to care
+		# about the ordering of -O options that may be introduced,
+		# all -O options added to the command line are ignored.
+		set_c_cxx_flag("-Xclang -disable-llvm-passes")
 	endif()
 
 	# Extra debug flags.
@@ -476,7 +474,16 @@ else()
 		# Don't set _FORTIFY_SOURCE in debug builds.
 	endif()
 
-	try_c_cxx_flag(FPIC "-fPIC")
+	if (NOT NACL)
+		# Saigo reports weird errors when building some cgame and sgame arm nexe with PIC:
+		# > error: Cannot represent a difference across sections
+		# > error: expected relocatable expression
+		# Google-built Saigo crashes when building amd64 cgame with PIC:
+		# > UNREACHABLE executed at llvm/lib/Target/X86/X86ISelLowering.cpp
+		# Self-built Saigo doesn't crash, maybe because assertions are disabled.
+		# PIC is not useful with NaCl under any circumstances, so we don't use PIC with NaCl.
+		try_c_cxx_flag(FPIC "-fPIC")
+	endif()
 
 	if (USE_HARDENING)
 		# PNaCl accepts the flags but does not define __stack_chk_guard and __stack_chk_fail.
@@ -491,7 +498,7 @@ else()
 		try_c_cxx_flag(FNO_STRICT_OVERFLOW "-fno-strict-overflow")
 		try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
 
-		if (NOT NACL OR (NACL AND GAME_PIE))
+		if (NOT NACL)
 			# The -pie flag requires -fPIC:
 			# > ld: error: relocation R_X86_64_64 cannot be used against local symbol; recompile with -fPIC
 			# This flag isn't used on macOS:
@@ -691,6 +698,13 @@ if (APPLE)
     add_definitions(-DMACOS_X)
     set(CMAKE_INSTALL_RPATH "@executable_path")
     set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+endif()
+
+# Glibc-specific definitions
+if (LINUX)
+	# QUIRK: It does nothing when it is not needed on non-glibc Linux
+	# systems so it's harmless to always set it.
+	add_definitions(-D_FILE_OFFSET_BITS=64)
 endif()
 
 # Configuration specific definitions

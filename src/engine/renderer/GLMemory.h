@@ -51,7 +51,7 @@ class GLBuffer {
 	std::string name;
 	const GLuint64 SYNC_TIMEOUT = 10000000000; // 10 seconds
 
-	GLuint id;
+	GLuint id = 0;
 
 	GLBuffer( const char* newName, const GLuint newBindingPoint, const GLbitfield newFlags, const GLbitfield newMapFlags ) :
 		name( newName ),
@@ -175,6 +175,7 @@ class GLBuffer {
 
 	void DelBuffer() {
 		glDeleteBuffers( 1, &id );
+		id = 0;
 		mapped = false;
 	}
 
@@ -303,6 +304,8 @@ class GLStagingBuffer {
 	void FlushStagingCopyQueue();
 	void FlushAll();
 
+	bool Active() const;
+
 	void InitGLBuffer();
 	void FreeGLBuffer();
 
@@ -321,6 +324,22 @@ class GLStagingBuffer {
 		GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
 };
 
+struct PushBuffer {
+	uint32_t constUniformsSize;
+	uint32_t frameUniformsSize;
+	uint32_t globalUBOSize;
+	uint32_t* globalUBOData;
+
+	GLUBO globalUBO = GLUBO( "globalUniforms", BufferBind::GLOBAL_DATA, 0, 0 );
+
+	void InitGLBuffers();
+	void FreeGLBuffers();
+
+	uint32_t* MapGlobalUniformData( const int updateType );
+	void PushGlobalUniforms();
+};
+
 extern GLStagingBuffer stagingBuffer;
+extern PushBuffer pushBuffer;
 
 #endif // GLMEMORY_H

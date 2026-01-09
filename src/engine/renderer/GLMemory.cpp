@@ -37,10 +37,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GLMemory.h"
 
+#include "gl_shader.h"
+
 // 128 MB, should be enough to fit anything in BAR without going overboard
 const GLsizeiptr GLStagingBuffer::SIZE = 128 * 1024 * 1024 / sizeof( uint32_t );
 
 GLStagingBuffer stagingBuffer;
+PushBuffer pushBuffer;
 
 void GLBufferCopy( GLBuffer* src, GLBuffer* dst, GLintptr srcOffset, GLintptr dstOffset, GLsizeiptr size ) {
 	glCopyNamedBufferSubData( src->id, dst->id,
@@ -114,6 +117,10 @@ void GLStagingBuffer::FlushAll() {
 	FlushStagingCopyQueue();
 }
 
+bool GLStagingBuffer::Active() const {
+	return buffer.id;
+}
+
 void GLStagingBuffer::InitGLBuffer() {
 	buffer.GenBuffer();
 
@@ -129,4 +136,37 @@ void GLStagingBuffer::FreeGLBuffer() {
 	pointer = 0;
 	current = 0;
 	last = 0;
+}
+
+void PushBuffer::InitGLBuffers() {
+	globalUBO.GenBuffer();
+
+	globalUBO.BufferStorage( pushBuffer.constUniformsSize + pushBuffer.frameUniformsSize, 1, nullptr );
+
+	globalUBO.BindBufferBase();
+}
+
+void PushBuffer::FreeGLBuffers() {
+	globalUBO.DelBuffer();
+}
+
+uint32_t* PushBuffer::MapGlobalUniformData( const int updateType ) {
+	switch ( updateType ) {
+		case GLUniform::CONST:
+			globalUBOData = stagingBuffer.MapBuffer( constUniformsSize );
+			stagingBuffer.QueueStagingCopy( &globalUBO, 0 );
+			break;
+		case GLUniform::FRAME:
+			globalUBOData = stagingBuffer.MapBuffer( frameUniformsSize );
+			stagingBuffer.QueueStagingCopy( &globalUBO, constUniformsSize );
+			break;
+		default:
+			ASSERT_UNREACHABLE();
+	}
+
+	return globalUBOData;
+}
+
+void PushBuffer::PushGlobalUniforms() {
+	stagingBuffer.FlushAll();
 }
