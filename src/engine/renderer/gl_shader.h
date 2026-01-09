@@ -345,6 +345,7 @@ class GLUniform {
 	// In multiples of 4 bytes
 	// FIXME: the uniform structs are actually std140 so it would be more relevant to provide std140 info
 	const GLuint _std430BaseSize;
+	GLuint _std430Size; // includes padding that depends on the other uniforms in the struct
 	const GLuint _std430Alignment;
 	const GLuint _bufferSize;
 	GLuint _nextUniformOffset;
@@ -379,13 +380,13 @@ class GLUniform {
 		uint32_t* currentValue;
 
 		const bool bufferUniform = ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME );
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME );
 
 		if ( bufferUniform ) {
 			currentValue = _shader->uniformStorage + _uniformStorageOffset;
 		} else {
 			ShaderProgramDescriptor* p = _shader->GetProgram();
-			ASSERT_EQ( p, glState.currentProgram );
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
 
 			currentValue = p->uniformStorage + _uniformStorageOffset;
 		}
@@ -416,7 +417,7 @@ class GLUniform {
 		uint32_t* currentValue;
 
 		const bool bufferUniform = ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig2.pushBufferAvailable && _updateType <= FRAME );
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME );
 
 		if ( bufferUniform ) {
 			currentValue = _shader->uniformStorage + _uniformStorageOffset;
