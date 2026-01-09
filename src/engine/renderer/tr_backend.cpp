@@ -1622,8 +1622,6 @@ void RB_RenderSSAO()
 
 	RB_PrepareForSamplingDepthMap();
 
-	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
@@ -1654,8 +1652,6 @@ void RB_RenderSSAO()
 	);
 
 	Tess_InstantScreenSpaceQuad();
-
-	TransitionMainToMSAA( GL_COLOR_BUFFER_BIT );
 
 	GL_CheckErrors();
 }
@@ -2800,10 +2796,15 @@ static void RB_RenderView( bool depthPass )
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL );
 	}
 
+	// Here so we don't do an extra MSAA resolve if both SSAO and global fog are present
+	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
 	RB_RenderSSAO();
 
 	// render global fog post process effect
 	RB_RenderGlobalFog();
+
+	TransitionMainToMSAA( GL_COLOR_BUFFER_BIT );
 
 	// draw everything that is translucent
 	if ( glConfig.usingMaterialSystem ) {
