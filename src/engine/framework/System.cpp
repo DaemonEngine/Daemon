@@ -830,8 +830,6 @@ static void SetCvarsWithInitFlag(cmdlineArgs_t& cmdlineArgs)
 // Initialize the engine
 static void Init(int argc, char** argv)
 {
-	Omp::Init();
-
 	cmdlineArgs_t cmdlineArgs;
 
 #ifdef _WIN32
@@ -970,6 +968,8 @@ static void Init(int argc, char** argv)
 	// Override any cvars set in configuration files with those on the command-line
 	for (auto& cvar: cmdlineArgs.cvars)
 		Cvar::SetValue(cvar.first, cvar.second);
+
+	Omp::Init();
 
 	// Load the console history
 	Console::History::Load();
