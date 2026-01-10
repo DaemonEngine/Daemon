@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_main.c -- main control flow for each frame
 #include "tr_local.h"
 #include "Material.h"
+#include "EntityCache.h"
 
 trGlobals_t tr;
 
@@ -1840,18 +1841,16 @@ R_AddEntitySurfaces
 */
 void R_AddEntitySurfaces()
 {
-	int           i;
-	trRefEntity_t *ent;
-	shader_t      *shader;
-
 	if ( !r_drawentities->integer )
 	{
 		return;
 	}
 
-	for ( i = 0; i < tr.refdef.numEntities; i++ )
+	// AddRefEntities();
+
+	for ( int i = 0; i < tr.refdef.numEntities; i++ )
 	{
-		ent = tr.currentEntity = &tr.refdef.entities[ i ];
+		trRefEntity_t* ent = tr.currentEntity = &tr.refdef.entities[ i ];
 
 		//
 		// the weapon model must be handled special --
@@ -1871,19 +1870,19 @@ void R_AddEntitySurfaces()
 				break; // don't draw anything
 
 			case refEntityType_t::RT_SPRITE:
-
+			{
 				// self blood sprites, talk balloons, etc should not be drawn in the primary
 				// view.  We can't just do this check for all entities, because md3
 				// entities may still want to cast shadows from them
 				if ( ( ent->e.renderfx & RF_THIRD_PERSON ) &&
-				     tr.viewParms.portalLevel == 0 )
-				{
+					tr.viewParms.portalLevel == 0 ) {
 					continue;
 				}
 
-				shader = R_GetShaderByHandle( ent->e.customShader );
+				shader_t* shader = R_GetShaderByHandle( ent->e.customShader );
 				R_AddDrawSurf( &entitySurface, shader, -1, R_SpriteFogNum( ent ) );
 				break;
+			}
 
 			case refEntityType_t::RT_MODEL:
 				// we must set up parts of tr.or for model culling
@@ -1897,8 +1896,7 @@ void R_AddEntitySurfaces()
 				}
 				else
 				{
-					switch ( tr.currentModel->type )
-					{
+					switch ( tr.currentModel->type ) {
 						case modtype_t::MOD_MESH:
 							R_AddMDVSurfaces( ent );
 							break;
@@ -1917,16 +1915,14 @@ void R_AddEntitySurfaces()
 
 						case modtype_t::MOD_BAD: // null model axis
 							if ( ( ent->e.renderfx & RF_THIRD_PERSON ) &&
-							     tr.viewParms.portalLevel == 0 )
-							{
+								tr.viewParms.portalLevel == 0 ) {
 								break;
 							}
 
-							VectorClear( ent->localBounds[ 0 ] );
-							VectorClear( ent->localBounds[ 1 ] );
-							VectorClear( ent->worldBounds[ 0 ] );
-							VectorClear( ent->worldBounds[ 1 ] );
-							shader = R_GetShaderByHandle( ent->e.customShader );
+							VectorClear( ent->localBounds[0] );
+							VectorClear( ent->localBounds[1] );
+							VectorClear( ent->worldBounds[0] );
+							VectorClear( ent->worldBounds[1] );
 							R_AddDrawSurf( &entitySurface, tr.defaultShader, -1, 0 );
 							break;
 

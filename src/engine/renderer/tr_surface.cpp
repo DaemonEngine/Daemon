@@ -998,15 +998,15 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 
 	Tess_CheckOverflow( srf->numVerts, numIndexes );
 
-	vec_t entityScale = backEnd.currentEntity->e.skeleton.scale;
+	vec_t entityScale = backEnd.currentEntity->skeleton.scale;
 	float modelScale = model->internalScale;
 	transform_t *bone = bones;
 	transform_t *lastBone = bones + model->numBones;
 
 	// Convert bones back to matrices.
-	if ( backEnd.currentEntity->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
+	if ( backEnd.currentEntity->skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
 	{
-		refBone_t *entityBone = backEnd.currentEntity->e.skeleton.bones;
+		refBone_t *entityBone = backEnd.currentEntity->skeleton.bones;
 		md5Bone_t *modelBone = model->bones;
 
 		for ( ; bone < lastBone; bone++,
@@ -1145,15 +1145,15 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 
 	int numIndexes = surf->num_triangles * 3;
 
-	vec_t entityScale = backEnd.currentEntity->e.skeleton.scale;
+	vec_t entityScale = backEnd.currentEntity->skeleton.scale;
 	float modelScale = model->internalScale;
 	transform_t *bone = bones;
 	transform_t *lastBone = bones + model->num_joints;
 
 	// Convert bones back to matrices.
-	if ( backEnd.currentEntity->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
+	if ( backEnd.currentEntity->skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
 	{
-		refBone_t *entityBone = backEnd.currentEntity->e.skeleton.bones;
+		refBone_t *entityBone = backEnd.currentEntity->skeleton.bones;
 		transform_t *modelJoint = model->joints;
 
 		for ( ; bone < lastBone; bone++,
@@ -1204,7 +1204,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 		}
 		else
 		{
-			TransInitScale( model->internalScale * backEnd.currentEntity->e.skeleton.scale, &tess.bones[ 0 ] );
+			TransInitScale( model->internalScale * backEnd.currentEntity->skeleton.scale, &tess.bones[ 0 ] );
 			tess.numBones = 1;
 		}
 
@@ -1332,7 +1332,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	}
 	else
 	{
-		float scale = model->internalScale * backEnd.currentEntity->e.skeleton.scale;
+		float scale = model->internalScale * backEnd.currentEntity->skeleton.scale;
 
 		for ( ; tessVertex < lastVertex; tessVertex++,
 			modelPosition += 3, modelNormal += 3,
@@ -1461,19 +1461,19 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 	tess.numBones = srf->numBoneRemap;
 	tess.vboVertexSkinning = true;
 
-	vec_t entityScale = backEnd.currentEntity->e.skeleton.scale;
+	vec_t entityScale = backEnd.currentEntity->skeleton.scale;
 	float modelScale = model->internalScale;
 	transform_t *bone = tess.bones;
 	transform_t *lastBone = bone + tess.numBones;
 
-	if ( backEnd.currentEntity->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
+	if ( backEnd.currentEntity->skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
 	{
 		int *boneRemapInverse = srf->boneRemapInverse;
 
 		for ( ; bone < lastBone; bone++,
 			boneRemapInverse++ )
 		{
-			refBone_t *entityBone = &backEnd.currentEntity->e.skeleton.bones[ *boneRemapInverse ];
+			refBone_t *entityBone = &backEnd.currentEntity->skeleton.bones[ *boneRemapInverse ];
 			md5Bone_t *modelBone = &model->bones[ *boneRemapInverse ];
 
 			TransInverse( &modelBone->joint, bone );

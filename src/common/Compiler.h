@@ -64,12 +64,15 @@ inline int CountTrailingZeroes(unsigned long long x)
 {
 	unsigned long ans;
 	#ifdef _WIN64
-	_BitScanForward64(&ans, x); return ans;
+	_BitScanForward64(&ans, x);
+	return ans;
 	#else
 	bool nonzero = _BitScanForward(&ans, static_cast<unsigned long>(x));
-	if (!nonzero) { _BitScanForward(&ans, x >> 32); }
-	#endif
+	if (!nonzero) {
+		_BitScanForward(&ans, x >> 32);
+	}
 	return ans;
+	#endif
 }
 #else
 inline int CountTrailingZeroes(unsigned int x)

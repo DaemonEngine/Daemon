@@ -444,9 +444,12 @@ enum class ssaoMode {
 	{
 		// public from client game
 		refEntity_t e;
+		refSkeleton_t skeleton;
 
 		// local
+		axis_t axis;
 		float        axisLength; // compensate for non-normalized axis
+		int transformFrame;
 
 		vec3_t       localBounds[ 2 ];
 		vec3_t       worldBounds[ 2 ];
@@ -1439,10 +1442,10 @@ enum
 	// 4. index
 
 	static const uint64_t SORT_INDEX_BITS = 20;
-	static const uint64_t SORT_ENTITYNUM_BITS = 13;
+	static const uint64_t SORT_ENTITYNUM_BITS = 16;
 	static const uint64_t SORT_LIGHTMAP_BITS = 9;
 	static const uint64_t SORT_SHADER_BITS = 16;
-	static const uint64_t SORT_UNUSED_BITS = 6;
+	static const uint64_t SORT_UNUSED_BITS = 3;
 
 	static_assert( SORT_SHADER_BITS +
 		SORT_LIGHTMAP_BITS +
@@ -2084,14 +2087,14 @@ enum
 		int         numLods;
 	};
 
-	void               R_ModelInit();
-	model_t            *R_GetModelByHandle( qhandle_t hModel );
+	void R_ModelInit();
+	model_t *R_GetModelByHandle( qhandle_t hModel );
 
-	int                RE_LerpTagET( orientation_t *tag, const refEntity_t *refent, const char *tagNameIn, int startIndex );
+	int RE_LerpTagET( orientation_t* tag, const trRefEntity_t* ent, const char* tagNameIn, int startIndex );
 
-	int                RE_BoneIndex( qhandle_t hModel, const char *boneName );
+	int RE_BoneIndex( qhandle_t hModel, const char *boneName );
 
-	void               R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs );
+	void R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs );
 
 //====================================================
 	extern refimport_t ri;
@@ -3327,6 +3330,7 @@ void GLimp_LogComment_( std::string comment );
 
 	void RE_ClearScene();
 	void RE_AddRefEntityToScene( const refEntity_t *ent );
+	void RE_AddEntityToScene( const trRefEntity_t* ent );
 
 	void RE_AddPolyToSceneET( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 	void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
@@ -3365,6 +3369,7 @@ void GLimp_LogComment_( std::string comment );
 	int             RE_CheckSkeleton( refSkeleton_t *skel, qhandle_t hModel, qhandle_t hAnim );
 	int             RE_BuildSkeleton( refSkeleton_t *skel, qhandle_t anim, int startFrame, int endFrame, float frac,
 	                                  bool clearOrigin );
+	void R_TransformSkeleton( refSkeleton_t* skel, const float scale );
 	int             RE_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float frac );
 	int             RE_AnimNumFrames( qhandle_t hAnim );
 	int             RE_AnimFrameRate( qhandle_t hAnim );
@@ -3589,11 +3594,10 @@ void GLimp_LogComment_( std::string comment );
 		drawSurf_t          drawSurfs[ MAX_DRAWSURFS ];
 
 		refLight_t          lights[ MAX_REF_LIGHTS ];
-		trRefEntity_t       entities[ MAX_REF_ENTITIES ];
 
-		srfPoly_t           *polys; //[MAX_POLYS];
-		polyVert_t          *polyVerts; //[MAX_POLYVERTS];
-		int                 *polyIndexes; //[MAX_POLYVERTS];
+		srfPoly_t           *polys;
+		polyVert_t          *polyVerts;
+		int                 *polyIndexes;
 
 		// the backend communicates to the frontend through visTestResult_t
 		int                 numVisTests;
@@ -3606,6 +3610,8 @@ void GLimp_LogComment_( std::string comment );
 	};
 
 	extern backEndData_t                *backEndData[ SMP_FRAMES ]; // the second one may not be allocated
+	// Outside of backEndData because refEntity_t contains std::vector and std::string, while backEndData is dynamically allocated
+	extern trRefEntity_t                 backEndEntities[SMP_FRAMES][MAX_REF_ENTITIES]; 
 
 	extern volatile bool            renderThreadActive;
 
