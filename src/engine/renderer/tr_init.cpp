@@ -198,7 +198,7 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 		Cvar::NONE, 0.977f, 0.0f, 10.0f );
 	Cvar::Range<Cvar::Cvar<float>> r_toneMappingHDRMax(
 		"r_toneMappingHDRMax", "HDR white point",
-		Cvar::NONE, 8.0f, 1.0f, 128.0f );
+		Cvar::NONE, 2.0f, 1.0f, 128.0f );
 	Cvar::Range<Cvar::Cvar<float>> r_toneMappingDarkAreaPointHDR(
 		"r_toneMappingDarkAreaPointHDR", "Cut-off for dark area light-up",
 		Cvar::NONE, 0.18f, 0.0f, 1.0f );
