@@ -286,7 +286,7 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	cvar_t      *r_mergeLeafSurfaces;
 	
 	Cvar::Cvar<bool> r_bloom( "r_bloom", "Use bloom", Cvar::ARCHIVE, false );
-	Cvar::Cvar<float> r_bloomBlur( "r_bloomBlur", "Bloom strength", Cvar::NONE, 1.0 );
+	Cvar::Cvar<float> r_bloomBlur( "r_bloomBlur", "Bloom strength", Cvar::NONE, 0.2 );
 	Cvar::Cvar<int> r_bloomPasses( "r_bloomPasses", "Amount of bloom passes in each direction", Cvar::NONE, 2 );
 	cvar_t      *r_FXAA;
 	Cvar::Range<Cvar::Cvar<int>> r_msaa( "r_msaa", "Amount of MSAA samples. 0 to disable", Cvar::NONE, 0, 0, 64 );
