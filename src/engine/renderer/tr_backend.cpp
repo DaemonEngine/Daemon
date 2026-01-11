@@ -199,6 +199,46 @@ GLuint64 GL_BindToTMU( int unit, image_t *image )
 	return 0;
 }
 
+static void BlitFBOToMSAA( FBO_t* fbo, const GLbitfield mask ) {
+	R_BindFBO( GL_READ_FRAMEBUFFER, fbo );
+	R_BindFBO( GL_DRAW_FRAMEBUFFER, tr.msaaFBO );
+
+	glBlitFramebuffer( 0, 0, fbo->width, fbo->height, 0, 0, tr.msaaFBO->width, tr.msaaFBO->height,
+		mask, GL_NEAREST );
+
+	R_BindFBO( GL_READ_FRAMEBUFFER, tr.msaaFBO );
+}
+
+static void BlitMSAAToFBO( FBO_t* fbo, const GLbitfield mask ) {
+	R_BindFBO( GL_READ_FRAMEBUFFER, tr.msaaFBO );
+	R_BindFBO( GL_DRAW_FRAMEBUFFER, fbo );
+
+	glBlitFramebuffer( 0, 0, tr.msaaFBO->width, tr.msaaFBO->height, 0, 0, fbo->width, fbo->height,
+		mask, GL_NEAREST );
+
+	R_BindFBO( GL_READ_FRAMEBUFFER, fbo );
+}
+
+void TransitionMainToMSAA( const GLbitfield mask ) {
+	if ( glConfig.MSAA ) {
+		BlitFBOToMSAA( tr.mainFBO[backEnd.currentMainFBO], mask );
+	}
+}
+
+void TransitionMSAAToMain( const GLbitfield mask ) {
+	if ( glConfig.MSAA ) {
+		BlitMSAAToFBO( tr.mainFBO[backEnd.currentMainFBO], mask );
+	}
+}
+
+void BindMSAAOrMainFBO() {
+	if ( glConfig.MSAA ) {
+		R_BindFBO( tr.msaaFBO );
+	} else {
+		R_BindFBO( tr.mainFBO[backEnd.currentMainFBO] );
+	}
+}
+
 void GL_BlendFunc( GLenum sfactor, GLenum dfactor )
 {
 	if ( glState.blendSrc != ( signed ) sfactor || glState.blendDst != ( signed ) dfactor )
@@ -797,7 +837,13 @@ void GL_TexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wi
 	GLint finalFormat = GL_ToSRGB( internalFormat, isSRGB );
 
 	glTexImage2D( target, level, finalFormat, width, height, border, format, type, data );
+}
 
+void GL_TexImage2DMultisample( GLenum target, GLsizei samples, GLint internalFormat, GLsizei width, GLsizei height, bool fixedSampleLocations, bool isSRGB )
+{
+	GLint finalFormat = GL_ToSRGB( internalFormat, isSRGB );
+
+	glTexImage2DMultisample( target, samples, finalFormat, width, height, fixedSampleLocations );
 }
 
 void GL_TexImage3D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB )
@@ -1256,6 +1302,8 @@ static void RenderDepthTiles()
 	{
 		RB_PrepareForSamplingDepthMap();
 	}
+	
+	TransitionMSAAToMain( GL_DEPTH_BUFFER_BIT );
 
 	// 1st step
 	R_BindFBO( tr.depthtile1FBO );
@@ -1365,7 +1413,8 @@ void RB_RenderPostDepthLightTile()
 	Tess_Clear();
 
 	// back to main image
-	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
+	BindMSAAOrMainFBO();
+
 	GL_Viewport( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
 		     backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 	GL_Scissor( backEnd.viewParms.scissorX, backEnd.viewParms.scissorY,
@@ -1446,6 +1495,8 @@ void RB_RenderBloom()
 			GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
 		);
 
+		TransitionMSAAToMain( GL_COLOR_BUFFER_BIT );
+
 		R_BindFBO( tr.contrastRenderFBO );
 		GL_ClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 		glClear( GL_COLOR_BUFFER_BIT );
@@ -1510,6 +1561,8 @@ void RB_RenderBloom()
 		GL_PopMatrix();
 	}
 
+	TransitionMainToMSAA( GL_COLOR_BUFFER_BIT );
+
 	GL_CheckErrors();
 }
 
@@ -1530,6 +1583,8 @@ void RB_RenderMotionBlur()
 
 	gl_motionblurShader->BindProgram();
 
+	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT );
+
 	// Swap main FBOs
 	gl_motionblurShader->SetUniform_ColorMapBindless(
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
@@ -1544,6 +1599,8 @@ void RB_RenderMotionBlur()
 	);
 
 	Tess_InstantScreenSpaceQuad();
+
+	TransitionMainToMSAA( GL_COLOR_BUFFER_BIT );
 
 	GL_CheckErrors();
 }
@@ -2666,7 +2723,7 @@ static void RB_RenderView( bool depthPass )
 	backEnd.pc.c_surfaces += backEnd.viewParms.numDrawSurfs;
 
 	// disable offscreen rendering
-	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
+	BindMSAAOrMainFBO();
 
 	// we will need to change the projection matrix before drawing
 	// 2D images again
@@ -2739,10 +2796,15 @@ static void RB_RenderView( bool depthPass )
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL );
 	}
 
+	// Here so we don't do an extra MSAA resolve if both SSAO and global fog are present
+	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
 	RB_RenderSSAO();
 
 	// render global fog post process effect
 	RB_RenderGlobalFog();
+
+	TransitionMainToMSAA( GL_COLOR_BUFFER_BIT );
 
 	// draw everything that is translucent
 	if ( glConfig.usingMaterialSystem ) {
@@ -2793,6 +2855,8 @@ static void RB_RenderPostProcess()
 		materialSystem.CullSurfaces();
 		materialSystem.EndFrame();
 	}
+
+	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT );
 
 	RB_FXAA();
 
@@ -3462,7 +3526,7 @@ const RenderCommand *ClearBufferCommand::ExecuteSelf( ) const
 	}
 
 	// disable offscreen rendering
-	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
+	R_BindFBO( tr.mainFBO[backEnd.currentMainFBO] );
 
 	// we will need to change the projection matrix before drawing
 	// 2D images again
@@ -3482,6 +3546,11 @@ const RenderCommand *ClearBufferCommand::ExecuteSelf( ) const
 	}
 
 	glClear( clearBits );
+
+	if ( glConfig.MSAA ) {
+		R_BindFBO( tr.msaaFBO );
+		glClear( clearBits );
+	}
 
 	return this + 1;
 }

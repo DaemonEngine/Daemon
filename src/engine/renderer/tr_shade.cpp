@@ -180,6 +180,18 @@ static void EnableAvailableFeatures()
 		}
 	}
 
+	if ( std::make_pair( glConfig.glMajor, glConfig.glMinor ) >= std::make_pair( 3, 2 ) ) {
+		glConfig.MSAA = r_msaa.Get();
+		const int maxSamples = std::min( glConfig.maxColorTextureSamples, glConfig.maxDepthTextureSamples );
+
+		if ( glConfig.MSAA > maxSamples ) {
+			Log::Warn( "MSAA samples %i > %i, setting to %i", r_msaa.Get(), maxSamples, maxSamples );
+			glConfig.MSAA = maxSamples;
+		}
+	} else if ( r_msaa.Get() ) {
+		Log::Warn( "MSAA unavailable because GL version is lower than required (%i.%i < %i.%i)", glConfig.glMajor, glConfig.glMinor, 3, 2 );
+	}
+
 	glConfig.usingMaterialSystem = r_materialSystem.Get() && glConfig.materialSystemAvailable;
 	glConfig.usingBindlessTextures = glConfig.usingMaterialSystem ||
 		( r_preferBindlessTextures.Get() && glConfig.bindlessTexturesAvailable );
@@ -887,6 +899,8 @@ void Render_generic3D( shaderStage_t *pStage )
 	if ( needDepthMap )
 	{
 		RB_PrepareForSamplingDepthMap();
+
+		TransitionMSAAToMain( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	}
 
 	// choose right shader program ----------------------------------
@@ -973,6 +987,10 @@ void Render_generic3D( shaderStage_t *pStage )
 	gl_genericShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
+
+	if ( needDepthMap ) {
+		TransitionMainToMSAA( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	}
 
 	GL_CheckErrors();
 }
@@ -1457,6 +1475,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 	}
 
 	// draw to background image
+	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	R_BindFBO( tr.mainFBO[ 1 - backEnd.currentMainFBO ] );
 
 	// bind u_NormalMap
@@ -1491,6 +1510,8 @@ void Render_heatHaze( shaderStage_t *pStage )
 	);
 	gl_heatHazeShader->SetUniform_DeformMagnitude( 0.0f );
 	Tess_DrawElements();
+
+	TransitionMainToMSAA( GL_COLOR_BUFFER_BIT );
 
 	GL_CheckErrors();
 }

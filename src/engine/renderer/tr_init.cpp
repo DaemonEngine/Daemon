@@ -286,6 +286,7 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Cvar<float> r_bloomBlur( "r_bloomBlur", "Bloom strength", Cvar::NONE, 1.0 );
 	Cvar::Cvar<int> r_bloomPasses( "r_bloomPasses", "Amount of bloom passes in each direction", Cvar::NONE, 2 );
 	cvar_t      *r_FXAA;
+	Cvar::Range<Cvar::Cvar<int>> r_msaa( "r_msaa", "Amount of MSAA samples. 0 to disable", Cvar::NONE, 0, 0, 64 );
 	Cvar::Range<Cvar::Cvar<int>> r_ssao( "r_ssao",
 		"Screen space ambient occlusion: "
 		"-1: show, 0: disabled, 1: enabled",
@@ -1192,6 +1193,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_bloom );
 		r_FXAA = Cvar_Get( "r_FXAA", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		Cvar::Latch( r_ssao );
+		Cvar::Latch( r_msaa );
 
 		// temporary variables that can change at any time
 		r_showImages = Cvar_Get( "r_showImages", "0", CVAR_TEMP );
