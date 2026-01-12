@@ -229,3 +229,18 @@ void SwapChain::Init( const VkInstance instance ) {
 void SwapChain::Free() {
 	vkDestroySwapchainKHR( device, swapChain, nullptr );
 }
+
+VkImage SwapChain::AcquireNextImage( const uint64 timeout, VkFence fence, VkSemaphore semaphore ) {
+	VkAcquireNextImageInfoKHR info {
+		.swapchain  = swapChain,
+		.timeout    = timeout,
+		.semaphore  = semaphore,
+		.fence      = fence,
+		.deviceMask = 1
+	};
+
+	uint32 imageID;
+	vkAcquireNextImage2KHR( device, &info, &imageID );
+
+	return images[imageID];
+}

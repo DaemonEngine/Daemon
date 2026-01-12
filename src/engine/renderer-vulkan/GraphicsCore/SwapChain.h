@@ -66,6 +66,8 @@ struct SwapChain : public GraphicsResource {
 
 	void Init( const VkInstance instance );
 	void Free() override;
+
+	VkImage AcquireNextImage( const uint64 timeout, VkFence fence, VkSemaphore semaphore );
 };
 
 #endif // SWAP_CHAIN_H
