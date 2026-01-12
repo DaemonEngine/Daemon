@@ -2884,8 +2884,6 @@ static void SetFrameUniforms() {
 
 	GLIMP_LOGCOMMENT( "--- SetFrameUniforms ---" );
 
-	uint32_t* data = pushBuffer.MapGlobalUniformData( GLUniform::FRAME );
-
 	globalUBOProxy->SetUniform_blurVec( tr.refdef.blurVec );
 	globalUBOProxy->SetUniform_numLights( tr.refdef.numLights );
 
@@ -2906,6 +2904,11 @@ static void SetFrameUniforms() {
 		materialSystem.SetFrameUniforms();
 	}
 
+	if ( !globalUBOProxy->uniformsUpdated ) {
+		return;
+	}
+
+	uint32_t* data = pushBuffer.MapGlobalUniformData( GLUniform::FRAME );
 	globalUBOProxy->WriteUniformsToBuffer( data, GLShader::PUSH, GLUniform::FRAME );
 
 	pushBuffer.PushGlobalUniforms();
