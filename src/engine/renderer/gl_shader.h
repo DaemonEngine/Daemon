@@ -583,12 +583,6 @@ class GLUniformSampler : protected GLUniform {
 	}
 
 	public:
-	void SetValue( GLuint value ) {
-		if ( !CacheValue( &value ) ) {
-			return;
-		}
-	}
-
 	void SetValueBindless( GLuint64 value ) {
 		if ( !glConfig.usingBindlessTextures ) {
 			return;
