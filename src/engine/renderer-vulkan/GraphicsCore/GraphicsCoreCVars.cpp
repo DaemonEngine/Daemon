@@ -77,3 +77,12 @@ Cvar::Range<Cvar::Cvar<int>> r_vkGraphicsMaxMemory( "r_vkGraphicsMaxMemory",
 Cvar::Cvar<bool>             r_vkGraphicsMaxMemoryAuto( "r_vkGraphicsMaxMemoryAuto",
 	"Automatically select memory allocation size based on available memory; use r_vkResourceSystemMaxMemory to set size manually",
 	Cvar::NONE, true );
+
+Cvar::Range<Cvar::Cvar<int>> r_vkVSync( "r_vkVSync",
+	"Screen presentation synchronisation mode: 0: sync to screen refresh rate, adjust scanout:present ratio automatically, "
+	"1 - 8: set the scanout:present ratio to this value",
+	Cvar::NONE, 0, 0, 8 );
+
+Cvar::Range<Cvar::Cvar<int>> r_vkExecutionGraphRate( "r_vkExecutionGraphRate",
+	"The general rate at which ExecutionGraphs are executed",
+	Cvar::NONE, 0, -1, 100000 );
