@@ -28,8 +28,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "GLUtils.h"
 #include <stdexcept>
 
-#define USE_UNIFORM_FIREWALL 1
-
 // *INDENT-OFF*
 static const unsigned int MAX_SHADER_MACROS = 10;
 static const unsigned int GL_SHADER_VERSION = 6;
@@ -128,7 +126,7 @@ struct ShaderProgramDescriptor {
 
 	GLint* uniformLocations;
 	GLuint* uniformBlockIndexes = nullptr;
-	byte* uniformFirewall;
+	uint32_t* uniformStorage;
 
 	uint32_t checkSum;
 
@@ -204,6 +202,7 @@ protected:
 	std::vector<int> computeShaderDescriptors;
 
 	size_t _uniformStorageSize;
+
 	std::vector<GLUniform*> _uniforms;
 	std::vector<GLUniform*> _pushUniforms;
 	std::vector<GLUniform*> _materialSystemUniforms;
@@ -281,6 +280,9 @@ public:
 		PUSH
 	};
 
+	uint32_t* uniformStorage = nullptr;
+	bool uniformsUpdated = true;
+
 	void MarkProgramForBuilding();
 	GLuint GetProgram( const bool buildOneShader );
 	void BindProgram();
@@ -345,6 +347,8 @@ class GLUniform {
 	const GLuint _std430BaseSize;
 	GLuint _std430Size; // includes padding that depends on the other uniforms in the struct
 	const GLuint _std430Alignment;
+	const GLuint _bufferSize;
+	GLuint _nextUniformOffset;
 
 	const UpdateType _updateType;
 	const int _components;
@@ -352,8 +356,8 @@ class GLUniform {
 
 	protected:
 	GLShader* _shader;
-	size_t _firewallIndex;
 	size_t _locationIndex;
+	size_t _uniformStorageOffset;
 
 	GLUniform( GLShader* shader, const char* name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
 		const UpdateType updateType, const int components = 0,
@@ -363,6 +367,8 @@ class GLUniform {
 		_std430BaseSize( std430Size ),
 		_std430Size( std430Size ),
 		_std430Alignment( std430Alignment ),
+		_bufferSize( components ? components * 4 : std430Size ),
+		_nextUniformOffset( components ? components * 4 : std430Size ),
 		_updateType( updateType ),
 		_components( components ),
 		_isTexture( isTexture ),
@@ -370,26 +376,63 @@ class GLUniform {
 		_shader->RegisterUniform( this );
 	}
 
+	// Returns true if the arg is different than cached value and the memory used for this uniform is not part of the material buffer or push buffer
+	bool CacheValue( const void* value ) {
+		uint32_t* currentValue;
+
+		const bool bufferUniform = ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME );
+
+		if ( bufferUniform ) {
+			currentValue = _shader->uniformStorage + _uniformStorageOffset;
+		} else {
+			ShaderProgramDescriptor* p = _shader->GetProgram();
+			DAEMON_ASSERT_EQ( p, glState.currentProgram );
+
+			currentValue = p->uniformStorage + _uniformStorageOffset;
+		}
+
+		const bool updated = memcmp( currentValue, value, _bufferSize * sizeof( uint32_t ) );
+
+		if ( updated ) {
+			memcpy( currentValue, value, _bufferSize * sizeof( uint32_t ) );
+			_shader->uniformsUpdated = true;
+		}
+
+		return updated && !bufferUniform;
+	}
+
 	public:
 	virtual ~GLUniform() = default;
-
-	void SetFirewallIndex( size_t offSetValue ) {
-		_firewallIndex = offSetValue;
-	}
 
 	void SetLocationIndex( size_t index ) {
 		_locationIndex = index;
 	}
 
+	void SetUniformStorageOffset( size_t index ) {
+		_uniformStorageOffset = index;
+	}
+
 	// This should return a pointer to the memory right after the one this uniform wrote to
-	virtual uint32_t* WriteToBuffer( uint32_t* buffer );
+	uint32_t* WriteToBuffer( uint32_t* buffer ) {
+		uint32_t* currentValue;
+
+		const bool bufferUniform = ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
+			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME );
+
+		if ( bufferUniform ) {
+			currentValue = _shader->uniformStorage + _uniformStorageOffset;
+		} else {
+			return buffer;
+		}
+
+		memcpy( buffer, currentValue, _bufferSize * sizeof( uint32_t ) );
+
+		return buffer + _nextUniformOffset;
+	}
 
 	void UpdateShaderProgramUniformLocation( ShaderProgramDescriptor* shaderProgram ) {
 		shaderProgram->uniformLocations[_locationIndex] = glGetUniformLocation( shaderProgram->id, _name.c_str() );
-	}
-
-	virtual size_t GetSize() {
-		return 0;
 	}
 };
 
@@ -540,43 +583,17 @@ class GLUniformSampler : protected GLUniform {
 	}
 
 	public:
-	size_t GetSize() override {
-		return sizeof( GLuint64 );
-	}
-
-	void SetValue( GLuint value ) {
-		currentValue = value;
-	}
-
-	void SetValueBindless( GLint64 value ) {
-		currentValueBindless = value;
-
-		if ( glConfig.usingBindlessTextures ) {
-			if ( _shader->UseMaterialSystem() && _updateType == TEXDATA_OR_PUSH ) {
-				return;
-			}
-
-			if ( glConfig.pushBufferAvailable && _updateType <= FRAME ) {
-				return;
-			}
-
-			glUniformHandleui64ARB( GetLocation(), currentValueBindless );
-		}
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		if ( glConfig.usingBindlessTextures ) {
-			memcpy( buffer, &currentValueBindless, sizeof( GLuint64 ) );
-		} else {
-			memcpy( buffer, &currentValue, sizeof( GLint ) );
+	void SetValueBindless( GLuint64 value ) {
+		if ( !glConfig.usingBindlessTextures ) {
+			return;
 		}
 
-		return buffer + _std430Size;
-	}
+		if ( !CacheValue( &value ) ) {
+			return;
+		}
 
-	private:
-	GLuint64 currentValueBindless = 0;
-	GLuint currentValue = 0;
+		glUniformHandleui64ARB( GetLocation(), value );
+	}
 };
 
 class GLUniformSampler2D : protected GLUniformSampler {
@@ -611,47 +628,18 @@ class GLUniform1i : protected GLUniform
 {
 protected:
 	GLUniform1i( GLShader *shader, const char *name, const UpdateType updateType ) :
-	GLUniform( shader, name, "int", 1, 1, updateType )
-	{
+	GLUniform( shader, name, "int", 1, 1, updateType ) {
 	}
 
 	inline void SetValue( int value )
 	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			currentValue = value;
+		if ( !CacheValue( &value ) ) {
 			return;
 		}
 
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
-#if defined( USE_UNIFORM_FIREWALL )
-		int *firewall = ( int * ) &p->uniformFirewall[ _firewallIndex ];
-
-		if ( *firewall == value )
-		{
-			return;
-		}
-
-		*firewall = value;
-#endif
+		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform1i( p->uniformLocations[ _locationIndex ], value );
 	}
-public:
-	size_t GetSize() override
-	{
-		return sizeof( int );
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, &currentValue, sizeof( int ) );
-		return buffer + _std430Size;
-	}
-
-	private:
-	int currentValue = 0;
 };
 
 class GLUniform1ui : protected GLUniform {
@@ -661,39 +649,13 @@ class GLUniform1ui : protected GLUniform {
 	}
 
 	inline void SetValue( uint value ) {
+		if ( !CacheValue( &value ) ) {
+			return;
+		}
+
 		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			currentValue = value;
-			return;
-		}
-
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
-#if defined( USE_UNIFORM_FIREWALL )
-		uint* firewall = ( uint* ) &p->uniformFirewall[_firewallIndex];
-
-		if ( *firewall == value ) {
-			return;
-		}
-
-		*firewall = value;
-#endif
 		glUniform1ui( p->uniformLocations[_locationIndex], value );
 	}
-	public:
-	size_t GetSize() override {
-		return sizeof( uint );
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, &currentValue, sizeof( uint ) );
-		return buffer + _std430Size;
-	}
-
-	private:
-	uint currentValue = 0;
 };
 
 class GLUniform1Bool : protected GLUniform {
@@ -704,348 +666,139 @@ class GLUniform1Bool : protected GLUniform {
 	}
 
 	inline void SetValue( int value ) {
+		if ( !CacheValue( &value ) ) {
+			return;
+		}
+
 		ShaderProgramDescriptor* p = _shader->GetProgram();
-
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			currentValue = value;
-			return;
-		}
-
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
-#if defined( USE_UNIFORM_FIREWALL )
-		int* firewall = ( int* ) &p->uniformFirewall[_firewallIndex];
-
-		if ( *firewall == value ) {
-			return;
-		}
-
-		*firewall = value;
-#endif
 		glUniform1i( p->uniformLocations[_locationIndex], value );
 	}
-
-	public:
-	size_t GetSize() override {
-		return sizeof( int );
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, &currentValue, sizeof( int ) );
-		return buffer + _std430Size;
-	}
-
-	private:
-	int currentValue = 0;
 };
 
 class GLUniform1f : protected GLUniform
 {
 protected:
 	GLUniform1f( GLShader *shader, const char *name, const UpdateType updateType ) :
-	GLUniform( shader, name, "float", 1, 1, updateType )
-	{
+	GLUniform( shader, name, "float", 1, 1, updateType ) {
 	}
 
 	inline void SetValue( float value )
 	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			currentValue = value;
+		if ( !CacheValue( &value ) ) {
 			return;
 		}
 
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
-#if defined( USE_UNIFORM_FIREWALL )
-		float *firewall = ( float * ) &p->uniformFirewall[ _firewallIndex ];
-
-		if ( *firewall == value )
-		{
-			return;
-		}
-
-		*firewall = value;
-#endif
+		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform1f( p->uniformLocations[ _locationIndex ], value );
 	}
-public:
-	size_t GetSize() override
-	{
-		return sizeof( float );
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, &currentValue, sizeof( float ) );
-		return buffer + _std430Size;
-	}
-	
-	private:
-	float currentValue = 0;
 };
 
 class GLUniform1fv : protected GLUniform
 {
 protected:
 	GLUniform1fv( GLShader *shader, const char *name, const int size, const UpdateType updateType ) :
-	GLUniform( shader, name, "float", 1, 1, updateType, size )
-	{
-		currentValue.reserve( size );
+	GLUniform( shader, name, "float", 1, 1, updateType, size ) {
 	}
 
 	inline void SetValue( int numFloats, float *f )
 	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			memcpy( currentValue.data(), f, numFloats * sizeof( float ) );
+		if ( !CacheValue( f ) ) {
 			return;
 		}
 
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
-		glUniform1fv( p->uniformLocations[ _locationIndex ], numFloats, f );
+		ShaderProgramDescriptor* p = _shader->GetProgram();
+		glUniform1fv( p->uniformLocations[_locationIndex], numFloats, f );
 	}
-
-	private:
-	std::vector<float> currentValue;
 };
 
 class GLUniform2f : protected GLUniform
 {
 protected:
 	GLUniform2f( GLShader *shader, const char *name, const UpdateType updateType ) :
-	GLUniform( shader, name, "vec2", 2, 2, updateType )
-	{
-		currentValue[0] = 0.0;
-		currentValue[1] = 0.0;
+	GLUniform( shader, name, "vec2", 2, 2, updateType ) {
 	}
 
 	inline void SetValue( const vec2_t v )
 	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			Vector2Copy( v, currentValue );
+		if ( !CacheValue( ( void* ) v ) ) {
 			return;
 		}
 
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
-#if defined( USE_UNIFORM_FIREWALL )
-		vec2_t *firewall = ( vec2_t * ) &p->uniformFirewall[ _firewallIndex ];
-
-		if ( ( *firewall )[ 0 ] == v[ 0 ] && ( *firewall )[ 1 ] == v[ 1 ] )
-		{
-			return;
-		}
-
-		( *firewall )[ 0 ] = v[ 0 ];
-		( *firewall )[ 1 ] = v[ 1 ];
-#endif
+		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform2f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ] );
 	}
-
-	size_t GetSize() override
-	{
-		return sizeof( vec2_t );
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, &currentValue, sizeof( vec2_t ) );
-		return buffer + _std430Size;
-	}
-
-	private:
-	vec2_t currentValue;
 };
 
 class GLUniform3f : protected GLUniform
 {
 protected:
 	GLUniform3f( GLShader *shader, const char *name, const UpdateType updateType ) :
-	GLUniform( shader, name, "vec3", 3, 4, updateType )
-	{
-		currentValue[0] = 0.0;
-		currentValue[1] = 0.0;
-		currentValue[2] = 0.0;
+	GLUniform( shader, name, "vec3", 3, 4, updateType ) {
 	}
 
 	inline void SetValue( const vec3_t v )
 	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			VectorCopy( v, currentValue );
+		if ( !CacheValue( ( void* ) v ) ) {
 			return;
 		}
 
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
-#if defined( USE_UNIFORM_FIREWALL )
-		vec3_t *firewall = ( vec3_t * ) &p->uniformFirewall[ _firewallIndex ];
-
-		if ( VectorCompare( *firewall, v ) )
-		{
-			return;
-		}
-
-		VectorCopy( v, *firewall );
-#endif
+		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform3f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ], v[ 2 ] );
 	}
-public:
-	size_t GetSize() override
-	{
-		return sizeof( vec3_t );
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, &currentValue, sizeof( vec3_t ) );
-		return buffer + _std430Size;
-	}
-
-	private:
-	vec3_t currentValue;
 };
 
 class GLUniform4f : protected GLUniform
 {
 protected:
 	GLUniform4f( GLShader *shader, const char *name, const UpdateType updateType ) :
-	GLUniform( shader, name, "vec4", 4, 4, updateType )
-	{
-		currentValue[0] = 0.0;
-		currentValue[1] = 0.0;
-		currentValue[2] = 0.0;
-		currentValue[3] = 0.0;
+	GLUniform( shader, name, "vec4", 4, 4, updateType ) {
 	}
 
 	inline void SetValue( const vec4_t v )
 	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			Vector4Copy( v, currentValue );
+		if ( !CacheValue( ( void* ) v ) ) {
 			return;
 		}
 
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
-#if defined( USE_UNIFORM_FIREWALL )
-		vec4_t *firewall = ( vec4_t * ) &p->uniformFirewall[ _firewallIndex ];
-
-		if ( !memcmp( *firewall, v, sizeof( *firewall ) ) )
-		{
-			return;
-		}
-
-		Vector4Copy( v, *firewall );
-#endif
+		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform4f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
 	}
-public:
-	size_t GetSize() override
-	{
-		return sizeof( vec4_t );
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, &currentValue, sizeof( vec4_t ) );
-		return buffer + _std430Size;
-	}
-
-	private:
-	vec4_t currentValue;
 };
 
 class GLUniform4fv : protected GLUniform
 {
 protected:
 	GLUniform4fv( GLShader *shader, const char *name, const int size, const UpdateType updateType ) :
-	GLUniform( shader, name, "vec4", 4, 4, updateType, size )
-	{
-		currentValue.reserve( size );
+	GLUniform( shader, name, "vec4", 4, 4, updateType, size ) {
 	}
 
 	inline void SetValue( int numV, vec4_t *v )
 	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			memcpy( currentValue.data(), v, numV * sizeof( vec4_t ) );
+		if ( !CacheValue( v ) ) {
 			return;
 		}
 
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
+		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniform4fv( p->uniformLocations[ _locationIndex ], numV, &v[ 0 ][ 0 ] );
 	}
-
-	public:
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + _std430Size * _components;
-	}
-
-	private:
-	std::vector<float> currentValue;
 };
 
 class GLUniformMatrix4f : protected GLUniform
 {
 protected:
 	GLUniformMatrix4f( GLShader *shader, const char *name, const UpdateType updateType ) :
-	GLUniform( shader, name, "mat4", 16, 4, updateType )
-	{
-		MatrixIdentity( currentValue );
+	GLUniform( shader, name, "mat4", 16, 4, updateType ) {
 	}
 
 	inline void SetValue( GLboolean transpose, const matrix_t m )
 	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			MatrixCopy( m, currentValue );
+		if ( !CacheValue( ( void* ) m ) ) {
 			return;
 		}
 
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
-#if defined( USE_UNIFORM_FIREWALL )
-		matrix_t *firewall = ( matrix_t * ) &p->uniformFirewall[ _firewallIndex ];
-
-		if ( MatrixCompare( m, *firewall ) )
-		{
-			return;
-		}
-
-		MatrixCopy( m, *firewall );
-#endif
+		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniformMatrix4fv( p->uniformLocations[ _locationIndex ], 1, transpose, m );
 	}
-public:
-	size_t GetSize() override
-	{
-		return sizeof( matrix_t );
-	}
-
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, &currentValue, sizeof( matrix_t ) );
-		return buffer + _std430Size;
-	}
-
-	private:
-	matrix_t currentValue;
 };
 
 class GLUniformMatrix32f : protected GLUniform {
@@ -1055,59 +808,34 @@ class GLUniformMatrix32f : protected GLUniform {
 	}
 
 	inline void SetValue( GLboolean transpose, const vec_t* m ) {
-		ShaderProgramDescriptor* p = _shader->GetProgram();
+		vec_t value[12] {};
+		memcpy( value, m, 6 * sizeof( vec_t ) );
 
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			memcpy( currentValue, m, 6 * sizeof( float ) );
+		if ( !CacheValue( value ) ) {
 			return;
 		}
 
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
+		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniformMatrix3x2fv( p->uniformLocations[_locationIndex], 1, transpose, m );
 	}
-	public:
-	size_t GetSize() override {
-		return 6 * sizeof( float );
-	}
-
-	private:
-	vec_t currentValue[6] {};
 };
 
 class GLUniformMatrix4fv : protected GLUniform
 {
 protected:
 	GLUniformMatrix4fv( GLShader *shader, const char *name, const int size, const UpdateType updateType ) :
-	GLUniform( shader, name, "mat4", 16, 4, updateType, size )
-	{
-		currentValue.reserve( size * 16 );
+	GLUniform( shader, name, "mat4", 16, 4, updateType, size ) {
 	}
 
 	inline void SetValue( int numMatrices, GLboolean transpose, const matrix_t *m )
 	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			memcpy( currentValue.data(), m, numMatrices * sizeof( matrix_t ) );
+		if ( !CacheValue( ( void* ) m ) ) {
 			return;
 		}
 
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
+		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniformMatrix4fv( p->uniformLocations[ _locationIndex ], numMatrices, transpose, &m[ 0 ][ 0 ] );
 	}
-
-	public:
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + _std430Size * _components;
-	}
-
-	private:
-	std::vector<float> currentValue;
 };
 
 class GLUniformMatrix34fv : protected GLUniform
@@ -1120,27 +848,13 @@ protected:
 
 	inline void SetValue( int numMatrices, GLboolean transpose, const float *m )
 	{
-		ShaderProgramDescriptor *p = _shader->GetProgram();
-
-		if ( ( _shader->UseMaterialSystem() && _updateType == MATERIAL_OR_PUSH )
-			|| ( glConfig.pushBufferAvailable && _updateType <= FRAME ) ) {
-			memcpy( currentValue.data(), m, numMatrices * sizeof( matrix_t ) );
+		if ( !CacheValue( ( void* ) m ) ) {
 			return;
 		}
 
-		DAEMON_ASSERT_EQ( p, glState.currentProgram );
-
-		glUniformMatrix3x4fv( p->uniformLocations[ _locationIndex ], numMatrices, transpose, m );
+		ShaderProgramDescriptor* p = _shader->GetProgram();
+		glUniformMatrix3x4fv( p->uniformLocations[_locationIndex], numMatrices, transpose, m );
 	}
-
-	public:
-	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
-		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
-		return buffer + _std430Size * _components;
-	}
-
-	private:
-	std::vector<float> currentValue;
 };
 
 class GLUniformBlock
@@ -2606,7 +2320,7 @@ class u_Bones :
 {
 public:
 	u_Bones( GLShader *shader ) :
-		GLUniform4fv( shader, "u_Bones", MAX_BONES, PUSH )
+		GLUniform4fv( shader, "u_Bones", MAX_BONES * 2, PUSH )
 	{
 	}
 
