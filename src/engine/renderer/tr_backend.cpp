@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_backend.c
 
+#include "framework/OmpSystem.h"
 #include "tr_local.h"
 #include "gl_shader.h"
 #include "Material.h"
@@ -3941,6 +3942,8 @@ RB_RenderThread
 */
 void RB_RenderThread()
 {
+	Omp::EnlistThreads();
+
 	const void *data;
 
 	// wait for either a rendering command or a quit command
