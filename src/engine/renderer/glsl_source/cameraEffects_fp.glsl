@@ -88,9 +88,11 @@ void main()
 		convertToSRGB( color.rgb );
 	}
 
+	color.rgb *= u_TonemapExposure;
+
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
 	if( u_Tonemap ) {
-		color.rgb = TonemapLottes( color.rgb * u_TonemapExposure );
+		color.rgb = TonemapLottes( color.rgb );
 	}
 #endif
 

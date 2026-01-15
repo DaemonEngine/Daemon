@@ -1737,6 +1737,7 @@ void RB_CameraPostFX() {
 	gl_cameraEffectsShader->SetUniform_InverseGamma( 1.0 / r_gamma->value );
 
 	gl_cameraEffectsShader->SetUniform_SRGB( tr.worldLinearizeTexture );
+	gl_cameraEffectsShader->SetUniform_TonemapExposure( r_toneMappingExposure.Get() );
 
 	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig.textureFloatAvailable;
 	if ( tonemap ) {
@@ -1744,7 +1745,6 @@ void RB_CameraPostFX() {
 		ComputeTonemapParams( tonemapParms[0], tonemapParms[1], r_toneMappingHDRMax.Get(),
 			r_toneMappingDarkAreaPointHDR.Get(), r_toneMappingDarkAreaPointLDR.Get(), tonemapParms[2], tonemapParms[3] );
 		gl_cameraEffectsShader->SetUniform_TonemapParms( tonemapParms );
-		gl_cameraEffectsShader->SetUniform_TonemapExposure( r_toneMappingExposure.Get() );
 	}
 	gl_cameraEffectsShader->SetUniform_Tonemap( tonemap );
 
@@ -2889,6 +2889,7 @@ static void SetFrameUniforms() {
 
 	globalUBOProxy->SetUniform_ColorModulate( tr.viewParms.gradingWeights );
 	globalUBOProxy->SetUniform_InverseGamma( 1.0f / r_gamma->value );
+	globalUBOProxy->SetUniform_TonemapExposure( r_toneMappingExposure.Get() );
 
 	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig.textureFloatAvailable;
 	if ( tonemap ) {
@@ -2896,7 +2897,6 @@ static void SetFrameUniforms() {
 		ComputeTonemapParams( tonemapParms[0], tonemapParms[1], r_toneMappingHDRMax.Get(),
 			r_toneMappingDarkAreaPointHDR.Get(), r_toneMappingDarkAreaPointLDR.Get(), tonemapParms[2], tonemapParms[3] );
 		globalUBOProxy->SetUniform_TonemapParms( tonemapParms );
-		globalUBOProxy->SetUniform_TonemapExposure( r_toneMappingExposure.Get() );
 	}
 	globalUBOProxy->SetUniform_Tonemap( tonemap );
 
