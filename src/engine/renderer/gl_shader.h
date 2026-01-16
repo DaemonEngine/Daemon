@@ -2815,15 +2815,15 @@ class u_TonemapParms :
 	}
 };
 
-class u_TonemapExposure :
+class u_Exposure :
 	GLUniform1f {
 	public:
-	u_TonemapExposure( GLShader* shader ) :
-		GLUniform1f( shader, "u_TonemapExposure", FRAME ) {
+	u_Exposure( GLShader* shader ) :
+		GLUniform1f( shader, "u_Exposure", FRAME ) {
 	}
 
-	void SetUniform_TonemapExposure( float tonemapExposure ) {
-		this->SetValue( tonemapExposure );
+	void SetUniform_Exposure( float exposure ) {
+		this->SetValue( exposure );
 	}
 };
 
@@ -3290,7 +3290,7 @@ class GLShader_cameraEffects :
 	public u_SRGB,
 	public u_Tonemap,
 	public u_TonemapParms,
-	public u_TonemapExposure,
+	public u_Exposure,
 	public u_InverseGamma
 {
 public:
@@ -3520,7 +3520,7 @@ class GlobalUBOProxy :
 	public u_InverseGamma,
 	public u_Tonemap,
 	public u_TonemapParms,
-	public u_TonemapExposure {
+	public u_Exposure {
 
 	public:
 	GlobalUBOProxy();
