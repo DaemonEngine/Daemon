@@ -20,9 +20,10 @@ along with Daemon source code; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
-// tr_scene.c
+// tr_scene.cpp
 #include "tr_local.h"
 #include "Material.h"
+#include "EntityCache.h"
 
 static Cvar::Cvar<bool> r_drawDynamicLights(
 	"r_drawDynamicLights", "render dynamic lights (if realtime lighting is enabled)", Cvar::NONE, true );
@@ -32,7 +33,7 @@ static int r_firstSceneDrawSurf;
 static int r_numLights;
 static int r_firstSceneLight;
 
-static int r_numEntities;
+int r_numEntities;
 static int r_firstSceneEntity;
 
 static int r_numPolys;
@@ -271,7 +272,28 @@ void RE_AddRefEntityToScene( const refEntity_t *ent )
 		Sys::Drop("RE_AddRefEntityToScene: bad reType %s", Util::enum_str(ent->reType));
 	}
 
-	backEndData[ tr.smpFrame ]->entities[ r_numEntities ].e = *ent;
+	backEndEntities[ tr.smpFrame ][ r_numEntities ].e = *ent;
+
+	TransformEntity( &backEndEntities[tr.smpFrame][r_numEntities] );
+
+	r_numEntities++;
+}
+
+void RE_AddEntityToScene( const trRefEntity_t* ent ) {
+	if ( !tr.registered ) {
+		return;
+	}
+
+	// Tr3B: fixed was ENTITYNUM_WORLD
+	if ( r_numEntities >= MAX_REF_ENTITIES ) {
+		return;
+	}
+
+	if ( ent->e.reType >= refEntityType_t::RT_MAX_REF_ENTITY_TYPE ) {
+		Sys::Drop( "RE_AddRefEntityToScene: bad reType %s", Util::enum_str( ent->e.reType ) );
+	}
+
+	backEndEntities[tr.smpFrame][r_numEntities] = *ent;
 
 	r_numEntities++;
 }
@@ -540,11 +562,13 @@ void RE_RenderScene( const refdef_t *fd )
 		tr.refdef.floatTime = float( double( tr.refdef.time ) * 0.001 );
 	}
 
+	AddRefEntities();
+
 	tr.refdef.numDrawSurfs = r_firstSceneDrawSurf;
 	tr.refdef.drawSurfs = backEndData[ tr.smpFrame ]->drawSurfs;
 
 	tr.refdef.numEntities = r_numEntities - r_firstSceneEntity;
-	tr.refdef.entities = &backEndData[ tr.smpFrame ]->entities[ r_firstSceneEntity ];
+	tr.refdef.entities = &backEndEntities[ tr.smpFrame ][ r_firstSceneEntity ];
 
 	tr.refdef.numLights = r_numLights - r_firstSceneLight;
 	tr.refdef.lights = &backEndData[ tr.smpFrame ]->lights[ r_firstSceneLight ];
