@@ -61,7 +61,9 @@ enum NodeType : uint8 {
 	NODE_GRAPHICS  = 1,
 	NODE_BIND      = 2,
 	NODE_PUSH      = 3,
-	NODE_BUFFER    = 4
+	NODE_BUFFER    = 4,
+	NODE_IMAGE     = 5,
+	NODE_EXTERNAL  = 6
 };
 
 enum ResourceType : uint32 {
@@ -196,6 +198,13 @@ struct BufferNode {
 	uint32    usage;
 	uint32    engineAccess;
 	uint32    heap;
+};
+
+struct ImageNode {
+	uint8     type = NODE_IMAGE;
+	uint8     id;
+	uint16    imageID;
+	uint32    TBD[5];
 };
 
 class ExecutionGraph {
