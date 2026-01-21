@@ -186,6 +186,32 @@ Key StringToKey(Str::StringRef str)
     return Key::NONE;
 }
 
+std::string KeyToStringUnprefixed( Key key ) {
+    if ( key.kind() == Key::Kind::KEYNUM ) {
+        return KeynumToString( key.AsKeynum() );
+    }
+
+    if ( key.kind() == Key::Kind::UNICODE_CHAR ) {
+        return CharToString( key.AsCharacter() );
+    }
+
+    if ( key.kind() == Key::Kind::SCANCODE ) {
+        int sc = key.AsScancode();
+        if ( char c = ScancodeToAscii( sc ) ) {
+            return CharToString( c );
+        }
+        for ( auto& functionKey : leftRightFunctionKeys ) {
+            if ( sc == functionKey.scancode ) {
+                return functionKey.name;
+            }
+        }
+        // make a hex string
+        return Str::Format( "0x%02x", key.AsScancode() );
+    }
+
+    return "<INVALID KEY>";
+}
+
 std::string KeyToString(Key key)
 {
     if (key.kind() == Key::Kind::KEYNUM) {

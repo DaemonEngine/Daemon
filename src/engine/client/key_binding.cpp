@@ -274,16 +274,18 @@ void SetBinding(Key key, int team, std::string binding)
 	bindingsModified = true;
 }
 
-const std::vector<Key>& GetConsoleKeys()
-{
-	static std::vector<Keyboard::Key> consoleKeys;
+static std::vector<Keyboard::Key> consoleKeys;
+static std::string consoleKeysString;
 
+void UpdateConsoleKeyCache() {
 	// Only parse the variable when it changes
 	Util::optional<std::string> modifiedString = cl_consoleKeys.GetModifiedValue();
 	if ( modifiedString )
 	{
 		const char* text_p = modifiedString.value().c_str();
 		consoleKeys.clear();
+		consoleKeysString.clear();
+
 		while ( true )
 		{
 			const char* token = COM_Parse( &text_p );
@@ -294,11 +296,23 @@ const std::vector<Key>& GetConsoleKeys()
 			Keyboard::Key k = Keyboard::StringToKey(token);
 			if (k.IsBindable()) {
 				consoleKeys.push_back(k);
+				consoleKeysString += KeyToStringUnprefixed( k );
 			}
 		}
 	}
+}
+
+const std::vector<Key>& GetConsoleKeys()
+{
+	UpdateConsoleKeyCache();
 
 	return consoleKeys;
+}
+
+const std::string& GetConsoleKeysString() {
+	UpdateConsoleKeyCache();
+
+	return consoleKeysString;
 }
 
 void SetConsoleKeys(const std::vector<Key>& keys)
