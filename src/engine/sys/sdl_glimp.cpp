@@ -117,7 +117,7 @@ static Cvar::Cvar<bool> r_ext_draw_buffers( "r_ext_draw_buffers",
 static Cvar::Cvar<bool> r_ext_gpu_shader4( "r_ext_gpu_shader4",
 	"Use GL_EXT_gpu_shader4 if available", Cvar::NONE, true );
 static Cvar::Range<Cvar::Cvar<float>> r_ext_texture_filter_anisotropic( "r_ext_texture_filter_anisotropic",
-	"Use GL_EXT_texture_filter_anisotropic if available: anisotropy value", Cvar::NONE, 4.0f, 0.0f, 16.0f );
+	"Use GL_EXT_texture_filter_anisotropic if available: anisotropy value", Cvar::NONE, 8.0f, 0.0f, 16.0f );
 static Cvar::Cvar<bool> r_ext_texture_float( "r_ext_texture_float",
 	"Use GL_EXT_texture_float if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_ext_texture_integer( "r_ext_texture_integer",
