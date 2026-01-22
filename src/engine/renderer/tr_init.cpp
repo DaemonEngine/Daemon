@@ -292,7 +292,7 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 		"Screen space ambient occlusion: "
 		"-1: show, 0: disabled, 1: enabled",
 		Cvar::NONE,
-		Util::ordinal( ssaoMode::DISABLED ),
+		Util::ordinal( ssaoMode::ENABLED ),
 		Util::ordinal( ssaoMode::SHOW ),
 		Util::ordinal( ssaoMode::ENABLED ) );
 
@@ -1133,7 +1133,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		// latched and archived variables
 		r_picMip = Cvar_Get( "r_picMip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
-		r_imageMaxDimension = Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
+		r_imageMaxDimension = Cvar_Get( "r_imageMaxDimension", "2048",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_ignoreMaterialMinDimension = Cvar_Get( "r_ignoreMaterialMinDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_ignoreMaterialMaxDimension = Cvar_Get( "r_ignoreMaterialMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_replaceMaterialMinDimensionIfPresentWithMaxDimension
@@ -1248,7 +1248,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_cubeProbeSpacing );
 
 		r_halfLambertLighting = Cvar_Get( "r_halfLambertLighting", "1", CVAR_LATCH | CVAR_ARCHIVE );
-		r_rimLighting = Cvar_Get( "r_rimLighting", "0",  CVAR_LATCH | CVAR_ARCHIVE );
+		r_rimLighting = Cvar_Get( "r_rimLighting", "1",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_rimExponent = Cvar_Get( "r_rimExponent", "3", CVAR_CHEAT | CVAR_LATCH );
 		AssertCvarRange( r_rimExponent, 0.5, 8.0, false );
 
