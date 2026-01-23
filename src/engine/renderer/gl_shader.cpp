@@ -2834,7 +2834,7 @@ GLShader_cameraEffects::GLShader_cameraEffects() :
 	u_SRGB( this ),
 	u_Tonemap( this ),
 	u_TonemapParms( this ),
-	u_TonemapExposure( this ),
+	u_Exposure( this ),
 	u_InverseGamma( this )
 {
 }
@@ -3095,5 +3095,5 @@ GlobalUBOProxy::GlobalUBOProxy() :
 	u_InverseGamma( this ),
 	u_Tonemap( this ),
 	u_TonemapParms( this ),
-	u_TonemapExposure( this ) {
+	u_Exposure( this ) {
 }
