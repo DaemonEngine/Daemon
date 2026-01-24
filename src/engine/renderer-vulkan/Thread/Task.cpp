@@ -46,23 +46,25 @@ Task::Task( const Task& other ) {
 }
 
 void Task::operator=( const Task& other ) {
-	Execute = other.Execute;
-	data = other.data;
+	Execute            = other.Execute;
+	data               = other.data;
 
-	complete = other.complete;
+	complete           = other.complete;
 
-	active = other.active;
-	shutdownTask = other.shutdownTask;
+	active             = other.active;
+	shutdownTask       = other.shutdownTask;
+
+	gen                = other.gen;
 
 	memcpy( forwardTasks, other.forwardTasks, MAX_FORWARD_TASKS * sizeof( uint16 ) );
 
-	dependencyCounter = other.dependencyCounter.load( std::memory_order_relaxed );
+	dependencyCounter  = other.dependencyCounter.load( std::memory_order_relaxed );
 	forwardTaskCounter = other.forwardTaskCounter.load( std::memory_order_relaxed );
 
-	id = other.id;
+	id                 = other.id;
 
-	bufferID = other.bufferID;
-	forwardTaskLock = other.forwardTaskLock;
+	bufferID           = other.bufferID;
+	forwardTaskLock    = other.forwardTaskLock;
 
-	dataSize = other.dataSize;
+	dataSize           = other.dataSize;
 }

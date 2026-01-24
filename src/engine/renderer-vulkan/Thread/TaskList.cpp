@@ -193,15 +193,21 @@ void TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) 
 			continue;
 		}
 
-		Task& dependency = tasks[( *dep )->bufferID];
+		Task& dependency  = tasks[( *dep )->bufferID];
+
+		// The dependency has already been executed, but the ringbuffer wrapped around
+		if ( dependency.gen > ( *dep )->gen ) {
+			continue;
+		}
 
 		const bool locked = dependency.forwardTaskLock.Lock();
 
+		// Already finished execution
 		if ( !locked ) {
 			continue;
 		}
 
-		uint32 id = dependency.forwardTaskCounter.fetch_add( 1, std::memory_order_relaxed );
+		uint32 id                   = dependency.forwardTaskCounter.fetch_add( 1, std::memory_order_relaxed );
 
 		ASSERT_LE( id, Task::MAX_FORWARD_TASKS );
 
@@ -309,6 +315,7 @@ Task* TaskList::GetTaskMemory( Task& task ) {
 
 	taskMemory->active   = true;
 	task.active          = true;
+	task.gen             = taskMemory->gen + 1;
 
 	task.bufferID        = taskMemory - tasks.memory;
 
