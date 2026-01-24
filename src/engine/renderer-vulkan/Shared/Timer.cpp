@@ -39,7 +39,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Timer.h"
 
-static uint64 TimeNanoseconds() {
+uint64 operator""_ns( uint64 time ) {
+	return time;
+}
+
+uint64 operator""_us( uint64 time ) {
+	return time * 1000;
+}
+
+uint64 operator""_ms( uint64 time ) {
+	return time * 1000000;
+}
+
+uint64 operator""_s( uint64 time ) {
+	return time * 1000000000;
+}
+
+uint64 operator""_m( uint64 time ) {
+	return time * 60 * 1000000000;
+}
+
+uint64 operator""_h( uint64 time ) {
+	return time * 60 * 60 * 1000000000;
+}
+
+uint64 Time() {
 	return std::chrono::duration_cast< std::chrono::nanoseconds >( Sys::SteadyClock::now().time_since_epoch() ).count();
 }
 
@@ -79,7 +103,7 @@ std::string Timer::FormatTime( const TimeUnit maxTimeUnit ) {
 
 uint64 Timer::Time() const {
 	if ( running ) {
-		return TimeNanoseconds() - time + runTime;
+		return Time() - time + runTime;
 	}
 
 	return runTime;
@@ -90,7 +114,7 @@ void Timer::Start() {
 		return;
 	}
 
-	time = TimeNanoseconds();
+	time = Time();
 	running = true;
 }
 
@@ -99,7 +123,7 @@ void Timer::Stop() {
 		return;
 	}
 
-	runTime += TimeNanoseconds() - time;
+	runTime += Time() - time;
 	running = false;
 }
 
