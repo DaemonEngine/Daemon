@@ -121,11 +121,11 @@ class AtomicRingBuffer :
 	public Tag {
 
 	public:
-	T* memory;
+	T*         memory;
 	Allocator* allocator;
 
-	Timer getTimer;
-	Timer addTimer;
+	Timer      getTimer;
+	Timer      addTimer;
 
 	AtomicRingBuffer( Allocator* newAllocator = &TLMAlloc ) :
 		allocator( newAllocator ) {
@@ -138,14 +138,14 @@ class AtomicRingBuffer :
 
 	void Alloc( const uint64 newElementCount ) {
 		elementCount = newElementCount;
-		size = ( elementCount * sizeof( T ) + 63 ) & ~64;
-		mask = elementCount - 1;
-		memory = ( T* ) allocator->Alloc( size, 64 );
+		size         = ( elementCount * sizeof( T ) + 63 ) & ~64;
+		mask         = elementCount - 1;
+		memory       = ( T* ) allocator->Alloc( size, 64 );
 
 		memset( memory, 0, size );
 
-		pointer = 0;
-		current = 0;
+		pointer      = 0;
+		current      = 0;
 
 		addTimer.Clear();
 		getTimer.Clear();
@@ -159,7 +159,7 @@ class AtomicRingBuffer :
 		}
 
 		const uint64 tempSize = ( newElementCount * sizeof( T ) + 63 ) & ~64;
-		T* tempMemory = ( T* ) allocator->Alloc( tempSize, 64 );
+		T* tempMemory         = ( T* ) allocator->Alloc( tempSize, 64 );
 
 		memcpy( tempMemory, memory, size );
 
@@ -167,9 +167,9 @@ class AtomicRingBuffer :
 
 		Free();
 
-		memory = tempMemory;
+		memory       = tempMemory;
 		elementCount = newElementCount;
-		size = tempSize;
+		size         = tempSize;
 	}
 
 	void Free() {
@@ -232,9 +232,9 @@ class AtomicRingBuffer :
 	}
 
 	private:
-	uint64 size;
-	uint64 mask;
-	ALIGN_CACHE uint64 elementCount;
+	uint64                          size;
+	uint64                          mask;
+	ALIGN_CACHE uint64              elementCount;
 	ALIGN_CACHE std::atomic<uint64> pointer;
 	ALIGN_CACHE std::atomic<uint64> current;
 };
