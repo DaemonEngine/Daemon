@@ -63,7 +63,7 @@ uint64 operator""_h( uint64 time ) {
 	return time * 60 * 60 * 1000000000;
 }
 
-uint64 Time() {
+uint64 TimeNs() {
 	return std::chrono::duration_cast< std::chrono::nanoseconds >( Sys::SteadyClock::now().time_since_epoch() ).count();
 }
 
@@ -103,7 +103,7 @@ std::string Timer::FormatTime( const TimeUnit maxTimeUnit ) {
 
 uint64 Timer::Time() const {
 	if ( running ) {
-		return Time() - time + runTime;
+		return TimeNs() - time + runTime;
 	}
 
 	return runTime;

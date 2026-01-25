@@ -47,7 +47,7 @@ uint64 operator ""_s( uint64 time );
 uint64 operator ""_m( uint64 time );
 uint64 operator ""_h( uint64 time );
 
-uint64 Time();
+uint64 TimeNs();
 
 class Timer {
 	public:
