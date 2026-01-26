@@ -44,7 +44,7 @@ bool AccessLock::Lock() {
 		}
 
 		desired = expected + 1;
-	} while( !value.compare_exchange_strong( expected, desired, std::memory_order_acq_rel ) );
+	} while( !value.compare_exchange_strong( expected, desired, std::memory_order_acquire ) );
 
 	return true;
 }
@@ -54,9 +54,9 @@ void AccessLock::Unlock() {
 }
 
 bool AccessLock::LockWrite() {
-	const uint32 current = value.fetch_sub( 1, std::memory_order_release );
+	const uint32 current = value.fetch_sub( 1, std::memory_order_relaxed );
 
-	if ( current == 0 ) {
+	if ( current != 1 ) {
 		UnlockWrite();
 		return false;
 	}
@@ -71,5 +71,5 @@ void AccessLock::UnlockWrite() {
 }
 
 void AccessLock::operator=( const AccessLock& other ) {
-	value = other.value.load( std::memory_order_acquire );
+	value = other.value.load( std::memory_order_relaxed );
 }
