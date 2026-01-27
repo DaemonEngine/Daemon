@@ -61,8 +61,6 @@ bool AccessLock::LockWrite() {
 		return false;
 	}
 
-	while( value.load( std::memory_order_acquire ) );
-
 	return true;
 }
 
