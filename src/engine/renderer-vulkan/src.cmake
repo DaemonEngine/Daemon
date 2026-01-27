@@ -43,6 +43,8 @@ set( sysList
 )
 
 set( threadList
+    ${ENGINE_DIR}/renderer-vulkan/Thread/EventQueue.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Thread/EventQueue.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/GlobalMemory.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/GlobalMemory.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/SyncTask.cpp

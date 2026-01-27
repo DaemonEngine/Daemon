@@ -44,6 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Sync/Fence.h"
 #include "../Sync/AccessLock.h"
 
+#include "../Shared/Timer.h"
+
 #include "TaskData.h"
 
 template<typename T>
@@ -70,7 +72,10 @@ struct Task {
 	bool active                                       = false;
 	bool shutdownTask                                 = false;
 
+	uint32 eventMask                                  = 0;
+
 	uint64 gen                                        = 0;
+	uint64 time                                       = 0;
 
 	ALIGN_CACHE std::atomic<uint32> dependencyCounter = 1;
 	std::atomic<uint32> forwardTaskCounter            = 0;
@@ -92,20 +97,23 @@ struct Task {
 
 	// We have to use templates here because clang fails to cast function pointers to void*
 	template<typename FuncType>
-	Task( FuncType func ) :
-		Execute( ( TaskFunction ) func ) {
+	Task( FuncType func, uint64 delay = 0 ) :
+		Execute( ( TaskFunction ) func ),
+		time( TimeNs() + delay ) {
 	}
 
 	template<typename FuncType>
-	Task( FuncType func, FenceMain& fence ) :
+	Task( FuncType func, FenceMain& fence, uint64 delay = 0 ) :
 		Execute( ( TaskFunction ) func ),
-		complete( fence ) {
+		complete( fence ),
+		time( TimeNs() + delay ) {
 	}
 
 	template<typename FuncType, typename DataType>
-	Task( FuncType func, DataType&& newData ) :
+	Task( FuncType func, DataType&& newData, uint64 delay = 0 ) :
 		Execute( ( TaskFunction ) func ),
-		dataIsPointer( IsPointer<DataType> ) {
+		dataIsPointer( IsPointer<DataType> ),
+		time( TimeNs() + delay ) {
 
 		if constexpr ( IsPointer<DataType> ) {
 			data = ( void* ) newData;
@@ -118,10 +126,11 @@ struct Task {
 	}
 
 	template<typename FuncType, typename DataType>
-	Task( FuncType func, DataType&& newData, FenceMain& fence ) :
+	Task( FuncType func, DataType&& newData, FenceMain& fence, uint64 delay = 0 ) :
 		Execute( ( TaskFunction ) func ),
 		dataIsPointer( IsPointer<DataType> ),
-		complete( fence ) {
+		complete( fence ),
+		time( TimeNs() + delay ) {
 
 		if constexpr ( IsPointer<DataType> ) {
 			data = ( void* ) newData;

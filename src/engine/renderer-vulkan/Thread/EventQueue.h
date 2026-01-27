@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2025 Daemon Developers
+Copyright (c) 2026 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -31,43 +31,61 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Task.cpp
+// EventQueue.h
 
-#include "../Math/Bit.h"
+#ifndef EVENT_QUEUE_H
+#define EVENT_QUEUE_H
+
+#include "../Memory/Array.h"
+
+#include "../Sync/AccessLock.h"
 
 #include "Task.h"
 
-Task::Task() :
-	id( SetBit( 0u, 15 ) ) {
-}
+struct EventRing {
+	static constexpr uint32 sectors    = 8;
+	static constexpr uint32 sectorMask = 7;
+	static constexpr uint32 sectorSize = 64;
 
-Task::Task( const Task& other ) {
-	*this = other;
-}
+	enum EventResult {
+		EVENT_SUCCESS,
+		EVENT_FAIL,
+		EVENT_EXPIRED
+	};
 
-void Task::operator=( const Task& other ) {
-	Execute            = other.Execute;
-	data               = other.data;
+	AccessLock lock;
 
-	complete           = other.complete;
+	uint64     currentTime;
+	uint64     granularity;
 
-	active             = other.active;
-	shutdownTask       = other.shutdownTask;
+	uint32     currentSector;
 
-	eventMask          = other.eventMask;
+	Task       events[sectors][sectorSize] {};
+	uint64     allocatedEvents[sectors]    {};
 
-	gen                = other.gen;
-	time               = other.time;
+	EventResult AddTask( Task& task, const uint32 ringID );
+	void Rotate();
+};
 
-	memcpy( forwardTasks, other.forwardTasks, MAX_FORWARD_TASKS * sizeof( uint16 ) );
+struct EventQueue {
+	Array<EventRing, 9> eventRings {
+		{ .granularity = 1_us },
+		{ .granularity = 10_us },
+		{ .granularity = 50_us },
+		{ .granularity = 200_us },
+		{ .granularity = 1_ms },
+		{ .granularity = 16_ms },
+		{ .granularity = 100_ms },
+		{ .granularity = 5_s },
+		{ .granularity = 1_m }
+	};
 
-	dependencyCounter  = other.dependencyCounter.load( std::memory_order_relaxed );
-	forwardTaskCounter = other.forwardTaskCounter.load( std::memory_order_relaxed );
+	const uint64 minGranularity = eventRings[0].granularity;
 
-	id                 = other.id;
+	void AddTask( Task& task, const int threadID = -1 );
+	void Rotate();
+};
 
-	bufferID           = other.bufferID;
-	forwardTaskLock    = other.forwardTaskLock;
+extern EventQueue eventQueue;
 
-	dataSize           = other.dataSize;
-}
+#endif // EVENT_QUEUE_H

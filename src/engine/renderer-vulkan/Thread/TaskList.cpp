@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GlobalMemory.h"
 #include "ThreadCommand.h"
 #include "ThreadUplink.h"
+#include "EventQueue.h"
 
 #include "TaskList.h"
 
@@ -175,8 +176,12 @@ void TaskList::FinishDependency( const uint16 bufferID ) {
 	if ( !counter ) {
 		TLM.addTimer.Start();
 
-		AddToThreadQueue( task );
-		taskWithDependenciesCount.fetch_sub( 1, std::memory_order_relaxed );
+		if ( TimeNs() < task.time ) {
+			eventQueue.AddTask( task );
+		} else {
+			AddToThreadQueue( task );
+			taskWithDependenciesCount.fetch_sub( 1, std::memory_order_relaxed );
+		}
 
 		TLM.addTimer.Stop();
 	}
@@ -223,7 +228,7 @@ void ThreadQueue::AddTask( const uint16 bufferID ) {
 	TLM.addQueueWaitTimer.Start();
 
 	uint64 id = pointer.fetch_add( 1, std::memory_order_relaxed );
-	id %= MAX_TASKS;
+	id       %= MAX_TASKS;
 	while ( tasks[id] != TASK_NONE );
 
 	tasks[id] = bufferID;
@@ -336,7 +341,7 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies, const int th
 
 	SetBit( &task.id, TASK_SHIFT_ADDED );
 
-	taskMemory->id = task.id;
+	taskMemory->id   = task.id;
 
 	if ( HasUntrackedDeps( task.id ) ) {
 		ResolveDependencies( *taskMemory, dependencies );
@@ -395,7 +400,12 @@ void TaskList::UnMarkDependencies( TaskInitList<T>&& dependencies ) {
 void TaskList::AddTask( Task& task, std::initializer_list<TaskProxy> dependencies, const int threadID ) {
 	MarkDependencies( task, TaskInitList { dependencies.begin(), dependencies.end() } );
 
-	AddTask( task, TaskInitList { dependencies.begin(), dependencies.end() }, threadID );
+	uint64 time = TimeNs();
+	if ( time < task.time && time - task.time > eventQueue.minGranularity ) {
+		eventQueue.AddTask( task, threadID );
+	} else {
+		AddTask( task, TaskInitList { dependencies.begin(), dependencies.end() }, threadID );
+	}
 
 	UnMarkDependencies( TaskInitList{ dependencies.begin(), dependencies.end() } );
 }
@@ -442,9 +452,9 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 
 	Q_UNUSED( longestTask );
 
-	ThreadQueue& threadQueue = threadQueues[TLM.id];
-	uint8  current           = threadQueue.current;
-	uint16 id                = threadQueue.tasks[current];
+	ThreadQueue& threadQueue   = threadQueues[TLM.id];
+	uint8  current             = threadQueue.current;
+	uint16 id                  = threadQueue.tasks[current];
 	if ( id == ThreadQueue::TASK_NONE ) {
 		currentThreadExecutionNode.store( TLM.id, std::memory_order_relaxed );
 		return nullptr;

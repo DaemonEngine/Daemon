@@ -151,7 +151,7 @@ class TaskList :
 	std::atomic<uint32> taskWithDependenciesCount;
 
 	ALIGN_CACHE std::atomic<uint32> executingThreads = 1;
-	ALIGN_CACHE std::atomic<bool> exiting = false;
+	ALIGN_CACHE std::atomic<bool>   exiting          = false;
 
 	void AddToThreadQueue( Task& task, const int threadID = -1 );
 

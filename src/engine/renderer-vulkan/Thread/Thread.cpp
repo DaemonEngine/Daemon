@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GlobalMemory.h"
 #include "TaskList.h"
 #include "ThreadCommand.h"
+#include "EventQueue.h"
 
 #include "Thread.h"
 
@@ -89,6 +90,8 @@ void Thread::Run() {
 		threadCmd.Start();
 		threadCommands.ExecuteThreadCommands();
 		threadCmd.Stop();
+
+		eventQueue.Rotate();
 
 		Timer fetching;
 		task = taskList.FetchTask( this, true );
