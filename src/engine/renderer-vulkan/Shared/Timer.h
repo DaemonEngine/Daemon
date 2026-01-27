@@ -40,12 +40,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
-uint64 operator ""_ns( uint64 time );
-uint64 operator ""_us( uint64 time );
-uint64 operator ""_ms( uint64 time );
-uint64 operator ""_s( uint64 time );
-uint64 operator ""_m( uint64 time );
-uint64 operator ""_h( uint64 time );
+uint64 NsToMs( const uint64 time );
+uint64 NsToUs( const uint64 time );
+uint64 NsToS( const uint64 time );
+uint64 NsToM( const uint64 time );
+uint64 NsToH( const uint64 time );
+
+uint64 operator ""_ns( const uint64 time );
+uint64 operator ""_us( const uint64 time );
+uint64 operator ""_ms( const uint64 time );
+uint64 operator ""_s( const uint64 time );
+uint64 operator ""_m( const uint64 time );
+uint64 operator ""_h( const uint64 time );
 
 uint64 TimeNs();
 

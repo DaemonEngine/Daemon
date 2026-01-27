@@ -39,27 +39,47 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Timer.h"
 
-uint64 operator""_ns( uint64 time ) {
+uint64 NsToMs( const uint64 time ) {
+	return time / 1000;
+}
+
+uint64 NsToUs( const uint64 time ) {
+	return time / 1000000;
+}
+
+uint64 NsToS( const uint64 time ) {
+	return time / 1000000000;
+}
+
+uint64 NsToM( const uint64 time ) {
+	return time / ( 1000000000ull * 60 );
+}
+
+uint64 NsToH( const uint64 time ) {
+	return time / ( 1000000000ull * 60 * 60 );
+}
+
+uint64 operator""_ns( const uint64 time ) {
 	return time;
 }
 
-uint64 operator""_us( uint64 time ) {
+uint64 operator""_us( const uint64 time ) {
 	return time * 1000;
 }
 
-uint64 operator""_ms( uint64 time ) {
+uint64 operator""_ms( const uint64 time ) {
 	return time * 1000000;
 }
 
-uint64 operator""_s( uint64 time ) {
+uint64 operator""_s( const uint64 time ) {
 	return time * 1000000000;
 }
 
-uint64 operator""_m( uint64 time ) {
+uint64 operator""_m( const uint64 time ) {
 	return time * 60 * 1000000000;
 }
 
-uint64 operator""_h( uint64 time ) {
+uint64 operator""_h( const uint64 time ) {
 	return time * 60 * 60 * 1000000000;
 }
 
