@@ -85,6 +85,16 @@ VkSemaphoreSubmitInfo Semaphore::GenSubmitInfo( const VkPipelineStageFlags2 stag
 	};
 }
 
-void Semaphore::operator++() {
+Semaphore Semaphore::operator++() {
 	value++;
+
+	return *this;
+}
+
+Semaphore Semaphore::operator++( int ) {
+	Semaphore out( *this );
+
+	value++;
+
+	return out;
 }

@@ -51,7 +51,8 @@ struct Semaphore {
 
 	VkSemaphoreSubmitInfo GenSubmitInfo( const VkPipelineStageFlags2 stages );
 
-	void                  operator++();
+	Semaphore             operator++();
+	Semaphore             operator++( int );
 };
 
 #endif // SEMAPHORE_H
