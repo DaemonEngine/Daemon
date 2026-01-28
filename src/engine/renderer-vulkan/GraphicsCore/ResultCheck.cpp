@@ -68,3 +68,10 @@ int ResCheck( const VkResult skipRes, const VkResult res ) {
 
 	return -1;
 } */
+
+ResCheck::ResCheck() {
+}
+
+void ResCheck::operator=( const VkResult result ) {
+	ResultCheck( result );
+}

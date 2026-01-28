@@ -59,23 +59,30 @@ if ( !( res & ( resultSuccess | skipRes ) ) ) { \
 
 #define ResultCheckExt( res, skipRes ) \
 resultCheck = res; \
-if ( resultCheck && !( resultCheck & ( resultSuccess | skipRes ) ) ) { \
+if ( resultCheck && !( resultCheck & ( resultSuccess ^ skipRes ) ) ) { \
 	Err( "Vulkan function failed: %s (%s:%u)", string_VkResult( res ), __FILE__, __LINE__ ); \
 	return; \
 }
 
 #define ResultCheckExtRet( res, skipRes ) \
 resultCheck = res; \
-if ( resultCheck && !( resultCheck & ( resultSuccess | skipRes ) ) ) { \
+if ( resultCheck && !( resultCheck & ( resultSuccess ^ skipRes ) ) ) { \
 	Err( "Vulkan function failed: %s (%s:%u)", string_VkResult( res ), __FILE__, __LINE__ ); \
 	return 0; \
 }
 
-#define ResultCheck( res ) ResultCheckExt( res, 0 )
+#define ResultCheck( res )    ResultCheckExt( res, 0 )
 
 #define ResultCheckRet( res ) ResultCheckExtRet( res, 0 )
 
+struct ResCheck {
+	ResCheck();
+
+	void operator=( const VkResult result );
+};
+
 // Here so it's not a "hidden" local variable
 extern thread_local VkResult resultCheck;
+extern thread_local ResCheck resCheck;
 
 #endif // RESULT_CHECK_H
