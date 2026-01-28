@@ -50,11 +50,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template<const uint32 instanceExtensionCount, const uint32 extensionCount, const uint32 featureCount>
 struct CapabilityPack {
-	const Version minVersion;
+	const Version                                    minVersion;
 
 	const Array<const char*, instanceExtensionCount> requiredInstanceExtensions;
-	const Array<const char*, extensionCount> requiredExtensions;
-	const Array<const char*, featureCount> requiredFeatures;
+	const Array<const char*, extensionCount>         requiredExtensions;
+	const Array<const char*, featureCount>           requiredFeatures;
 };
 
 namespace CapabilityPackType {
@@ -96,10 +96,10 @@ constexpr bool EngineConfigSupportedMinimal( const EngineConfig& config );
 CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig& config );
 
 constexpr CapabilityPack<instanceExtensions.Size(), extensionsMinimal.Size(), featuresMinimal.Size()> capabilityPackMinimal {
-	.minVersion { 1, 3, 0 },
+	.minVersion                   { 1, 3, 0 },
 	.requiredInstanceExtensions = instanceExtensions,
-	.requiredExtensions = extensionsMinimal,
-	.requiredFeatures = featuresMinimal
+	.requiredExtensions         = extensionsMinimal,
+	.requiredFeatures           = featuresMinimal
 };
 
 #endif // CAPABILITY_PACK_H

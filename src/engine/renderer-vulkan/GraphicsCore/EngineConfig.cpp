@@ -45,145 +45,133 @@ EngineConfig GetEngineConfigForDevice( const VkPhysicalDevice& device ) {
 	VkPhysicalDeviceVulkan13Properties properties13 { .pNext = &properties12 };
 	VkPhysicalDeviceProperties2        properties   { .pNext = &properties13 };
 
-	VkPhysicalDeviceVulkan12Features features12 {};
-	VkPhysicalDeviceVulkan13Features features13 { .pNext = &features12 };
-	VkPhysicalDeviceFeatures2        features   { .pNext = &features13 };
+	VkPhysicalDeviceVulkan12Features   features12 {};
+	VkPhysicalDeviceVulkan13Features   features13 { .pNext = &features12 };
+	VkPhysicalDeviceFeatures2          features   { .pNext = &features13 };
 
 	vkGetPhysicalDeviceProperties2( device, &properties );
 	vkGetPhysicalDeviceFeatures2(   device, &features );
 
-	VkPhysicalDeviceProperties&       coreProperties   = properties.properties;
-	VkPhysicalDeviceLimits&           limits           = coreProperties.limits;
-	VkPhysicalDeviceSparseProperties& sparseProperties = coreProperties.sparseProperties;
-	VkPhysicalDeviceFeatures&         coreFeatures     = features.features;
+	VkPhysicalDeviceProperties&        coreProperties   = properties.properties;
+	VkPhysicalDeviceLimits&            limits           = coreProperties.limits;
+	VkPhysicalDeviceSparseProperties&  sparseProperties = coreProperties.sparseProperties;
+	VkPhysicalDeviceFeatures&          coreFeatures     = features.features;
 
 	EngineConfig cfg {
-		.driverID = properties12.driverID,
-		.conformanceVersion = properties12.conformanceVersion,
+		.driverID                                  = properties12.driverID,
+		.conformanceVersion                        = properties12.conformanceVersion,
 
-		.driverVersion = coreProperties.driverVersion,
-		.vendorID      = coreProperties.vendorID,
-		.deviceID      = coreProperties.deviceID,
+		.driverVersion                             = coreProperties.driverVersion,
+		.vendorID                                  = coreProperties.vendorID,
+		.deviceID                                  = coreProperties.deviceID,
 
-		.maxAllocationSize = properties11.maxMemoryAllocationSize,
-		.maxBufferSize     = properties13.maxBufferSize,
+		.maxAllocationSize                         = properties11.maxMemoryAllocationSize,
+		.maxBufferSize                             = properties13.maxBufferSize,
 
-		.subgroupSupportedStages  = properties11.subgroupSupportedStages,
-		.subgroupSupportedOps     = properties11.subgroupSupportedOperations,
-		.subgroupQuadOpsAllStages = ( bool ) properties11.subgroupQuadOperationsInAllStages,
+		.subgroupSupportedStages                   = properties11.subgroupSupportedStages,
+		.subgroupSupportedOps                      = properties11.subgroupSupportedOperations,
+		.subgroupQuadOpsAllStages                  = ( bool ) properties11.subgroupQuadOperationsInAllStages,
 
-		.minSubgroupSize = properties13.minSubgroupSize,
-		.maxSubgroupSize = properties13.maxSubgroupSize,
-		.maxComputeWorkgroupSubgroups = properties13.maxComputeWorkgroupSubgroups,
-		.requiredSubgroupSizeStages   = properties13.requiredSubgroupSizeStages,
+		.minSubgroupSize                           = properties13.minSubgroupSize,
+		.maxSubgroupSize                           = properties13.maxSubgroupSize,
+		.maxComputeWorkgroupSubgroups              = properties13.maxComputeWorkgroupSubgroups,
+		.requiredSubgroupSizeStages                = properties13.requiredSubgroupSizeStages,
 
-		.maxSetDescriptors = properties11.maxPerSetDescriptors,
-		.maxTotalDynamicDescriptors = properties12.maxUpdateAfterBindDescriptorsInAllPools,
-		.robustBufferAccessDynamic  = ( bool ) properties12.robustBufferAccessUpdateAfterBind,
+		.maxSetDescriptors                         = properties11.maxPerSetDescriptors,
+		.maxTotalDynamicDescriptors                = properties12.maxUpdateAfterBindDescriptorsInAllPools,
+		.robustBufferAccessDynamic                 = ( bool ) properties12.robustBufferAccessUpdateAfterBind,
 
-		.maxInlineUniformBlockSize = properties13.maxInlineUniformBlockSize,
-		.maxInlineUniformTotalSize = properties13.maxInlineUniformTotalSize,
-		.maxPerStageDescriptorInlineUniformBlocks = properties13.maxPerStageDescriptorInlineUniformBlocks,
-		.maxPerStageDescriptorUpdateAfterBindInlineUniformBlocks = properties13.maxPerStageDescriptorUpdateAfterBindInlineUniformBlocks,
-		.maxDescriptorSetInlineUniformBlocks = properties13.maxDescriptorSetInlineUniformBlocks,
-		.maxDescriptorSetUpdateAfterBindInlineUniformBlocks = properties13.maxDescriptorSetUpdateAfterBindInlineUniformBlocks,
+		.quadDivergentImplicitLod                  = ( bool ) properties12.quadDivergentImplicitLod,
 
-		.storageTexelBufferOffsetAlignmentBytes = properties13.storageTexelBufferOffsetAlignmentBytes,
-		.storageTexelBufferOffsetSingleTexelAlignment = ( bool ) properties13.storageTexelBufferOffsetSingleTexelAlignment,
-		.uniformTexelBufferOffsetAlignmentBytes = properties13.uniformTexelBufferOffsetAlignmentBytes,
-		.uniformTexelBufferOffsetSingleTexelAlignment = ( bool ) properties13.uniformTexelBufferOffsetSingleTexelAlignment,
+		.filterMinmaxSingleComponentFormats        = ( bool ) properties12.filterMinmaxSingleComponentFormats,
+		.filterMinmaxImageComponentMapping         = ( bool ) properties12.filterMinmaxImageComponentMapping,
 
-		.quadDivergentImplicitLod = ( bool ) properties12.quadDivergentImplicitLod,
+		.maxImages                                 = properties12.maxPerStageDescriptorUpdateAfterBindSampledImages,
+		.maxStorageImages                          = properties12.maxPerStageDescriptorUpdateAfterBindStorageImages,
 
-		.filterMinmaxSingleComponentFormats = ( bool ) properties12.filterMinmaxSingleComponentFormats,
-		.filterMinmaxImageComponentMapping  = ( bool ) properties12.filterMinmaxImageComponentMapping,
+		.maxImageSize2D                            = limits.maxImageDimension2D,
+		.maxImageSize3D                            = limits.maxImageDimension3D,
+		.maxImageSizeCube                          = limits.maxImageDimensionCube,
+		.maxImageArrayLayers                       = limits.maxImageArrayLayers,
 
-		.maxImages        = properties12.maxPerStageDescriptorUpdateAfterBindSampledImages,
-		.maxStorageImages = properties12.maxPerStageDescriptorUpdateAfterBindStorageImages,
+		.maxPushConstSize                          = limits.maxPushConstantsSize,
+		.maxAllocations                            = limits.maxMemoryAllocationCount,
+		.maxSamplers                               = limits.maxSamplerAllocationCount,
+		.bufferImageGranularity                    = limits.bufferImageGranularity,
+		.sparseAddressSpaceSize                    = limits.sparseAddressSpaceSize,
 
-		.maxImageSize2D      = limits.maxImageDimension2D,
-		.maxImageSize3D      = limits.maxImageDimension3D,
-		.maxImageSizeCube    = limits.maxImageDimensionCube,
-		.maxImageArrayLayers = limits.maxImageArrayLayers,
-
-		.maxPushConstSize = limits.maxPushConstantsSize,
-		.maxAllocations   = limits.maxMemoryAllocationCount,
-		.maxSamplers      = limits.maxSamplerAllocationCount,
-		.bufferImageGranularity = limits.bufferImageGranularity,
-		.sparseAddressSpaceSize = limits.sparseAddressSpaceSize,
-
-		.maxComputeSharedMemSize  = limits.maxComputeSharedMemorySize,
-		.maxComputeWorkGroupCount = {
+		.maxComputeSharedMemSize                   = limits.maxComputeSharedMemorySize,
+		.maxComputeWorkGroupCount                  = {
 			limits.maxComputeWorkGroupCount[0],
 			limits.maxComputeWorkGroupCount[1],
 			limits.maxComputeWorkGroupCount[2],
 		},
-		.maxComputeWorkGroupInvocations = limits.maxComputeWorkGroupInvocations,
-		.maxComputeWorkGroupSize  = {
+		.maxComputeWorkGroupInvocations            = limits.maxComputeWorkGroupInvocations,
+		.maxComputeWorkGroupSize                   = {
 			limits.maxComputeWorkGroupSize[0],
 			limits.maxComputeWorkGroupSize[1],
 			limits.maxComputeWorkGroupSize[2],
 		},
 
-		.subPixelPrecisionBits = limits.subPixelPrecisionBits,
-		.subTexelPrecisionBits = limits.subTexelPrecisionBits,
-		.mipmapPrecisionBits   = limits.mipmapPrecisionBits,
+		.subPixelPrecisionBits                     = limits.subPixelPrecisionBits,
+		.subTexelPrecisionBits                     = limits.subTexelPrecisionBits,
+		.mipmapPrecisionBits                       = limits.mipmapPrecisionBits,
 
-		.minMemoryMapAlignment = limits.minMemoryMapAlignment,
+		.minMemoryMapAlignment                     = limits.minMemoryMapAlignment,
 
-		.discreteQueuePriorities = limits.discreteQueuePriorities,
+		.discreteQueuePriorities                   = limits.discreteQueuePriorities,
 
-		.optimalBufferCopyOffsetAlignment   = limits.optimalBufferCopyOffsetAlignment,
-		.optimalBufferCopyRowPitchAlignment = limits.optimalBufferCopyRowPitchAlignment,
-		.nonCoherentAtomSize = limits.nonCoherentAtomSize,
+		.optimalBufferCopyOffsetAlignment          = limits.optimalBufferCopyOffsetAlignment,
+		.optimalBufferCopyRowPitchAlignment        = limits.optimalBufferCopyRowPitchAlignment,
+		.nonCoherentAtomSize                       = limits.nonCoherentAtomSize,
 
-		.shaderResourceResidency = ( bool ) coreFeatures.shaderResourceResidency,
-		.shaderResourceMinLod    = ( bool ) coreFeatures.shaderResourceMinLod,
+		.shaderResourceResidency                   = ( bool ) coreFeatures.shaderResourceResidency,
+		.shaderResourceMinLod                      = ( bool ) coreFeatures.shaderResourceMinLod,
 
-		.depthBounds = ( bool ) coreFeatures.depthBounds,
+		.depthBounds                               = ( bool ) coreFeatures.depthBounds,
 
-		.sparseBinding            = ( bool ) coreFeatures.sparseBinding,
-		.sparseResidencyBuffer    = ( bool ) coreFeatures.sparseResidencyBuffer,
-		.sparseResidencyImage2D   = ( bool ) coreFeatures.sparseResidencyImage2D,
-		.sparseResidencyImage3D   = ( bool ) coreFeatures.sparseResidencyImage3D,
-		.sparseResidency2Samples  = ( bool ) coreFeatures.sparseResidency2Samples,
-		.sparseResidency4Samples  = ( bool ) coreFeatures.sparseResidency4Samples,
-		.sparseResidency8Samples  = ( bool ) coreFeatures.sparseResidency8Samples,
-		.sparseResidency16Samples = ( bool ) coreFeatures.sparseResidency16Samples,
-		.sparseResidencyAliased   = ( bool ) coreFeatures.sparseResidencyAliased,
+		.sparseBinding                             = ( bool ) coreFeatures.sparseBinding,
+		.sparseResidencyBuffer                     = ( bool ) coreFeatures.sparseResidencyBuffer,
+		.sparseResidencyImage2D                    = ( bool ) coreFeatures.sparseResidencyImage2D,
+		.sparseResidencyImage3D                    = ( bool ) coreFeatures.sparseResidencyImage3D,
+		.sparseResidency2Samples                   = ( bool ) coreFeatures.sparseResidency2Samples,
+		.sparseResidency4Samples                   = ( bool ) coreFeatures.sparseResidency4Samples,
+		.sparseResidency8Samples                   = ( bool ) coreFeatures.sparseResidency8Samples,
+		.sparseResidency16Samples                  = ( bool ) coreFeatures.sparseResidency16Samples,
+		.sparseResidencyAliased                    = ( bool ) coreFeatures.sparseResidencyAliased,
 
-		.residencyStandard2DBlockShape            = ( bool ) sparseProperties.residencyStandard2DBlockShape,
-		.residencyStandard2DMultisampleBlockShape = ( bool ) sparseProperties.residencyStandard2DMultisampleBlockShape,
-		.residencyStandard3DBlockShape            = ( bool ) sparseProperties.residencyStandard3DBlockShape,
-		.residencyAlignedMipSize                  = ( bool ) sparseProperties.residencyAlignedMipSize,
-		.residencyNonResidentStrict               = ( bool ) sparseProperties.residencyNonResidentStrict,
+		.residencyStandard2DBlockShape             = ( bool ) sparseProperties.residencyStandard2DBlockShape,
+		.residencyStandard2DMultisampleBlockShape  = ( bool ) sparseProperties.residencyStandard2DMultisampleBlockShape,
+		.residencyStandard3DBlockShape             = ( bool ) sparseProperties.residencyStandard3DBlockShape,
+		.residencyAlignedMipSize                   = ( bool ) sparseProperties.residencyAlignedMipSize,
+		.residencyNonResidentStrict                = ( bool ) sparseProperties.residencyNonResidentStrict,
 
-		.textureCompressionETC2     = ( bool ) coreFeatures.textureCompressionETC2,
-		.textureCompressionASTC_LDR = ( bool ) coreFeatures.textureCompressionASTC_LDR,
-		.textureCompressionBC       = ( bool ) coreFeatures.textureCompressionBC,
+		.textureCompressionETC2                    = ( bool ) coreFeatures.textureCompressionETC2,
+		.textureCompressionASTC_LDR                = ( bool ) coreFeatures.textureCompressionASTC_LDR,
+		.textureCompressionBC                      = ( bool ) coreFeatures.textureCompressionBC,
 
-		.bufferDeviceAddress              = ( bool ) features12.bufferDeviceAddress,
-		.bufferDeviceAddressCaptureReplay = ( bool ) features12.bufferDeviceAddressCaptureReplay,
+		.bufferDeviceAddress                       = ( bool ) features12.bufferDeviceAddress,
+		.bufferDeviceAddressCaptureReplay          = ( bool ) features12.bufferDeviceAddressCaptureReplay,
 
-		.descriptorIndexing = ( bool ) features12.descriptorIndexing,
+		.descriptorIndexing                        = ( bool ) features12.descriptorIndexing,
 
 		.descriptorBindingUpdateUnusedWhilePending = ( bool ) features12.descriptorBindingUpdateUnusedWhilePending,
 		.descriptorBindingPartiallyBound           = ( bool ) features12.descriptorBindingPartiallyBound,
 		.descriptorBindingVariableDescriptorCount  = ( bool ) features12.descriptorBindingVariableDescriptorCount,
 
-		.runtimeDescriptorArray = ( bool ) features12.runtimeDescriptorArray,
+		.runtimeDescriptorArray                    = ( bool ) features12.runtimeDescriptorArray,
 
-		.samplerFilterMinmax = ( bool ) features12.samplerFilterMinmax,
+		.samplerFilterMinmax                       = ( bool ) features12.samplerFilterMinmax,
 
 		.shaderSampledImageArrayNonUniformIndexing = ( bool ) features12.shaderSampledImageArrayNonUniformIndexing,
 		.shaderStorageImageArrayNonUniformIndexing = ( bool ) features12.shaderStorageImageArrayNonUniformIndexing,
 
-		.dynamicRendering = ( bool ) features13.dynamicRendering,
-		.synchronization2 = ( bool ) features13.synchronization2,
+		.dynamicRendering                          = ( bool ) features13.dynamicRendering,
+		.synchronization2                          = ( bool ) features13.synchronization2,
 		
-		.maintenance4 = ( bool ) features13.maintenance4,
+		.maintenance4                              = ( bool ) features13.maintenance4,
 
-		.textureCompressionASTC_HDR = ( bool ) features13.textureCompressionASTC_HDR
+		.textureCompressionASTC_HDR                = ( bool ) features13.textureCompressionASTC_HDR
 	};
 
 	memcpy( cfg.driverUUID, properties11.driverUUID, VK_UUID_SIZE );

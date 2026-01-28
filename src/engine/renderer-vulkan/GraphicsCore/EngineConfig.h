@@ -48,21 +48,21 @@ struct EngineConfig {
 		CPU
 	};
 
-	int capabilityPack;
+	int    capabilityPack;
 
-	uint8 driverUUID[VK_UUID_SIZE];
+	uint8  driverUUID[VK_UUID_SIZE];
 
 	VkDriverId driverID;
-	char driverName[VK_MAX_DRIVER_NAME_SIZE];
-	char driverInfo[VK_MAX_DRIVER_INFO_SIZE];
+	char   driverName[VK_MAX_DRIVER_NAME_SIZE];
+	char   driverInfo[VK_MAX_DRIVER_INFO_SIZE];
 	VkConformanceVersion conformanceVersion;
 
 	uint32 driverVersion;
 	uint32 vendorID;
 	uint32 deviceID;
-	Type deviceType;
-	char deviceName[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
-	uint8 pipelineCacheUUID[VK_UUID_SIZE];
+	Type   deviceType;
+	char   deviceName[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
+	uint8  pipelineCacheUUID[VK_UUID_SIZE];
 
 	uint64 maxAllocationSize;
 	uint64 maxBufferSize;
@@ -82,22 +82,10 @@ struct EngineConfig {
 	uint32 maxTotalDynamicDescriptors;
 	bool   robustBufferAccessDynamic;
 
-	uint32 maxInlineUniformBlockSize;
-	uint32 maxInlineUniformTotalSize;
-	uint32 maxPerStageDescriptorInlineUniformBlocks;
-	uint32 maxPerStageDescriptorUpdateAfterBindInlineUniformBlocks;
-	uint32 maxDescriptorSetInlineUniformBlocks;
-	uint32 maxDescriptorSetUpdateAfterBindInlineUniformBlocks;
+	bool   quadDivergentImplicitLod;
 
-	uint64 storageTexelBufferOffsetAlignmentBytes;
-	bool   storageTexelBufferOffsetSingleTexelAlignment;
-	uint64 uniformTexelBufferOffsetAlignmentBytes;
-	bool   uniformTexelBufferOffsetSingleTexelAlignment;
-
-	bool quadDivergentImplicitLod;
-
-	bool filterMinmaxSingleComponentFormats;
-	bool filterMinmaxImageComponentMapping;
+	bool   filterMinmaxSingleComponentFormats;
+	bool   filterMinmaxImageComponentMapping;
 
 	uint32 maxImages;
 	uint32 maxStorageImages;
@@ -130,53 +118,53 @@ struct EngineConfig {
 	uint64 optimalBufferCopyRowPitchAlignment;
 	uint64 nonCoherentAtomSize;
 
-	bool shaderResourceResidency;
-	bool shaderResourceMinLod;
+	bool   shaderResourceResidency;
+	bool   shaderResourceMinLod;
 
-	bool depthBounds;
+	bool   depthBounds;
 
-	bool sparseBinding;
-	bool sparseResidencyBuffer;
-	bool sparseResidencyImage2D;
-	bool sparseResidencyImage3D;
-	bool sparseResidency2Samples;
-	bool sparseResidency4Samples;
-	bool sparseResidency8Samples;
-	bool sparseResidency16Samples;
-	bool sparseResidencyAliased;
+	bool   sparseBinding;
+	bool   sparseResidencyBuffer;
+	bool   sparseResidencyImage2D;
+	bool   sparseResidencyImage3D;
+	bool   sparseResidency2Samples;
+	bool   sparseResidency4Samples;
+	bool   sparseResidency8Samples;
+	bool   sparseResidency16Samples;
+	bool   sparseResidencyAliased;
 
-	bool residencyStandard2DBlockShape;
-	bool residencyStandard2DMultisampleBlockShape;
-	bool residencyStandard3DBlockShape;
-	bool residencyAlignedMipSize;
-	bool residencyNonResidentStrict;
+	bool   residencyStandard2DBlockShape;
+	bool   residencyStandard2DMultisampleBlockShape;
+	bool   residencyStandard3DBlockShape;
+	bool   residencyAlignedMipSize;
+	bool   residencyNonResidentStrict;
 
-	bool textureCompressionETC2;
-	bool textureCompressionASTC_LDR;
-	bool textureCompressionBC;
+	bool   textureCompressionETC2;
+	bool   textureCompressionASTC_LDR;
+	bool   textureCompressionBC;
 
-	bool bufferDeviceAddress;
-	bool bufferDeviceAddressCaptureReplay;
+	bool   bufferDeviceAddress;
+	bool   bufferDeviceAddressCaptureReplay;
 
-	bool descriptorIndexing;
+	bool   descriptorIndexing;
 
-	bool descriptorBindingUpdateUnusedWhilePending;
-	bool descriptorBindingPartiallyBound;
-	bool descriptorBindingVariableDescriptorCount;
+	bool   descriptorBindingUpdateUnusedWhilePending;
+	bool   descriptorBindingPartiallyBound;
+	bool   descriptorBindingVariableDescriptorCount;
 
-	bool runtimeDescriptorArray;
+	bool   runtimeDescriptorArray;
 
-	bool samplerFilterMinmax;
+	bool   samplerFilterMinmax;
 
-	bool shaderSampledImageArrayNonUniformIndexing;
-	bool shaderStorageImageArrayNonUniformIndexing;
+	bool   shaderSampledImageArrayNonUniformIndexing;
+	bool   shaderStorageImageArrayNonUniformIndexing;
 
-	bool dynamicRendering;
-	bool synchronization2;
+	bool   dynamicRendering;
+	bool   synchronization2;
 
-	bool maintenance4;
+	bool   maintenance4;
 
-	bool textureCompressionASTC_HDR;
+	bool   textureCompressionASTC_HDR;
 };
 
 EngineConfig GetEngineConfigForDevice( const VkPhysicalDevice& device );
