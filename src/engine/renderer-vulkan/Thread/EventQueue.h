@@ -64,7 +64,7 @@ struct EventRing {
 	uint64     allocatedEvents[sectors]    {};
 
 	EventResult AddTask( Task& task, const uint32 ringID );
-	void Rotate();
+	void        Rotate();
 };
 
 struct EventQueue {
