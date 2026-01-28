@@ -134,7 +134,7 @@ void Timer::Start() {
 		return;
 	}
 
-	time = Time();
+	time = TimeNs();
 	running = true;
 }
 
@@ -143,7 +143,7 @@ void Timer::Stop() {
 		return;
 	}
 
-	runTime += Time() - time;
+	runTime += TimeNs() - time;
 	running = false;
 }
 
