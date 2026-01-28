@@ -2658,12 +2658,30 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				depthMaskBits = 0;
 			}
 		}
-		else if ( !Q_stricmp( token, "linearColorMap" ) )
+		else if ( !Q_stricmp( token, "rawColorMap" ) )
 		{
 			stage->linearBits |= LINEAR_COLORMAP;
 		}
+		else if ( !Q_stricmp( token, "linearColorMap" ) )
+		{
+			if ( !tr.worldLinearizeTexture )
+			{
+				Log::Warn("Usage of linearColorMap in naive pipeline, assuming rawColorMap");
+			}
+
+			stage->linearBits |= LINEAR_COLORMAP;
+		}
+		else if ( !Q_stricmp( token, "rawColor" ) )
+		{
+			stage->linearBits |= LINEAR_COLOR;
+		}
 		else if ( !Q_stricmp( token, "linearColor" ) )
 		{
+			if ( !tr.worldLinearizeTexture )
+			{
+				Log::Warn("Usage of linearColor in naive pipeline, assuming rawColor");
+			}
+
 			stage->linearBits |= LINEAR_COLOR;
 		}
 		// stage <type>
