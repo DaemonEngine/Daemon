@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2025 Daemon Developers
+Copyright (c) 2026 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -31,57 +31,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Decls.h
+// Semaphore.h
 
-#ifndef GRAPHICS_CORE_DECLS_H
-#define GRAPHICS_CORE_DECLS_H
+#ifndef SEMAPHORE_H
+#define SEMAPHORE_H
+
+#include "Decls.h"
 
 #include "../Math/NumberTypes.h"
 
-#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
-#define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
+struct Semaphore {
+	uint64                value;
 
-class Instance;
-class Surface;
-struct SwapChain;
+	VkSemaphore           semaphore;
 
-struct EngineConfig;
-struct QueuesConfig;
+	void                  Init( const uint64 initialValue = 0 );
+	void                  Signal();
+	bool                  Wait( const uint64 timeout = UINT64_MAX );
 
-VK_DEFINE_HANDLE( VkInstance );
-VK_DEFINE_HANDLE( VkPhysicalDevice );
-VK_DEFINE_HANDLE( VkDevice );
-VK_DEFINE_HANDLE( VkQueue );
+	VkSemaphoreSubmitInfo GenSubmitInfo( const VkPipelineStageFlags2 stages );
 
-VK_DEFINE_HANDLE( VkCommandBuffer );
+	void                  operator++();
+};
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSurfaceKHR )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSwapchainKHR )
-
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkDescriptorSetLayout )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkDescriptorSet )
-
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkBuffer )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkImage )
-
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkPipelineLayout )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkPipeline )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkCommandPool )
-
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkFence )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSemaphore )
-
-using VkPipelineStageFlags2 = uint64;
-
-struct VkSemaphoreSubmitInfo;
-
-struct GraphicsQueueRingBuffer;
-
-extern GraphicsQueueRingBuffer graphicsQueue;
-extern GraphicsQueueRingBuffer computeQueue;
-extern GraphicsQueueRingBuffer transferQueue;
-extern GraphicsQueueRingBuffer sparseQueue;
-
-class EngineAllocator;
-
-#endif // GRAPHICS_CORE_DECLS_H
+#endif // SEMAPHORE_H

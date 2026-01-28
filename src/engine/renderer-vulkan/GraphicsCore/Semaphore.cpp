@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2025 Daemon Developers
+Copyright (c) 2026 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -31,57 +31,60 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Decls.h
+// Semaphore.cpp
 
-#ifndef GRAPHICS_CORE_DECLS_H
-#define GRAPHICS_CORE_DECLS_H
+#include "Vulkan.h"
 
-#include "../Math/NumberTypes.h"
+#include "GraphicsCoreStore.h"
+#include "ResultCheck.h"
 
-#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
-#define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
+#include "Semaphore.h"
 
-class Instance;
-class Surface;
-struct SwapChain;
+void Semaphore::Init( const uint64 initialValue ) {
+	value = initialValue;
 
-struct EngineConfig;
-struct QueuesConfig;
+	VkSemaphoreTypeCreateInfo semaphoreTypeInfo {
+		.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+		.initialValue  = value
+	};
 
-VK_DEFINE_HANDLE( VkInstance );
-VK_DEFINE_HANDLE( VkPhysicalDevice );
-VK_DEFINE_HANDLE( VkDevice );
-VK_DEFINE_HANDLE( VkQueue );
+	VkSemaphoreCreateInfo     semaphoreInfo {
+		.pNext = &semaphoreTypeInfo
+	};
 
-VK_DEFINE_HANDLE( VkCommandBuffer );
+	ResultCheck( vkCreateSemaphore( device, &semaphoreInfo, nullptr, &semaphore ) );
+}
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSurfaceKHR )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSwapchainKHR )
+void Semaphore::Signal() {
+	VkSemaphoreSignalInfo signalInfo {
+		.semaphore = semaphore,
+		.value     = value
+	};
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkDescriptorSetLayout )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkDescriptorSet )
+	ResultCheck( vkSignalSemaphore( device, &signalInfo ) );
+}
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkBuffer )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkImage )
+bool Semaphore::Wait( const uint64 timeout ) {
+	VkSemaphoreWaitInfo semaphoreWaitInfo {
+		.flags          = 0,
+		.semaphoreCount = 1,
+		.pSemaphores    = &semaphore,
+		.pValues        = &value
+	};
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkPipelineLayout )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkPipeline )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkCommandPool )
+	ResultCheckRet( vkWaitSemaphores( device, &semaphoreWaitInfo, timeout ) );
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkFence )
-VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSemaphore )
+	return resultCheck == VK_SUCCESS;
+}
 
-using VkPipelineStageFlags2 = uint64;
+VkSemaphoreSubmitInfo Semaphore::GenSubmitInfo( const VkPipelineStageFlags2 stages ) {
+	return VkSemaphoreSubmitInfo {
+		.semaphore = semaphore,
+		.value     = value,
+		.stageMask = stages
+	};
+}
 
-struct VkSemaphoreSubmitInfo;
-
-struct GraphicsQueueRingBuffer;
-
-extern GraphicsQueueRingBuffer graphicsQueue;
-extern GraphicsQueueRingBuffer computeQueue;
-extern GraphicsQueueRingBuffer transferQueue;
-extern GraphicsQueueRingBuffer sparseQueue;
-
-class EngineAllocator;
-
-#endif // GRAPHICS_CORE_DECLS_H
+void Semaphore::operator++() {
+	value++;
+}
