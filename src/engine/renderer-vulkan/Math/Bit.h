@@ -84,6 +84,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #elif defined(DAEMON_USE_COMPILER_INTRINSICS) && defined(_MSC_VER)
 
+	inline uint32 FindLSB( const uint8 value ) {
+		unsigned long index;
+		const bool nonZero = _BitScanForward( &index, value );
+		return nonZero ? index : 8;
+	}
+
+	inline uint32 FindLSB( const uint16 value ) {
+		unsigned long index;
+		const bool nonZero = _BitScanForward( &index, value );
+		return nonZero ? index : 16;
+	}
+
 	inline uint32 FindLSB( const uint32 value ) {
 		unsigned long index;
 		const bool nonZero = _BitScanForward( &index, value );
@@ -94,6 +106,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		unsigned long index;
 		const bool nonZero = _BitScanForward64( &index, value );
 		return nonZero ? index : 64;
+	}
+
+	inline uint32 FindMSB( const uint8 value ) {
+		unsigned long index;
+		const bool nonZero = _BitScanReverse( &index, value );
+		return nonZero ? index : 8;
+	}
+
+	inline uint32 FindMSB( const uint16 value ) {
+		unsigned long index;
+		const bool nonZero = _BitScanReverse( &index, value );
+		return nonZero ? index : 16;
 	}
 
 	inline uint32 FindMSB( const uint32 value ) {
@@ -348,6 +372,18 @@ inline const bool BitSet( const uint32 value, const uint32 bit ) {
 
 inline const bool BitSet( const uint64 value, const uint32 bit ) {
 	return value & ( 1ull << bit );
+}
+
+inline uint32 FindLZeroBit( uint8 value ) {
+	return FindLSB( ( uint8 ) ~value );
+}
+
+inline uint32 FindLZeroBit( uint16 value ) {
+	return FindLSB( ( uint16 ) ~value );
+}
+
+inline uint32 FindLZeroBit( uint32 value ) {
+	return FindLSB( ~value );
 }
 
 inline uint32 FindLZeroBit( uint64 value ) {
