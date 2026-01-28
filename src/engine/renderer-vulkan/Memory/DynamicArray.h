@@ -124,7 +124,7 @@ class DynamicArray :
 			if constexpr ( std::is_trivially_copy_constructible<T>() ) {
 				memcpy( newMemory, memory, size );
 			} else {
-				for ( T* current = memory + newElements, newMem = newMemory; current < memory + elements; current++, newMem++ ) {
+				for ( T* current = memory + newElements, *newMem = newMemory; current < memory + elements; current++, newMem++ ) {
 					*newMem = *current;
 				}
 			}
