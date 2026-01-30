@@ -44,12 +44,12 @@ struct Fence;
 
 struct FenceMain {
 	std::atomic<uint64> value;
-	std::atomic<bool> done = false;
-	uint64 target = 0;
+	std::atomic<bool>   done = false;
+	uint64              target = 0;
 
-	void Signal();
+	void  Signal();
 
-	void Wait( const std::memory_order order = std::memory_order_relaxed );
+	void  Wait( const std::memory_order order = std::memory_order_relaxed );
 
 	FenceMain() = default;
 	FenceMain( const FenceMain& other ) = delete;
@@ -57,7 +57,7 @@ struct FenceMain {
 
 	Fence Target( const uint64 target );
 
-	void operator=( const FenceMain& other ) = delete;
+	void operator=( const FenceMain& other );
 };
 
 struct Fence {
