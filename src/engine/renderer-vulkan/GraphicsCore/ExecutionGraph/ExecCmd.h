@@ -31,55 +31,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// QueuesConfig.h
+// ExecCmd.h
 
-#ifndef QUEUES_CONFIG_H
-#define QUEUES_CONFIG_H
+#ifndef EXEC_CMD_H
+#define EXEC_CMD_H
 
-#include "../Math/NumberTypes.h"
-#include "../Memory/IteratorSeq.h"
+#include "../../Math/NumberTypes.h"
 
-#include "Vulkan.h"
+#include "../Decls.h"
 
-enum QueueType : uint32 {
-	GRAPHICS = VK_QUEUE_GRAPHICS_BIT,
-	COMPUTE  = VK_QUEUE_COMPUTE_BIT,
-	TRANSFER = VK_QUEUE_TRANSFER_BIT,
-	SPARSE   = VK_QUEUE_SPARSE_BINDING_BIT
-};
+Semaphore& GetInstantCmdBuf( const QueueType queueType, VkCommandBuffer* cmd );
 
-struct QueueConfig {
-	uint32     id;
-	bool       unique;
+using CmdFunction = void( * )( VkCommandBuffer cmd );
+Semaphore& ExecCmd( const QueueType queueType, CmdFunction func );
 
-	QueueType  type;
-	uint32     queueCount = 0;
-	uint32     timestampValidBits;
-	VkExtent3D minImageTransferGranularity;
-};
-
-struct QueuesConfig {
-	QueueConfig graphicsQueue;
-	QueueConfig computeQueue;
-	QueueConfig transferQueue;
-	QueueConfig sparseQueue;
-
-	uint32      count = 8;
-	QueueConfig queues[8];
-
-	constexpr QueueConfig& operator[]( const uint32 index ) {
-		return queues[index];
-	}
-
-	constexpr IteratorSeq<QueueConfig> begin() {
-		return IteratorSeq<QueueConfig>{ &queues[0] };
-	}
-
-	constexpr IteratorSeq<QueueConfig> end() {
-		return IteratorSeq<QueueConfig>{ &queues[count] };
-	}
-};
-
-QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device );
-
-#endif // QUEUES_CONFIG_H
+#endif // EXEC_CMD_H

@@ -48,6 +48,8 @@ struct SwapChain;
 struct EngineConfig;
 struct QueuesConfig;
 
+enum   QueueType : uint32;
+
 struct Semaphore;
 
 VK_DEFINE_HANDLE( VkInstance );
