@@ -33,49 +33,84 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // CoreThreadMemory.cpp
 
+#include "../../Math/Bit.h"
+
+#include "../QueuesConfig.h"
+
 #include "CoreThreadMemory.h"
 
 void InitCmdPools() {
-	struct QueuePair {
-		QueueConfig*   cfg;
-		VkCommandPool* cmd;
+	struct QueuePool {
+		QueueConfig* cfg;
+		VkCommandPool* cmdPool;
 	};
-	
-	QueuePair queues[] {
+
+	QueuePool queues[] {
 		{ &queuesConfig.graphicsQueue, &GMEM.graphicsCmdPool },
 		{ &queuesConfig.computeQueue,  &GMEM.computeCmdPool  },
 		{ &queuesConfig.transferQueue, &GMEM.transferCmdPool },
 		{ &queuesConfig.sparseQueue,   &GMEM.sparseCmdPool   },
 	};
 
-	for ( QueuePair& queuePair : queues ) {
-		if ( queuePair.cfg->unique ) {
-			VkCommandPoolCreateInfo info {
-				.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-				.queueFamilyIndex = queuePair.cfg->id
+	for ( QueuePool& queuePool : queues ) {
+		if ( queuePool.cfg->unique ) {
+			VkCommandPoolCreateInfo cmdPoolInfo {
+				.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+				.queueFamilyIndex = queuePool.cfg->id
 			};
 
-			vkCreateCommandPool( device, &info, nullptr, queuePair.cmd );
+			vkCreateCommandPool( device, &cmdPoolInfo, nullptr, queuePool.cmdPool );
 		}
 	}
+}
 
-	QueuePair instantQueues[] {
-		{ &queuesConfig.graphicsQueue, &GMEM.instantGraphicsCmdPool },
-		{ &queuesConfig.computeQueue,  &GMEM.instantComputeCmdPool  },
-		{ &queuesConfig.transferQueue, &GMEM.instantTransferCmdPool },
-		{ &queuesConfig.sparseQueue,   &GMEM.instantSparseCmdPool   },
+void InitInstantCmdPools() {
+	struct QueueCmdPool {
+		QueueConfig*    cfg;
+		InstantCmdPool* cmdPool;
 	};
 
-	for ( QueuePair& queuePair : instantQueues ) {
-		if ( queuePair.cfg->unique ) {
-			VkCommandPoolCreateInfo info {
-				.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-				.queueFamilyIndex = queuePair.cfg->id
+	QueueCmdPool instantQueues[] {
+		{ &queuesConfig.graphicsQueue, &GMEM.instantGraphicsCmd, },
+		{ &queuesConfig.computeQueue,  &GMEM.instantComputeCmd,  },
+		{ &queuesConfig.transferQueue, &GMEM.instantTransferCmd, },
+		{ &queuesConfig.sparseQueue,   &GMEM.instantSparseCmd,   },
+	};
+
+	for ( QueueCmdPool& queuePool : instantQueues ) {
+		if ( queuePool.cfg->unique ) {
+			VkCommandPoolCreateInfo cmdPoolInfo {
+				.flags              = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+				.queueFamilyIndex   = queuePool.cfg->id
 			};
 
-			vkCreateCommandPool( device, &info, nullptr, queuePair.cmd );
+			vkCreateCommandPool( device, &cmdPoolInfo, nullptr, &queuePool.cmdPool->cmdPool );
+
+			VkCommandBufferAllocateInfo cmdInfo {
+				.commandPool        = queuePool.cmdPool->cmdPool,
+				.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				.commandBufferCount = maxInstantCmdBuffers
+			};
+
+			vkAllocateCommandBuffers( device, &cmdInfo, queuePool.cmdPool->cmds );
+
+			for ( Semaphore& semaphore : queuePool.cmdPool->signalSemaphores ) {
+				semaphore.Init();
+			}
 		}
 	}
+}
+
+void FreeCmdPools() {
+	vkDestroyCommandPool( device, GMEM.graphicsCmdPool, nullptr );
+	vkDestroyCommandPool( device, GMEM.computeCmdPool,  nullptr );
+	vkDestroyCommandPool( device, GMEM.transferCmdPool, nullptr );
+	vkDestroyCommandPool( device, GMEM.sparseCmdPool,   nullptr );
+
+	vkDestroyCommandPool( device, GMEM.instantGraphicsCmd.cmdPool, nullptr );
+	vkDestroyCommandPool( device, GMEM.instantComputeCmd.cmdPool,  nullptr );
+	vkDestroyCommandPool( device, GMEM.instantTransferCmd.cmdPool, nullptr );
+	vkDestroyCommandPool( device, GMEM.instantSparseCmd.cmdPool,   nullptr );
 }
 
 AlignedAtomicUint64 cmdBufferStates[MAX_THREADS];

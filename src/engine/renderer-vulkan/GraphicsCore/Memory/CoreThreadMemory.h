@@ -46,21 +46,40 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../QueuesConfig.h"
 #include "../Queue.h"
+#include "../Semaphore.h"
 #include "../GraphicsCoreStore.h"
 
-struct GraphicsCoreMemory {
-	VkCommandPool graphicsCmdPool;
-	VkCommandPool computeCmdPool;
-	VkCommandPool transferCmdPool;
-	VkCommandPool sparseCmdPool;
+static constexpr uint32 maxInstantCmdBuffers = 4;
 
-	VkCommandPool instantGraphicsCmdPool;
-	VkCommandPool instantComputeCmdPool;
-	VkCommandPool instantTransferCmdPool;
-	VkCommandPool instantSparseCmdPool;
+struct InstantCmdPool {
+	VkCommandPool   cmdPool;
+	VkCommandBuffer cmds[maxInstantCmdBuffers];
+	Semaphore       signalSemaphores[maxInstantCmdBuffers];
+	uint8           allocState;
+};
+
+struct GraphicsCoreMemory {
+
+	VkCommandPool  graphicsCmdPool;
+	VkCommandPool  computeCmdPool;
+	VkCommandPool  transferCmdPool;
+	VkCommandPool  sparseCmdPool;
+
+	InstantCmdPool instantGraphicsCmd;
+	InstantCmdPool instantComputeCmd;
+	InstantCmdPool instantTransferCmd;
+	InstantCmdPool instantSparseCmd;
+
+	uint32         instantCmdBuffersAllocState;
+
+	uint32         scratch;
 };
 
 void InitCmdPools();
+void InitInstantCmdPools();
+
+void FreeCmdPools();
+void FreeInstantCmdPools();
 
 constexpr uint32              maxThreadCmdBuffers = 64;
 
@@ -70,6 +89,6 @@ extern    thread_local uint64 cmdBufferAllocState;
 extern    VkCommandBuffer     cmdBuffers[MAX_THREADS][maxThreadCmdBuffers];
 extern    VkFence             cmdBufferFences[MAX_THREADS][maxThreadCmdBuffers];
 
-extern thread_local GraphicsCoreMemory GMEM;
+extern    thread_local GraphicsCoreMemory GMEM;
 
 #endif // CORE_THREAD_MEMORY_H
