@@ -54,7 +54,7 @@ Fence FenceMain::Target( const uint64 target ) {
 	return fence;
 }
 
-inline void FenceMain::operator=( const FenceMain& other ) {
+void FenceMain::operator=( const FenceMain& other ) {
 	value  = other.value.load( std::memory_order_relaxed );
 	done   = other.done.load( std::memory_order_relaxed );
 	target = other.target;

@@ -73,6 +73,7 @@ namespace TempAPI {
 
 	bool BeginRegistration( WindowConfig* windowConfig ) {
 		TLM.main = true;
+		TLM.id   = ThreadMemory::MAIN_ID;
 
 		Init( windowConfig );
 

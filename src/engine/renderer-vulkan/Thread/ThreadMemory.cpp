@@ -241,4 +241,31 @@ void ThreadMemory::PrintChunkInfo( MemoryChunkRecord* memoryChunk ) {
 	}
 }
 
+void ThreadMemory::AddTask( Task* task ) {
+	const uint32 taskID = FindLZeroBit( tasksState );
+
+	if ( taskID == 64 ) {
+		Err( "Overflowed internal task buffer in thread %u (max tasks: %u)", id, maxInternalTasks );
+
+		return;
+	}
+
+	tasks[taskID]       = task;
+	SetBit( &tasksState, taskID );
+}
+
+Task* ThreadMemory::FetchTask() {
+	const uint32 taskID = FindLSB( tasksState );
+
+	if ( taskID == 64 ) {
+		return nullptr;
+	}
+
+	Task* task          = tasks[taskID];
+	tasks[taskID]       = nullptr;
+	UnSetBit( &tasksState, taskID );
+
+	return task;
+}
+
 thread_local ThreadMemory TLM;

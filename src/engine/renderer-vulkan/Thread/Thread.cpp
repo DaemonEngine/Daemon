@@ -51,9 +51,9 @@ Thread::~Thread() {
 }
 
 void Thread::Start( const uint32 newID ) {
-	id = newID;
+	id       = newID;
 
-	runTime = 0;
+	runTime  = 0;
 	osThread = std::thread( &Thread::Run, this );
 
 	Log::DebugTag( "id: %u", id );
@@ -67,7 +67,7 @@ void Thread::Run() {
 	idle.Clear();
 	executing.Clear();
 
-	TLM.id = id;
+	TLM.id       = id;
 
 	total.Start();
 
@@ -93,13 +93,17 @@ void Thread::Run() {
 
 		eventQueue.Rotate();
 
+		task = TLM.FetchTask();
+
 		Timer fetching;
-		task = taskList.FetchTask( this, true );
-		fetching.Stop();
+		if ( !task ) {
+			task = taskList.FetchTask( this, true );
+			fetching.Stop();
+		}
 
 		if ( task ) {
 			fetchTask += fetching.Time();
-			fetched = true;
+			fetched    = true;
 			taskFetchActual++;
 		} else {
 			fetchIdle += fetching.Time();
@@ -115,7 +119,7 @@ void Thread::Run() {
 			idle.Start();
 			std::this_thread::yield();
 			idle.Stop();
-			Log::DebugTag( "id: %u, yielding", id );
+			Log::DebugTag( "id: %u: yielding", id );
 
 			exiting = taskList.ThreadFinished( false );
 			continue;
@@ -123,7 +127,7 @@ void Thread::Run() {
 
 		fetchIdleTimer.Stop();
 
-		Log::DebugTag( "id: %u, executing", id );
+		Log::DebugTag( "id: %u: executing", id );
 
 		Timer t;
 		executing.Start();
@@ -135,10 +139,13 @@ void Thread::Run() {
 
 		dependencyTimer.Start();
 		task->forwardTaskLock.LockWrite();
+
 		const uint32 forwardTasks = task->forwardTaskCounter.load( std::memory_order_relaxed );
+
 		for ( uint32 i = 0; i < forwardTasks; i++ ) {
 			taskList.FinishDependency( task->forwardTasks[i] );
 		}
+
 		dependencyTimer.Stop();
 
 		t.Stop();
@@ -151,9 +158,9 @@ void Thread::Run() {
 			while( !SM.taskTimesLock.LockWrite() );
 
 			GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
-			SMTaskTime.count = taskTime.count;
-			SMTaskTime.time = taskTime.time;
-			taskTime.syncedWithSM = true;
+			SMTaskTime.count           = taskTime.count;
+			SMTaskTime.time            = taskTime.time;
+			taskTime.syncedWithSM      = true;
 
 			SM.taskTimesLock.UnlockWrite();
 		} else {
@@ -174,16 +181,16 @@ void Thread::Run() {
 	}
 
 	fetchQueueLock = TLM.fetchQueueLockTimer.Time();
-	fetchOuter = TLM.fetchOuterTimer.Time();
+	fetchOuter     = TLM.fetchOuterTimer.Time();
 
-	addQueueWait = TLM.addQueueWaitTimer.Time();
+	addQueueWait   = TLM.addQueueWaitTimer.Time();
 
-	taskAdd = TLM.addTimer.Time();
-	taskSync = TLM.syncTimer.Time();
+	taskAdd        = TLM.addTimer.Time();
+	taskSync       = TLM.syncTimer.Time();
 
-	taskTimes = TLM.taskTimes;
+	taskTimes      = TLM.taskTimes;
 
-	exitTime = TLM.exitTimer.Time();
+	exitTime       = TLM.exitTimer.Time();
 
 	actual.Stop();
 

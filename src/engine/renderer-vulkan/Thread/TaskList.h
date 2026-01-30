@@ -85,13 +85,14 @@ struct ThreadQueue {
 		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
 		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE };
 
-	void AddTask( const uint16 bufferID );
+	void AddTask( const uint32 threadID, const uint16 bufferID );
 };
 
 class TaskList :
 	public Tag {
 	public:
-	friend class Thread;
+	friend class  Thread;
+	friend struct ThreadQueue;
 
 	static constexpr uint32 MAX_TASKS         = 2048;
 	static constexpr uint32 MAX_DATA_PER_TASK = 128;
@@ -153,6 +154,7 @@ class TaskList :
 	ALIGN_CACHE std::atomic<uint32> executingThreads = 1;
 	ALIGN_CACHE std::atomic<bool>   exiting          = false;
 
+	void AddToThreadQueueExt( Task& task, const int threadID = -1 );
 	void AddToThreadQueue( Task& task, const int threadID = -1 );
 
 	Task* GetTaskMemory( Task& task );

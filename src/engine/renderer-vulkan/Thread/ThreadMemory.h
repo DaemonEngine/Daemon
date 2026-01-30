@@ -69,43 +69,49 @@ struct AllocationRecord {
 	uint64 size;
 	uint32 alignment;
 	uint32 chunkID; // LSB->MSB: 4 bits - level, 27 bits - chunk, 1 bit - allocated
-	char source[104];
+
+	char   source[104];
 };
 
 struct MemoryChunkRecord {
 	MemoryChunk chunk;
-	uint64 offset;
-	uint32 allocs;
+	uint64      offset;
+	uint32      allocs;
 };
 
 struct ChunkAllocator {
-	uint64 allocatedChunks;
-	uint64 availableChunks;
+	uint64            allocatedChunks;
+	uint64            availableChunks;
 	MemoryChunkRecord chunks[64];
 };
 
 struct TaskTime {
-	uint64 count = 0;
-	uint64 time = 0;
+	uint64 count      = 0;
+	uint64 time       = 0;
 	bool syncedWithSM = false;
 };
 
 class ThreadMemory : public Allocator {
 	public:
 	static constexpr uint32 MAIN_ID = UINT32_MAX;
-	uint32 id;
+	uint32      id;
 
-	bool main = false;
-	bool initialised = false;
+	static constexpr uint32 maxInternalTasks = 64;
+
+	bool        main              = false;
+	bool        initialised       = false;
 
 	DynamicArray<ChunkAllocator> chunkAllocators[MAX_MEMORY_AREAS] { { &sysAllocator }, { &sysAllocator }, { &sysAllocator } };
 
-	uint32 currentMaxThreads = 0;
+	uint32      currentMaxThreads = 0;
 
 	std::unordered_map<Task::TaskFunction, TaskTime> taskTimes;
-	uint64 unknownTaskCount = 0;
+	uint64      unknownTaskCount  = 0;
+	
+	Task*       tasks[maxInternalTasks];
+	uint64      tasksState = 0;
 
-	uint32 idleThreads[256] { 0 };
+	uint32      idleThreads[256] { 0 };
 
 	GlobalTimer fetchOuterTimer;
 	GlobalTimer fetchQueueLockTimer;
@@ -113,21 +119,26 @@ class ThreadMemory : public Allocator {
 	GlobalTimer addQueueWaitTimer;
 
 	GlobalTimer addTimer;
+	GlobalTimer addToQueueTimer;
+	uint32      addToQueueCount   = 1; // Avoid div 0
 	GlobalTimer syncTimer;
 
 	GlobalTimer exitTimer;
 
 	~ThreadMemory();
 
-	void Init();
+	void  Init();
 
 	byte* Alloc( const uint64 size, const uint64 alignment ) override;
-	void Free( byte* memory ) override;
+	void  Free( byte* memory ) override;
 
-	void FreeAllChunks();
+	void  FreeAllChunks();
+
+	void  AddTask( Task* task );
+	Task* FetchTask();
 
 	private:
-	void PrintChunkInfo( MemoryChunkRecord* memoryChunk );
+	void  PrintChunkInfo( MemoryChunkRecord* memoryChunk );
 };
 
 extern thread_local ThreadMemory TLM;
