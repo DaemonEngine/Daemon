@@ -48,23 +48,23 @@ Semaphore& GetInstantCmdBuf( const QueueType queueType, VkCommandBuffer* cmd ) {
 	switch ( queueType ) {
 		case GRAPHICS:
 		default:
-			instantCmd = &GMEM.instantGraphicsCmd;
+			instantCmd = &GMEM.execGraphicsCmd;
 			break;
 		case COMPUTE:
-			instantCmd = &GMEM.instantComputeCmd;
+			instantCmd = &GMEM.execComputeCmd;
 			break;
 		case TRANSFER:
-			instantCmd = &GMEM.instantTransferCmd;
+			instantCmd = &GMEM.execTransferCmd;
 			break;
 		case SPARSE:
-			instantCmd = &GMEM.instantSparseCmd;
+			instantCmd = &GMEM.execSparseCmd;
 			break;
 	}
 
 	uint32 id = FindLZeroBit( instantCmd->allocState );
 
 	while ( true ) {
-		if ( id < maxInstantCmdBuffers ) {
+		if ( id < maxExecCmdBuffers ) {
 			*cmd = instantCmd->cmds[id];
 			break;
 		}

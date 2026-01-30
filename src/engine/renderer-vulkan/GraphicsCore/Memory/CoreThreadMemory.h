@@ -49,12 +49,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Semaphore.h"
 #include "../GraphicsCoreStore.h"
 
-static constexpr uint32 maxInstantCmdBuffers = 4;
+static constexpr uint32 maxExecCmdBuffers = 4;
 
 struct InstantCmdPool {
 	VkCommandPool   cmdPool;
-	VkCommandBuffer cmds[maxInstantCmdBuffers];
-	Semaphore       signalSemaphores[maxInstantCmdBuffers];
+	VkCommandBuffer cmds[maxExecCmdBuffers];
+	Semaphore       signalSemaphores[maxExecCmdBuffers];
 	uint8           allocState;
 };
 
@@ -65,10 +65,10 @@ struct GraphicsCoreMemory {
 	VkCommandPool  transferCmdPool;
 	VkCommandPool  sparseCmdPool;
 
-	InstantCmdPool instantGraphicsCmd;
-	InstantCmdPool instantComputeCmd;
-	InstantCmdPool instantTransferCmd;
-	InstantCmdPool instantSparseCmd;
+	InstantCmdPool execGraphicsCmd;
+	InstantCmdPool execComputeCmd;
+	InstantCmdPool execTransferCmd;
+	InstantCmdPool execSparseCmd;
 
 	uint32         instantCmdBuffersAllocState;
 
@@ -76,7 +76,7 @@ struct GraphicsCoreMemory {
 };
 
 void InitCmdPools();
-void InitInstantCmdPools();
+void InitExecCmdPools();
 
 void FreeCmdPools();
 void FreeInstantCmdPools();

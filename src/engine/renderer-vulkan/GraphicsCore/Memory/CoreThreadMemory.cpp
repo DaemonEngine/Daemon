@@ -41,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void InitCmdPools() {
 	struct QueuePool {
-		QueueConfig* cfg;
+		QueueConfig*   cfg;
 		VkCommandPool* cmdPool;
 	};
 
@@ -64,20 +64,20 @@ void InitCmdPools() {
 	}
 }
 
-void InitInstantCmdPools() {
+void InitExecCmdPools() {
 	struct QueueCmdPool {
 		QueueConfig*    cfg;
 		InstantCmdPool* cmdPool;
 	};
 
-	QueueCmdPool instantQueues[] {
-		{ &queuesConfig.graphicsQueue, &GMEM.instantGraphicsCmd, },
-		{ &queuesConfig.computeQueue,  &GMEM.instantComputeCmd,  },
-		{ &queuesConfig.transferQueue, &GMEM.instantTransferCmd, },
-		{ &queuesConfig.sparseQueue,   &GMEM.instantSparseCmd,   },
+	QueueCmdPool execCmdQueues[] {
+		{ &queuesConfig.graphicsQueue, &GMEM.execGraphicsCmd, },
+		{ &queuesConfig.computeQueue,  &GMEM.execComputeCmd,  },
+		{ &queuesConfig.transferQueue, &GMEM.execTransferCmd, },
+		{ &queuesConfig.sparseQueue,   &GMEM.execSparseCmd,   },
 	};
 
-	for ( QueueCmdPool& queuePool : instantQueues ) {
+	for ( QueueCmdPool& queuePool : execCmdQueues ) {
 		if ( queuePool.cfg->unique ) {
 			VkCommandPoolCreateInfo cmdPoolInfo {
 				.flags              = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
@@ -89,7 +89,7 @@ void InitInstantCmdPools() {
 			VkCommandBufferAllocateInfo cmdInfo {
 				.commandPool        = queuePool.cmdPool->cmdPool,
 				.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				.commandBufferCount = maxInstantCmdBuffers
+				.commandBufferCount = maxExecCmdBuffers
 			};
 
 			vkAllocateCommandBuffers( device, &cmdInfo, queuePool.cmdPool->cmds );
@@ -107,10 +107,10 @@ void FreeCmdPools() {
 	vkDestroyCommandPool( device, GMEM.transferCmdPool, nullptr );
 	vkDestroyCommandPool( device, GMEM.sparseCmdPool,   nullptr );
 
-	vkDestroyCommandPool( device, GMEM.instantGraphicsCmd.cmdPool, nullptr );
-	vkDestroyCommandPool( device, GMEM.instantComputeCmd.cmdPool,  nullptr );
-	vkDestroyCommandPool( device, GMEM.instantTransferCmd.cmdPool, nullptr );
-	vkDestroyCommandPool( device, GMEM.instantSparseCmd.cmdPool,   nullptr );
+	vkDestroyCommandPool( device, GMEM.execGraphicsCmd.cmdPool, nullptr );
+	vkDestroyCommandPool( device, GMEM.execComputeCmd.cmdPool,  nullptr );
+	vkDestroyCommandPool( device, GMEM.execTransferCmd.cmdPool, nullptr );
+	vkDestroyCommandPool( device, GMEM.execSparseCmd.cmdPool,   nullptr );
 }
 
 AlignedAtomicUint64 cmdBufferStates[MAX_THREADS];
