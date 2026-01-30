@@ -41,12 +41,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 #define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
 
-class Instance;
-class Surface;
+class  Instance;
+class  Surface;
 struct SwapChain;
 
 struct EngineConfig;
 struct QueuesConfig;
+
+struct Semaphore;
 
 VK_DEFINE_HANDLE( VkInstance );
 VK_DEFINE_HANDLE( VkPhysicalDevice );
@@ -71,7 +73,8 @@ VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkCommandPool )
 VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkFence )
 VK_DEFINE_NON_DISPATCHABLE_HANDLE( VkSemaphore )
 
-using VkPipelineStageFlags2 = uint64;
+using VkPipelineStageFlags2     = uint64;
+using VkCommandBufferUsageFlags = uint32;
 
 struct VkSemaphoreSubmitInfo;
 

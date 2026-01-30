@@ -49,7 +49,7 @@ void Semaphore::Init( const uint64 initialValue ) {
 	};
 
 	VkSemaphoreCreateInfo     semaphoreInfo {
-		.pNext = &semaphoreTypeInfo
+		.pNext         = &semaphoreTypeInfo
 	};
 
 	ResultCheck( vkCreateSemaphore( device, &semaphoreInfo, nullptr, &semaphore ) );
