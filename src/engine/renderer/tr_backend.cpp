@@ -1458,9 +1458,9 @@ void RB_RenderGlobalFog()
 
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 
-		gl_fogGlobalShader->SetUniform_FogDensity( fog->tcScale );
+		gl_fogGlobalShader->SetUniform_FogDensity( 1.0f / fog->shader->fogParms.depthForOpaque );
 		gl_fogGlobalShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-		SetUniform_Color( gl_fogGlobalShader, fog->color );
+		SetUniform_Color( gl_fogGlobalShader, fog->shader->fogParms.color );
 	}
 
 	gl_fogGlobalShader->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
