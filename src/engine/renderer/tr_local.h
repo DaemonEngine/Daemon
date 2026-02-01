@@ -2639,7 +2639,6 @@ enum
 	extern cvar_t *r_lodBias; // push/pull LOD transitions
 	extern cvar_t *r_lodScale;
 
-	extern cvar_t *r_wolfFog;
 	extern cvar_t *r_noFog;
 
 	extern Cvar::Range<Cvar::Cvar<float>> r_forceAmbient;
