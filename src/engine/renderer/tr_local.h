@@ -1342,7 +1342,6 @@ enum
 
 		Color::Color color; // in packed byte format
 		float      tcScale; // texture coordinate vector scales
-		fogParms_t fogParms;
 
 		// for clipping distance in fog when outside
 		bool hasSurface;
