@@ -3321,8 +3321,6 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		// of trying to create an implicit shader from an image...
 		shader = R_FindShader( fogs->shader, RSF_3D );
 
-		out->fogParms = shader->fogParms;
-
 		out->color = Color::Adapt( shader->fogParms.color );
 
 		if ( tr.worldLinearizeTexture )
