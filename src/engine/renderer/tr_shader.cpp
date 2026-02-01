@@ -4603,16 +4603,22 @@ static bool ParseShader( const char *_text )
 		// fogParms
 		else if ( !Q_stricmp( token, "fogParms" ) )
 		{
-			/*
-			Log::Warn("fogParms keyword not supported in shader '%s'", shader.name);
-			SkipRestOfLine(text);
+			vec3_t fogColor;
 
-			*/
-
-			if ( !ParseVector( text, 3, shader.fogParms.color ) )
+			if ( !ParseVector( text, 3, fogColor ) )
 			{
 				return false;
 			}
+
+			shader.fogParms.color = Color::Adapt( fogColor );
+
+			if ( tr.worldLinearizeTexture )
+			{
+				shader.fogParms.color = shader.fogParms.color.ConvertFromSRGB();
+			}
+
+			shader.fogParms.color *= tr.identityLight;
+			shader.fogParms.color.SetAlpha( 1 );
 
 			token = COM_ParseExt2( text, false );
 
@@ -4622,7 +4628,7 @@ static bool ParseShader( const char *_text )
 				continue;
 			}
 
-			shader.fogParms.depthForOpaque = atof( token );
+			shader.fogParms.depthForOpaque = std::max( 1.0, atof( token ) );
 
 			shader.sort = Util::ordinal(shaderSort_t::SS_FOG);
 

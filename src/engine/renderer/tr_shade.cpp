@@ -1636,12 +1636,12 @@ void Render_fog( shaderStage_t* pStage )
 	gl_fogQuake3Shader->BindProgram();
 
 	gl_fogQuake3Shader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-	gl_fogQuake3Shader->SetUniform_FogDensity( fog->tcScale );
+	gl_fogQuake3Shader->SetUniform_FogDensity( 1.0f / fog->shader->fogParms.depthForOpaque );
 	gl_fogQuake3Shader->SetUniform_FogDepthVector( fogDepthVector );
 	gl_fogQuake3Shader->SetUniform_FogEyeT( eyeT );
 
 	// u_Color
-	SetUniform_ColorGlobal( gl_fogQuake3Shader, fog->color );
+	SetUniform_ColorGlobal( gl_fogQuake3Shader, fog->shader->fogParms.color );
 
 	gl_fogQuake3Shader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_fogQuake3Shader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
