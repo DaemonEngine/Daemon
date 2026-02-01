@@ -224,7 +224,6 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 
 	cvar_t      *r_showImages;
 
-	cvar_t      *r_wolfFog;
 	cvar_t      *r_noFog;
 
 	Cvar::Range<Cvar::Cvar<float>> r_forceAmbient( "r_forceAmbient", "Minimal light amount in lightGrid; -1 to use map value",
@@ -1174,7 +1173,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_heatHaze = Cvar_Get( "r_heatHaze", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_noMarksOnTrisurfs = Cvar_Get( "r_noMarksOnTrisurfs", "1", CVAR_CHEAT );
 
-		r_wolfFog = Cvar_Get( "r_wolfFog", "1", CVAR_CHEAT );
 		r_noFog = Cvar_Get( "r_noFog", "0", CVAR_CHEAT );
 
 		Cvar::Latch( r_forceAmbient );

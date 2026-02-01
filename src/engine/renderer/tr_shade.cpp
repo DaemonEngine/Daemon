@@ -1605,7 +1605,7 @@ void Render_liquid( shaderStage_t *pStage )
 
 void Render_fog( shaderStage_t* pStage )
 {
-	if ( r_noFog->integer || !r_wolfFog->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
+	if ( r_noFog->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
 		return;
 	}
