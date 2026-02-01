@@ -3217,8 +3217,6 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 	int          count, brushesCount, sidesCount;
 	int          sideNum;
 	int          planeNum;
-	shader_t     *shader;
-	float        d;
 	int          firstSide = 0;
 
 	Log::Debug("...loading fogs" );
@@ -3316,24 +3314,9 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 			out->bounds[ 1 ][ 2 ] = s_worldData.planes[ planeNum ].dist;
 		}
 
-		// get information from the shader for fog parameters
 		// it says RSF_3D but if there is no shader text found it should probably just error instead
 		// of trying to create an implicit shader from an image...
-		shader = R_FindShader( fogs->shader, RSF_3D );
-
-		out->color = Color::Adapt( shader->fogParms.color );
-
-		if ( tr.worldLinearizeTexture )
-		{
-			out->color = out->color.ConvertFromSRGB();
-		}
-
-		out->color *= tr.identityLight;
-
-		out->color.SetAlpha( 1 );
-
-		d = shader->fogParms.depthForOpaque < 1 ? 1 : shader->fogParms.depthForOpaque;
-		out->tcScale = 1.0f / d;
+		out->shader = R_FindShader( fogs->shader, RSF_3D );
 
 		// ydnar: global fog sets clearcolor/zfar
 		if ( out->originalBrushNumber == -1 )

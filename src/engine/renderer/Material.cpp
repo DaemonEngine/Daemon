@@ -1114,11 +1114,11 @@ void BindShaderFog( Material* material ) {
 	// since fognum is grouped with the GL state stuff, segregating each fognum in a separate draw call.
 
 	gl_fogQuake3ShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-	gl_fogQuake3ShaderMaterial->SetUniform_FogDensity( fog->tcScale );
+	gl_fogQuake3ShaderMaterial->SetUniform_FogDensity( 1.0f / fog->shader->fogParms.depthForOpaque );
 	gl_fogQuake3ShaderMaterial->SetUniform_FogDepthVector( fogDepthVector );
 	gl_fogQuake3ShaderMaterial->SetUniform_FogEyeT( eyeT );
 
-	gl_fogQuake3ShaderMaterial->SetUniform_ColorGlobal_Uint( fog->color );
+	gl_fogQuake3ShaderMaterial->SetUniform_ColorGlobal_Uint( fog->shader->fogParms.color );
 
 	gl_fogQuake3ShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_fogQuake3ShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
