@@ -1123,7 +1123,7 @@ enum
 
 	struct fogParms_t
 	{
-		vec3_t color;
+		Color::Color color;
 		float  depthForOpaque;
 	};
 
@@ -1353,8 +1353,7 @@ enum
 		int        originalBrushNumber;
 		vec3_t     bounds[ 2 ];
 
-		Color::Color color; // in packed byte format
-		float      tcScale; // texture coordinate vector scales
+		shader_t *shader; // has the fog parms
 
 		// for clipping distance in fog when outside
 		bool hasSurface;
