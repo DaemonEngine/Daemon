@@ -3262,6 +3262,14 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 
 	sidesCount = sidesLump->filelen / sizeof( *sides );
 
+	struct FogVert
+	{
+		float position[ 3 ];
+		vec4_t surface;
+	};
+	std::vector<FogVert> fogVerts(8 * count);
+	std::vector<glIndex_t> fogIndexes(36 * count);
+
 	for ( i = 0; i < count; i++, fogs++ )
 	{
 		out->originalBrushNumber = LittleLong( fogs->brushNum );
@@ -3331,6 +3339,7 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		if ( sideNum < 0 || sideNum >= sidesCount )
 		{
 			out->hasSurface = false;
+			Vector4Set( out->surface, 0.0f, 0.0f, 0.0f, -1.0e10f );
 		}
 		else
 		{
@@ -3340,7 +3349,45 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 			out->surface[ 3 ] = -s_worldData.planes[ planeNum ].dist;
 		}
 
+		// add faces of fog brush for drawing fog from inside
+		for ( int p = 0; p < 8; p++ )
+		{
+			fogVerts[ i * 8 + p ].position[ 0 ] = out->bounds[ p & 1 ][ 0 ];
+			fogVerts[ i * 8 + p ].position[ 1 ] = out->bounds[ ( p >> 1 ) & 1 ][ 1 ];
+			fogVerts[ i * 8 + p ].position[ 2 ] = out->bounds[ p >> 2 ][ 2 ];
+
+			VectorCopy( out->surface, fogVerts[ i * 8 + p ].surface );
+			fogVerts[ i * 8 + p ].surface[ 3 ] = -out->surface[ 3 ];
+		}
+
+		constexpr int box[ 36 ] = { 2, 3, 0, 0, 3, 1, 0, 1, 4, 4, 1, 5, 2, 0, 6, 6, 0, 4,
+		                            1, 3, 5, 5, 3, 7, 3, 2, 7, 7, 2, 6, 7, 6, 5, 5, 6, 4 };
+		for ( int p = 0; p < 36; p++ )
+		{
+			fogIndexes[ 36 * i + p ] = 8 * i + box[ p ];
+		}
+
+		// add draw surf for fog brush faces
+		out->surf.firstIndex = 36 * i;
+		out->surf.numTriangles = 12;
+		out->surf.surfaceType = surfaceType_t::SF_TRIANGLES;
+
 		out++;
+	}
+
+	vertexAttributeSpec_t attributes[] {
+		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].position, 3, sizeof( fogVerts[ 0 ] ), 0 },
+		{ ATTR_INDEX_FOG_SURFACE, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].surface, 4, sizeof( fogVerts[ 0 ] ), 0 },
+	};
+	VBO_t *fogVBO = R_CreateStaticVBO(
+		"fogs VBO", std::begin( attributes ), std::end( attributes ), fogVerts.size() );
+	IBO_t *fogIBO = R_CreateStaticIBO( "fogs IBO", &fogIndexes[ 0 ], fogIndexes.size() );
+	SetupVAOBuffers( fogVBO, fogIBO, ATTR_POSITION | ATTR_FOG_SURFACE, &fogVBO->VAO );
+
+	for ( int j = 1; j < s_worldData.numFogs; j++ )
+	{
+		s_worldData.fogs[ j ].surf.vbo = fogVBO;
+		s_worldData.fogs[ j ].surf.ibo = fogIBO;
 	}
 
 	Log::Debug("%i fog volumes loaded", s_worldData.numFogs );

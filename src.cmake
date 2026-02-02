@@ -108,7 +108,6 @@ set(GLSL_EMBED_LIST
     blur_fp.glsl
     cameraEffects_fp.glsl
     contrast_fp.glsl
-    fogGlobal_fp.glsl
     fxaa_fp.glsl
     fxaa3_11_fp.glsl
     motionblur_fp.glsl
@@ -130,6 +129,8 @@ set(GLSL_EMBED_LIST
     vertexSkinning_vp.glsl
 
     # Regular shaders
+    fogGlobal_vp.glsl
+    fogGlobal_fp.glsl
     fogQuake3_vp.glsl
     fogQuake3_fp.glsl
     generic_vp.glsl

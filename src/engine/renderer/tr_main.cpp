@@ -1731,11 +1731,12 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 		R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
 	}
 
-	// don't draw the global fog twice on opaque surfaces
-	// allow global fog with the fogLE shader although drawing the global fog with the
-	// volumetric (fogQuake3) shader looks kind of buggy
+	bool usingMaterial = glConfig.usingMaterialSystem && !r_materialSystemSkip.Get();
+
+	// don't fog surfaces that already were covered by globalFog
 	if ( !shader->noFog && fogNum >= 1 &&
-		  ( fogNum != tr.world->globalFog || shader->fogPass == fogPass_t::FP_LE ) ) {
+	     !( usingMaterial ? fogNum == tr.world->globalFog : R_InsideFog( fogNum ) ) )
+	{
 		R_AddDrawSurf( surface, shader->fogShader, 0, fogNum, bspSurface );
 	}
 }
@@ -2084,6 +2085,8 @@ void R_RenderView( viewParms_t *parms )
 
 	// set camera frustum planes in world space again, but this time including the far plane
 	tr.orientation = tr.viewParms.world;
+
+	R_AddInnerFogSurfaces();
 
 	R_AddEntitySurfaces();
 

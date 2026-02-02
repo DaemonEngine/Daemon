@@ -941,6 +941,7 @@ enum
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
 	  ST_FOGMAP,
+	  ST_FOGMAP_INNER, // a fog seen from inside
 	  ST_LIGHTMAP,
 	  ST_STYLELIGHTMAP,
 	  ST_STYLECOLORMAP,
@@ -1204,6 +1205,7 @@ enum
 
 		struct shader_t *depthShader;
 		struct shader_t *fogShader;
+		struct shader_t *fogInnerShader;
 		struct shader_t *next;
 	};
 
@@ -1352,18 +1354,6 @@ enum
 //----(SA) end
 
 //=================================================================================
-
-	struct fog_t
-	{
-		int        originalBrushNumber;
-		vec3_t     bounds[ 2 ];
-
-		shader_t *shader; // has the fog parms
-
-		// for clipping distance in fog when outside
-		bool hasSurface;
-		float    surface[ 4 ];
-	};
 
 	struct viewParms_t
 	{
@@ -1633,6 +1623,20 @@ enum
 		// static render data
 		VBO_t *vbo;
 		IBO_t *ibo;
+	};
+
+	struct fog_t
+	{
+		int        originalBrushNumber;
+		vec3_t     bounds[ 2 ];
+
+		shader_t *shader; // has the fog parms
+
+		// for clipping distance in fog when outside
+		bool hasSurface;
+		float    surface[ 4 ];
+
+		srfGeneric_t surf;
 	};
 
 	extern void ( *rb_surfaceTable[Util::ordinal(surfaceType_t::SF_NUM_SURFACE_TYPES)] )(void * );
@@ -3259,6 +3263,7 @@ void GLimp_LogComment_( std::string comment );
 	void Render_heatHaze( shaderStage_t *pStage );
 	void Render_liquid( shaderStage_t *pStage );
 	void Render_fog( shaderStage_t* pStage );
+	void Render_fogGlobal( shaderStage_t *pStage );
 
 	/*
 	============================================================
@@ -3349,6 +3354,9 @@ void GLimp_LogComment_( std::string comment );
 
 	void RE_AddPolyToSceneET( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 	void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
+
+	bool R_InsideFog( int fognum );
+	void R_AddInnerFogSurfaces();
 
 	void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags );
 	void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float intensity, float r, float g, float b );

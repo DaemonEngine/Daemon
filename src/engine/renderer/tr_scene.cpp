@@ -248,6 +248,47 @@ void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *vert
 
 //=================================================================================
 
+bool R_InsideFog( int fognum )
+{
+	// TODO: with portals this should use the point at the view frustum near plane instead
+	const vec3_t &origin = tr.viewParms.orientation.origin;
+
+	const auto &bounds = tr.world->fogs[ fognum ].bounds;
+
+	for ( int i = 0; i < 3; i++ )
+	{
+		if ( origin[ i ] < bounds[ 0 ][ i ] || origin[ i ] > bounds[ 1 ][ i ] )
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void R_AddInnerFogSurfaces()
+{
+	if ( glConfig.usingMaterialSystem && !r_materialSystemSkip.Get() )
+	{
+		if ( tr.world->globalFog > 0 )
+		{
+			const fog_t &fog = tr.world->fogs[ tr.world->globalFog ];
+			R_AddDrawSurf( ( surfaceType_t *)&fog.surf, fog.shader->fogInnerShader, -1, 0 );
+		}
+	}
+	else
+	{
+		for ( int i = 1; i < tr.world->numFogs; i++ )
+		{
+			if ( R_InsideFog( i ) )
+			{
+				const fog_t &fog = tr.world->fogs[ i ];
+				R_AddDrawSurf( ( surfaceType_t *)&fog.surf, fog.shader->fogInnerShader, -1, 0 );
+			}
+		}
+	}
+}
+
 /*
 =====================
 RE_AddRefEntityToScene

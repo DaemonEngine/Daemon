@@ -5673,6 +5673,12 @@ static void SetStagesRenderers()
 					&UpdateSurfaceDataFog, &BindShaderFog, &ProcessMaterialFog,
 				};
 				break;
+			case stageType_t::ST_FOGMAP_INNER:
+				stageRendererOptions = {
+					&Render_fogGlobal, &MarkShaderBuildNOP,
+					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
+				};
+				break;
 			default:
 				Log::Warn( "Missing renderer for stage type %d in shader %s, stage %d",
 					Util::ordinal(stage->type), shader.name, s );
@@ -5856,6 +5862,7 @@ static void ValidateStage( shaderStage_t *pStage )
 		{ stageType_t::ST_HEATHAZEMAP, { true, true, false, "heatHazeMap" } },
 		{ stageType_t::ST_LIQUIDMAP, { true, true, false, "liquidMap" } },
 		{ stageType_t::ST_FOGMAP, { true, false, false, "fogMap" } },
+		{ stageType_t::ST_FOGMAP_INNER, { true, false, false, "fogMapInner" } },
 		// The lightmap is fetched at render time.
 		{ stageType_t::ST_LIGHTMAP, { true, false, false, "light map" } },
 		// The lightmap is fetched at render time.
@@ -6070,6 +6077,8 @@ static shader_t *FinishShader()
 		}
 	}
 
+	size_t nameLength = strlen( shader.name );
+
 	// generate depth-only shader if necessary
 	if( r_depthShaders.Get() &&
 	    !shader.isSky &&
@@ -6129,6 +6138,20 @@ static shader_t *FinishShader()
 		ret->stages[0].stateBits &= ~GLS_DEPTHMASK_TRUE;
 	} else {
 		ret->depthShader = nullptr;
+	}
+
+	if ( ret->fogParms.depthForOpaque != 0 )
+	{
+		shader.name[ nameLength ] = '\0';
+		Q_strcat( shader.name, sizeof( shader.name ), "$fogIn" );
+		stages[1].active = false;
+		numStages = 1;
+		ResetStruct( stages[ 0 ] );
+		stages[ 0 ].active = true;
+		stages[ 0 ].type = stageType_t::ST_FOGMAP_INNER;
+		stages[ 0 ].stateBits = GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+		SetStagesRenderers();
+		ret->fogInnerShader = MakeShaderPermanent();
 	}
 
 	if ( glConfig.usingMaterialSystem && !tr.worldLoaded ) {
