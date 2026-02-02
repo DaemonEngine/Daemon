@@ -5835,17 +5835,6 @@ static void GeneratePermanentShaderTable( const float *values, int numValues )
 	shaderTableHashTable[ hash ] = newTable;
 }
 
-bool CheckShaderNameLength( const char* func_err, const char* name, const char* suffix )
-{
-	if ( strlen( name ) + strlen( suffix ) >= MAX_QPATH )
-	{
-		Log::Warn("%s Shader name %s%s length longer than MAX_QPATH %d", func_err, name, suffix, MAX_QPATH );
-		return false;
-	}
-
-	return true;
-}
-
 static void ValidateStage( shaderStage_t *pStage )
 {
 	struct stageCheck_t {
@@ -6095,24 +6084,7 @@ static shader_t *FinishShader()
 		shader.noFog = true;
 		shader.fogShader = nullptr;
 
-		const char* depthShaderSuffix = "$depth";
-
-		if ( !CheckShaderNameLength( "FinishShader", shader.name, depthShaderSuffix ) )
-		{
-			ret->depthShader = nullptr;
-
-			if ( glConfig.usingMaterialSystem && !tr.worldLoaded ) {
-				uint8_t maxStages = ret->lastStage - ret->stages;
-
-				// Add 1 for potential fog stages
-				maxStages = PAD( maxStages + 1, 4 ); // Aligned to 4 components
-				materialSystem.maxStages = std::max( maxStages, materialSystem.maxStages );
-			}
-
-			return ret;
-		}
-
-		strcat( shader.name, depthShaderSuffix );
+		Q_strcat( shader.name, sizeof( shader.name ), "$depth" );
 
 		if( stages[0].stateBits & GLS_ATEST_BITS ) {
 			// alpha test requires a custom depth shader
@@ -6306,6 +6278,7 @@ shader_t       *R_FindShader( const char *name, int flags )
 	ClearGlobalShader();
 
 	Q_strncpyz( shader.name, strippedName, sizeof( shader.name ) );
+	ASSERT_LT( strlen( shader.name ), MAX_QPATH );
 	shader.registerFlags = flags;
 
 	for ( i = 0; i < MAX_SHADER_STAGES; i++ )
@@ -6496,8 +6469,9 @@ qhandle_t RE_RegisterShader( const char *name, int flags )
 {
 	shader_t *sh;
 
-	if ( !CheckShaderNameLength( "RE_RegisterShader", name, "" ) )
+	if ( strlen( name ) >= MAX_QPATH )
 	{
+		Log::Warn( "RE_RegisterShader: name '%s' is too long", name );
 		return 0;
 	}
 
