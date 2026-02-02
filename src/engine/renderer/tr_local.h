@@ -1132,7 +1132,9 @@ enum
 
 	struct shader_t
 	{
-		char         name[ MAX_QPATH ]; // game path, including extension
+		// max name length is MAX_QPATH - 1 but with room for automatically added suffixes
+		char         name[ MAX_QPATH + 8 ];
+
 		int registerFlags; // RSF_
 
 		int          index; // this shader == tr.shaders[index]
