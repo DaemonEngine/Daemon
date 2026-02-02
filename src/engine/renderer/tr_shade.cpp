@@ -310,8 +310,6 @@ static void GLSL_InitGPUShadersOrError()
 
 		// global fog post process effect
 		gl_shaderManager.LoadShader( gl_fogGlobalShader );
-
-		gl_fogGlobalShader->MarkProgramForBuilding();
 	}
 
 	if ( r_heatHaze->integer )

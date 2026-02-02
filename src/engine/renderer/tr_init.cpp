@@ -1558,6 +1558,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 					gl_fogQuake3Shader->SetDeform( 0 );
 					gl_fogQuake3Shader->MarkProgramForBuilding();
 				}
+
+				gl_fogGlobalShader->MarkProgramForBuilding();
 			}
 
 			for ( int i = 0; i < tr.numModels; i++ ) {

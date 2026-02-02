@@ -3210,11 +3210,12 @@ class GLShader_fogQuake3Material :
 class GLShader_fogGlobal :
 	public GLShader,
 	public u_DepthMap,
+	public u_ModelViewProjectionMatrix,
 	public u_UnprojectMatrix,
 	public u_Color_Float,
 	public u_Color_Uint,
 	public u_ViewOrigin,
-	public u_FogDensity
+	public u_FogGradient
 {
 public:
 	GLShader_fogGlobal();

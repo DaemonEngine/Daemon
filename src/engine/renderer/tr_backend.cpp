@@ -1424,7 +1424,8 @@ void RB_RenderPostDepthLightTile()
 	GL_CheckErrors();
 }
 
-void RB_RenderGlobalFog()
+// TODO: move with other Render_ functions
+void Render_fogGlobal( shaderStage_t *stage )
 {
 	if ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL )
 	{
@@ -1436,34 +1437,29 @@ void RB_RenderGlobalFog()
 		return;
 	}
 
-	if ( !tr.world || tr.world->globalFog < 0 )
-	{
-		return;
-	}
-
 	GLIMP_LOGCOMMENT( "--- RB_RenderGlobalFog ---" );
 
 	RB_PrepareForSamplingDepthMap();
 
-	GL_Cull( cullType_t::CT_TWO_SIDED );
+	GL_Cull( cullType_t::CT_FRONT_SIDED );
 
 	gl_fogGlobalShader->BindProgram();
 
-	// go back to the world modelview matrix
-	backEnd.orientation = backEnd.viewParms.world;
-
 	{
-		fog_t* fog = &tr.world->fogs[ tr.world->globalFog ];
+		GL_State( stage->stateBits );
 
-		GLIMP_LOGCOMMENT( "--- RB_RenderGlobalFog( fogNum = %i ) ---", tr.world->globalFog );
-
-		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
-
-		gl_fogGlobalShader->SetUniform_FogDensity( 1.0f / fog->shader->fogParms.depthForOpaque );
+		gl_fogGlobalShader->SetUniform_FogGradient(
+			1.0f / stage->shader->fogParms.depthForOpaque, stage->shader->fogParms.falloffExp );
 		gl_fogGlobalShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-		SetUniform_Color( gl_fogGlobalShader, fog->shader->fogParms.color );
+		SetUniform_Color( gl_fogGlobalShader, stage->shader->fogParms.color );
 	}
 
+	// It's important to avoid far plane clipping
+	matrix_t projection, mvp;
+	MatrixPerspectiveProjectionFovXYInfiniteRH( projection, tr.refdef.fov_x, tr.refdef.fov_y, 1.0f );
+	MatrixMultiply( projection, glState.modelViewMatrix[ glState.stackIndex ], mvp );
+
+	gl_fogGlobalShader->SetUniform_ModelViewProjectionMatrix( mvp );
 	gl_fogGlobalShader->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
 
 	// bind u_DepthMap
@@ -1471,7 +1467,9 @@ void RB_RenderGlobalFog()
 		GL_BindToTMU( 1, tr.depthSamplerImage )
 	);
 
-	Tess_InstantScreenSpaceQuad();
+	gl_fogGlobalShader->SetRequiredVertexPointers();
+
+	Tess_DrawElements();
 
 	GL_CheckErrors();
 }
@@ -2801,9 +2799,6 @@ static void RB_RenderView( bool depthPass )
 	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 	RB_RenderSSAO();
-
-	// render global fog post process effect
-	RB_RenderGlobalFog();
 
 	TransitionMainToMSAA( GL_COLOR_BUFFER_BIT );
 
