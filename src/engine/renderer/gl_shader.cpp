@@ -2719,15 +2719,17 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material() :
 	GLDeformStage( this ) {
 }
 
+// TODO: rename
 GLShader_fogGlobal::GLShader_fogGlobal() :
-	GLShader( "fogGlobal", ATTR_POSITION,
-		false, "screenSpace", "fogGlobal" ),
+	GLShader( "fogGlobal", ATTR_POSITION | ATTR_FOG_SURFACE,
+		false, "fogGlobal", "fogGlobal" ),
 	u_DepthMap( this ),
+	u_ModelViewProjectionMatrix( this ),
 	u_UnprojectMatrix( this ),
 	u_Color_Float( this ),
 	u_Color_Uint( this ),
 	u_ViewOrigin( this ),
-	u_FogDensity( this )
+	u_FogGradient( this )
 {
 }
 

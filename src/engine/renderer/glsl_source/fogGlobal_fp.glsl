@@ -27,16 +27,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define DEPTHMAP_GLSL
 
+IN(smooth) vec3 var_Position;
+IN(flat) vec4 var_FogSurface;
+
 uniform sampler2D	u_DepthMap;
 
 uniform colorPack u_Color;
 
 uniform vec3 u_ViewOrigin;
-uniform float u_FogDensity;
+uniform vec2 u_FogGradient;
 uniform mat4		u_UnprojectMatrix;
 
 DECLARE_OUTPUT(vec4)
 
+// This shader can be used to draw a fog volume the viewer is inside of.
 void	main()
 {
 	#insert material_fp
@@ -50,7 +54,25 @@ void	main()
 	P.xyz /= P.w;
 
 	// calculate the length in fog
-	float s = distance(u_ViewOrigin, P.xyz) * u_FogDensity;
+	float depthDist = distance(u_ViewOrigin, P.xyz);
+	float fogBoundaryDist = distance(u_ViewOrigin, var_Position);
+	vec3 endPoint;
+	float distInFog;
+	if ( depthDist < fogBoundaryDist )
+	{
+		endPoint = P.xyz;
+		distInFog = depthDist;
+	}
+	else
+	{
+		endPoint = var_Position;
+		distInFog = fogBoundaryDist;
+	}
+
+	float t0 = dot(var_FogSurface.xyz, u_ViewOrigin) + var_FogSurface.w;
+	float t1 = dot(var_FogSurface.xyz, endPoint) + var_FogSurface.w;
+
+	float s = distInFog * GetFogGradientModifier(u_FogGradient.y, t0, t1) * u_FogGradient.x;
 
 	vec4 color = vec4(1, 1, 1, GetFogAlpha(s));
 
