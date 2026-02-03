@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConsoleHistory.h"
 #include "CommandSystem.h"
 #include "LogSystem.h"
+#include "OmpSystem.h"
 #include "System.h"
 #include "CrashDump.h"
 #include "CvarSystem.h"
@@ -967,6 +968,8 @@ static void Init(int argc, char** argv)
 	// Override any cvars set in configuration files with those on the command-line
 	for (auto& cvar: cmdlineArgs.cvars)
 		Cvar::SetValue(cvar.first, cvar.second);
+
+	Omp::Init();
 
 	// Load the console history
 	Console::History::Load();
