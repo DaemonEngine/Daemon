@@ -62,36 +62,36 @@ class Thread :
 
 	std::thread osThread;
 
-	uint32 id;
-	uint64 runTime;
+	uint32      id;
+	uint64      runTime;
 
-	Task* task;
+	Task*       task;
 
-	bool running = true;
-	bool exiting = false;
+	bool        running = true;
+	bool        exiting = false;
 
 	GlobalTimer total;
 	GlobalTimer actual;
 	GlobalTimer threadCmd;
 	GlobalTimer fetchIdleTimer;
-	uint64 fetchTask = 0;
-	uint64 fetchIdle = 0;
+	uint64      fetchTask = 0;
+	uint64      fetchIdle = 0;
 	GlobalTimer idle;
 	GlobalTimer executing;
 	GlobalTimer dependencyTimer;
 
-	uint64 fetchQueueLock;
-	uint64 fetchOuter;
+	uint64      fetchQueueLock;
+	uint64      fetchOuter;
 
-	uint64 addQueueWait;
+	uint64      addQueueWait;
 
-	uint64 taskAdd;
-	uint64 taskSync;
+	uint64      taskAdd;
+	uint64      taskSync;
 
-	uint64 taskFetchNone = 0;
-	uint64 taskFetchActual = 0;
+	uint64      taskFetchNone = 0;
+	uint64      taskFetchActual = 0;
 
-	uint64 exitTime;
+	uint64      exitTime;
 
 	std::unordered_map<Task::TaskFunction, TaskTime> taskTimes;
 };
