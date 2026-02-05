@@ -4638,6 +4638,7 @@ static bool ParseShader( const char *_text )
 		}
 		// fogGradient
 		// Default: fogGradient expFalloff 5
+		// TODO: make the gradient plane configurable
 		else if ( !Q_stricmp( token, "fogGradient" ) )
 		{
 			token = COM_ParseExt2( text, false );
@@ -5674,6 +5675,7 @@ static void SetStagesRenderers()
 				};
 				break;
 			case stageType_t::ST_FOGMAP_INNER:
+			case stageType_t::ST_FOGMAP_OUTER:
 				stageRendererOptions = {
 					&Render_fogGlobal, &MarkShaderBuildNOP,
 					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
@@ -5863,6 +5865,7 @@ static void ValidateStage( shaderStage_t *pStage )
 		{ stageType_t::ST_LIQUIDMAP, { true, true, false, "liquidMap" } },
 		{ stageType_t::ST_FOGMAP, { true, false, false, "fogMap" } },
 		{ stageType_t::ST_FOGMAP_INNER, { true, false, false, "fogMapInner" } },
+		{ stageType_t::ST_FOGMAP_OUTER, { true, false, false, "fogMapOuter" } },
 		// The lightmap is fetched at render time.
 		{ stageType_t::ST_LIGHTMAP, { true, false, false, "light map" } },
 		// The lightmap is fetched at render time.
@@ -6150,8 +6153,17 @@ static shader_t *FinishShader()
 		stages[ 0 ].active = true;
 		stages[ 0 ].type = stageType_t::ST_FOGMAP_INNER;
 		stages[ 0 ].stateBits = GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+		shader.cullType = cullType_t::CT_FRONT_SIDED;
 		SetStagesRenderers();
 		ret->fogInnerShader = MakeShaderPermanent();
+
+		shader.name[ nameLength ] = '\0';
+		Q_strcat( shader.name, sizeof( shader.name ), "$fogOut" );
+		stages[ 0 ].type = stageType_t::ST_FOGMAP_OUTER;
+		stages[ 0 ].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+		shader.cullType = cullType_t::CT_BACK_SIDED;
+		SetStagesRenderers();
+		ret->fogOuterShader = MakeShaderPermanent();
 	}
 
 	if ( glConfig.usingMaterialSystem && !tr.worldLoaded ) {

@@ -2007,7 +2007,10 @@ void GLShaderManager::BindAttribLocations( GLuint program ) const
 {
 	for ( uint32_t i = 0; i < ATTR_INDEX_MAX; i++ )
 	{
-		glBindAttribLocation( program, i, attributeNames[ i ] );
+		if ( attributeNames[ i ] != nullptr )
+		{
+			glBindAttribLocation( program, i, attributeNames[ i ] );
+		}
 	}
 }
 
@@ -2729,7 +2732,8 @@ GLShader_fogGlobal::GLShader_fogGlobal() :
 	u_Color_Float( this ),
 	u_Color_Uint( this ),
 	u_ViewOrigin( this ),
-	u_FogGradient( this )
+	u_FogGradient( this ),
+	GLCompileMacro_OUTSIDE_FOG( this )
 {
 }
 

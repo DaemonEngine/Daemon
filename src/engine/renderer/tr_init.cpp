@@ -1559,7 +1559,11 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 					gl_fogQuake3Shader->MarkProgramForBuilding();
 				}
 
-				gl_fogGlobalShader->MarkProgramForBuilding();
+				for ( bool outer : { false, true } )
+				{
+					gl_fogGlobalShader->SetOutsideFog( outer );
+					gl_fogGlobalShader->MarkProgramForBuilding();
+				}
 			}
 
 			for ( int i = 0; i < tr.numModels; i++ ) {

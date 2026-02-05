@@ -1441,7 +1441,9 @@ void Render_fogGlobal( shaderStage_t *stage )
 
 	RB_PrepareForSamplingDepthMap();
 
-	GL_Cull( cullType_t::CT_FRONT_SIDED );
+	GL_Cull( stage->shader->cullType );
+
+	gl_fogGlobalShader->SetOutsideFog( stage->type == stageType_t::ST_FOGMAP_OUTER );
 
 	gl_fogGlobalShader->BindProgram();
 
@@ -1454,12 +1456,26 @@ void Render_fogGlobal( shaderStage_t *stage )
 		SetUniform_Color( gl_fogGlobalShader, stage->shader->fogParms.color );
 	}
 
-	// It's important to avoid far plane clipping
-	matrix_t projection, mvp;
-	MatrixPerspectiveProjectionFovXYInfiniteRH( projection, tr.refdef.fov_x, tr.refdef.fov_y, 1.0f );
-	MatrixMultiply( projection, glState.modelViewMatrix[ glState.stackIndex ], mvp );
+	switch ( stage->type )
+	{
+	case stageType_t::ST_FOGMAP_INNER:
+	{
+		// It's important to avoid far plane clipping
+		matrix_t projection, mvp;
+		MatrixPerspectiveProjectionFovXYInfiniteRH( projection, tr.refdef.fov_x, tr.refdef.fov_y, 1.0f );
+		MatrixMultiply( projection, glState.modelViewMatrix[ glState.stackIndex ], mvp );
+		gl_fogGlobalShader->SetUniform_ModelViewProjectionMatrix( mvp );
+		break;
+	}
+	case stageType_t::ST_FOGMAP_OUTER:
+	{
+		gl_fogGlobalShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+		break;
+	}
+	default:
+		ASSERT_UNREACHABLE();
+	}
 
-	gl_fogGlobalShader->SetUniform_ModelViewProjectionMatrix( mvp );
 	gl_fogGlobalShader->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
 
 	// bind u_DepthMap
