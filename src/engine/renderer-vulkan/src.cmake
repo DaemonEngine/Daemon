@@ -59,8 +59,6 @@ set( threadList
     ${ENGINE_DIR}/renderer-vulkan/Thread/TLMAllocator.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/Thread.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/Thread.h
-    ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadCommand.cpp
-    ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadCommand.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadCommon.h
     ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadMemory.cpp
     ${ENGINE_DIR}/renderer-vulkan/Thread/ThreadMemory.h

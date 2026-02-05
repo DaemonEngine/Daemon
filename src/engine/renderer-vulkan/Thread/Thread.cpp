@@ -39,7 +39,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ThreadMemory.h"
 #include "GlobalMemory.h"
 #include "TaskList.h"
-#include "ThreadCommand.h"
 #include "EventQueue.h"
 
 #include "Thread.h"
@@ -86,10 +85,6 @@ void Thread::Run() {
 		runTime = runTimeTimer.Time();
 
 		ASSERT_EQ( task, nullptr );
-
-		threadCmd.Start();
-		threadCommands.ExecuteThreadCommands();
-		threadCmd.Stop();
 
 		eventQueue.Rotate();
 
@@ -209,9 +204,8 @@ void Thread::Exit() {
 	Log::NoticeTag( "\nid: %u", id );
 
 	Log::NoticeTag( "id: %u: total: %s, actual: %s, exit: %s,"
-		" threadCmd: %s, fetching (task/idle): %s/%s, executing: %s, dependency: %s, idle: %s",
+		" fetching (task/idle): %s/%s, executing: %s, dependency: %s, idle: %s",
 		id, total.FormatTime( Timer::ms ), actual.FormatTime( Timer::ms ), Timer::FormatTime( exitTime, Timer::ms ),
-		threadCmd.FormatTime( Timer::ms ),
 		Timer::FormatTime( fetchTask, Timer::ms ), Timer::FormatTime( fetchIdle, Timer::ms ),
 		executing.FormatTime( Timer::ms ), dependencyTimer.FormatTime( Timer::ms ),
 		idle.FormatTime( Timer::ms ) );

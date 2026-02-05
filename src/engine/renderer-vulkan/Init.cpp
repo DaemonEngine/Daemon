@@ -41,7 +41,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Thread/ThreadMemory.h"
 #include "Thread/TaskList.h"
-#include "Thread/ThreadCommand.h"
 #include "Memory/MemoryChunkSystem.h"
 #include "Memory/SysAllocator.h"
 #include "MiscCVarStore.h"
@@ -52,6 +51,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GraphicsCore/Init.h"
 #include "GraphicsCore/GraphicsCoreStore.h"
 
+static void InitTLM() {
+	TLM.Init();
+}
+
 void Init( WindowConfig* windowConfig ) {
 	sysAllocator.Init();
 	taskList.Init();
@@ -60,9 +63,7 @@ void Init( WindowConfig* windowConfig ) {
 	Task initMemTask { &InitMemoryChunkSystemConfig, cfg };
 
 	FenceMain initTLMFence;
-	Task initTLMTask { &UpdateThreadCommand, ThreadCommandTask { ThreadCommands::INIT_TLM, initTLMFence } };
-
-	taskList.AddTasks( { initMemTask }, { initTLMTask, initMemTask } );
+	taskList.AddTasks( { initMemTask }, { Task { &InitTLM, initTLMFence }.ThreadMaskAll(), initMemTask } );
 
 	mainSurface.Init();
 

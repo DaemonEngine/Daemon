@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Thread/TaskList.h"
 #include "../Sync/Fence.h"
+
 #include "GraphicsCoreStore.h"
 #include "Instance.h"
 

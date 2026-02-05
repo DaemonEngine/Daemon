@@ -163,7 +163,7 @@ class TaskList :
 	void ResolveDependencies( Task& task, TaskInitList<T>& dependencies );
 
 	template<IsTask T>
-	void AddTask( Task& task, TaskInitList<T>&& dependencies );
+	void AddTask( Task& task, TaskInitList<T>&& dependencies = {} );
 
 	template<IsTask T>
 	void MarkDependencies( Task& task, TaskInitList<T>&& dependencies );

@@ -39,13 +39,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ThreadMemory.h"
 #include "GlobalMemory.h"
-#include "ThreadCommand.h"
 #include "ThreadUplink.h"
 #include "EventQueue.h"
 
 #include "TaskList.h"
 
 TaskList taskList;
+
+static void SyncThreadCount() {
+	TLM.currentMaxThreads = taskList.currentMaxThreads.load( std::memory_order_relaxed );
+}
 
 TaskList::TaskList() {
 }
@@ -70,14 +73,16 @@ void TaskList::AdjustThreadCount( uint32 newMaxThreads ) {
 	const uint32 currentThreads = currentMaxThreads.load( std::memory_order_relaxed );
 	if ( newMaxThreads > currentThreads ) {
 		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
-		threadCommands.UpdateThreadCommand( ThreadCommands::SYNC_THREAD_COUNT, newMaxThreads );
+
+		taskList.AddTask( Task { &SyncThreadCount }.ThreadMaskAll() );
 
 		for ( uint32 i = currentThreads; i < newMaxThreads; i++ ) {
 			threads[i].Start( i );
 		}
 	} else if ( newMaxThreads < currentThreads ) {
 		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
-		threadCommands.UpdateThreadCommand( ThreadCommands::SYNC_THREAD_COUNT, currentThreads );
+
+		taskList.AddTask( Task { &SyncThreadCount }.ThreadMaskAll() );
 
 		for ( uint32 i = newMaxThreads; i < currentThreads; i++ ) {
 			threads[i].exiting = true;
