@@ -87,6 +87,21 @@ static Cvar::Cvar<float> r_portalDefaultRange(
 Cvar::Cvar<bool> r_depthShaders(
 	"r_depthShaders", "use depth pre-pass shaders", Cvar::CHEAT, true);
 
+struct delayedStageTexture_t {
+	bool active;
+	stageType_t type;
+	char path[ MAX_QPATH ];
+};
+
+delayedStageTexture_t delayedStageTextures[ MAX_TEXTURE_BUNDLES ];
+
+struct delayedAnimationTexture_t {
+	bool active;
+	char path[ MAX_QPATH ];
+};
+
+delayedAnimationTexture_t delayedAnimationTextures[ MAX_IMAGE_ANIMATIONS ];
+
 /*
 ================
 return a hash value for the filename
@@ -1476,15 +1491,22 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 		to use any shader in UI, so we better take care of more than ST_COLORMAP. */
 		if ( ! ( shader.registerFlags & RSF_2D ) )
 		{
+			stage->convertColorFromSRGB = stage->colorspaceBits & LINEAR_RGBGEN ?
+				convertColorFromSRGB_NOP : stage->convertColorFromSRGB;
+
 			switch ( type )
 			{
 				case stageType_t::ST_COLORMAP:
 				case stageType_t::ST_DIFFUSEMAP:
+					imageParams.bits |= stage->colorspaceBits & LINEAR_COLORMAP ? 0 : IF_SRGB;
+					break;
 				case stageType_t::ST_GLOWMAP:
 				case stageType_t::ST_REFLECTIONMAP:
 				case stageType_t::ST_SKYBOXMAP:
-				case stageType_t::ST_SPECULARMAP:
 					imageParams.bits |= IF_SRGB;
+					break;
+				case stageType_t::ST_SPECULARMAP:
+					imageParams.bits |= stage->colorspaceBits & LINEAR_SPECULARMAP ? 0 : IF_SRGB;
 					break;
 				default:
 					break;
@@ -1591,6 +1613,21 @@ static bool ParseClampType( const char *token, wrapType_t *clamp )
 	return true;
 }
 
+static void DelayStageTexture( const char* texturePath, const stageType_t stageType, const int bundleIndex )
+{
+	Log::Debug("Delaying the loading of stage texture %s", texturePath );
+	Q_strncpyz( delayedStageTextures[ bundleIndex ].path, texturePath, MAX_QPATH - 1 );
+	delayedStageTextures[ bundleIndex ].type = stageType;
+	delayedStageTextures[ bundleIndex ].active = true;
+}
+
+static void DelayAnimationTexture( const char* texturePath, const size_t animationIndex )
+{
+	Log::Debug("Delaying the loading of animation texture %s", texturePath );
+	strncpy( delayedAnimationTextures[ animationIndex ].path, texturePath, MAX_QPATH - 1 );
+	delayedAnimationTextures[ animationIndex ].active = true;
+}
+
 /*
 ===================
 ParseDifuseMap
@@ -1603,7 +1640,16 @@ static void ParseDiffuseMap( shaderStage_t *stage, const char **text, const int 
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, stageType_t::ST_DIFFUSEMAP, bundleIndex );
+		stageType_t stageType = stageType_t::ST_DIFFUSEMAP;
+
+		if ( bundleIndex == TB_DIFFUSEMAP )
+		{
+			DelayStageTexture( buffer, stageType, bundleIndex );
+		}
+		else
+		{
+			LoadMap( stage, buffer, stageType, bundleIndex );
+		}
 	}
 }
 
@@ -1632,7 +1678,16 @@ static void ParseNormalMap( shaderStage_t *stage, const char **text, const int b
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, stageType_t::ST_NORMALMAP, bundleIndex );
+		stageType_t stageType = stageType_t::ST_NORMALMAP;
+
+		if ( bundleIndex == TB_NORMALMAP )
+		{
+			DelayStageTexture( buffer, stageType, bundleIndex );
+		}
+		else
+		{
+			LoadMap( stage, buffer, stageType, bundleIndex );
+		}
 	}
 }
 
@@ -1697,7 +1752,16 @@ static void ParseHeightMap( shaderStage_t *stage, const char **text, const int b
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, stageType_t::ST_HEIGHTMAP, bundleIndex );
+		stageType_t stageType = stageType_t::ST_HEIGHTMAP;
+
+		if ( bundleIndex == TB_HEIGHTMAP )
+		{
+			DelayStageTexture( buffer, stageType, bundleIndex );
+		}
+		else
+		{
+			LoadMap( stage, buffer, stageType, bundleIndex );
+		}
 	}
 }
 
@@ -1709,7 +1773,16 @@ static void ParseSpecularMap( shaderStage_t *stage, const char **text, const int
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, stageType_t::ST_SPECULARMAP, bundleIndex );
+		stageType_t stageType = stageType_t::ST_SPECULARMAP;
+
+		if ( bundleIndex == TB_SPECULARMAP )
+		{
+			DelayStageTexture( buffer, stageType, bundleIndex );
+		}
+		else
+		{
+			LoadMap( stage, buffer, stageType, bundleIndex );
+		}
 	}
 }
 
@@ -1733,7 +1806,16 @@ static void ParsePhysicalMap( shaderStage_t *stage, const char **text, const int
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, stageType_t::ST_PHYSICALMAP, bundleIndex );
+		stageType_t stageType = stageType_t::ST_PHYSICALMAP;
+
+		if ( bundleIndex == TB_PHYSICALMAP )
+		{
+			DelayStageTexture( buffer, stageType, bundleIndex );
+		}
+		else
+		{
+			LoadMap( stage, buffer, stageType, bundleIndex );
+		}
 	}
 }
 
@@ -1745,7 +1827,16 @@ static void ParseGlowMap( shaderStage_t *stage, const char **text, const int bun
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, stageType_t::ST_GLOWMAP, bundleIndex );
+		stageType_t stageType = stageType_t::ST_GLOWMAP;
+
+		if ( bundleIndex == TB_GLOWMAP )
+		{
+			DelayStageTexture( buffer, stageType, bundleIndex );
+		}
+		else
+		{
+			LoadMap( stage, buffer, stageType, bundleIndex );
+		}
 	}
 }
 
@@ -2009,6 +2100,12 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	filterType_t filterType;
 	char         buffer[ 1024 ] = "";
 	bool     loadMap = false;
+	bool loadAnimMap = false;
+
+	stage->convertColorFromSRGB = convertColorFromSRGB_NOP;
+
+	memset( delayedStageTextures, 0, sizeof( delayedStageTextures ) );
+	memset( delayedAnimationTextures, 0, sizeof( delayedAnimationTextures ) );
 
 	while ( true )
 	{
@@ -2222,11 +2319,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			stage->bundle[ 0 ].imageAnimationSpeed = atof( token );
 
-			// parse up to MAX_IMAGE_ANIMATIONS animations
-			while ( true )
-			{
-				int num;
+			loadAnimMap = true;
 
+			// Parse up to MAX_IMAGE_ANIMATIONS animation frames, skip extraneous ones.
+			for ( size_t animationIndex = 0; ; animationIndex++ )
+			{
 				token = COM_ParseExt2( text, false );
 
 				if ( !token[ 0 ] )
@@ -2234,32 +2331,9 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 					break;
 				}
 
-				num = stage->bundle[ 0 ].numImages;
-
-				if ( num < MAX_IMAGE_ANIMATIONS )
+				if ( animationIndex < MAX_IMAGE_ANIMATIONS )
 				{
-					imageParams_t imageParams = {};
-					imageParams.bits = IF_NONE;
-					imageParams.filterType = filterType_t::FT_DEFAULT;
-					imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
-					imageParams.minDimension = shader.imageMinDimension;
-					imageParams.maxDimension = shader.imageMaxDimension;
-
-					if ( tr.worldLinearizeTexture )
-					{
-						imageParams.bits |= IF_SRGB;
-					}
-
-					stage->bundle[ 0 ].image[ num ] = R_FindImageFile( token, imageParams );
-
-					if ( !stage->bundle[ 0 ].image[ num ] )
-					{
-						Log::Warn("R_FindImageFile could not find '%s' in shader '%s'", token,
-						           shader.name );
-						return false;
-					}
-
-					stage->bundle[ 0 ].numImages++;
+					DelayAnimationTexture( token, animationIndex );
 				}
 			}
 		}
@@ -2575,6 +2649,45 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				depthMaskBits = 0;
 			}
+		}
+		else if ( !Q_stricmp( token, "rawRgbGen" ) )
+		{
+			stage->colorspaceBits |= LINEAR_RGBGEN;
+		}
+		else if ( !Q_stricmp( token, "linearRgbGen" ) )
+		{
+			if ( !tr.worldLinearizeTexture )
+			{
+				Log::Warn("Usage of linearRgbGen in naive pipeline, assuming rawRgbGen");
+			}
+
+			stage->colorspaceBits |= LINEAR_RGBGEN;
+		}
+		else if ( !Q_stricmp( token, "rawColorMap" ) )
+		{
+			stage->colorspaceBits |= LINEAR_COLORMAP;
+		}
+		else if ( !Q_stricmp( token, "linearColorMap" ) )
+		{
+			if ( !tr.worldLinearizeTexture )
+			{
+				Log::Warn("Usage of linearColorMap in naive pipeline, assuming rawColorMap");
+			}
+
+			stage->colorspaceBits |= LINEAR_COLORMAP;
+		}
+		else if ( !Q_stricmp( token, "rawSpecularMap" ) )
+		{
+			stage->colorspaceBits |= LINEAR_SPECULARMAP;
+		}
+		else if ( !Q_stricmp( token, "linearSpecularMap" ) )
+		{
+			if ( !tr.worldLinearizeTexture )
+			{
+				Log::Warn("Usage of linearSpecularMap in naive pipeline, assuming rawSpecularMap");
+			}
+
+			stage->colorspaceBits |= LINEAR_SPECULARMAP;
 		}
 		// stage <type>
 		else if ( !Q_stricmp( token, "stage" ) )
@@ -3273,8 +3386,83 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		return true;
 	}
 
-	// load image
-	if ( loadMap && !LoadMap( stage, buffer, stage->type ) )
+	if ( loadAnimMap )
+	{
+		for ( size_t animationIndex = 0; animationIndex < MAX_IMAGE_ANIMATIONS; animationIndex++ )
+		{
+			auto& delayedAnimationTexture = delayedAnimationTextures[ animationIndex ];
+
+			if ( delayedAnimationTexture.active )
+			{
+				auto& numImages = stage->bundle[ 0 ].numImages;
+
+				imageParams_t imageParams = {};
+				imageParams.bits = IF_NONE;
+				imageParams.filterType = filterType_t::FT_DEFAULT;
+				imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
+				imageParams.minDimension = shader.imageMinDimension;
+				imageParams.maxDimension = shader.imageMaxDimension;
+
+				if ( tr.worldLinearizeTexture )
+				{
+					imageParams.bits |= IF_SRGB;
+				}
+
+				Log::Debug("Loading delayed animation texture %s", delayedAnimationTexture.path );
+
+				stage->bundle[ 0 ].image[ numImages ] =
+					R_FindImageFile( delayedAnimationTexture.path, imageParams );
+
+				if ( !stage->bundle[ 0 ].image[ numImages ] )
+				{
+					Log::Warn("Failed to load delayed animation texture %d from shader '%s': %s",
+						animationIndex, shader.name, delayedAnimationTexture.path );
+
+					return false;
+				}
+
+				numImages++;
+			}
+		}
+
+		// If there is also a colormap it's a mistake, so we can stop now.
+		return true;
+	}
+
+	/* If there is more than one colormap, it's a mistake anyway,
+	so we don't care about the possibility it overwrites one. */
+	if ( loadMap )
+	{
+		DelayStageTexture( buffer, stage->type, TB_COLORMAP );
+	}
+
+	/* Make sure we report for the successful loading of all kind
+	of colormaps like diffusemap… */
+	loadMap = delayedStageTextures[ TB_COLORMAP ].active;
+
+	for ( int bundleIndex = 0; bundleIndex < MAX_TEXTURE_BUNDLES; bundleIndex++ )
+	{
+		auto& delayedStageTexture = delayedStageTextures[ bundleIndex ];
+
+		if ( !delayedStageTexture.active )
+		{
+			continue;
+		}
+
+		Log::Debug("Loading delayed stage texture %s", delayedStageTexture.path );
+
+		if ( !LoadMap( stage, delayedStageTexture.path, delayedStageTexture.type, bundleIndex ) )
+		{
+			Log::Warn("Failed to load delayed stage texture from shader '%s': %s",
+				shader.name, delayedStageTexture.path );
+
+			// Remember the texture wasn't sucessfully loaded.
+			delayedStageTexture.active = false;
+		}
+	}
+
+	// Check if the colormap loaded, if it is required for it to be loaded.
+	if ( loadMap && !delayedStageTextures[ TB_COLORMAP ].active )
 	{
 		return false;
 	}
