@@ -55,15 +55,15 @@ Cvar::Cvar<int>              r_vkDevice( "r_vkDevice", "Use specific GPU (-1: au
 Cvar::Cvar<int>              r_displayIndex( "r_displayIndex", "Display index to create the window in", Cvar::NONE, 0 );
 
 Cvar::Range<Cvar::Cvar<int>> r_vkPresentMode( "r_vkPresentMode",
-	"Presentation mode: 0 - immediate, 1 - vsync on last frame, 2 - vsync on first new frame, "
-	"3 - relaxed vsync on first new frame, 4 - vsync on the closest frame to scanout",
-	Cvar::NONE, PresentMode::IMMEDIATE, PresentMode::IMMEDIATE, PresentMode::SCANOUT_SYNC_LATEST );
+	"Presentation mode: 0 - immediate, 1 - vsync on last presented frame, 2 - vsync on first presented frame before scanout, "
+	"3 - relaxed vsync on first presented frame before scanout, 4 - vsync on the closest frame to scanout",
+	Cvar::NONE, PresentMode::IMMEDIATE, PresentMode::IMMEDIATE, PresentMode::SCANOUT_LATEST );
 
 Cvar::Range<Cvar::Cvar<int>> r_mode( "r_mode",
 	"Window mode: -2: use display size, -1: use r_customWidth / r_customHeight",
 	Cvar::NONE, -2, -2, -1 );
 
-Cvar::Cvar<int>              r_customWidth( "r_customWidth", "Window width when using r_mode -1", Cvar::NONE, 1920 );
+Cvar::Cvar<int>              r_customWidth(  "r_customWidth",  "Window width when using r_mode -1",  Cvar::NONE, 1920 );
 Cvar::Cvar<int>              r_customHeight( "r_customHeight", "Window height when using r_mode -1", Cvar::NONE, 1080 );
 
 // Cvar::Cvar<bool>             r_fullscreen( "r_fullscreen", "Fullscreen", Cvar::ARCHIVE, true );

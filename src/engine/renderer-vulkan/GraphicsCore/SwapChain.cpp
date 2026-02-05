@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// SwapChain.h
+// SwapChain.cpp
 
 #include <unordered_map>
 
@@ -96,6 +96,14 @@ struct VkPresentModeKHRHasher {
 	}
 };
 
+static std::unordered_map<int, VkPresentModeKHR> presentModeMap {
+	{ PresentMode::IMMEDIATE,             VK_PRESENT_MODE_IMMEDIATE_KHR         },
+	{ PresentMode::SCANOUT_ONE,           VK_PRESENT_MODE_MAILBOX_KHR           },
+	{ PresentMode::SCANOUT_FIRST,         VK_PRESENT_MODE_FIFO_KHR              },
+	{ PresentMode::SCANOUT_FIRST_RELAXED, VK_PRESENT_MODE_FIFO_RELAXED_KHR      },
+	{ PresentMode::SCANOUT_LATEST,        VK_PRESENT_MODE_FIFO_LATEST_READY_KHR },
+};
+
 static std::unordered_map<VkPresentModeKHR, uint32, VkPresentModeKHRHasher> presentModePriorities {
 	{ VK_PRESENT_MODE_IMMEDIATE_KHR,         4 },
 	{ VK_PRESENT_MODE_FIFO_LATEST_READY_KHR, 3 },
@@ -105,10 +113,12 @@ static std::unordered_map<VkPresentModeKHR, uint32, VkPresentModeKHRHasher> pres
 };
 
 static VkPresentModeKHR SelectPresentMode( DynamicArray<VkPresentModeKHR>& presentModes ) {
-	VkPresentModeKHR bestMode = presentModes[0];
+	VkPresentModeKHR bestMode   = presentModes[0];
+
+	VkPresentModeKHR customMode = presentModeMap[r_vkPresentMode.Get()];
 
 	for ( VkPresentModeKHR mode : presentModes ) {
-		if ( mode == r_vkPresentMode.Get() ) {
+		if ( mode == customMode ) {
 			return mode;
 		}
 
