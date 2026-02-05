@@ -248,16 +248,40 @@ void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *vert
 
 //=================================================================================
 
-bool R_InsideFog( int fognum )
+// TODO don't recalc this every time, OR check if the near plane actually intersects the fog?
+static float NearPlaneCornerDist()
+{
+	plane_t frustum[ 6 ];
+	for ( int i = 0; i < 6; i++ )
+	{
+		VectorCopy( tr.viewParms.frustum[ i ].normal, frustum[ i ].normal );
+		frustum[ i ].dist = tr.viewParms.frustum[ i ].dist;
+	}
+
+	vec3_t intersection;
+	PlanesGetIntersectionPoint(
+		frustum[ FRUSTUM_NEAR ], frustum[ FRUSTUM_LEFT ], frustum[ FRUSTUM_TOP ], intersection );
+
+	return Distance( tr.viewParms.orientation.origin, intersection );
+}
+
+// Returns true also if the view origin is slightly outside, but close enough that the view
+// frustum's near plane might intersect. This causes some slight artifacts - the fog grows
+// by ~5 qu when the view origin crosses the tolerance boundary. However it's not an
+// issue on the surface plane, since the GLSL calcs chop off overhang there. Note that
+// with original Q3 you are required to construct the fog so that it is impossible to pass
+// through non-surface planes at all.
+static bool R_InsideFog( int fognum )
 {
 	// TODO: with portals this should use the point at the view frustum near plane instead
 	const vec3_t &origin = tr.viewParms.orientation.origin;
 
 	const auto &bounds = tr.world->fogs[ fognum ].bounds;
+	float tol = NearPlaneCornerDist() + 0.1f;
 
 	for ( int i = 0; i < 3; i++ )
 	{
-		if ( origin[ i ] < bounds[ 0 ][ i ] || origin[ i ] > bounds[ 1 ][ i ] )
+		if ( origin[ i ] + tol < bounds[ 0 ][ i ] || origin[ i ] - tol > bounds[ 1 ][ i ] )
 		{
 			return false;
 		}
@@ -266,7 +290,7 @@ bool R_InsideFog( int fognum )
 	return true;
 }
 
-void R_AddInnerFogSurfaces()
+void R_AddFogBrushSurfaces()
 {
 	if ( glConfig.usingMaterialSystem && !r_materialSystemSkip.Get() )
 	{
@@ -278,13 +302,14 @@ void R_AddInnerFogSurfaces()
 	}
 	else
 	{
+		// TODO: incorporate them in the BSP?
 		for ( int i = 1; i < tr.world->numFogs; i++ )
 		{
-			if ( R_InsideFog( i ) )
-			{
-				const fog_t &fog = tr.world->fogs[ i ];
-				R_AddDrawSurf( ( surfaceType_t *)&fog.surf, fog.shader->fogInnerShader, -1, 0 );
-			}
+			const fog_t &fog = tr.world->fogs[ i ];
+			shader_t *shader = R_InsideFog( i )
+				? fog.shader->fogInnerShader
+				: fog.shader->fogOuterShader;
+			R_AddDrawSurf( ( surfaceType_t *)&fog.surf, shader, -1, 0 );
 		}
 	}
 }

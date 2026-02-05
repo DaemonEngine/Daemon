@@ -1734,8 +1734,7 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 	bool usingMaterial = glConfig.usingMaterialSystem && !r_materialSystemSkip.Get();
 
 	// don't fog surfaces that already were covered by globalFog
-	if ( !shader->noFog && fogNum >= 1 &&
-	     !( usingMaterial ? fogNum == tr.world->globalFog : R_InsideFog( fogNum ) ) )
+	if ( usingMaterial && !shader->noFog && fogNum >= 1 && fogNum != tr.world->globalFog )
 	{
 		R_AddDrawSurf( surface, shader->fogShader, 0, fogNum, bspSurface );
 	}
@@ -2086,7 +2085,7 @@ void R_RenderView( viewParms_t *parms )
 	// set camera frustum planes in world space again, but this time including the far plane
 	tr.orientation = tr.viewParms.world;
 
-	R_AddInnerFogSurfaces();
+	R_AddFogBrushSurfaces();
 
 	R_AddEntitySurfaces();
 

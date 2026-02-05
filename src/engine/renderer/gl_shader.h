@@ -919,6 +919,7 @@ protected:
 // It also works regardless of RTTI is enabled or not.
 	enum EGLCompileMacro : unsigned
 	{
+	  OUTSIDE_FOG,
 	  USE_BSP_SURFACE,
 	  USE_VERTEX_SKINNING,
 	  USE_VERTEX_ANIMATION,
@@ -983,6 +984,40 @@ public:
 	}
 
 	virtual ~GLCompileMacro() = default;
+};
+
+class GLCompileMacro_OUTSIDE_FOG :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_OUTSIDE_FOG( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const override
+	{
+		return "OUTSIDE_FOG";
+	}
+
+	EGLCompileMacro GetType() const override
+	{
+		return EGLCompileMacro::OUTSIDE_FOG;
+	}
+
+	int GetShaderTypes() const override {
+		return ShaderType::VERTEX | ShaderType::FRAGMENT;
+	}
+
+	void SetOutsideFog( bool enable )
+	{
+		SetMacro( enable );
+	}
+
+	uint32_t GetRequiredVertexAttributes() const override
+	{
+		return ATTR_FOG_PLANES;
+	}
 };
 
 class GLCompileMacro_USE_BSP_SURFACE :
@@ -3215,7 +3250,8 @@ class GLShader_fogGlobal :
 	public u_Color_Float,
 	public u_Color_Uint,
 	public u_ViewOrigin,
-	public u_FogGradient
+	public u_FogGradient,
+	public GLCompileMacro_OUTSIDE_FOG
 {
 public:
 	GLShader_fogGlobal();

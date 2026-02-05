@@ -3264,10 +3264,11 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 
 	struct FogVert
 	{
-		float position[ 3 ];
+		vec3_t position;
 		vec4_t surface;
+		vec4_t planes[ 5 ]; // faces other than the current triangle's
 	};
-	std::vector<FogVert> fogVerts(8 * count);
+	std::vector<FogVert> fogVerts(24 * count);
 	std::vector<glIndex_t> fogIndexes(36 * count);
 
 	for ( i = 0; i < count; i++, fogs++ )
@@ -3349,22 +3350,50 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 			out->surface[ 3 ] = -s_worldData.planes[ planeNum ].dist;
 		}
 
-		// add faces of fog brush for drawing fog from inside
-		for ( int p = 0; p < 8; p++ )
+		// add faces of fog brush with information about the other planes
+		// TODO: allow non-axis-aligned boxes. The GLSL can draw any brush with up to 6 faces.
+		constexpr int faces[ 6 ][ 4 ]
 		{
-			fogVerts[ i * 8 + p ].position[ 0 ] = out->bounds[ p & 1 ][ 0 ];
-			fogVerts[ i * 8 + p ].position[ 1 ] = out->bounds[ ( p >> 1 ) & 1 ][ 1 ];
-			fogVerts[ i * 8 + p ].position[ 2 ] = out->bounds[ p >> 2 ][ 2 ];
+			{ 2, 0, 6, 4 },
+			{ 1, 3, 5, 7 },
+			{ 0, 1, 4, 5 },
+			{ 3, 2, 7, 6 },
+			{ 2, 3, 0, 1 },
+			{ 7, 6, 5, 4 }
+		};
 
-			VectorCopy( out->surface, fogVerts[ i * 8 + p ].surface );
-			fogVerts[ i * 8 + p ].surface[ 3 ] = -out->surface[ 3 ];
-		}
-
-		constexpr int box[ 36 ] = { 2, 3, 0, 0, 3, 1, 0, 1, 4, 4, 1, 5, 2, 0, 6, 6, 0, 4,
-		                            1, 3, 5, 5, 3, 7, 3, 2, 7, 7, 2, 6, 7, 6, 5, 5, 6, 4 };
-		for ( int p = 0; p < 36; p++ )
+		for ( int face = 0; face < 6; face++ )
 		{
-			fogIndexes[ 36 * i + p ] = 8 * i + box[ p ];
+			for ( int v = 0; v < 4; v++ )
+			{
+				FogVert &vert = fogVerts[ i * 24 + face * 4 + v ];
+				int p = faces[ face ][ v ];
+				vert.position[ 0 ] = out->bounds[ p & 1 ][ 0 ];
+				vert.position[ 1 ] = out->bounds[ ( p >> 1 ) & 1 ][ 1 ];
+				vert.position[ 2 ] = out->bounds[ p >> 2 ][ 2 ];
+
+				VectorCopy( out->surface, vert.surface );
+				vert.surface[ 3 ] = -out->surface[ 3 ];
+
+				vec4_t *plane = vert.planes;
+				for ( int otherFace = 0; otherFace < 6; otherFace++ )
+				{
+					if ( face != otherFace )
+					{
+						planeNum = LittleLong( sides[ firstSide + otherFace ].planeNum );
+						VectorCopy( s_worldData.planes[ planeNum ].normal, *plane );
+						( *plane )[ 3 ] = s_worldData.planes[ planeNum ].dist;
+						++plane;
+					}
+				}
+			}
+
+			fogIndexes[ 36 * i + 6 * face + 0 ] = i * 24 + face * 4 + 0;
+			fogIndexes[ 36 * i + 6 * face + 1 ] = i * 24 + face * 4 + 1;
+			fogIndexes[ 36 * i + 6 * face + 2 ] = i * 24 + face * 4 + 2;
+			fogIndexes[ 36 * i + 6 * face + 3 ] = i * 24 + face * 4 + 2;
+			fogIndexes[ 36 * i + 6 * face + 4 ] = i * 24 + face * 4 + 1;
+			fogIndexes[ 36 * i + 6 * face + 5 ] = i * 24 + face * 4 + 3;
 		}
 
 		// add draw surf for fog brush faces
@@ -3378,11 +3407,16 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 	vertexAttributeSpec_t attributes[] {
 		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].position, 3, sizeof( fogVerts[ 0 ] ), 0 },
 		{ ATTR_INDEX_FOG_SURFACE, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].surface, 4, sizeof( fogVerts[ 0 ] ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 0, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 0 ], 4, sizeof( FogVert ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 1, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 1 ], 4, sizeof( FogVert ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 2, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 2 ], 4, sizeof( FogVert ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 3, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 3 ], 4, sizeof( FogVert ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 4, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 4 ], 4, sizeof( FogVert ), 0 },
 	};
 	VBO_t *fogVBO = R_CreateStaticVBO(
 		"fogs VBO", std::begin( attributes ), std::end( attributes ), fogVerts.size() );
 	IBO_t *fogIBO = R_CreateStaticIBO( "fogs IBO", &fogIndexes[ 0 ], fogIndexes.size() );
-	SetupVAOBuffers( fogVBO, fogIBO, ATTR_POSITION | ATTR_FOG_SURFACE, &fogVBO->VAO );
+	SetupVAOBuffers( fogVBO, fogIBO, ATTR_POSITION | ATTR_FOG_SURFACE | ATTR_FOG_PLANES, &fogVBO->VAO );
 
 	for ( int j = 1; j < s_worldData.numFogs; j++ )
 	{
