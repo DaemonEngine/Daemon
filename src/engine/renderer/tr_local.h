@@ -942,6 +942,7 @@ enum
 	  ST_LIQUIDMAP,
 	  ST_FOGMAP,
 	  ST_FOGMAP_INNER, // a fog seen from inside
+	  ST_FOGMAP_OUTER, // a fog seen from outside
 	  ST_LIGHTMAP,
 	  ST_STYLELIGHTMAP,
 	  ST_STYLECOLORMAP,
@@ -1206,6 +1207,7 @@ enum
 		struct shader_t *depthShader;
 		struct shader_t *fogShader;
 		struct shader_t *fogInnerShader;
+		struct shader_t *fogOuterShader;
 		struct shader_t *next;
 	};
 
@@ -3355,8 +3357,7 @@ void GLimp_LogComment_( std::string comment );
 	void RE_AddPolyToSceneET( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 	void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 
-	bool R_InsideFog( int fognum );
-	void R_AddInnerFogSurfaces();
+	void R_AddFogBrushSurfaces();
 
 	void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags );
 	void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float intensity, float r, float g, float b );

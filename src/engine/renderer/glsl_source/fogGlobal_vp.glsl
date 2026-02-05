@@ -40,10 +40,23 @@ IN vec4 attr_FogSurface;
 OUT(smooth) vec3 var_Position;
 OUT(flat) vec4 var_FogSurface;
 
+#ifdef OUTSIDE_FOG
+#define NUM_PLANES 5
+IN vec4 attr_FogPlanes[NUM_PLANES];
+OUT(flat) vec4 var_FogPlanes[NUM_PLANES];
+#endif
+
 void main()
 {
 	vec4 position = vec4(attr_Position, 1.0);
 	gl_Position = u_ModelViewProjectionMatrix * position;
 	var_Position = attr_Position;
 	var_FogSurface = attr_FogSurface;
+
+	#ifdef OUTSIDE_FOG
+		for (int i = 0; i < NUM_PLANES; i++)
+		{
+			var_FogPlanes[i] = attr_FogPlanes[i];
+		}
+	#endif
 }
