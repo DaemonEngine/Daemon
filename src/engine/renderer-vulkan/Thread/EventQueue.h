@@ -82,7 +82,7 @@ struct EventQueue {
 
 	const uint64 minGranularity = eventRings[0].granularity;
 
-	void AddTask( Task& task, const int threadID = -1 );
+	void AddTask( Task& task );
 	void Rotate();
 };
 

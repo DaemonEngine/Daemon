@@ -240,7 +240,7 @@ void ThreadQueue::AddTask( const uint32 threadID, const uint16 bufferID ) {
 	TLM.addQueueWaitTimer.Stop();
 }
 
-void TaskList::AddToThreadQueueExt( Task& task, const int threadID ) {
+void TaskList::AddToThreadQueueExt( Task& task ) {
 	while ( !SM.taskTimesLock.Lock() );
 	TaskTime taskTime;
 
@@ -254,8 +254,16 @@ void TaskList::AddToThreadQueueExt( Task& task, const int threadID ) {
 
 	SM.taskTimesLock.Unlock();
 
-	if ( threadID != -1 ) {
-		threadQueues[threadID].AddTask( threadID, task.bufferID );
+	if ( task.threadMask ) {
+		uint32 threadMask = task.threadMask;
+
+		while ( threadMask ) {
+			const uint32 threadID = FindLSB( threadMask );
+			threadQueues[threadID].AddTask( threadID, task.bufferID );
+
+			UnSetBit( &threadMask, threadID );
+		}
+
 		return;
 	}
 
@@ -317,10 +325,10 @@ void TaskList::AddToThreadQueueExt( Task& task, const int threadID ) {
 	}
 }
 
-void TaskList::AddToThreadQueue( Task& task, const int threadID ) {
+void TaskList::AddToThreadQueue( Task& task ) {
 	TLM.addToQueueTimer.Start();
 
-	AddToThreadQueueExt( task, threadID );
+	AddToThreadQueueExt( task );
 	TLM.addToQueueCount++;
 
 	TLM.addToQueueTimer.Stop();
@@ -347,7 +355,7 @@ Task* TaskList::GetTaskMemory( Task& task ) {
 }
 
 template<IsTask T>
-void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies, const int threadID ) {
+void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 	if ( exiting.load( std::memory_order_relaxed ) && !task.shutdownTask ) {
 		return;
 	}
@@ -366,12 +374,12 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies, const int th
 		const uint32 counter = taskMemory->dependencyCounter.fetch_sub( 1, std::memory_order_relaxed ) - 1;
 
 		if ( !counter ) {
-			AddToThreadQueue( *taskMemory, threadID );
+			AddToThreadQueue( *taskMemory );
 		} else {
 			taskWithDependenciesCount.fetch_add( 1, std::memory_order_relaxed );
 		}
 	} else if ( dependencies.start == dependencies.end ) {
-		AddToThreadQueue( *taskMemory, threadID );
+		AddToThreadQueue( *taskMemory );
 	}
 
 	taskCount.fetch_add( 1, std::memory_order_relaxed );
@@ -414,14 +422,14 @@ void TaskList::UnMarkDependencies( TaskInitList<T>&& dependencies ) {
 	}
 }
 
-void TaskList::AddTask( Task& task, std::initializer_list<TaskProxy> dependencies, const int threadID ) {
+void TaskList::AddTask( Task& task, std::initializer_list<TaskProxy> dependencies ) {
 	MarkDependencies( task, TaskInitList { dependencies.begin(), dependencies.end() } );
 
 	uint64 time = TimeNs();
 	if ( time < task.time && time - task.time > eventQueue.minGranularity ) {
-		eventQueue.AddTask( task, threadID );
+		eventQueue.AddTask( task );
 	} else {
-		AddTask( task, TaskInitList { dependencies.begin(), dependencies.end() }, threadID );
+		AddTask( task, TaskInitList { dependencies.begin(), dependencies.end() } );
 	}
 
 	UnMarkDependencies( TaskInitList{ dependencies.begin(), dependencies.end() } );

@@ -35,6 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/Bit.h"
 
+#include "ThreadMemory.h"
+
 #include "Task.h"
 
 Task::Task() :
@@ -43,6 +45,31 @@ Task::Task() :
 
 Task::Task( const Task& other ) {
 	*this = other;
+}
+
+Task& Task::Delay( const uint64 delay ) {
+	time = TimeNs() + delay;
+
+	return *this;
+}
+
+Task& Task::ThreadMask( const uint64 newThreadMask ) {
+	threadMask = newThreadMask;
+	threadCount.store( CountBits( threadMask ), std::memory_order_relaxed );
+
+	return *this;
+}
+
+Task& Task::ThreadMaskAll() {
+	return ThreadMask( BitMask64( 0, TLM.currentMaxThreads ) );
+}
+
+Task& Task::ThreadMaskAllOthers() {
+	return ThreadMask( UnSetBit( BitMask64( 0, TLM.currentMaxThreads ), TLM.id ) );
+}
+
+Task& Task::ThreadMaskCurrent() {
+	return ThreadMask( SetBit( 0ull, TLM.id ) );
 }
 
 void Task::operator=( const Task& other ) {
@@ -67,6 +94,9 @@ void Task::operator=( const Task& other ) {
 	id                 = other.id;
 
 	bufferID           = other.bufferID;
+	threadMask         = other.threadMask;
+	threadCount        = other.threadCount.load( std::memory_order_relaxed );
+
 	forwardTaskLock    = other.forwardTaskLock;
 
 	dataSize           = other.dataSize;

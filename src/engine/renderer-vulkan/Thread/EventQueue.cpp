@@ -84,11 +84,11 @@ void EventRing::Rotate() {
 	}
 }
 
-void EventQueue::AddTask( Task& task, const int threadID ) {
-	const uint64 time  = TimeNs();
-	const uint64 delay = time <= task.time ? task.time - time : 0;
+void EventQueue::AddTask( Task& task ) {
+	const uint64 time          = TimeNs();
+	const uint64 delay         = time <= task.time ? task.time - time : 0;
 
-	EventRing::EventResult res;
+	EventRing::EventResult res = EventRing::EVENT_FAIL;
 
 	if ( delay ) {
 		for ( EventRing& eventRing : eventRings ) {
@@ -104,7 +104,7 @@ void EventQueue::AddTask( Task& task, const int threadID ) {
 			}
 		}
 	} else {
-		taskList.AddTask( task, {}, threadID );
+		taskList.AddTask( task, {} );
 
 		return;
 	}
@@ -113,11 +113,12 @@ void EventQueue::AddTask( Task& task, const int threadID ) {
 		case EventRing::EVENT_SUCCESS:
 			return;
 		case EventRing::EVENT_FAIL:
-			taskList.AddTask( task, {}, threadID );
+			task.time = 0;
+			taskList.AddTask( task, {} );
 
 			return;
 		case EventRing::EVENT_EXPIRED:
-			taskList.AddTask( task, {}, threadID );
+			taskList.AddTask( task, {} );
 
 			return;
 	}

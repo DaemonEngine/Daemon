@@ -35,11 +35,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "engine/qcommon/qcommon.h"
 
+#include "../Shared/Timer.h"
+
+#include "../Thread/TaskList.h"
+#include "../Sync/Fence.h"
 #include "GraphicsCoreStore.h"
 #include "Instance.h"
 
 #include "Init.h"
 
+#include "Memory/CoreThreadMemory.h"
 void InitGraphicsEngine() {
 	instance.Init( "Daemon-vulkan", CLIENT_WINDOW_TITLE );
+	InitCmdPools();
+
+	FenceMain initExecCmdFence;
+	Task      initExecCmdTask { &InitExecCmdPools, initExecCmdFence };
+
+	taskList.AddTask( initExecCmdTask.ThreadMaskAllOthers() );
+
+	InitExecCmdPools();
+
+	initExecCmdFence.Wait();
 }

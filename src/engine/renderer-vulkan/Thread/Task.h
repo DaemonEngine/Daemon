@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 
 #include "../Math/NumberTypes.h"
+#include "../Math/Bit.h"
 
 #include "../Sys/MemoryInfo.h"
 #include "../Sync/Fence.h"
@@ -86,58 +87,57 @@ struct Task {
 
 	static constexpr uint32 UNALLOCATED               = UINT16_MAX;
 	uint16 bufferID                                   = UNALLOCATED; // Task RingBuffer id
+	uint64 threadMask                                 = 0;
+	std::atomic<uint32> threadCount                   = 0;
+
 	AccessLock forwardTaskLock;
 
 	uint16 dataSize                                   = 0;
 
-	static constexpr uint32 MAX_FORWARD_TASKS         = 18;
-	uint16 forwardTasks[MAX_FORWARD_TASKS]{ 0 };
+	static constexpr uint32 MAX_FORWARD_TASKS         = 14;
+	uint16 forwardTasks[MAX_FORWARD_TASKS]              { 0 };
 
 	Task();
 
 	// We have to use templates here because clang fails to cast function pointers to void*
 	template<typename FuncType>
-	Task( FuncType func, uint64 delay = 0 ) :
-		Execute( ( TaskFunction ) func ),
-		time( TimeNs() + delay ) {
+	Task( FuncType func ) :
+		Execute( ( TaskFunction ) func ) {
 	}
 
 	template<typename FuncType>
-	Task( FuncType func, FenceMain& fence, uint64 delay = 0 ) :
+	Task( FuncType func, FenceMain& fence ) :
 		Execute( ( TaskFunction ) func ),
-		complete( fence ),
-		time( TimeNs() + delay ) {
+		complete( fence ) {
 	}
 
 	template<typename FuncType, typename DataType>
-	Task( FuncType func, DataType&& newData, uint64 delay = 0 ) :
+	Task( FuncType func, DataType&& newData ) :
 		Execute( ( TaskFunction ) func ),
-		dataIsPointer( IsPointer<DataType> ),
-		time( TimeNs() + delay ) {
+		dataIsPointer( IsPointer<DataType> ) {
 
 		if constexpr ( IsPointer<DataType> ) {
-			data = ( void* ) newData;
+			data     = ( void* ) newData;
 			dataSize = sizeof( void* );
 		} else {
 			dataSize = sizeof( newData );
-			data = AllocTaskData( dataSize );
+			data     = AllocTaskData( dataSize );
 			memcpy( data, &newData, dataSize );
 		}
 	}
 
 	template<typename FuncType, typename DataType>
-	Task( FuncType func, DataType&& newData, FenceMain& fence, uint64 delay = 0 ) :
+	Task( FuncType func, DataType&& newData, FenceMain& fence ) :
 		Execute( ( TaskFunction ) func ),
 		dataIsPointer( IsPointer<DataType> ),
-		complete( fence ),
-		time( TimeNs() + delay ) {
+		complete( fence ) {
 
 		if constexpr ( IsPointer<DataType> ) {
-			data = ( void* ) newData;
+			data     = ( void* ) newData;
 			dataSize = sizeof( void* );
 		} else {
 			dataSize = sizeof( newData );
-			data = AllocTaskData( dataSize );
+			data     = AllocTaskData( dataSize );
 			memcpy( data, &newData, dataSize );
 		}
 	}
@@ -145,6 +145,13 @@ struct Task {
 	void operator=( const Task& other );
 
 	Task( const Task& other );
+
+	Task& Delay( const uint64 delay );
+
+	Task& ThreadMask( const uint64 newThreadMask );
+	Task& ThreadMaskAll();
+	Task& ThreadMaskAllOthers();
+	Task& ThreadMaskCurrent();
 
 	const Task& operator*() {
 		return *this;
