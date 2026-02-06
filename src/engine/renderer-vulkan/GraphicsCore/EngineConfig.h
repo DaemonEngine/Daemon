@@ -87,6 +87,7 @@ struct EngineConfig {
 	bool   filterMinmaxSingleComponentFormats;
 	bool   filterMinmaxImageComponentMapping;
 
+	uint32 maxSamplers;
 	uint32 maxImages;
 	uint32 maxStorageImages;
 
@@ -97,7 +98,6 @@ struct EngineConfig {
 
 	uint32 maxPushConstSize;
 	uint32 maxAllocations;
-	uint32 maxSamplers;
 	uint64 bufferImageGranularity;
 	uint64 sparseAddressSpaceSize;
 
