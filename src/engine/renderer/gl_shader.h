@@ -1859,6 +1859,22 @@ public:
 	}
 };
 
+class u_FogGradient :
+	GLUniform2f
+{
+public:
+	u_FogGradient( GLShader *shader ) :
+		GLUniform2f( shader, "u_FogGradient", PUSH )
+	{
+	}
+
+	void SetUniform_FogGradient( float density, float falloffExp )
+	{
+		vec2_t value{ density, falloffExp };
+		this->SetValue( value );
+	}
+};
+
 class u_FogColor :
 	GLUniform3f
 {
@@ -3166,7 +3182,7 @@ class GLShader_fogQuake3 :
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_ViewOrigin,
-	public u_FogDensity,
+	public u_FogGradient,
 	public u_FogDepthVector,
 	public u_FogEyeT,
 	public GLDeformStage,
@@ -3183,7 +3199,7 @@ class GLShader_fogQuake3Material :
 	public u_ModelViewProjectionMatrix,
 	public u_ColorGlobal_Uint,
 	public u_ViewOrigin,
-	public u_FogDensity,
+	public u_FogGradient,
 	public u_FogDepthVector,
 	public u_FogEyeT,
 	public GLDeformStage {

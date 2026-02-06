@@ -35,13 +35,12 @@ uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 uniform vec3 u_ViewOrigin;
 
-uniform float u_FogDensity;
 uniform vec4		u_FogDepthVector; // fog plane
 
 // how far the vertex is under the fog plane
 OUT(smooth) float var_FogPlaneDistance;
 
-OUT(smooth) vec3 var_ScaledViewerOffset;
+OUT(smooth) vec3 var_ViewerOffset;
 OUT(smooth) vec4	var_Color;
 
 void DeformVertex( inout vec4 pos,
@@ -76,7 +75,7 @@ void main()
 	position = u_ModelMatrix * position;
 	position.xyz /= position.w;
 
-	var_ScaledViewerOffset = u_FogDensity * (position.xyz - u_ViewOrigin);
+	var_ViewerOffset = position.xyz - u_ViewOrigin;
 
 	// calculate the length in fog
 	var_FogPlaneDistance = dot(position.xyz, u_FogDepthVector.xyz) + u_FogDepthVector.w;
