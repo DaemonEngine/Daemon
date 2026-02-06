@@ -45,9 +45,14 @@ EngineConfig GetEngineConfigForDevice( const VkPhysicalDevice& device ) {
 	VkPhysicalDeviceVulkan13Properties properties13 { .pNext = &properties12 };
 	VkPhysicalDeviceProperties2        properties   { .pNext = &properties13 };
 
-	VkPhysicalDeviceVulkan12Features   features12 {};
-	VkPhysicalDeviceVulkan13Features   features13 { .pNext = &features12 };
-	VkPhysicalDeviceFeatures2          features   { .pNext = &features13 };
+	VkPhysicalDeviceVulkan11Features                    features11                 {};
+	VkPhysicalDeviceVulkan12Features                    features12                 { .pNext = &features11 };
+	VkPhysicalDeviceVulkan13Features                    features13                 { .pNext = &features12 };
+	VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR       featuresIndirectMemoryCopy { .pNext = &features13 };
+	VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT  featuresPipelinelibrary    { .pNext = &featuresIndirectMemoryCopy };
+	VkPhysicalDeviceHostImageCopyFeatures               featuresHostImageCopy      { .pNext = &featuresPipelinelibrary };
+
+	VkPhysicalDeviceFeatures2                           features { .pNext = &featuresHostImageCopy };
 
 	vkGetPhysicalDeviceProperties2( device, &properties );
 	vkGetPhysicalDeviceFeatures2(   device, &features );
@@ -97,7 +102,6 @@ EngineConfig GetEngineConfigForDevice( const VkPhysicalDevice& device ) {
 
 		.maxPushConstSize                          = limits.maxPushConstantsSize,
 		.maxAllocations                            = limits.maxMemoryAllocationCount,
-		.maxSamplers                               = limits.maxSamplerAllocationCount,
 		.bufferImageGranularity                    = limits.bufferImageGranularity,
 		.sparseAddressSpaceSize                    = limits.sparseAddressSpaceSize,
 
@@ -154,6 +158,8 @@ EngineConfig GetEngineConfigForDevice( const VkPhysicalDevice& device ) {
 		.bufferDeviceAddress                       = ( bool ) features12.bufferDeviceAddress,
 		.bufferDeviceAddressCaptureReplay          = ( bool ) features12.bufferDeviceAddressCaptureReplay,
 
+		.scalarLayout                              = ( bool ) features12.scalarBlockLayout,
+
 		.descriptorIndexing                        = ( bool ) features12.descriptorIndexing,
 
 		.descriptorBindingUpdateUnusedWhilePending = ( bool ) features12.descriptorBindingUpdateUnusedWhilePending,
@@ -172,7 +178,11 @@ EngineConfig GetEngineConfigForDevice( const VkPhysicalDevice& device ) {
 		
 		.maintenance4                              = ( bool ) features13.maintenance4,
 
-		.textureCompressionASTC_HDR                = ( bool ) features13.textureCompressionASTC_HDR
+		.textureCompressionASTC_HDR                = ( bool ) features13.textureCompressionASTC_HDR,
+
+		.indirectMemoryCopy                        = ( bool ) featuresIndirectMemoryCopy.indirectMemoryCopy,
+		.indirectMemoryToImageCopy                 = ( bool ) featuresIndirectMemoryCopy.indirectMemoryToImageCopy,
+		.graphicsPipelineLibrary                   = ( bool ) featuresPipelinelibrary.graphicsPipelineLibrary,
 	};
 
 	memcpy( cfg.driverUUID, properties11.driverUUID, VK_UUID_SIZE );

@@ -146,6 +146,8 @@ struct EngineConfig {
 	bool   bufferDeviceAddress;
 	bool   bufferDeviceAddressCaptureReplay;
 
+	bool   scalarLayout;
+
 	bool   descriptorIndexing;
 
 	bool   descriptorBindingUpdateUnusedWhilePending;
@@ -165,6 +167,10 @@ struct EngineConfig {
 	bool   maintenance4;
 
 	bool   textureCompressionASTC_HDR;
+
+	bool   indirectMemoryCopy;
+	bool   indirectMemoryToImageCopy;
+	bool   graphicsPipelineLibrary;
 };
 
 EngineConfig GetEngineConfigForDevice( const VkPhysicalDevice& device );

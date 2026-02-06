@@ -48,7 +48,8 @@ constexpr bool EngineConfigSupportedMinimal( const EngineConfig& config ) {
 		&& config.shaderSampledImageArrayNonUniformIndexing
 		&& config.shaderStorageImageArrayNonUniformIndexing
 		&& config.dynamicRendering
-		&& config.synchronization2;
+		&& config.synchronization2
+		&& config.bufferDeviceAddress;
 
 	return ret;
 };
