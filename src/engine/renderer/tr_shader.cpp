@@ -4603,16 +4603,22 @@ static bool ParseShader( const char *_text )
 		// fogParms
 		else if ( !Q_stricmp( token, "fogParms" ) )
 		{
-			/*
-			Log::Warn("fogParms keyword not supported in shader '%s'", shader.name);
-			SkipRestOfLine(text);
+			vec3_t fogColor;
 
-			*/
-
-			if ( !ParseVector( text, 3, shader.fogParms.color ) )
+			if ( !ParseVector( text, 3, fogColor ) )
 			{
 				return false;
 			}
+
+			shader.fogParms.color = Color::Adapt( fogColor );
+
+			if ( tr.worldLinearizeTexture )
+			{
+				shader.fogParms.color = shader.fogParms.color.ConvertFromSRGB();
+			}
+
+			shader.fogParms.color *= tr.identityLight;
+			shader.fogParms.color.SetAlpha( 1 );
 
 			token = COM_ParseExt2( text, false );
 
@@ -4622,12 +4628,44 @@ static bool ParseShader( const char *_text )
 				continue;
 			}
 
-			shader.fogParms.depthForOpaque = atof( token );
+			shader.fogParms.depthForOpaque = std::max( 1.0, atof( token ) );
 
 			shader.sort = Util::ordinal(shaderSort_t::SS_FOG);
 
 			// skip any old gradient directions
 			SkipRestOfLine( text );
+			continue;
+		}
+		// fogGradient
+		// Default: fogGradient expFalloff 5
+		else if ( !Q_stricmp( token, "fogGradient" ) )
+		{
+			token = COM_ParseExt2( text, false );
+
+			if ( !Q_stricmp( token, "const" ) )
+			{
+				shader.fogParms.falloffExp = 9999;
+			}
+			// fogGradient expFalloff <dist from edge at which density is 50% of max>
+			// scales density by 1 - exp(-k*t) where t is distance under fog plane
+			else if ( !Q_stricmp( token, "expFalloff" ) )
+			{
+				token = COM_ParseExt2( text, false );
+				float val = atof( token );
+
+				if ( val > 0.0f )
+				{
+					shader.fogParms.falloffExp = M_LN2 / val;
+				}
+				else
+				{
+					Log::Warn( "bad expFalloff value in shader '%s'", shader.name );
+				}
+			}
+			else
+			{
+				Log::Warn( "invalid fogGradient type '%s' in shader '%s'", token, shader.name );
+			}
 			continue;
 		}
 		// noFog
@@ -5983,6 +6021,11 @@ static shader_t *FinishShader()
 		/* Mirrors will not use that range but we need all
 		other portals to have it set. */
 		shader.portalRange = r_portalDefaultRange.Get();
+	}
+
+	if ( shader.fogParms.falloffExp == 0.0f )
+	{
+		shader.fogParms.falloffExp = M_LN2 / 5;
 	}
 
 	numStages = MAX_SHADER_STAGES;

@@ -49,10 +49,10 @@ void	main()
 	vec4 P = u_UnprojectMatrix * vec4(gl_FragCoord.xy, depth, 1.0);
 	P.xyz /= P.w;
 
-	// calculate the length in fog (t is always 1 if eye is in fog)
+	// calculate the length in fog
 	float s = distance(u_ViewOrigin, P.xyz) * u_FogDensity;
 
-	vec4 color = vec4(1, 1, 1, GetFogAlpha(s, 1.0));
+	vec4 color = vec4(1, 1, 1, GetFogAlpha(s));
 
 	outputColor = UnpackColor( u_Color ) * color;
 }
