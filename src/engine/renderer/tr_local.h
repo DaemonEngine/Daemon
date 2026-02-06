@@ -1127,6 +1127,7 @@ enum
 	{
 		Color::Color color;
 		float  depthForOpaque;
+		float falloffExp;
 	};
 
 	struct shader_t

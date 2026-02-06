@@ -1636,7 +1636,8 @@ void Render_fog( shaderStage_t* pStage )
 	gl_fogQuake3Shader->BindProgram();
 
 	gl_fogQuake3Shader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-	gl_fogQuake3Shader->SetUniform_FogDensity( 1.0f / fog->shader->fogParms.depthForOpaque );
+	gl_fogQuake3Shader->SetUniform_FogGradient(
+		1.0f / fog->shader->fogParms.depthForOpaque, fog->shader->fogParms.falloffExp );
 	gl_fogQuake3Shader->SetUniform_FogDepthVector( fogDepthVector );
 	gl_fogQuake3Shader->SetUniform_FogEyeT( eyeT );
 

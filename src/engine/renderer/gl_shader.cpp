@@ -2697,7 +2697,7 @@ GLShader_fogQuake3::GLShader_fogQuake3() :
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_ViewOrigin( this ),
-	u_FogDensity( this ),
+	u_FogGradient( this ),
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),
 	GLDeformStage( this ),
@@ -2713,7 +2713,7 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material() :
 	u_ModelViewProjectionMatrix( this ),
 	u_ColorGlobal_Uint( this ),
 	u_ViewOrigin( this ),
-	u_FogDensity( this ),
+	u_FogGradient( this ),
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),
 	GLDeformStage( this ) {
