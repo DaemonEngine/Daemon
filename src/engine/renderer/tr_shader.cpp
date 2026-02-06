@@ -4637,6 +4637,7 @@ static bool ParseShader( const char *_text )
 			continue;
 		}
 		// fogGradient
+		// Default: fogGradient expFalloff 5
 		else if ( !Q_stricmp( token, "fogGradient" ) )
 		{
 			token = COM_ParseExt2( text, false );
@@ -6024,7 +6025,7 @@ static shader_t *FinishShader()
 
 	if ( shader.fogParms.falloffExp == 0.0f )
 	{
-		shader.fogParms.falloffExp = 9999;
+		shader.fogParms.falloffExp = M_LN2 / 5;
 	}
 
 	numStages = MAX_SHADER_STAGES;
