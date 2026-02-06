@@ -4619,6 +4619,37 @@ static bool ParseShader( const char *_text )
 			SkipRestOfLine( text );
 			continue;
 		}
+		// fogGradient
+		else if ( !Q_stricmp( token, "fogGradient" ) )
+		{
+			token = COM_ParseExt2( text, false );
+
+			if ( !Q_stricmp( token, "const" ) )
+			{
+				shader.fogParms.falloffExp = 9999;
+			}
+			// fogGradient expFalloff <dist from edge at which density is 50% of max>
+			// scales density by 1 - exp(-k*t) where t is distance under fog plane
+			else if ( !Q_stricmp( token, "expFalloff" ) )
+			{
+				token = COM_ParseExt2( text, false );
+				float val = atof( token );
+
+				if ( val > 0.0f )
+				{
+					shader.fogParms.falloffExp = M_LN2 / val;
+				}
+				else
+				{
+					Log::Warn( "bad expFalloff value in shader '%s'", shader.name );
+				}
+			}
+			else
+			{
+				Log::Warn( "invalid fogGradient type '%s' in shader '%s'", token, shader.name );
+			}
+			continue;
+		}
 		// noFog
 		else if ( !Q_stricmp( token, "noFog" ) )
 		{
@@ -5972,6 +6003,11 @@ static shader_t *FinishShader()
 		/* Mirrors will not use that range but we need all
 		other portals to have it set. */
 		shader.portalRange = r_portalDefaultRange.Get();
+	}
+
+	if ( shader.fogParms.falloffExp == 0.0f )
+	{
+		shader.fogParms.falloffExp = 9999;
 	}
 
 	numStages = MAX_SHADER_STAGES;

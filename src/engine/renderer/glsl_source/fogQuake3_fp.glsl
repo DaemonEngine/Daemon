@@ -26,10 +26,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define DEPTHMAP_GLSL
 
+uniform vec2 u_FogGradient;
 uniform float u_FogEyeT;
 
 IN(smooth) float var_FogPlaneDistance;
-IN(smooth) vec3 var_ScaledViewerOffset;
+IN(smooth) vec3 var_ViewerOffset;
 IN(smooth) vec4		var_Color;
 
 DECLARE_OUTPUT(vec4)
@@ -38,16 +39,22 @@ void	main()
 {
 	#insert material_fp
 
-	float s = length(var_ScaledViewerOffset);
-	float t = step( 0, var_FogPlaneDistance );
+	if ( var_FogPlaneDistance < -0.01 )
+	{
+		discard;
+	}
+
+	float distInFog = length(var_ViewerOffset);
 
 	if ( u_FogEyeT < 0 ) // eye outside fog
 	{
 		// fraction of the viewer-to-vertex ray which is inside fog
-		t *= var_FogPlaneDistance / ( max( 0, var_FogPlaneDistance ) - u_FogEyeT );
+		distInFog *= var_FogPlaneDistance / ( max( 0, var_FogPlaneDistance ) - u_FogEyeT );
 	}
 
-	vec4 color = vec4(1, 1, 1, GetFogAlpha(s, t));
+	float gradient = GetFogGradientModifier(u_FogGradient.y, u_FogEyeT, var_FogPlaneDistance);
+
+	vec4 color = vec4(1, 1, 1, GetFogAlpha(gradient * u_FogGradient.x * distInFog));
 
 	color *= var_Color;
 

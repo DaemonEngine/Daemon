@@ -32,11 +32,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-float GetFogAlpha(float s, float t)
+float FogGradientFunction(float k, float t)
 {
-	t = clamp(t, 0.0, 1.0);
+	return 1 - exp(-k * t);
+}
 
-	float x = min(1, s * t);
+float FogGradientAntiderivative(float k, float t)
+{
+	return t + exp(-k * t) / k;
+}
+
+float GetFogGradientModifier(float k, float t0, float t1)
+{
+	t0 = max(0.0, t0);
+	t1 = max(0.0, t1);
+
+	float deltaT = t1 - t0;
+	if (abs(deltaT) > 0.1)
+	{
+		return ( FogGradientAntiderivative(k, t1) - FogGradientAntiderivative(k, t0) ) / deltaT;
+	}
+	else
+	{
+		return FogGradientFunction(k, t0);
+	}
+}
+
+float GetFogAlpha(float x)
+{
+	x = clamp(x, 0.0, 1.0);
 
 	// sqrt(x) is bad near 0 because it increases too quickly resulting in sharp edges.
 	// x ≤ 1/32: √32 * x
