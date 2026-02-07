@@ -641,7 +641,7 @@ class OutputGenerator:
         # @@ Should use the type="bitmask" attribute instead
         isEnum = ('FLAG_BITS' not in expandPrefix)
 
-        maxValidValue = 2**(bitwidth - 1) - 1
+        maxValidValue = 2 ** ( bitwidth ) - 1
         minValidValue = (maxValidValue * -1) - 1
 
         # Get a list of nested 'enum' tags.
@@ -1274,14 +1274,15 @@ class OutputGenerator:
                 pdecl += self.makeProtoName(text, tail)
                 tdecl += self.makeTypedefName(text, tail, isfuncpointer)
 
-                Globals.headerText              += 'extern PFN_' + text + ' ' + text + ';\n\n'
-                Globals.functionDefinitionsText +=        'PFN_' + text + ' ' + text + ';\n\n'
-                
-                if not text.endswith( ( 'vkGetInstanceProcAddr', 'vkEnumerateInstanceVersion', 'vkEnumerateInstanceExtensionProperties', 'vkEnumerateInstanceLayerProperties', 'vkCreateInstance', 'vkDestroyInstance' ) ):
-                    functionName = text
+                if not isfuncpointer:
+                    Globals.headerText              += 'extern PFN_' + text + ' ' + text + ';\n\n'
+                    Globals.functionDefinitionsText +=        'PFN_' + text + ' ' + text + ';\n\n'
+                    
+                    if not text.endswith( ( 'vkGetInstanceProcAddr', 'vkEnumerateInstanceVersion', 'vkEnumerateInstanceExtensionProperties', 'vkEnumerateInstanceLayerProperties', 'vkCreateInstance', 'vkDestroyInstance' ) ):
+                        functionName = text
 
-                    if text == 'vkGetDeviceProcAddr':
-                        deviceFunction = False
+                        if text == 'vkGetDeviceProcAddr':
+                            deviceFunction = False
             else:
                 pdecl += text + tail
                 tdecl += text + tail
