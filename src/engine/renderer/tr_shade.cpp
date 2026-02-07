@@ -299,7 +299,7 @@ static void GLSL_InitGPUShadersOrError()
 	}
 
 	// Fog GLSL is always loaded and built because disabling fog is cheat.
-	gl_shaderManager.LoadShader( gl_fogGlobalShader );
+	gl_shaderManager.LoadShader( gl_fogShader );
 
 	if ( r_heatHaze->integer )
 	{
@@ -478,7 +478,7 @@ void GLSL_ShutdownGPUShaders()
 	gl_reflectionShaderMaterial = nullptr;
 	gl_skyboxShader = nullptr;
 	gl_skyboxShaderMaterial = nullptr;
-	gl_fogGlobalShader = nullptr;
+	gl_fogShader = nullptr;
 	gl_heatHazeShader = nullptr;
 	gl_heatHazeShaderMaterial = nullptr;
 	gl_screenShader = nullptr;
@@ -1574,6 +1574,69 @@ void Render_liquid( shaderStage_t *pStage )
 	}
 
 	gl_liquidShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
+
+	Tess_DrawElements();
+
+	GL_CheckErrors();
+}
+
+void Render_fog( shaderStage_t *stage )
+{
+	if ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL )
+	{
+		return;
+	}
+
+	if ( r_noFog->integer )
+	{
+		return;
+	}
+
+	GLIMP_LOGCOMMENT( "--- Render_fog ---" );
+
+	RB_PrepareForSamplingDepthMap();
+
+	GL_Cull( stage->shader->cullType );
+
+	gl_fogShader->SetOutsideFog( stage->type == stageType_t::ST_FOGMAP_OUTER );
+
+	gl_fogShader->BindProgram();
+
+	GL_State( stage->stateBits );
+
+	gl_fogShader->SetUniform_FogGradient(
+		1.0f / stage->shader->fogParms.depthForOpaque, stage->shader->fogParms.falloffExp );
+	gl_fogShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
+	SetUniform_Color( gl_fogShader, stage->shader->fogParms.color );
+
+	switch ( stage->type )
+	{
+	case stageType_t::ST_FOGMAP_INNER:
+	{
+		// It's important to avoid far plane clipping
+		matrix_t projection, mvp;
+		MatrixPerspectiveProjectionFovXYInfiniteRH( projection, tr.refdef.fov_x, tr.refdef.fov_y, 1.0f );
+		MatrixMultiply( projection, glState.modelViewMatrix[ glState.stackIndex ], mvp );
+		gl_fogShader->SetUniform_ModelViewProjectionMatrix( mvp );
+		break;
+	}
+	case stageType_t::ST_FOGMAP_OUTER:
+	{
+		gl_fogShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+		break;
+	}
+	default:
+		ASSERT_UNREACHABLE();
+	}
+
+	gl_fogShader->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
+
+	// bind u_DepthMap
+	gl_fogShader->SetUniform_DepthMapBindless(
+		GL_BindToTMU( 1, tr.depthSamplerImage )
+	);
+
+	gl_fogShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
 

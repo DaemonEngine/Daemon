@@ -129,8 +129,8 @@ set(GLSL_EMBED_LIST
     vertexSkinning_vp.glsl
 
     # Regular shaders
-    fogGlobal_vp.glsl
-    fogGlobal_fp.glsl
+    fog_vp.glsl
+    fog_fp.glsl
     generic_vp.glsl
     generic_fp.glsl
     heatHaze_vp.glsl

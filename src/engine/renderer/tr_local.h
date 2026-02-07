@@ -3243,7 +3243,7 @@ void GLimp_LogComment_( std::string comment );
 	void Render_portal( shaderStage_t *pStage );
 	void Render_heatHaze( shaderStage_t *pStage );
 	void Render_liquid( shaderStage_t *pStage );
-	void Render_fogGlobal( shaderStage_t *pStage );
+	void Render_fog( shaderStage_t *pStage );
 
 	/*
 	============================================================
