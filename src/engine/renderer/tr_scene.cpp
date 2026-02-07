@@ -229,13 +229,12 @@ static float NearPlaneCornerDist()
 // issue on the surface plane, since the GLSL calcs chop off overhang there. Note that
 // with original Q3 you are required to construct the fog so that it is impossible to pass
 // through non-surface planes at all.
-static bool R_InsideFog( int fognum )
+static bool R_InsideFog( int fognum, float tol )
 {
 	// TODO: with portals this should use the point at the view frustum near plane instead
 	const vec3_t &origin = tr.viewParms.orientation.origin;
 
 	const auto &bounds = tr.world->fogs[ fognum ].bounds;
-	float tol = NearPlaneCornerDist() + 0.1f;
 
 	for ( int i = 0; i < 3; i++ )
 	{
@@ -250,11 +249,18 @@ static bool R_InsideFog( int fognum )
 
 void R_AddFogBrushSurfaces()
 {
-	// TODO: incorporate them in the BSP?
+	float tol = NearPlaneCornerDist() + 0.1f;
+
 	for ( int i = 1; i < tr.world->numFogs; i++ )
 	{
 		const fog_t &fog = tr.world->fogs[ i ];
-		shader_t *shader = R_InsideFog( i )
+
+		if ( R_CullBox( fog.bounds, FRUSTUM_FAR ) == cullResult_t::CULL_OUT )
+		{
+			continue;
+		}
+
+		shader_t *shader = R_InsideFog( i, tol )
 			? fog.shader->fogInnerShader
 			: fog.shader->fogOuterShader;
 		R_AddDrawSurf( ( surfaceType_t *)&fog.surf, shader, -1 );
