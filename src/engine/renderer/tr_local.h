@@ -350,7 +350,6 @@ enum class ssaoMode {
 	  RSPEEDS_GENERAL = 1,
 	  RSPEEDS_CULLING,
 	  RSPEEDS_VIEWCLUSTER,
-	  RSPEEDS_FOG,
 	  RSPEEDS_CHC,
 	  RSPEEDS_NEAR_FAR,
 	};
@@ -2121,7 +2120,6 @@ enum
 		int c_leafs;
 	};
 
-#define FOG_TABLE_SIZE  256
 #define FUNCTABLE_SIZE  1024
 #define FUNCTABLE_SIZE2 10
 #define FUNCTABLE_MASK  ( FUNCTABLE_SIZE - 1 )
@@ -2182,9 +2180,6 @@ enum
 		int   c_vboIndexBuffers;
 		int   c_vboVertexes;
 		int   c_vboIndexes;
-
-		int   c_fogSurfaces;
-		int   c_fogBatches;
 
 		int   c_multiDrawElements;
 		int   c_multiDrawPrimitives;
