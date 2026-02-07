@@ -55,7 +55,7 @@ GLShader_processSurfaces                 *gl_processSurfacesShader = nullptr;
 GLShader_blur                            *gl_blurShader = nullptr;
 GLShader_cameraEffects                   *gl_cameraEffectsShader = nullptr;
 GLShader_contrast                        *gl_contrastShader = nullptr;
-GLShader_fogGlobal                       *gl_fogGlobalShader = nullptr;
+GLShader_fog                             *gl_fogShader = nullptr;
 GLShader_fxaa                            *gl_fxaaShader = nullptr;
 GLShader_motionblur                      *gl_motionblurShader = nullptr;
 GLShader_ssao                            *gl_ssaoShader = nullptr;
@@ -2688,10 +2688,9 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial() :
 	u_ModelViewProjectionMatrix( this )
 {}
 
-// TODO: rename
-GLShader_fogGlobal::GLShader_fogGlobal() :
-	GLShader( "fogGlobal", ATTR_POSITION | ATTR_FOG_SURFACE,
-		false, "fogGlobal", "fogGlobal" ),
+GLShader_fog::GLShader_fog() :
+	GLShader( "fog", ATTR_POSITION | ATTR_FOG_SURFACE,
+		false, "fog", "fog" ),
 	u_DepthMap( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_UnprojectMatrix( this ),
@@ -2703,7 +2702,7 @@ GLShader_fogGlobal::GLShader_fogGlobal() :
 {
 }
 
-void GLShader_fogGlobal::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
+void GLShader_fog::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
 }

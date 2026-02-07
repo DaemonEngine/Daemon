@@ -3178,7 +3178,7 @@ class GLShader_skyboxMaterial :
 	GLShader_skyboxMaterial();
 };
 
-class GLShader_fogGlobal :
+class GLShader_fog :
 	public GLShader,
 	public u_DepthMap,
 	public u_ModelViewProjectionMatrix,
@@ -3190,7 +3190,7 @@ class GLShader_fogGlobal :
 	public GLCompileMacro_OUTSIDE_FOG
 {
 public:
-	GLShader_fogGlobal();
+	GLShader_fog();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -3528,7 +3528,7 @@ extern GLShader_processSurfaces                 *gl_processSurfacesShader;
 extern GLShader_blur                            *gl_blurShader;
 extern GLShader_cameraEffects                   *gl_cameraEffectsShader;
 extern GLShader_contrast                        *gl_contrastShader;
-extern GLShader_fogGlobal                       *gl_fogGlobalShader;
+extern GLShader_fog                             *gl_fogShader;
 extern GLShader_fxaa                            *gl_fxaaShader;
 extern GLShader_motionblur                      *gl_motionblurShader;
 extern GLShader_ssao                            *gl_ssaoShader;

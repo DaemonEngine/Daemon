@@ -1536,8 +1536,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			{
 				for ( bool outer : { false, true } )
 				{
-					gl_fogGlobalShader->SetOutsideFog( outer );
-					gl_fogGlobalShader->MarkProgramForBuilding();
+					gl_fogShader->SetOutsideFog( outer );
+					gl_fogShader->MarkProgramForBuilding();
 				}
 			}
 
