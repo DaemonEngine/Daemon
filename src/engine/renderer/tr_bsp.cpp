@@ -952,7 +952,6 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 		surf->lightmapNum /= 2;
 	}
 
-	surf->fogIndex = LittleLong( ds->fogNum ) + 1;
 	surf->shader = ShaderForShaderNum( ds->shaderNum );
 
 	if ( r_singleShader->integer && !surf->shader->isSky ) {
@@ -1184,9 +1183,6 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	{
 		surf->lightmapNum /= 2;
 	}
-
-	// get fog volume
-	surf->fogIndex = LittleLong( ds->fogNum ) + 1;
 
 	// get shader value
 	surf->shader = ShaderForShaderNum( ds->shaderNum );
@@ -2720,7 +2716,6 @@ static void R_CreateWorldVBO() {
 				srf.surface = surface->data;
 				srf.bspSurface = true;
 				srf.lightMapNum = surface->lightmapNum;
-				srf.fog = surface->fogIndex;
 				srf.portalNum = surface->portalNum;
 
 				srf.firstIndex = ( ( srfGeneric_t* ) surface->data )->firstIndex;
@@ -3235,9 +3230,6 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 	s_worldData.fogs = (fog_t*) ri.Hunk_Alloc( s_worldData.numFogs * sizeof( *out ), ha_pref::h_low );
 	out = s_worldData.fogs + 1;
 
-	// ydnar: reset global fog
-	s_worldData.globalFog = -1;
-
 	if ( !count )
 	{
 		Log::Debug("no fog volumes loaded" );
@@ -3327,24 +3319,16 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		// of trying to create an implicit shader from an image...
 		out->shader = R_FindShader( fogs->shader, RSF_3D );
 
-		// ydnar: global fog sets clearcolor/zfar
-		if ( out->originalBrushNumber == -1 )
-		{
-			s_worldData.globalFog = i + 1;
-		}
-
 		// set the gradient vector
 		sideNum = LittleLong( fogs->visibleSide );
 
 		// ydnar: made this check a little more strenuous (was sideNum == -1)
 		if ( sideNum < 0 || sideNum >= sidesCount )
 		{
-			out->hasSurface = false;
 			Vector4Set( out->surface, 0.0f, 0.0f, 0.0f, -1.0e10f );
 		}
 		else
 		{
-			out->hasSurface = true;
 			planeNum = LittleLong( sides[ firstSide + sideNum ].planeNum );
 			VectorSubtract( vec3_origin, s_worldData.planes[ planeNum ].normal, out->surface );
 			out->surface[ 3 ] = -s_worldData.planes[ planeNum ].dist;

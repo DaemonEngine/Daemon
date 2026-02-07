@@ -990,7 +990,6 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 	srfIQModel_t		*surface;
 	int                     i, j;
 	bool                personalModel;
-	int                     fogNum;
 	shader_t                *shader;
 	skin_t                  *skin;
 
@@ -1007,9 +1006,6 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 	{
 		return;
 	}
-
-	// see if we are in a fog volume
-	fogNum = R_FogWorldBox( ent->worldBounds );
 
 	for ( i = 0 ; i < IQModel->num_surfaces ; i++ ) {
 		if(ent->e.customShader)
@@ -1048,7 +1044,7 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 		// we will add shadows even if the main object isn't visible in the view
 
 		if( !personalModel ) {
-			R_AddDrawSurf( ( surfaceType_t *)surface, shader, -1, fogNum );
+			R_AddDrawSurf( ( surfaceType_t *)surface, shader, -1 );
 		}
 
 		surface++;

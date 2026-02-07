@@ -68,8 +68,6 @@ GLShader_generic                         *gl_genericShader = nullptr;
 GLShader_genericMaterial                 *gl_genericShaderMaterial = nullptr;
 GLShader_lightMapping                    *gl_lightMappingShader = nullptr;
 GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial = nullptr;
-GLShader_fogQuake3                       *gl_fogQuake3Shader = nullptr;
-GLShader_fogQuake3Material               *gl_fogQuake3ShaderMaterial = nullptr;
 GLShader_heatHaze                        *gl_heatHazeShader = nullptr;
 GLShader_heatHazeMaterial                *gl_heatHazeShaderMaterial = nullptr;
 GLShader_liquid                          *gl_liquidShader = nullptr;
@@ -2689,38 +2687,6 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial() :
 	u_AlphaThreshold( this ),
 	u_ModelViewProjectionMatrix( this )
 {}
-
-GLShader_fogQuake3::GLShader_fogQuake3() :
-	GLShader( "fogQuake3", ATTR_POSITION | ATTR_QTANGENT,
-		false, "fogQuake3", "fogQuake3" ),
-	u_ModelMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_ColorGlobal_Float( this ),
-	u_ColorGlobal_Uint( this ),
-	u_Bones( this ),
-	u_VertexInterpolation( this ),
-	u_ViewOrigin( this ),
-	u_FogGradient( this ),
-	u_FogDepthVector( this ),
-	u_FogEyeT( this ),
-	GLDeformStage( this ),
-	GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this )
-{
-}
-
-GLShader_fogQuake3Material::GLShader_fogQuake3Material() :
-	GLShader( "fogQuake3Material", ATTR_POSITION | ATTR_QTANGENT,
-		true, "fogQuake3", "fogQuake3" ),
-	u_ModelMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_ColorGlobal_Uint( this ),
-	u_ViewOrigin( this ),
-	u_FogGradient( this ),
-	u_FogDepthVector( this ),
-	u_FogEyeT( this ),
-	GLDeformStage( this ) {
-}
 
 // TODO: rename
 GLShader_fogGlobal::GLShader_fogGlobal() :

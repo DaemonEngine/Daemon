@@ -5650,13 +5650,6 @@ static void SetStagesRenderers()
 					&UpdateSurfaceDataLiquid, &BindShaderLiquid, &ProcessMaterialLiquid,
 				};
 				break;
-			case stageType_t::ST_FOGMAP:
-				stageRendererOptions = {
-					// All q3 fog shaders are built in RE_EndRegistration because they're assigned to surfaces dynamically
-					&Render_fog, &MarkShaderBuildNOP,
-					&UpdateSurfaceDataFog, &BindShaderFog, &ProcessMaterialFog,
-				};
-				break;
 			case stageType_t::ST_FOGMAP_INNER:
 			case stageType_t::ST_FOGMAP_OUTER:
 				stageRendererOptions = {
@@ -5846,7 +5839,6 @@ static void ValidateStage( shaderStage_t *pStage )
 		{ stageType_t::ST_SPECULARMAP, { true, true, false, "specularMap" } },
 		{ stageType_t::ST_HEATHAZEMAP, { true, true, false, "heatHazeMap" } },
 		{ stageType_t::ST_LIQUIDMAP, { true, true, false, "liquidMap" } },
-		{ stageType_t::ST_FOGMAP, { true, false, false, "fogMap" } },
 		{ stageType_t::ST_FOGMAP_INNER, { true, false, false, "fogMapInner" } },
 		{ stageType_t::ST_FOGMAP_OUTER, { true, false, false, "fogMapOuter" } },
 		// The lightmap is fetched at render time.
@@ -5962,7 +5954,7 @@ static float DetermineShaderSort()
 			return Util::ordinal(shaderSort_t::SS_BLEND0);
 		}
 
-		// determine sort order and fog color adjustment
+		// determine sort order
 		if ( ( stages[ stage ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) &&
 		     ( stages[ 0 ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) )
 		{
@@ -6035,14 +6027,6 @@ static shader_t *FinishShader()
 
 	shader.sort = DetermineShaderSort();
 
-	if ( shader.sort <= Util::ordinal( shaderSort_t::SS_OPAQUE ) ) {
-		shader.fogPass = fogPass_t::FP_EQUAL;
-	} else if ( shader.contentFlags & CONTENTS_FOG ) {
-		shader.fogPass = fogPass_t::FP_LE;
-	}
-
-	shader.noFog = shader.noFog || shader.fogPass == fogPass_t::FP_NONE;
-
 	// look for multitexture potential
 	CollapseStages();
 
@@ -6054,14 +6038,6 @@ static shader_t *FinishShader()
 
 	// Copy the current global shader to a newly allocated shader.
 	shader_t *ret = MakeShaderPermanent();
-
-	if ( !shader.noFog ) {
-		if ( shader.fogPass == fogPass_t::FP_EQUAL ) {
-			ret->fogShader = tr.fogEqualShader;
-		} else {
-			ret->fogShader = tr.fogLEShader;
-		}
-	}
 
 	size_t nameLength = strlen( shader.name );
 
@@ -6077,7 +6053,6 @@ static shader_t *FinishShader()
 		stages[1].active = false;
 		numStages = 1;
 		shader.noFog = true;
-		shader.fogShader = nullptr;
 
 		Q_strcat( shader.name, sizeof( shader.name ), "$depth" );
 
@@ -6153,8 +6128,7 @@ static shader_t *FinishShader()
 		uint8_t maxStages = ret->lastStage - ret->stages;
 
 		// Add 1 for potential depth stages
-		// Add 1 for potential fog stages
-		maxStages = PAD( maxStages + 2, 4 ); // Aligned to 4 components
+		maxStages = PAD( maxStages + 1, 4 ); // Aligned to 4 components
 		materialSystem.maxStages = std::max( maxStages, materialSystem.maxStages );
 	}
 
@@ -6588,7 +6562,6 @@ public:
 			{ stageType_t::ST_PORTALMAP, "PORTALMAP" },
 			{ stageType_t::ST_HEATHAZEMAP, "HEATHAZEMAP" },
 			{ stageType_t::ST_LIQUIDMAP, "LIQUIDMAP" },
-			{ stageType_t::ST_FOGMAP, "FOGMAP" },
 			{ stageType_t::ST_LIGHTMAP, "LIGHTMAP" },
 			{ stageType_t::ST_STYLELIGHTMAP, "STYLELIGHTMAP" },
 			{ stageType_t::ST_STYLECOLORMAP, "STYLECOLORMAP" },
@@ -7010,34 +6983,11 @@ static void CreateInternalShaders()
 	Q_strncpyz( shader.name, "<default>", sizeof( shader.name ) );
 
 	shader.noFog = true;
-	shader.fogShader = nullptr;
 	stages[ 0 ].type = stageType_t::ST_DIFFUSEMAP;
 	stages[ 0 ].bundle[ 0 ].image[ 0 ] = tr.defaultImage;
 	stages[ 0 ].active = true;
 	stages[ 0 ].stateBits = GLS_DEFAULT;
 	tr.defaultShader = FinishShader();
-
-	Q_strncpyz( shader.name, "<fogEqual>", sizeof( shader.name ) );
-
-	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
-	stages[0].type = stageType_t::ST_FOGMAP;
-	for ( int i = 0; i < 5; i++ ) {
-		stages[0].bundle[i].image[0] = nullptr;
-	}
-	stages[0].active = true;
-	stages[0].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_EQUAL;
-	tr.fogEqualShader = FinishShader();
-
-	Q_strncpyz( shader.name, "<fogLE>", sizeof( shader.name ) );
-
-	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
-	stages[0].type = stageType_t::ST_FOGMAP;
-	for ( int i = 0; i < 5; i++ ) {
-		stages[0].bundle[i].image[0] = nullptr;
-	}
-	stages[0].active = true;
-	stages[0].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-	tr.fogLEShader = FinishShader();
 }
 
 /*

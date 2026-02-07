@@ -250,7 +250,6 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 	mdvSurface_t *mdvSurface = nullptr;
 	int          lod;
 	bool     personalModel;
-	int          fogNum;
 
 	// don't add third_person objects if not in a portal
 	personalModel = ( ent->e.renderfx & RF_THIRD_PERSON ) &&
@@ -294,9 +293,6 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 		return;
 	}
 
-	// see if we are in a fog volume
-	fogNum = R_FogWorldBox( ent->worldBounds );
-
 	// draw all surfaces
 	if ( r_vboModels.Get() && model->numVBOSurfaces )
 	{
@@ -312,7 +308,7 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 			// don't add third_person objects if not viewing through a portal
 			if ( !personalModel )
 			{
-				R_AddDrawSurf( ( surfaceType_t * ) vboSurface, shader, -1, fogNum );
+				R_AddDrawSurf( ( surfaceType_t * ) vboSurface, shader, -1 );
 			}
 		}
 	}
@@ -328,7 +324,7 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 			// don't add third_person objects if not viewing through a portal
 			if ( !personalModel )
 			{
-				R_AddDrawSurf( ( surfaceType_t * ) mdvSurface, shader, -1, fogNum );
+				R_AddDrawSurf( ( surfaceType_t * ) mdvSurface, shader, -1 );
 			}
 		}
 	}

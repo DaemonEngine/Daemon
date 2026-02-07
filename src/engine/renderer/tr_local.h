@@ -938,7 +938,6 @@ enum
 	  ST_PORTALMAP,
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
-	  ST_FOGMAP,
 	  ST_FOGMAP_INNER, // a fog seen from inside
 	  ST_FOGMAP_OUTER, // a fog seen from outside
 	  ST_LIGHTMAP,
@@ -1110,13 +1109,6 @@ enum
 	// reverse the cull operation
 #       define ReverseCull(c) Util::enum_cast<cullType_t>(2 - (c))
 
-	enum class fogPass_t
-	{
-	  FP_NONE, // surface is translucent and will just be adjusted properly
-	  FP_EQUAL, // surface is opaque but possibly alpha tested
-	  FP_LE // surface is translucent, but still needs a fog pass (fog surface)
-	};
-
 	struct skyParms_t
 	{
 		float   cloudHeight;
@@ -1154,7 +1146,8 @@ enum
 		bool       entityMergable; // merge across entites optimizable (smoke, blood)
 
 		fogParms_t     fogParms;
-		fogPass_t      fogPass; // draw a blended pass, possibly with depth test equals
+		// FIXME: does this ever do anything useful? Support for opaque surfaces was
+		// removed and translucent stuff is mostly drawn on top of fog anyway.
 		bool       noFog;
 
 		bool       disableReliefMapping; // disable relief mapping for this material even if it's available
@@ -1203,7 +1196,6 @@ enum
 		} altShader[ MAX_ALTSHADERS ]; // state-based remapping; note that index 0 is unused
 
 		struct shader_t *depthShader;
-		struct shader_t *fogShader;
 		struct shader_t *fogInnerShader;
 		struct shader_t *fogOuterShader;
 		struct shader_t *next;
@@ -1480,7 +1472,6 @@ enum
 		shader_t      *shader;
 		uint64_t      sort;
 		bool          bspSurface;
-		int fog;
 		int portalNum = -1;
 
 		inline int index() const {
@@ -1516,7 +1507,6 @@ enum
 		surfaceType_t surfaceType;
 		qhandle_t     hShader;
 		int16_t       numVerts;
-		int16_t       fogIndex;
 		polyVert_t    *verts;
 	};
 
@@ -1633,7 +1623,6 @@ enum
 		shader_t *shader; // has the fog parms
 
 		// for clipping distance in fog when outside
-		bool hasSurface;
 		float    surface[ 4 ];
 
 		srfGeneric_t surf;
@@ -1657,7 +1646,6 @@ enum
 		struct shader_t *shader;
 
 		int16_t         lightmapNum; // -1 = no lightmap
-		int16_t         fogIndex;
 		int portalNum;
 
 		bool renderable = false;
@@ -1756,8 +1744,6 @@ enum
 
 		int                numFogs;
 		fog_t              *fogs;
-
-		int                globalFog; // Arnout: index of global fog
 
 		vec3_t             lightGridOrigin;
 		vec3_t             lightGridSize;
@@ -2506,8 +2492,6 @@ enum
 
 		// internal shaders
 		shader_t *defaultShader;
-		shader_t *fogEqualShader;
-		shader_t *fogLEShader;
 
 		std::vector<image_t *> lightmaps;
 		std::vector<image_t *> deluxemaps;
@@ -2834,7 +2818,7 @@ inline bool checkGLErrors()
 
 	void           R_AddPolygonSurfaces();
 
-	void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false, int portalNum = -1 );
+	void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, bool bspSurface = false, int portalNum = -1 );
 
 	void           R_LocalNormalToWorld( const vec3_t local, vec3_t world );
 	void           R_LocalPointToWorld( const vec3_t local, vec3_t world );
@@ -2843,8 +2827,6 @@ inline bool checkGLErrors()
 	cullResult_t   R_CullLocalBox( vec3_t bounds[ 2 ] );
 	cullResult_t   R_CullLocalPointAndRadius( vec3_t origin, float radius );
 	cullResult_t   R_CullPointAndRadius( vec3_t origin, float radius );
-
-	int            R_FogWorldBox( vec3_t bounds[ 2 ] );
 
 	void           R_SetupEntityWorldBounds( trRefEntity_t *ent );
 
@@ -3137,7 +3119,6 @@ void GLimp_LogComment_( std::string comment );
 
 		// some drawing parameters from drawSurf_t
 		int16_t     lightmapNum;
-		int16_t     fogNum;
 		bool        bspSurface;
 
 		// Signals that ATTR_QTANGENT will not be needed, so functions that generate vertexes
@@ -3195,7 +3176,6 @@ void GLimp_LogComment_( std::string comment );
 	                 shader_t *surfaceShader,
 	                 bool skipTangents,
 	                 int lightmapNum,
-	                 int fogNum,
 	                 bool bspSurface = false );
 
 // *INDENT-ON*
@@ -3249,7 +3229,6 @@ void GLimp_LogComment_( std::string comment );
 	void ProcessShaderReflection( const shaderStage_t* pStage );
 	void ProcessShaderHeatHaze( const shaderStage_t* );
 	void ProcessShaderLiquid( const shaderStage_t* pStage );
-	void ProcessShaderFog( const shaderStage_t* );
 
 	void Render_NONE( shaderStage_t *pStage );
 	void Render_NOP( shaderStage_t *pStage );
@@ -3262,7 +3241,6 @@ void GLimp_LogComment_( std::string comment );
 	void Render_portal( shaderStage_t *pStage );
 	void Render_heatHaze( shaderStage_t *pStage );
 	void Render_liquid( shaderStage_t *pStage );
-	void Render_fog( shaderStage_t* pStage );
 	void Render_fogGlobal( shaderStage_t *pStage );
 
 	/*
