@@ -661,7 +661,6 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 	md5Model_t   *model;
 	md5Surface_t *surface;
 	bool     personalModel;
-	int          fogNum;
 
 	model = tr.currentModel->md5;
 
@@ -675,9 +674,6 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 	{
 		return;
 	}
-
-	// see if we are in a fog volume
-	fogNum = R_FogWorldBox( ent->worldBounds );
 
 	if ( !r_vboModels.Get() || !model->numVBOSurfaces ||
 	     ( !glConfig.vboVertexSkinningAvailable && ent->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE ) )
@@ -732,7 +728,7 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 			// don't add third_person objects if not viewing through a portal
 			if ( !personalModel )
 			{
-				R_AddDrawSurf( (surfaceType_t*) surface, shader, -1, fogNum );
+				R_AddDrawSurf( (surfaceType_t*) surface, shader, -1 );
 			}
 		}
 	}
@@ -781,7 +777,7 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 			// don't add third_person objects if not viewing through a portal
 			if ( !personalModel )
 			{
-				R_AddDrawSurf( (surfaceType_t*) vboSurface, shader, -1, fogNum );
+				R_AddDrawSurf( (surfaceType_t*) vboSurface, shader, -1 );
 			}
 		}
 	}

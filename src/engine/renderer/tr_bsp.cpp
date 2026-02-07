@@ -952,7 +952,6 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 		surf->lightmapNum /= 2;
 	}
 
-	surf->fogIndex = LittleLong( ds->fogNum ) + 1;
 	surf->shader = ShaderForShaderNum( ds->shaderNum );
 
 	if ( r_singleShader->integer && !surf->shader->isSky ) {
@@ -1184,9 +1183,6 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	{
 		surf->lightmapNum /= 2;
 	}
-
-	// get fog volume
-	surf->fogIndex = LittleLong( ds->fogNum ) + 1;
 
 	// get shader value
 	surf->shader = ShaderForShaderNum( ds->shaderNum );
@@ -2720,7 +2716,6 @@ static void R_CreateWorldVBO() {
 				srf.surface = surface->data;
 				srf.bspSurface = true;
 				srf.lightMapNum = surface->lightmapNum;
-				srf.fog = surface->fogIndex;
 				srf.portalNum = surface->portalNum;
 
 				srf.firstIndex = ( ( srfGeneric_t* ) surface->data )->firstIndex;
@@ -3217,8 +3212,6 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 	int          count, brushesCount, sidesCount;
 	int          sideNum;
 	int          planeNum;
-	shader_t     *shader;
-	float        d;
 	int          firstSide = 0;
 
 	Log::Debug("...loading fogs" );
@@ -3236,9 +3229,6 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 	s_worldData.numFogs = count + 1;
 	s_worldData.fogs = (fog_t*) ri.Hunk_Alloc( s_worldData.numFogs * sizeof( *out ), ha_pref::h_low );
 	out = s_worldData.fogs + 1;
-
-	// ydnar: reset global fog
-	s_worldData.globalFog = -1;
 
 	if ( !count )
 	{
@@ -3263,6 +3253,15 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 	}
 
 	sidesCount = sidesLump->filelen / sizeof( *sides );
+
+	struct FogVert
+	{
+		vec3_t position;
+		vec4_t surface;
+		vec4_t planes[ 5 ]; // faces other than the current triangle's
+	};
+	std::vector<FogVert> fogVerts(24 * count);
+	std::vector<glIndex_t> fogIndexes(36 * count);
 
 	for ( i = 0; i < count; i++, fogs++ )
 	{
@@ -3316,32 +3315,9 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 			out->bounds[ 1 ][ 2 ] = s_worldData.planes[ planeNum ].dist;
 		}
 
-		// get information from the shader for fog parameters
 		// it says RSF_3D but if there is no shader text found it should probably just error instead
 		// of trying to create an implicit shader from an image...
-		shader = R_FindShader( fogs->shader, RSF_3D );
-
-		out->fogParms = shader->fogParms;
-
-		out->color = Color::Adapt( shader->fogParms.color );
-
-		if ( tr.worldLinearizeTexture )
-		{
-			out->color = out->color.ConvertFromSRGB();
-		}
-
-		out->color *= tr.identityLight;
-
-		out->color.SetAlpha( 1 );
-
-		d = shader->fogParms.depthForOpaque < 1 ? 1 : shader->fogParms.depthForOpaque;
-		out->tcScale = 1.0f / d;
-
-		// ydnar: global fog sets clearcolor/zfar
-		if ( out->originalBrushNumber == -1 )
-		{
-			s_worldData.globalFog = i + 1;
-		}
+		out->shader = R_FindShader( fogs->shader, RSF_3D );
 
 		// set the gradient vector
 		sideNum = LittleLong( fogs->visibleSide );
@@ -3349,17 +3325,87 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		// ydnar: made this check a little more strenuous (was sideNum == -1)
 		if ( sideNum < 0 || sideNum >= sidesCount )
 		{
-			out->hasSurface = false;
+			Vector4Set( out->surface, 0.0f, 0.0f, 0.0f, -1.0e10f );
 		}
 		else
 		{
-			out->hasSurface = true;
 			planeNum = LittleLong( sides[ firstSide + sideNum ].planeNum );
 			VectorSubtract( vec3_origin, s_worldData.planes[ planeNum ].normal, out->surface );
 			out->surface[ 3 ] = -s_worldData.planes[ planeNum ].dist;
 		}
 
+		// add faces of fog brush with information about the other planes
+		// TODO: allow non-axis-aligned boxes. The GLSL can draw any brush with up to 6 faces.
+		constexpr int faces[ 6 ][ 4 ]
+		{
+			{ 2, 0, 6, 4 },
+			{ 1, 3, 5, 7 },
+			{ 0, 1, 4, 5 },
+			{ 3, 2, 7, 6 },
+			{ 2, 3, 0, 1 },
+			{ 7, 6, 5, 4 }
+		};
+
+		for ( int face = 0; face < 6; face++ )
+		{
+			for ( int v = 0; v < 4; v++ )
+			{
+				FogVert &vert = fogVerts[ i * 24 + face * 4 + v ];
+				int p = faces[ face ][ v ];
+				vert.position[ 0 ] = out->bounds[ p & 1 ][ 0 ];
+				vert.position[ 1 ] = out->bounds[ ( p >> 1 ) & 1 ][ 1 ];
+				vert.position[ 2 ] = out->bounds[ p >> 2 ][ 2 ];
+
+				VectorCopy( out->surface, vert.surface );
+				vert.surface[ 3 ] = -out->surface[ 3 ];
+
+				vec4_t *plane = vert.planes;
+				for ( int otherFace = 0; otherFace < 6; otherFace++ )
+				{
+					if ( face != otherFace )
+					{
+						planeNum = LittleLong( sides[ firstSide + otherFace ].planeNum );
+						VectorCopy( s_worldData.planes[ planeNum ].normal, *plane );
+						( *plane )[ 3 ] = s_worldData.planes[ planeNum ].dist;
+						++plane;
+					}
+				}
+			}
+
+			fogIndexes[ 36 * i + 6 * face + 0 ] = i * 24 + face * 4 + 0;
+			fogIndexes[ 36 * i + 6 * face + 1 ] = i * 24 + face * 4 + 1;
+			fogIndexes[ 36 * i + 6 * face + 2 ] = i * 24 + face * 4 + 2;
+			fogIndexes[ 36 * i + 6 * face + 3 ] = i * 24 + face * 4 + 2;
+			fogIndexes[ 36 * i + 6 * face + 4 ] = i * 24 + face * 4 + 1;
+			fogIndexes[ 36 * i + 6 * face + 5 ] = i * 24 + face * 4 + 3;
+		}
+
+		// add draw surf for fog brush faces
+		out->surf.firstIndex = 36 * i;
+		out->surf.numTriangles = 12;
+		out->surf.surfaceType = surfaceType_t::SF_TRIANGLES;
+
 		out++;
+	}
+
+	vertexAttributeSpec_t attributes[] {
+		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].position, 3, sizeof( fogVerts[ 0 ] ), 0 },
+		{ ATTR_INDEX_FOG_SURFACE, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].surface, 4, sizeof( fogVerts[ 0 ] ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 0, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 0 ], 4, sizeof( FogVert ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 1, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 1 ], 4, sizeof( FogVert ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 2, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 2 ], 4, sizeof( FogVert ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 3, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 3 ], 4, sizeof( FogVert ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 4, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 4 ], 4, sizeof( FogVert ), 0 },
+	};
+	VBO_t *fogVBO = R_CreateStaticVBO(
+		"fogs VBO", std::begin( attributes ), std::end( attributes ), fogVerts.size() );
+	IBO_t *fogIBO = R_CreateStaticIBO( "fogs IBO", &fogIndexes[ 0 ], fogIndexes.size() );
+	SetupVAOBuffers( fogVBO, fogIBO, ATTR_POSITION | ATTR_FOG_SURFACE | ATTR_FOG_PLANES, &fogVBO->VAO );
+
+	for ( int j = 1; j < s_worldData.numFogs; j++ )
+	{
+		s_worldData.fogs[ j ].surf.vbo = fogVBO;
+		s_worldData.fogs[ j ].surf.ibo = fogIBO;
 	}
 
 	Log::Debug("%i fog volumes loaded", s_worldData.numFogs );

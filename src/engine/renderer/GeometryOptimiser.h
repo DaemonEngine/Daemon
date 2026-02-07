@@ -87,7 +87,6 @@ void MarkShaderBuildScreen( const shaderStage_t* pStage );
 void MarkShaderBuildPortal( const shaderStage_t* pStage );
 void MarkShaderBuildHeatHaze( const shaderStage_t* pStage );
 void MarkShaderBuildLiquid( const shaderStage_t* pStage );
-void MarkShaderBuildFog( const shaderStage_t* pStage );
 
 void MarkShaderBuildIQM( const IQModel_t* model );
 void MarkShaderBuildMDV( const mdvModel_t* model );

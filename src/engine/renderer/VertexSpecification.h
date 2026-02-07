@@ -41,6 +41,13 @@ enum
 	// GPU vertex animations
 	ATTR_INDEX_POSITION2,
 	ATTR_INDEX_QTANGENT2,
+
+	ATTR_INDEX_FOG_SURFACE,
+
+	// This occupies 5 attribute slots
+	ATTR_INDEX_FOG_PLANES_0,
+	ATTR_INDEX_FOG_PLANES_LAST = ATTR_INDEX_FOG_PLANES_0 + 4,
+
 	ATTR_INDEX_MAX
 };
 
@@ -53,7 +60,9 @@ static const char* const attributeNames[] =
 	"attr_Color",
 	"attr_BoneFactors",
 	"attr_Position2",
-	"attr_QTangent2"
+	"attr_QTangent2",
+	"attr_FogSurface",
+	"attr_FogPlanes", nullptr, nullptr, nullptr, nullptr,
 };
 
 enum
@@ -68,6 +77,9 @@ enum
   // for .md3 interpolation
   ATTR_POSITION2      = BIT( ATTR_INDEX_POSITION2 ),
   ATTR_QTANGENT2      = BIT( ATTR_INDEX_QTANGENT2 ),
+
+  ATTR_FOG_SURFACE    = BIT( ATTR_INDEX_FOG_SURFACE ),
+  ATTR_FOG_PLANES     = BIT( ATTR_INDEX_FOG_PLANES_0 ) * ( BIT( 5 ) - 1 ),
 
   ATTR_INTERP_BITS = ATTR_POSITION2 | ATTR_QTANGENT2,
 };

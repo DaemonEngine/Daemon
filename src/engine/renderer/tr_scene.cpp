@@ -126,7 +126,7 @@ void R_AddPolygonSurfaces()
 	for ( i = 0, poly = tr.refdef.polys; i < tr.refdef.numPolys; i++, poly++ )
 	{
 		sh = R_GetShaderByHandle( poly->hShader );
-		R_AddDrawSurf( ( surfaceType_t * ) poly, sh, -1, poly->fogIndex );
+		R_AddDrawSurf( ( surfaceType_t * ) poly, sh, -1 );
 	}
 }
 
@@ -138,10 +138,7 @@ R_AddPolysToScene
 static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys )
 {
 	srfPoly_t *poly;
-	int       i, j;
-	int       fogIndex;
-	fog_t     *fog;
-	vec3_t    bounds[ 2 ];
+	int       j;
 
 	if ( !tr.registered )
 	{
@@ -184,45 +181,6 @@ static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t
 		// done.
 		r_numPolys++;
 		r_numPolyVerts += numVerts;
-
-		// if no world is loaded
-		if ( tr.world == nullptr )
-		{
-			fogIndex = 0;
-		}
-		// see if it is in a fog volume
-		else if ( tr.world->numFogs == 1 )
-		{
-			fogIndex = 0;
-		}
-		else
-		{
-			// find which fog volume the poly is in
-			VectorCopy( poly->verts[ 0 ].xyz, bounds[ 0 ] );
-			VectorCopy( poly->verts[ 0 ].xyz, bounds[ 1 ] );
-
-			for ( i = 1; i < poly->numVerts; i++ )
-			{
-				AddPointToBounds( poly->verts[ i ].xyz, bounds[ 0 ], bounds[ 1 ] );
-			}
-
-			for ( fogIndex = 1; fogIndex < tr.world->numFogs; fogIndex++ )
-			{
-				fog = &tr.world->fogs[ fogIndex ];
-
-				if ( BoundsIntersect( bounds[ 0 ], bounds[ 1 ], fog->bounds[ 0 ], fog->bounds[ 1 ] ) )
-				{
-					break;
-				}
-			}
-
-			if ( fogIndex == tr.world->numFogs )
-			{
-				fogIndex = 0;
-			}
-		}
-
-		poly->fogIndex = fogIndex;
 	}
 }
 
@@ -247,6 +205,67 @@ void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *vert
 }
 
 //=================================================================================
+
+// TODO don't recalc this every time, OR check if the near plane actually intersects the fog?
+static float NearPlaneCornerDist()
+{
+	plane_t frustum[ 6 ];
+	for ( int i = 0; i < 6; i++ )
+	{
+		VectorCopy( tr.viewParms.frustum[ i ].normal, frustum[ i ].normal );
+		frustum[ i ].dist = tr.viewParms.frustum[ i ].dist;
+	}
+
+	vec3_t intersection;
+	PlanesGetIntersectionPoint(
+		frustum[ FRUSTUM_NEAR ], frustum[ FRUSTUM_LEFT ], frustum[ FRUSTUM_TOP ], intersection );
+
+	return Distance( tr.viewParms.orientation.origin, intersection );
+}
+
+// Returns true also if the view origin is slightly outside, but close enough that the view
+// frustum's near plane might intersect. This causes some slight artifacts - the fog grows
+// by ~5 qu when the view origin crosses the tolerance boundary. However it's not an
+// issue on the surface plane, since the GLSL calcs chop off overhang there. Note that
+// with original Q3 you are required to construct the fog so that it is impossible to pass
+// through non-surface planes at all.
+static bool R_InsideFog( int fognum, float tol )
+{
+	// TODO: with portals this should use the point at the view frustum near plane instead
+	const vec3_t &origin = tr.viewParms.orientation.origin;
+
+	const auto &bounds = tr.world->fogs[ fognum ].bounds;
+
+	for ( int i = 0; i < 3; i++ )
+	{
+		if ( origin[ i ] + tol < bounds[ 0 ][ i ] || origin[ i ] - tol > bounds[ 1 ][ i ] )
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void R_AddFogBrushSurfaces()
+{
+	float tol = NearPlaneCornerDist() + 0.1f;
+
+	for ( int i = 1; i < tr.world->numFogs; i++ )
+	{
+		const fog_t &fog = tr.world->fogs[ i ];
+
+		if ( R_CullBox( fog.bounds, FRUSTUM_FAR ) == cullResult_t::CULL_OUT )
+		{
+			continue;
+		}
+
+		shader_t *shader = R_InsideFog( i, tol )
+			? fog.shader->fogInnerShader
+			: fog.shader->fogOuterShader;
+		R_AddDrawSurf( ( surfaceType_t *)&fog.surf, shader, -1 );
+	}
+}
 
 /*
 =====================

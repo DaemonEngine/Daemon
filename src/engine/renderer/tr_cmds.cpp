@@ -74,10 +74,6 @@ void R_PerformanceCounters()
 	{
 		Log::Notice("viewcluster: %i", tr.visClusters[ tr.visIndex ] );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_FOG ))
-	{
-		Log::Notice("fog srf:%i batches:%i", backEnd.pc.c_fogSurfaces, backEnd.pc.c_fogBatches );
-	}
 	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_NEAR_FAR ))
 	{
 		Log::Notice("zNear: %.0f zFar: %.0f", tr.viewParms.zNear, tr.viewParms.zFar );

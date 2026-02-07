@@ -55,7 +55,7 @@ GLShader_processSurfaces                 *gl_processSurfacesShader = nullptr;
 GLShader_blur                            *gl_blurShader = nullptr;
 GLShader_cameraEffects                   *gl_cameraEffectsShader = nullptr;
 GLShader_contrast                        *gl_contrastShader = nullptr;
-GLShader_fogGlobal                       *gl_fogGlobalShader = nullptr;
+GLShader_fog                             *gl_fogShader = nullptr;
 GLShader_fxaa                            *gl_fxaaShader = nullptr;
 GLShader_motionblur                      *gl_motionblurShader = nullptr;
 GLShader_ssao                            *gl_ssaoShader = nullptr;
@@ -68,8 +68,6 @@ GLShader_generic                         *gl_genericShader = nullptr;
 GLShader_genericMaterial                 *gl_genericShaderMaterial = nullptr;
 GLShader_lightMapping                    *gl_lightMappingShader = nullptr;
 GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial = nullptr;
-GLShader_fogQuake3                       *gl_fogQuake3Shader = nullptr;
-GLShader_fogQuake3Material               *gl_fogQuake3ShaderMaterial = nullptr;
 GLShader_heatHaze                        *gl_heatHazeShader = nullptr;
 GLShader_heatHazeMaterial                *gl_heatHazeShaderMaterial = nullptr;
 GLShader_liquid                          *gl_liquidShader = nullptr;
@@ -2007,7 +2005,10 @@ void GLShaderManager::BindAttribLocations( GLuint program ) const
 {
 	for ( uint32_t i = 0; i < ATTR_INDEX_MAX; i++ )
 	{
-		glBindAttribLocation( program, i, attributeNames[ i ] );
+		if ( attributeNames[ i ] != nullptr )
+		{
+			glBindAttribLocation( program, i, attributeNames[ i ] );
+		}
 	}
 }
 
@@ -2687,53 +2688,22 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial() :
 	u_ModelViewProjectionMatrix( this )
 {}
 
-GLShader_fogQuake3::GLShader_fogQuake3() :
-	GLShader( "fogQuake3", ATTR_POSITION | ATTR_QTANGENT,
-		false, "fogQuake3", "fogQuake3" ),
-	u_ModelMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_ColorGlobal_Float( this ),
-	u_ColorGlobal_Uint( this ),
-	u_Bones( this ),
-	u_VertexInterpolation( this ),
-	u_ViewOrigin( this ),
-	u_FogDensity( this ),
-	u_FogDepthVector( this ),
-	u_FogEyeT( this ),
-	GLDeformStage( this ),
-	GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this )
-{
-}
-
-GLShader_fogQuake3Material::GLShader_fogQuake3Material() :
-	GLShader( "fogQuake3Material", ATTR_POSITION | ATTR_QTANGENT,
-		true, "fogQuake3", "fogQuake3" ),
-	u_ModelMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_ColorGlobal_Uint( this ),
-	u_ViewOrigin( this ),
-	u_FogDensity( this ),
-	u_FogDepthVector( this ),
-	u_FogEyeT( this ),
-	GLDeformStage( this ) {
-}
-
-GLShader_fogGlobal::GLShader_fogGlobal() :
-	GLShader( "fogGlobal", ATTR_POSITION,
-		false, "screenSpace", "fogGlobal" ),
+GLShader_fog::GLShader_fog() :
+	GLShader( "fog", ATTR_POSITION | ATTR_FOG_SURFACE,
+		false, "fog", "fog" ),
 	u_DepthMap( this ),
+	u_ModelViewProjectionMatrix( this ),
 	u_UnprojectMatrix( this ),
 	u_Color_Float( this ),
 	u_Color_Uint( this ),
 	u_ViewOrigin( this ),
-	u_FogDensity( this )
+	u_FogGradient( this ),
+	GLCompileMacro_OUTSIDE_FOG( this )
 {
 }
 
-void GLShader_fogGlobal::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
+void GLShader_fog::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_ColorMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_DepthMap" ), 1 );
 }
 

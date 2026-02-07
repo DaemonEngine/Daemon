@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2025 Daemon Developers
+Copyright (c) 2026 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -32,38 +32,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-float FogGradientFunction(float k, float t)
+uniform mat4 u_ModelViewProjectionMatrix;
+
+IN vec3 attr_Position;
+IN vec4 attr_FogSurface;
+
+OUT(smooth) vec3 var_Position;
+OUT(flat) vec4 var_FogSurface;
+
+#ifdef OUTSIDE_FOG
+#define NUM_PLANES 5
+IN vec4 attr_FogPlanes[NUM_PLANES];
+OUT(flat) vec4 var_FogPlanes[NUM_PLANES];
+#endif
+
+void main()
 {
-	return 1 - exp(-k * t);
-}
+	vec4 position = vec4(attr_Position, 1.0);
+	gl_Position = u_ModelViewProjectionMatrix * position;
+	var_Position = attr_Position;
+	var_FogSurface = attr_FogSurface;
 
-float FogGradientAntiderivative(float k, float t)
-{
-	return t + exp(-k * t) / k;
-}
-
-float GetFogGradientModifier(float k, float t0, float t1)
-{
-	t0 = max(0.0, t0);
-	t1 = max(0.0, t1);
-
-	float deltaT = t1 - t0;
-	if (abs(deltaT) > 0.1)
-	{
-		return ( FogGradientAntiderivative(k, t1) - FogGradientAntiderivative(k, t0) ) / deltaT;
-	}
-	else
-	{
-		return FogGradientFunction(k, t0);
-	}
-}
-
-float GetFogAlpha(float x)
-{
-	x = clamp(x, 0.0, 1.0);
-
-	// sqrt(x) is bad near 0 because it increases too quickly resulting in sharp edges.
-	// x ≤ 1/32: √32 * x
-	// x ≥ 1/32: √x
-	return min(sqrt(32.0) * x, sqrt(x));
+	#ifdef OUTSIDE_FOG
+		for (int i = 0; i < NUM_PLANES; i++)
+		{
+			var_FogPlanes[i] = attr_FogPlanes[i];
+		}
+	#endif
 }
