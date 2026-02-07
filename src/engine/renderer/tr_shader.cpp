@@ -5670,7 +5670,7 @@ static void SetStagesRenderers()
 			case stageType_t::ST_FOGMAP_INNER:
 			case stageType_t::ST_FOGMAP_OUTER:
 				stageRendererOptions = {
-					&Render_fogGlobal, &MarkShaderBuildNOP,
+					&Render_fog, &MarkShaderBuildNOP,
 					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
 				};
 				break;
