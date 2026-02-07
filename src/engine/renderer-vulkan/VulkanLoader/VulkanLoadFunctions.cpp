@@ -1,45 +1,45 @@
-// Auto-generated, do not modify
-
-#ifdef _MSC_VER
-	#include <windows.h>
-#else
-	#include <dlfcn.h>
-#endif
-
-#include "Vulkan.h"
-
-#include "VulkanLoadFunctions.h"
-
-#ifdef _MSC_VER
-	HMODULE libVulkan;
-#else
-	void*   libVulkan;
-#endif
-
-void VulkanLoaderInit() {
-	#ifdef _MSC_VER
-		libVulkan = LoadLibrary( "vulkan-1.dll" );
-		vkGetInstanceProcAddr = ( PFN_vkGetInstanceProcAddr ) GetProcAddress( libVulkan, "vkGetInstanceProcAddr" );
-	#else
-		libVulkan = dlopen( "libvulkan.so", RTLD_NOW );
-		vkGetInstanceProcAddr = dlsym( libVulkan, "vkGetInstanceProcAddr" );
-	#endif
-
-	vkEnumerateInstanceVersion = ( PFN_vkEnumerateInstanceVersion ) vkGetInstanceProcAddr( nullptr, "vkEnumerateInstanceVersion" );
-
-	vkEnumerateInstanceExtensionProperties = ( PFN_vkEnumerateInstanceExtensionProperties ) vkGetInstanceProcAddr( nullptr, "vkEnumerateInstanceExtensionProperties" );
-
-	vkEnumerateInstanceLayerProperties = ( PFN_vkEnumerateInstanceLayerProperties ) vkGetInstanceProcAddr( nullptr, "vkEnumerateInstanceLayerProperties" );
-
-	vkCreateInstance = ( PFN_vkCreateInstance ) vkGetInstanceProcAddr( nullptr, "vkCreateInstance" );
-}
-
-void VulkanLoaderFree() {
-	#ifdef _MSC_VER
-		FreeLibrary( libVulkan );
-	#else
-		dlclose( libVulkan );
-	#endif
+// Auto-generated, do not modify
+
+#ifdef _MSC_VER
+	#include <windows.h>
+#else
+	#include <dlfcn.h>
+#endif
+
+#include "Vulkan.h"
+
+#include "VulkanLoadFunctions.h"
+
+#ifdef _MSC_VER
+	HMODULE libVulkan;
+#else
+	void*   libVulkan;
+#endif
+
+void VulkanLoaderInit() {
+	#ifdef _MSC_VER
+		libVulkan = LoadLibrary( "vulkan-1.dll" );
+		vkGetInstanceProcAddr = ( PFN_vkGetInstanceProcAddr ) GetProcAddress( libVulkan, "vkGetInstanceProcAddr" );
+	#else
+		libVulkan = dlopen( "libvulkan.so", RTLD_NOW );
+		vkGetInstanceProcAddr = dlsym( libVulkan, "vkGetInstanceProcAddr" );
+	#endif
+
+	vkEnumerateInstanceVersion = ( PFN_vkEnumerateInstanceVersion ) vkGetInstanceProcAddr( nullptr, "vkEnumerateInstanceVersion" );
+
+	vkEnumerateInstanceExtensionProperties = ( PFN_vkEnumerateInstanceExtensionProperties ) vkGetInstanceProcAddr( nullptr, "vkEnumerateInstanceExtensionProperties" );
+
+	vkEnumerateInstanceLayerProperties = ( PFN_vkEnumerateInstanceLayerProperties ) vkGetInstanceProcAddr( nullptr, "vkEnumerateInstanceLayerProperties" );
+
+	vkCreateInstance = ( PFN_vkCreateInstance ) vkGetInstanceProcAddr( nullptr, "vkCreateInstance" );
+}
+
+void VulkanLoaderFree() {
+	#ifdef _MSC_VER
+		FreeLibrary( libVulkan );
+	#else
+		dlclose( libVulkan );
+	#endif
 }
 
 void VulkanLoadInstanceFunctions( VkInstance instance ) {
@@ -185,6 +185,8 @@ void VulkanLoadInstanceFunctions( VkInstance instance ) {
 
 	vkSubmitDebugUtilsMessageEXT = ( PFN_vkSubmitDebugUtilsMessageEXT ) vkGetInstanceProcAddr( instance, "vkSubmitDebugUtilsMessageEXT" );
 
+	vkGetPhysicalDeviceDescriptorSizeEXT = ( PFN_vkGetPhysicalDeviceDescriptorSizeEXT ) vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceDescriptorSizeEXT" );
+
 	vkGetPhysicalDeviceMultisamplePropertiesEXT = ( PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT ) vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceMultisamplePropertiesEXT" );
 
 	vkGetPhysicalDeviceCalibrateableTimeDomainsEXT = ( PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT ) vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCalibrateableTimeDomainsEXT" );
@@ -212,6 +214,12 @@ void VulkanLoadInstanceFunctions( VkInstance instance ) {
 	vkGetPhysicalDeviceQueueFamilyDataGraphProcessingEnginePropertiesARM = ( PFN_vkGetPhysicalDeviceQueueFamilyDataGraphProcessingEnginePropertiesARM ) vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceQueueFamilyDataGraphProcessingEnginePropertiesARM" );
 
 	vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV = ( PFN_vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV ) vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCooperativeMatrixFlexibleDimensionsPropertiesNV" );
+
+	vkEnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM = ( PFN_vkEnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM ) vkGetInstanceProcAddr( instance, "vkEnumeratePhysicalDeviceQueueFamilyPerformanceCountersByRegionARM" );
+
+	vkCreateUbmSurfaceSEC = ( PFN_vkCreateUbmSurfaceSEC ) vkGetInstanceProcAddr( instance, "vkCreateUbmSurfaceSEC" );
+
+	vkGetPhysicalDeviceUbmPresentationSupportSEC = ( PFN_vkGetPhysicalDeviceUbmPresentationSupportSEC ) vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceUbmPresentationSupportSEC" );
 
 #if defined( VK_ENABLE_BETA_EXTENSIONS )
 #endif
@@ -303,16 +311,6 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkDestroySemaphore = ( PFN_vkDestroySemaphore ) vkGetDeviceProcAddr( device, "vkDestroySemaphore" );
 
-	vkCreateEvent = ( PFN_vkCreateEvent ) vkGetDeviceProcAddr( device, "vkCreateEvent" );
-
-	vkDestroyEvent = ( PFN_vkDestroyEvent ) vkGetDeviceProcAddr( device, "vkDestroyEvent" );
-
-	vkGetEventStatus = ( PFN_vkGetEventStatus ) vkGetDeviceProcAddr( device, "vkGetEventStatus" );
-
-	vkSetEvent = ( PFN_vkSetEvent ) vkGetDeviceProcAddr( device, "vkSetEvent" );
-
-	vkResetEvent = ( PFN_vkResetEvent ) vkGetDeviceProcAddr( device, "vkResetEvent" );
-
 	vkCreateQueryPool = ( PFN_vkCreateQueryPool ) vkGetDeviceProcAddr( device, "vkCreateQueryPool" );
 
 	vkDestroyQueryPool = ( PFN_vkDestroyQueryPool ) vkGetDeviceProcAddr( device, "vkDestroyQueryPool" );
@@ -323,10 +321,6 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkDestroyBuffer = ( PFN_vkDestroyBuffer ) vkGetDeviceProcAddr( device, "vkDestroyBuffer" );
 
-	vkCreateBufferView = ( PFN_vkCreateBufferView ) vkGetDeviceProcAddr( device, "vkCreateBufferView" );
-
-	vkDestroyBufferView = ( PFN_vkDestroyBufferView ) vkGetDeviceProcAddr( device, "vkDestroyBufferView" );
-
 	vkCreateImage = ( PFN_vkCreateImage ) vkGetDeviceProcAddr( device, "vkCreateImage" );
 
 	vkDestroyImage = ( PFN_vkDestroyImage ) vkGetDeviceProcAddr( device, "vkDestroyImage" );
@@ -336,6 +330,62 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 	vkCreateImageView = ( PFN_vkCreateImageView ) vkGetDeviceProcAddr( device, "vkCreateImageView" );
 
 	vkDestroyImageView = ( PFN_vkDestroyImageView ) vkGetDeviceProcAddr( device, "vkDestroyImageView" );
+
+	vkCreateCommandPool = ( PFN_vkCreateCommandPool ) vkGetDeviceProcAddr( device, "vkCreateCommandPool" );
+
+	vkDestroyCommandPool = ( PFN_vkDestroyCommandPool ) vkGetDeviceProcAddr( device, "vkDestroyCommandPool" );
+
+	vkResetCommandPool = ( PFN_vkResetCommandPool ) vkGetDeviceProcAddr( device, "vkResetCommandPool" );
+
+	vkAllocateCommandBuffers = ( PFN_vkAllocateCommandBuffers ) vkGetDeviceProcAddr( device, "vkAllocateCommandBuffers" );
+
+	vkFreeCommandBuffers = ( PFN_vkFreeCommandBuffers ) vkGetDeviceProcAddr( device, "vkFreeCommandBuffers" );
+
+	vkBeginCommandBuffer = ( PFN_vkBeginCommandBuffer ) vkGetDeviceProcAddr( device, "vkBeginCommandBuffer" );
+
+	vkEndCommandBuffer = ( PFN_vkEndCommandBuffer ) vkGetDeviceProcAddr( device, "vkEndCommandBuffer" );
+
+	vkResetCommandBuffer = ( PFN_vkResetCommandBuffer ) vkGetDeviceProcAddr( device, "vkResetCommandBuffer" );
+
+	vkCmdCopyBuffer = ( PFN_vkCmdCopyBuffer ) vkGetDeviceProcAddr( device, "vkCmdCopyBuffer" );
+
+	vkCmdCopyImage = ( PFN_vkCmdCopyImage ) vkGetDeviceProcAddr( device, "vkCmdCopyImage" );
+
+	vkCmdCopyBufferToImage = ( PFN_vkCmdCopyBufferToImage ) vkGetDeviceProcAddr( device, "vkCmdCopyBufferToImage" );
+
+	vkCmdCopyImageToBuffer = ( PFN_vkCmdCopyImageToBuffer ) vkGetDeviceProcAddr( device, "vkCmdCopyImageToBuffer" );
+
+	vkCmdUpdateBuffer = ( PFN_vkCmdUpdateBuffer ) vkGetDeviceProcAddr( device, "vkCmdUpdateBuffer" );
+
+	vkCmdFillBuffer = ( PFN_vkCmdFillBuffer ) vkGetDeviceProcAddr( device, "vkCmdFillBuffer" );
+
+	vkCmdPipelineBarrier = ( PFN_vkCmdPipelineBarrier ) vkGetDeviceProcAddr( device, "vkCmdPipelineBarrier" );
+
+	vkCmdBeginQuery = ( PFN_vkCmdBeginQuery ) vkGetDeviceProcAddr( device, "vkCmdBeginQuery" );
+
+	vkCmdEndQuery = ( PFN_vkCmdEndQuery ) vkGetDeviceProcAddr( device, "vkCmdEndQuery" );
+
+	vkCmdResetQueryPool = ( PFN_vkCmdResetQueryPool ) vkGetDeviceProcAddr( device, "vkCmdResetQueryPool" );
+
+	vkCmdWriteTimestamp = ( PFN_vkCmdWriteTimestamp ) vkGetDeviceProcAddr( device, "vkCmdWriteTimestamp" );
+
+	vkCmdCopyQueryPoolResults = ( PFN_vkCmdCopyQueryPoolResults ) vkGetDeviceProcAddr( device, "vkCmdCopyQueryPoolResults" );
+
+	vkCmdExecuteCommands = ( PFN_vkCmdExecuteCommands ) vkGetDeviceProcAddr( device, "vkCmdExecuteCommands" );
+
+	vkCreateEvent = ( PFN_vkCreateEvent ) vkGetDeviceProcAddr( device, "vkCreateEvent" );
+
+	vkDestroyEvent = ( PFN_vkDestroyEvent ) vkGetDeviceProcAddr( device, "vkDestroyEvent" );
+
+	vkGetEventStatus = ( PFN_vkGetEventStatus ) vkGetDeviceProcAddr( device, "vkGetEventStatus" );
+
+	vkSetEvent = ( PFN_vkSetEvent ) vkGetDeviceProcAddr( device, "vkSetEvent" );
+
+	vkResetEvent = ( PFN_vkResetEvent ) vkGetDeviceProcAddr( device, "vkResetEvent" );
+
+	vkCreateBufferView = ( PFN_vkCreateBufferView ) vkGetDeviceProcAddr( device, "vkCreateBufferView" );
+
+	vkDestroyBufferView = ( PFN_vkDestroyBufferView ) vkGetDeviceProcAddr( device, "vkDestroyBufferView" );
 
 	vkCreateShaderModule = ( PFN_vkCreateShaderModule ) vkGetDeviceProcAddr( device, "vkCreateShaderModule" );
 
@@ -348,8 +398,6 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 	vkGetPipelineCacheData = ( PFN_vkGetPipelineCacheData ) vkGetDeviceProcAddr( device, "vkGetPipelineCacheData" );
 
 	vkMergePipelineCaches = ( PFN_vkMergePipelineCaches ) vkGetDeviceProcAddr( device, "vkMergePipelineCaches" );
-
-	vkCreateGraphicsPipelines = ( PFN_vkCreateGraphicsPipelines ) vkGetDeviceProcAddr( device, "vkCreateGraphicsPipelines" );
 
 	vkCreateComputePipelines = ( PFN_vkCreateComputePipelines ) vkGetDeviceProcAddr( device, "vkCreateComputePipelines" );
 
@@ -379,6 +427,26 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkUpdateDescriptorSets = ( PFN_vkUpdateDescriptorSets ) vkGetDeviceProcAddr( device, "vkUpdateDescriptorSets" );
 
+	vkCmdBindPipeline = ( PFN_vkCmdBindPipeline ) vkGetDeviceProcAddr( device, "vkCmdBindPipeline" );
+
+	vkCmdBindDescriptorSets = ( PFN_vkCmdBindDescriptorSets ) vkGetDeviceProcAddr( device, "vkCmdBindDescriptorSets" );
+
+	vkCmdClearColorImage = ( PFN_vkCmdClearColorImage ) vkGetDeviceProcAddr( device, "vkCmdClearColorImage" );
+
+	vkCmdDispatch = ( PFN_vkCmdDispatch ) vkGetDeviceProcAddr( device, "vkCmdDispatch" );
+
+	vkCmdDispatchIndirect = ( PFN_vkCmdDispatchIndirect ) vkGetDeviceProcAddr( device, "vkCmdDispatchIndirect" );
+
+	vkCmdSetEvent = ( PFN_vkCmdSetEvent ) vkGetDeviceProcAddr( device, "vkCmdSetEvent" );
+
+	vkCmdResetEvent = ( PFN_vkCmdResetEvent ) vkGetDeviceProcAddr( device, "vkCmdResetEvent" );
+
+	vkCmdWaitEvents = ( PFN_vkCmdWaitEvents ) vkGetDeviceProcAddr( device, "vkCmdWaitEvents" );
+
+	vkCmdPushConstants = ( PFN_vkCmdPushConstants ) vkGetDeviceProcAddr( device, "vkCmdPushConstants" );
+
+	vkCreateGraphicsPipelines = ( PFN_vkCreateGraphicsPipelines ) vkGetDeviceProcAddr( device, "vkCreateGraphicsPipelines" );
+
 	vkCreateFramebuffer = ( PFN_vkCreateFramebuffer ) vkGetDeviceProcAddr( device, "vkCreateFramebuffer" );
 
 	vkDestroyFramebuffer = ( PFN_vkDestroyFramebuffer ) vkGetDeviceProcAddr( device, "vkDestroyFramebuffer" );
@@ -388,24 +456,6 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 	vkDestroyRenderPass = ( PFN_vkDestroyRenderPass ) vkGetDeviceProcAddr( device, "vkDestroyRenderPass" );
 
 	vkGetRenderAreaGranularity = ( PFN_vkGetRenderAreaGranularity ) vkGetDeviceProcAddr( device, "vkGetRenderAreaGranularity" );
-
-	vkCreateCommandPool = ( PFN_vkCreateCommandPool ) vkGetDeviceProcAddr( device, "vkCreateCommandPool" );
-
-	vkDestroyCommandPool = ( PFN_vkDestroyCommandPool ) vkGetDeviceProcAddr( device, "vkDestroyCommandPool" );
-
-	vkResetCommandPool = ( PFN_vkResetCommandPool ) vkGetDeviceProcAddr( device, "vkResetCommandPool" );
-
-	vkAllocateCommandBuffers = ( PFN_vkAllocateCommandBuffers ) vkGetDeviceProcAddr( device, "vkAllocateCommandBuffers" );
-
-	vkFreeCommandBuffers = ( PFN_vkFreeCommandBuffers ) vkGetDeviceProcAddr( device, "vkFreeCommandBuffers" );
-
-	vkBeginCommandBuffer = ( PFN_vkBeginCommandBuffer ) vkGetDeviceProcAddr( device, "vkBeginCommandBuffer" );
-
-	vkEndCommandBuffer = ( PFN_vkEndCommandBuffer ) vkGetDeviceProcAddr( device, "vkEndCommandBuffer" );
-
-	vkResetCommandBuffer = ( PFN_vkResetCommandBuffer ) vkGetDeviceProcAddr( device, "vkResetCommandBuffer" );
-
-	vkCmdBindPipeline = ( PFN_vkCmdBindPipeline ) vkGetDeviceProcAddr( device, "vkCmdBindPipeline" );
 
 	vkCmdSetViewport = ( PFN_vkCmdSetViewport ) vkGetDeviceProcAddr( device, "vkCmdSetViewport" );
 
@@ -425,8 +475,6 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkCmdSetStencilReference = ( PFN_vkCmdSetStencilReference ) vkGetDeviceProcAddr( device, "vkCmdSetStencilReference" );
 
-	vkCmdBindDescriptorSets = ( PFN_vkCmdBindDescriptorSets ) vkGetDeviceProcAddr( device, "vkCmdBindDescriptorSets" );
-
 	vkCmdBindIndexBuffer = ( PFN_vkCmdBindIndexBuffer ) vkGetDeviceProcAddr( device, "vkCmdBindIndexBuffer" );
 
 	vkCmdBindVertexBuffers = ( PFN_vkCmdBindVertexBuffers ) vkGetDeviceProcAddr( device, "vkCmdBindVertexBuffers" );
@@ -439,25 +487,7 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkCmdDrawIndexedIndirect = ( PFN_vkCmdDrawIndexedIndirect ) vkGetDeviceProcAddr( device, "vkCmdDrawIndexedIndirect" );
 
-	vkCmdDispatch = ( PFN_vkCmdDispatch ) vkGetDeviceProcAddr( device, "vkCmdDispatch" );
-
-	vkCmdDispatchIndirect = ( PFN_vkCmdDispatchIndirect ) vkGetDeviceProcAddr( device, "vkCmdDispatchIndirect" );
-
-	vkCmdCopyBuffer = ( PFN_vkCmdCopyBuffer ) vkGetDeviceProcAddr( device, "vkCmdCopyBuffer" );
-
-	vkCmdCopyImage = ( PFN_vkCmdCopyImage ) vkGetDeviceProcAddr( device, "vkCmdCopyImage" );
-
 	vkCmdBlitImage = ( PFN_vkCmdBlitImage ) vkGetDeviceProcAddr( device, "vkCmdBlitImage" );
-
-	vkCmdCopyBufferToImage = ( PFN_vkCmdCopyBufferToImage ) vkGetDeviceProcAddr( device, "vkCmdCopyBufferToImage" );
-
-	vkCmdCopyImageToBuffer = ( PFN_vkCmdCopyImageToBuffer ) vkGetDeviceProcAddr( device, "vkCmdCopyImageToBuffer" );
-
-	vkCmdUpdateBuffer = ( PFN_vkCmdUpdateBuffer ) vkGetDeviceProcAddr( device, "vkCmdUpdateBuffer" );
-
-	vkCmdFillBuffer = ( PFN_vkCmdFillBuffer ) vkGetDeviceProcAddr( device, "vkCmdFillBuffer" );
-
-	vkCmdClearColorImage = ( PFN_vkCmdClearColorImage ) vkGetDeviceProcAddr( device, "vkCmdClearColorImage" );
 
 	vkCmdClearDepthStencilImage = ( PFN_vkCmdClearDepthStencilImage ) vkGetDeviceProcAddr( device, "vkCmdClearDepthStencilImage" );
 
@@ -465,33 +495,11 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkCmdResolveImage = ( PFN_vkCmdResolveImage ) vkGetDeviceProcAddr( device, "vkCmdResolveImage" );
 
-	vkCmdSetEvent = ( PFN_vkCmdSetEvent ) vkGetDeviceProcAddr( device, "vkCmdSetEvent" );
-
-	vkCmdResetEvent = ( PFN_vkCmdResetEvent ) vkGetDeviceProcAddr( device, "vkCmdResetEvent" );
-
-	vkCmdWaitEvents = ( PFN_vkCmdWaitEvents ) vkGetDeviceProcAddr( device, "vkCmdWaitEvents" );
-
-	vkCmdPipelineBarrier = ( PFN_vkCmdPipelineBarrier ) vkGetDeviceProcAddr( device, "vkCmdPipelineBarrier" );
-
-	vkCmdBeginQuery = ( PFN_vkCmdBeginQuery ) vkGetDeviceProcAddr( device, "vkCmdBeginQuery" );
-
-	vkCmdEndQuery = ( PFN_vkCmdEndQuery ) vkGetDeviceProcAddr( device, "vkCmdEndQuery" );
-
-	vkCmdResetQueryPool = ( PFN_vkCmdResetQueryPool ) vkGetDeviceProcAddr( device, "vkCmdResetQueryPool" );
-
-	vkCmdWriteTimestamp = ( PFN_vkCmdWriteTimestamp ) vkGetDeviceProcAddr( device, "vkCmdWriteTimestamp" );
-
-	vkCmdCopyQueryPoolResults = ( PFN_vkCmdCopyQueryPoolResults ) vkGetDeviceProcAddr( device, "vkCmdCopyQueryPoolResults" );
-
-	vkCmdPushConstants = ( PFN_vkCmdPushConstants ) vkGetDeviceProcAddr( device, "vkCmdPushConstants" );
-
 	vkCmdBeginRenderPass = ( PFN_vkCmdBeginRenderPass ) vkGetDeviceProcAddr( device, "vkCmdBeginRenderPass" );
 
 	vkCmdNextSubpass = ( PFN_vkCmdNextSubpass ) vkGetDeviceProcAddr( device, "vkCmdNextSubpass" );
 
 	vkCmdEndRenderPass = ( PFN_vkCmdEndRenderPass ) vkGetDeviceProcAddr( device, "vkCmdEndRenderPass" );
-
-	vkCmdExecuteCommands = ( PFN_vkCmdExecuteCommands ) vkGetDeviceProcAddr( device, "vkCmdExecuteCommands" );
 
 	vkBindBufferMemory2 = ( PFN_vkBindBufferMemory2 ) vkGetDeviceProcAddr( device, "vkBindBufferMemory2" );
 
@@ -500,8 +508,6 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 	vkGetDeviceGroupPeerMemoryFeatures = ( PFN_vkGetDeviceGroupPeerMemoryFeatures ) vkGetDeviceProcAddr( device, "vkGetDeviceGroupPeerMemoryFeatures" );
 
 	vkCmdSetDeviceMask = ( PFN_vkCmdSetDeviceMask ) vkGetDeviceProcAddr( device, "vkCmdSetDeviceMask" );
-
-	vkCmdDispatchBase = ( PFN_vkCmdDispatchBase ) vkGetDeviceProcAddr( device, "vkCmdDispatchBase" );
 
 	vkGetImageMemoryRequirements2 = ( PFN_vkGetImageMemoryRequirements2 ) vkGetDeviceProcAddr( device, "vkGetImageMemoryRequirements2" );
 
@@ -513,9 +519,7 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkGetDeviceQueue2 = ( PFN_vkGetDeviceQueue2 ) vkGetDeviceProcAddr( device, "vkGetDeviceQueue2" );
 
-	vkCreateSamplerYcbcrConversion = ( PFN_vkCreateSamplerYcbcrConversion ) vkGetDeviceProcAddr( device, "vkCreateSamplerYcbcrConversion" );
-
-	vkDestroySamplerYcbcrConversion = ( PFN_vkDestroySamplerYcbcrConversion ) vkGetDeviceProcAddr( device, "vkDestroySamplerYcbcrConversion" );
+	vkCmdDispatchBase = ( PFN_vkCmdDispatchBase ) vkGetDeviceProcAddr( device, "vkCmdDispatchBase" );
 
 	vkCreateDescriptorUpdateTemplate = ( PFN_vkCreateDescriptorUpdateTemplate ) vkGetDeviceProcAddr( device, "vkCreateDescriptorUpdateTemplate" );
 
@@ -525,17 +529,9 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkGetDescriptorSetLayoutSupport = ( PFN_vkGetDescriptorSetLayoutSupport ) vkGetDeviceProcAddr( device, "vkGetDescriptorSetLayoutSupport" );
 
-	vkCmdDrawIndirectCount = ( PFN_vkCmdDrawIndirectCount ) vkGetDeviceProcAddr( device, "vkCmdDrawIndirectCount" );
+	vkCreateSamplerYcbcrConversion = ( PFN_vkCreateSamplerYcbcrConversion ) vkGetDeviceProcAddr( device, "vkCreateSamplerYcbcrConversion" );
 
-	vkCmdDrawIndexedIndirectCount = ( PFN_vkCmdDrawIndexedIndirectCount ) vkGetDeviceProcAddr( device, "vkCmdDrawIndexedIndirectCount" );
-
-	vkCreateRenderPass2 = ( PFN_vkCreateRenderPass2 ) vkGetDeviceProcAddr( device, "vkCreateRenderPass2" );
-
-	vkCmdBeginRenderPass2 = ( PFN_vkCmdBeginRenderPass2 ) vkGetDeviceProcAddr( device, "vkCmdBeginRenderPass2" );
-
-	vkCmdNextSubpass2 = ( PFN_vkCmdNextSubpass2 ) vkGetDeviceProcAddr( device, "vkCmdNextSubpass2" );
-
-	vkCmdEndRenderPass2 = ( PFN_vkCmdEndRenderPass2 ) vkGetDeviceProcAddr( device, "vkCmdEndRenderPass2" );
+	vkDestroySamplerYcbcrConversion = ( PFN_vkDestroySamplerYcbcrConversion ) vkGetDeviceProcAddr( device, "vkDestroySamplerYcbcrConversion" );
 
 	vkResetQueryPool = ( PFN_vkResetQueryPool ) vkGetDeviceProcAddr( device, "vkResetQueryPool" );
 
@@ -551,6 +547,18 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkGetDeviceMemoryOpaqueCaptureAddress = ( PFN_vkGetDeviceMemoryOpaqueCaptureAddress ) vkGetDeviceProcAddr( device, "vkGetDeviceMemoryOpaqueCaptureAddress" );
 
+	vkCmdDrawIndirectCount = ( PFN_vkCmdDrawIndirectCount ) vkGetDeviceProcAddr( device, "vkCmdDrawIndirectCount" );
+
+	vkCmdDrawIndexedIndirectCount = ( PFN_vkCmdDrawIndexedIndirectCount ) vkGetDeviceProcAddr( device, "vkCmdDrawIndexedIndirectCount" );
+
+	vkCreateRenderPass2 = ( PFN_vkCreateRenderPass2 ) vkGetDeviceProcAddr( device, "vkCreateRenderPass2" );
+
+	vkCmdBeginRenderPass2 = ( PFN_vkCmdBeginRenderPass2 ) vkGetDeviceProcAddr( device, "vkCmdBeginRenderPass2" );
+
+	vkCmdNextSubpass2 = ( PFN_vkCmdNextSubpass2 ) vkGetDeviceProcAddr( device, "vkCmdNextSubpass2" );
+
+	vkCmdEndRenderPass2 = ( PFN_vkCmdEndRenderPass2 ) vkGetDeviceProcAddr( device, "vkCmdEndRenderPass2" );
+
 	vkCreatePrivateDataSlot = ( PFN_vkCreatePrivateDataSlot ) vkGetDeviceProcAddr( device, "vkCreatePrivateDataSlot" );
 
 	vkDestroyPrivateDataSlot = ( PFN_vkDestroyPrivateDataSlot ) vkGetDeviceProcAddr( device, "vkDestroyPrivateDataSlot" );
@@ -558,12 +566,6 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 	vkSetPrivateData = ( PFN_vkSetPrivateData ) vkGetDeviceProcAddr( device, "vkSetPrivateData" );
 
 	vkGetPrivateData = ( PFN_vkGetPrivateData ) vkGetDeviceProcAddr( device, "vkGetPrivateData" );
-
-	vkCmdSetEvent2 = ( PFN_vkCmdSetEvent2 ) vkGetDeviceProcAddr( device, "vkCmdSetEvent2" );
-
-	vkCmdResetEvent2 = ( PFN_vkCmdResetEvent2 ) vkGetDeviceProcAddr( device, "vkCmdResetEvent2" );
-
-	vkCmdWaitEvents2 = ( PFN_vkCmdWaitEvents2 ) vkGetDeviceProcAddr( device, "vkCmdWaitEvents2" );
 
 	vkCmdPipelineBarrier2 = ( PFN_vkCmdPipelineBarrier2 ) vkGetDeviceProcAddr( device, "vkCmdPipelineBarrier2" );
 
@@ -578,6 +580,18 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 	vkCmdCopyBufferToImage2 = ( PFN_vkCmdCopyBufferToImage2 ) vkGetDeviceProcAddr( device, "vkCmdCopyBufferToImage2" );
 
 	vkCmdCopyImageToBuffer2 = ( PFN_vkCmdCopyImageToBuffer2 ) vkGetDeviceProcAddr( device, "vkCmdCopyImageToBuffer2" );
+
+	vkGetDeviceBufferMemoryRequirements = ( PFN_vkGetDeviceBufferMemoryRequirements ) vkGetDeviceProcAddr( device, "vkGetDeviceBufferMemoryRequirements" );
+
+	vkGetDeviceImageMemoryRequirements = ( PFN_vkGetDeviceImageMemoryRequirements ) vkGetDeviceProcAddr( device, "vkGetDeviceImageMemoryRequirements" );
+
+	vkGetDeviceImageSparseMemoryRequirements = ( PFN_vkGetDeviceImageSparseMemoryRequirements ) vkGetDeviceProcAddr( device, "vkGetDeviceImageSparseMemoryRequirements" );
+
+	vkCmdSetEvent2 = ( PFN_vkCmdSetEvent2 ) vkGetDeviceProcAddr( device, "vkCmdSetEvent2" );
+
+	vkCmdResetEvent2 = ( PFN_vkCmdResetEvent2 ) vkGetDeviceProcAddr( device, "vkCmdResetEvent2" );
+
+	vkCmdWaitEvents2 = ( PFN_vkCmdWaitEvents2 ) vkGetDeviceProcAddr( device, "vkCmdWaitEvents2" );
 
 	vkCmdBlitImage2 = ( PFN_vkCmdBlitImage2 ) vkGetDeviceProcAddr( device, "vkCmdBlitImage2" );
 
@@ -617,33 +631,25 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkCmdSetPrimitiveRestartEnable = ( PFN_vkCmdSetPrimitiveRestartEnable ) vkGetDeviceProcAddr( device, "vkCmdSetPrimitiveRestartEnable" );
 
-	vkGetDeviceBufferMemoryRequirements = ( PFN_vkGetDeviceBufferMemoryRequirements ) vkGetDeviceProcAddr( device, "vkGetDeviceBufferMemoryRequirements" );
-
-	vkGetDeviceImageMemoryRequirements = ( PFN_vkGetDeviceImageMemoryRequirements ) vkGetDeviceProcAddr( device, "vkGetDeviceImageMemoryRequirements" );
-
-	vkGetDeviceImageSparseMemoryRequirements = ( PFN_vkGetDeviceImageSparseMemoryRequirements ) vkGetDeviceProcAddr( device, "vkGetDeviceImageSparseMemoryRequirements" );
-
-	vkCmdSetLineStipple = ( PFN_vkCmdSetLineStipple ) vkGetDeviceProcAddr( device, "vkCmdSetLineStipple" );
-
 	vkMapMemory2 = ( PFN_vkMapMemory2 ) vkGetDeviceProcAddr( device, "vkMapMemory2" );
 
 	vkUnmapMemory2 = ( PFN_vkUnmapMemory2 ) vkGetDeviceProcAddr( device, "vkUnmapMemory2" );
-
-	vkCmdBindIndexBuffer2 = ( PFN_vkCmdBindIndexBuffer2 ) vkGetDeviceProcAddr( device, "vkCmdBindIndexBuffer2" );
-
-	vkGetRenderingAreaGranularity = ( PFN_vkGetRenderingAreaGranularity ) vkGetDeviceProcAddr( device, "vkGetRenderingAreaGranularity" );
 
 	vkGetDeviceImageSubresourceLayout = ( PFN_vkGetDeviceImageSubresourceLayout ) vkGetDeviceProcAddr( device, "vkGetDeviceImageSubresourceLayout" );
 
 	vkGetImageSubresourceLayout2 = ( PFN_vkGetImageSubresourceLayout2 ) vkGetDeviceProcAddr( device, "vkGetImageSubresourceLayout2" );
 
+	vkCopyMemoryToImage = ( PFN_vkCopyMemoryToImage ) vkGetDeviceProcAddr( device, "vkCopyMemoryToImage" );
+
+	vkCopyImageToMemory = ( PFN_vkCopyImageToMemory ) vkGetDeviceProcAddr( device, "vkCopyImageToMemory" );
+
+	vkCopyImageToImage = ( PFN_vkCopyImageToImage ) vkGetDeviceProcAddr( device, "vkCopyImageToImage" );
+
+	vkTransitionImageLayout = ( PFN_vkTransitionImageLayout ) vkGetDeviceProcAddr( device, "vkTransitionImageLayout" );
+
 	vkCmdPushDescriptorSet = ( PFN_vkCmdPushDescriptorSet ) vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSet" );
 
 	vkCmdPushDescriptorSetWithTemplate = ( PFN_vkCmdPushDescriptorSetWithTemplate ) vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSetWithTemplate" );
-
-	vkCmdSetRenderingAttachmentLocations = ( PFN_vkCmdSetRenderingAttachmentLocations ) vkGetDeviceProcAddr( device, "vkCmdSetRenderingAttachmentLocations" );
-
-	vkCmdSetRenderingInputAttachmentIndices = ( PFN_vkCmdSetRenderingInputAttachmentIndices ) vkGetDeviceProcAddr( device, "vkCmdSetRenderingInputAttachmentIndices" );
 
 	vkCmdBindDescriptorSets2 = ( PFN_vkCmdBindDescriptorSets2 ) vkGetDeviceProcAddr( device, "vkCmdBindDescriptorSets2" );
 
@@ -653,13 +659,15 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkCmdPushDescriptorSetWithTemplate2 = ( PFN_vkCmdPushDescriptorSetWithTemplate2 ) vkGetDeviceProcAddr( device, "vkCmdPushDescriptorSetWithTemplate2" );
 
-	vkCopyMemoryToImage = ( PFN_vkCopyMemoryToImage ) vkGetDeviceProcAddr( device, "vkCopyMemoryToImage" );
+	vkCmdSetLineStipple = ( PFN_vkCmdSetLineStipple ) vkGetDeviceProcAddr( device, "vkCmdSetLineStipple" );
 
-	vkCopyImageToMemory = ( PFN_vkCopyImageToMemory ) vkGetDeviceProcAddr( device, "vkCopyImageToMemory" );
+	vkCmdBindIndexBuffer2 = ( PFN_vkCmdBindIndexBuffer2 ) vkGetDeviceProcAddr( device, "vkCmdBindIndexBuffer2" );
 
-	vkCopyImageToImage = ( PFN_vkCopyImageToImage ) vkGetDeviceProcAddr( device, "vkCopyImageToImage" );
+	vkGetRenderingAreaGranularity = ( PFN_vkGetRenderingAreaGranularity ) vkGetDeviceProcAddr( device, "vkGetRenderingAreaGranularity" );
 
-	vkTransitionImageLayout = ( PFN_vkTransitionImageLayout ) vkGetDeviceProcAddr( device, "vkTransitionImageLayout" );
+	vkCmdSetRenderingAttachmentLocations = ( PFN_vkCmdSetRenderingAttachmentLocations ) vkGetDeviceProcAddr( device, "vkCmdSetRenderingAttachmentLocations" );
+
+	vkCmdSetRenderingInputAttachmentIndices = ( PFN_vkCmdSetRenderingInputAttachmentIndices ) vkGetDeviceProcAddr( device, "vkCmdSetRenderingInputAttachmentIndices" );
 
 	vkCreateSwapchainKHR = ( PFN_vkCreateSwapchainKHR ) vkGetDeviceProcAddr( device, "vkCreateSwapchainKHR" );
 
@@ -887,6 +895,8 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkCmdCopyMemoryToImageIndirectKHR = ( PFN_vkCmdCopyMemoryToImageIndirectKHR ) vkGetDeviceProcAddr( device, "vkCmdCopyMemoryToImageIndirectKHR" );
 
+	vkCmdEndRendering2KHR = ( PFN_vkCmdEndRendering2KHR ) vkGetDeviceProcAddr( device, "vkCmdEndRendering2KHR" );
+
 	vkDebugMarkerSetObjectTagEXT = ( PFN_vkDebugMarkerSetObjectTagEXT ) vkGetDeviceProcAddr( device, "vkDebugMarkerSetObjectTagEXT" );
 
 	vkDebugMarkerSetObjectNameEXT = ( PFN_vkDebugMarkerSetObjectNameEXT ) vkGetDeviceProcAddr( device, "vkDebugMarkerSetObjectNameEXT" );
@@ -924,6 +934,8 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 	vkGetImageViewHandle64NVX = ( PFN_vkGetImageViewHandle64NVX ) vkGetDeviceProcAddr( device, "vkGetImageViewHandle64NVX" );
 
 	vkGetImageViewAddressNVX = ( PFN_vkGetImageViewAddressNVX ) vkGetDeviceProcAddr( device, "vkGetImageViewAddressNVX" );
+
+	vkGetDeviceCombinedImageSamplerIndexNVX = ( PFN_vkGetDeviceCombinedImageSamplerIndexNVX ) vkGetDeviceProcAddr( device, "vkGetDeviceCombinedImageSamplerIndexNVX" );
 
 	vkCmdDrawIndirectCountAMD = ( PFN_vkCmdDrawIndirectCountAMD ) vkGetDeviceProcAddr( device, "vkCmdDrawIndirectCountAMD" );
 
@@ -972,6 +984,24 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 	vkCmdEndDebugUtilsLabelEXT = ( PFN_vkCmdEndDebugUtilsLabelEXT ) vkGetDeviceProcAddr( device, "vkCmdEndDebugUtilsLabelEXT" );
 
 	vkCmdInsertDebugUtilsLabelEXT = ( PFN_vkCmdInsertDebugUtilsLabelEXT ) vkGetDeviceProcAddr( device, "vkCmdInsertDebugUtilsLabelEXT" );
+
+	vkWriteSamplerDescriptorsEXT = ( PFN_vkWriteSamplerDescriptorsEXT ) vkGetDeviceProcAddr( device, "vkWriteSamplerDescriptorsEXT" );
+
+	vkWriteResourceDescriptorsEXT = ( PFN_vkWriteResourceDescriptorsEXT ) vkGetDeviceProcAddr( device, "vkWriteResourceDescriptorsEXT" );
+
+	vkCmdBindSamplerHeapEXT = ( PFN_vkCmdBindSamplerHeapEXT ) vkGetDeviceProcAddr( device, "vkCmdBindSamplerHeapEXT" );
+
+	vkCmdBindResourceHeapEXT = ( PFN_vkCmdBindResourceHeapEXT ) vkGetDeviceProcAddr( device, "vkCmdBindResourceHeapEXT" );
+
+	vkCmdPushDataEXT = ( PFN_vkCmdPushDataEXT ) vkGetDeviceProcAddr( device, "vkCmdPushDataEXT" );
+
+	vkGetImageOpaqueCaptureDataEXT = ( PFN_vkGetImageOpaqueCaptureDataEXT ) vkGetDeviceProcAddr( device, "vkGetImageOpaqueCaptureDataEXT" );
+
+	vkRegisterCustomBorderColorEXT = ( PFN_vkRegisterCustomBorderColorEXT ) vkGetDeviceProcAddr( device, "vkRegisterCustomBorderColorEXT" );
+
+	vkUnregisterCustomBorderColorEXT = ( PFN_vkUnregisterCustomBorderColorEXT ) vkGetDeviceProcAddr( device, "vkUnregisterCustomBorderColorEXT" );
+
+	vkGetTensorOpaqueCaptureDataARM = ( PFN_vkGetTensorOpaqueCaptureDataARM ) vkGetDeviceProcAddr( device, "vkGetTensorOpaqueCaptureDataARM" );
 
 	vkCmdSetSampleLocationsEXT = ( PFN_vkCmdSetSampleLocationsEXT ) vkGetDeviceProcAddr( device, "vkCmdSetSampleLocationsEXT" );
 
@@ -1040,6 +1070,14 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 	vkGetQueueCheckpointDataNV = ( PFN_vkGetQueueCheckpointDataNV ) vkGetDeviceProcAddr( device, "vkGetQueueCheckpointDataNV" );
 
 	vkGetQueueCheckpointData2NV = ( PFN_vkGetQueueCheckpointData2NV ) vkGetDeviceProcAddr( device, "vkGetQueueCheckpointData2NV" );
+
+	vkSetSwapchainPresentTimingQueueSizeEXT = ( PFN_vkSetSwapchainPresentTimingQueueSizeEXT ) vkGetDeviceProcAddr( device, "vkSetSwapchainPresentTimingQueueSizeEXT" );
+
+	vkGetSwapchainTimingPropertiesEXT = ( PFN_vkGetSwapchainTimingPropertiesEXT ) vkGetDeviceProcAddr( device, "vkGetSwapchainTimingPropertiesEXT" );
+
+	vkGetSwapchainTimeDomainPropertiesEXT = ( PFN_vkGetSwapchainTimeDomainPropertiesEXT ) vkGetDeviceProcAddr( device, "vkGetSwapchainTimeDomainPropertiesEXT" );
+
+	vkGetPastPresentationTimingEXT = ( PFN_vkGetPastPresentationTimingEXT ) vkGetDeviceProcAddr( device, "vkGetPastPresentationTimingEXT" );
 
 	vkInitializePerformanceApiINTEL = ( PFN_vkInitializePerformanceApiINTEL ) vkGetDeviceProcAddr( device, "vkInitializePerformanceApiINTEL" );
 
@@ -1237,6 +1275,10 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkGetPipelineIndirectDeviceAddressNV = ( PFN_vkGetPipelineIndirectDeviceAddressNV ) vkGetDeviceProcAddr( device, "vkGetPipelineIndirectDeviceAddressNV" );
 
+	vkGetNativeBufferPropertiesOHOS = ( PFN_vkGetNativeBufferPropertiesOHOS ) vkGetDeviceProcAddr( device, "vkGetNativeBufferPropertiesOHOS" );
+
+	vkGetMemoryNativeBufferOHOS = ( PFN_vkGetMemoryNativeBufferOHOS ) vkGetDeviceProcAddr( device, "vkGetMemoryNativeBufferOHOS" );
+
 	vkCmdSetDepthClampEnableEXT = ( PFN_vkCmdSetDepthClampEnableEXT ) vkGetDeviceProcAddr( device, "vkCmdSetDepthClampEnableEXT" );
 
 	vkCmdSetPolygonModeEXT = ( PFN_vkCmdSetPolygonModeEXT ) vkGetDeviceProcAddr( device, "vkCmdSetPolygonModeEXT" );
@@ -1383,6 +1425,10 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 
 	vkCmdBindTileMemoryQCOM = ( PFN_vkCmdBindTileMemoryQCOM ) vkGetDeviceProcAddr( device, "vkCmdBindTileMemoryQCOM" );
 
+	vkCmdDecompressMemoryEXT = ( PFN_vkCmdDecompressMemoryEXT ) vkGetDeviceProcAddr( device, "vkCmdDecompressMemoryEXT" );
+
+	vkCmdDecompressMemoryIndirectCountEXT = ( PFN_vkCmdDecompressMemoryIndirectCountEXT ) vkGetDeviceProcAddr( device, "vkCmdDecompressMemoryIndirectCountEXT" );
+
 	vkCreateExternalComputeQueueNV = ( PFN_vkCreateExternalComputeQueueNV ) vkGetDeviceProcAddr( device, "vkCreateExternalComputeQueueNV" );
 
 	vkDestroyExternalComputeQueueNV = ( PFN_vkDestroyExternalComputeQueueNV ) vkGetDeviceProcAddr( device, "vkDestroyExternalComputeQueueNV" );
@@ -1416,6 +1462,10 @@ void VulkanLoadDeviceFunctions( VkDevice device ) {
 	vkUpdateIndirectExecutionSetShaderEXT = ( PFN_vkUpdateIndirectExecutionSetShaderEXT ) vkGetDeviceProcAddr( device, "vkUpdateIndirectExecutionSetShaderEXT" );
 
 	vkCmdEndRendering2EXT = ( PFN_vkCmdEndRendering2EXT ) vkGetDeviceProcAddr( device, "vkCmdEndRendering2EXT" );
+
+	vkCmdBeginCustomResolveEXT = ( PFN_vkCmdBeginCustomResolveEXT ) vkGetDeviceProcAddr( device, "vkCmdBeginCustomResolveEXT" );
+
+	vkCmdSetComputeOccupancyPriorityNV = ( PFN_vkCmdSetComputeOccupancyPriorityNV ) vkGetDeviceProcAddr( device, "vkCmdSetComputeOccupancyPriorityNV" );
 
 	vkCreateAccelerationStructureKHR = ( PFN_vkCreateAccelerationStructureKHR ) vkGetDeviceProcAddr( device, "vkCreateAccelerationStructureKHR" );
 
