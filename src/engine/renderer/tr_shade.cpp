@@ -299,18 +299,7 @@ static void GLSL_InitGPUShadersOrError()
 	}
 
 	// Fog GLSL is always loaded and built because disabling fog is cheat.
-	{
-		// Q3A volumetric fog
-		gl_shaderManager.LoadShader( gl_fogQuake3Shader );
-
-		if ( glConfig.usingMaterialSystem )
-		{
-			gl_shaderManager.LoadShader( gl_fogQuake3ShaderMaterial );
-		}
-
-		// global fog post process effect
-		gl_shaderManager.LoadShader( gl_fogGlobalShader );
-	}
+	gl_shaderManager.LoadShader( gl_fogGlobalShader );
 
 	if ( r_heatHaze->integer )
 	{
@@ -489,8 +478,6 @@ void GLSL_ShutdownGPUShaders()
 	gl_reflectionShaderMaterial = nullptr;
 	gl_skyboxShader = nullptr;
 	gl_skyboxShaderMaterial = nullptr;
-	gl_fogQuake3Shader = nullptr;
-	gl_fogQuake3ShaderMaterial = nullptr;
 	gl_fogGlobalShader = nullptr;
 	gl_heatHazeShader = nullptr;
 	gl_heatHazeShaderMaterial = nullptr;
@@ -715,7 +702,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
                  shader_t *surfaceShader,
                  bool skipTangents,
                  int lightmapNum,
-                 int fogNum,
                  bool bspSurface )
 {
 	if ( tess.numIndexes || tess.numVertexes || tess.multiDrawPrimitives )
@@ -734,7 +720,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 
 	tess.skipTangents = skipTangents;
 	tess.lightmapNum = lightmapNum;
-	tess.fogNum = fogNum;
 	tess.bspSurface = bspSurface;
 
 	// materials are optional (some debug drawing code doesn't use them)
@@ -767,9 +752,9 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	}
 
 	GLIMP_LOGCOMMENT( "--- Tess_Begin( surfaceShader = %s, "
-		"skipTangents = %i, lightmapNum = %i, fogNum = %i) ---",
+		"skipTangents = %i, lightmapNum = %i) ---",
 		tess.surfaceShader ? tess.surfaceShader->name : "NULL",
-		tess.skipTangents, tess.lightmapNum, tess.fogNum );
+		tess.skipTangents, tess.lightmapNum );
 }
 
 void SetNormalScale( const shaderStage_t *pStage, vec3_t normalScale )
@@ -868,12 +853,6 @@ void ProcessShaderLiquid( const shaderStage_t* pStage ) {
 	gl_liquidShader->SetGridDeluxeMapping( deluxeMode == deluxeMode_t::GRID );
 
 	gl_liquidShader->SetGridLighting( lightMode == lightMode_t::GRID );
-}
-
-void ProcessShaderFog( const shaderStage_t* pStage ) {
-	gl_fogQuake3Shader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_fogQuake3Shader->SetVertexAnimation( tess.vboVertexAnimation );
-	gl_fogQuake3Shader->SetDeform( pStage->deformIndex );
 }
 
 void Render_NONE( shaderStage_t * )
@@ -1595,71 +1574,6 @@ void Render_liquid( shaderStage_t *pStage )
 	}
 
 	gl_liquidShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
-
-	Tess_DrawElements();
-
-	GL_CheckErrors();
-}
-
-void Render_fog( shaderStage_t* pStage )
-{
-	if ( r_noFog->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
-	{
-		return;
-	}
-
-	const fog_t* fog = tr.world->fogs + tess.fogNum;
-
-	GLIMP_LOGCOMMENT( "--- Render_fog( fogNum = %i, originalBrushNumber = %i ) ---",
-		tess.fogNum, fog->originalBrushNumber );
-
-	// rotate the gradient vector for this orientation
-	float eyeT;
-	vec4_t fogDepthVector;
-	if ( fog->hasSurface )
-	{
-		VectorCopy( fog->surface, fogDepthVector );
-		fogDepthVector[ 3 ] = -fog->surface[ 3 ];
-		eyeT = DotProduct( backEnd.viewParms.orientation.origin, fogDepthVector ) + fogDepthVector[ 3 ];
-	}
-	else
-	{
-		Vector4Set( fogDepthVector, 0, 0, 0, 1 );
-		eyeT = 1; // non-surface fog always has eye inside
-	}
-
-	GL_State( pStage->stateBits );
-
-	ProcessShaderFog( pStage );
-	gl_fogQuake3Shader->BindProgram();
-
-	gl_fogQuake3Shader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-	gl_fogQuake3Shader->SetUniform_FogGradient(
-		1.0f / fog->shader->fogParms.depthForOpaque, fog->shader->fogParms.falloffExp );
-	gl_fogQuake3Shader->SetUniform_FogDepthVector( fogDepthVector );
-	gl_fogQuake3Shader->SetUniform_FogEyeT( eyeT );
-
-	// u_Color
-	SetUniform_ColorGlobal( gl_fogQuake3Shader, fog->shader->fogParms.color );
-
-	gl_fogQuake3Shader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_fogQuake3Shader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-	// u_Bones
-	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
-	{
-		gl_fogQuake3Shader->SetUniform_Bones( tess.numBones, tess.bones );
-	}
-
-	// u_VertexInterpolation
-	if ( tess.vboVertexAnimation )
-	{
-		gl_fogQuake3Shader->SetUniform_VertexInterpolation( glState.vertexAttribsInterpolation );
-	}
-
-	gl_fogQuake3Shader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
-
-	gl_fogQuake3Shader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
 

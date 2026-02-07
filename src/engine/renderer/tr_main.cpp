@@ -458,47 +458,6 @@ cullResult_t R_CullPointAndRadius( vec3_t pt, float radius )
 
 /*
 =================
-R_FogWorldBox
-=================
-*/
-int R_FogWorldBox( vec3_t bounds[ 2 ] )
-{
-	int   i, j;
-	fog_t *fog;
-
-	if ( tr.refdef.rdflags & RDF_NOWORLDMODEL )
-	{
-		return 0;
-	}
-
-	for ( i = 1; i < tr.world->numFogs; i++ )
-	{
-		fog = &tr.world->fogs[ i ];
-
-		for ( j = 0; j < 3; j++ )
-		{
-			if ( bounds[ 0 ][ j ] >= fog->bounds[ 1 ][ j ] )
-			{
-				break;
-			}
-
-			if ( bounds[ 1 ][ j ] <= fog->bounds[ 0 ][ j ] )
-			{
-				break;
-			}
-		}
-
-		if ( j == 3 )
-		{
-			return i;
-		}
-	}
-
-	return 0;
-}
-
-/*
-=================
 R_LocalNormalToWorld
 =================
 */
@@ -1643,53 +1602,10 @@ bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 
 /*
 =================
-R_SpriteFogNum
-
-See if a sprite is inside a fog volume
-=================
-*/
-int R_SpriteFogNum( trRefEntity_t *ent )
-{
-	int   i, j;
-	fog_t *fog;
-
-	if ( tr.refdef.rdflags & RDF_NOWORLDMODEL )
-	{
-		return 0;
-	}
-
-	for ( i = 1; i < tr.world->numFogs; i++ )
-	{
-		fog = &tr.world->fogs[ i ];
-
-		for ( j = 0; j < 3; j++ )
-		{
-			if ( ent->e.origin[ j ] - ent->e.radius >= fog->bounds[ 1 ][ j ] )
-			{
-				break;
-			}
-
-			if ( ent->e.origin[ j ] + ent->e.radius <= fog->bounds[ 0 ][ j ] )
-			{
-				break;
-			}
-		}
-
-		if ( j == 3 )
-		{
-			return i;
-		}
-	}
-
-	return 0;
-}
-
-/*
-=================
 R_AddDrawSurf
 =================
 */
-void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface, int portalNum )
+void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, bool bspSurface, int portalNum )
 {
 	// instead of checking for overflow, we just mask the index
 	// so it wraps around
@@ -1702,9 +1618,6 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 	drawSurf->surface = surface;
 	drawSurf->shader = shader;
 	drawSurf->bspSurface = bspSurface;
-	/* Allow the renderer backend to merge main surfaces that have fog, ignoring the fogNum,
-	as it only matters for the emitted fog surfaces */
-	drawSurf->fog = ( shader == tr.fogEqualShader || shader == tr.fogLEShader ) ? fogNum : 0;
 	drawSurf->portalNum = portalNum;
 
 	int entityNum;
@@ -1728,15 +1641,7 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 	tr.refdef.numDrawSurfs++;
 
 	if ( shader->depthShader != nullptr ) {
-		R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
-	}
-
-	bool usingMaterial = glConfig.usingMaterialSystem && !r_materialSystemSkip.Get();
-
-	// don't fog surfaces that already were covered by globalFog
-	if ( usingMaterial && !shader->noFog && fogNum >= 1 && fogNum != tr.world->globalFog )
-	{
-		R_AddDrawSurf( surface, shader->fogShader, 0, fogNum, bspSurface );
+		R_AddDrawSurf( surface, shader->depthShader, 0, bspSurface );
 	}
 }
 
@@ -1882,7 +1787,7 @@ void R_AddEntitySurfaces()
 				}
 
 				shader = R_GetShaderByHandle( ent->e.customShader );
-				R_AddDrawSurf( &entitySurface, shader, -1, R_SpriteFogNum( ent ) );
+				R_AddDrawSurf( &entitySurface, shader, -1 );
 				break;
 
 			case refEntityType_t::RT_MODEL:
@@ -1893,7 +1798,7 @@ void R_AddEntitySurfaces()
 
 				if ( !tr.currentModel )
 				{
-					R_AddDrawSurf( &entitySurface, tr.defaultShader, -1, 0 );
+					R_AddDrawSurf( &entitySurface, tr.defaultShader, -1 );
 				}
 				else
 				{
@@ -1927,7 +1832,7 @@ void R_AddEntitySurfaces()
 							VectorClear( ent->worldBounds[ 0 ] );
 							VectorClear( ent->worldBounds[ 1 ] );
 							shader = R_GetShaderByHandle( ent->e.customShader );
-							R_AddDrawSurf( &entitySurface, tr.defaultShader, -1, 0 );
+							R_AddDrawSurf( &entitySurface, tr.defaultShader, -1 );
 							break;
 
 						default:

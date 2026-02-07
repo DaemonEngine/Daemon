@@ -126,7 +126,7 @@ void R_AddPolygonSurfaces()
 	for ( i = 0, poly = tr.refdef.polys; i < tr.refdef.numPolys; i++, poly++ )
 	{
 		sh = R_GetShaderByHandle( poly->hShader );
-		R_AddDrawSurf( ( surfaceType_t * ) poly, sh, -1, poly->fogIndex );
+		R_AddDrawSurf( ( surfaceType_t * ) poly, sh, -1 );
 	}
 }
 
@@ -138,10 +138,7 @@ R_AddPolysToScene
 static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys )
 {
 	srfPoly_t *poly;
-	int       i, j;
-	int       fogIndex;
-	fog_t     *fog;
-	vec3_t    bounds[ 2 ];
+	int       j;
 
 	if ( !tr.registered )
 	{
@@ -184,45 +181,6 @@ static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t
 		// done.
 		r_numPolys++;
 		r_numPolyVerts += numVerts;
-
-		// if no world is loaded
-		if ( tr.world == nullptr )
-		{
-			fogIndex = 0;
-		}
-		// see if it is in a fog volume
-		else if ( tr.world->numFogs == 1 )
-		{
-			fogIndex = 0;
-		}
-		else
-		{
-			// find which fog volume the poly is in
-			VectorCopy( poly->verts[ 0 ].xyz, bounds[ 0 ] );
-			VectorCopy( poly->verts[ 0 ].xyz, bounds[ 1 ] );
-
-			for ( i = 1; i < poly->numVerts; i++ )
-			{
-				AddPointToBounds( poly->verts[ i ].xyz, bounds[ 0 ], bounds[ 1 ] );
-			}
-
-			for ( fogIndex = 1; fogIndex < tr.world->numFogs; fogIndex++ )
-			{
-				fog = &tr.world->fogs[ fogIndex ];
-
-				if ( BoundsIntersect( bounds[ 0 ], bounds[ 1 ], fog->bounds[ 0 ], fog->bounds[ 1 ] ) )
-				{
-					break;
-				}
-			}
-
-			if ( fogIndex == tr.world->numFogs )
-			{
-				fogIndex = 0;
-			}
-		}
-
-		poly->fogIndex = fogIndex;
 	}
 }
 
@@ -292,25 +250,14 @@ static bool R_InsideFog( int fognum )
 
 void R_AddFogBrushSurfaces()
 {
-	if ( glConfig.usingMaterialSystem && !r_materialSystemSkip.Get() )
+	// TODO: incorporate them in the BSP?
+	for ( int i = 1; i < tr.world->numFogs; i++ )
 	{
-		if ( tr.world->globalFog > 0 )
-		{
-			const fog_t &fog = tr.world->fogs[ tr.world->globalFog ];
-			R_AddDrawSurf( ( surfaceType_t *)&fog.surf, fog.shader->fogInnerShader, -1, 0 );
-		}
-	}
-	else
-	{
-		// TODO: incorporate them in the BSP?
-		for ( int i = 1; i < tr.world->numFogs; i++ )
-		{
-			const fog_t &fog = tr.world->fogs[ i ];
-			shader_t *shader = R_InsideFog( i )
-				? fog.shader->fogInnerShader
-				: fog.shader->fogOuterShader;
-			R_AddDrawSurf( ( surfaceType_t *)&fog.surf, shader, -1, 0 );
-		}
+		const fog_t &fog = tr.world->fogs[ i ];
+		shader_t *shader = R_InsideFog( i )
+			? fog.shader->fogInnerShader
+			: fog.shader->fogOuterShader;
+		R_AddDrawSurf( ( surfaceType_t *)&fog.surf, shader, -1 );
 	}
 }
 

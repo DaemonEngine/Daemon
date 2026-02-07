@@ -2696,36 +2696,6 @@ template<typename Shader> void SetUniform_ColorModulateColorGen(
 	}
 }
 
-class u_FogDepthVector :
-	GLUniform4f
-{
-public:
-	u_FogDepthVector( GLShader *shader ) :
-		GLUniform4f( shader, "u_FogDepthVector", PUSH )
-	{
-	}
-
-	void SetUniform_FogDepthVector( const vec4_t v )
-	{
-		this->SetValue( v );
-	}
-};
-
-class u_FogEyeT :
-	GLUniform1f
-{
-public:
-	u_FogEyeT( GLShader *shader ) :
-		GLUniform1f( shader, "u_FogEyeT", PUSH )
-	{
-	}
-
-	void SetUniform_FogEyeT( float value )
-	{
-		this->SetValue( value );
-	}
-};
-
 class u_DeformEnable :
 	GLUniform1f {
 	public:
@@ -3208,40 +3178,6 @@ class GLShader_skyboxMaterial :
 	GLShader_skyboxMaterial();
 };
 
-class GLShader_fogQuake3 :
-	public GLShader,
-	public u_ModelMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_ColorGlobal_Float,
-	public u_ColorGlobal_Uint,
-	public u_Bones,
-	public u_VertexInterpolation,
-	public u_ViewOrigin,
-	public u_FogGradient,
-	public u_FogDepthVector,
-	public u_FogEyeT,
-	public GLDeformStage,
-	public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION
-{
-public:
-	GLShader_fogQuake3();
-};
-
-class GLShader_fogQuake3Material :
-	public GLShader,
-	public u_ModelMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_ColorGlobal_Uint,
-	public u_ViewOrigin,
-	public u_FogGradient,
-	public u_FogDepthVector,
-	public u_FogEyeT,
-	public GLDeformStage {
-	public:
-	GLShader_fogQuake3Material();
-};
-
 class GLShader_fogGlobal :
 	public GLShader,
 	public u_DepthMap,
@@ -3605,8 +3541,6 @@ extern GLShader_generic                         *gl_genericShader;
 extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
 extern GLShader_lightMapping                    *gl_lightMappingShader;
 extern GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial;
-extern GLShader_fogQuake3                       *gl_fogQuake3Shader;
-extern GLShader_fogQuake3Material               *gl_fogQuake3ShaderMaterial;
 extern GLShader_heatHaze                        *gl_heatHazeShader;
 extern GLShader_heatHazeMaterial                *gl_heatHazeShaderMaterial;
 extern GLShader_liquid                          *gl_liquidShader;

@@ -131,8 +131,6 @@ set(GLSL_EMBED_LIST
     # Regular shaders
     fogGlobal_vp.glsl
     fogGlobal_fp.glsl
-    fogQuake3_vp.glsl
-    fogQuake3_fp.glsl
     generic_vp.glsl
     generic_fp.glsl
     heatHaze_vp.glsl
