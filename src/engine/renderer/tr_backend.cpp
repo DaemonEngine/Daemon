@@ -994,7 +994,6 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 	trRefEntity_t *entity, *oldEntity;
 	shader_t      *shader, *oldShader;
 	int           lightmapNum, oldLightmapNum;
-	int           fogNum, oldFogNum;
 	bool          bspSurface;
 	bool      depthRange, oldDepthRange;
 	int           i;
@@ -1007,7 +1006,6 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 	oldEntity = nullptr;
 	oldShader = nullptr;
 	oldLightmapNum = -1;
-	oldFogNum = -1;
 	oldDepthRange = false;
 	depthRange = false;
 
@@ -1026,7 +1024,6 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 		entity = drawSurf->entity;
 		shader = drawSurf->shader;
 		lightmapNum = drawSurf->lightmapNum();
-		fogNum = drawSurf->fog;
 		bspSurface = drawSurf->bspSurface;
 
 		if( entity == &tr.worldEntity ) {
@@ -1040,7 +1037,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 				continue;
 		}
 
-		if ( entity == oldEntity && shader == oldShader && lightmapNum == oldLightmapNum && fogNum == oldFogNum )
+		if ( entity == oldEntity && shader == oldShader && lightmapNum == oldLightmapNum )
 		{
 			// fast path, same as previous sort
 			rb_surfaceTable[Util::ordinal(*drawSurf->surface)](drawSurf->surface );
@@ -1050,18 +1047,17 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 		// change the tess parameters if needed
 		// an "entityMergable" shader is a shader that can have surfaces from separate
 		// entities merged into a single batch, like smoke and blood puff sprites
-		if ( shader != oldShader || lightmapNum != oldLightmapNum || fogNum != oldFogNum || ( entity != oldEntity && !shader->entityMergable ) )
+		if ( shader != oldShader || lightmapNum != oldLightmapNum || ( entity != oldEntity && !shader->entityMergable ) )
 		{
 			if ( oldShader != nullptr )
 			{
 				Tess_End();
 			}
 
-			Tess_Begin( Tess_StageIteratorColor, shader, false, lightmapNum, fogNum, bspSurface );
+			Tess_Begin( Tess_StageIteratorColor, shader, false, lightmapNum, bspSurface );
 
 			oldShader = shader;
 			oldLightmapNum = lightmapNum;
-			oldFogNum = fogNum;
 		}
 
 		// change the modelview matrix if needed
@@ -1842,7 +1838,7 @@ static void RB_RenderDebugUtils()
 			GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
 			gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-			Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
+			Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1 );
 
 			if ( r_showEntityBounds.Get() == 2)
 			{
@@ -1959,7 +1955,7 @@ static void RB_RenderDebugUtils()
 				static vec3_t worldOrigins[ MAX_BONES ];
 
 				GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
-				Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
+				Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1 );
 
 				for ( j = 0; j < skel->numBones; j++ )
 				{
@@ -2063,7 +2059,7 @@ static void RB_RenderDebugUtils()
 								}
 
 								Tess_End();
-								Tess_Begin( Tess_StageIteratorDebug, shader, true, -1, 0 );
+								Tess_Begin( Tess_StageIteratorDebug, shader, true, -1 );
 								gl_genericShader->SetUniform_ColorMapBindless(
 									GL_BindToTMU( 0, shader->stages[ 0 ].bundle[ TB_COLORMAP ].image[ 0 ] )
 								);
@@ -2126,7 +2122,7 @@ static void RB_RenderDebugUtils()
 
 				cubemapProbe_t* cubeProbe = &tr.cubeProbes[tr.cubeProbeGrid( x, y, z )];
 
-				Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
+				Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1 );
 
 				gl_reflectionShader->SetUniform_CameraPosition( position );
 
@@ -2142,7 +2138,7 @@ static void RB_RenderDebugUtils()
 		} else {
 			for ( const cubemapProbe_t& cubeProbe : tr.cubeProbes ) {
 
-				Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
+				Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1 );
 
 				gl_reflectionShader->SetUniform_CameraPosition( cubeProbe.origin );
 
@@ -2196,7 +2192,7 @@ static void RB_RenderDebugUtils()
 			vec3_t gridPoints[2];
 			R_GetNearestCubeMaps( backEnd.viewParms.orientation.origin, probes, trilerp, 2, gridPoints );
 
-			Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
+			Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1 );
 
 			vec3_t position;
 			if ( r_showCubeProbes.Get() == Util::ordinal( showCubeProbesMode::GRID ) ) {
@@ -2270,7 +2266,7 @@ static void RB_RenderDebugUtils()
 		);
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
-		Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
+		Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1 );
 		GL_CheckErrors();
 
 		for ( z = 0; z < tr.world->lightGridBounds[ 2 ]; z++ ) {
@@ -2458,7 +2454,7 @@ static void RB_RenderDebugUtils()
 					R_CalcFrustumNearCorners( splitFrustum, nearCorners );
 					R_CalcFrustumFarCorners( splitFrustum, farCorners );
 
-					Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
+					Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1 );
 
 					// draw outer surfaces
 					for ( j = 0; j < 4; j++ )
@@ -2555,7 +2551,7 @@ static void RB_RenderDebugUtils()
 					GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
 				}
 
-				Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
+				Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1 );
 				Tess_AddCube( vec3_origin, node->mins, node->maxs, Color::White );
 				Tess_End();
 
@@ -2812,6 +2808,7 @@ static void RB_RenderView( bool depthPass )
 	}
 
 	// Here so we don't do an extra MSAA resolve if both SSAO and global fog are present
+	// FIXME: global fog is done in a different place now, should this change?
 	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 	RB_RenderSSAO();
@@ -3078,11 +3075,11 @@ const RenderCommand *StretchPicCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1 );
 	}
 
 	if( !tess.indexes ) {
-		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1 );
 	}
 
 	Tess_CheckOverflow( 4, 6 );
@@ -3164,7 +3161,7 @@ const RenderCommand *Poly2dCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1 );
 	}
 
 	Tess_CheckOverflow( numverts, ( numverts - 2 ) * 3 );
@@ -3218,11 +3215,11 @@ const RenderCommand *Poly2dIndexedCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1 );
 	}
 
 	if( !tess.verts ) {
-		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1 );
 	}
 
 	Tess_CheckOverflow( numverts, numIndexes );
@@ -3314,11 +3311,11 @@ const RenderCommand *RotatedPicCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1 );
 	}
 
 	if( !tess.indexes ) {
-		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1 );
 	}
 
 	Tess_CheckOverflow( 4, 6 );
@@ -3403,11 +3400,11 @@ const RenderCommand *GradientPicCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1 );
 	}
 
 	if( !tess.indexes ) {
-		Tess_Begin( Tess_StageIteratorColor, shader, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, shader, false, -1 );
 	}
 
 	Tess_CheckOverflow( 4, 6 );
@@ -3613,7 +3610,7 @@ const RenderCommand *PreparePortalCommand::ExecuteSelf( ) const
 	GL_State( GLS_COLORMASK_BITS );
 	glState.glStateBitsMask = GLS_COLORMASK_BITS;
 
-	Tess_Begin( Tess_StageIteratorPortal, shader, false, -1, 0 );
+	Tess_Begin( Tess_StageIteratorPortal, shader, false, -1 );
 	rb_surfaceTable[Util::ordinal(*(surface->surface))](surface->surface );
 	Tess_End();
 
@@ -3628,7 +3625,7 @@ const RenderCommand *PreparePortalCommand::ExecuteSelf( ) const
 	GL_State( GLS_DEPTHMASK_TRUE | GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS);
 	glState.glStateBitsMask = GLS_DEPTHMASK_TRUE | GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS;
 
-	Tess_Begin( Tess_StageIteratorPortal, shader, false, -1, 0 );
+	Tess_Begin( Tess_StageIteratorPortal, shader, false, -1 );
 	rb_surfaceTable[Util::ordinal(*(surface->surface))](surface->surface );
 	Tess_End();
 
@@ -3679,7 +3676,7 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
 	Tess_Begin( Tess_StageIteratorColor, shader,
-		false, surface->lightmapNum(), surface->fog, surface->bspSurface );
+		false, surface->lightmapNum(), surface->bspSurface );
 	rb_surfaceTable[Util::ordinal( *( surface->surface ) )]( surface->surface );
 	Tess_End();
 
@@ -3688,7 +3685,7 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	GL_State( GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS);
 	glState.glStateBitsMask = GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS;
 
-	Tess_Begin( Tess_StageIteratorPortal, shader, false, -1, 0 );
+	Tess_Begin( Tess_StageIteratorPortal, shader, false, -1 );
 	rb_surfaceTable[Util::ordinal(*(surface->surface))](surface->surface );
 	Tess_End();
 

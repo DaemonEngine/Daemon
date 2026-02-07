@@ -53,7 +53,7 @@ void Tess_EndBegin()
 {
 	Tess_End();
 	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.skipTangents,
-	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
+	            tess.lightmapNum, tess.bspSurface );
 }
 
 /*
@@ -114,7 +114,7 @@ void Tess_CheckOverflow( int verts, int indexes )
 	}
 
 	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.skipTangents,
-	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
+	            tess.lightmapNum, tess.bspSurface );
 }
 
 /*
@@ -534,14 +534,14 @@ void Tess_InstantScreenSpaceQuad() {
 	if ( glConfig.gpuShader4Available )
 	{
 		tr.skipVBO = true;
-		Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
+		Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1 );
 		rb_surfaceTable[Util::ordinal( *( tr.genericTriangle->surface ) )]( tr.genericTriangle->surface );
 		Tess_DrawElements();
 		tr.skipVBO = false;
 	}
 	else
 	{
-		Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
+		Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1 );
 		rb_surfaceTable[Util::ordinal( *( tr.genericQuad->surface ) )]( tr.genericQuad->surface );
 		GL_VertexAttribsState( ATTR_POSITION );
 		Tess_DrawElements();
@@ -556,7 +556,7 @@ void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, const float x, const
 {
 	GLIMP_LOGCOMMENT( "--- Tess_InstantQuad ---" );
 
-	Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1, 0 );
+	Tess_Begin( Tess_StageIteratorDummy, nullptr, true, -1 );
 
 	/* We don't use x, y, width, height directly to make it compatible
 	with R_InitGenericVBOs() in tr_vbo.cpp.

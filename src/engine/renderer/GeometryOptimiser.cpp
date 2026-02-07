@@ -54,12 +54,6 @@ static int LeafSurfaceCompare( const void* a, const void* b ) {
 		return 1;
 	}
 
-	if ( aa->fogIndex < bb->fogIndex ) {
-		return -1;
-	} else if ( aa->fogIndex > bb->fogIndex ) {
-		return 1;
-	}
-
 	// sort by leaf
 	if ( aa->scratch2 < bb->scratch2 ) {
 		return -1;
@@ -168,7 +162,6 @@ void OptimiseMapGeometryCore( world_t* world, bspSurface_t** rendererSurfaces, i
 
 			shader_t* shader1 = surf1->shader;
 
-			int fogIndex1 = surf1->fogIndex;
 			int lightMapNum1 = surf1->lightmapNum;
 			surf1->viewCount = surf1 - world->surfaces;
 			surf1->scratch1 = j;
@@ -187,9 +180,8 @@ void OptimiseMapGeometryCore( world_t* world, bspSurface_t** rendererSurfaces, i
 				}
 
 				shader_t* shader2 = surf2->shader;
-				int fogIndex2 = surf2->fogIndex;
 				int lightMapNum2 = surf2->lightmapNum;
-				if ( shader1 != shader2 || fogIndex1 != fogIndex2 || lightMapNum1 != lightMapNum2 ) {
+				if ( shader1 != shader2 || lightMapNum1 != lightMapNum2 ) {
 					continue;
 				}
 
@@ -315,7 +307,6 @@ void MergeLeafSurfacesCore( world_t* world, bspSurface_t** rendererSurfaces, int
 		SphereFromBounds( vboSurf->bounds[0], vboSurf->bounds[1], vboSurf->origin, &vboSurf->radius );
 
 		mergedSurf->data = ( surfaceType_t* ) vboSurf;
-		mergedSurf->fogIndex = surf1->fogIndex;
 		mergedSurf->shader = surf1->shader;
 		mergedSurf->lightmapNum = surf1->lightmapNum;
 		mergedSurf->viewCount = -1;
@@ -557,7 +548,6 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, bspSur
 		srf.skyBrush = surface->skyBrush;
 
 		srf.lightMapNum = surface->lightmapNum;
-		srf.fog = surface->fogIndex;
 		srf.portalNum = surface->portalNum;
 
 		srf.firstIndex = ( ( srfGeneric_t* ) surface->data )->firstIndex;
@@ -568,7 +558,7 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, bspSur
 		VectorCopy( ( ( srfGeneric_t* ) surface->data )->origin, srf.origin );
 		srf.radius = ( ( srfGeneric_t* ) surface->data )->radius;
 
-		materialSystem.GenerateMaterial( &srf, world->globalFog );
+		materialSystem.GenerateMaterial( &srf );
 
 		static const float MAX_NORMAL_SURFACE_DISTANCE = 65536.0f * sqrtf( 2.0f );
 		if ( VectorLength( ( ( srfGeneric_t* ) surface->data )->bounds[0] ) > MAX_NORMAL_SURFACE_DISTANCE

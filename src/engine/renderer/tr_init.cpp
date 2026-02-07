@@ -1551,14 +1551,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		if ( r_lazyShaders.Get() == 1 ) {
 			if ( tr.world->numFogs > 0 )
 			{
-				// Fog is applied dynamically based on the surface's BBox, so build all of the q3 fog shaders here
-				for ( uint32_t i = 0; i < 3; i++ ) {
-					gl_fogQuake3Shader->SetVertexSkinning( i & 1 );
-					gl_fogQuake3Shader->SetVertexAnimation( i & 2 );
-					gl_fogQuake3Shader->SetDeform( 0 );
-					gl_fogQuake3Shader->MarkProgramForBuilding();
-				}
-
 				for ( bool outer : { false, true } )
 				{
 					gl_fogGlobalShader->SetOutsideFog( outer );
