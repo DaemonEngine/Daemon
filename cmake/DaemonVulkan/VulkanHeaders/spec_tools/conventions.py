@@ -1,6 +1,6 @@
 #!/usr/bin/env python3 -i
 #
-# Copyright 2013-2025 The Khronos Group Inc.
+# Copyright 2013-2026 The Khronos Group Inc.
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -37,7 +37,8 @@ EXT_NAME_DECOMPOSE_RE = re.compile(r'(?P<prefix>[A-Za-z]+)_(?P<vendor>[A-Za-z]+)
 # Match an API version name.
 # Match object includes API prefix, major, and minor version numbers.
 # This could be refined further for specific APIs.
-API_VERSION_NAME_RE = re.compile(r'(?P<apivariant>[A-Za-z]+)_VERSION_(?P<major>[0-9]+)_(?P<minor>[0-9]+)')
+# Handles both simple versions (VK_VERSION_1_0) and component-specific versions (VK_BASE_VERSION_1_0)
+API_VERSION_NAME_RE = re.compile(r'(?P<apivariant>[A-Za-z]+)(?:_(?:BASE|COMPUTE|GRAPHICS))?_VERSION_(?P<major>[0-9]+)_(?P<minor>[0-9]+)')
 
 class ProseListFormats(Enum):
     """A connective, possibly with a quantifier."""
