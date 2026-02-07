@@ -2825,7 +2825,7 @@ inline bool checkGLErrors()
 	void           R_LocalNormalToWorld( const vec3_t local, vec3_t world );
 	void           R_LocalPointToWorld( const vec3_t local, vec3_t world );
 
-	cullResult_t   R_CullBox( vec3_t worldBounds[ 2 ] );
+	cullResult_t   R_CullBox( const vec3_t worldBounds[ 2 ], int lastPlane = FRUSTUM_NEAR );
 	cullResult_t   R_CullLocalBox( vec3_t bounds[ 2 ] );
 	cullResult_t   R_CullLocalPointAndRadius( vec3_t origin, float radius );
 	cullResult_t   R_CullPointAndRadius( vec3_t origin, float radius );

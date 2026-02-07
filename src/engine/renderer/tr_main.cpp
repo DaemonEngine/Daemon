@@ -341,7 +341,7 @@ R_CullBox
 Returns CULL_IN, CULL_CLIP, or CULL_OUT
 =================
 */
-cullResult_t R_CullBox( vec3_t worldBounds[ 2 ] )
+cullResult_t R_CullBox( const vec3_t worldBounds[ 2 ], int lastPlane )
 {
 	bool anyClip;
 	cplane_t *frust;
@@ -355,7 +355,7 @@ cullResult_t R_CullBox( vec3_t worldBounds[ 2 ] )
 	// check against frustum planes
 	anyClip = false;
 
-	for ( i = 0; i < FRUSTUM_PLANES; i++ )
+	for ( i = 0; i <= lastPlane; i++ )
 	{
 		frust = &tr.viewParms.frustum[ i ];
 
@@ -837,7 +837,7 @@ static void R_SetupFrustum()
 		MatrixAffineInverse(tr.viewParms.world.viewMatrix, invTransform);
 
 		//transform planes back to world space for culling
-		for (int i = 0; i <= FRUSTUM_NEAR; i++)
+		for (int i = 0; i < FRUSTUM_PLANES; i++)
 		{
 			plane_t plane;
 			VectorCopy(tr.viewParms.portalFrustum[i].normal, plane.normal);
@@ -881,13 +881,18 @@ static void R_SetupFrustum()
 			SetPlaneSignbits( &tr.viewParms.frustum[ i ] );
 		}
 
-		// Tr3B: set extra near plane which is required by the dynamic occlusion culling
 		tr.viewParms.frustum[ FRUSTUM_NEAR ].type = PLANE_NON_AXIAL;
 		VectorCopy( tr.viewParms.orientation.axis[ 0 ], tr.viewParms.frustum[ FRUSTUM_NEAR ].normal );
 
 		VectorMA( tr.viewParms.orientation.origin, r_znear->value, tr.viewParms.frustum[ FRUSTUM_NEAR ].normal, planeOrigin );
 		tr.viewParms.frustum[ FRUSTUM_NEAR ].dist = DotProduct( planeOrigin, tr.viewParms.frustum[ FRUSTUM_NEAR ].normal );
 		SetPlaneSignbits( &tr.viewParms.frustum[ FRUSTUM_NEAR ] );
+
+		tr.viewParms.frustum[ FRUSTUM_FAR ].type = PLANE_NON_AXIAL;
+		VectorCopy( tr.viewParms.orientation.axis[ 0 ], tr.viewParms.frustum[ FRUSTUM_FAR ].normal );
+		tr.viewParms.frustum[ FRUSTUM_FAR ].dist = tr.viewParms.zFar +
+			DotProduct( tr.viewParms.orientation.origin, tr.viewParms.frustum[ FRUSTUM_FAR ].normal );
+		SetPlaneSignbits( &tr.viewParms.frustum[ FRUSTUM_FAR ] );
 	}
 }
 
