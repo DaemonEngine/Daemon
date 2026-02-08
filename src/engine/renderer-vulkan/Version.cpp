@@ -40,3 +40,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 std::string Version::FormatVersion() const {
 	return Str::Format( "%u.%u.%u", major, minor, patch );
 }
+
+std::strong_ordering operator<=>( const Version& lhs, const Version& rhs ) {
+	std::strong_ordering cmp = lhs.major <=> rhs.major;
+
+	if ( cmp != std::strong_ordering::equal ) {
+		cmp = lhs.minor <=> rhs.minor;
+	}
+
+	if ( cmp != std::strong_ordering::equal ) {
+		cmp = lhs.patch <=> rhs.patch;
+	}
+
+	return cmp;
+}

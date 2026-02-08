@@ -48,6 +48,8 @@ struct Version {
 	std::string FormatVersion() const;
 };
 
+std::strong_ordering operator<=>( const Version& lhs, const Version& rhs );
+
 constexpr Version DAEMON_VULKAN_VERSION { 0, 1, 0 };
 
 #endif // VERSION_H
