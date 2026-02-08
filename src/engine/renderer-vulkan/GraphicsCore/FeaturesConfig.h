@@ -3,6 +3,8 @@
 #ifndef FEATURES_CONFIG_H
 #define FEATURES_CONFIG_H
 
+#include "Decls.h"
+
 struct FeaturesConfig {
 	bool pipelineBinaries;
 	bool performanceCounterQueryPools;
@@ -440,7 +442,8 @@ struct FeaturesConfig {
 
 FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice, const EngineConfig& engineCfg );
 
-VkResult       CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCallbacks* allocator,
+// Returns int rather than VkResult because we can't forward-declare an untyped enum
+int            CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCallbacks* allocator,
                                      const EngineConfig& engineCfg, const FeaturesConfig& cfg, VkDevice* device );
 
 #endif // FEATURES_CONFIG_H

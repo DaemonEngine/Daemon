@@ -652,8 +652,8 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 	return cfg;
 }
 
-VkResult CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCallbacks* allocator,
-                               const EngineConfig& engineCfg, const FeaturesConfig& cfg, VkDevice* device ) {
+int CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCallbacks* allocator,
+                          const EngineConfig& engineCfg, const FeaturesConfig& cfg, VkDevice* device ) {
 	const bool intelWorkaround = std::string( engineCfg.driverName ).find( "Intel" ) != std::string::npos;
 
 	VkPhysicalDevicePipelineBinaryFeaturesKHR featuresVkPhysicalDevicePipelineBinaryFeaturesKHR {
