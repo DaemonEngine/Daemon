@@ -134,37 +134,7 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 	return true;
 }
 
-void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config, QueuesConfig& queuesConfig,
-	const char* const* requiredExtensions, const uint32 extensionCount,
-	VkDevice* device ) {
-	VkPhysicalDeviceVulkan11Features                     features11                 {};
-	VkPhysicalDeviceVulkan12Features                     features12                 { .pNext = &features11 };
-	VkPhysicalDeviceVulkan13Features                     features13                 { .pNext = &features12 };
-	VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR  featuresComputeDerivatives { .pNext = &features13 };
-	VkPhysicalDeviceCopyMemoryIndirectFeaturesKHR        featuresIndirectMemoryCopy { .pNext = &featuresComputeDerivatives };
-	VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT   featuresPipelinelibrary    { .pNext = &featuresIndirectMemoryCopy };
-	VkPhysicalDeviceHostImageCopyFeatures                featuresHostImageCopy      { .pNext = &featuresPipelinelibrary };
-	VkPhysicalDeviceMaintenance4FeaturesKHR              featuresMaintenance4       { .pNext = &featuresHostImageCopy };
-	VkPhysicalDeviceMaintenance5FeaturesKHR              featuresMaintenance5       { .pNext = &featuresMaintenance4 };
-	VkPhysicalDeviceMaintenance6FeaturesKHR              featuresMaintenance6       { .pNext = &featuresMaintenance5 };
-	VkPhysicalDeviceMaintenance7FeaturesKHR              featuresMaintenance7       { .pNext = &featuresMaintenance6 };
-	VkPhysicalDeviceMaintenance8FeaturesKHR              featuresMaintenance8       { .pNext = &featuresMaintenance7 };
-	VkPhysicalDeviceMaintenance9FeaturesKHR              featuresMaintenance9       { .pNext = &featuresMaintenance8 };
-	// VkPhysicalDeviceMaintenance10FeaturesKHR             featuresMaintenance10      { .pNext = &featuresHostImageCopy };
-	VkPhysicalDeviceMeshShaderFeaturesEXT                featuresMeshShader         { .pNext = &featuresMaintenance9 };
-	VkPhysicalDevicePipelineBinaryFeaturesKHR            featuresPipelineBinary     { .pNext = &featuresMeshShader };
-	VkPhysicalDeviceShaderClockFeaturesKHR               featuresShaderClock        { .pNext = &featuresPipelineBinary };
-	VkPhysicalDeviceShaderQuadControlFeaturesKHR         featuresQuadControl        { .pNext = &featuresShaderClock };
-	// VkPhysicalDeviceShaderSubgroupPartitionedFeaturesEXT featuresSubgroupPart       { .pNext = &featuresQuadControl };
-	VkPhysicalDeviceShaderUntypedPointersFeaturesKHR     featuresUntypedPtr         { .pNext = &featuresQuadControl };
-	VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR     featuresSwapChainMaint     { .pNext = &featuresUntypedPtr };
-	VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR       featuresUnifiedImgLayouts  { .pNext = &featuresSwapChainMaint };
-	VkPhysicalDevicePipelineRobustnessProperties         featuresPipelineRobustness { .pNext = &featuresUnifiedImgLayouts };
-
-	VkPhysicalDeviceFeatures2                            features                   { .pNext = &featuresMaintenance9 };
-
-	vkGetPhysicalDeviceFeatures2( physicalDevice, &features );
-
+void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config, QueuesConfig& queuesConfig, VkDevice* device ) {
 	DynamicArray<VkDeviceQueueCreateInfo> queueInfos;
 	queueInfos.Resize( queuesConfig.count );
 	queueInfos.Init();
@@ -184,41 +154,18 @@ void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config,
 		queueInfo.pQueuePriorities = priorities.memory;
 	}
 
-	features.features.robustBufferAccess   = false;
-
-	features11.multiview                   = false;
-	features11.multiviewGeometryShader     = false;
-	features11.multiviewTessellationShader = false;
-	features11.protectedMemory             = false;
-	features11.samplerYcbcrConversion      = false;
-
-	features12.shaderInputAttachmentArrayDynamicIndexing          = false;
-	features12.shaderUniformTexelBufferArrayDynamicIndexing       = false;
-	features12.shaderStorageTexelBufferArrayDynamicIndexing       = false;
-	features12.shaderUniformBufferArrayNonUniformIndexing         = false;
-	features12.descriptorBindingStorageBufferUpdateAfterBind      = false;
-	features12.descriptorBindingUniformTexelBufferUpdateAfterBind = false;
-	features12.descriptorBindingStorageTexelBufferUpdateAfterBind = false;
-	features12.imagelessFramebuffer                               = false;
-	features12.separateDepthStencilLayouts                        = false;
-	features12.hostQueryReset                                     = false;
-	features12.bufferDeviceAddressCaptureReplay                   = false;
-	features12.bufferDeviceAddressMultiDevice                     = false;
-
-	features13.robustImageAccess                                  = false;
-	features13.inlineUniformBlock                                 = false;
-	features13.descriptorBindingInlineUniformBlockUpdateAfterBind = false;
-	features13.privateData                                        = false;
+	FeaturesConfig cfgF           = GetPhysicalDeviceFeatures( physicalDevice, config );
+	FeaturesConfig cfgOut;
+	DynamicArray<const char*> ext = GetCapabilityPackFeatures( ( CapabilityPackType::Type ) config.capabilityPack, cfgF, &cfgOut );
 
 	VkDeviceCreateInfo info {
-		.pNext                   = &features,
 		.queueCreateInfoCount    = queuesConfig.count,
 		.pQueueCreateInfos       = queueInfos.memory,
-		.enabledExtensionCount   = extensionCount,
-		.ppEnabledExtensionNames = requiredExtensions
+		.enabledExtensionCount   = ( uint32 ) ext.elements,
+		.ppEnabledExtensionNames = ext.memory
 	};
 
-	VkResult res = vkCreateDevice( physicalDevice, &info, nullptr, device );
+	VkResult res                  = ( VkResult ) CreatePhysicalDevice( info, nullptr, config, cfgOut, device );
 	Q_UNUSED( res );
 	Q_UNUSED( config );
 }

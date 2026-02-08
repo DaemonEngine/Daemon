@@ -43,19 +43,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CapabilityPack.h"
 
 void SetConfigFeatures( const IteratorSeq<const char* const> featuresStart, const IteratorSeq<const char* const> featuresEnd, const bool optional,
-	FeaturesConfig& cfg, std::unordered_set<std::string>& extensions ) {
+	const FeaturesConfig& cfg, FeaturesConfig* cfgOut, std::unordered_set<const char*>& extensions ) {
 	for ( IteratorSeq<const char* const> feature = featuresStart; feature < featuresEnd; feature++ ) {
 		const FeatureData& featureData = featuresConfigMap[*feature];
-		
-		bool* cfgFeature = ( bool* ) ( ( ( uint8* ) &cfg ) + featureData.offset );
+
+		bool* cfgFeature    = ( bool* ) ( ( ( uint8* ) &cfg )    + featureData.offset );
+		bool* cfgOutFeature = ( bool* ) ( ( ( uint8* )  cfgOut ) + featureData.offset );
+
 		if ( optional && !*cfgFeature ) {
 			continue;
 		}
 
-		*cfgFeature = true;
+		*cfgOutFeature = true;
 
-		if ( featureData.extension != "" ) {
-			extensions.insert( featureData.extension );
+		if ( featureData.version > Version { 1, 4, 0 } && !extensions.contains( featureData.extension.c_str() ) ) {
+			extensions.insert( featureData.extension.c_str() );
 		}
 	}
 }
@@ -87,31 +89,43 @@ CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig&
 	return CapabilityPackType::NONE;
 }
 
-DynamicArray<std::string> GetCapabilityPackFeatures( const CapabilityPackType::Type type, FeaturesConfig& cfg ) {
-	std::unordered_set<std::string> extensionsSet;
+void AddRequiredExtensions( const IteratorSeq<const char* const> extensionsStart, const IteratorSeq<const char* const> extensionsEnd,
+	std::unordered_set<const char*>& extensions ) {
+	for ( IteratorSeq<const char* const> extension = extensionsStart; extension < extensionsEnd; extension++ ) {
+		if ( !extensions.contains( *extension ) ) {
+			extensions.insert( *extension );
+		}
+	}
+}
+
+DynamicArray<const char*> GetCapabilityPackFeatures( const CapabilityPackType::Type type, const FeaturesConfig& cfg, FeaturesConfig* cfgOut ) {
+	std::unordered_set<const char*> extensionsSet;
+
+	memset( cfgOut, 0, sizeof( FeaturesConfig ) );
 
 	switch ( type ) {
 		case CapabilityPackType::MINIMAL:
-			SetConfigFeatures(      featuresMinimal.begin(),      featuresMinimal.end(), false, cfg, extensionsSet );
-			break;
+			SetConfigFeatures(      featuresMinimal.begin(),      featuresMinimal.end(), false, cfg, cfgOut, extensionsSet );
+			AddRequiredExtensions( extensionsMinimal.begin(), extensionsMinimal.end(), extensionsSet );
 		case CapabilityPackType::RECOMMENDED:
-			SetConfigFeatures(  featuresRecommended.begin(),  featuresRecommended.end(), false, cfg, extensionsSet );
-			break;
+			SetConfigFeatures(  featuresRecommended.begin(),  featuresRecommended.end(), false, cfg, cfgOut, extensionsSet );
+			AddRequiredExtensions( extensionsMinimal.begin(), extensionsMinimal.end(), extensionsSet );
 		case CapabilityPackType::EXPERIMENTAL:
-			SetConfigFeatures( featuresExperimental.begin(), featuresExperimental.end(), false, cfg, extensionsSet );
+			SetConfigFeatures( featuresExperimental.begin(), featuresExperimental.end(), false, cfg, cfgOut, extensionsSet );
+			AddRequiredExtensions( extensionsMinimal.begin(), extensionsMinimal.end(), extensionsSet );
 			break;
 		case CapabilityPackType::NONE:
 		default:
 			break;
 	}
 
-	SetConfigFeatures( featuresOptional.begin(), featuresOptional.end(), true, cfg, extensionsSet );
+	SetConfigFeatures( featuresOptional.begin(), featuresOptional.end(), true, cfg, cfgOut, extensionsSet );
 
-	DynamicArray<std::string> extensions;
+	DynamicArray<const char*> extensions;
 	extensions.Resize( extensionsSet.size() );
 	extensions.Init();
 
-	for ( const std::string& extension : extensionsSet ) {
+	for ( const char* extension : extensionsSet ) {
 		extensions.Push( extension );
 	}
 

@@ -118,8 +118,7 @@ void Instance::Init( const char* engineName, const char* appName ) {
 
 	queuesConfig = GetQueuesConfigForDevice( physicalDevice );
 
-	CreateDevice( physicalDevice, engineConfig, queuesConfig,
-		capabilityPackMinimal.requiredExtensions.memory, capabilityPackMinimal.requiredExtensions.size, &device );
+	CreateDevice( physicalDevice, engineConfig, queuesConfig, &device );
 
 	VulkanLoadDeviceFunctions( device );
 

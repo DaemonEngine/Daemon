@@ -81,8 +81,6 @@ constexpr Array instanceExtensions {
 };
 
 constexpr Array extensionsMinimal {
-	"VK_EXT_descriptor_indexing",
-	//"VK_EXT_swapchain_maintenance1",
 	"VK_KHR_swapchain",
 	#ifdef _MSC_VER
 		"VK_EXT_full_screen_exclusive"
@@ -90,7 +88,88 @@ constexpr Array extensionsMinimal {
 };
 
 constexpr Array featuresMinimal {
-	"fullDrawIndexUint32"
+	"drawIndirectFirstInstance",
+	"dualSrcBlend",
+	"fragmentStoresAndAtomics",
+	"fullDrawIndexUint32",
+	"imageCubeArray",
+	"independentBlend",
+	"multiDrawIndirect",
+	"multiViewport",
+	"samplerAnisotropy",
+	"shaderClipDistance",
+	"shaderCullDistance",
+	"shaderImageGatherExtended",
+	"shaderInt16",
+	"shaderInt64",
+	"shaderSampledImageArrayDynamicIndexing",
+	"shaderStorageImageArrayDynamicIndexing",
+	"shaderStorageImageExtendedFormats",
+	"shaderStorageImageWriteWithoutFormat",
+	"textureCompressionBC",
+	"vertexPipelineStoresAndAtomics",
+	"wideLines",
+	"storageBuffer16BitAccess",
+	"variablePointersStorageBuffer",
+	"variablePointers",
+	"shaderDrawParameters",
+	"bufferDeviceAddress",
+	"bufferDeviceAddressCaptureReplay",
+	"descriptorBindingPartiallyBound",
+	"descriptorBindingSampledImageUpdateAfterBind",
+	"descriptorBindingStorageImageUpdateAfterBind",
+	"descriptorBindingUpdateUnusedWhilePending",
+	"descriptorIndexing",
+	"drawIndirectCount",
+	"runtimeDescriptorArray",
+	"samplerFilterMinmax",
+	"samplerMirrorClampToEdge",
+	"scalarBlockLayout",
+	"shaderBufferInt64Atomics",
+	"shaderFloat16",
+	"shaderInt8",
+	"shaderOutputLayer",
+	"shaderOutputViewportIndex",
+	"shaderSampledImageArrayNonUniformIndexing",
+	"shaderStorageImageArrayNonUniformIndexing",
+	"shaderSubgroupExtendedTypes",
+	"storageBuffer8BitAccess",
+	"subgroupBroadcastDynamicId",
+	"timelineSemaphore",
+	"uniformBufferStandardLayout",
+	"vulkanMemoryModel",
+	"vulkanMemoryModelAvailabilityVisibilityChains",
+	"computeFullSubgroups",
+	"dynamicRendering",
+	"maintenance4",
+	"pipelineCreationCacheControl",
+	"shaderDemoteToHelperInvocation",
+	"shaderIntegerDotProduct",
+	"shaderTerminateInvocation",
+	"shaderZeroInitializeWorkgroupMemory",
+	"subgroupSizeControl",
+	"synchronization2",
+	"maintenance5",
+	"maintenance6",
+	"formatA4R4G4B4",
+	"dynamicRenderingUnusedAttachments",
+	"extendedDynamicState",
+	"minLod",
+	"indexTypeUint8",
+	"primitivesGeneratedQuery",
+	"shaderBufferFloat32Atomics",
+	"shaderImageFloat32Atomics",
+	"shaderBufferInt64Atomics",
+	"shaderSubgroupClock",
+	"shaderExpectAssume",
+	"shaderFloatControls2",
+	"shaderMaximalReconvergence",
+	"shaderQuadControl",
+	"shaderSubgroupRotate",
+	"shaderSubgroupUniformControlFlow",
+	"workgroupMemoryExplicitLayout",
+	"workgroupMemoryExplicitLayout16BitAccess",
+	"workgroupMemoryExplicitLayoutScalarBlockLayout"
 };
 
 constexpr Array featuresRecommended {
@@ -106,14 +185,14 @@ constexpr Array featuresOptional {
 	"descriptorHeap"
 };
 
-constexpr bool EngineConfigSupportedMinimal( const EngineConfig& config );
+constexpr bool            EngineConfigSupportedMinimal( const EngineConfig& config );
 
-CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig& config );
+CapabilityPackType::Type  GetHighestSuppportedCapabilityPack( const EngineConfig& config );
 
-DynamicArray<std::string> GetCapabilityPackFeatures( const CapabilityPackType::Type type, FeaturesConfig& cfg );
+DynamicArray<const char*> GetCapabilityPackFeatures( const CapabilityPackType::Type type, const FeaturesConfig& cfg, FeaturesConfig* cfgOut );
 
 constexpr CapabilityPack<instanceExtensions.Size(), extensionsMinimal.Size(), featuresMinimal.Size()> capabilityPackMinimal {
-	.minVersion                   { 1, 3, 0 },
+	.minVersion                   { 1, 4, 0 },
 	.requiredInstanceExtensions = instanceExtensions,
 	.requiredExtensions         = extensionsMinimal,
 	.requiredFeatures           = featuresMinimal
