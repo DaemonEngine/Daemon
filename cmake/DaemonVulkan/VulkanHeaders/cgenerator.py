@@ -12,6 +12,8 @@ from generator import (GeneratorOptions,
                        MissingGeneratorOptionsError, MissingRegistryError,
                        OutputGenerator, noneStr, write)
 
+import Globals
+
 class CGeneratorOptions(GeneratorOptions):
     """CGeneratorOptions - subclass of GeneratorOptions.
 
@@ -440,8 +442,45 @@ class COutputGenerator(OutputGenerator):
         typeElem = typeinfo.elem
         body = self.deprecationComment(typeElem)
 
+        feature = "Features" in typeName
+        
+        featureSuffixPref = {
+            ""    : 0,
+            "EXT" : 1,
+            "KHR" : 2
+        }
+
+        if typeName in Globals.vendorFeatures:
+            del Globals.vendorFeatures[typeName]
+
+        if alias in Globals.vendorFeatures:
+            del Globals.vendorFeatures[alias]
+
+        vendorFeature = False
+        if feature and not alias and not typeName.endswith( "Features" ):
+            vendorFeature = True
+
         if alias:
             body += f"typedef {alias} {typeName};\n"
+
+            if feature:
+                typeNamePref = featureSuffixPref.get( typeName.split( "Features", 1 )[1], 1000 )
+                aliasPref    = featureSuffixPref.get( alias.split( "Features", 1 )[1],    1000 )
+
+                if typeName in Globals.featureStructsSkip:
+                    typeNamePref = 0
+                elif alias in Globals.featureStructsSkip:
+                    aliasPref = 0
+
+                lowerPref  = typeName if typeNamePref < aliasPref else alias
+                higherPref = typeName if typeNamePref >= aliasPref else alias
+
+                if lowerPref not in Globals.allFeatures:
+                    if higherPref in Globals.allFeatures:
+                        Globals.allFeatures[lowerPref] = Globals.allFeatures[higherPref]
+                        del Globals.allFeatures[higherPref]
+                    else:
+                        Globals.coreFeatures[lowerPref] = higherPref
         else:
             (protect_begin, protect_end) = self.genProtectString(typeElem.get('protect'))
             if protect_begin:
@@ -462,13 +501,36 @@ class COutputGenerator(OutputGenerator):
             body += f" {typeName} {{\n"
 
             targetLen = self.getMaxCParamTypeLength(typeinfo)
+            features = []
             for member in typeElem.findall('.//member'):
                 body += self.deprecationComment(member, indent = 4)
-                body += self.makeCParamDecl(member, targetLen + 4)
+                paramDecl, featureOut = self.makeCParamDecl( member, targetLen + 4, feature )
+
+                if feature and featureOut:
+                    features.append( featureOut )
+                
+                body += paramDecl
                 body += ';\n'
             body += f"}} {typeName};\n"
             if protect_end:
                 body += protect_end
+            
+            if feature:
+                if typeName in Globals.coreFeatures:
+                    Globals.allFeatures[Globals.coreFeatures[typeName]] = features
+                else:
+                    if vendorFeature:
+                        baseName = typeName.split( "Features", 1 )[0] + "Features"
+                        if not baseName in Globals.vendorFeatures:
+                            Globals.vendorFeatures[baseName] = {
+                                "suffixes" : [],
+                                "features" : []
+                            }
+                        
+                        Globals.vendorFeatures[baseName]["suffixes"].append( typeName.split( "Features", 1 )[1] )
+                        Globals.vendorFeatures[baseName]["features"] = features
+                    
+                    Globals.allFeatures[typeName] = features
 
         self.appendSection('struct', body)
 

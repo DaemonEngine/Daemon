@@ -999,7 +999,7 @@ class OutputGenerator:
 
         return f'({self.genOpts.apientryp}{prefix}{name}{tail})'
 
-    def makeCParamDecl(self, param, aligncol):
+    def makeCParamDecl(self, param, aligncol, feature = False):
         """Return a string which is an indented, formatted
         declaration for a `<param>` or `<member>` block (e.g. function parameter
         or structure/union member).
@@ -1015,9 +1015,18 @@ class OutputGenerator:
         paramdecl = indent
         prefix = noneStr(param.text)
 
+        featureOut = ""
+        lastType   = ""
+
         for elem in param:
             text = noneStr(elem.text)
             tail = noneStr(elem.tail)
+
+            if elem.tag == "type":
+                lastType = text
+            
+            if feature and elem.tag == "name" and not ( text == "sType" or text == "pNext" ) and lastType == "VkBool32":
+                featureOut = text
 
             if text == "sType":
                 sType = param.get( "values" )
@@ -1057,7 +1066,8 @@ class OutputGenerator:
         if aligncol == 0:
             # Squeeze out multiple spaces other than the indentation
             paramdecl = indent + ' '.join(paramdecl.split())
-        return paramdecl
+        
+        return paramdecl, featureOut
 
     def getCParamTypeLength(self, param):
         """Return the length of the type field is an indented, formatted
@@ -1319,7 +1329,7 @@ class OutputGenerator:
         # Indented parameters
         if n > 0:
             indentdecl = '(\n'
-            indentdecl += ',\n'.join(self.makeCParamDecl(p, self.genOpts.alignFuncParam)
+            indentdecl += ',\n'.join(self.makeCParamDecl(p, self.genOpts.alignFuncParam)[0]
                                      for p in params)
             indentdecl += ');'
         else:
