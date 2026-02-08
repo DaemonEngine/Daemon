@@ -33,7 +33,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // CapabilityPack.cpp
 
+#include <unordered_set>
+
+#include "../Memory/DynamicArray.h"
+
+#include "FeaturesConfig.h"
+#include "FeaturesConfigMap.h"
+
 #include "CapabilityPack.h"
+
+void SetConfigFeatures( const IteratorSeq<const char* const> featuresStart, const IteratorSeq<const char* const> featuresEnd, const bool optional,
+	FeaturesConfig& cfg, std::unordered_set<std::string>& extensions ) {
+	for ( IteratorSeq<const char* const> feature = featuresStart; feature < featuresEnd; feature++ ) {
+		const FeatureData& featureData = featuresConfigMap[*feature];
+		
+		bool* cfgFeature = ( bool* ) ( ( ( uint8* ) &cfg ) + featureData.offset );
+		if ( optional && !*cfgFeature ) {
+			continue;
+		}
+
+		*cfgFeature = true;
+
+		if ( featureData.extension != "" ) {
+			extensions.insert( featureData.extension );
+		}
+	}
+}
 
 constexpr bool EngineConfigSupportedMinimal( const EngineConfig& config ) {
 	const bool ret =
@@ -60,4 +85,35 @@ CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig&
 	}
 
 	return CapabilityPackType::NONE;
+}
+
+DynamicArray<std::string> GetCapabilityPackFeatures( const CapabilityPackType::Type type, FeaturesConfig& cfg ) {
+	std::unordered_set<std::string> extensionsSet;
+
+	switch ( type ) {
+		case CapabilityPackType::MINIMAL:
+			SetConfigFeatures(      featuresMinimal.begin(),      featuresMinimal.end(), false, cfg, extensionsSet );
+			break;
+		case CapabilityPackType::RECOMMENDED:
+			SetConfigFeatures(  featuresRecommended.begin(),  featuresRecommended.end(), false, cfg, extensionsSet );
+			break;
+		case CapabilityPackType::EXPERIMENTAL:
+			SetConfigFeatures( featuresExperimental.begin(), featuresExperimental.end(), false, cfg, extensionsSet );
+			break;
+		case CapabilityPackType::NONE:
+		default:
+			break;
+	}
+
+	SetConfigFeatures( featuresOptional.begin(), featuresOptional.end(), true, cfg, extensionsSet );
+
+	DynamicArray<std::string> extensions;
+	extensions.Resize( extensionsSet.size() );
+	extensions.Init();
+
+	for ( const std::string& extension : extensionsSet ) {
+		extensions.Push( extension );
+	}
+
+	return extensions;
 }

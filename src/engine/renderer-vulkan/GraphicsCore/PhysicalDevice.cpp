@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // PhysicalDevice.cpp
 
+#include "Vulkan.h"
+
 #include "../Math/NumberTypes.h"
 #include "../Memory/Array.h"
 #include "../Memory/DynamicArray.h"
@@ -45,6 +47,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CapabilityPack.h"
 
 #include "PhysicalDevice.h"
+
+#include "FeaturesConfig.h"
 
 static void PrintDeviceInfo( const EngineConfig& config ) {
 	static const char* deviceTypes[] = {
@@ -192,11 +196,6 @@ void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config,
 	features12.shaderUniformTexelBufferArrayDynamicIndexing       = false;
 	features12.shaderStorageTexelBufferArrayDynamicIndexing       = false;
 	features12.shaderUniformBufferArrayNonUniformIndexing         = false;
-	features12.shaderStorageBufferArrayNonUniformIndexing         = false;
-	features12.shaderInputAttachmentArrayNonUniformIndexing       = false;
-	features12.shaderUniformTexelBufferArrayNonUniformIndexing    = false;
-	features12.shaderStorageTexelBufferArrayNonUniformIndexing    = false;
-	features12.descriptorBindingUniformBufferUpdateAfterBind      = false;
 	features12.descriptorBindingStorageBufferUpdateAfterBind      = false;
 	features12.descriptorBindingUniformTexelBufferUpdateAfterBind = false;
 	features12.descriptorBindingStorageTexelBufferUpdateAfterBind = false;

@@ -36,15 +36,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef CAPABILITY_PACK_H
 #define CAPABILITY_PACK_H
 
-#include <SDL3/SDL_vulkan.h>
-
 #include "engine/qcommon/q_shared.h"
-
-#include "Vulkan.h"
 
 #include "../Math/NumberTypes.h"
 #include "../Version.h"
 #include "../Memory/Array.h"
+#include "../Memory/DynamicArray.h"
+
+#include "Vulkan.h"
+
+#include "Decls.h"
 
 #include "EngineConfig.h"
 
@@ -81,6 +82,7 @@ constexpr Array instanceExtensions {
 
 constexpr Array extensionsMinimal {
 	"VK_EXT_descriptor_indexing",
+	//"VK_EXT_swapchain_maintenance1",
 	"VK_KHR_swapchain",
 	#ifdef _MSC_VER
 		"VK_EXT_full_screen_exclusive"
@@ -88,12 +90,27 @@ constexpr Array extensionsMinimal {
 };
 
 constexpr Array featuresMinimal {
-	"VK_EXT_descriptor_indexing"
+	"fullDrawIndexUint32"
+};
+
+constexpr Array featuresRecommended {
+	"fullDrawIndexUint32"
+};
+
+constexpr Array featuresExperimental {
+	"fullDrawIndexUint32"
+};
+
+constexpr Array featuresOptional {
+	"swapchainMaintenance1",
+	"descriptorHeap"
 };
 
 constexpr bool EngineConfigSupportedMinimal( const EngineConfig& config );
 
 CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig& config );
+
+DynamicArray<std::string> GetCapabilityPackFeatures( const CapabilityPackType::Type type, FeaturesConfig& cfg );
 
 constexpr CapabilityPack<instanceExtensions.Size(), extensionsMinimal.Size(), featuresMinimal.Size()> capabilityPackMinimal {
 	.minVersion                   { 1, 3, 0 },
