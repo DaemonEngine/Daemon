@@ -46,6 +46,7 @@ std::string GetGLHardwareVendorName( glHardwareVendor_t hardwareVendor )
 		"Broadcom",
 		"Intel",
 		"Nvidia",
+		"Moore Threads",
 		"OutOfRange",
 	};
 
@@ -71,6 +72,7 @@ std::string GetGLDriverVendorName( glDriverVendor_t driverVendor )
 		"Intel",
 		"Mesa",
 		"Nvidia",
+		"Moore Threads",
 		"OutOfRange",
 	};
 
@@ -121,6 +123,8 @@ void DetectGLVendors(
 		{ "nouveau", { glDriverVendor_t::MESA, glHardwareVendor_t::NVIDIA } },
 		// Proprietary Nvidia drivers on all systems like Linux, Windows, and macOS.
 		{ "NVIDIA Corporation", { glDriverVendor_t::NVIDIA, glHardwareVendor_t::NVIDIA } },
+		// Moore Threads drivers on Linux and Windows.
+		{ "Moore Threads", { glDriverVendor_t::MTHREADS, glHardwareVendor_t::MTHREADS } },
 	};
 
 	auto it = vendorDriverHardware.find( vendorString );
