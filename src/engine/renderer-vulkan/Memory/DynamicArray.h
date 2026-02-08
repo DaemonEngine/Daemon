@@ -86,44 +86,58 @@ class DynamicArray :
 		}
 	}
 
-	DynamicArray( const DynamicArray& other ) {
-		allocator = other.allocator;
-		highestID = other.highestID;
-
-		Resize( other.elements );
-
-		if ( elements ) {
-			if constexpr ( std::is_trivially_copy_constructible<T>() ) {
-				memcpy( memory, other.memory, size );
-			} else {
-				for ( T* current = other.memory, *newMem = memory; current < other.memory + elements; current++, newMem++ ) {
-					*newMem = *current;
-				}
-			}
-		}
+	DynamicArray( const DynamicArray<T>& other ) {
+		( *this ) = other;
 	}
 
-	DynamicArray( DynamicArray&& other ) {
-		allocator = other.allocator;
-		highestID = other.highestID;
+	DynamicArray( DynamicArray<T>&& other ) {
+		( *this ) = other;
 
-		Resize( other.elements );
-
-		if ( elements ) {
-			if constexpr ( std::is_trivially_copy_constructible<T>() ) {
-				memcpy( memory, other.memory, size );
-			} else {
-				for ( T* current = other.memory, *newMem = memory; current < other.memory + elements; current++, newMem++ ) {
-					*newMem = *current;
-				}
-			}
-
-			other.Resize( 0 );
-		}
+		other.Resize( 0 );
 	}
 
 	~DynamicArray() {
 		Resize( 0 );
+	}
+
+	DynamicArray<T>& operator=( const DynamicArray<T>& other ) {
+		allocator = other.allocator;
+		highestID = other.highestID;
+
+		Resize( other.elements );
+
+		if ( elements ) {
+			if constexpr ( std::is_trivially_copy_constructible<T>() ) {
+				memcpy( memory, other.memory, size );
+			} else {
+				for ( T* current = other.memory, *newMem = memory; current < other.memory + elements; current++, newMem++ ) {
+					*newMem = *current;
+				}
+			}
+		}
+
+		return *this;
+	}
+
+	DynamicArray<T>& operator=( DynamicArray<T>&& other ) {
+		allocator = other.allocator;
+		highestID = other.highestID;
+
+		Resize( other.elements );
+
+		if ( elements ) {
+			if constexpr ( std::is_trivially_copy_constructible<T>() ) {
+				memcpy( memory, other.memory, size );
+			} else {
+				for ( T* current = other.memory, *newMem = memory; current < other.memory + elements; current++, newMem++ ) {
+					*newMem = *current;
+				}
+			}
+		}
+
+		other.Resize( 0 );
+
+		return *this;
 	}
 
 	void Resize( const uint64 newElements ) {
