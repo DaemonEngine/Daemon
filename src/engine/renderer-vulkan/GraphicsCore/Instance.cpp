@@ -65,7 +65,7 @@ void Instance::Init( const char* engineName, const char* appName ) {
 		.applicationVersion = 0,
 		.pEngineName        = engineName,
 		.engineVersion      = 0,
-		.apiVersion         = VK_MAKE_API_VERSION( 0, 1, 3, 0 )
+		.apiVersion         = VK_MAKE_API_VERSION( 0, 1, 4, 0 )
 	};
 
 	uint32 count;
