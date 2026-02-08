@@ -71,6 +71,14 @@ struct Array {
 	constexpr IteratorSeq<T> end() {
 		return IteratorSeq<T>{ &memory[size] };
 	}
+
+	constexpr IteratorSeq<const T> begin() const {
+		return IteratorSeq<const T>{ &memory[0] };
+	}
+
+	constexpr IteratorSeq<const T> end() const {
+		return IteratorSeq<const T>{ &memory[size] };
+	}
 };
 
 // template<typename T>
