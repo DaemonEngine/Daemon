@@ -117,10 +117,10 @@ void DetectGLVendors(
 		// Mesa Panfrost, newer Panfrost uses "Mesa" instead.
 		{ "Panfrost", { glDriverVendor_t::MESA, glHardwareVendor_t::ARM } },
 		// Mesa Nvidia for supported OpenGL 2+ hardware.
+		// Mesa Amber also provides "Nouveau", but this is for unsupported pre-OpenGL 2 Nvidia.
 		{ "nouveau", { glDriverVendor_t::MESA, glHardwareVendor_t::NVIDIA } },
 		// Proprietary Nvidia drivers on all systems like Linux, Windows, and macOS.
 		{ "NVIDIA Corporation", { glDriverVendor_t::NVIDIA, glHardwareVendor_t::NVIDIA } },
-		// Mesa Amber also provides "Nouveau", but this is for unsupported pre-OpenGL 2 Nvidia.
 	};
 
 	auto it = vendorDriverHardware.find( vendorString );
