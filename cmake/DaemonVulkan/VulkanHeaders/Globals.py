@@ -7,13 +7,12 @@ def init():
     global functionLoadInstanceText
     global functionLoadDeviceText
     global allFeatures
-    global coreFeatures
-
-    global featureStructsSkip
 
     global vendorFeatures
 
     global currentVersionExtension
+
+    global duplicatedFeatures
     
     headerText               = ""
     functionDefinitionsText  = ""
@@ -21,36 +20,17 @@ def init():
     functionLoadInstanceText = ""
     functionLoadDeviceText   = ""
     allFeatures              = {}
-    coreFeatures             = {}
 
     vendorFeatures           = {}
 
     currentVersionExtension  = ""
 
-    featureStructsSkip = [
-        "VkPhysicalDeviceFeatures",
-        "VkPhysicalDeviceVulkan11Features",
-        "VkPhysicalDeviceVulkan12Features",
-        "VkPhysicalDeviceVulkan13Features",
-        "VkPhysicalDeviceVulkan14Features"
-    ]
+    duplicatedFeatures       = {}
 
-def SkipFeatures( featureStructs, skip ):
-    skipFeatures = []
-
-    for skipStruct in skip:
-        if skipStruct in featureStructs:
-            for feature in featureStructs[skipStruct][1]:
-                skipFeatures.append( feature )
-    
-    return skipFeatures
-
-def ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, featureType, features, skipFeatures, suffixedFeatures,
+def ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, featureType, features, suffixedFeatures,
                           prev = "", extraFeature = "", extraDeviceFeature = "",
                           skipCreate = False, skipGet = False, skipCfg = False, skipCreateDevice = False, intelWorkaround = False ):
-    f = [k for k in features[1] if k not in skipFeatures]
-
-    if len( f ) == 0:
+    if len( features[1] ) == 0:
         return outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, prev, True
 
     getStruct          = ""
@@ -95,8 +75,19 @@ def ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, outFeature
         if not skipCreateDevice:
             createDeviceFeatures += "\t\t."          + feature + " = cfg." + suffixedFeature + ",\n"
         
-        ext            = features[0] if features[0] not in ( "VK_VERSION_1_0", "VK_VERSION_1_1", "VK_VERSION_1_2", "VK_VERSION_1_3", "VK_VERSION_1_4" ) else ""
-        outFeatureMap += "\t{ \"" + suffixedFeature + "\", { offsetof( FeaturesConfig, " + suffixedFeature + " ),\"" + ext + "\" } },\n"
+        ext            = features[0] if features[0] not in ( "VK_VERSION_1_0", "VK_VERSION_1_1", "VK_VERSION_1_2", "VK_VERSION_1_3" ) else features[0]
+        
+        featureVersionToVersion = {
+            "VK_VERSION_1_0" : "{ 1, 0, 0 }",
+            "VK_VERSION_1_1" : "{ 1, 1, 0 }",
+            "VK_VERSION_1_2" : "{ 1, 2, 0 }",
+            "VK_VERSION_1_3" : "{ 1, 3, 0 }",
+            "VK_VERSION_1_4" : "{ 1, 4, 0 }",
+        }
+
+        version        = featureVersionToVersion.get( features[0], "{ 1000, 1000, 1000 }" )
+
+        outFeatureMap += "\t{ \"" + suffixedFeature + "\", { offsetof( FeaturesConfig, " + suffixedFeature + " ), " + version + ", \"" + ext + "\" } },\n"
     
     if not skipCreateDevice:
         createDeviceFeatures = createDeviceFeatures.rstrip( "," )
@@ -122,8 +113,53 @@ def ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice, outCf
         if len( v["suffixes"] ) > 1:
             for suffix in v["suffixes"]:
                 suffixedFeatures[k + suffix] = suffix
+                
+    global allFeatures
 
-    skipFeatures = SkipFeatures( allFeatures, featureStructsSkip )
+    useVulkan14 = True
+
+    if useVulkan14:
+        coreVersions       = ( "VK_VERSION_1_0", "VK_VERSION_1_1", "VK_VERSION_1_2", "VK_VERSION_1_3", "VK_VERSION_1_4" )
+        coreFeatureStructs = ( "VkPhysicalDeviceVulkan11Features", "VkPhysicalDeviceVulkan12Features", "VkPhysicalDeviceVulkan13Features", "VkPhysicalDeviceVulkan14Features" )
+    else:
+        coreVersions       = ( "VK_VERSION_1_0", "VK_VERSION_1_1", "VK_VERSION_1_2", "VK_VERSION_1_3" )
+        coreFeatureStructs = ( "VkPhysicalDeviceVulkan11Features", "VkPhysicalDeviceVulkan12Features", "VkPhysicalDeviceVulkan13Features" )
+
+    for k, v in sorted( allFeatures.items() ):
+        for feature in v[1]:
+            if feature == "maintenance5":
+                print( k, feature, duplicatedFeatures.get( feature ) )
+            if feature in duplicatedFeatures:
+                if k in coreFeatureStructs:
+                    duplicatedFeatures[feature] = [v[0], k]
+
+                if duplicatedFeatures[feature][0] in coreVersions:
+                    continue
+
+                if v[0] in coreVersions:
+                    duplicatedFeatures[feature] = [v[0], k]
+                    continue
+            else:
+                duplicatedFeatures[feature] = [v[0], k]
+                
+    processedFeatures = {}
+    if "VkPhysicalDeviceFeatures2" in allFeatures:
+        processedFeatures["VkPhysicalDeviceFeatures2"] = allFeatures["VkPhysicalDeviceFeatures2"]
+    
+    for k, v in allFeatures.items():
+        for feature in v[1]:
+            if duplicatedFeatures[feature][0] == v[0] and duplicatedFeatures[feature][1] == k:
+                featureVersionToStruct = {
+                    "VK_VERSION_1_0" : "VkPhysicalDeviceFeatures",
+                    "VK_VERSION_1_1" : "VkPhysicalDeviceVulkan11Features",
+                    "VK_VERSION_1_2" : "VkPhysicalDeviceVulkan12Features",
+                    "VK_VERSION_1_3" : "VkPhysicalDeviceVulkan13Features",
+                    "VK_VERSION_1_4" : "VkPhysicalDeviceVulkan14Features",
+                }
+
+                processedFeatures[featureVersionToStruct.get( k, k )] = v
+    
+    allFeatures = processedFeatures
 
     if os.path.exists( "prev" ):
         with open( "prev", mode = "r", encoding = "utf-8", newline = "\n" ) as prevIn:
@@ -136,7 +172,7 @@ def ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice, outCf
         outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, prev, unused               = ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, outFeatureMap,
                                                                                    "VkPhysicalDevicePipelineBinaryFeaturesKHR",
                                                                                    allFeatures["VkPhysicalDevicePipelineBinaryFeaturesKHR"],
-                                                                                   skipFeatures, suffixedFeatures, prev )
+                                                                                   suffixedFeatures, prev )
         del allFeatures["VkPhysicalDevicePipelineBinaryFeaturesKHR"]
         useIntelWorkaround = True
     
@@ -145,7 +181,7 @@ def ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice, outCf
             continue
         
         outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, prev, useIntelWorkaround   = ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, outFeatureMap,
-                                                                                   featureType, features, skipFeatures, suffixedFeatures, prev,
+                                                                                   featureType, features, suffixedFeatures, prev,
                                                                                    intelWorkaround = useIntelWorkaround )
     
     outCfgH.write( outCfg )
@@ -160,13 +196,13 @@ def ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice, outCf
     if "VkPhysicalDeviceFeatures" in allFeatures and "VkPhysicalDeviceFeatures2" in allFeatures:
         outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, unused, unused2            = ProcessFeatureStruct( "", "", "", "", "",
                                                                                    "VkPhysicalDeviceFeatures",
-                                                                                   allFeatures["VkPhysicalDeviceFeatures"], [], {},
+                                                                                   allFeatures["VkPhysicalDeviceFeatures"], {},
                                                                                    skipGet = True, skipCfg = True, skipCreateDevice = True,
                                                                                    extraFeature = "featuresVkPhysicalDeviceFeatures2.features" )
 
         outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, prev, unused               = ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, outFeatureMap,
                                                                                    "VkPhysicalDeviceFeatures2",
-                                                                                   allFeatures["VkPhysicalDeviceFeatures"], [], {},
+                                                                                   allFeatures["VkPhysicalDeviceFeatures"], {},
                                                                                    prev,
                                                                                    skipCreate = True, extraDeviceFeature = "VkPhysicalDeviceFeatures",
                                                                                    extraFeature = "featuresVkPhysicalDeviceFeatures2.features" )

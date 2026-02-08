@@ -449,9 +449,9 @@ class COutputGenerator(OutputGenerator):
             "Vulkan12" : 0,
             "Vulkan13" : 0,
             "Vulkan14" : 0,
-            ""         : 0,
-            "EXT"      : 1,
-            "KHR"      : 2
+            ""         : 1,
+            "EXT"      : 2,
+            "KHR"      : 3
         }
 
         if typeName in Globals.vendorFeatures:
@@ -468,23 +468,10 @@ class COutputGenerator(OutputGenerator):
             body += f"typedef {alias} {typeName};\n"
 
             if feature:
-                typeNamePref = featureSuffixPref.get( typeName.split( "Features", 1 )[1], 1000 )
-                aliasPref    = featureSuffixPref.get(    alias.split( "Features", 1 )[1], 1000 )
-
-                if typeName in Globals.featureStructsSkip:
-                    typeNamePref = 0
-                elif alias in Globals.featureStructsSkip:
-                    aliasPref    = 0
-
-                lowerPref  = typeName if typeNamePref < aliasPref else alias
-                higherPref = typeName if typeNamePref >= aliasPref else alias
-
-                if lowerPref not in Globals.allFeatures:
-                    if higherPref in Globals.allFeatures:
-                        Globals.allFeatures[lowerPref] = Globals.allFeatures[higherPref]
-                        del Globals.allFeatures[higherPref]
-                    else:
-                        Globals.coreFeatures[lowerPref] = higherPref
+                if typeName in Globals.allFeatures:
+                    Globals.allFeatures[alias]    = [Globals.currentVersionExtension, Globals.allFeatures[typeName][1]]
+                elif alias in Globals.allFeatures:
+                    Globals.allFeatures[typeName] = [Globals.currentVersionExtension, Globals.allFeatures[alias][1]]
         else:
             (protect_begin, protect_end) = self.genProtectString(typeElem.get('protect'))
             if protect_begin:
@@ -520,21 +507,18 @@ class COutputGenerator(OutputGenerator):
                 body += protect_end
             
             if feature:
-                if typeName in Globals.coreFeatures:
-                    Globals.allFeatures[Globals.coreFeatures[typeName]] = [Globals.currentVersionExtension, features]
-                else:
-                    if vendorFeature:
-                        baseName = typeName.split( "Features", 1 )[0] + "Features"
-                        if not baseName in Globals.vendorFeatures:
-                            Globals.vendorFeatures[baseName] = {
-                                "suffixes" : [],
-                                "features" : []
-                            }
-                        
-                        Globals.vendorFeatures[baseName]["suffixes"].append( typeName.split( "Features", 1 )[1] )
-                        Globals.vendorFeatures[baseName]["features"] = features
+                if vendorFeature:
+                    baseName = typeName.split( "Features", 1 )[0] + "Features"
+                    if not baseName in Globals.vendorFeatures:
+                        Globals.vendorFeatures[baseName] = {
+                            "suffixes" : [],
+                            "features" : []
+                        }
                     
-                    Globals.allFeatures[typeName] = [Globals.currentVersionExtension, features]
+                    Globals.vendorFeatures[baseName]["suffixes"].append( typeName.split( "Features", 1 )[1] )
+                    Globals.vendorFeatures[baseName]["features"] = features
+                
+                Globals.allFeatures[typeName] = [Globals.currentVersionExtension, features]
 
         self.appendSection('struct', body)
 
