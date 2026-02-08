@@ -17,7 +17,7 @@
 	</Type>
 
 	<Type Name="DynamicArray&lt;*&gt;">
-		<DisplayString>{{ elementCount={elements}, highestUsed={highestUsed} }}</DisplayString>
+		<DisplayString>{{ elementCount={elements}, highestID={highestID} }}</DisplayString>
 		<Expand>
 			<Item Name="[size]">size,d</Item>
 			<Item Name="[elementCount]">elements,d</Item>

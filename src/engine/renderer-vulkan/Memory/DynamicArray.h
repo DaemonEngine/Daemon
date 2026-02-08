@@ -50,10 +50,10 @@ class DynamicArray :
 	public Tag {
 
 	public:
-	uint64 elements = 0;
-	uint64 size = 0;
-	uint64 highestUsed = 0;
-	T* memory;
+	uint64     elements  = 0;
+	uint64     size      = 0;
+	uint64     highestID = 0;
+	T*         memory;
 	Allocator* allocator;
 
 	DynamicArray( Allocator* newAllocator = &TLMAlloc ) :
@@ -68,7 +68,7 @@ class DynamicArray :
 	DynamicArray( std::initializer_list<T> args, Allocator* newAllocator = &TLMAlloc ) :
 		allocator( newAllocator ) {
 		Resize( args.size() );
-		highestUsed = elements;
+		highestID = elements;
 
 		for ( uint64 i = 0; i < args.size(); i++ ) {
 			memory[i] = args.begin()[i];
@@ -79,10 +79,46 @@ class DynamicArray :
 		Tag( name ),
 		allocator( newAllocator ) {
 		Resize( args.size() );
-		highestUsed = elements;
+		highestID = elements;
 
 		for ( uint64 i = 0; i < args.size(); i++ ) {
 			memory[i] = args.begin()[i];
+		}
+	}
+
+	DynamicArray( const DynamicArray& other ) {
+		allocator = other.allocator;
+		highestID = other.highestID;
+
+		Resize( other.elements );
+
+		if ( elements ) {
+			if constexpr ( std::is_trivially_copy_constructible<T>() ) {
+				memcpy( memory, other.memory, size );
+			} else {
+				for ( T* current = other.memory, *newMem = memory; current < other.memory + elements; current++, newMem++ ) {
+					*newMem = *current;
+				}
+			}
+		}
+	}
+
+	DynamicArray( DynamicArray&& other ) {
+		allocator = other.allocator;
+		highestID = other.highestID;
+
+		Resize( other.elements );
+
+		if ( elements ) {
+			if constexpr ( std::is_trivially_copy_constructible<T>() ) {
+				memcpy( memory, other.memory, size );
+			} else {
+				for ( T* current = other.memory, *newMem = memory; current < other.memory + elements; current++, newMem++ ) {
+					*newMem = *current;
+				}
+			}
+
+			other.Resize( 0 );
 		}
 	}
 
@@ -124,7 +160,7 @@ class DynamicArray :
 			if constexpr ( std::is_trivially_copy_constructible<T>() ) {
 				memcpy( newMemory, memory, size );
 			} else {
-				for ( T* current = memory + newElements, *newMem = newMemory; current < memory + elements; current++, newMem++ ) {
+				for ( T* current = memory, *newMem = newMemory; current < memory + elements; current++, newMem++ ) {
 					*newMem = *current;
 				}
 			}
@@ -132,13 +168,13 @@ class DynamicArray :
 			allocator->Free( ( byte* ) memory );
 		}
 
-		memory = newMemory;
+		memory   = newMemory;
 		elements = newElements;
-		size = newSize;
+		size     = newSize;
 	}
 
 	void Condense() {
-		Resize( highestUsed + 1 );
+		Resize( highestID + 1 );
 	}
 
 	void Zero() {
@@ -147,12 +183,16 @@ class DynamicArray :
 
 	void Init() {
 		for ( T* current = memory; current < memory + elements; current++ ) {
-			if constexpr ( true || std::is_trivially_constructible<T>() ) {
+			if constexpr ( std::is_trivially_constructible<T>() ) {
 				*current = {};
 			} else {
-				current->T();
+				*current = T();
 			}
 		}
+	}
+
+	void Push( T element ) {
+		( *this )[highestID] = element;
 	}
 
 	const T& operator[]( const uint64 index ) const {
@@ -161,8 +201,11 @@ class DynamicArray :
 	}
 
 	T& operator[]( const uint64 index ) {
-		ASSERT_LT( index, elements );
-		highestUsed = std::max( index, highestUsed );
+		if ( index >= elements ) {
+			Resize( index + 1 );
+		}
+
+		highestID = std::max( index + 1, highestID );
 		return memory[index];
 	}
 
