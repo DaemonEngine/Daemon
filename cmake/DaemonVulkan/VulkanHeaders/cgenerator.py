@@ -445,9 +445,13 @@ class COutputGenerator(OutputGenerator):
         feature = "Features" in typeName
         
         featureSuffixPref = {
-            ""    : 0,
-            "EXT" : 1,
-            "KHR" : 2
+            "Vulkan11" : 0,
+            "Vulkan12" : 0,
+            "Vulkan13" : 0,
+            "Vulkan14" : 0,
+            ""         : 0,
+            "EXT"      : 1,
+            "KHR"      : 2
         }
 
         if typeName in Globals.vendorFeatures:
@@ -465,12 +469,12 @@ class COutputGenerator(OutputGenerator):
 
             if feature:
                 typeNamePref = featureSuffixPref.get( typeName.split( "Features", 1 )[1], 1000 )
-                aliasPref    = featureSuffixPref.get( alias.split( "Features", 1 )[1],    1000 )
+                aliasPref    = featureSuffixPref.get(    alias.split( "Features", 1 )[1], 1000 )
 
                 if typeName in Globals.featureStructsSkip:
                     typeNamePref = 0
                 elif alias in Globals.featureStructsSkip:
-                    aliasPref = 0
+                    aliasPref    = 0
 
                 lowerPref  = typeName if typeNamePref < aliasPref else alias
                 higherPref = typeName if typeNamePref >= aliasPref else alias
@@ -517,7 +521,7 @@ class COutputGenerator(OutputGenerator):
             
             if feature:
                 if typeName in Globals.coreFeatures:
-                    Globals.allFeatures[Globals.coreFeatures[typeName]] = features
+                    Globals.allFeatures[Globals.coreFeatures[typeName]] = [Globals.currentVersionExtension, features]
                 else:
                     if vendorFeature:
                         baseName = typeName.split( "Features", 1 )[0] + "Features"
@@ -530,7 +534,7 @@ class COutputGenerator(OutputGenerator):
                         Globals.vendorFeatures[baseName]["suffixes"].append( typeName.split( "Features", 1 )[1] )
                         Globals.vendorFeatures[baseName]["features"] = features
                     
-                    Globals.allFeatures[typeName] = features
+                    Globals.allFeatures[typeName] = [Globals.currentVersionExtension, features]
 
         self.appendSection('struct', body)
 

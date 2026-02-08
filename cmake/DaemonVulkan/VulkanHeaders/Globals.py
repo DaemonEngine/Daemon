@@ -12,6 +12,8 @@ def init():
     global featureStructsSkip
 
     global vendorFeatures
+
+    global currentVersionExtension
     
     headerText               = ""
     functionDefinitionsText  = ""
@@ -22,6 +24,8 @@ def init():
     coreFeatures             = {}
 
     vendorFeatures           = {}
+
+    currentVersionExtension  = ""
 
     featureStructsSkip = [
         "VkPhysicalDeviceFeatures",
@@ -36,19 +40,19 @@ def SkipFeatures( featureStructs, skip ):
 
     for skipStruct in skip:
         if skipStruct in featureStructs:
-            for feature in featureStructs[skipStruct]:
+            for feature in featureStructs[skipStruct][1]:
                 skipFeatures.append( feature )
     
     return skipFeatures
 
-def ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, featureType, features, skipFeatures, suffixedFeatures,
+def ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, featureType, features, skipFeatures, suffixedFeatures,
                           prev = "", extraFeature = "", extraDeviceFeature = "",
                           skipCreate = False, skipGet = False, skipCfg = False, skipCreateDevice = False, intelWorkaround = False ):
-    f = [k for k in features if k not in skipFeatures]
+    f = [k for k in features[1] if k not in skipFeatures]
 
     if len( f ) == 0:
-        return outCfg, outGet, outCreate, outCreateDevice, prev, True
-    
+        return outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, prev, True
+
     getStruct          = ""
     createDeviceStruct = ""
 
@@ -73,7 +77,7 @@ def ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, featureTyp
     elif not prev:
         createDeviceFeatures += "\n"
 
-    for feature in features:
+    for feature in features[1]:
         suffixedFeature = feature
 
         if featureType in suffixedFeatures:
@@ -90,6 +94,9 @@ def ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, featureTyp
         
         if not skipCreateDevice:
             createDeviceFeatures += "\t\t."          + feature + " = cfg." + suffixedFeature + ",\n"
+        
+        ext            = features[0] if features[0] not in ( "VK_VERSION_1_0", "VK_VERSION_1_1", "VK_VERSION_1_2", "VK_VERSION_1_3", "VK_VERSION_1_4" ) else ""
+        outFeatureMap += "\t{ \"" + suffixedFeature + "\", { offsetof( FeaturesConfig, " + suffixedFeature + " ),\"" + ext + "\" } },\n"
     
     if not skipCreateDevice:
         createDeviceFeatures = createDeviceFeatures.rstrip( "," )
@@ -99,9 +106,9 @@ def ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, featureTyp
         else:
             outCreateDevice += createDeviceStruct + createDeviceFeatures + "\t};\n\n"
 
-    return outCfg, outGet, outCreate, outCreateDevice, "features" + featureType, False
+    return outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, "features" + featureType, False
     
-def ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice ):
+def ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice, outCfgFeatureMap ):
     outCfg           = ""
     outGet           = ""
     outCreate        = ""
@@ -109,6 +116,7 @@ def ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice ):
     prev             = ""
 
     suffixedFeatures = {}
+    outFeatureMap    = ""
                 
     for k, v in vendorFeatures.items():
         if len( v["suffixes"] ) > 1:
@@ -125,7 +133,7 @@ def ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice ):
     # so we have to process it first
     useIntelWorkaround = False
     if "VkPhysicalDevicePipelineBinaryFeaturesKHR" in allFeatures:
-        outCfg, outGet, outCreate, outCreateDevice, prev, unused               = ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice,
+        outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, prev, unused               = ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, outFeatureMap,
                                                                                    "VkPhysicalDevicePipelineBinaryFeaturesKHR",
                                                                                    allFeatures["VkPhysicalDevicePipelineBinaryFeaturesKHR"],
                                                                                    skipFeatures, suffixedFeatures, prev )
@@ -136,7 +144,7 @@ def ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice ):
         if featureType == "VkPhysicalDeviceFeatures" or featureType == "VkPhysicalDeviceFeatures2":
             continue
         
-        outCfg, outGet, outCreate, outCreateDevice, prev, useIntelWorkaround   = ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice,
+        outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, prev, useIntelWorkaround   = ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, outFeatureMap,
                                                                                    featureType, features, skipFeatures, suffixedFeatures, prev,
                                                                                    intelWorkaround = useIntelWorkaround )
     
@@ -144,18 +152,19 @@ def ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice ):
     outCfgGet.write( outGet )
     outCfgCreate.write( outCreate )
     outCfgCreateDevice.write( outCreateDevice )
+    outCfgFeatureMap.write( outFeatureMap )
 
     with open( "prev", mode = "w", encoding = "utf-8", newline = "\n" ) as prevOut:
         prevOut.write( prev )
 
     if "VkPhysicalDeviceFeatures" in allFeatures and "VkPhysicalDeviceFeatures2" in allFeatures:
-        outCfg, outGet, outCreate, outCreateDevice, unused, unused2            = ProcessFeatureStruct( "", "", "", "",
+        outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, unused, unused2            = ProcessFeatureStruct( "", "", "", "", "",
                                                                                    "VkPhysicalDeviceFeatures",
                                                                                    allFeatures["VkPhysicalDeviceFeatures"], [], {},
                                                                                    skipGet = True, skipCfg = True, skipCreateDevice = True,
                                                                                    extraFeature = "featuresVkPhysicalDeviceFeatures2.features" )
 
-        outCfg, outGet, outCreate, outCreateDevice, prev, unused               = ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice,
+        outCfg, outGet, outCreate, outCreateDevice, outFeatureMap, prev, unused               = ProcessFeatureStruct( outCfg, outGet, outCreate, outCreateDevice, outFeatureMap,
                                                                                    "VkPhysicalDeviceFeatures2",
                                                                                    allFeatures["VkPhysicalDeviceFeatures"], [], {},
                                                                                    prev,
@@ -184,6 +193,9 @@ def ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice ):
         
         with open( "FeaturesConfigCreateDeviceMain", mode = "w", encoding = "utf-8", newline = "\n" ) as cfgCreateDeviceMainOut:
             cfgCreateDeviceMainOut.write( outCreateDevice )
+        
+        with open( "FeaturesConfigMapMain", mode = "w", encoding = "utf-8", newline = "\n" ) as cfgMapMainOut:
+            cfgMapMainOut.write( outFeatureMap )
 
 def GenerateHeaders( inputDir, outputDir, mode, define ):
         headerStart       = ""
@@ -253,4 +265,5 @@ def GenerateHeaders( inputDir, outputDir, mode, define ):
             with open( "FeaturesConfigGet", mode = mode, encoding = "utf-8", newline = "\n") as outCfgGet:
                 with open( "FeaturesConfigCreate", mode = mode, encoding = "utf-8", newline = "\n") as outCfgCreate:
                     with open( "FeaturesConfigCreateDevice", mode = mode, encoding = "utf-8", newline = "\n") as outCfgCreateDevice:
-                        ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice )
+                        with open( "FeaturesConfigMap", mode = mode, encoding = "utf-8", newline = "\n") as outCfgFeatureMap:
+                            ProcessFeatures( outCfgH, outCfgGet, outCfgCreate, outCfgCreateDevice, outCfgFeatureMap )

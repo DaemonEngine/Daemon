@@ -1668,6 +1668,8 @@ class Registry:
         - interface - Element for `<version>` or `<extension>`"""
 
         # Loop over all features inside all <require> tags.
+        Globals.currentVersionExtension = interface.get( "name" )
+        
         for features in interface.findall('require'):
             for t in features.findall('type'):
                 self.generateFeature(t.get('name'), 'type', self.typedict, explicit=True)
