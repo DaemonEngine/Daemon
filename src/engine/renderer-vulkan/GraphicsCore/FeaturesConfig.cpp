@@ -12,7 +12,11 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
     const bool intelWorkaround = std::string( engineCfg.driverName ).find( "Intel" ) != std::string::npos;
 
 	VkPhysicalDevicePipelineBinaryFeaturesKHR featuresVkPhysicalDevicePipelineBinaryFeaturesKHR {};
-	VkPhysicalDevicePerformanceQueryFeaturesKHR featuresVkPhysicalDevicePerformanceQueryFeaturesKHR { .pNext = intelWorkaround ? nullptr : &featuresVkPhysicalDevicePipelineBinaryFeaturesKHR };
+	VkPhysicalDeviceVulkan11Features featuresVkPhysicalDeviceVulkan11Features { .pNext = intelWorkaround ? nullptr : &featuresVkPhysicalDevicePipelineBinaryFeaturesKHR };
+	VkPhysicalDeviceVulkan12Features featuresVkPhysicalDeviceVulkan12Features { .pNext = &featuresVkPhysicalDeviceVulkan11Features };
+	VkPhysicalDeviceVulkan13Features featuresVkPhysicalDeviceVulkan13Features { .pNext = &featuresVkPhysicalDeviceVulkan12Features };
+	VkPhysicalDeviceVulkan14Features featuresVkPhysicalDeviceVulkan14Features { .pNext = &featuresVkPhysicalDeviceVulkan13Features };
+	VkPhysicalDevicePerformanceQueryFeaturesKHR featuresVkPhysicalDevicePerformanceQueryFeaturesKHR { .pNext = &featuresVkPhysicalDeviceVulkan14Features };
 	VkPhysicalDeviceShaderBfloat16FeaturesKHR featuresVkPhysicalDeviceShaderBfloat16FeaturesKHR { .pNext = &featuresVkPhysicalDevicePerformanceQueryFeaturesKHR };
 	VkPhysicalDeviceShaderClockFeaturesKHR featuresVkPhysicalDeviceShaderClockFeaturesKHR { .pNext = &featuresVkPhysicalDeviceShaderBfloat16FeaturesKHR };
 	VkPhysicalDeviceFragmentShadingRateFeaturesKHR featuresVkPhysicalDeviceFragmentShadingRateFeaturesKHR { .pNext = &featuresVkPhysicalDeviceShaderClockFeaturesKHR };
@@ -58,8 +62,7 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 	VkPhysicalDeviceShadingRateImageFeaturesNV featuresVkPhysicalDeviceShadingRateImageFeaturesNV { .pNext = &featuresVkPhysicalDeviceShaderSMBuiltinsFeaturesNV };
 	VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV featuresVkPhysicalDeviceRepresentativeFragmentTestFeaturesNV { .pNext = &featuresVkPhysicalDeviceShadingRateImageFeaturesNV };
 	VkPhysicalDeviceCooperativeMatrixConversionFeaturesQCOM featuresVkPhysicalDeviceCooperativeMatrixConversionFeaturesQCOM { .pNext = &featuresVkPhysicalDeviceRepresentativeFragmentTestFeaturesNV };
-	VkPhysicalDeviceMeshShaderFeaturesNV featuresVkPhysicalDeviceMeshShaderFeaturesNV { .pNext = &featuresVkPhysicalDeviceCooperativeMatrixConversionFeaturesQCOM };
-	VkPhysicalDeviceShaderImageFootprintFeaturesNV featuresVkPhysicalDeviceShaderImageFootprintFeaturesNV { .pNext = &featuresVkPhysicalDeviceMeshShaderFeaturesNV };
+	VkPhysicalDeviceShaderImageFootprintFeaturesNV featuresVkPhysicalDeviceShaderImageFootprintFeaturesNV { .pNext = &featuresVkPhysicalDeviceCooperativeMatrixConversionFeaturesQCOM };
 	VkPhysicalDeviceExclusiveScissorFeaturesNV featuresVkPhysicalDeviceExclusiveScissorFeaturesNV { .pNext = &featuresVkPhysicalDeviceShaderImageFootprintFeaturesNV };
 	VkPhysicalDevicePresentTimingFeaturesEXT featuresVkPhysicalDevicePresentTimingFeaturesEXT { .pNext = &featuresVkPhysicalDeviceExclusiveScissorFeaturesNV };
 	VkPhysicalDeviceShaderIntegerFunctions2FeaturesINTEL featuresVkPhysicalDeviceShaderIntegerFunctions2FeaturesINTEL { .pNext = &featuresVkPhysicalDevicePresentTimingFeaturesEXT };
@@ -68,8 +71,7 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 	VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT featuresVkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT { .pNext = &featuresVkPhysicalDeviceCoherentMemoryFeaturesAMD };
 	VkPhysicalDeviceMemoryPriorityFeaturesEXT featuresVkPhysicalDeviceMemoryPriorityFeaturesEXT { .pNext = &featuresVkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT };
 	VkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV featuresVkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV { .pNext = &featuresVkPhysicalDeviceMemoryPriorityFeaturesEXT };
-	VkPhysicalDeviceCooperativeMatrixFeaturesNV featuresVkPhysicalDeviceCooperativeMatrixFeaturesNV { .pNext = intelWorkaround ? nullptr : &featuresVkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV };
-	VkPhysicalDeviceCoverageReductionModeFeaturesNV featuresVkPhysicalDeviceCoverageReductionModeFeaturesNV { .pNext = &featuresVkPhysicalDeviceCooperativeMatrixFeaturesNV };
+	VkPhysicalDeviceCoverageReductionModeFeaturesNV featuresVkPhysicalDeviceCoverageReductionModeFeaturesNV { .pNext = &featuresVkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV };
 	VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT featuresVkPhysicalDeviceFragmentShaderInterlockFeaturesEXT { .pNext = &featuresVkPhysicalDeviceCoverageReductionModeFeaturesNV };
 	VkPhysicalDeviceYcbcrImageArraysFeaturesEXT featuresVkPhysicalDeviceYcbcrImageArraysFeaturesEXT { .pNext = &featuresVkPhysicalDeviceFragmentShaderInterlockFeaturesEXT };
 	VkPhysicalDeviceProvokingVertexFeaturesEXT featuresVkPhysicalDeviceProvokingVertexFeaturesEXT { .pNext = &featuresVkPhysicalDeviceYcbcrImageArraysFeaturesEXT };
@@ -78,8 +80,7 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 	VkPhysicalDeviceMapMemoryPlacedFeaturesEXT featuresVkPhysicalDeviceMapMemoryPlacedFeaturesEXT { .pNext = &featuresVkPhysicalDeviceExtendedDynamicStateFeaturesEXT };
 	VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT featuresVkPhysicalDeviceShaderAtomicFloat2FeaturesEXT { .pNext = &featuresVkPhysicalDeviceMapMemoryPlacedFeaturesEXT };
 	VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT featuresVkPhysicalDeviceSwapchainMaintenance1FeaturesEXT { .pNext = &featuresVkPhysicalDeviceShaderAtomicFloat2FeaturesEXT };
-	VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV featuresVkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV { .pNext = &featuresVkPhysicalDeviceSwapchainMaintenance1FeaturesEXT };
-	VkPhysicalDeviceInheritedViewportScissorFeaturesNV featuresVkPhysicalDeviceInheritedViewportScissorFeaturesNV { .pNext = &featuresVkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV };
+	VkPhysicalDeviceInheritedViewportScissorFeaturesNV featuresVkPhysicalDeviceInheritedViewportScissorFeaturesNV { .pNext = &featuresVkPhysicalDeviceSwapchainMaintenance1FeaturesEXT };
 	VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT featuresVkPhysicalDeviceTexelBufferAlignmentFeaturesEXT { .pNext = &featuresVkPhysicalDeviceInheritedViewportScissorFeaturesNV };
 	VkPhysicalDeviceDepthBiasControlFeaturesEXT featuresVkPhysicalDeviceDepthBiasControlFeaturesEXT { .pNext = &featuresVkPhysicalDeviceTexelBufferAlignmentFeaturesEXT };
 	VkPhysicalDeviceDeviceMemoryReportFeaturesEXT featuresVkPhysicalDeviceDeviceMemoryReportFeaturesEXT { .pNext = &featuresVkPhysicalDeviceDepthBiasControlFeaturesEXT };
@@ -100,8 +101,8 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 	VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT featuresVkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT { .pNext = &featuresVkPhysicalDeviceImageCompressionControlFeaturesEXT };
 	VkPhysicalDevice4444FormatsFeaturesEXT featuresVkPhysicalDevice4444FormatsFeaturesEXT { .pNext = &featuresVkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT };
 	VkPhysicalDeviceFaultFeaturesEXT featuresVkPhysicalDeviceFaultFeaturesEXT { .pNext = &featuresVkPhysicalDevice4444FormatsFeaturesEXT };
-	VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT { .pNext = &featuresVkPhysicalDeviceFaultFeaturesEXT };
-	VkPhysicalDeviceRGBA10X6FormatsFeaturesEXT featuresVkPhysicalDeviceRGBA10X6FormatsFeaturesEXT { .pNext = &featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT };
+	VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesARM featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesARM { .pNext = &featuresVkPhysicalDeviceFaultFeaturesEXT };
+	VkPhysicalDeviceRGBA10X6FormatsFeaturesEXT featuresVkPhysicalDeviceRGBA10X6FormatsFeaturesEXT { .pNext = &featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesARM };
 	VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT featuresVkPhysicalDeviceMutableDescriptorTypeFeaturesEXT { .pNext = &featuresVkPhysicalDeviceRGBA10X6FormatsFeaturesEXT };
 	VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT featuresVkPhysicalDeviceVertexInputDynamicStateFeaturesEXT { .pNext = &featuresVkPhysicalDeviceMutableDescriptorTypeFeaturesEXT };
 	VkPhysicalDeviceAddressBindingReportFeaturesEXT featuresVkPhysicalDeviceAddressBindingReportFeaturesEXT { .pNext = &featuresVkPhysicalDeviceVertexInputDynamicStateFeaturesEXT };
@@ -154,8 +155,7 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 	VkPhysicalDeviceTilePropertiesFeaturesQCOM featuresVkPhysicalDeviceTilePropertiesFeaturesQCOM { .pNext = &featuresVkPhysicalDeviceShaderObjectFeaturesEXT };
 	VkPhysicalDeviceAmigoProfilingFeaturesSEC featuresVkPhysicalDeviceAmigoProfilingFeaturesSEC { .pNext = &featuresVkPhysicalDeviceTilePropertiesFeaturesQCOM };
 	VkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM featuresVkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM { .pNext = &featuresVkPhysicalDeviceAmigoProfilingFeaturesSEC };
-	VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV featuresVkPhysicalDeviceRayTracingInvocationReorderFeaturesNV { .pNext = &featuresVkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM };
-	VkPhysicalDeviceCooperativeVectorFeaturesNV featuresVkPhysicalDeviceCooperativeVectorFeaturesNV { .pNext = &featuresVkPhysicalDeviceRayTracingInvocationReorderFeaturesNV };
+	VkPhysicalDeviceCooperativeVectorFeaturesNV featuresVkPhysicalDeviceCooperativeVectorFeaturesNV { .pNext = &featuresVkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM };
 	VkPhysicalDeviceExtendedSparseAddressSpaceFeaturesNV featuresVkPhysicalDeviceExtendedSparseAddressSpaceFeaturesNV { .pNext = &featuresVkPhysicalDeviceCooperativeVectorFeaturesNV };
 	VkPhysicalDeviceLegacyVertexAttributesFeaturesEXT featuresVkPhysicalDeviceLegacyVertexAttributesFeaturesEXT { .pNext = &featuresVkPhysicalDeviceExtendedSparseAddressSpaceFeaturesNV };
 	VkPhysicalDeviceShaderCoreBuiltinsFeaturesARM featuresVkPhysicalDeviceShaderCoreBuiltinsFeaturesARM { .pNext = &featuresVkPhysicalDeviceLegacyVertexAttributesFeaturesEXT };
@@ -216,6 +216,101 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 
 	FeaturesConfig cfg {
 		.pipelineBinaries = ( bool ) featuresVkPhysicalDevicePipelineBinaryFeaturesKHR.pipelineBinaries,
+		.storageBuffer16BitAccess = ( bool ) featuresVkPhysicalDeviceVulkan11Features.storageBuffer16BitAccess,
+		.uniformAndStorageBuffer16BitAccess = ( bool ) featuresVkPhysicalDeviceVulkan11Features.uniformAndStorageBuffer16BitAccess,
+		.storagePushConstant16 = ( bool ) featuresVkPhysicalDeviceVulkan11Features.storagePushConstant16,
+		.storageInputOutput16 = ( bool ) featuresVkPhysicalDeviceVulkan11Features.storageInputOutput16,
+		.multiview = ( bool ) featuresVkPhysicalDeviceVulkan11Features.multiview,
+		.multiviewGeometryShader = ( bool ) featuresVkPhysicalDeviceVulkan11Features.multiviewGeometryShader,
+		.multiviewTessellationShader = ( bool ) featuresVkPhysicalDeviceVulkan11Features.multiviewTessellationShader,
+		.variablePointersStorageBuffer = ( bool ) featuresVkPhysicalDeviceVulkan11Features.variablePointersStorageBuffer,
+		.variablePointers = ( bool ) featuresVkPhysicalDeviceVulkan11Features.variablePointers,
+		.protectedMemory = ( bool ) featuresVkPhysicalDeviceVulkan11Features.protectedMemory,
+		.samplerYcbcrConversion = ( bool ) featuresVkPhysicalDeviceVulkan11Features.samplerYcbcrConversion,
+		.shaderDrawParameters = ( bool ) featuresVkPhysicalDeviceVulkan11Features.shaderDrawParameters,
+		.samplerMirrorClampToEdge = ( bool ) featuresVkPhysicalDeviceVulkan12Features.samplerMirrorClampToEdge,
+		.drawIndirectCount = ( bool ) featuresVkPhysicalDeviceVulkan12Features.drawIndirectCount,
+		.storageBuffer8BitAccess = ( bool ) featuresVkPhysicalDeviceVulkan12Features.storageBuffer8BitAccess,
+		.uniformAndStorageBuffer8BitAccess = ( bool ) featuresVkPhysicalDeviceVulkan12Features.uniformAndStorageBuffer8BitAccess,
+		.storagePushConstant8 = ( bool ) featuresVkPhysicalDeviceVulkan12Features.storagePushConstant8,
+		.shaderBufferInt64Atomics = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderBufferInt64Atomics,
+		.shaderSharedInt64Atomics = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderSharedInt64Atomics,
+		.shaderFloat16 = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderFloat16,
+		.shaderInt8 = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderInt8,
+		.descriptorIndexing = ( bool ) featuresVkPhysicalDeviceVulkan12Features.descriptorIndexing,
+		.shaderInputAttachmentArrayDynamicIndexing = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderInputAttachmentArrayDynamicIndexing,
+		.shaderUniformTexelBufferArrayDynamicIndexing = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderUniformTexelBufferArrayDynamicIndexing,
+		.shaderStorageTexelBufferArrayDynamicIndexing = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderStorageTexelBufferArrayDynamicIndexing,
+		.shaderUniformBufferArrayNonUniformIndexing = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderUniformBufferArrayNonUniformIndexing,
+		.shaderSampledImageArrayNonUniformIndexing = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderSampledImageArrayNonUniformIndexing,
+		.shaderStorageBufferArrayNonUniformIndexing = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderStorageBufferArrayNonUniformIndexing,
+		.shaderStorageImageArrayNonUniformIndexing = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderStorageImageArrayNonUniformIndexing,
+		.shaderInputAttachmentArrayNonUniformIndexing = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderInputAttachmentArrayNonUniformIndexing,
+		.shaderUniformTexelBufferArrayNonUniformIndexing = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderUniformTexelBufferArrayNonUniformIndexing,
+		.shaderStorageTexelBufferArrayNonUniformIndexing = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderStorageTexelBufferArrayNonUniformIndexing,
+		.descriptorBindingUniformBufferUpdateAfterBind = ( bool ) featuresVkPhysicalDeviceVulkan12Features.descriptorBindingUniformBufferUpdateAfterBind,
+		.descriptorBindingSampledImageUpdateAfterBind = ( bool ) featuresVkPhysicalDeviceVulkan12Features.descriptorBindingSampledImageUpdateAfterBind,
+		.descriptorBindingStorageImageUpdateAfterBind = ( bool ) featuresVkPhysicalDeviceVulkan12Features.descriptorBindingStorageImageUpdateAfterBind,
+		.descriptorBindingStorageBufferUpdateAfterBind = ( bool ) featuresVkPhysicalDeviceVulkan12Features.descriptorBindingStorageBufferUpdateAfterBind,
+		.descriptorBindingUniformTexelBufferUpdateAfterBind = ( bool ) featuresVkPhysicalDeviceVulkan12Features.descriptorBindingUniformTexelBufferUpdateAfterBind,
+		.descriptorBindingStorageTexelBufferUpdateAfterBind = ( bool ) featuresVkPhysicalDeviceVulkan12Features.descriptorBindingStorageTexelBufferUpdateAfterBind,
+		.descriptorBindingUpdateUnusedWhilePending = ( bool ) featuresVkPhysicalDeviceVulkan12Features.descriptorBindingUpdateUnusedWhilePending,
+		.descriptorBindingPartiallyBound = ( bool ) featuresVkPhysicalDeviceVulkan12Features.descriptorBindingPartiallyBound,
+		.descriptorBindingVariableDescriptorCount = ( bool ) featuresVkPhysicalDeviceVulkan12Features.descriptorBindingVariableDescriptorCount,
+		.runtimeDescriptorArray = ( bool ) featuresVkPhysicalDeviceVulkan12Features.runtimeDescriptorArray,
+		.samplerFilterMinmax = ( bool ) featuresVkPhysicalDeviceVulkan12Features.samplerFilterMinmax,
+		.scalarBlockLayout = ( bool ) featuresVkPhysicalDeviceVulkan12Features.scalarBlockLayout,
+		.imagelessFramebuffer = ( bool ) featuresVkPhysicalDeviceVulkan12Features.imagelessFramebuffer,
+		.uniformBufferStandardLayout = ( bool ) featuresVkPhysicalDeviceVulkan12Features.uniformBufferStandardLayout,
+		.shaderSubgroupExtendedTypes = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderSubgroupExtendedTypes,
+		.separateDepthStencilLayouts = ( bool ) featuresVkPhysicalDeviceVulkan12Features.separateDepthStencilLayouts,
+		.hostQueryReset = ( bool ) featuresVkPhysicalDeviceVulkan12Features.hostQueryReset,
+		.timelineSemaphore = ( bool ) featuresVkPhysicalDeviceVulkan12Features.timelineSemaphore,
+		.bufferDeviceAddress = ( bool ) featuresVkPhysicalDeviceVulkan12Features.bufferDeviceAddress,
+		.bufferDeviceAddressCaptureReplay = ( bool ) featuresVkPhysicalDeviceVulkan12Features.bufferDeviceAddressCaptureReplay,
+		.bufferDeviceAddressMultiDevice = ( bool ) featuresVkPhysicalDeviceVulkan12Features.bufferDeviceAddressMultiDevice,
+		.vulkanMemoryModel = ( bool ) featuresVkPhysicalDeviceVulkan12Features.vulkanMemoryModel,
+		.vulkanMemoryModelDeviceScope = ( bool ) featuresVkPhysicalDeviceVulkan12Features.vulkanMemoryModelDeviceScope,
+		.vulkanMemoryModelAvailabilityVisibilityChains = ( bool ) featuresVkPhysicalDeviceVulkan12Features.vulkanMemoryModelAvailabilityVisibilityChains,
+		.shaderOutputViewportIndex = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderOutputViewportIndex,
+		.shaderOutputLayer = ( bool ) featuresVkPhysicalDeviceVulkan12Features.shaderOutputLayer,
+		.subgroupBroadcastDynamicId = ( bool ) featuresVkPhysicalDeviceVulkan12Features.subgroupBroadcastDynamicId,
+		.robustImageAccess = ( bool ) featuresVkPhysicalDeviceVulkan13Features.robustImageAccess,
+		.inlineUniformBlock = ( bool ) featuresVkPhysicalDeviceVulkan13Features.inlineUniformBlock,
+		.descriptorBindingInlineUniformBlockUpdateAfterBind = ( bool ) featuresVkPhysicalDeviceVulkan13Features.descriptorBindingInlineUniformBlockUpdateAfterBind,
+		.pipelineCreationCacheControl = ( bool ) featuresVkPhysicalDeviceVulkan13Features.pipelineCreationCacheControl,
+		.privateData = ( bool ) featuresVkPhysicalDeviceVulkan13Features.privateData,
+		.shaderDemoteToHelperInvocation = ( bool ) featuresVkPhysicalDeviceVulkan13Features.shaderDemoteToHelperInvocation,
+		.shaderTerminateInvocation = ( bool ) featuresVkPhysicalDeviceVulkan13Features.shaderTerminateInvocation,
+		.subgroupSizeControl = ( bool ) featuresVkPhysicalDeviceVulkan13Features.subgroupSizeControl,
+		.computeFullSubgroups = ( bool ) featuresVkPhysicalDeviceVulkan13Features.computeFullSubgroups,
+		.synchronization2 = ( bool ) featuresVkPhysicalDeviceVulkan13Features.synchronization2,
+		.textureCompressionASTC_HDR = ( bool ) featuresVkPhysicalDeviceVulkan13Features.textureCompressionASTC_HDR,
+		.shaderZeroInitializeWorkgroupMemory = ( bool ) featuresVkPhysicalDeviceVulkan13Features.shaderZeroInitializeWorkgroupMemory,
+		.dynamicRendering = ( bool ) featuresVkPhysicalDeviceVulkan13Features.dynamicRendering,
+		.shaderIntegerDotProduct = ( bool ) featuresVkPhysicalDeviceVulkan13Features.shaderIntegerDotProduct,
+		.maintenance4 = ( bool ) featuresVkPhysicalDeviceVulkan13Features.maintenance4,
+		.globalPriorityQuery = ( bool ) featuresVkPhysicalDeviceVulkan14Features.globalPriorityQuery,
+		.shaderSubgroupRotate = ( bool ) featuresVkPhysicalDeviceVulkan14Features.shaderSubgroupRotate,
+		.shaderSubgroupRotateClustered = ( bool ) featuresVkPhysicalDeviceVulkan14Features.shaderSubgroupRotateClustered,
+		.shaderFloatControls2 = ( bool ) featuresVkPhysicalDeviceVulkan14Features.shaderFloatControls2,
+		.shaderExpectAssume = ( bool ) featuresVkPhysicalDeviceVulkan14Features.shaderExpectAssume,
+		.rectangularLines = ( bool ) featuresVkPhysicalDeviceVulkan14Features.rectangularLines,
+		.bresenhamLines = ( bool ) featuresVkPhysicalDeviceVulkan14Features.bresenhamLines,
+		.smoothLines = ( bool ) featuresVkPhysicalDeviceVulkan14Features.smoothLines,
+		.stippledRectangularLines = ( bool ) featuresVkPhysicalDeviceVulkan14Features.stippledRectangularLines,
+		.stippledBresenhamLines = ( bool ) featuresVkPhysicalDeviceVulkan14Features.stippledBresenhamLines,
+		.stippledSmoothLines = ( bool ) featuresVkPhysicalDeviceVulkan14Features.stippledSmoothLines,
+		.vertexAttributeInstanceRateDivisor = ( bool ) featuresVkPhysicalDeviceVulkan14Features.vertexAttributeInstanceRateDivisor,
+		.vertexAttributeInstanceRateZeroDivisor = ( bool ) featuresVkPhysicalDeviceVulkan14Features.vertexAttributeInstanceRateZeroDivisor,
+		.indexTypeUint8 = ( bool ) featuresVkPhysicalDeviceVulkan14Features.indexTypeUint8,
+		.dynamicRenderingLocalRead = ( bool ) featuresVkPhysicalDeviceVulkan14Features.dynamicRenderingLocalRead,
+		.maintenance5 = ( bool ) featuresVkPhysicalDeviceVulkan14Features.maintenance5,
+		.maintenance6 = ( bool ) featuresVkPhysicalDeviceVulkan14Features.maintenance6,
+		.pipelineProtectedAccess = ( bool ) featuresVkPhysicalDeviceVulkan14Features.pipelineProtectedAccess,
+		.pipelineRobustness = ( bool ) featuresVkPhysicalDeviceVulkan14Features.pipelineRobustness,
+		.hostImageCopy = ( bool ) featuresVkPhysicalDeviceVulkan14Features.hostImageCopy,
+		.pushDescriptor = ( bool ) featuresVkPhysicalDeviceVulkan14Features.pushDescriptor,
 		.performanceCounterQueryPools = ( bool ) featuresVkPhysicalDevicePerformanceQueryFeaturesKHR.performanceCounterQueryPools,
 		.performanceCounterMultipleQueryPools = ( bool ) featuresVkPhysicalDevicePerformanceQueryFeaturesKHR.performanceCounterMultipleQueryPools,
 		.shaderBFloat16Type = ( bool ) featuresVkPhysicalDeviceShaderBfloat16FeaturesKHR.shaderBFloat16Type,
@@ -282,8 +377,6 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 		.shadingRateCoarseSampleOrder = ( bool ) featuresVkPhysicalDeviceShadingRateImageFeaturesNV.shadingRateCoarseSampleOrder,
 		.representativeFragmentTest = ( bool ) featuresVkPhysicalDeviceRepresentativeFragmentTestFeaturesNV.representativeFragmentTest,
 		.cooperativeMatrixConversion = ( bool ) featuresVkPhysicalDeviceCooperativeMatrixConversionFeaturesQCOM.cooperativeMatrixConversion,
-		.taskShaderNV = ( bool ) featuresVkPhysicalDeviceMeshShaderFeaturesNV.taskShader,
-		.meshShaderNV = ( bool ) featuresVkPhysicalDeviceMeshShaderFeaturesNV.meshShader,
 		.imageFootprint = ( bool ) featuresVkPhysicalDeviceShaderImageFootprintFeaturesNV.imageFootprint,
 		.exclusiveScissor = ( bool ) featuresVkPhysicalDeviceExclusiveScissorFeaturesNV.exclusiveScissor,
 		.presentTiming = ( bool ) featuresVkPhysicalDevicePresentTimingFeaturesEXT.presentTiming,
@@ -298,8 +391,6 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 		.sparseImageInt64Atomics = ( bool ) featuresVkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT.sparseImageInt64Atomics,
 		.memoryPriority = ( bool ) featuresVkPhysicalDeviceMemoryPriorityFeaturesEXT.memoryPriority,
 		.dedicatedAllocationImageAliasing = ( bool ) featuresVkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV.dedicatedAllocationImageAliasing,
-		.cooperativeMatrixNV = ( bool ) featuresVkPhysicalDeviceCooperativeMatrixFeaturesNV.cooperativeMatrix,
-		.cooperativeMatrixRobustBufferAccessNV = ( bool ) featuresVkPhysicalDeviceCooperativeMatrixFeaturesNV.cooperativeMatrixRobustBufferAccess,
 		.coverageReductionMode = ( bool ) featuresVkPhysicalDeviceCoverageReductionModeFeaturesNV.coverageReductionMode,
 		.fragmentShaderSampleInterlock = ( bool ) featuresVkPhysicalDeviceFragmentShaderInterlockFeaturesEXT.fragmentShaderSampleInterlock,
 		.fragmentShaderPixelInterlock = ( bool ) featuresVkPhysicalDeviceFragmentShaderInterlockFeaturesEXT.fragmentShaderPixelInterlock,
@@ -336,7 +427,6 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 		.shaderImageFloat32AtomicMinMax = ( bool ) featuresVkPhysicalDeviceShaderAtomicFloat2FeaturesEXT.shaderImageFloat32AtomicMinMax,
 		.sparseImageFloat32AtomicMinMax = ( bool ) featuresVkPhysicalDeviceShaderAtomicFloat2FeaturesEXT.sparseImageFloat32AtomicMinMax,
 		.swapchainMaintenance1 = ( bool ) featuresVkPhysicalDeviceSwapchainMaintenance1FeaturesEXT.swapchainMaintenance1,
-		.deviceGeneratedCommandsNV = ( bool ) featuresVkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV.deviceGeneratedCommands,
 		.inheritedViewportScissor2D = ( bool ) featuresVkPhysicalDeviceInheritedViewportScissorFeaturesNV.inheritedViewportScissor2D,
 		.texelBufferAlignment = ( bool ) featuresVkPhysicalDeviceTexelBufferAlignmentFeaturesEXT.texelBufferAlignment,
 		.depthBiasControl = ( bool ) featuresVkPhysicalDeviceDepthBiasControlFeaturesEXT.depthBiasControl,
@@ -385,9 +475,9 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 		.formatA4B4G4R4 = ( bool ) featuresVkPhysicalDevice4444FormatsFeaturesEXT.formatA4B4G4R4,
 		.deviceFault = ( bool ) featuresVkPhysicalDeviceFaultFeaturesEXT.deviceFault,
 		.deviceFaultVendorBinary = ( bool ) featuresVkPhysicalDeviceFaultFeaturesEXT.deviceFaultVendorBinary,
-		.rasterizationOrderColorAttachmentAccess = ( bool ) featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT.rasterizationOrderColorAttachmentAccess,
-		.rasterizationOrderDepthAttachmentAccess = ( bool ) featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT.rasterizationOrderDepthAttachmentAccess,
-		.rasterizationOrderStencilAttachmentAccess = ( bool ) featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT.rasterizationOrderStencilAttachmentAccess,
+		.rasterizationOrderColorAttachmentAccess = ( bool ) featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesARM.rasterizationOrderColorAttachmentAccess,
+		.rasterizationOrderDepthAttachmentAccess = ( bool ) featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesARM.rasterizationOrderDepthAttachmentAccess,
+		.rasterizationOrderStencilAttachmentAccess = ( bool ) featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesARM.rasterizationOrderStencilAttachmentAccess,
 		.formatRgba10x6WithoutYCbCrSampler = ( bool ) featuresVkPhysicalDeviceRGBA10X6FormatsFeaturesEXT.formatRgba10x6WithoutYCbCrSampler,
 		.mutableDescriptorType = ( bool ) featuresVkPhysicalDeviceMutableDescriptorTypeFeaturesEXT.mutableDescriptorType,
 		.vertexInputDynamicState = ( bool ) featuresVkPhysicalDeviceVertexInputDynamicStateFeaturesEXT.vertexInputDynamicState,
@@ -495,7 +585,6 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 		.tileProperties = ( bool ) featuresVkPhysicalDeviceTilePropertiesFeaturesQCOM.tileProperties,
 		.amigoProfiling = ( bool ) featuresVkPhysicalDeviceAmigoProfilingFeaturesSEC.amigoProfiling,
 		.multiviewPerViewViewports = ( bool ) featuresVkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM.multiviewPerViewViewports,
-		.rayTracingInvocationReorderNV = ( bool ) featuresVkPhysicalDeviceRayTracingInvocationReorderFeaturesNV.rayTracingInvocationReorder,
 		.cooperativeVector = ( bool ) featuresVkPhysicalDeviceCooperativeVectorFeaturesNV.cooperativeVector,
 		.cooperativeVectorTraining = ( bool ) featuresVkPhysicalDeviceCooperativeVectorFeaturesNV.cooperativeVectorTraining,
 		.extendedSparseAddressSpace = ( bool ) featuresVkPhysicalDeviceExtendedSparseAddressSpaceFeaturesNV.extendedSparseAddressSpace,
@@ -660,8 +749,119 @@ int CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCall
 		.pipelineBinaries = cfg.pipelineBinaries,
 	};
 
-	VkPhysicalDevicePerformanceQueryFeaturesKHR featuresVkPhysicalDevicePerformanceQueryFeaturesKHR {
+	VkPhysicalDeviceVulkan11Features featuresVkPhysicalDeviceVulkan11Features {
 		.pNext = intelWorkaround ? nullptr : &featuresVkPhysicalDevicePipelineBinaryFeaturesKHR,
+		.storageBuffer16BitAccess = cfg.storageBuffer16BitAccess,
+		.uniformAndStorageBuffer16BitAccess = cfg.uniformAndStorageBuffer16BitAccess,
+		.storagePushConstant16 = cfg.storagePushConstant16,
+		.storageInputOutput16 = cfg.storageInputOutput16,
+		.multiview = cfg.multiview,
+		.multiviewGeometryShader = cfg.multiviewGeometryShader,
+		.multiviewTessellationShader = cfg.multiviewTessellationShader,
+		.variablePointersStorageBuffer = cfg.variablePointersStorageBuffer,
+		.variablePointers = cfg.variablePointers,
+		.protectedMemory = cfg.protectedMemory,
+		.samplerYcbcrConversion = cfg.samplerYcbcrConversion,
+		.shaderDrawParameters = cfg.shaderDrawParameters,
+	};
+
+	VkPhysicalDeviceVulkan12Features featuresVkPhysicalDeviceVulkan12Features {
+		.pNext = &featuresVkPhysicalDeviceVulkan11Features,
+		.samplerMirrorClampToEdge = cfg.samplerMirrorClampToEdge,
+		.drawIndirectCount = cfg.drawIndirectCount,
+		.storageBuffer8BitAccess = cfg.storageBuffer8BitAccess,
+		.uniformAndStorageBuffer8BitAccess = cfg.uniformAndStorageBuffer8BitAccess,
+		.storagePushConstant8 = cfg.storagePushConstant8,
+		.shaderBufferInt64Atomics = cfg.shaderBufferInt64Atomics,
+		.shaderSharedInt64Atomics = cfg.shaderSharedInt64Atomics,
+		.shaderFloat16 = cfg.shaderFloat16,
+		.shaderInt8 = cfg.shaderInt8,
+		.descriptorIndexing = cfg.descriptorIndexing,
+		.shaderInputAttachmentArrayDynamicIndexing = cfg.shaderInputAttachmentArrayDynamicIndexing,
+		.shaderUniformTexelBufferArrayDynamicIndexing = cfg.shaderUniformTexelBufferArrayDynamicIndexing,
+		.shaderStorageTexelBufferArrayDynamicIndexing = cfg.shaderStorageTexelBufferArrayDynamicIndexing,
+		.shaderUniformBufferArrayNonUniformIndexing = cfg.shaderUniformBufferArrayNonUniformIndexing,
+		.shaderSampledImageArrayNonUniformIndexing = cfg.shaderSampledImageArrayNonUniformIndexing,
+		.shaderStorageBufferArrayNonUniformIndexing = cfg.shaderStorageBufferArrayNonUniformIndexing,
+		.shaderStorageImageArrayNonUniformIndexing = cfg.shaderStorageImageArrayNonUniformIndexing,
+		.shaderInputAttachmentArrayNonUniformIndexing = cfg.shaderInputAttachmentArrayNonUniformIndexing,
+		.shaderUniformTexelBufferArrayNonUniformIndexing = cfg.shaderUniformTexelBufferArrayNonUniformIndexing,
+		.shaderStorageTexelBufferArrayNonUniformIndexing = cfg.shaderStorageTexelBufferArrayNonUniformIndexing,
+		.descriptorBindingUniformBufferUpdateAfterBind = cfg.descriptorBindingUniformBufferUpdateAfterBind,
+		.descriptorBindingSampledImageUpdateAfterBind = cfg.descriptorBindingSampledImageUpdateAfterBind,
+		.descriptorBindingStorageImageUpdateAfterBind = cfg.descriptorBindingStorageImageUpdateAfterBind,
+		.descriptorBindingStorageBufferUpdateAfterBind = cfg.descriptorBindingStorageBufferUpdateAfterBind,
+		.descriptorBindingUniformTexelBufferUpdateAfterBind = cfg.descriptorBindingUniformTexelBufferUpdateAfterBind,
+		.descriptorBindingStorageTexelBufferUpdateAfterBind = cfg.descriptorBindingStorageTexelBufferUpdateAfterBind,
+		.descriptorBindingUpdateUnusedWhilePending = cfg.descriptorBindingUpdateUnusedWhilePending,
+		.descriptorBindingPartiallyBound = cfg.descriptorBindingPartiallyBound,
+		.descriptorBindingVariableDescriptorCount = cfg.descriptorBindingVariableDescriptorCount,
+		.runtimeDescriptorArray = cfg.runtimeDescriptorArray,
+		.samplerFilterMinmax = cfg.samplerFilterMinmax,
+		.scalarBlockLayout = cfg.scalarBlockLayout,
+		.imagelessFramebuffer = cfg.imagelessFramebuffer,
+		.uniformBufferStandardLayout = cfg.uniformBufferStandardLayout,
+		.shaderSubgroupExtendedTypes = cfg.shaderSubgroupExtendedTypes,
+		.separateDepthStencilLayouts = cfg.separateDepthStencilLayouts,
+		.hostQueryReset = cfg.hostQueryReset,
+		.timelineSemaphore = cfg.timelineSemaphore,
+		.bufferDeviceAddress = cfg.bufferDeviceAddress,
+		.bufferDeviceAddressCaptureReplay = cfg.bufferDeviceAddressCaptureReplay,
+		.bufferDeviceAddressMultiDevice = cfg.bufferDeviceAddressMultiDevice,
+		.vulkanMemoryModel = cfg.vulkanMemoryModel,
+		.vulkanMemoryModelDeviceScope = cfg.vulkanMemoryModelDeviceScope,
+		.vulkanMemoryModelAvailabilityVisibilityChains = cfg.vulkanMemoryModelAvailabilityVisibilityChains,
+		.shaderOutputViewportIndex = cfg.shaderOutputViewportIndex,
+		.shaderOutputLayer = cfg.shaderOutputLayer,
+		.subgroupBroadcastDynamicId = cfg.subgroupBroadcastDynamicId,
+	};
+
+	VkPhysicalDeviceVulkan13Features featuresVkPhysicalDeviceVulkan13Features {
+		.pNext = &featuresVkPhysicalDeviceVulkan12Features,
+		.robustImageAccess = cfg.robustImageAccess,
+		.inlineUniformBlock = cfg.inlineUniformBlock,
+		.descriptorBindingInlineUniformBlockUpdateAfterBind = cfg.descriptorBindingInlineUniformBlockUpdateAfterBind,
+		.pipelineCreationCacheControl = cfg.pipelineCreationCacheControl,
+		.privateData = cfg.privateData,
+		.shaderDemoteToHelperInvocation = cfg.shaderDemoteToHelperInvocation,
+		.shaderTerminateInvocation = cfg.shaderTerminateInvocation,
+		.subgroupSizeControl = cfg.subgroupSizeControl,
+		.computeFullSubgroups = cfg.computeFullSubgroups,
+		.synchronization2 = cfg.synchronization2,
+		.textureCompressionASTC_HDR = cfg.textureCompressionASTC_HDR,
+		.shaderZeroInitializeWorkgroupMemory = cfg.shaderZeroInitializeWorkgroupMemory,
+		.dynamicRendering = cfg.dynamicRendering,
+		.shaderIntegerDotProduct = cfg.shaderIntegerDotProduct,
+		.maintenance4 = cfg.maintenance4,
+	};
+
+	VkPhysicalDeviceVulkan14Features featuresVkPhysicalDeviceVulkan14Features {
+		.pNext = &featuresVkPhysicalDeviceVulkan13Features,
+		.globalPriorityQuery = cfg.globalPriorityQuery,
+		.shaderSubgroupRotate = cfg.shaderSubgroupRotate,
+		.shaderSubgroupRotateClustered = cfg.shaderSubgroupRotateClustered,
+		.shaderFloatControls2 = cfg.shaderFloatControls2,
+		.shaderExpectAssume = cfg.shaderExpectAssume,
+		.rectangularLines = cfg.rectangularLines,
+		.bresenhamLines = cfg.bresenhamLines,
+		.smoothLines = cfg.smoothLines,
+		.stippledRectangularLines = cfg.stippledRectangularLines,
+		.stippledBresenhamLines = cfg.stippledBresenhamLines,
+		.stippledSmoothLines = cfg.stippledSmoothLines,
+		.vertexAttributeInstanceRateDivisor = cfg.vertexAttributeInstanceRateDivisor,
+		.vertexAttributeInstanceRateZeroDivisor = cfg.vertexAttributeInstanceRateZeroDivisor,
+		.indexTypeUint8 = cfg.indexTypeUint8,
+		.dynamicRenderingLocalRead = cfg.dynamicRenderingLocalRead,
+		.maintenance5 = cfg.maintenance5,
+		.maintenance6 = cfg.maintenance6,
+		.pipelineProtectedAccess = cfg.pipelineProtectedAccess,
+		.pipelineRobustness = cfg.pipelineRobustness,
+		.hostImageCopy = cfg.hostImageCopy,
+		.pushDescriptor = cfg.pushDescriptor,
+	};
+
+	VkPhysicalDevicePerformanceQueryFeaturesKHR featuresVkPhysicalDevicePerformanceQueryFeaturesKHR {
+		.pNext = &featuresVkPhysicalDeviceVulkan14Features,
 		.performanceCounterQueryPools = cfg.performanceCounterQueryPools,
 		.performanceCounterMultipleQueryPools = cfg.performanceCounterMultipleQueryPools,
 	};
@@ -910,14 +1110,8 @@ int CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCall
 		.cooperativeMatrixConversion = cfg.cooperativeMatrixConversion,
 	};
 
-	VkPhysicalDeviceMeshShaderFeaturesNV featuresVkPhysicalDeviceMeshShaderFeaturesNV {
-		.pNext = &featuresVkPhysicalDeviceCooperativeMatrixConversionFeaturesQCOM,
-		.taskShader = cfg.taskShaderNV,
-		.meshShader = cfg.meshShaderNV,
-	};
-
 	VkPhysicalDeviceShaderImageFootprintFeaturesNV featuresVkPhysicalDeviceShaderImageFootprintFeaturesNV {
-		.pNext = &featuresVkPhysicalDeviceMeshShaderFeaturesNV,
+		.pNext = &featuresVkPhysicalDeviceCooperativeMatrixConversionFeaturesQCOM,
 		.imageFootprint = cfg.imageFootprint,
 	};
 
@@ -966,14 +1160,8 @@ int CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCall
 		.dedicatedAllocationImageAliasing = cfg.dedicatedAllocationImageAliasing,
 	};
 
-	VkPhysicalDeviceCooperativeMatrixFeaturesNV featuresVkPhysicalDeviceCooperativeMatrixFeaturesNV {
-		.pNext = intelWorkaround ? nullptr : &featuresVkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV,
-		.cooperativeMatrix = cfg.cooperativeMatrixNV,
-		.cooperativeMatrixRobustBufferAccess = cfg.cooperativeMatrixRobustBufferAccessNV,
-	};
-
 	VkPhysicalDeviceCoverageReductionModeFeaturesNV featuresVkPhysicalDeviceCoverageReductionModeFeaturesNV {
-		.pNext = &featuresVkPhysicalDeviceCooperativeMatrixFeaturesNV,
+		.pNext = &featuresVkPhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV,
 		.coverageReductionMode = cfg.coverageReductionMode,
 	};
 
@@ -1044,13 +1232,8 @@ int CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCall
 		.swapchainMaintenance1 = cfg.swapchainMaintenance1,
 	};
 
-	VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV featuresVkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV {
-		.pNext = &featuresVkPhysicalDeviceSwapchainMaintenance1FeaturesEXT,
-		.deviceGeneratedCommands = cfg.deviceGeneratedCommandsNV,
-	};
-
 	VkPhysicalDeviceInheritedViewportScissorFeaturesNV featuresVkPhysicalDeviceInheritedViewportScissorFeaturesNV {
-		.pNext = &featuresVkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV,
+		.pNext = &featuresVkPhysicalDeviceSwapchainMaintenance1FeaturesEXT,
 		.inheritedViewportScissor2D = cfg.inheritedViewportScissor2D,
 	};
 
@@ -1181,7 +1364,7 @@ int CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCall
 		.deviceFaultVendorBinary = cfg.deviceFaultVendorBinary,
 	};
 
-	VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT {
+	VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesARM featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesARM {
 		.pNext = &featuresVkPhysicalDeviceFaultFeaturesEXT,
 		.rasterizationOrderColorAttachmentAccess = cfg.rasterizationOrderColorAttachmentAccess,
 		.rasterizationOrderDepthAttachmentAccess = cfg.rasterizationOrderDepthAttachmentAccess,
@@ -1189,7 +1372,7 @@ int CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCall
 	};
 
 	VkPhysicalDeviceRGBA10X6FormatsFeaturesEXT featuresVkPhysicalDeviceRGBA10X6FormatsFeaturesEXT {
-		.pNext = &featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT,
+		.pNext = &featuresVkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesARM,
 		.formatRgba10x6WithoutYCbCrSampler = cfg.formatRgba10x6WithoutYCbCrSampler,
 	};
 
@@ -1507,13 +1690,8 @@ int CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCall
 		.multiviewPerViewViewports = cfg.multiviewPerViewViewports,
 	};
 
-	VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV featuresVkPhysicalDeviceRayTracingInvocationReorderFeaturesNV {
-		.pNext = &featuresVkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM,
-		.rayTracingInvocationReorder = cfg.rayTracingInvocationReorderNV,
-	};
-
 	VkPhysicalDeviceCooperativeVectorFeaturesNV featuresVkPhysicalDeviceCooperativeVectorFeaturesNV {
-		.pNext = &featuresVkPhysicalDeviceRayTracingInvocationReorderFeaturesNV,
+		.pNext = &featuresVkPhysicalDeviceMultiviewPerViewViewportsFeaturesQCOM,
 		.cooperativeVector = cfg.cooperativeVector,
 		.cooperativeVectorTraining = cfg.cooperativeVectorTraining,
 	};
