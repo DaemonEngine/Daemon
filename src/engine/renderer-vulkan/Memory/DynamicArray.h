@@ -87,11 +87,11 @@ class DynamicArray :
 	}
 
 	DynamicArray( const DynamicArray<T>& other ) {
-		( *this ) = other;
+		*this = other;
 	}
 
 	DynamicArray( DynamicArray<T>&& other ) {
-		( *this ) = other;
+		*this = other;
 
 		other.Resize( 0 );
 	}
@@ -120,20 +120,7 @@ class DynamicArray :
 	}
 
 	DynamicArray<T>& operator=( DynamicArray<T>&& other ) {
-		allocator = other.allocator;
-		highestID = other.highestID;
-
-		Resize( other.elements );
-
-		if ( elements ) {
-			if constexpr ( std::is_trivially_copy_constructible<T>() ) {
-				memcpy( memory, other.memory, size );
-			} else {
-				for ( T* current = other.memory, *newMem = memory; current < other.memory + elements; current++, newMem++ ) {
-					*newMem = *current;
-				}
-			}
-		}
+		*this = other;
 
 		other.Resize( 0 );
 
@@ -157,7 +144,7 @@ class DynamicArray :
 			}
 
 			elements = newElements;
-			size = newSize;
+			size     = newSize;
 
 			allocator->Free( ( byte* ) memory );
 
