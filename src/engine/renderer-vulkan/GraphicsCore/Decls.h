@@ -47,10 +47,15 @@ struct SwapChain;
 
 struct EngineConfig;
 struct QueuesConfig;
+struct FeaturesConfig;
 
 enum   QueueType : uint32;
 
+struct VkAllocationCallbacks;
+
 struct Semaphore;
+
+struct VkDeviceCreateInfo;
 
 VK_DEFINE_HANDLE( VkInstance );
 VK_DEFINE_HANDLE( VkPhysicalDevice );
