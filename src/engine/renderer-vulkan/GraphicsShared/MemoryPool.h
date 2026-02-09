@@ -45,8 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 struct MemoryPool {
-	uint32        id;
-	uint32        size;
+	uint64        size;
 	uint32        offset;
 	bool          dedicatedAlloc;
 	MemoryAddress memory;

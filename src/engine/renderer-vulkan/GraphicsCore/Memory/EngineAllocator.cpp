@@ -209,10 +209,9 @@ MemoryHeap EngineAllocator::MemoryHeapForUsage( const MemoryHeap::MemoryType typ
 	return memoryHeap;
 }
 
-MemoryPool EngineAllocator::AllocMemoryPool( const uint32 id, const uint32 size, const bool image,
+MemoryPool EngineAllocator::AllocMemoryPool( const MemoryHeap::MemoryType type, const uint64 size, const bool image,
 	const bool engineAccess, const void* dedicatedResource ) {
 	MemoryPool memoryPool {
-		.id   = id,
 		.size = size
 	};
 
@@ -229,22 +228,36 @@ MemoryPool EngineAllocator::AllocMemoryPool( const uint32 id, const uint32 size,
 		// memoryFlags.pNext = &dedicatedMemoryInfo;
 	}
 
+	uint32 memoryTypeID;
+
+	switch ( type ) {
+		case MemoryHeap::ENGINE:
+			memoryTypeID = memoryHeapEngine.id;
+			break;
+		case MemoryHeap::CORE_TO_ENGINE:
+			memoryTypeID = memoryHeapStagingBuffer.id;
+			break;
+		case MemoryHeap::ENGINE_TO_CORE:
+			memoryTypeID = memoryHeapEngineToCoreBuffer.id;
+			break;
+	}
+
 	VkMemoryAllocateInfo memoryInfo {
 		.pNext           = &memoryFlags,
 		.allocationSize  = size,
-		.memoryTypeIndex = id
+		.memoryTypeIndex = memoryTypeID
 	};
 
 	vkAllocateMemory( device, &memoryInfo, nullptr, ( VkDeviceMemory* ) &memoryPool.memory );
 
-	if ( memoryIDFlags[id] & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
+	if ( memoryIDFlags[memoryTypeID] & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
 		vkMapMemory( device, ( VkDeviceMemory ) memoryPool.memory, 0, size, 0, ( void** ) &memoryPool.mappedMemory );
 	}
 	
 	return memoryPool;
 }
 
-Buffer EngineAllocator::AllocBuffer( MemoryPool& pool, const MemoryRequirements& reqs, const VkBufferUsageFlags usage,
+Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool, const MemoryRequirements& reqs, const VkBufferUsageFlags usage,
 	const bool engineAccess ) {
 	VkBufferCreateInfo bufferInfo {
 		.size        = reqs.size,
@@ -253,7 +266,7 @@ Buffer EngineAllocator::AllocBuffer( MemoryPool& pool, const MemoryRequirements&
 	};
 
 	if ( reqs.dedicated ) {
-		pool = AllocMemoryPool( pool.id, reqs.size, false, engineAccess, nullptr );
+		pool = AllocMemoryPool( type, reqs.size, false, engineAccess, nullptr );
 	}
 
 	VkBuffer buffer;
@@ -276,13 +289,26 @@ Buffer EngineAllocator::AllocBuffer( MemoryPool& pool, const MemoryRequirements&
 
 	Buffer res {
 		.buffer       = buffer,
-		.memoryPoolID = pool.id,
 		.offset       = ( uint32 ) ( address - ( uint64 ) pool.memory ),
 		.size         = ( uint32 ) reqs.size,
 		.usage        = bufferInfo.usage
 	};
 
-	if ( memoryIDFlags[pool.id] & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
+	uint32 memoryTypeID;
+
+	switch ( type ) {
+		case MemoryHeap::ENGINE:
+			memoryTypeID = memoryHeapEngine.id;
+			break;
+		case MemoryHeap::CORE_TO_ENGINE:
+			memoryTypeID = memoryHeapStagingBuffer.id;
+			break;
+		case MemoryHeap::ENGINE_TO_CORE:
+			memoryTypeID = memoryHeapEngineToCoreBuffer.id;
+			break;
+	}
+
+	if ( memoryIDFlags[memoryTypeID] & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
 		res.memory = pool.mappedMemory;
 	}
 
@@ -297,16 +323,14 @@ Buffer EngineAllocator::AllocBuffer( MemoryPool& pool, const MemoryRequirements&
 	return res;
 }
 
-Buffer EngineAllocator::AllocDedicatedBuffer( const uint32 id, const uint32 size, const VkBufferUsageFlags usage,
+Buffer EngineAllocator::AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint32 size, const VkBufferUsageFlags usage,
 	const bool engineAccess ) {
-	MemoryPool pool {
-		.id = id
-	};
+	MemoryPool pool;
 
 	MemoryRequirements reqs = GetBufferRequirements( usage, size, engineAccess );
 	reqs.dedicated          = true;
 
-	return AllocBuffer( pool, reqs, usage, engineAccess );
+	return AllocBuffer( type, pool, reqs, usage, engineAccess );
 }
 
 void EngineAllocator::Init() {
@@ -433,10 +457,7 @@ void EngineAllocator::Init() {
 
 	MemoryRequirements reqs;
 	reqs = GetImage2DRequirements( VK_FORMAT_R8G8B8A8_UNORM, true, false, 1024, 1024 );
-	memoryHeapImages             = MemoryHeapForUsage( MemoryHeap::ENGINE, reqs );
-
-	reqs = GetImage2DRequirements( VK_FORMAT_R8G8B8A8_UNORM, false, true, 1024, 1024 );
-	memoryHeapStorageImages      = MemoryHeapForUsage( MemoryHeap::ENGINE, reqs );
+	memoryHeapEngine             = MemoryHeapForUsage( MemoryHeap::ENGINE, reqs );
 
 	reqs = GetBufferRequirements( VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 262144, true );
 	memoryHeapStagingBuffer      = MemoryHeapForUsage( MemoryHeap::CORE_TO_ENGINE, reqs );

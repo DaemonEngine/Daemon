@@ -72,8 +72,6 @@ struct MemoryRegionUsage {
 struct Buffer {
 	VkBuffer buffer;
 
-	uint32   memoryPoolID;
-
 	uint32   offset;
 	uint32   size;
 
@@ -102,8 +100,7 @@ class EngineAllocator {
 	static constexpr int minGraphicsMemorySize = 1024;
 	static constexpr int maxGraphicsMemorySize = 16384;
 
-	MemoryHeap memoryHeapImages;
-	MemoryHeap memoryHeapStorageImages;
+	MemoryHeap memoryHeapEngine;
 	MemoryHeap memoryHeapStagingBuffer;
 	MemoryHeap memoryHeapEngineToCoreBuffer;
 
@@ -112,11 +109,12 @@ class EngineAllocator {
 
 	MemoryHeap MemoryHeapForUsage( const MemoryHeap::MemoryType type, const MemoryRequirements& reqs );
 
-	MemoryPool AllocMemoryPool( const uint32 id, const uint32 size, const bool image,
+	MemoryPool AllocMemoryPool( const MemoryHeap::MemoryType type, const uint64 size, const bool image,
 		const bool engineAccess, const void* dedicatedResource = nullptr );
-	Buffer AllocBuffer( MemoryPool& pool, const MemoryRequirements& reqs, const VkBufferUsageFlags flags,
+
+	Buffer     AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool, const MemoryRequirements& reqs, const VkBufferUsageFlags flags,
 		const bool engineAccess );
-	Buffer AllocDedicatedBuffer( const uint32 id, const uint32 size, const VkBufferUsageFlags flags,
+	Buffer     AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint32 size, const VkBufferUsageFlags flags,
 		const bool engineAccess );
 
 	private:
