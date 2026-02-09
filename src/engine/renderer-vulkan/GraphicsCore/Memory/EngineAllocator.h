@@ -107,7 +107,7 @@ class EngineAllocator {
 	void Init();
 	void Free();
 
-	MemoryHeap MemoryHeapForUsage( const MemoryHeap::MemoryType type, const MemoryRequirements& reqs );
+	MemoryHeap MemoryHeapForUsage( const MemoryHeap::MemoryType type, uint32 supportedTypes );
 
 	MemoryPool AllocMemoryPool( const MemoryHeap::MemoryType type, const uint64 size, const bool image,
 		const bool engineAccess, const void* dedicatedResource = nullptr );
@@ -121,16 +121,11 @@ class EngineAllocator {
 	uint32     memoryPoolCount;
 	MemoryPool memoryPools[maxMemoryPools];
 
-	int memoryRegionFlags[32];
 	int memoryIDFlags[32];
 
 	uint32 memoryRegionEngine;
 	uint32 memoryRegionBAR;
 	uint32 memoryRegionCore;
-
-	uint32 memoryTypeEngine;
-	uint32 memoryTypeCoreToEngine;
-	uint32 memoryTypeEngineToCore;
 
 	uint32 memoryIDEngine;
 	uint32 memoryIDCoreToEngine;
