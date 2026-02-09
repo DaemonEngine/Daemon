@@ -525,7 +525,6 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 				}
 
 				MemoryRequirements reqs = GetBufferRequirements( bufferNode.usage, bufferNode.size, bufferNode.engineAccess );
-				MemoryHeap engHeap      = engineAllocator.MemoryHeapForUsage( MemoryHeap::ENGINE, reqs.type );
 
 				buffers[id] = engineAllocator.AllocDedicatedBuffer( MemoryHeap::ENGINE, bufferNode.size,
 					bufferNode.usage, bufferNode.engineAccess );

@@ -152,7 +152,19 @@ static constexpr VkMemoryPropertyFlags memoryTypeUnified =
 	  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT  | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 	| VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-MemoryHeap EngineAllocator::MemoryHeapForUsage( const MemoryHeap::MemoryType type, uint32 supportedTypes ) {
+MemoryHeap& EngineAllocator::MemoryHeapFromType( const MemoryHeap::MemoryType type ) {
+	switch ( type ) {
+		default:
+		case MemoryHeap::ENGINE:
+			return memoryHeapEngine;
+		case MemoryHeap::CORE_TO_ENGINE:
+			return memoryHeapCoreToEngine;
+		case MemoryHeap::ENGINE_TO_CORE:
+			return memoryHeapEngineToCore;
+	}
+}
+
+MemoryHeap EngineAllocator::MemoryHeapForUsage( const MemoryHeap::MemoryType type, uint32 supportedTypes, const uint32 flags ) {
 	VkPhysicalDeviceMemoryBudgetPropertiesEXT properties {};
 	VkPhysicalDeviceMemoryProperties2 properties2 {
 		.pNext = &properties
@@ -163,25 +175,20 @@ MemoryHeap EngineAllocator::MemoryHeapForUsage( const MemoryHeap::MemoryType typ
 	VkPhysicalDeviceMemoryProperties& memoryProperties = properties2.memoryProperties;
 
 	uint32 memoryRegion;
-	uint32 memoryID;
 
 	if ( unifiedMemory ) {
 		memoryRegion = memoryRegionEngine;
-		memoryID     = memoryIDEngine;
 	} else {
 		switch ( type ) {
 			default:
 			case MemoryHeap::ENGINE:
 				memoryRegion = memoryRegionEngine;
-				memoryID     = memoryIDEngine;
 				break;
 			case MemoryHeap::CORE_TO_ENGINE:
 				memoryRegion = memoryRegionBAR;
-				memoryID     = memoryIDCoreToEngine;
 				break;
 			case MemoryHeap::ENGINE_TO_CORE:
 				memoryRegion = memoryRegionCore;
-				memoryID     = memoryIDEngineToCore;
 				break;
 		}
 	}
@@ -193,10 +200,10 @@ MemoryHeap EngineAllocator::MemoryHeapForUsage( const MemoryHeap::MemoryType typ
 	};
 
 	while ( supportedTypes ) {
-		const uint32 id = FindLSB( supportedTypes );
+		const uint32 id                = FindLSB( supportedTypes );
 		const VkMemoryType& memoryType = memoryProperties.memoryTypes[id];
 
-		if ( !BitSet( memoryID, id ) ) {
+		if ( !BitSet( flags, id ) ) {
 			UnSetBit( &supportedTypes, id );
 			continue;
 		}
@@ -204,7 +211,8 @@ MemoryHeap EngineAllocator::MemoryHeapForUsage( const MemoryHeap::MemoryType typ
 		if ( type == MemoryHeap::ENGINE         && memoryType.propertyFlags & memoryTypeGPU ||
 		     type == MemoryHeap::CORE_TO_ENGINE && memoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 		  || type == MemoryHeap::ENGINE_TO_CORE && memoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
-			memoryHeap.id = id;
+			memoryHeap.id    = id;
+			memoryHeap.flags = flags;
 
 			return memoryHeap;
 		}
@@ -236,29 +244,17 @@ MemoryPool EngineAllocator::AllocMemoryPool( const MemoryHeap::MemoryType type, 
 		// memoryFlags.pNext = &dedicatedMemoryInfo;
 	}
 
-	uint32 memoryTypeID;
-
-	switch ( type ) {
-		case MemoryHeap::ENGINE:
-			memoryTypeID = memoryHeapEngine.id;
-			break;
-		case MemoryHeap::CORE_TO_ENGINE:
-			memoryTypeID = memoryHeapStagingBuffer.id;
-			break;
-		case MemoryHeap::ENGINE_TO_CORE:
-			memoryTypeID = memoryHeapEngineToCoreBuffer.id;
-			break;
-	}
+	MemoryHeap& heap = MemoryHeapFromType( type );
 
 	VkMemoryAllocateInfo memoryInfo {
 		.pNext           = &memoryFlags,
 		.allocationSize  = size,
-		.memoryTypeIndex = memoryTypeID
+		.memoryTypeIndex = heap.id
 	};
 
 	vkAllocateMemory( device, &memoryInfo, nullptr, ( VkDeviceMemory* ) &memoryPool.memory );
 
-	if ( memoryIDFlags[memoryTypeID] & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
+	if ( heap.flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
 		vkMapMemory( device, ( VkDeviceMemory ) memoryPool.memory, 0, size, 0, ( void** ) &memoryPool.mappedMemory );
 	}
 	
@@ -307,21 +303,9 @@ Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPo
 		.usage        = bufferInfo.usage
 	};
 
-	uint32 memoryTypeID;
+	MemoryHeap& heap = MemoryHeapFromType( type );
 
-	switch ( type ) {
-		case MemoryHeap::ENGINE:
-			memoryTypeID = memoryHeapEngine.id;
-			break;
-		case MemoryHeap::CORE_TO_ENGINE:
-			memoryTypeID = memoryHeapStagingBuffer.id;
-			break;
-		case MemoryHeap::ENGINE_TO_CORE:
-			memoryTypeID = memoryHeapEngineToCoreBuffer.id;
-			break;
-	}
-
-	if ( memoryIDFlags[memoryTypeID] & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
+	if ( heap.flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
 		res.memory = pool.mappedMemory;
 	}
 
@@ -362,9 +346,9 @@ void EngineAllocator::Init() {
 	memoryRegionBAR    = UINT_MAX;
 	memoryRegionCore   = UINT_MAX;
 
-	memoryIDEngine       = 0;
-	memoryIDCoreToEngine = 0;
-	memoryIDEngineToCore = 0;
+	uint32 memoryIDEngine       = 0;
+	uint32 memoryIDCoreToEngine = 0;
+	uint32 memoryIDEngineToCore = 0;
 
 	if ( memoryProperties.memoryHeapCount == 1 ) {
 		unifiedMemory = true;
@@ -477,13 +461,14 @@ void EngineAllocator::Init() {
 		10, 1, true, 1 );
 	supportedTypes &= reqs.type;
 
-	memoryHeapEngine = MemoryHeapForUsage( MemoryHeap::ENGINE, supportedTypes );
+	memoryHeapEngine = MemoryHeapForUsage( MemoryHeap::ENGINE, supportedTypes, memoryIDEngine );
+	//memoryPoolImages             = AllocMemoryPool();
 
 	reqs = GetBufferRequirements( VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 262144, true );
-	memoryHeapStagingBuffer      = MemoryHeapForUsage( MemoryHeap::CORE_TO_ENGINE, reqs.type );
+	memoryHeapCoreToEngine      = MemoryHeapForUsage( MemoryHeap::CORE_TO_ENGINE, reqs.type, memoryIDCoreToEngine );
 
 	reqs = GetBufferRequirements( VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 262144, true );
-	memoryHeapEngineToCoreBuffer = MemoryHeapForUsage( MemoryHeap::ENGINE_TO_CORE, reqs.type );
+	memoryHeapEngineToCore = MemoryHeapForUsage( MemoryHeap::ENGINE_TO_CORE, reqs.type, memoryIDEngineToCore );
 }
 
 void EngineAllocator::Free() {

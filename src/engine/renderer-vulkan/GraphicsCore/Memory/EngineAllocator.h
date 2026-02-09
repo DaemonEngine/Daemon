@@ -55,6 +55,7 @@ struct MemoryHeap {
 	MemoryType type;
 
 	uint32     id;
+	uint32     flags;
 };
 
 struct MemoryRequirements {
@@ -101,13 +102,14 @@ class EngineAllocator {
 	static constexpr int maxGraphicsMemorySize = 16384;
 
 	MemoryHeap memoryHeapEngine;
-	MemoryHeap memoryHeapStagingBuffer;
-	MemoryHeap memoryHeapEngineToCoreBuffer;
+	MemoryHeap memoryHeapCoreToEngine;
+	MemoryHeap memoryHeapEngineToCore;
 
 	void Init();
 	void Free();
 
-	MemoryHeap MemoryHeapForUsage( const MemoryHeap::MemoryType type, uint32 supportedTypes );
+	MemoryHeap& MemoryHeapFromType( const MemoryHeap::MemoryType type );
+	MemoryHeap  MemoryHeapForUsage( const MemoryHeap::MemoryType type, uint32 supportedTypes, const uint32 flags );
 
 	MemoryPool AllocMemoryPool( const MemoryHeap::MemoryType type, const uint64 size, const bool image,
 		const bool engineAccess, const void* dedicatedResource = nullptr );
@@ -126,10 +128,6 @@ class EngineAllocator {
 	uint32 memoryRegionEngine;
 	uint32 memoryRegionBAR;
 	uint32 memoryRegionCore;
-
-	uint32 memoryIDEngine;
-	uint32 memoryIDCoreToEngine;
-	uint32 memoryIDEngineToCore;
 
 	bool rebar;
 	bool unifiedMemory;
