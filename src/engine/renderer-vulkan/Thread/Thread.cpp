@@ -157,8 +157,8 @@ void Thread::Run() {
 			while( !SM.taskTimesLock.LockWrite() );
 
 			GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
-			SMTaskTime.count           = taskTime.count;
-			SMTaskTime.time            = taskTime.time;
+			SMTaskTime.count           = 1;
+			SMTaskTime.time            = t.Time();
 			taskTime.syncedWithSM      = true;
 
 			SM.taskTimesLock.UnlockWrite();
@@ -166,8 +166,8 @@ void Thread::Run() {
 			while( !SM.taskTimesLock.Lock() );
 
 			GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
-			SMTaskTime.count.fetch_add( taskTime.count, std::memory_order_relaxed );
-			SMTaskTime.time.fetch_add( taskTime.time, std::memory_order_relaxed );
+			SMTaskTime.count.fetch_add( 1, std::memory_order_relaxed );
+			SMTaskTime.time.fetch_add( t.Time(), std::memory_order_relaxed );
 
 			SM.taskTimesLock.Unlock();
 		}
