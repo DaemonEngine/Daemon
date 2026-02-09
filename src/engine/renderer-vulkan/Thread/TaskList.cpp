@@ -70,6 +70,9 @@ void TaskList::AdjustThreadCount( uint32 newMaxThreads ) {
 
 	while ( !threadCountLock.LockWrite() );
 
+	// This must always be set before using ThreadMask*() on main thread
+	TLM.currentMaxThreads = newMaxThreads;
+
 	const uint32 currentThreads = currentMaxThreads.load( std::memory_order_relaxed );
 	if ( newMaxThreads > currentThreads ) {
 		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
@@ -88,8 +91,6 @@ void TaskList::AdjustThreadCount( uint32 newMaxThreads ) {
 			threads[i].exiting = true;
 		}
 	}
-
-	TLM.currentMaxThreads = newMaxThreads;
 
 	if ( !TLM.main ) {
 		threadUplink.AddCommand( ThreadUplink::CMD_SYNC_THREAD_COUNT );
