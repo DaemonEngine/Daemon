@@ -124,6 +124,8 @@ void Thread::Run() {
 
 		Log::DebugTag( "id: %u: executing", id );
 
+		taskList.TaskStarted();
+
 		Timer t;
 		executing.Start();
 		task->Execute( task->data );

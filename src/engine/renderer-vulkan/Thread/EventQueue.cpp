@@ -134,4 +134,26 @@ void EventQueue::Rotate() {
 	}
 }
 
+void EventQueue::Shutdown() {
+	if ( exiting.load( std::memory_order_relaxed ) ) {
+		return;
+	}
+
+	uint32 count = 0;
+
+	for ( EventRing& eventRing : eventRings ) {
+		if ( eventRing.lock.LockWrite() ) {
+			for ( uint64 sector : eventRing.allocatedEvents ) {
+				count += CountBits( sector );
+			}
+
+			memset( eventRing.allocatedEvents, 0, EventRing::sectors * EventRing::sectorSize * sizeof( uint64 ) );
+
+			eventRing.lock.UnlockWrite();
+		}
+	}
+
+	exiting.store( true, std::memory_order_relaxed );
+}
+
 EventQueue eventQueue;

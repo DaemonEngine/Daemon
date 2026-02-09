@@ -129,6 +129,8 @@ class TaskList :
 	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
 	Task* FetchTask( Thread* thread, const bool longestTask );
 
+	void TasksCleared( const uint32 count );
+	void TaskStarted();
 	bool ThreadFinished( const bool hadTask );
 
 	void FinishTask( Task* task );

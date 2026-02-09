@@ -82,8 +82,12 @@ struct EventQueue {
 
 	const uint64 minGranularity = eventRings[0].granularity;
 
+	std::atomic<bool> exiting   = false;
+
 	void AddTask( Task& task );
 	void Rotate();
+
+	void Shutdown();
 };
 
 extern EventQueue eventQueue;

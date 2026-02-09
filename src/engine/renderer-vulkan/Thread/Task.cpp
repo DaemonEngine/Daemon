@@ -48,7 +48,11 @@ Task::Task( const Task& other ) {
 }
 
 Task& Task::Delay( const uint64 delay ) {
-	time = TimeNs() + delay;
+	if ( shutdownTask ) {
+		Log::Warn( "Shutdown tasks may not be delayed! (task: %s, delay: %u)", Execute, delay );
+	} else {
+		time = TimeNs() + delay;
+	}
 
 	return *this;
 }

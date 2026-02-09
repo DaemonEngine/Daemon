@@ -263,6 +263,8 @@ void TaskList::AddToThreadQueueExt( Task& task ) {
 	if ( task.threadMask ) {
 		uint32 threadMask = task.threadMask;
 
+		taskCount.fetch_add( CountBits( threadMask ), std::memory_order_relaxed);
+
 		while ( threadMask ) {
 			const uint32 threadID = FindLSB( threadMask );
 			threadQueues[threadID].AddTask( threadID, task.bufferID );
@@ -272,6 +274,8 @@ void TaskList::AddToThreadQueueExt( Task& task ) {
 
 		return;
 	}
+
+	taskCount.fetch_add( 1, std::memory_order_relaxed );
 
 	const uint32 projectedTime = taskTime.time / std::max( taskTime.count, 1ull ) / 1000;
 
@@ -388,8 +392,6 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 		AddToThreadQueue( *taskMemory );
 	}
 
-	taskCount.fetch_add( 1, std::memory_order_relaxed );
-
 	TLM.addTimer.Stop();
 }
 
@@ -494,10 +496,17 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 	threadQueue.tasks[current] = ThreadQueue::TASK_NONE;
 	threadQueue.current        = ( current + 1 ) % ThreadQueue::MAX_TASKS;
 
-	executingThreads.fetch_add( 1, std::memory_order_relaxed );
-	taskCount.fetch_sub( 1, std::memory_order_relaxed );
-
 	return &tasks[id];
+}
+
+void TaskList::TasksCleared( const uint32 count ) {
+	taskCount.fetch_sub( count, std::memory_order_relaxed );
+}
+
+void TaskList::TaskStarted() {
+	executingThreads.fetch_add( 1, std::memory_order_relaxed );
+
+	taskCount.fetch_sub( 1, std::memory_order_relaxed );
 }
 
 bool TaskList::ThreadFinished( const bool hadTask ) {
@@ -506,6 +515,7 @@ bool TaskList::ThreadFinished( const bool hadTask ) {
 
 	if ( exit ) {
 		TLM.exitTimer.Start();
+		eventQueue.Shutdown();
 	}
 
 	if ( exit && !threadCount ) {
