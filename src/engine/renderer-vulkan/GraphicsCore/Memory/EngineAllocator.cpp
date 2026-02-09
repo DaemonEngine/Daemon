@@ -39,7 +39,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../Math/Bit.h"
 
+#include "../../Memory/Array.h"
+
 #include "../GraphicsCoreStore.h"
+#include "../QueuesConfig.h"
 
 #include "../../GraphicsShared/Bindings.h"
 
@@ -112,10 +115,15 @@ MemoryRequirements GetImage3DRequirements( const VkFormat format, const bool use
 }
 
 MemoryRequirements GetBufferRequirements( const VkBufferUsageFlags usage, const uint64 size, const bool engineAccess ) {
+	uint32           queueCount;
+	Array<uint32, 4> concurrentQueues = GetConcurrentQueues( &queueCount );
+
 	VkBufferCreateInfo bufferInfo {
-		.size        = size,
-		.usage       = usage | ( engineAccess ? VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT : 0 ),
-		.sharingMode = VK_SHARING_MODE_EXCLUSIVE
+		.size                  = size,
+		.usage                 = usage | ( engineAccess ? VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT : 0 ),
+		.sharingMode           = VK_SHARING_MODE_CONCURRENT,
+		.queueFamilyIndexCount = queueCount,
+		.pQueueFamilyIndices   = concurrentQueues.memory
 	};
 
 	VkDeviceBufferMemoryRequirements reqs2 {
@@ -127,7 +135,9 @@ MemoryRequirements GetBufferRequirements( const VkBufferUsageFlags usage, const 
 	vkGetDeviceBufferMemoryRequirements( device, &reqs2, &out );
 
 	return {
-		out.memoryRequirements.size, out.memoryRequirements.alignment, out.memoryRequirements.memoryTypeBits
+		out.memoryRequirements.size,
+		out.memoryRequirements.alignment,
+		out.memoryRequirements.memoryTypeBits
 	};
 }
 
@@ -259,10 +269,15 @@ MemoryPool EngineAllocator::AllocMemoryPool( const MemoryHeap::MemoryType type, 
 
 Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool, const MemoryRequirements& reqs, const VkBufferUsageFlags usage,
 	const bool engineAccess ) {
+	uint32           queueCount;
+	Array<uint32, 4> concurrentQueues = GetConcurrentQueues( &queueCount );
+
 	VkBufferCreateInfo bufferInfo {
-		.size        = reqs.size,
-		.usage       = usage | ( engineAccess ? VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT : 0 ),
-		.sharingMode = VK_SHARING_MODE_EXCLUSIVE
+		.size                  = reqs.size,
+		.usage                 = usage | ( engineAccess ? VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT : 0 ),
+		.sharingMode           = VK_SHARING_MODE_CONCURRENT,
+		.queueFamilyIndexCount = queueCount,
+		.pQueueFamilyIndices   = concurrentQueues.memory
 	};
 
 	if ( reqs.dedicated ) {

@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Vulkan.h"
 
-#include "../Memory/Array.h"
+#include "GraphicsCoreStore.h"
 
 #include "QueuesConfig.h"
 
@@ -97,4 +97,28 @@ QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device ) {
 	}
 
 	return config;
+}
+
+Array<uint32, 4> GetConcurrentQueues( uint32* count ) {
+	Array<uint32, 4> queues { queuesConfig.graphicsQueue.id };
+	uint32 i = 1;
+
+	if ( queuesConfig.computeQueue.unique ) {
+		queues[i] = queuesConfig.computeQueue.id;
+		i++;
+	}
+
+	if ( queuesConfig.transferQueue.unique ) {
+		queues[i] = queuesConfig.transferQueue.id;
+		i++;
+	}
+
+	if ( queuesConfig.sparseQueue.unique ) {
+		queues[i] = queuesConfig.sparseQueue.id;
+		i++;
+	}
+
+	*count = i;
+
+	return queues;
 }

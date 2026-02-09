@@ -37,6 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define QUEUES_CONFIG_H
 
 #include "../Math/NumberTypes.h"
+
+#include "../Memory/Array.h"
 #include "../Memory/IteratorSeq.h"
 
 #include "Vulkan.h"
@@ -81,5 +83,6 @@ struct QueuesConfig {
 };
 
 QueuesConfig GetQueuesConfigForDevice( const VkPhysicalDevice& device );
+Array<uint32, 4> GetConcurrentQueues( uint32* count );
 
 #endif // QUEUES_CONFIG_H
