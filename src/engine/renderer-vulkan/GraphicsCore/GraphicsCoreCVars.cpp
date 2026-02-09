@@ -71,7 +71,7 @@ Cvar::Cvar<bool>             r_noBorder( "r_noBorder", "Borderless window", Cvar
 // Cvar::Cvar<bool>             r_allowResize( "r_allowResize", "Resizable window", Cvar::ARCHIVE, false );
 
 Cvar::Range<Cvar::Cvar<int>> r_vkGraphicsMaxMemory( "r_vkGraphicsMaxMemory",
-	"Select memory allocation size for graphics engine; requires r_vkGraphicsMaxMemoryAuto",
+	"Set memory allocation size for graphics engine (in mb); requires r_vkGraphicsMaxMemoryAuto",
 	Cvar::NONE, EngineAllocator::minGraphicsMemorySize, EngineAllocator::minGraphicsMemorySize, EngineAllocator::maxGraphicsMemorySize );
 
 Cvar::Cvar<bool>             r_vkGraphicsMaxMemoryAuto( "r_vkGraphicsMaxMemoryAuto",
