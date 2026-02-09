@@ -524,10 +524,9 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 					buffers.Resize( buffers.elements + 1 );
 				}
 
-				MemoryRequirements reqs = GetBufferRequirements( bufferNode.usage, bufferNode.size, bufferNode.engineAccess );
+				MemoryRequirements reqs = GetBufferRequirements( bufferNode.usage, bufferNode.size );
 
-				buffers[id] = engineAllocator.AllocDedicatedBuffer( MemoryHeap::ENGINE, bufferNode.size,
-					bufferNode.usage, bufferNode.engineAccess );
+				buffers[id] = engineAllocator.AllocDedicatedBuffer( MemoryHeap::ENGINE, bufferNode.size, bufferNode.usage );
 
 				break;
 			}
@@ -590,20 +589,19 @@ void ResetCmdBuffer( const uint32 bufID ) {
 }
 
 void TestCmd() {
-	extraBuffers[0] = engineAllocator.AllocDedicatedBuffer( MemoryHeap::CORE_TO_ENGINE, 65536, 0, true );
+	extraBuffers[0] = engineAllocator.AllocDedicatedBuffer( MemoryHeap::CORE_TO_ENGINE, 65536, 0 );
 	memset( extraBuffers[0].memory, 0, 65536 );
 
 	for ( int i = 0; i < 64; i++ ) {
 		extraBuffers[0].memory[i] = i % 3;
 	}
 
-	extraBuffers[1] = engineAllocator.AllocDedicatedBuffer( MemoryHeap::ENGINE_TO_CORE, 65536, 0, true );
+	extraBuffers[1] = engineAllocator.AllocDedicatedBuffer( MemoryHeap::ENGINE_TO_CORE, 65536, 0 );
 	memset( extraBuffers[1].memory, 0, 65536 );
 
 	BufferNode testBuffer {
 		.id = 2,
-		.size = 65536,
-		.engineAccess = true
+		.size = 65536
 	};
 
 	PushConstNode testPush {

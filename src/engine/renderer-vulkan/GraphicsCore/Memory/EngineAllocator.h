@@ -111,13 +111,11 @@ class EngineAllocator {
 	MemoryHeap& MemoryHeapFromType( const MemoryHeap::MemoryType type );
 	MemoryHeap  MemoryHeapForUsage( const MemoryHeap::MemoryType type, uint32 supportedTypes, const uint32 flags );
 
-	MemoryPool AllocMemoryPool( const MemoryHeap::MemoryType type, const uint64 size, const bool image,
-		const bool engineAccess, const void* dedicatedResource = nullptr );
+	MemoryPool AllocMemoryPool( const MemoryHeap::MemoryType type, const uint64 size, const bool image, const void* dedicatedResource = nullptr );
 
-	Buffer     AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool, const MemoryRequirements& reqs, const VkBufferUsageFlags flags,
-		const bool engineAccess );
-	Buffer     AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint32 size, const VkBufferUsageFlags flags,
-		const bool engineAccess );
+	Buffer     AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool, const MemoryRequirements& reqs, const VkBufferUsageFlags flags );
+	Buffer     AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint32 size, const VkBufferUsageFlags flags );
+
 
 	private:
 	uint32     memoryPoolCount;
@@ -133,6 +131,6 @@ class EngineAllocator {
 	bool unifiedMemory;
 };
 
-MemoryRequirements GetBufferRequirements( const VkBufferUsageFlags type, const uint64 size, const bool engineAccess );
+MemoryRequirements GetBufferRequirements( const VkBufferUsageFlags type, const uint64 size );
 
 #endif // ENGINE_ALLOCATOR_H

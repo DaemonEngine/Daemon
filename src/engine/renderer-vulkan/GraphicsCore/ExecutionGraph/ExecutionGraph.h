@@ -196,7 +196,6 @@ struct BufferNode {
 	BufferSrc src = BUFFER_EXECUTION_GRAPH;
 	uint32    size;
 	uint32    usage;
-	uint32    engineAccess;
 	uint32    heap;
 };
 
