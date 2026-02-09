@@ -86,8 +86,6 @@ void Task::operator=( const Task& other ) {
 	gen                = other.gen;
 	time               = other.time;
 
-	memcpy( forwardTasks, other.forwardTasks, MAX_FORWARD_TASKS * sizeof( uint16 ) );
-
 	dependencyCounter  = other.dependencyCounter.load( std::memory_order_relaxed );
 	forwardTaskCounter = other.forwardTaskCounter.load( std::memory_order_relaxed );
 
@@ -98,6 +96,8 @@ void Task::operator=( const Task& other ) {
 	threadCount        = other.threadCount.load( std::memory_order_relaxed );
 
 	forwardTaskLock    = other.forwardTaskLock;
+
+	memcpy( forwardTasks, other.forwardTasks, MAX_FORWARD_TASKS * sizeof( uint16 ) );
 
 	dataSize           = other.dataSize;
 }
