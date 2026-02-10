@@ -129,6 +129,8 @@ class EngineAllocator {
 
 	bool rebar;
 	bool unifiedMemory;
+
+	bool zeroInitMemory;
 };
 
 MemoryRequirements GetBufferRequirements( const VkBufferUsageFlags type, const uint64 size );

@@ -234,6 +234,10 @@ MemoryPool EngineAllocator::AllocMemoryPool( const MemoryHeap::MemoryType type, 
 		.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT
 	};
 
+	if ( zeroInitMemory ) {
+		memoryFlags.flags |= VK_MEMORY_ALLOCATE_ZERO_INITIALIZE_BIT_EXT;
+	}
+
 	VkMemoryDedicatedAllocateInfo dedicatedMemoryInfo {
 		.image  = image ? ( VkImage ) dedicatedResource : nullptr,
 		.buffer = image ? nullptr : ( VkBuffer ) dedicatedResource
@@ -465,6 +469,8 @@ void EngineAllocator::Init() {
 
 	reqs = GetBufferRequirements( VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 262144 );
 	memoryHeapEngineToCore = MemoryHeapForUsage( MemoryHeap::ENGINE_TO_CORE, reqs.type, memoryIDEngineToCore );
+
+	zeroInitMemory = featuresConfig.zeroInitializeDeviceMemory;
 }
 
 void EngineAllocator::Free() {

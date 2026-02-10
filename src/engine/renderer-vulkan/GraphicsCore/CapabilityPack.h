@@ -182,7 +182,8 @@ constexpr Array featuresExperimental {
 
 constexpr Array featuresOptional {
 	"swapchainMaintenance1",
-	"descriptorHeap"
+	"descriptorHeap",
+	"zeroInitializeDeviceMemory"
 };
 
 constexpr bool            EngineConfigSupportedMinimal( const EngineConfig& config );
