@@ -44,8 +44,9 @@ extern Instance instance;
 
 extern SwapChain mainSwapChain;
 
-extern EngineConfig engineConfig;
-extern QueuesConfig queuesConfig;
+extern FeaturesConfig featuresConfig;
+extern EngineConfig   engineConfig;
+extern QueuesConfig   queuesConfig;
 
 extern VkPhysicalDevice physicalDevice;
 

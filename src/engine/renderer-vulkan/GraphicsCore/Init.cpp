@@ -73,7 +73,6 @@ void InitGraphicsEngine() {
 		return;
 	}
 
-	uint32 presentSupported;
 	if ( queuesConfig.computeQueue.unique ) {
 		computeQueue.Init( device, queuesConfig.computeQueue.id, queuesConfig.computeQueue.queueCount );
 		vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, queuesConfig.computeQueue.id, mainSwapChain.surface, &presentSupported );

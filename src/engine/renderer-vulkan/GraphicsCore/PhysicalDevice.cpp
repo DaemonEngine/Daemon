@@ -46,6 +46,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "QueuesConfig.h"
 #include "CapabilityPack.h"
 
+#include "GraphicsCoreStore.h"
+
 #include "PhysicalDevice.h"
 
 #include "FeaturesConfig.h"
@@ -154,9 +156,8 @@ void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config,
 		queueInfo.pQueuePriorities = priorities.memory;
 	}
 
-	FeaturesConfig cfgF           = GetPhysicalDeviceFeatures( physicalDevice, config );
-	FeaturesConfig cfgOut;
-	DynamicArray<const char*> ext = GetCapabilityPackFeatures( ( CapabilityPackType::Type ) config.capabilityPack, cfgF, &cfgOut );
+	FeaturesConfig cfg            = GetPhysicalDeviceFeatures( physicalDevice, config );
+	DynamicArray<const char*> ext = GetCapabilityPackFeatures( ( CapabilityPackType::Type ) config.capabilityPack, cfg, &featuresConfig );
 
 	VkDeviceCreateInfo info {
 		.queueCreateInfoCount    = queuesConfig.count,
@@ -165,7 +166,7 @@ void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config,
 		.ppEnabledExtensionNames = ext.memory
 	};
 
-	VkResult res                  = ( VkResult ) CreatePhysicalDevice( info, nullptr, config, cfgOut, device );
+	VkResult res                  = ( VkResult ) CreatePhysicalDevice( info, nullptr, config, featuresConfig, device );
 	Q_UNUSED( res );
 	Q_UNUSED( config );
 }

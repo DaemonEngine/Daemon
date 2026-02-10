@@ -55,6 +55,8 @@ struct VkAllocationCallbacks;
 
 struct Semaphore;
 
+struct VkPhysicalDeviceProperties2;
+struct VkPhysicalDeviceFeatures2;
 struct VkDeviceCreateInfo;
 
 VK_DEFINE_HANDLE( VkInstance );

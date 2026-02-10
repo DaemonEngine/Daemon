@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "SwapChain.h"
 
+#include "FeaturesConfig.h"
 #include "EngineConfig.h"
 #include "QueuesConfig.h"
 #include "Queue.h"
@@ -55,8 +56,9 @@ Instance instance;
 
 SwapChain mainSwapChain;
 
-EngineConfig engineConfig;
-QueuesConfig queuesConfig;
+FeaturesConfig featuresConfig;
+EngineConfig   engineConfig;
+QueuesConfig   queuesConfig;
 
 VkPhysicalDevice physicalDevice;
 
