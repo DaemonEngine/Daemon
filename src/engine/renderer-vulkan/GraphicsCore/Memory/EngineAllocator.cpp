@@ -296,10 +296,10 @@ Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPo
 	vkBindBufferMemory2( device, 1, &bindInfo );
 
 	Buffer res {
-		.buffer       = buffer,
-		.offset       = ( uint32 ) ( address - ( uint64 ) pool.memory ),
-		.size         = ( uint32 ) reqs.size,
-		.usage        = bufferInfo.usage
+		.buffer = buffer,
+		.offset = address - ( uint64 ) pool.memory,
+		.size   = reqs.size,
+		.usage  = bufferInfo.usage
 	};
 
 	MemoryHeap& heap = MemoryHeapFromType( type );
@@ -317,7 +317,7 @@ Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPo
 	return res;
 }
 
-Buffer EngineAllocator::AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint32 size, const VkBufferUsageFlags usage ) {
+Buffer EngineAllocator::AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint64 size, const VkBufferUsageFlags usage ) {
 	MemoryPool pool;
 
 	MemoryRequirements reqs = GetBufferRequirements( usage, size );

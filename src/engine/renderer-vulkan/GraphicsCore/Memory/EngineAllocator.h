@@ -73,8 +73,8 @@ struct MemoryRegionUsage {
 struct Buffer {
 	VkBuffer buffer;
 
-	uint32   offset;
-	uint32   size;
+	uint64   offset;
+	uint64   size;
 
 	uint32   usage;
 
@@ -114,7 +114,7 @@ class EngineAllocator {
 	MemoryPool AllocMemoryPool( const MemoryHeap::MemoryType type, const uint64 size, const bool image, const void* dedicatedResource = nullptr );
 
 	Buffer     AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool, const MemoryRequirements& reqs, const VkBufferUsageFlags flags );
-	Buffer     AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint32 size, const VkBufferUsageFlags flags );
+	Buffer     AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint64 size, const VkBufferUsageFlags flags );
 
 
 	private:
