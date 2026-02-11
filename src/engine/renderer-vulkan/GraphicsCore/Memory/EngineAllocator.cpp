@@ -114,7 +114,6 @@ MemoryRequirements GetImage3DRequirements( const VkFormat format, const bool use
 	return GetImageRequirements( VK_IMAGE_TYPE_2D, format, useMipMaps, storageImage, width, height, depth, 1, 1 );
 }
 
-MemoryRequirements GetBufferRequirements( const VkBufferUsageFlags usage, const uint64 size ) {
 	uint32           queueCount;
 	Array<uint32, 4> concurrentQueues = GetConcurrentQueues( &queueCount );
 
@@ -264,14 +263,91 @@ MemoryPool EngineAllocator::AllocMemoryPool( const MemoryHeap::MemoryType type, 
 	return memoryPool;
 }
 
-Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool,
-	const MemoryRequirements& reqs, const VkBufferUsageFlags usage ) {
+Buffer::Usage operator|( const Buffer::Usage& lhs, const Buffer::Usage& rhs ) {
+	return ( Buffer::Usage ) ( ( uint32 ) lhs | ( uint32 ) rhs );
+}
+
+VkBufferUsageFlags2 GetBufferUsageFlags( const MemoryHeap::MemoryType type, const Buffer::Usage usage ) {
+	static std::unordered_map<uint32, VkBufferUsageFlags2> bufferUsage {
+		{ Buffer::VERTEX,          VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT                                    },
+		{ Buffer::INDEX,           VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT                                     },
+		{ Buffer::INDIRECT,        VK_BUFFER_USAGE_2_INDIRECT_BUFFER_BIT                                  },
+		{ Buffer::DESCRIPTOR_HEAP, VK_BUFFER_USAGE_2_DESCRIPTOR_HEAP_BIT_EXT                              },
+		{ Buffer::AS,              VK_BUFFER_USAGE_2_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR               },
+		{ Buffer::AS_BUILD,        VK_BUFFER_USAGE_2_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR },
+		{ Buffer::SBT,             VK_BUFFER_USAGE_2_SHADER_BINDING_TABLE_BIT_KHR                         },
+		{ Buffer::MICROMAP,        VK_BUFFER_USAGE_2_MICROMAP_STORAGE_BIT_EXT                             },
+		{ Buffer::MICROMAP_BUILD,  VK_BUFFER_USAGE_2_MICROMAP_BUILD_INPUT_READ_ONLY_BIT_EXT               },
+		{ Buffer::DGC_PREPROCESS,  VK_BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT                            }
+	};
+
+	VkBufferUsageFlags2 usageFlags = VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT;
+	switch ( type ) {
+		case MemoryHeap::CORE_TO_ENGINE:
+			usageFlags |= VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT;
+			break;
+		case MemoryHeap::ENGINE_TO_CORE:
+			usageFlags |= VK_BUFFER_USAGE_2_TRANSFER_DST_BIT;
+			break;
+		case MemoryHeap::ENGINE:
+		default:
+			usageFlags |= VK_BUFFER_USAGE_2_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT;
+			break;
+	}
+
+	uint64 usageExt = usage;
+
+	while ( usageExt ) {
+		usageFlags |= bufferUsage[FindLSB( usageExt )];
+		UnSetBit( &usageExt, FindLSB( usageExt ) );
+	}
+
+	return usageFlags;
+}
+
+MemoryRequirements GetBufferRequirements( const MemoryHeap::MemoryType type, const uint64 size, const Buffer::Usage usage ) {
 	uint32           queueCount;
 	Array<uint32, 4> concurrentQueues = GetConcurrentQueues( &queueCount );
 
+	VkBufferUsageFlags2CreateInfo bufferFlagsInfo {
+		.usage = GetBufferUsageFlags( type, usage )
+	};
+
 	VkBufferCreateInfo bufferInfo {
+		.pNext                 = &bufferFlagsInfo,
+		.size                  = size,
+		.sharingMode           = VK_SHARING_MODE_CONCURRENT,
+		.queueFamilyIndexCount = queueCount,
+		.pQueueFamilyIndices   = concurrentQueues.memory
+	};
+
+	VkDeviceBufferMemoryRequirements reqs2 {
+		.pCreateInfo = &bufferInfo
+	};
+
+	VkMemoryRequirements2 out {};
+
+	vkGetDeviceBufferMemoryRequirements( device, &reqs2, &out );
+
+	return {
+		out.memoryRequirements.size,
+		out.memoryRequirements.alignment,
+		out.memoryRequirements.memoryTypeBits
+	};
+}
+
+Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool,
+	const MemoryRequirements& reqs, const Buffer::Usage usage ) {
+	uint32           queueCount;
+	Array<uint32, 4> concurrentQueues = GetConcurrentQueues( &queueCount );
+
+	VkBufferUsageFlags2CreateInfo bufferFlagsInfo {
+		.usage = GetBufferUsageFlags( type, usage )
+	};
+
+	VkBufferCreateInfo bufferInfo {
+		.pNext                 = &bufferFlagsInfo,
 		.size                  = reqs.size,
-		.usage                 = usage | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 		.sharingMode           = VK_SHARING_MODE_CONCURRENT,
 		.queueFamilyIndexCount = queueCount,
 		.pQueueFamilyIndices   = concurrentQueues.memory
@@ -321,10 +397,10 @@ Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPo
 	return res;
 }
 
-Buffer EngineAllocator::AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint64 size, const VkBufferUsageFlags usage ) {
+Buffer EngineAllocator::AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint64 size, const Buffer::Usage usage ) {
 	MemoryPool pool;
 
-	MemoryRequirements reqs = GetBufferRequirements( usage, size );
+	MemoryRequirements reqs = GetBufferRequirements( type, size, usage );
 	reqs.dedicated          = true;
 
 	return AllocBuffer( type, pool, reqs, usage );
@@ -441,8 +517,7 @@ void EngineAllocator::Init() {
 	}
 
 	MemoryRequirements reqs;
-	reqs = GetBufferRequirements( VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-		| VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, 1024 * 1024 * 1024 );
+	reqs = GetBufferRequirements( MemoryHeap::ENGINE, 1024 * 1024 * 1024, Buffer::VERTEX | Buffer::INDEX | Buffer::INDIRECT );
 	
 	uint32 supportedTypes = reqs.type;
 
@@ -464,10 +539,10 @@ void EngineAllocator::Init() {
 	memoryHeapEngine       = MemoryHeapForUsage( MemoryHeap::ENGINE, supportedTypes, memoryIDEngine );
 	//memoryPoolImages             = AllocMemoryPool();
 
-	reqs = GetBufferRequirements( VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 262144 );
+	reqs = GetBufferRequirements( MemoryHeap::CORE_TO_ENGINE, 262144 );
 	memoryHeapCoreToEngine = MemoryHeapForUsage( MemoryHeap::CORE_TO_ENGINE, reqs.type, memoryIDCoreToEngine );
 
-	reqs = GetBufferRequirements( VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 262144 );
+	reqs = GetBufferRequirements( MemoryHeap::ENGINE_TO_CORE, 262144 );
 	memoryHeapEngineToCore = MemoryHeapForUsage( MemoryHeap::ENGINE_TO_CORE, reqs.type, memoryIDEngineToCore );
 
 	zeroInitMemory = featuresConfig.zeroInitializeDeviceMemory;

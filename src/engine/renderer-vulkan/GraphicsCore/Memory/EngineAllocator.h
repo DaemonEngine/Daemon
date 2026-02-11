@@ -71,6 +71,19 @@ struct MemoryRegionUsage {
 };
 
 struct Buffer {
+	enum Usage {
+		VERTEX          = 1,
+		INDEX           = 2,
+		INDIRECT        = 4,
+		DESCRIPTOR_HEAP = 8,
+		AS              = 16,
+		AS_BUILD        = 32,
+		SBT             = 64,
+		MICROMAP        = 128,
+		MICROMAP_BUILD  = 256,
+		DGC_PREPROCESS  = 512
+	};
+
 	VkBuffer buffer;
 
 	uint64   offset;
@@ -81,6 +94,8 @@ struct Buffer {
 	uint32*  memory;
 	uint64   engineMemory;
 };
+
+Buffer::Usage operator|( const Buffer::Usage& lhs, const Buffer::Usage& rhs );
 
 struct Data {
 	uint32* memory;
@@ -113,8 +128,10 @@ class EngineAllocator {
 
 	MemoryPool AllocMemoryPool( const MemoryHeap::MemoryType type, const uint64 size, const bool image, const void* dedicatedResource = nullptr );
 
-	Buffer     AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool, const MemoryRequirements& reqs, const VkBufferUsageFlags flags );
-	Buffer     AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint64 size, const VkBufferUsageFlags flags );
+	Buffer     AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool, const MemoryRequirements& reqs,
+		const Buffer::Usage usage = ( Buffer::Usage ) 0 );
+	Buffer     AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint64 size,
+		const Buffer::Usage usage = ( Buffer::Usage ) 0 );
 
 
 	private:
@@ -133,6 +150,7 @@ class EngineAllocator {
 	bool zeroInitMemory;
 };
 
-MemoryRequirements GetBufferRequirements( const VkBufferUsageFlags type, const uint64 size );
+VkBufferUsageFlags2 GetBufferUsageFlags( const MemoryHeap::MemoryType type, const Buffer::Usage usage );
+MemoryRequirements  GetBufferRequirements( const MemoryHeap::MemoryType type, const uint64 size, const Buffer::Usage usage = ( Buffer::Usage ) 0 );
 
 #endif // ENGINE_ALLOCATOR_H
