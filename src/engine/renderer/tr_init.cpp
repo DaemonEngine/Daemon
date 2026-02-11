@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_init.c -- functions that are not called every frame
 #include "tr_local.h"
 #include "framework/CvarSystem.h"
+#include "framework/OmpSystem.h"
 #include "DetectGLVendors.h"
 #include "Material.h"
 #include "GeometryCache.h"
@@ -186,8 +187,9 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 
 	Cvar::Cvar<bool> r_toneMapping(
 		"r_toneMapping", "Use  HDR->LDR tonemapping", Cvar::NONE, true );
+	// TODO(0.56): rename because it can be used without tone mapping now
 	Cvar::Cvar<float> r_toneMappingExposure(
-		"r_toneMappingExposure", "Tonemap exposure", Cvar::NONE, 1.0f );
+		"r_toneMappingExposure", "Exposure (brightness adjustment)", Cvar::NONE, 1.0f );
 	Cvar::Range<Cvar::Cvar<float>> r_toneMappingContrast(
 		"r_toneMappingContrast", "Makes dark areas light up faster",
 		Cvar::NONE, 1.6f, 1.0f, 10.0f );
@@ -1056,6 +1058,21 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		{
 			Log::Notice("Using dual processor acceleration." );
 		}
+
+#if defined(_OPENMP)
+		int ompThreads = Omp::GetThreads();
+
+		if ( ompThreads == 1 )
+		{
+			Log::Notice("%sNot using OpenMP parallelism: only one thread.", Color::ToString( Color::Yellow ) );
+		}
+		else
+		{
+			Log::Notice("%sUsing OpenMP parallelism with %d threads.", Color::ToString( Color::Green ), ompThreads );
+		}
+#else
+		Log::Notice("%sNot using OpenMP parallelism: unavailable.", Color::ToString( Color::Yellow ) );
+#endif
 
 		if ( r_finish->integer )
 		{

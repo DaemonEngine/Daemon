@@ -188,6 +188,8 @@ set(ENGINELIST
     ${ENGINE_DIR}/framework/CvarSystem.h
     ${ENGINE_DIR}/framework/LogSystem.cpp
     ${ENGINE_DIR}/framework/LogSystem.h
+    ${ENGINE_DIR}/framework/OmpSystem.cpp
+    ${ENGINE_DIR}/framework/OmpSystem.h
     ${ENGINE_DIR}/framework/Resource.cpp
     ${ENGINE_DIR}/framework/Resource.h
     ${ENGINE_DIR}/framework/System.cpp
@@ -205,6 +207,11 @@ set(ENGINELIST
     ${ENGINE_DIR}/sys/con_common.cpp
     ${ENGINE_DIR}/sys/sys_events.h
     ${ENGINE_DIR}/RefAPI.h
+)
+
+set(OMPLIST
+    ${ENGINE_DIR}/framework/OmpSystem.cpp
+    ${ENGINE_DIR}/framework/OmpSystem.h
 )
 
 if (WIN32)
@@ -271,6 +278,7 @@ set(CLIENTBASELIST
 )
 
 set(CLIENTLIST
+    ${OMPLIST}
     ${ENGINE_DIR}/audio/ALObjects.cpp
     ${ENGINE_DIR}/audio/ALObjects.h
     ${ENGINE_DIR}/audio/Audio.cpp
@@ -304,6 +312,7 @@ set(CLIENTTESTLIST ${ENGINETESTLIST}
 )
 
 set(TTYCLIENTLIST
+    ${OMPLIST}
     ${ENGINE_DIR}/null/NullAudio.cpp
     ${ENGINE_DIR}/null/NullKeyboard.cpp
     ${ENGINE_DIR}/null/null_input.cpp
@@ -311,9 +320,15 @@ set(TTYCLIENTLIST
 )
 
 set(DEDSERVERLIST
+    ${OMPLIST}
     ${ENGINE_DIR}/null/NullKeyboard.cpp
     ${ENGINE_DIR}/null/null_client.cpp
     ${ENGINE_DIR}/null/null_input.cpp
+)
+
+set(DUMMYAPPLIST
+    ${OMPLIST}
+    ${COMMON_DIR}/Util.h
 )
 
 set(WIN_RC ${ENGINE_DIR}/sys/windows-resource/icon.rc)

@@ -306,7 +306,7 @@ struct clientStatic_t
 
 	// rendering info
 	WindowConfig windowConfig;
-	qhandle_t   whiteShader;
+	qhandle_t   whiteShader; // used for console drawing
 	fontInfo_t *consoleFont;
 
 	// www downloading

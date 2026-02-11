@@ -46,6 +46,7 @@ std::string GetGLHardwareVendorName( glHardwareVendor_t hardwareVendor )
 		"Broadcom",
 		"Intel",
 		"Nvidia",
+		"Moore Threads",
 		"OutOfRange",
 	};
 
@@ -71,6 +72,7 @@ std::string GetGLDriverVendorName( glDriverVendor_t driverVendor )
 		"Intel",
 		"Mesa",
 		"Nvidia",
+		"Moore Threads",
 		"OutOfRange",
 	};
 
@@ -117,10 +119,12 @@ void DetectGLVendors(
 		// Mesa Panfrost, newer Panfrost uses "Mesa" instead.
 		{ "Panfrost", { glDriverVendor_t::MESA, glHardwareVendor_t::ARM } },
 		// Mesa Nvidia for supported OpenGL 2+ hardware.
+		// Mesa Amber also provides "Nouveau", but this is for unsupported pre-OpenGL 2 Nvidia.
 		{ "nouveau", { glDriverVendor_t::MESA, glHardwareVendor_t::NVIDIA } },
 		// Proprietary Nvidia drivers on all systems like Linux, Windows, and macOS.
 		{ "NVIDIA Corporation", { glDriverVendor_t::NVIDIA, glHardwareVendor_t::NVIDIA } },
-		// Mesa Amber also provides "Nouveau", but this is for unsupported pre-OpenGL 2 Nvidia.
+		// Moore Threads drivers on Linux and Windows.
+		{ "Moore Threads", { glDriverVendor_t::MTHREADS, glHardwareVendor_t::MTHREADS } },
 	};
 
 	auto it = vendorDriverHardware.find( vendorString );

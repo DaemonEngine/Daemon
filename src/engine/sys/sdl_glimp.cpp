@@ -185,6 +185,10 @@ static Cvar::Cvar<bool> workaround_glHardware_intel_useFirstProvokinVertex(
 	"workaround.glHardware.intel.useFirstProvokinVertex",
 	"Use first provoking vertex on Intel hardware supporting ARB_provoking_vertex",
 	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glHardware_mthreads_disableTextureBarrier(
+	"workaround.glHardware.mthreads.disableTextureBarrier",
+	"Disable ARB_texture_barrier on Moore Threads hardware",
+	Cvar::NONE, true );
 
 SDL_Window *window = nullptr;
 static SDL_PropertiesID windowProperties;
@@ -2376,6 +2380,26 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 4.5
 	glConfig.textureBarrierAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_barrier, r_arb_texture_barrier.Get() );
 
+	if ( glConfig.textureBarrierAvailable
+		&& glConfig.hardwareVendor == glHardwareVendor_t::MTHREADS
+		&& workaround_glHardware_mthreads_disableTextureBarrier.Get() )
+	{
+		/* Texture barrier doesn't make sense on a tiled GPU architecture,
+		so implementing it on Moore Threads hardware would be meaningless,
+		see: https://github.com/DaemonEngine/Daemon/pull/1890#issuecomment-3872010479
+
+		It's still possible for drivers to implement unoptimal emulation just
+		to provide compliance.
+
+		It happens that the implementation of the MTT actually produces garbage
+		on screen, see: https://github.com/DaemonEngine/Daemon/issues/1891
+
+		Either being unoptimal, or the implementation being buggy, we better
+		disable the feature on such hardware. */
+		logger.Warn( "Found Moore Threads hardware with tiled architecture, disabling ARB_texture_barrier.");
+		glConfig.textureBarrierAvailable = false;
+	}
+
 	// made required in OpenGL 4.3
 	glConfig.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader.Get() );
 
@@ -2679,6 +2703,7 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_glExtension_glsl120_disableShaderDrawParameters );
 	Cvar::Latch( workaround_glExtension_glsl120_disableGpuShader4 );
 	Cvar::Latch( workaround_glHardware_intel_useFirstProvokinVertex );
+	Cvar::Latch( workaround_glHardware_mthreads_disableTextureBarrier );
 
 	/* Enable S3TC on Mesa even if libtxc-dxtn is not available
 	The environment variables is currently always set,
