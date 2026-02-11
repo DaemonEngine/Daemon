@@ -121,28 +121,31 @@ class EngineAllocator {
 	MemoryHeap memoryHeapCoreToEngine;
 	MemoryHeap memoryHeapEngineToCore;
 
-	void Init();
-	void Free();
+	void        Init();
+	void        Free();
 
 	MemoryHeap& MemoryHeapFromType( const MemoryHeap::MemoryType type, const bool image );
 	MemoryHeap  MemoryHeapForUsage( const uint32 memoryRegion, const bool image, uint32 supportedTypes, const uint32 flags );
 
-	MemoryPool AllocMemoryPool( const MemoryHeap::MemoryType type, const bool image, const uint64 size, const void* dedicatedResource = nullptr );
+	MemoryPool  AllocMemoryPool( const MemoryHeap::MemoryType type, const bool image, const uint64 size, const void* dedicatedResource = nullptr );
 
-	Buffer     AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool, const MemoryRequirements& reqs,
-		const Buffer::Usage usage = ( Buffer::Usage ) 0 );
-	Buffer     AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint64 size,
-		const Buffer::Usage usage = ( Buffer::Usage ) 0 );
+	Buffer      AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool, const MemoryRequirements& reqs,
+	                         const Buffer::Usage usage = ( Buffer::Usage ) 0 );
+	Buffer      AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint64 size,
+	                                  const Buffer::Usage usage = ( Buffer::Usage ) 0 );
 
 
 	private:
 	uint32     memoryPoolCount;
 	MemoryPool memoryPools[maxMemoryPools];
 
-	bool rebar;
-	bool unifiedMemory;
+	bool       rebar;
+	bool       unifiedMemory;
 
-	bool zeroInitMemory;
+	uint64     coherentAccessAlignment;
+
+	bool       zeroInitMemory;
+
 };
 
 VkBufferUsageFlags2 GetBufferUsageFlags( const MemoryHeap::MemoryType type, const Buffer::Usage usage );

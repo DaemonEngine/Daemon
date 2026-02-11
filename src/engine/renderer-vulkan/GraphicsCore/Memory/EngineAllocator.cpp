@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../GraphicsCoreStore.h"
 #include "../FeaturesConfig.h"
+#include "../EngineConfig.h"
 #include "../QueuesConfig.h"
 
 #include "../../GraphicsShared/Bindings.h"
@@ -254,14 +255,17 @@ MemoryRequirements GetBufferRequirements( const MemoryHeap::MemoryType type, con
 		.pCreateInfo = &bufferInfo
 	};
 
-	VkMemoryRequirements2 out {};
+	VkMemoryDedicatedRequirements dedicatedReqs {};
+
+	VkMemoryRequirements2 out { .pNext = &dedicatedReqs };
 
 	vkGetDeviceBufferMemoryRequirements( device, &reqs2, &out );
 
 	return {
-		out.memoryRequirements.size,
-		out.memoryRequirements.alignment,
-		out.memoryRequirements.memoryTypeBits
+		.size      = out.memoryRequirements.size,
+		.alignment = out.memoryRequirements.alignment,
+		.type      = out.memoryRequirements.memoryTypeBits,
+		.dedicated = ( bool ) ( dedicatedReqs.requiresDedicatedAllocation | dedicatedReqs.prefersDedicatedAllocation )
 	};
 }
 
@@ -289,10 +293,11 @@ Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPo
 	VkBuffer buffer;
 	vkCreateBuffer( device, &bufferInfo, nullptr, &buffer );
 
-	uint64 address = ( uint64 ) pool.memory;
+	uint64 address   = ( uint64 ) pool.memory;
+	uint64 alignment = reqs.dedicated ? reqs.alignment : std::max( reqs.alignment, coherentAccessAlignment );
 
-	if ( address & ( reqs.alignment - 1 ) ) {
-		address = ( address & ~( reqs.alignment - 1 ) ) + reqs.alignment;
+	if ( address & ( alignment - 1 ) ) {
+		address = ( address & ~( alignment - 1 ) ) + alignment;
 	}
 
 	pool.offset += address + reqs.size - ( uint64 ) address;
@@ -314,7 +319,7 @@ Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPo
 	MemoryHeap& heap = MemoryHeapFromType( type, false );
 
 	if ( heap.flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
-		res.memory = pool.mappedMemory;
+		res.memory = pool.mappedMemory + res.offset;
 	}
 
 	VkBufferDeviceAddressInfo bdaInfo {
@@ -484,8 +489,8 @@ void EngineAllocator::Init() {
 		memoryIDEngineImages = memoryIDEngine;
 
 		if ( memoryRegionEngine == memoryRegionBAR ) {
-			memoryIDEngine = memoryIDCoreToEngine;
-			rebar          = true;
+			memoryIDEngine   = memoryIDCoreToEngine;
+			rebar            = true;
 		}
 	}
 
@@ -497,27 +502,29 @@ void EngineAllocator::Init() {
 	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0,
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, { 1024, 1024 },
 		10, 1, true, 1 );
-	uint32 supportedTypes = reqs.type;
+	uint32 supportedTypes  = reqs.type;
 
 	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0,
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, { 1024, 1024 },
 		10, 1, true, 1 );
-	supportedTypes       &= reqs.type;
+	supportedTypes         &= reqs.type;
 
 	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0,
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, { 1024, 1024 },
 		10, 1, true, 1 );
-	supportedTypes       &= reqs.type;
 
-	memoryHeapEngineImages = MemoryHeapForUsage( memoryRegionEngine, true, supportedTypes, memoryIDEngineImages );
+	memoryHeapEngineImages  = MemoryHeapForUsage( memoryRegionEngine, true, supportedTypes, memoryIDEngineImages );
 
 	reqs = GetBufferRequirements( MemoryHeap::CORE_TO_ENGINE, 262144 );
-	memoryHeapCoreToEngine = MemoryHeapForUsage( memoryRegionBAR,    false,     reqs.type, memoryIDCoreToEngine );
+	memoryHeapCoreToEngine  = MemoryHeapForUsage( memoryRegionBAR,    false,     reqs.type, memoryIDCoreToEngine );
 
 	reqs = GetBufferRequirements( MemoryHeap::ENGINE_TO_CORE, 262144 );
-	memoryHeapEngineToCore = MemoryHeapForUsage( memoryRegionCore,   false,     reqs.type, memoryIDEngineToCore );
+	memoryHeapEngineToCore  = MemoryHeapForUsage( memoryRegionCore,   false,     reqs.type, memoryIDEngineToCore );
 
-	zeroInitMemory = featuresConfig.zeroInitializeDeviceMemory;
+	coherentAccessAlignment = engineConfig.coherentAccessAlignment;
+
+	zeroInitMemory          = featuresConfig.zeroInitializeDeviceMemory;
+
 }
 
 void EngineAllocator::Free() {

@@ -128,7 +128,7 @@ EngineConfig GetEngineConfigForDevice( const VkPhysicalDevice& device ) {
 
 		.optimalBufferCopyOffsetAlignment          = limits.optimalBufferCopyOffsetAlignment,
 		.optimalBufferCopyRowPitchAlignment        = limits.optimalBufferCopyRowPitchAlignment,
-		.nonCoherentAtomSize                       = limits.nonCoherentAtomSize,
+		.coherentAccessAlignment                   = limits.nonCoherentAtomSize,
 
 		.shaderResourceResidency                   = ( bool ) coreFeatures.shaderResourceResidency,
 		.shaderResourceMinLod                      = ( bool ) coreFeatures.shaderResourceMinLod,

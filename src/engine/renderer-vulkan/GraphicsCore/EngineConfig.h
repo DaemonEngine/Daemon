@@ -116,7 +116,7 @@ struct EngineConfig {
 
 	uint64 optimalBufferCopyOffsetAlignment;
 	uint64 optimalBufferCopyRowPitchAlignment;
-	uint64 nonCoherentAtomSize;
+	uint64 coherentAccessAlignment;
 
 	bool   shaderResourceResidency;
 	bool   shaderResourceMinLod;
