@@ -117,16 +117,17 @@ class EngineAllocator {
 	static constexpr int maxGraphicsMemorySize = 16384;
 
 	MemoryHeap memoryHeapEngine;
+	MemoryHeap memoryHeapEngineImages;
 	MemoryHeap memoryHeapCoreToEngine;
 	MemoryHeap memoryHeapEngineToCore;
 
 	void Init();
 	void Free();
 
-	MemoryHeap& MemoryHeapFromType( const MemoryHeap::MemoryType type );
-	MemoryHeap  MemoryHeapForUsage( const MemoryHeap::MemoryType type, uint32 supportedTypes, const uint32 flags );
+	MemoryHeap& MemoryHeapFromType( const MemoryHeap::MemoryType type, const bool image );
+	MemoryHeap  MemoryHeapForUsage( const MemoryHeap::MemoryType type, const bool image, uint32 supportedTypes, const uint32 flags );
 
-	MemoryPool AllocMemoryPool( const MemoryHeap::MemoryType type, const uint64 size, const bool image, const void* dedicatedResource = nullptr );
+	MemoryPool AllocMemoryPool( const MemoryHeap::MemoryType type, const bool image, const uint64 size, const void* dedicatedResource = nullptr );
 
 	Buffer     AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool, const MemoryRequirements& reqs,
 		const Buffer::Usage usage = ( Buffer::Usage ) 0 );
@@ -137,8 +138,6 @@ class EngineAllocator {
 	private:
 	uint32     memoryPoolCount;
 	MemoryPool memoryPools[maxMemoryPools];
-
-	int memoryIDFlags[32];
 
 	uint32 memoryRegionEngine;
 	uint32 memoryRegionBAR;
