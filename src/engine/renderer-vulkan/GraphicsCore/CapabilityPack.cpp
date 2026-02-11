@@ -56,8 +56,13 @@ void SetConfigFeatures( const IteratorSeq<const char* const> featuresStart, cons
 
 		*cfgOutFeature = true;
 
-		if ( featureData.version > Version { 1, 4, 0 } && !extensions.contains( featureData.extension.c_str() ) ) {
-			extensions.insert( featureData.extension.c_str() );
+		if ( featureData.version > Version { 1, 4, 0 }
+			&& std::find_if( extensions.begin(), extensions.end(),
+				[&]( const char* ext ) {
+					return !Q_stricmp( featureData.extension, ext );
+				}
+			) == extensions.end() ) {
+			extensions.insert( featureData.extension );
 		}
 	}
 }
@@ -92,7 +97,11 @@ CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig&
 void AddRequiredExtensions( const IteratorSeq<const char* const> extensionsStart, const IteratorSeq<const char* const> extensionsEnd,
 	std::unordered_set<const char*>& extensions ) {
 	for ( IteratorSeq<const char* const> extension = extensionsStart; extension < extensionsEnd; extension++ ) {
-		if ( !extensions.contains( *extension ) ) {
+		if ( std::find_if( extensions.begin(), extensions.end(),
+				[&]( const char* ext ) {
+					return !Q_stricmp( *extension, ext );
+				}
+			) == extensions.end() ) {
 			extensions.insert( *extension );
 		}
 	}

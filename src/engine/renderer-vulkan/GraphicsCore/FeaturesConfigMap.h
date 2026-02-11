@@ -46,7 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct FeatureData {
     uint32      offset;
 	Version     version;
-    std::string extension;
+    const char* extension;
 };
 
 extern std::unordered_map<std::string, FeatureData> featuresConfigMap;
