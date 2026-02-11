@@ -152,7 +152,6 @@ constexpr Array featuresMinimal {
 	"maintenance5",
 	"maintenance6",
 	"formatA4R4G4B4",
-	"dynamicRenderingUnusedAttachments",
 	"extendedDynamicState",
 	"minLod",
 	"indexTypeUint8",
