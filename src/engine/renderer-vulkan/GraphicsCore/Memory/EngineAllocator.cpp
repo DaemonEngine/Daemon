@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../Memory/Array.h"
 
 #include "../GraphicsCoreStore.h"
+#include "../FeaturesConfig.h"
 #include "../QueuesConfig.h"
 
 #include "../../GraphicsShared/Bindings.h"
@@ -140,17 +141,6 @@ MemoryRequirements GetImage3DRequirements( const VkFormat format, const bool use
 	};
 }
 
-static constexpr VkMemoryPropertyFlags memoryTypeGPU =
-	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-static constexpr VkMemoryPropertyFlags memoryTypeBAR =
-	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-static constexpr VkMemoryPropertyFlags memoryTypeGPUToCPU =
-	VK_MEMORY_PROPERTY_HOST_CACHED_BIT  | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-static constexpr VkMemoryPropertyFlags memoryTypeUnified = 
-	  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT  | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-	| VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
 MemoryHeap& EngineAllocator::MemoryHeapFromType( const MemoryHeap::MemoryType type, const bool image ) {
 	switch ( type ) {
 		default:
@@ -161,61 +151,6 @@ MemoryHeap& EngineAllocator::MemoryHeapFromType( const MemoryHeap::MemoryType ty
 		case MemoryHeap::ENGINE_TO_CORE:
 			return memoryHeapEngineToCore;
 	}
-}
-
-MemoryHeap EngineAllocator::MemoryHeapForUsage( const MemoryHeap::MemoryType type, const bool image, uint32 supportedTypes, const uint32 flags ) {
-	VkPhysicalDeviceMemoryBudgetPropertiesEXT properties {};
-	VkPhysicalDeviceMemoryProperties2 properties2 {
-		.pNext = &properties
-	};
-
-	vkGetPhysicalDeviceMemoryProperties2( physicalDevice, &properties2 );
-
-	VkPhysicalDeviceMemoryProperties& memoryProperties = properties2.memoryProperties;
-
-	uint32 memoryRegion;
-
-	if ( unifiedMemory ) {
-		memoryRegion = memoryRegionEngine;
-	} else {
-		switch ( type ) {
-			default:
-			case MemoryHeap::ENGINE:
-				memoryRegion = memoryRegionEngine;
-				break;
-			case MemoryHeap::CORE_TO_ENGINE:
-				memoryRegion = memoryRegionBAR;
-				break;
-			case MemoryHeap::ENGINE_TO_CORE:
-				memoryRegion = memoryRegionCore;
-				break;
-		}
-	}
-
-	MemoryHeap memoryHeap {
-		properties.heapBudget[memoryRegion] - properties.heapUsage[memoryRegion],
-		properties.heapBudget[memoryRegion],
-		type
-	};
-
-	while ( supportedTypes ) {
-		const uint32 id                = FindLSB( supportedTypes );
-		const VkMemoryType& memoryType = memoryProperties.memoryTypes[id];
-
-		if ( ( flags & memoryType.propertyFlags ) != flags ) {
-			UnSetBit( &supportedTypes, id );
-			continue;
-		}
-
-		memoryHeap.id    = id;
-		memoryHeap.flags = flags;
-
-		return memoryHeap;
-	}
-
-	Err( "No suitable MemoryHeap found" );
-
-	return memoryHeap;
 }
 
 MemoryPool EngineAllocator::AllocMemoryPool( const MemoryHeap::MemoryType type, const bool image, const uint64 size, const void* dedicatedResource ) {
@@ -400,6 +335,39 @@ Buffer EngineAllocator::AllocDedicatedBuffer( const MemoryHeap::MemoryType type,
 	return AllocBuffer( type, pool, reqs, usage );
 }
 
+MemoryHeap EngineAllocator::MemoryHeapForUsage( const uint32 memoryRegion, const bool image, uint32 supportedTypes, const uint32 flags ) {
+	VkPhysicalDeviceMemoryBudgetPropertiesEXT properties {};
+	VkPhysicalDeviceMemoryProperties2 properties2 {
+		.pNext = &properties
+	};
+
+	vkGetPhysicalDeviceMemoryProperties2( physicalDevice, &properties2 );
+
+	VkPhysicalDeviceMemoryProperties& memoryProperties = properties2.memoryProperties;
+
+	while ( supportedTypes ) {
+		const uint32 id                = FindLSB( supportedTypes );
+		const VkMemoryType& memoryType = memoryProperties.memoryTypes[id];
+
+		if ( ( flags & memoryType.propertyFlags ) != flags ) {
+			UnSetBit( &supportedTypes, id );
+			continue;
+		}
+
+		return {
+			.size         = properties.heapBudget[memoryRegion] - properties.heapUsage[memoryRegion],
+			.maxSize      = properties.heapBudget[memoryRegion],
+			.memoryRegion = memoryRegion,
+			.id           = id,
+			.flags        = flags
+		};
+	}
+
+	Err( "No suitable MemoryHeap found" );
+
+	return {};
+}
+
 void EngineAllocator::Init() {
 	memoryPoolCount = 0;
 
@@ -412,9 +380,20 @@ void EngineAllocator::Init() {
 
 	VkPhysicalDeviceMemoryProperties& memoryProperties = properties2.memoryProperties;
 
-	memoryRegionEngine          = UINT_MAX;
-	memoryRegionBAR             = UINT_MAX;
-	memoryRegionCore            = UINT_MAX;
+	static constexpr VkMemoryPropertyFlags memoryTypeGPU =
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	static constexpr VkMemoryPropertyFlags memoryTypeBAR =
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	static constexpr VkMemoryPropertyFlags memoryTypeGPUToCPU =
+		VK_MEMORY_PROPERTY_HOST_CACHED_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+	static constexpr VkMemoryPropertyFlags memoryTypeUnified =
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+		| VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+	uint32 memoryRegionEngine   = UINT_MAX;
+	uint32 memoryRegionBAR      = UINT_MAX;
+	uint32 memoryRegionCore     = UINT_MAX;
 
 	uint32 memoryIDEngine       = 0;
 	uint32 memoryIDEngineImages = 0;
@@ -434,7 +413,7 @@ void EngineAllocator::Init() {
 			}
 		}
 
-		if ( memoryIDEngine == UINT_MAX ) {
+		if ( !memoryIDEngine ) {
 			Err( "Couldn't find memory type for ENGINE" );
 		}
 
@@ -442,6 +421,7 @@ void EngineAllocator::Init() {
 		memoryRegionBAR        = 0;
 		memoryRegionCore       = 0;
 
+		memoryIDEngineImages   = memoryIDEngine;
 		memoryIDCoreToEngine   = memoryIDEngine;
 		memoryIDEngineToCore   = memoryIDEngine;
 	} else {
@@ -512,7 +492,7 @@ void EngineAllocator::Init() {
 	MemoryRequirements reqs;
 	reqs = GetBufferRequirements( MemoryHeap::ENGINE, 1024 * 1024 * 1024, Buffer::VERTEX | Buffer::INDEX | Buffer::INDIRECT );
 
-	memoryHeapEngine = MemoryHeapForUsage( MemoryHeap::ENGINE, false, reqs.type, memoryIDEngine );
+	memoryHeapEngine       = MemoryHeapForUsage( memoryRegionEngine, false,     reqs.type, memoryIDEngine );
 
 	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0,
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, { 1024, 1024 },
@@ -529,14 +509,13 @@ void EngineAllocator::Init() {
 		10, 1, true, 1 );
 	supportedTypes       &= reqs.type;
 
-	memoryHeapEngineImages = MemoryHeapForUsage( MemoryHeap::ENGINE, true, supportedTypes, memoryIDEngineImages );
-	//memoryPoolImages             = AllocMemoryPool();
+	memoryHeapEngineImages = MemoryHeapForUsage( memoryRegionEngine, true, supportedTypes, memoryIDEngineImages );
 
 	reqs = GetBufferRequirements( MemoryHeap::CORE_TO_ENGINE, 262144 );
-	memoryHeapCoreToEngine = MemoryHeapForUsage( MemoryHeap::CORE_TO_ENGINE, false, reqs.type, memoryIDCoreToEngine );
+	memoryHeapCoreToEngine = MemoryHeapForUsage( memoryRegionBAR,    false,     reqs.type, memoryIDCoreToEngine );
 
 	reqs = GetBufferRequirements( MemoryHeap::ENGINE_TO_CORE, 262144 );
-	memoryHeapEngineToCore = MemoryHeapForUsage( MemoryHeap::ENGINE_TO_CORE, false, reqs.type, memoryIDEngineToCore );
+	memoryHeapEngineToCore = MemoryHeapForUsage( memoryRegionCore,   false,     reqs.type, memoryIDEngineToCore );
 
 	zeroInitMemory = featuresConfig.zeroInitializeDeviceMemory;
 }

@@ -52,7 +52,7 @@ struct MemoryHeap {
 	uint64     size;
 	uint64     maxSize;
 
-	MemoryType type;
+	uint32     memoryRegion;
 
 	uint32     id;
 	uint32     flags;
@@ -125,7 +125,7 @@ class EngineAllocator {
 	void Free();
 
 	MemoryHeap& MemoryHeapFromType( const MemoryHeap::MemoryType type, const bool image );
-	MemoryHeap  MemoryHeapForUsage( const MemoryHeap::MemoryType type, const bool image, uint32 supportedTypes, const uint32 flags );
+	MemoryHeap  MemoryHeapForUsage( const uint32 memoryRegion, const bool image, uint32 supportedTypes, const uint32 flags );
 
 	MemoryPool AllocMemoryPool( const MemoryHeap::MemoryType type, const bool image, const uint64 size, const void* dedicatedResource = nullptr );
 
@@ -138,10 +138,6 @@ class EngineAllocator {
 	private:
 	uint32     memoryPoolCount;
 	MemoryPool memoryPools[maxMemoryPools];
-
-	uint32 memoryRegionEngine;
-	uint32 memoryRegionBAR;
-	uint32 memoryRegionCore;
 
 	bool rebar;
 	bool unifiedMemory;
