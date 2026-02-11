@@ -374,8 +374,6 @@ MemoryHeap EngineAllocator::MemoryHeapForUsage( const uint32 memoryRegion, const
 }
 
 void EngineAllocator::Init() {
-	memoryPoolCount = 0;
-
 	VkPhysicalDeviceMemoryBudgetPropertiesEXT properties  {};
 	VkPhysicalDeviceMemoryProperties2         properties2 {
 		.pNext = &properties
@@ -497,12 +495,12 @@ void EngineAllocator::Init() {
 	MemoryRequirements reqs;
 	reqs = GetBufferRequirements( MemoryHeap::ENGINE, 1024 * 1024 * 1024, Buffer::VERTEX | Buffer::INDEX | Buffer::INDIRECT );
 
-	memoryHeapEngine       = MemoryHeapForUsage( memoryRegionEngine, false,     reqs.type, memoryIDEngine );
+	memoryHeapEngine        = MemoryHeapForUsage( memoryRegionEngine, false,     reqs.type, memoryIDEngine );
 
 	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0,
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, { 1024, 1024 },
 		10, 1, true, 1 );
-	uint32 supportedTypes  = reqs.type;
+	uint32 supportedTypes   = reqs.type;
 
 	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0,
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, { 1024, 1024 },
@@ -512,6 +510,7 @@ void EngineAllocator::Init() {
 	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0,
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, { 1024, 1024 },
 		10, 1, true, 1 );
+	supportedTypes         &= reqs.type;
 
 	memoryHeapEngineImages  = MemoryHeapForUsage( memoryRegionEngine, true, supportedTypes, memoryIDEngineImages );
 
@@ -525,6 +524,7 @@ void EngineAllocator::Init() {
 
 	zeroInitMemory          = featuresConfig.zeroInitializeDeviceMemory;
 
+	memoryPoolCount         = 0;
 }
 
 void EngineAllocator::Free() {

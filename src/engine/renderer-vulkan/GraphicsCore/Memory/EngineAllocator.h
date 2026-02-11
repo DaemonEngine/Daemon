@@ -110,17 +110,6 @@ struct Data {
 
 class EngineAllocator {
 	public:
-	static constexpr uint32 maxMemoryPools = 32;
-
-	// In megabytes
-	static constexpr int minGraphicsMemorySize = 1024;
-	static constexpr int maxGraphicsMemorySize = 16384;
-
-	MemoryHeap memoryHeapEngine;
-	MemoryHeap memoryHeapEngineImages;
-	MemoryHeap memoryHeapCoreToEngine;
-	MemoryHeap memoryHeapEngineToCore;
-
 	void        Init();
 	void        Free();
 
@@ -136,6 +125,13 @@ class EngineAllocator {
 
 
 	private:
+	static constexpr uint32 maxMemoryPools = 32;
+
+	MemoryHeap memoryHeapEngine;
+	MemoryHeap memoryHeapEngineImages;
+	MemoryHeap memoryHeapCoreToEngine;
+	MemoryHeap memoryHeapEngineToCore;
+
 	uint32     memoryPoolCount;
 	MemoryPool memoryPools[maxMemoryPools];
 
@@ -145,7 +141,6 @@ class EngineAllocator {
 	uint64     coherentAccessAlignment;
 
 	bool       zeroInitMemory;
-
 };
 
 VkBufferUsageFlags2 GetBufferUsageFlags( const MemoryHeap::MemoryType type, const Buffer::Usage usage );
