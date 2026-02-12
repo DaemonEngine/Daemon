@@ -147,7 +147,7 @@ void EventQueue::Shutdown() {
 				count += CountBits( sector );
 			}
 
-			memset( eventRing.allocatedEvents, 0, EventRing::sectors * EventRing::sectorSize * sizeof( uint64 ) );
+			memset( eventRing.allocatedEvents, 0, EventRing::sectors * sizeof( uint64 ) );
 
 			eventRing.lock.UnlockWrite();
 		}
