@@ -55,6 +55,7 @@ inline void convertFromSRGB( float* v, bool accurate = true )
 	v[ 2 ] = convertFromSRGB( v[ 2 ], accurate );
 }
 
+// Beware: this instantly loses precision, there are less than 256 possible outputs!
 inline void convertFromSRGB( byte* bytes, bool accurate = true )
 {
 	vec3_t v;

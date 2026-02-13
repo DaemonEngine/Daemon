@@ -3544,9 +3544,6 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
 
-		R_LinearizeLightingColorBytes( tmpAmbient );
-		R_LinearizeLightingColorBytes( tmpDirected );
-
 		R_ColorShiftLightingBytes( tmpAmbient );
 		R_ColorShiftLightingBytes( tmpDirected );
 
@@ -3554,6 +3551,12 @@ void R_LoadLightGrid( lump_t *l )
 		{
 			ambientColor[ j ] = tmpAmbient[ j ] * ( 1.0f / 255.0f );
 			directedColor[ j ] = tmpDirected[ j ] * ( 1.0f / 255.0f );
+		}
+
+		if ( tr.worldLinearizeTexture )
+		{
+			convertFromSRGB( ambientColor );
+			convertFromSRGB( directedColor );
 		}
 
 		const float forceAmbient = r_forceAmbient.Get();
