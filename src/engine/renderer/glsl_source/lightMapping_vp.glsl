@@ -40,10 +40,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	uniform mat3x2 u_TextureMatrix;
 #endif
 
-#if defined(USE_MODEL_SURFACE)
-	uniform mat4 u_ModelMatrix;
-#endif
-
+uniform mat4 u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
 uniform float		u_Time;
@@ -84,21 +81,12 @@ void main()
 	// transform vertex position into homogenous clip-space
 	gl_Position = u_ModelViewProjectionMatrix * position;
 
-	#if defined(USE_BSP_SURFACE)
-		// assign vertex Position
-		var_Position = position.xyz;
+	// transform position into world space
+	var_Position = (u_ModelMatrix * position).xyz;
 
-		var_Tangent = LB.tangent;
-		var_Binormal = LB.binormal;
-		var_Normal = LB.normal;
-	#else
-		// transform position into world space
-		var_Position = (u_ModelMatrix * position).xyz;
-
-		var_Tangent = (u_ModelMatrix * vec4(LB.tangent, 0.0)).xyz;
-		var_Binormal = (u_ModelMatrix * vec4(LB.binormal, 0.0)).xyz;
-		var_Normal = (u_ModelMatrix * vec4(LB.normal, 0.0)).xyz;
-	#endif
+	var_Tangent = (u_ModelMatrix * vec4(LB.tangent, 0.0)).xyz;
+	var_Binormal = (u_ModelMatrix * vec4(LB.binormal, 0.0)).xyz;
+	var_Normal = (u_ModelMatrix * vec4(LB.normal, 0.0)).xyz;
 
 	#if defined(USE_LIGHT_MAPPING) || defined(USE_DELUXE_MAPPING)
 		var_TexLight = lmCoord;

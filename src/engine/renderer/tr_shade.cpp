@@ -1057,32 +1057,22 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// end choose right shader program ------------------------------
 
 	// now we are ready to set the shader program uniforms
-	vec3_t viewOrigin;
 
-	if ( tess.bspSurface )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
-		VectorCopy( backEnd.orientation.viewOrigin, viewOrigin ); // in world space
+		gl_lightMappingShader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
-	else
+
+	// u_VertexInterpolation
+	if ( tess.vboVertexAnimation )
 	{
-		VectorCopy( backEnd.viewParms.orientation.origin, viewOrigin ); // in world space
-
-		if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
-		{
-			gl_lightMappingShader->SetUniform_Bones( tess.numBones, tess.bones );
-		}
-
-		// u_VertexInterpolation
-		if ( tess.vboVertexAnimation )
-		{
-			gl_lightMappingShader->SetUniform_VertexInterpolation( glState.vertexAttribsInterpolation );
-		}
-
-		gl_lightMappingShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+		gl_lightMappingShader->SetUniform_VertexInterpolation( glState.vertexAttribsInterpolation );
 	}
+
+	gl_lightMappingShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 
 	// u_ViewOrigin
-	gl_lightMappingShader->SetUniform_ViewOrigin( viewOrigin );
+	gl_lightMappingShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
 
 	gl_lightMappingShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
