@@ -3446,7 +3446,7 @@ static void R_SetConstantColorLightGrid( const byte color[3] )
 	gridPoint2->direction[ 0 ] = floatToSnorm8(0.0f);
 	gridPoint2->direction[ 1 ] = floatToSnorm8(0.0f);
 	gridPoint2->direction[ 2 ] = floatToSnorm8(1.0f);
-	gridPoint2->unused = 0;
+	gridPoint2->unused = 255;
 
 	w->lightGridData1 = gridPoint1;
 	w->lightGridData2 = gridPoint2;
@@ -3644,7 +3644,7 @@ void R_LoadLightGrid( lump_t *l )
 		gridPoint2->direction[0] = 128 + floatToSnorm8( direction[ 0 ] );
 		gridPoint2->direction[1] = 128 + floatToSnorm8( direction[ 1 ] );
 		gridPoint2->direction[2] = 128 + floatToSnorm8( direction[ 2 ] );
-		gridPoint2->unused = 0;
+		gridPoint2->unused = 255;
 	}
 
 	// fill in gridpoints with zero light (samples in walls) to avoid
@@ -3691,7 +3691,6 @@ void R_LoadLightGrid( lump_t *l )
 					gridPoint2->direction[0] = 128 + floatToSnorm8(direction[0]);
 					gridPoint2->direction[1] = 128 + floatToSnorm8(direction[1]);
 					gridPoint2->direction[2] = 128 + floatToSnorm8(direction[2]);
-					gridPoint2->unused = 0;
 				}
 			}
 		}
