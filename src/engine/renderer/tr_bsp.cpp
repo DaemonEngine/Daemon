@@ -3411,7 +3411,11 @@ static void R_SetConstantColorLightGrid( const byte color[3] )
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
 	tr.lightGrid1Image = R_Create3DImage("<lightGrid1>", (const byte *)w->lightGridData1, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
-	tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
+
+	if ( glConfig.deluxeMapping )
+	{
+		tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
+	}
 }
 
 /*
@@ -3656,7 +3660,11 @@ void R_LoadLightGrid( lump_t *l )
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
 	tr.lightGrid1Image = R_Create3DImage("<lightGrid1>", (const byte *)w->lightGridData1, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
-	tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
+
+	if ( glConfig.deluxeMapping )
+	{
+		tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
+	}
 
 	Log::Debug("%i light grid points created", w->numLightGridPoints );
 }
@@ -4617,14 +4625,13 @@ static void SetWorldLight() {
 			tr.modelLight = lightMode_t::GRID;
 		}
 
-		if ( glConfig.deluxeMapping ) {
-			// Enable deluxe mapping emulation if light direction grid is there.
-			if ( tr.lightGrid2Image ) {
-				// Game model surfaces use grid lighting, they don't have vertex light colors.
-				tr.modelDeluxe = deluxeMode_t::GRID;
+		// Enable deluxe mapping emulation if light direction grid is there.
+		if ( tr.lightGrid2Image ) {
+			ASSERT( glConfig.deluxeMapping );
+			// Game model surfaces use grid lighting, they don't have vertex light colors.
+			tr.modelDeluxe = deluxeMode_t::GRID;
 
-				// Only game models use emulated deluxe map from light direction grid.
-			}
+			// Only game models use emulated deluxe map from light direction grid.
 		}
 	}
 
@@ -4677,7 +4684,11 @@ static void SetConstUniforms() {
 		}
 
 		globalUBOProxy->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTGRID1, tr.lightGrid1Image ) );
-		globalUBOProxy->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_LIGHTGRID2, tr.lightGrid2Image ) );
+
+		if ( tr.lightGrid2Image )
+		{
+			globalUBOProxy->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_LIGHTGRID2, tr.lightGrid2Image ) );
+		}
 	}
 
 	if ( glConfig.usingMaterialSystem ) {
