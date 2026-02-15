@@ -194,7 +194,8 @@ void R_AddBSPModelSurfaces( trRefEntity_t *ent )
 
 	for ( i = 0; i < bspModel->numSurfaces; i++ )
 	{
-		R_AddWorldSurface( bspModel->firstSurface + i, fogNum, -1, FRUSTUM_CLIPALL );
+		bspSurface_t *surf = bspModel->firstSurface + i;
+		R_AddDrawSurf( surf->data, surf->shader, surf->lightmapNum, fogNum );
 	}
 }
 

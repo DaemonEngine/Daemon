@@ -1489,7 +1489,7 @@ enum
 		surfaceType_t *surface; // any of surface*_t
 		shader_t      *shader;
 		uint64_t      sort;
-		bool          bspSurface;
+		bool          bspSurface; // only for the stationary part of the world, *not* BSP models
 		int fog;
 		int portalNum = -1;
 
