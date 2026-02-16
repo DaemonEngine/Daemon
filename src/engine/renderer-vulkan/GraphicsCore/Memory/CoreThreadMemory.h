@@ -51,7 +51,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static constexpr uint32 maxExecCmdBuffers = 4;
 
-struct InstantCmdPool {
+struct ExecCmdPool {
 	VkCommandPool   cmdPool;
 	VkCommandBuffer cmds[maxExecCmdBuffers];
 	Semaphore       signalSemaphores[maxExecCmdBuffers];
@@ -60,19 +60,19 @@ struct InstantCmdPool {
 
 struct GraphicsCoreMemory {
 
-	VkCommandPool  graphicsCmdPool;
-	VkCommandPool  computeCmdPool;
-	VkCommandPool  transferCmdPool;
-	VkCommandPool  sparseCmdPool;
+	VkCommandPool graphicsCmdPool;
+	VkCommandPool computeCmdPool;
+	VkCommandPool transferCmdPool;
+	VkCommandPool sparseCmdPool;
 
-	InstantCmdPool execGraphicsCmd;
-	InstantCmdPool execComputeCmd;
-	InstantCmdPool execTransferCmd;
-	InstantCmdPool execSparseCmd;
+	ExecCmdPool   execGraphicsCmd;
+	ExecCmdPool   execComputeCmd;
+	ExecCmdPool   execTransferCmd;
+	ExecCmdPool   execSparseCmd;
 
-	uint32         instantCmdBuffersAllocState;
+	Semaphore*    execSemaphore;
 
-	uint32         scratch;
+	uint32        instantCmdBuffersAllocState;
 };
 
 void InitCmdPools();

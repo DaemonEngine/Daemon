@@ -40,9 +40,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Decls.h"
 
-Semaphore& GetInstantCmdBuf( const QueueType queueType, VkCommandBuffer* cmd );
+struct ExecCmd {
+	VkCommandBuffer cmd;
+	QueueType       queueType;
 
-using CmdFunction = void( * )( VkCommandBuffer cmd );
-Semaphore& ExecCmd( const QueueType queueType, CmdFunction func );
+	ExecCmd( const QueueType queueType, VkCommandBuffer* newCmd );
+	~ExecCmd();
+};
 
 #endif // EXEC_CMD_H

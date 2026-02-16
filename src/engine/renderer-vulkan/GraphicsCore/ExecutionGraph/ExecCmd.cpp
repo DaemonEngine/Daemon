@@ -42,38 +42,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ExecCmd.h"
 
-Semaphore& GetInstantCmdBuf( const QueueType queueType, VkCommandBuffer* cmd ) {
-	InstantCmdPool* instantCmd;
+static void GetExecCmdBuf( const QueueType queueType, VkCommandBuffer* cmd, Semaphore** signalSemaphore ) {
+	ExecCmdPool* execCmd;
 
 	switch ( queueType ) {
 		case GRAPHICS:
 		default:
-			instantCmd = &GMEM.execGraphicsCmd;
+			execCmd = &GMEM.execGraphicsCmd;
 			break;
 		case COMPUTE:
-			instantCmd = &GMEM.execComputeCmd;
+			execCmd = &GMEM.execComputeCmd;
 			break;
 		case TRANSFER:
-			instantCmd = &GMEM.execTransferCmd;
+			execCmd = &GMEM.execTransferCmd;
 			break;
 		case SPARSE:
-			instantCmd = &GMEM.execSparseCmd;
+			execCmd = &GMEM.execSparseCmd;
 			break;
 	}
 
-	uint32 id = FindLZeroBit( instantCmd->allocState );
+	uint32 id = FindLZeroBit( execCmd->allocState );
 
 	while ( true ) {
 		if ( id < maxExecCmdBuffers ) {
-			*cmd = instantCmd->cmds[id];
+			*cmd = execCmd->cmds[id];
 			break;
 		}
 
 		bool success = false;
-		for ( Semaphore& semaphore : instantCmd->signalSemaphores ) {
+		for ( Semaphore& semaphore : execCmd->signalSemaphores ) {
 			if ( semaphore.Wait( 0 ) ) {
-				id   = &semaphore - instantCmd->signalSemaphores;
-				*cmd = instantCmd->cmds[id];
+				id   = &semaphore - execCmd->signalSemaphores;
+				*cmd = execCmd->cmds[id];
 
 				vkResetCommandBuffer( *cmd, 0 );
 
@@ -89,24 +89,24 @@ Semaphore& GetInstantCmdBuf( const QueueType queueType, VkCommandBuffer* cmd ) {
 		std::this_thread::yield();
 	}
 
-	SetBit( &instantCmd->allocState, id );
+	*signalSemaphore = &execCmd->signalSemaphores[id];
 
-	return instantCmd->signalSemaphores[id];
+	SetBit( &execCmd->allocState, id );
 }
 
-Semaphore& ExecCmd( const QueueType queueType, CmdFunction func ) {
-	VkCommandBuffer cmd;
-
-	Semaphore& semaphore = GetInstantCmdBuf( queueType, &cmd );
+ExecCmd::ExecCmd( const QueueType newQueueType, VkCommandBuffer* newCmd ) {
+	queueType = newQueueType;
+	GetExecCmdBuf( queueType, &cmd, &GMEM.execSemaphore );
+	*newCmd   = cmd;
 
 	VkCommandBufferBeginInfo cmdInfo {
 		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
 	};
 
 	vkBeginCommandBuffer( cmd, &cmdInfo );
+}
 
-	func( cmd );
-
+ExecCmd::~ExecCmd() {
 	vkEndCommandBuffer( cmd );
 
 	VkQueue queue;
@@ -126,21 +126,19 @@ Semaphore& ExecCmd( const QueueType queueType, CmdFunction func ) {
 			break;
 	}
 
-	VkCommandBufferSubmitInfo instantCmdSubmitInfo {
+	VkCommandBufferSubmitInfo execCmdSubmitInfo {
 		.commandBuffer = cmd
 	};
 
-	semaphore++;
-	VkSemaphoreSubmitInfo instantSemaphoreInfo = semaphore.GenSubmitInfo( VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT );
+	( *GMEM.execSemaphore )++;
+	VkSemaphoreSubmitInfo signalSemaphoreInfo = GMEM.execSemaphore->GenSubmitInfo( VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT );
 
-	VkSubmitInfo2 instantSubmitInfo {
+	VkSubmitInfo2 execSubmitInfo {
 		.commandBufferInfoCount   = 1,
-		.pCommandBufferInfos      = &instantCmdSubmitInfo,
+		.pCommandBufferInfos      = &execCmdSubmitInfo,
 		.signalSemaphoreInfoCount = 1,
-		.pSignalSemaphoreInfos    = &instantSemaphoreInfo
+		.pSignalSemaphoreInfos    = &signalSemaphoreInfo
 	};
 
-	vkQueueSubmit2( queue, 1, &instantSubmitInfo, nullptr );
-
-	return semaphore;
+	vkQueueSubmit2( queue, 1, &execSubmitInfo, nullptr );
 }

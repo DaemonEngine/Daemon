@@ -67,7 +67,7 @@ void InitCmdPools() {
 void InitExecCmdPools() {
 	struct QueueCmdPool {
 		QueueConfig*    cfg;
-		InstantCmdPool* cmdPool;
+		ExecCmdPool* cmdPool;
 	};
 
 	QueueCmdPool execCmdQueues[] {
