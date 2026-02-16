@@ -77,7 +77,8 @@ namespace CapabilityPackType {
 constexpr Array instanceExtensions {
 	// "VK_LAYER_KHRONOS_validation",
 	"VK_KHR_get_physical_device_properties2",
-	"VK_KHR_get_surface_capabilities2"
+	"VK_KHR_get_surface_capabilities2",
+	"VK_EXT_surface_maintenance1"
 };
 
 constexpr Array extensionsMinimal {
@@ -155,7 +156,6 @@ constexpr Array featuresMinimal {
 	"extendedDynamicState",
 	"minLod",
 	"indexTypeUint8",
-	"primitivesGeneratedQuery",
 	"shaderBufferFloat32Atomics",
 	"shaderImageFloat32Atomics",
 	"shaderBufferInt64Atomics",
