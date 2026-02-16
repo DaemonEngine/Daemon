@@ -2561,6 +2561,10 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 4.6
 	glConfig.shaderAtomicCounterOpsAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counter_ops, r_arb_shader_atomic_counter_ops.Get() );
 
+	/* Made required in OpenGL 4.1, but it only requires OpenGL 2.0 or ARB_shader_objects.
+	Mesa provides it with all known desktop OpenGL drivers, including GL 2.1 ones. */
+	LOAD_EXTENSION( ExtFlag_REQUIRED, ARB_separate_shader_objects );
+
 	// made required in OpenGL 4.6
 	glConfig.indirectParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_indirect_parameters, r_arb_indirect_parameters.Get() );
 
