@@ -104,7 +104,7 @@ MemoryHeap& EngineAllocator::MemoryHeapFromType( const MemoryHeap::MemoryType ty
 	}
 }
 
-MemoryPool EngineAllocator::AllocMemoryPool( const MemoryHeap::MemoryType type, const bool image, const uint64 size, const void* dedicatedResource ) {
+MemoryPool EngineAllocator::AllocMemoryPool( const MemoryHeap::MemoryType type, const uint64 size, const bool image, const void* dedicatedResource ) {
 	MemoryPool memoryPool {
 		.size = size
 	};

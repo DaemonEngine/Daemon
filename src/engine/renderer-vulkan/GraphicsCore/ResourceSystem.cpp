@@ -39,8 +39,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ResourceSystem.h"
 
 void ResourceSystem::Init( uint64 newDedicatedMemorySize ) {
-	memoryPoolData   = engineAllocator.AllocMemoryPool( MemoryHeap::ENGINE, false, 1ull * 600 * 1024 * 1024 );
-	memoryPoolImages = engineAllocator.AllocMemoryPool( MemoryHeap::ENGINE,  true, 1ull * 1 * 1024 * 1024 );
+	memoryPoolData   = engineAllocator.AllocMemoryPool( MemoryHeap::ENGINE, 1ull * 600 * 1024 * 1024, false );
+	memoryPoolImages = engineAllocator.AllocMemoryPool( MemoryHeap::ENGINE, 1ull * 1 * 1024 * 1024,   true );
 }
 
 Buffer ResourceSystem::AllocBuffer( const uint64 size, const Buffer::Usage usage ) {
