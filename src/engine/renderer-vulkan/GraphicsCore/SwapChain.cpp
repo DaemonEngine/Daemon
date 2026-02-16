@@ -43,8 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Vulkan.h"
 
-#include "../GraphicsCore/GraphicsCoreStore.h"
-#include "../GraphicsCore/GraphicsCoreCVars.h"
+#include "GraphicsCoreStore.h"
+#include "GraphicsCoreCVars.h"
 
 #include "SwapChain.h"
 
