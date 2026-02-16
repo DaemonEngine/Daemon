@@ -3569,22 +3569,17 @@ void R_LoadLightGrid( lump_t *l )
 		}
 
 		// standard spherical coordinates to cartesian coordinates conversion
-
-		// decode X as cos( lat ) * sin( long )
-		// decode Y as sin( lat ) * sin( long )
-		// decode Z as cos( long )
-
 		// RB: having a look in NormalToLatLong used by q3map2 shows the order of latLong
+		// Lng = 0 at (1,0,0), 90 at (0,1,0), etc., encoded in 8-bit sine table format
+		// Lat = 0 at (0,0,1) to 180 (0,0,-1), encoded in 8-bit sine table format
+		// (so the upper bit of lat is wasted)
 
-		// Lat = 0 at (1,0,0) to 360 (-1,0,0), encoded in 8-bit sine table format
-		// Lng = 0 at (0,0,1) to 180 (0,0,-1), encoded in 8-bit sine table format
+		lat = DEG2RAD( in->latLong[ 0 ] * ( 360.0f / 255.0f ) );
+		lng = DEG2RAD( in->latLong[ 1 ] * ( 360.0f / 255.0f ) );
 
-		lat = DEG2RAD( in->latLong[ 1 ] * ( 360.0f / 255.0f ) );
-		lng = DEG2RAD( in->latLong[ 0 ] * ( 360.0f / 255.0f ) );
-
-		direction[ 0 ] = cosf( lat ) * sinf( lng );
-		direction[ 1 ] = sinf( lat ) * sinf( lng );
-		direction[ 2 ] = cosf( lng );
+		direction[ 0 ] = cosf( lng ) * sinf( lat );
+		direction[ 1 ] = sinf( lng ) * sinf( lat );
+		direction[ 2 ] = cosf( lat );
 
 		// Pack data into an bspGridPoint
 		gridPoint1->color[ 0 ] = floatToUnorm8( 0.5f * (ambientColor[ 0 ] + directedColor[ 0 ]) );
@@ -3605,6 +3600,8 @@ void R_LoadLightGrid( lump_t *l )
 
 	// fill in gridpoints with zero light (samples in walls) to avoid
 	// darkening of objects near walls
+	// FIXME: the interpolation includes other interpolated data points so the
+	// result depends on iteration order
 	gridPoint1 = w->lightGridData1;
 	gridPoint2 = w->lightGridData2;
 
