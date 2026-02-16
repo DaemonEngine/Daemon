@@ -147,7 +147,7 @@ Buffer::Usage operator|( const Buffer::Usage& lhs, const Buffer::Usage& rhs ) {
 	return ( Buffer::Usage ) ( ( uint32 ) lhs | ( uint32 ) rhs );
 }
 
-VkBufferUsageFlags2 GetBufferUsageFlags( const MemoryHeap::MemoryType type, const Buffer::Usage usage ) {
+static VkBufferUsageFlags2 GetBufferUsageFlags( const MemoryHeap::MemoryType type, const Buffer::Usage usage ) {
 	static std::unordered_map<uint32, VkBufferUsageFlags2> bufferUsage {
 		{ Buffer::VERTEX,          VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT                                    },
 		{ Buffer::INDEX,           VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT                                     },

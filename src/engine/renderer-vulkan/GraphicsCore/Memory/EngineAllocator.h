@@ -145,7 +145,6 @@ class EngineAllocator {
 	uint64     coherentAccessAlignment;
 };
 
-VkBufferUsageFlags2 GetBufferUsageFlags( const MemoryHeap::MemoryType type, const Buffer::Usage usage );
 MemoryRequirements  GetBufferRequirements( const MemoryHeap::MemoryType type, const uint64 size, const Buffer::Usage usage = ( Buffer::Usage ) 0 );
 
 MemoryRequirements GetImageRequirements( const VkImageCreateInfo& imageInfo );
