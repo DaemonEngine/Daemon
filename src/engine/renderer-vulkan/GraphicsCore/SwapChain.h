@@ -42,6 +42,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Memory/DynamicArray.h"
 
+#include "Image.h"
+
 #include "GraphicsResource.h"
 
 namespace PresentMode {
@@ -62,12 +64,12 @@ struct SwapChain : public GraphicsResource {
 	uint32         maxImages;
 	uint32         imageCount;
 
-	DynamicArray<VkImage> images;
+	DynamicArray<Image> images;
 
 	void Init( const VkInstance instance );
 	void Free() override;
 
-	VkImage AcquireNextImage( const uint64 timeout, VkFence fence, VkSemaphore semaphore );
+	uint32 AcquireNextImage( const uint64 timeout, VkFence fence, VkSemaphore semaphore );
 };
 
 #endif // SWAP_CHAIN_H

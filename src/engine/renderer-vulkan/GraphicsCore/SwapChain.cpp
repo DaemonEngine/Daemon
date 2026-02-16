@@ -37,11 +37,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL3/SDL_vulkan.h>
 
-#include "Vulkan.h"
-
 #include "../Surface/Surface.h"
 
 #include "../Memory/DynamicArray.h"
+
+#include "Vulkan.h"
 
 #include "../GraphicsCore/GraphicsCoreStore.h"
 #include "../GraphicsCore/GraphicsCoreCVars.h"
@@ -219,28 +219,34 @@ void SwapChain::Init( const VkInstance instance ) {
 		.oldSwapchain     = nullptr
 	};
 
-	vkCreateSwapchainKHR( device, &swapChainInfo, nullptr, &swapChain );
+	VkResult res = vkCreateSwapchainKHR( device, &swapChainInfo, nullptr, &swapChain );
 
 	#ifdef _MSC_VER
-		/* VkResult res = vkAcquireFullScreenExclusiveModeEXT( device, swapChain );
+		res = vkAcquireFullScreenExclusiveModeEXT( device, swapChain );
 
 		if ( res == VK_SUCCESS ) {
 			Log::Notice( "SwapChain: acquired exclusive fullscreen" );
-		} */
+		}
 	#endif
 
-	vkGetSwapchainImagesKHR( device, swapChain, &imageCount, nullptr );
+	res = vkGetSwapchainImagesKHR( device, swapChain, &imageCount, nullptr );
 
+	DynamicArray<VkImage> swapchainImages;
+	swapchainImages.Resize( imageCount );
 	images.Resize( imageCount );
 
-	vkGetSwapchainImagesKHR( device, swapChain, &imageCount, images.memory );
+	res = vkGetSwapchainImagesKHR( device, swapChain, &imageCount, swapchainImages.memory );
+
+	for ( uint32 i = 0; i < images.elements; i++ ) {
+		images[i].Init( swapchainImages[i], format.surfaceFormat.format );
+	}
 }
 
 void SwapChain::Free() {
 	vkDestroySwapchainKHR( device, swapChain, nullptr );
 }
 
-VkImage SwapChain::AcquireNextImage( const uint64 timeout, VkFence fence, VkSemaphore semaphore ) {
+uint32 SwapChain::AcquireNextImage( const uint64 timeout, VkFence fence, VkSemaphore semaphore ) {
 	VkAcquireNextImageInfoKHR info {
 		.swapchain  = swapChain,
 		.timeout    = timeout,
@@ -250,7 +256,7 @@ VkImage SwapChain::AcquireNextImage( const uint64 timeout, VkFence fence, VkSema
 	};
 
 	uint32 imageID;
-	vkAcquireNextImage2KHR( device, &info, &imageID );
+	VkResult res = vkAcquireNextImage2KHR( device, &info, &imageID );
 
-	return images[imageID];
+	return imageID;
 }

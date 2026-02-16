@@ -42,10 +42,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace ImageUsage {
 	enum ImageUsage {
-		ATTACHMENT = 1,
-		SAMPLED = 2,
-		STORAGE = 4,
-		RESOURCE = 8,
+		ATTACHMENT      = 1,
+		SAMPLED         = 2,
+		STORAGE         = 4,
+		RESOURCE        = 8,
 		COMPRESSED_VIEW = 16
 	};
 }
@@ -63,7 +63,7 @@ struct Image {
 	           bool newCube = false, bool newDepthStencil = false,
 	           bool shared = false );
 
-	void Init( VkImage newImage, VkFormat newFormat, const ImageUsage::ImageUsage usage );
+	void Init( VkImage newImage, VkFormat newFormat );
 
 	VkImageView GenView();
 };

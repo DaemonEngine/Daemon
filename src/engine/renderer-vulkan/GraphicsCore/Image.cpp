@@ -110,7 +110,7 @@ void Image::Init( VkFormat newFormat, VkExtent3D imageSize, const bool useMipLev
 	resourceSystem.AllocImage( reqs, image, &offset, &size );
 }
 
-void Image::Init( VkImage newImage, VkFormat newFormat, const ImageUsage::ImageUsage usage ) {
+void Image::Init( VkImage newImage, VkFormat newFormat ) {
 	image        = newImage;
 	type         = VK_IMAGE_VIEW_TYPE_2D;
 	format       = newFormat;
