@@ -3266,7 +3266,6 @@ void GLimp_LogComment_( std::string comment );
 	float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 				      float *factors[3], vec3_t ambientLight,
 				      vec3_t directedLight, vec3_t lightDir );
-	int      R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
 
 	/*
 	============================================================

@@ -106,7 +106,6 @@ std::vector<bool> trap_R_BatchInPVS(
 	const vec3_t origin,
 	const std::vector<std::array<float, 3>>& posEntities );
 
-int             trap_R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
 qhandle_t       trap_R_RegisterAnimation( const char *name );
 int             trap_R_BuildSkeleton( refSkeleton_t *skel, qhandle_t anim, int startFrame, int endFrame, float frac, bool clearOrigin );
 int             trap_R_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float frac );

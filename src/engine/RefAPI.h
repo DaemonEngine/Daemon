@@ -114,8 +114,6 @@ struct refexport_t {
 	void ( *ClearScene )( );
 	void ( *AddRefEntityToScene )( const refEntity_t* re );
 
-	int ( *LightForPoint )( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
-
 	void ( *AddPolyToScene )( qhandle_t hShader, int numVerts, const polyVert_t* verts );
 	void ( *AddPolysToScene )( qhandle_t hShader, int numVerts, const polyVert_t* verts, int numPolys );
 

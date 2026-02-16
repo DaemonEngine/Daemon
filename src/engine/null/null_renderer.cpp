@@ -79,10 +79,6 @@ void RE_SetWorldVisData( const byte * ) { }
 void RE_EndRegistration() { }
 void RE_ClearScene() { }
 void RE_AddRefEntityToScene( const refEntity_t * ) { }
-int R_LightForPoint( vec3_t, vec3_t, vec3_t, vec3_t )
-{
-	return 0;
-}
 void RE_AddPolyToScene( qhandle_t, int, const polyVert_t* ) { }
 void RE_AddPolysToScene( qhandle_t, int, const polyVert_t*, int ) { }
 void RE_AddLightToScene( const vec3_t, float, float, float, float, int ) { }
@@ -207,7 +203,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
 
     re.ClearScene = RE_ClearScene;
     re.AddRefEntityToScene = RE_AddRefEntityToScene;
-    re.LightForPoint = R_LightForPoint;
 
     re.AddPolyToScene = RE_AddPolyToScene;
     // Ridah
