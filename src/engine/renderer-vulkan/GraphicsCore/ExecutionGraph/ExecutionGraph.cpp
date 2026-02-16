@@ -56,6 +56,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Memory/CoreThreadMemory.h"
 #include "../Memory/EngineAllocator.h"
+#include "../ResourceSystem.h"
 
 #include "../SwapChain.h"
 
@@ -225,7 +226,7 @@ bool BuildGraphicsNode( const uint32 SPIRVIDVertex, const uint32 SPIRVIDFragment
 	VkPipelineDepthStencilStateCreateInfo  depthStencilInfo {
 		.depthTestEnable  = true,
 		.depthWriteEnable = true,
-		.depthCompareOp   = VK_COMPARE_OP_EQUAL
+		.depthCompareOp   = VK_COMPARE_OP_GREATER_OR_EQUAL
 	};
 
 	VkPipelineColorBlendAttachmentState    colorBlendAttachmentInfo {
@@ -345,8 +346,8 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 	VkPipelineLayout pipelineLayout;
 	VkPipeline       pipeline;
 
-	VkBuffer indirectBuffer;
-	VkBuffer countBuffer;
+	VkBuffer         indirectBuffer;
+	VkBuffer         countBuffer;
 
 	PushConstNode* pushNode = nullptr;
 
@@ -368,7 +369,7 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 					uint32 depType = BitSet( nodeDeps, dep + 1 );
 
 					uint32 depMask = readDeps & nodes[dep].writeResources;
-					i += CountBits( depMask );
+					i             += CountBits( depMask );
 				}
 
 				bufferBarriers.Resize( i );
@@ -440,7 +441,7 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 					uint32 depType = BitSet( nodeDeps, dep + 1 );
 
 					uint32 depMask = readDeps & nodes[dep].writeResources;
-					i += CountBits( depMask );
+					i             += CountBits( depMask );
 				}
 
 				bufferBarriers.Resize( i );
@@ -526,7 +527,7 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 
 				// MemoryRequirements reqs = GetBufferRequirements( bufferNode.usage, bufferNode.size );
 
-				buffers[id] = engineAllocator.AllocDedicatedBuffer( MemoryHeap::ENGINE, bufferNode.size, ( Buffer::Usage ) bufferNode.usage );
+				buffers[id] = resourceSystem.AllocBuffer( bufferNode.size, ( Buffer::Usage ) bufferNode.usage );
 
 				break;
 			}

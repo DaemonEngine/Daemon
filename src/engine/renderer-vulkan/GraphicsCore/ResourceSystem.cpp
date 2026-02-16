@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2025 Daemon Developers
+Copyright (c) 2026 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -31,47 +31,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// GraphicsCoreStore.h
+// ResourceSystem.cpp
 
-#include "Vulkan.h"
-
-#include "../Surface/Surface.h"
-
-#include "Instance.h"
-
-#include "SwapChain.h"
-
-#include "FeaturesConfig.h"
-#include "EngineConfig.h"
-#include "QueuesConfig.h"
-#include "Queue.h"
+#include "GraphicsCoreStore.h"
 
 #include "Memory/EngineAllocator.h"
 #include "ResourceSystem.h"
 
-#include "GraphicsCoreStore.h"
+void ResourceSystem::Init( uint64 newDedicatedMemorySize ) {
+	memoryPoolData   = engineAllocator.AllocMemoryPool( MemoryHeap::ENGINE, false, 1ull * 600 * 1024 * 1024 );
+	memoryPoolImages = engineAllocator.AllocMemoryPool( MemoryHeap::ENGINE,  true, 1ull * 1 * 1024 * 1024 );
+}
 
-Surface mainSurface;
+Buffer ResourceSystem::AllocBuffer( const uint64 size, const Buffer::Usage usage ) {
+	return engineAllocator.AllocBuffer( MemoryHeap::ENGINE, memoryPoolData, GetBufferRequirements( MemoryHeap::ENGINE, size, usage ), usage );
+}
 
-Instance instance;
-
-SwapChain mainSwapChain;
-
-FeaturesConfig featuresConfig;
-EngineConfig   engineConfig;
-QueuesConfig   queuesConfig;
-
-VkPhysicalDevice physicalDevice;
-
-VkDevice device;
-
-GraphicsQueueRingBuffer graphicsQueue;
-GraphicsQueueRingBuffer computeQueue;
-GraphicsQueueRingBuffer transferQueue;
-GraphicsQueueRingBuffer sparseQueue;
-
-VkDescriptorSetLayout descriptorSetLayout;
-VkDescriptorSet       descriptorSet;
-
-EngineAllocator engineAllocator;
-ResourceSystem  resourceSystem;
+void ResourceSystem::AllocImage( const MemoryRequirements& reqs, const VkImage image, uint64* offset, uint64* size ) {
+	return engineAllocator.AllocImage( memoryPoolImages, reqs, image, offset, size );
+}

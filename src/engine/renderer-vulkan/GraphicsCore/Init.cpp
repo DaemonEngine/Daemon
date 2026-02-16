@@ -104,5 +104,7 @@ void InitGraphicsEngine() {
 
 	InitExecCmdPools();
 
+	resourceSystem.Init( 0 );
+
 	initExecCmdFence.Wait();
 }

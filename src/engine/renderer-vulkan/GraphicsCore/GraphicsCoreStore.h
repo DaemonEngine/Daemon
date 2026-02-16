@@ -61,5 +61,6 @@ extern VkDescriptorSetLayout descriptorSetLayout;
 extern VkDescriptorSet descriptorSet;
 
 extern EngineAllocator engineAllocator;
+extern ResourceSystem  resourceSystem;
 
 #endif // GRAPHICS_CORE_STORE_H

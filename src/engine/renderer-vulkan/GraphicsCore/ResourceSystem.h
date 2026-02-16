@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2025 Daemon Developers
+Copyright (c) 2026 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -31,47 +31,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// GraphicsCoreStore.h
+// ResourceSystem.h
 
-#include "Vulkan.h"
+#ifndef RESOURCE_SYSTEM_H
+#define RESOURCE_SYSTEM_H
 
-#include "../Surface/Surface.h"
+#include "../GraphicsShared/MemoryPool.h"
 
-#include "Instance.h"
+#include "Decls.h"
 
-#include "SwapChain.h"
+struct ResourceSystem {
+	MemoryPool memoryPoolData;
+	MemoryPool memoryPoolImages;
+	uint64     dedicatedMemorySize;
 
-#include "FeaturesConfig.h"
-#include "EngineConfig.h"
-#include "QueuesConfig.h"
-#include "Queue.h"
+	void   Init( uint64 newDedicatedMemorySize );
 
-#include "Memory/EngineAllocator.h"
-#include "ResourceSystem.h"
+	Buffer AllocBuffer( const uint64 size, const Buffer::Usage usage = ( Buffer::Usage ) 0 );
+	void   AllocImage( const MemoryRequirements& reqs, const VkImage image, uint64* offset, uint64* size );
+};
 
-#include "GraphicsCoreStore.h"
-
-Surface mainSurface;
-
-Instance instance;
-
-SwapChain mainSwapChain;
-
-FeaturesConfig featuresConfig;
-EngineConfig   engineConfig;
-QueuesConfig   queuesConfig;
-
-VkPhysicalDevice physicalDevice;
-
-VkDevice device;
-
-GraphicsQueueRingBuffer graphicsQueue;
-GraphicsQueueRingBuffer computeQueue;
-GraphicsQueueRingBuffer transferQueue;
-GraphicsQueueRingBuffer sparseQueue;
-
-VkDescriptorSetLayout descriptorSetLayout;
-VkDescriptorSet       descriptorSet;
-
-EngineAllocator engineAllocator;
-ResourceSystem  resourceSystem;
+#endif // RESOURCE_SYSTEM_H

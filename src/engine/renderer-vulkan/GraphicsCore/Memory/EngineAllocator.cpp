@@ -50,46 +50,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "EngineAllocator.h"
 
-constexpr VkSampleCountFlags SamplesToEnum( const uint32 samples ) {
-	switch ( samples ) {
-		case 1:
-			return VK_SAMPLE_COUNT_1_BIT;
-		case 2:
-			return VK_SAMPLE_COUNT_2_BIT;
-		case 4:
-			return VK_SAMPLE_COUNT_4_BIT;
-		case 8:
-			return VK_SAMPLE_COUNT_8_BIT;
-		case 16:
-			return VK_SAMPLE_COUNT_16_BIT;
-		case 32:
-			return VK_SAMPLE_COUNT_32_BIT;
-		case 64:
-			return VK_SAMPLE_COUNT_64_BIT;
-		default:
-			Err( "Image sample count must be one of: 1, 2, 4, 8, 16, 32, 64" );
-			return VK_SAMPLE_COUNT_1_BIT;
-	}
-}
-
-MemoryRequirements GetImageRequirements( const VkImageType type, const VkFormat format, const bool useMipMaps,
-	const bool storageImage, const uint32 width, const uint32 height, const uint32 depth, const uint32 layers,
-	const uint32 samples ) {
-	const uint32 mips = useMipMaps ? log2f( std::max( std::max( width, height ), depth ) ) + 1 : 1;
-
-	VkImageCreateInfo imageInfo {
-		.imageType     = type,
-		.format        = format,
-		.extent        = { width, height, depth },
-		.mipLevels     = mips,
-		.arrayLayers   = layers,
-		.samples       = ( VkSampleCountFlagBits ) SamplesToEnum( samples ),
-		.tiling        = VK_IMAGE_TILING_OPTIMAL,
-		.usage         = ( VkFlags ) ( storageImage ? VK_IMAGE_USAGE_STORAGE_BIT : VK_IMAGE_USAGE_SAMPLED_BIT ),
-		.sharingMode   = VK_SHARING_MODE_EXCLUSIVE,
-		.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED
-	};
-
+MemoryRequirements GetImageRequirements( const VkImageCreateInfo& imageInfo ) {
 	VkDeviceImageMemoryRequirements reqs {
 		.pCreateInfo = &imageInfo
 	};
@@ -101,45 +62,34 @@ MemoryRequirements GetImageRequirements( const VkImageType type, const VkFormat 
 	vkGetDeviceImageMemoryRequirements( device, &reqs, &out );
 
 	return {
-		out.memoryRequirements.size, out.memoryRequirements.alignment, out.memoryRequirements.memoryTypeBits,
-		( bool ) dedicatedReqs.prefersDedicatedAllocation
+		out.memoryRequirements.size,
+		out.memoryRequirements.alignment,
+		out.memoryRequirements.memoryTypeBits,
+		( bool ) ( dedicatedReqs.requiresDedicatedAllocation | dedicatedReqs.prefersDedicatedAllocation )
 	};
 }
 
-MemoryRequirements GetImage2DRequirements( const VkFormat format, const bool useMipMaps,
-	const bool storageImage, const uint32 width, const uint32 height ) {
-	return GetImageRequirements( VK_IMAGE_TYPE_2D, format, useMipMaps, storageImage, width, height, 0, 1, 1 );
-}
-
-MemoryRequirements GetImage3DRequirements( const VkFormat format, const bool useMipMaps,
-	const bool storageImage, const uint32 width, const uint32 depth, const uint32 height ) {
-	return GetImageRequirements( VK_IMAGE_TYPE_2D, format, useMipMaps, storageImage, width, height, depth, 1, 1 );
-}
-
+static MemoryRequirements GetImageRequirements( const VkImageType type, const VkFormat format, const VkImageCreateFlags flags,
+	const VkImageUsageFlags usage,
+	const VkExtent3D imageSize, const uint32 mipLevels, const uint32 layers ) {
 	uint32           queueCount;
 	Array<uint32, 4> concurrentQueues = GetConcurrentQueues( &queueCount );
 
-	VkBufferCreateInfo bufferInfo {
-		.size                  = size,
-		.usage                 = usage | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-		.sharingMode           = VK_SHARING_MODE_CONCURRENT,
-		.queueFamilyIndexCount = queueCount,
-		.pQueueFamilyIndices   = concurrentQueues.memory
+	VkImageCreateInfo imageInfo {
+		.flags         = flags,
+		.imageType     = type,
+		.format        = format,
+		.extent        = imageSize,
+		.mipLevels     = mipLevels,
+		.arrayLayers   = layers,
+		.samples       = VK_SAMPLE_COUNT_1_BIT,
+		.tiling        = VK_IMAGE_TILING_OPTIMAL,
+		.usage         = usage,
+		.sharingMode   = VK_SHARING_MODE_EXCLUSIVE,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
 	};
 
-	VkDeviceBufferMemoryRequirements reqs2 {
-		.pCreateInfo = &bufferInfo
-	};
-
-	VkMemoryRequirements2 out {};
-
-	vkGetDeviceBufferMemoryRequirements( device, &reqs2, &out );
-
-	return {
-		out.memoryRequirements.size,
-		out.memoryRequirements.alignment,
-		out.memoryRequirements.memoryTypeBits
-	};
+	return GetImageRequirements( imageInfo );
 }
 
 MemoryHeap& EngineAllocator::MemoryHeapFromType( const MemoryHeap::MemoryType type, const bool image ) {
@@ -340,6 +290,31 @@ Buffer EngineAllocator::AllocDedicatedBuffer( const MemoryHeap::MemoryType type,
 	return AllocBuffer( type, pool, reqs, usage );
 }
 
+void EngineAllocator::AllocImage( MemoryPool& pool, const MemoryRequirements& reqs, const VkImage image,
+	uint64* offset, uint64* size ) {
+	if ( reqs.dedicated ) {
+		pool = AllocMemoryPool( MemoryHeap::ENGINE, reqs.size, true, nullptr );
+	}
+
+	uint64 address = ( uint64 ) pool.memory;
+
+	if ( address & ( reqs.alignment - 1 ) ) {
+		address    = ( address & ~( reqs.alignment - 1 ) ) + reqs.alignment;
+	}
+
+	pool.offset += address + reqs.size - ( uint64 ) address;
+
+	VkBindImageMemoryInfo bindInfo {
+		.image  = image,
+		.memory = ( VkDeviceMemory ) pool.memory
+	};
+
+	vkBindImageMemory2( device, 1, &bindInfo );
+
+	*offset = address - ( uint64 ) pool.memory;
+	*size   = reqs.size;
+}
+
 MemoryHeap EngineAllocator::MemoryHeapForUsage( const uint32 memoryRegion, const bool image, uint32 supportedTypes, const uint32 flags ) {
 	VkPhysicalDeviceMemoryBudgetPropertiesEXT properties {};
 	VkPhysicalDeviceMemoryProperties2 properties2 {
@@ -497,19 +472,20 @@ void EngineAllocator::Init() {
 
 	memoryHeapEngine        = MemoryHeapForUsage( memoryRegionEngine, false,     reqs.type, memoryIDEngine );
 
-	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0,
+	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT,
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, { 1024, 1024 },
-		10, 1, true, 1 );
+		10, 1 );
 	uint32 supportedTypes   = reqs.type;
 
-	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0,
+	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT,
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, { 1024, 1024 },
-		10, 1, true, 1 );
+		10, 1 );
 	supportedTypes         &= reqs.type;
 
-	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 0,
-		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, { 1024, 1024 },
-		10, 1, true, 1 );
+	reqs = GetImageRequirements( VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
+		VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT | VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT | VK_IMAGE_CREATE_EXTENDED_USAGE_BIT,
+		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, { 4096, 4096 },
+		12, 1 );
 	supportedTypes         &= reqs.type;
 
 	memoryHeapEngineImages  = MemoryHeapForUsage( memoryRegionEngine, true, supportedTypes, memoryIDEngineImages );

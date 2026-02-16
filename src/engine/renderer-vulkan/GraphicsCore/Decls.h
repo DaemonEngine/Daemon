@@ -59,6 +59,8 @@ struct VkPhysicalDeviceProperties2;
 struct VkPhysicalDeviceFeatures2;
 struct VkDeviceCreateInfo;
 
+struct VkImageCreateInfo;
+
 VK_DEFINE_HANDLE( VkInstance );
 VK_DEFINE_HANDLE( VkPhysicalDevice );
 VK_DEFINE_HANDLE( VkDevice );
@@ -94,6 +96,10 @@ extern GraphicsQueueRingBuffer computeQueue;
 extern GraphicsQueueRingBuffer transferQueue;
 extern GraphicsQueueRingBuffer sparseQueue;
 
-class EngineAllocator;
+class  EngineAllocator;
+struct ResourceSystem;
+
+struct Buffer;
+struct Image;
 
 #endif // GRAPHICS_CORE_DECLS_H

@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2025 Daemon Developers
+Copyright (c) 2026 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -31,47 +31,41 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// GraphicsCoreStore.h
+// Image.h
+
+#ifndef IMAGE_H
+#define IMAGE_H
 
 #include "Vulkan.h"
 
-#include "../Surface/Surface.h"
+#include "Decls.h"
 
-#include "Instance.h"
+namespace ImageUsage {
+	enum ImageUsage {
+		ATTACHMENT = 1,
+		SAMPLED = 2,
+		STORAGE = 4,
+		RESOURCE = 8,
+		COMPRESSED_VIEW = 16
+	};
+}
 
-#include "SwapChain.h"
+struct Image {
+	VkImage         image;
+	VkImageViewType type;
+	VkFormat        format;
+	uint32          mipLevels;
+	bool            cube;
+	bool            depthStencil;
+	bool            external;
 
-#include "FeaturesConfig.h"
-#include "EngineConfig.h"
-#include "QueuesConfig.h"
-#include "Queue.h"
+	void Init( VkFormat newFormat, VkExtent3D imageSize, const bool useMipLevels, const ImageUsage::ImageUsage usage,
+	           bool newCube = false, bool newDepthStencil = false,
+	           bool shared = false );
 
-#include "Memory/EngineAllocator.h"
-#include "ResourceSystem.h"
+	void Init( VkImage newImage, VkFormat newFormat, const ImageUsage::ImageUsage usage );
 
-#include "GraphicsCoreStore.h"
+	VkImageView GenView();
+};
 
-Surface mainSurface;
-
-Instance instance;
-
-SwapChain mainSwapChain;
-
-FeaturesConfig featuresConfig;
-EngineConfig   engineConfig;
-QueuesConfig   queuesConfig;
-
-VkPhysicalDevice physicalDevice;
-
-VkDevice device;
-
-GraphicsQueueRingBuffer graphicsQueue;
-GraphicsQueueRingBuffer computeQueue;
-GraphicsQueueRingBuffer transferQueue;
-GraphicsQueueRingBuffer sparseQueue;
-
-VkDescriptorSetLayout descriptorSetLayout;
-VkDescriptorSet       descriptorSet;
-
-EngineAllocator engineAllocator;
-ResourceSystem  resourceSystem;
+#endif // IMAGE_H

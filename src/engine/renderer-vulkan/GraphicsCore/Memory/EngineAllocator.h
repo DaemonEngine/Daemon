@@ -110,6 +110,8 @@ struct Data {
 
 class EngineAllocator {
 	public:
+	bool zeroInitMemory;
+
 	void        Init();
 	void        Free();
 
@@ -123,6 +125,8 @@ class EngineAllocator {
 	Buffer      AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint64 size,
 	                                  const Buffer::Usage usage = ( Buffer::Usage ) 0 );
 
+	void        AllocImage( MemoryPool& pool, const MemoryRequirements& reqs, const VkImage image,
+	                        uint64* offset, uint64* size );
 
 	private:
 	static constexpr uint32 maxMemoryPools = 32;
@@ -139,11 +143,11 @@ class EngineAllocator {
 	bool       unifiedMemory;
 
 	uint64     coherentAccessAlignment;
-
-	bool       zeroInitMemory;
 };
 
 VkBufferUsageFlags2 GetBufferUsageFlags( const MemoryHeap::MemoryType type, const Buffer::Usage usage );
 MemoryRequirements  GetBufferRequirements( const MemoryHeap::MemoryType type, const uint64 size, const Buffer::Usage usage = ( Buffer::Usage ) 0 );
+
+MemoryRequirements GetImageRequirements( const VkImageCreateInfo& imageInfo );
 
 #endif // ENGINE_ALLOCATOR_H

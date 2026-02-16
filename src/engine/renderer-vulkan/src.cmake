@@ -103,6 +103,8 @@ set( graphicsCoreList
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreStore.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsResource.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsResource.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Image.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Image.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Init.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Init.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Instance.cpp
@@ -113,6 +115,8 @@ set( graphicsCoreList
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Queue.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/QueuesConfig.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/QueuesConfig.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ResourceSystem.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ResourceSystem.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ResultCheck.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ResultCheck.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Semaphore.cpp
