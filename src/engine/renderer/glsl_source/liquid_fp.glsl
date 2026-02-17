@@ -47,8 +47,11 @@ uniform float		u_FresnelBias;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_UnprojectMatrix;
 
-uniform sampler3D       u_LightGrid1;
-uniform sampler3D       u_LightGrid2;
+#if HAVE_texture3D
+	uniform sampler3D       u_LightGrid1;
+	uniform sampler3D       u_LightGrid2;
+#endif
+
 uniform vec3            u_LightGridOrigin;
 uniform vec3            u_LightGridScale;
 
@@ -146,8 +149,12 @@ void	main()
 	#endif
 
 	// compute light direction in world space
-	vec4 texel = texture3D(u_LightGrid2, lightGridPos);
-	vec3 lightDir = normalize(texel.xyz - (128.0 / 255.0));
+	#if HAVE_texture3D
+		vec4 texel = texture3D(u_LightGrid2, lightGridPos);
+		vec3 lightDir = normalize(texel.xyz - (128.0 / 255.0));
+	#else
+		vec3 lightDir = vec3(1.0);
+	#endif
 
 	vec4 diffuse = vec4(0.0, 0.0, 0.0, 1.0);
 

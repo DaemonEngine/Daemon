@@ -61,6 +61,10 @@ static Cvar::Cvar<bool> r_incrementalShaderCompilation(
 	"r_incrementalShaderCompilation", "Build separate shader units then link them alltogether at the end",
 	Cvar::NONE, true );
 
+static Cvar::Cvar<bool> r_useTexture3D(
+	"r_useTexture3D", "Use texture3D image format and sampler3D GLSL keyword",
+	Cvar::CHEAT, true );
+
 static Cvar::Cvar<bool> r_useMat3x2(
 	"r_useMat3x2", "Use mat3x2 GLSL type",
 	Cvar::NONE, true );
@@ -2111,6 +2115,8 @@ static void GLimp_InitExtensions()
 
 	// Stubbed or broken drivers may report garbage.
 
+	glConfig.texture3DAvailable = r_useTexture3D.Get();
+
 	if ( glConfig.maxTextureUnits < 0 )
 	{
 		Log::Warn( "Bad GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS value: %d", glConfig.maxTextureUnits );
@@ -2135,8 +2141,27 @@ static void GLimp_InitExtensions()
 		glConfig.maxCubeMapTextureSize = 0;
 	}
 
+	if ( glConfig.max3DTextureSize > 0 )
+	{
+		glConfig.texture3DAvailable = true;
+	}
+	else
+	{
+		logger.Warn( "Missing 3D texture support because of null max size" );
+	}
+
 	logger.Notice( "...using up to %d texture size.", glConfig.maxTextureSize );
-	logger.Notice( "...using up to %d 3D texture size.", glConfig.max3DTextureSize );
+
+	if ( glConfig.texture3DAvailable )
+	{
+		logger.Notice( "...using up to %d 3D texture size.", glConfig.max3DTextureSize );
+	}
+	else
+	{
+		logger.Notice( "...not using 3D textures." );
+		glConfig.max3DTextureSize = 0;
+	}
+
 	logger.Notice( "...using up to %d cube map texture size.", glConfig.maxCubeMapTextureSize );
 	logger.Notice( "...using up to %d texture units.", glConfig.maxTextureUnits );
 
@@ -2744,7 +2769,7 @@ static void GLimp_EnableAvailableFeatures()
 			glConfig.realtimeLighting = false;
 		}
 
-		if ( glConfig.max3DTextureSize == 0 )
+		if ( !glConfig.texture3DAvailable )
 		{
 			Log::Warn( "Tiled dynamic light renderer disabled because of missing 3D texture support." );
 			glConfig.realtimeLighting = false;
@@ -2778,7 +2803,7 @@ static void GLimp_EnableAvailableFeatures()
 
 	if ( glConfig.colorGrading )
 	{
-		if ( glConfig.max3DTextureSize == 0 )
+		if ( !glConfig.texture3DAvailable )
 		{
 			Log::Warn( "Color grading disabled because of missing 3D texture support." );
 			glConfig.colorGrading = false;
@@ -2954,6 +2979,7 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_glHardware_mthreads_disableTextureBarrier );
 
 	Cvar::Latch( r_incrementalShaderCompilation );
+	Cvar::Latch( r_useTexture3D );
 	Cvar::Latch( r_useMat3x2 );
 
 	/* Enable S3TC on Mesa even if libtxc-dxtn is not available
