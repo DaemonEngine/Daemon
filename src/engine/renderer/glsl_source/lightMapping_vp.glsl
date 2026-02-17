@@ -37,7 +37,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 #if !defined(USE_MATERIAL_SYSTEM)
-	uniform mat3x2 u_TextureMatrix;
+	uniform textureMatrix u_TextureMatrix;
 #endif
 
 #if defined(USE_MODEL_SURFACE)

@@ -1241,7 +1241,7 @@ void RB_RunVisTests( )
 		gl_genericShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, tr.whiteImage )
 		);
-		gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+		SetUniform_TextureMatrix( gl_genericShader, tess.svars.texMatrices[ TB_COLORMAP ] );
 
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_COLORMASK_BITS );
 		glBeginQuery( GL_SAMPLES_PASSED, testState->hQueryRef );
@@ -1806,7 +1806,7 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, tr.whiteImage )
 		);
-		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
+		SetUniform_TextureMatrix( gl_genericShader, matrixIdentity );
 
 		ent = backEnd.refdef.entities;
 
@@ -1880,7 +1880,7 @@ static void RB_RenderDebugUtils()
 			GL_BindToTMU( 0, tr.whiteImage )
 		);
 
-		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
+		SetUniform_TextureMatrix( gl_genericShader, matrixIdentity );
 
 		ent = backEnd.refdef.entities;
 
@@ -2171,7 +2171,7 @@ static void RB_RenderDebugUtils()
 			gl_genericShader->SetUniform_ColorMapBindless(
 				GL_BindToTMU( 0, tr.whiteImage )
 			);
-			gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
+			SetUniform_TextureMatrix( gl_genericShader, matrixIdentity );
 
 			GL_State( GLS_POLYMODE_LINE | GLS_DEPTHFUNC_ALWAYS );
 
@@ -2254,7 +2254,7 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, tr.whiteImage )
 		);
-		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
+		SetUniform_TextureMatrix( gl_genericShader, matrixIdentity );
 
 		Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
 		GL_CheckErrors();
@@ -2335,7 +2335,7 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, tr.whiteImage )
 		);
-		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
+		SetUniform_TextureMatrix( gl_genericShader, matrixIdentity );
 
 		GL_CheckErrors();
 
@@ -2429,7 +2429,7 @@ static void RB_RenderDebugUtils()
 					gl_genericShader->SetUniform_ColorMapBindless(
 						GL_BindToTMU( 0, tr.whiteImage )
 					);
-					gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
+					SetUniform_TextureMatrix( gl_genericShader, matrixIdentity );
 
 					gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -2635,7 +2635,7 @@ void DebugDrawBegin( debugDrawMode_t mode, float size ) {
 	gl_genericShader->SetUniform_ColorMapBindless(
 		GL_BindToTMU( 0, tr.whiteImage )
 	);
-	gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
+	SetUniform_TextureMatrix( gl_genericShader, matrixIdentity );
 
 	// render in world space
 	backEnd.orientation = backEnd.viewParms.world;
@@ -3791,7 +3791,7 @@ void RB_ShowImages()
 	// set uniforms
 	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 	SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-	gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
+	SetUniform_TextureMatrix( gl_genericShader, matrixIdentity );
 
 	GL_SelectTexture( 0 );
 

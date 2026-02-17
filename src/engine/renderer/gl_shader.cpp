@@ -576,6 +576,12 @@ R"(vec4 unpackUnorm4x8( uint value )
 		str += "#define atomicCounterAndARB atomicCounterAnd\n";
 	}
 
+	if ( glConfig.mat3x2Available ) 	{
+		str += "#define textureMatrix mat3x2\n";
+	} else {
+		str += "#define textureMatrix mat3\n";
+	}
+
 	str +=
 R"(#endif // GENERATED_COMPAT_HEADER
 
@@ -1804,7 +1810,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	                           "	uvec2 u_GlowMap;\n"
 	                           "};\n\n"
 	                           + texBuf +
-		                       "#define u_TextureMatrix mat3x2( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.xy, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.zw, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix2 )\n"
+		                       "#define u_TextureMatrix textureMatrix( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.xy, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.zw, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix2 )\n"
 		                       "#define u_DiffuseMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_DiffuseMap\n"
 		                       "#define u_NormalMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_NormalMap\n"
 		                       "#define u_HeightMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_HeightMap\n"
@@ -2578,7 +2584,8 @@ GLShader_generic::GLShader_generic() :
 		false, "generic", "generic" ),
 	u_ColorMap( this ),
 	u_DepthMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_ViewOrigin( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
@@ -2612,7 +2619,8 @@ GLShader_genericMaterial::GLShader_genericMaterial() :
 		true, "generic", "generic" ),
 	u_ColorMap( this ),
 	u_DepthMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_ViewOrigin( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
@@ -2645,7 +2653,8 @@ GLShader_lightMapping::GLShader_lightMapping() :
 	u_LightGrid1( this ),
 	u_LightGrid2( this ),
 	u_LightTiles( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_SpecularExponent( this ),
 	u_ColorModulateColorGen_Float( this ),
 	u_ColorModulateColorGen_Uint( this ),
@@ -2712,7 +2721,8 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial() :
 	u_LightGrid1( this ),
 	u_LightGrid2( this ),
 	u_LightTiles( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_SpecularExponent( this ),
 	u_ColorModulateColorGen_Uint( this ),
 	u_Color_Uint( this ),
@@ -2749,7 +2759,8 @@ GLShader_reflection::GLShader_reflection():
 	u_ColorMapCube( this ),
 	u_NormalMap( this ),
 	u_HeightMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
@@ -2780,7 +2791,8 @@ GLShader_reflectionMaterial::GLShader_reflectionMaterial() :
 	u_ColorMapCube( this ),
 	u_NormalMap( this ),
 	u_HeightMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
@@ -2798,7 +2810,8 @@ GLShader_skybox::GLShader_skybox() :
 		false, "skybox", "skybox" ),
 	u_ColorMapCube( this ),
 	u_CloudMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_CloudHeight( this ),
 	u_UseCloudMap( this ),
 	u_AlphaThreshold( this ),
@@ -2817,7 +2830,8 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial() :
 		true, "skybox", "skybox" ),
 	u_ColorMapCube( this ),
 	u_CloudMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_CloudHeight( this ),
 	u_UseCloudMap( this ),
 	u_AlphaThreshold( this ),
@@ -2879,7 +2893,8 @@ GLShader_heatHaze::GLShader_heatHaze() :
 		false, "heatHaze", "heatHaze" ),
 	u_CurrentMap( this ),
 	u_NormalMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_DeformMagnitude( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ModelViewMatrixTranspose( this ),
@@ -2904,7 +2919,8 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial() :
 		true, "heatHaze", "heatHaze" ),
 	u_CurrentMap( this ),
 	u_NormalMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_DeformEnable( this ),
 	u_DeformMagnitude( this ),
 	u_ModelViewProjectionMatrix( this ),
@@ -3007,7 +3023,8 @@ GLShader_liquid::GLShader_liquid() :
 	u_LightGrid1( this ),
 	u_LightGrid2( this ),
 	u_HeightMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_ViewOrigin( this ),
 	u_RefractionIndex( this ),
 	u_ModelMatrix( this ),
@@ -3051,7 +3068,8 @@ GLShader_liquidMaterial::GLShader_liquidMaterial() :
 	u_LightGrid1( this ),
 	u_LightGrid2( this ),
 	u_HeightMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_ViewOrigin( this ),
 	u_RefractionIndex( this ),
 	u_ModelMatrix( this ),
