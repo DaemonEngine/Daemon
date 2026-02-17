@@ -3438,14 +3438,13 @@ static void R_SetConstantColorLightGrid( const byte color[3] )
 	bspGridPoint1_t *gridPoint1 = (bspGridPoint1_t *) ri.Hunk_Alloc( sizeof( bspGridPoint1_t ) + sizeof( bspGridPoint2_t ), ha_pref::h_low );
 	bspGridPoint2_t *gridPoint2 = (bspGridPoint2_t *) (gridPoint1 + w->numLightGridPoints);
 
-	// default some white light from above
-	gridPoint1->color[ 0 ] = color[0];
-	gridPoint1->color[ 1 ] = color[1];
-	gridPoint1->color[ 2 ] = color[2];
-	gridPoint1->ambientPart = 128;
+	// directed part comes from above; ambient color and directed color are both `color`
+	VectorCopy( color, gridPoint1->color );
+	gridPoint1->unused = 255;
 	gridPoint2->direction[ 0 ] = 128 + floatToSnorm8( 0.0f );
 	gridPoint2->direction[ 1 ] = 128 + floatToSnorm8( 0.0f );
-	gridPoint2->direction[ 2 ] = 128 + floatToSnorm8( 1.0f );
+	gridPoint2->direction[ 2 ] = 128 + floatToSnorm8(
+		( color[ 0 ] + color[ 1 ] + color[ 2 ] ) / ( 3.0f * 255 ) );
 	gridPoint2->isSet = 255;
 
 	w->lightGridData1 = gridPoint1;
@@ -3496,7 +3495,6 @@ void R_LoadLightGrid( lump_t *l )
 	float          weights[ 3 ] = { 0.25f, 0.5f, 0.25f };
 	float          *factors[ 3 ] = { weights, weights, weights };
 	vec3_t         ambientColor, directedColor, direction;
-	float          scale;
 
 	if ( tr.ambientLightSet ) {
 		const byte color[3]{ floatToUnorm8( tr.ambientLight[0] ), floatToUnorm8( tr.ambientLight[1] ),
@@ -3637,19 +3635,28 @@ void R_LoadLightGrid( lump_t *l )
 		direction[ 1 ] = sinf( lng ) * sinf( lat );
 		direction[ 2 ] = cosf( lat );
 
-		// Pack data into an bspGridPoint
-		gridPoint1->color[ 0 ] = floatToUnorm8( 0.5f * (ambientColor[ 0 ] + directedColor[ 0 ]) );
-		gridPoint1->color[ 1 ] = floatToUnorm8( 0.5f * (ambientColor[ 1 ] + directedColor[ 1 ]) );
-		gridPoint1->color[ 2 ] = floatToUnorm8( 0.5f * (ambientColor[ 2 ] + directedColor[ 2 ]) );
+		// Separate ambient and directed colors are not implemented, so this is the total average light
+		// (averaged over all direction vectors): ambient + 0.25 * directed. See TraceGrid in light.c in
+		// q3map2 for more information about this equation. Though if to take
+		// half-Lambert lighting's cosine modification into account, the 1/4 factor should be replaced
+		// by 1/3. The result is scaled down to fit in [0, 1].
+		gridPoint1->color[ 0 ] = floatToUnorm8( ( ambientColor[ 0 ] + 0.25f * directedColor[ 0 ] ) / LIGHTGRID_MAX_LIGHT );
+		gridPoint1->color[ 1 ] = floatToUnorm8( ( ambientColor[ 1 ] + 0.25f * directedColor[ 1 ] ) / LIGHTGRID_MAX_LIGHT );
+		gridPoint1->color[ 2 ] = floatToUnorm8( ( ambientColor[ 2 ] + 0.25f * directedColor[ 2 ] ) / LIGHTGRID_MAX_LIGHT );
+		gridPoint1->unused = 255;
 
-		float ambientLength = VectorLength(ambientColor);
-		float directedLength = VectorLength(directedColor);
-		float length = ambientLength + directedLength;
-		gridPoint1->ambientPart = floatToUnorm8( ambientLength / length );
-
-		gridPoint2->direction[0] = 128 + floatToSnorm8( direction[ 0 ] );
-		gridPoint2->direction[1] = 128 + floatToSnorm8( direction[ 1 ] );
-		gridPoint2->direction[2] = 128 + floatToSnorm8( direction[ 2 ] );
+		// The length of the direction vector is used to determine how much directed light there is.
+		// When adjacent grid points have opposing directions that (partially) cancel each other upon
+		// interpolation, the GLSL will see a smaller direction vector and put more light into the
+		// ambient part. "How much light" is determined using the 1-norm (Maybe it should be
+		// luma-aware?) since that is preserved under interpolation. 
+		// TODO: send the directed contribution to zero if it is worse than random? If you had perfectly
+		// ambient white light with a total of sum of A, you'd get a directed color of 0.25*A and an ambient color
+		// of 0.1875*A. So if the directed to ambient ratio is lower than that, the direction is surely garbage.
+		float dirScale = ( directedColor[ 0 ] + directedColor[ 1 ] + directedColor[ 2 ] ) / 3.0f;
+		gridPoint2->direction[0] = 128 + floatToSnorm8( dirScale * direction[ 0 ] );
+		gridPoint2->direction[1] = 128 + floatToSnorm8( dirScale * direction[ 1 ] );
+		gridPoint2->direction[2] = 128 + floatToSnorm8( dirScale * direction[ 2 ] );
 		gridPoint2->isSet = 255;
 	}
 
@@ -3678,27 +3685,18 @@ void R_LoadLightGrid( lump_t *l )
 					continue;
 				}
 
-				scale = R_InterpolateLightGrid( w, from, to, factors,
-								ambientColor, directedColor,
-								direction );
-				if( scale > 0.0f ) {
-					scale = 1.0f / scale;
+				vec3_t interpolatedColor, interpolatedDir;
+				R_InterpolateLightGrid( w, from, to, factors, interpolatedColor, interpolatedDir );
 
-					VectorScale( ambientColor, scale, ambientColor );
-					VectorScale( directedColor, scale, directedColor );
-					VectorScale( direction, scale, direction );
+				gridPoint1->color[0] = floatToUnorm8( interpolatedColor[ 0 ] );
+				gridPoint1->color[1] = floatToUnorm8( interpolatedColor[ 1 ] );
+				gridPoint1->color[2] = floatToUnorm8( interpolatedColor[ 2 ] );
+				gridPoint1->unused = 255;
 
-
-					gridPoint1->color[0] = floatToUnorm8(0.5f * (ambientColor[0] + directedColor[0]));
-					gridPoint1->color[1] = floatToUnorm8(0.5f * (ambientColor[1] + directedColor[1]));
-					gridPoint1->color[2] = floatToUnorm8(0.5f * (ambientColor[2] + directedColor[2]));
-					gridPoint1->ambientPart = floatToUnorm8(VectorLength(ambientColor) / (VectorLength(ambientColor) + VectorLength(directedColor)));
-
-					gridPoint2->direction[0] = 128 + floatToSnorm8(direction[0]);
-					gridPoint2->direction[1] = 128 + floatToSnorm8(direction[1]);
-					gridPoint2->direction[2] = 128 + floatToSnorm8(direction[2]);
-					gridPoint2->isSet = 255;
-				}
+				gridPoint2->direction[0] = 128 + floatToSnorm8( interpolatedDir[ 0 ] );
+				gridPoint2->direction[1] = 128 + floatToSnorm8( interpolatedDir[ 1 ] );
+				gridPoint2->direction[2] = 128 + floatToSnorm8( interpolatedDir[ 2 ] );
+				gridPoint2->isSet = 255;
 			}
 		}
 	}
