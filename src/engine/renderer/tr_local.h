@@ -3229,7 +3229,7 @@ void GLimp_LogComment_( std::string comment );
 
 	@param tetraVerts[0..2] are the ground vertices, tetraVerts[3] is the pyramid offset
 	*/
-	void Tess_AddTetrahedron( vec4_t tetraVerts[ 4 ], const Color::Color& color );
+	void Tess_AddTetrahedron( vec4_t tetraVerts[ 4 ], Color::Color color );
 
 	void Tess_AddCube( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 	void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
