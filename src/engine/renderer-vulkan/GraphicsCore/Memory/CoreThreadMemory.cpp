@@ -51,7 +51,7 @@ void InitCmdPools() {
 		{ &graphicsQueue, &GMEM.graphicsCmdPool },
 		{ &computeQueue,  &GMEM.computeCmdPool  },
 		{ &transferQueue, &GMEM.transferCmdPool },
-		{ &sparseQueue,   &GMEM.sparseCmdPool   },
+		{ &sparseQueue,   &GMEM.sparseCmdPool   }
 	};
 
 	for ( QueuePool& queuePool : queues ) {
@@ -76,7 +76,7 @@ void InitExecCmdPools() {
 		{ &graphicsQueue, &GMEM.execGraphicsCmd, },
 		{ &computeQueue,  &GMEM.execComputeCmd,  },
 		{ &transferQueue, &GMEM.execTransferCmd, },
-		{ &sparseQueue,   &GMEM.execSparseCmd,   },
+		{ &sparseQueue,   &GMEM.execSparseCmd,   }
 	};
 
 	for ( QueueCmdPool& queuePool : execCmdQueues ) {
