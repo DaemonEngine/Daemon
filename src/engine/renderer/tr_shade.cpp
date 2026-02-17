@@ -58,7 +58,7 @@ static void EnableAvailableFeatures()
 			glConfig.realtimeLighting = false;
 		}
 
-		if ( glConfig.max3DTextureSize == 0 )
+		if ( !glConfig.texture3DAvailable )
 		{
 			Log::Warn( "Tiled dynamic light renderer disabled because of missing 3D texture support." );
 			glConfig.realtimeLighting = false;
@@ -88,7 +88,7 @@ static void EnableAvailableFeatures()
 
 	if ( glConfig.colorGrading )
 	{
-		if ( glConfig.max3DTextureSize == 0 )
+		if ( !glConfig.texture3DAvailable )
 		{
 			Log::Warn( "Color grading disabled because of missing 3D texture support." );
 			glConfig.colorGrading = false;

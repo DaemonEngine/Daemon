@@ -519,6 +519,10 @@ R"(#if !defined(GENERATED_EXTENSIONS_HEADER)
 		addExtension( str, addedExtension.available, addedExtension.minGlslVersion, addedExtension.name );
 	}
 
+	if ( glConfig.texture3DAvailable ) {
+		str += "#define HAVE_texture3D 1\n";
+	}
+
 	str +=
 R"(#endif // GENERATED_EXTENSIONS_HEADER
 
