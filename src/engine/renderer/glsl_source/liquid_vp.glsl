@@ -29,7 +29,7 @@ IN vec3			attr_Binormal;
 IN vec3			attr_Normal;
 
 #if !defined(USE_MATERIAL_SYSTEM)
-	uniform mat3x2 u_TextureMatrix;
+	uniform textureMatrix u_TextureMatrix;
 #endif
 
 uniform mat4		u_ModelMatrix;
