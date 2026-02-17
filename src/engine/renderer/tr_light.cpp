@@ -67,7 +67,7 @@ float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 				gp1 = w->lightGridData1 + x * gridStep[ 0 ] + y * gridStep[ 1 ] + z * gridStep[ 2 ];
 				gp2 = w->lightGridData2 + x * gridStep[ 0 ] + y * gridStep[ 1 ] + z * gridStep[ 2 ];
 
-				if ( !( gp1->color[ 0 ] || gp1->color[ 1 ] || gp1->color[ 2 ]) )
+				if ( !gp2->isSet )
 				{
 					continue; // ignore samples in walls
 				}

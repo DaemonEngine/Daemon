@@ -3400,7 +3400,7 @@ static void R_SetConstantColorLightGrid( const byte color[3] )
 	gridPoint2->direction[ 0 ] = floatToSnorm8(0.0f);
 	gridPoint2->direction[ 1 ] = floatToSnorm8(0.0f);
 	gridPoint2->direction[ 2 ] = floatToSnorm8(1.0f);
-	gridPoint2->unused = 255;
+	gridPoint2->isSet = 255;
 
 	w->lightGridData1 = gridPoint1;
 	w->lightGridData2 = gridPoint2;
@@ -3543,6 +3543,13 @@ void R_LoadLightGrid( lump_t *l )
 		tmpAmbient[ 2 ] = in->ambient[ 2 ];
 		tmpAmbient[ 3 ] = 255;
 
+		/* Make sure we don't change the (0, 0, 0) points because those are points in walls,
+		which we'll fill up by interpolating nearby points later */
+		if ( tmpAmbient[ 0 ] == 0 && tmpAmbient[ 1 ] == 0 && tmpAmbient[ 2 ] == 0 )
+		{
+			continue;
+		}
+
 		tmpDirected[ 0 ] = in->directed[ 0 ];
 		tmpDirected[ 1 ] = in->directed[ 1 ];
 		tmpDirected[ 2 ] = in->directed[ 2 ];
@@ -3566,12 +3573,8 @@ void R_LoadLightGrid( lump_t *l )
 		const float forceAmbient = r_forceAmbient.Get();
 		if ( ambientColor[0] < forceAmbient &&
 			ambientColor[1] < forceAmbient &&
-			ambientColor[2] < forceAmbient &&
-			/* Make sure we don't change the (0, 0, 0) points because those are points in walls,
-			which we'll fill up by interpolating nearby points later */
-			( ambientColor[0] != 0 ||
-			ambientColor[1] != 0 || 
-			ambientColor[2] != 0 ) ) {
+			ambientColor[2] < forceAmbient )
+		{
 			VectorSet( ambientColor, forceAmbient, forceAmbient, forceAmbient );
 		}
 
@@ -3593,16 +3596,15 @@ void R_LoadLightGrid( lump_t *l )
 		gridPoint1->color[ 1 ] = floatToUnorm8( 0.5f * (ambientColor[ 1 ] + directedColor[ 1 ]) );
 		gridPoint1->color[ 2 ] = floatToUnorm8( 0.5f * (ambientColor[ 2 ] + directedColor[ 2 ]) );
 
-		// Avoid division-by-zero.
 		float ambientLength = VectorLength(ambientColor);
 		float directedLength = VectorLength(directedColor);
 		float length = ambientLength + directedLength;
-		gridPoint1->ambientPart = length ? floatToUnorm8( ambientLength / length ) : 0;
+		gridPoint1->ambientPart = floatToUnorm8( ambientLength / length );
 
 		gridPoint2->direction[0] = 128 + floatToSnorm8( direction[ 0 ] );
 		gridPoint2->direction[1] = 128 + floatToSnorm8( direction[ 1 ] );
 		gridPoint2->direction[2] = 128 + floatToSnorm8( direction[ 2 ] );
-		gridPoint2->unused = 255;
+		gridPoint2->isSet = 255;
 	}
 
 	// fill in gridpoints with zero light (samples in walls) to avoid
@@ -3625,10 +3627,10 @@ void R_LoadLightGrid( lump_t *l )
 				from[ 0 ] = i - 1;
 				to[ 0 ] = i + 1;
 
-				if( gridPoint1->color[ 0 ] ||
-				    gridPoint1->color[ 1 ] ||
-				    gridPoint1->color[ 2 ] )
+				if ( gridPoint2->isSet )
+				{
 					continue;
+				}
 
 				scale = R_InterpolateLightGrid( w, from, to, factors,
 								ambientColor, directedColor,
@@ -3649,6 +3651,7 @@ void R_LoadLightGrid( lump_t *l )
 					gridPoint2->direction[0] = 128 + floatToSnorm8(direction[0]);
 					gridPoint2->direction[1] = 128 + floatToSnorm8(direction[1]);
 					gridPoint2->direction[2] = 128 + floatToSnorm8(direction[2]);
+					gridPoint2->isSet = 255;
 				}
 			}
 		}
