@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Surface.cpp
 
+#include <SDL3/SDL_video.h>
+
 #include "engine/qcommon/q_shared.h"
 
 #include "../GraphicsCore/GraphicsCoreCVars.h"
@@ -75,6 +77,10 @@ void Surface::Init() {
 	int width;
 	int height;
 	const SDL_DisplayMode* displayMode = SDL_GetDesktopDisplayMode( displayID );
+
+	#ifdef _MSC_VER
+		// hmonitor = SDL_GetPointerProperty( SDL_GetDisplayProperties( displayID ), SDL_PROP_DISPLAY_WINDOWS_HMONITOR_POINTER );
+	#endif
 
 	switch ( r_mode.Get() ) {
 		case -2:

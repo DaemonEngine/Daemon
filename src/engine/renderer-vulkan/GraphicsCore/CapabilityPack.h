@@ -84,7 +84,7 @@ constexpr Array instanceExtensions {
 constexpr Array extensionsMinimal {
 	"VK_KHR_swapchain",
 	#ifdef _MSC_VER
-		"VK_EXT_full_screen_exclusive"
+		// "VK_EXT_full_screen_exclusive"
 	#endif
 };
 

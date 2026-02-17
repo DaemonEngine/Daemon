@@ -136,13 +136,17 @@ void SwapChain::Init( const VkInstance instance ) {
 
 	VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo { .surface = surface };
 
-	#ifdef _MSC_VER
+	/* #ifdef _MSC_VER
+		VkSurfaceFullScreenExclusiveWin32InfoEXT fullScreenInfo2 {
+			.hmonitor = mainSurface.hmonitor
+		};
+
 		VkSurfaceFullScreenExclusiveInfoEXT fullscreenInfo {
 			.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT
 		};
 
 		surfaceInfo.pNext = &fullscreenInfo;
-	#endif
+	#endif */
 
 	VkSurfaceCapabilities2KHR capabilities2 {};
 	vkGetPhysicalDeviceSurfaceCapabilities2KHR( physicalDevice, &surfaceInfo, &capabilities2 );
@@ -218,13 +222,13 @@ void SwapChain::Init( const VkInstance instance ) {
 
 	VkResult res = vkCreateSwapchainKHR( device, &swapChainInfo, nullptr, &swapChain );
 
-	#ifdef _MSC_VER
+	/* #ifdef _MSC_VER
 		res = vkAcquireFullScreenExclusiveModeEXT( device, swapChain );
 
 		if ( res == VK_SUCCESS ) {
 			Log::Notice( "SwapChain: acquired exclusive fullscreen" );
 		}
-	#endif
+	#endif */
 
 	res = vkGetSwapchainImagesKHR( device, swapChain, &imageCount, nullptr );
 

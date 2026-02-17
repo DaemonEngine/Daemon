@@ -38,9 +38,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL3/SDL.h>
 
+#ifdef _MSC_VER
+	#include <Windows.h>
+#endif
+
 class Surface {
 	public:
 	SDL_Window* window;
+
+	#ifdef _MSC_VER
+		HMONITOR hmonitor;
+	#endif
 
 	int         width;
 	int         height;
