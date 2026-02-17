@@ -2181,7 +2181,7 @@ static void RB_RenderDebugUtils()
 
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
+		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_IDENTITY );
 		SetUniform_Color( gl_genericShader, Color::Black );
 
 		GL_State( GLS_DEFAULT );
@@ -2207,8 +2207,6 @@ static void RB_RenderDebugUtils()
 			for ( y = 0; y < tr.world->lightGridBounds[ 1 ]; y++ ) {
 				for ( x = 0; x < tr.world->lightGridBounds[ 0 ]; x++ ) {
 					vec3_t origin;
-					Color::Color ambientColor;
-					Color::Color directedColor;
 					vec3_t lightDir;
 
 					VectorCopy( tr.world->lightGridOrigin, origin );
@@ -2221,8 +2219,19 @@ static void RB_RenderDebugUtils()
 						continue;
 					}
 
-					R_LightForPoint( origin, ambientColor.ToArray(),
-							 directedColor.ToArray(), lightDir );
+					// read out grid...
+					int gridIndex = x + tr.world->lightGridBounds[ 0 ] * ( y + tr.world->lightGridBounds[ 1 ] * z );
+					const bspGridPoint1_t *gp1 = tr.world->lightGridData1 + gridIndex;
+					const bspGridPoint2_t *gp2 = tr.world->lightGridData2 + gridIndex;
+					Color::Color generalColor = Color::Adapt( gp1->color );
+					float ambientScale = 2.0f * unorm8ToFloat( gp1->ambientPart );
+					float directedScale = 2.0f - ambientScale;
+					Color::Color ambientColor = generalColor * ambientScale;
+					Color::Color directedColor = generalColor * directedScale;
+					lightDir[ 0 ] = snorm8ToFloat( gp2->direction[ 0 ] - 128 );
+					lightDir[ 1 ] = snorm8ToFloat( gp2->direction[ 1 ] - 128 );
+					lightDir[ 2 ] = snorm8ToFloat( gp2->direction[ 2 ] - 128 );
+
 					VectorNegate( lightDir, lightDir );
 
 					length = 8;
