@@ -1698,7 +1698,7 @@ enum
 	struct bspGridPoint2_t
 	{
 		byte  direction[3];
-		byte  unused;
+		byte isSet;
 	};
 
 	struct AABB {
