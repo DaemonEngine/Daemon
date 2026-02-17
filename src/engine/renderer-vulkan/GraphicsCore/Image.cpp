@@ -44,8 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Image.h"
 
-void Image::Init( VkFormat newFormat, VkExtent3D imageSize, const bool useMipLevels, const ImageUsage::ImageUsage usage,
-                  bool newCube, bool newDepthStencil, bool shared ) {
+void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool useMipLevels, const ImageUsage::ImageUsage usage,
+                  const bool newCube, const bool newDepthStencil, const bool shared ) {
 	type         = cube ? VK_IMAGE_VIEW_TYPE_CUBE : ( imageSize.depth ? VK_IMAGE_VIEW_TYPE_3D : VK_IMAGE_VIEW_TYPE_2D );
 	format       = newFormat;
 
@@ -62,10 +62,7 @@ void Image::Init( VkFormat newFormat, VkExtent3D imageSize, const bool useMipLev
 
 	if ( usage & ImageUsage::ATTACHMENT ) {
 		imageUsage |= depthStencil ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	}
-
-	if ( usage & ImageUsage::SAMPLED ) {
-		imageUsage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageUsage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 	}
 
 	if ( usage & ImageUsage::STORAGE ) {
@@ -88,7 +85,7 @@ void Image::Init( VkFormat newFormat, VkExtent3D imageSize, const bool useMipLev
 	VkImageCreateInfo imageInfo {
 		.flags                 = flags,
 		.imageType             = imageSize.depth ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D,
-		.format                = format,
+		.format                = formats[format],
 		.extent                = imageSize,
 		.mipLevels             = mipLevels,
 		.arrayLayers           = cube ? 6u : 1u,
@@ -110,10 +107,17 @@ void Image::Init( VkFormat newFormat, VkExtent3D imageSize, const bool useMipLev
 	resourceSystem.AllocImage( reqs, image, &offset, &size );
 }
 
-void Image::Init( VkImage newImage, VkFormat newFormat ) {
+void Image::Init( VkImage newImage, const SwapChainFormat newFormat ) {
 	image        = newImage;
 	type         = VK_IMAGE_VIEW_TYPE_2D;
-	format       = newFormat;
+
+	Format formatFromSwapChainFormat[] {
+		RGBA8,     // S_RGBA8
+		RGBA8S,    // S_RGBA8S
+		ABGR_2_10, // S_ABGR_2_10
+	};
+
+	format       = formatFromSwapChainFormat[newFormat];
 
 	mipLevels    = 1;
 
@@ -127,7 +131,7 @@ VkImageView Image::GenView() {
 	VkImageViewCreateInfo imageViewInfo {
 		.image              = image,
 		.viewType           = type,
-		.format             = format,
+		.format             = formats[format],
 		.subresourceRange   = {
 			.aspectMask     = ( VkImageAspectFlags ) ( depthStencil ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_COLOR_BIT ),
 			.baseMipLevel   = 0,
@@ -141,4 +145,69 @@ VkImageView Image::GenView() {
 	vkCreateImageView( device, &imageViewInfo, nullptr, &view );
 
 	return view;
+}
+
+FormatConfig formatConfigs[FORMAT_COUNT]                    {};
+FormatConfig swapchainFormatConfigs[SWAPCHAIN_FORMAT_COUNT] {};
+
+static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFlags usage, const VkImageCreateFlags flags ) {
+	VkPhysicalDeviceImageFormatInfo2 formatInfo {
+		.format = format,
+		.type   = VK_IMAGE_TYPE_2D,
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage  = usage,
+		.flags  = flags
+	};
+
+	VkHostImageCopyDevicePerformanceQuery hostImageCopyInfo {};
+
+	VkImageFormatProperties2 formatPropertiesInfo {
+		.pNext  = &hostImageCopyInfo
+	};
+
+	VkResult res = vkGetPhysicalDeviceImageFormatProperties2( physicalDevice, &formatInfo, &formatPropertiesInfo );
+
+	VkImageFormatProperties& formatProperties = formatPropertiesInfo.imageFormatProperties;
+
+	return {
+		.maxSize             = formatProperties.maxExtent,
+		.maxLayers           = formatProperties.maxArrayLayers,
+		.maxSamples          = formatProperties.sampleCounts,
+
+		.hostCopyOptimal     = ( bool ) hostImageCopyInfo.optimalDeviceAccess,
+		.hostIdenticalLayout = ( bool ) hostImageCopyInfo.identicalMemoryLayout,
+
+		.supported           = res == VK_SUCCESS
+	};
+}
+
+void InitFormatConfigs() {
+	for ( FormatConfig& cfg : formatConfigs ) {
+		Format format            = ( Format ) ( &cfg - formatConfigs );
+
+		VkImageUsageFlags  usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+		VkImageCreateFlags flags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+		
+		if ( format <= FORMAT_COLOUR ) {
+			usage |= ( format == RGBA8S ? 0 : VK_IMAGE_USAGE_STORAGE_BIT ) | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		} else if ( format <= FORMAT_DEPTH ) {
+			usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+		} else if ( format <= FORMAT_DEPTH_STENCIL ) {
+			usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		} else {
+			usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+			flags |= VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT | VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
+		}
+
+		cfg = GetFormatConfig( formats[format], usage, flags );
+	}
+	
+	for ( FormatConfig& cfg : swapchainFormatConfigs ) {
+		Format format            = ( Format ) ( &cfg - swapchainFormatConfigs );
+
+		VkImageUsageFlags  usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+		VkImageCreateFlags flags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+
+		cfg = GetFormatConfig( swapchainFormats[format], usage, flags );
+	}
 }

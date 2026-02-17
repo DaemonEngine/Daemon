@@ -57,29 +57,50 @@ struct VkFormatHasher {
 static std::unordered_map<VkFormat, int, VkFormatHasher> surfaceFormatPriorities {
 	{ VK_FORMAT_UNDEFINED,               -1 },
 
-	{ VK_FORMAT_B8G8R8A8_SRGB,            2 },
-	{ VK_FORMAT_B8G8R8A8_UNORM,           1 },
-	{ VK_FORMAT_A2B10G10R10_UNORM_PACK32, 0 },
+	{ VK_FORMAT_R8G8B8A8_UNORM,           2 },
+	{ VK_FORMAT_A2B10G10R10_UNORM_PACK32, 1 },
+	{ VK_FORMAT_R8G8B8A8_SRGB,            0 }
 };
 
-static VkSurfaceFormat2KHR SelectSurfaceFormat( DynamicArray<VkSurfaceFormat2KHR>& formats ) {
+static FormatConfig FormatConfigFromFormat( const VkFormat surfaceFormat, SwapChainFormat* format ) {
+	switch ( surfaceFormat ) {
+		default:
+		case VK_FORMAT_R8G8B8A8_UNORM:
+			*format = S_RGBA8;
+			break;
+		case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
+			*format = S_ABGR_2_10;
+			break;
+		case VK_FORMAT_R8G8B8A8_SRGB:
+			*format = S_RGBA8S;
+			break;
+	}
+
+	return swapchainFormatConfigs[*format];
+}
+
+static VkSurfaceFormat2KHR SelectSurfaceFormat( DynamicArray<VkSurfaceFormat2KHR>& formats, SwapChainFormat* format ) {
 	VkFormat bestFormat          = VK_FORMAT_UNDEFINED;
 	VkSurfaceFormat2KHR* bestFmt = &formats[0];
 
-	for ( VkSurfaceFormat2KHR& format : formats ) {
-		if ( format.surfaceFormat.colorSpace != VK_COLORSPACE_SRGB_NONLINEAR_KHR ) {
+	for ( VkSurfaceFormat2KHR& srfFormat : formats ) {
+		if ( srfFormat.surfaceFormat.colorSpace != VK_COLORSPACE_SRGB_NONLINEAR_KHR ) {
 			continue;
 		}
 
-		VkFormat surfaceFormat = format.surfaceFormat.format;
+		VkFormat surfaceFormat = srfFormat.surfaceFormat.format;
 
 		if ( surfaceFormatPriorities.find( surfaceFormat ) == surfaceFormatPriorities.end() ) {
 			continue;
 		}
 
+		if ( !FormatConfigFromFormat( surfaceFormat, format ).supported ) {
+			continue;
+		}
+
 		if ( surfaceFormatPriorities[surfaceFormat] > surfaceFormatPriorities[bestFormat] ) {
 			bestFormat = surfaceFormat;
-			bestFmt    = &format;
+			bestFmt    = &srfFormat;
 		}
 	}
 
@@ -160,7 +181,8 @@ void SwapChain::Init( const VkInstance instance ) {
 
 	vkGetPhysicalDeviceSurfaceFormats2KHR( physicalDevice, &surfaceInfo, &count, formats.memory );
 
-	VkSurfaceFormat2KHR format = SelectSurfaceFormat( formats );
+	SwapChainFormat format;
+	VkSurfaceFormat2KHR surfaceFormat = SelectSurfaceFormat( formats, &format );
 
 	vkGetPhysicalDeviceSurfacePresentModesKHR( physicalDevice, surface, &count, nullptr );
 
@@ -202,8 +224,8 @@ void SwapChain::Init( const VkInstance instance ) {
 		.surface          = surface,
 
 		.minImageCount    = minImageCount,
-		.imageFormat      = format.surfaceFormat.format,
-		.imageColorSpace  = format.surfaceFormat.colorSpace,
+		.imageFormat      = surfaceFormat.surfaceFormat.format,
+		.imageColorSpace  = surfaceFormat.surfaceFormat.colorSpace,
 
 		.imageExtent      = swapChainSize,
 		.imageArrayLayers = 1,
@@ -239,7 +261,7 @@ void SwapChain::Init( const VkInstance instance ) {
 	res = vkGetSwapchainImagesKHR( device, swapChain, &imageCount, swapchainImages.memory );
 
 	for ( uint32 i = 0; i < images.elements; i++ ) {
-		images[i].Init( swapchainImages[i], format.surfaceFormat.format );
+		images[i].Init( swapchainImages[i], format );
 	}
 }
 

@@ -119,5 +119,7 @@ void Instance::Init( const char* engineName, const char* appName ) {
 
 	InitQueues();
 
+	InitFormatConfigs();
+
 	mainSwapChain.Init( instance );
 }
