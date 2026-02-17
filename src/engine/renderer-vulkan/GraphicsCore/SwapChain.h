@@ -60,8 +60,6 @@ struct SwapChain : public GraphicsResource {
 	VkSurfaceKHR   surface;
 	VkSwapchainKHR swapChain;
 
-	uint32         minImages;
-	uint32         maxImages;
 	uint32         imageCount;
 
 	DynamicArray<Image> images;

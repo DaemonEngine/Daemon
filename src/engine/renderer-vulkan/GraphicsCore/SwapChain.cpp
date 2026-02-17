@@ -180,9 +180,6 @@ void SwapChain::Init( const VkInstance instance ) {
 		? capabilities.minImageCount
 		: ( 2 <= capabilities.maxImageCount ? 2 : capabilities.maxImageCount );
 
-	minImages = capabilities.minImageCount;
-	maxImages = capabilities.maxImageCount;
-
 	VkExtent2D swapChainSize;
 
 	switch ( r_mode.Get() ) {
