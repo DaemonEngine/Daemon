@@ -69,6 +69,7 @@ enum class glDriverVendor_t
 	MESA,
 	NVIDIA,
 	MTHREADS,
+	GL4ES,
 	NUM_DRIVER_VENDORS,
 };
 
