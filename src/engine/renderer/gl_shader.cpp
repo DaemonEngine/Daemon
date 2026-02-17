@@ -513,8 +513,20 @@ static std::string GenCompatHeader() {
 	std::string str;
 
 	// definition of functions missing in early GLSL
-	if( glConfig.shadingLanguageVersion <= 120 ) {
-		str += "float smoothstep(float edge0, float edge1, float x) { float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }\n";
+
+	/* Some GLSL 1.20 software like GL4ES always implement smoothstep()
+	so we should not overwrite it with a function, but we can set a define
+	for when it's missing. */
+	if( glConfig.shadingLanguageVersion <= 120 )
+	{
+		str +=
+R"(float mySmoothstep(float edge0, float edge1, float x)
+{
+	float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+	return t * t * (3.0 - 2.0 * t);
+}
+#define smoothstep mySmoothstep
+)";
 	}
 
 	if ( !glConfig.gpuShader5Available && glConfig.gpuShader4Available )
