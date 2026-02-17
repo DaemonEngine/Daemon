@@ -129,6 +129,7 @@ struct GLConfig
 	bool gpuShader4Available;
 	bool gpuShader5Available;
 	bool textureGatherAvailable;
+	bool assumeSmoothstep;
 	int maxDrawBuffers;
 
 	float maxTextureAnisotropy;

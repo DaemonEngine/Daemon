@@ -137,6 +137,10 @@ static Cvar::Cvar<bool> workaround_glDriver_amd_oglp_disableBindlessTexture(
 	"workaround.glDriver.amd.oglp.disableBindlessTexture",
 	"Disable ARB_bindless_texture on AMD OGLP driver",
 	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_gl4es_assumeSmoothstep(
+	"workaround.glDriver.gl4es.assumeSmoothstep",
+	"Assume smoothstep is always declared on GL4ES",
+	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv300_useFloatVertex(
 	"workaround.glDriver.mesa.ati.rv300.useFloatVertex",
 	"Use float vertex instead of supported-but-slower half-float vertex on Mesa driver on ATI RV300 hardware",
@@ -2635,6 +2639,16 @@ static void GLimp_InitExtensions()
 	}
 #endif
 
+	if ( glConfig.driverVendor == glDriverVendor_t::GL4ES )
+	{
+		if ( glConfig.shadingLanguageVersion <= 120
+			&& workaround_glDriver_gl4es_assumeSmoothstep.Get() )
+		{
+			logger.Notice( "Found GLSL 1.20 on GL4ES translation layer, assuming smoothstep() is always declared." );
+			glConfig.assumeSmoothstep = true;
+		}
+	}
+
 	// Shader limits.
 
 	// From GL_ARB_vertex_shader.
@@ -2691,6 +2705,7 @@ bool GLimp_Init()
 
 	Cvar::Latch( workaround_glDriver_amd_adrenalin_disableBindlessTexture );
 	Cvar::Latch( workaround_glDriver_amd_oglp_disableBindlessTexture );
+	Cvar::Latch( workaround_glDriver_gl4es_assumeSmoothstep );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv300_useFloatVertex );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv600_disableHyperZ );
 	Cvar::Latch( workaround_glDriver_mesa_broadcom_vc4_useFloatVertex );
