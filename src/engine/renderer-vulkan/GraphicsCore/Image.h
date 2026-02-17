@@ -58,6 +58,7 @@ struct Image {
 	Format          format;
 	uint32          mipLevels;
 	bool            cube;
+	bool            storage;
 	bool            depthStencil;
 	bool            external;
 

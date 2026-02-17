@@ -42,6 +42,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../GraphicsCoreStore.h"
 #include "../ResultCheck.h"
 
+#include "../Image.h"
+
 #include "../../GraphicsShared/Bindings.h"
 
 #include "DescriptorSet.h"
@@ -137,6 +139,24 @@ void AllocDescriptors( uint32 imageCount, uint32 storageImageCount ) {
 	};
 
 	ResultCheck( vkAllocateDescriptorSets( device, &allocInfo, &descriptorSet ) );
+}
+
+void UpdateDescriptor( const uint32 id, Image image, const VkImageLayout layout ) {
+	VkDescriptorImageInfo imageDescriptorInfo {
+		.imageView   = image.GenView(),
+		.imageLayout = VK_IMAGE_LAYOUT_GENERAL
+	};
+
+	VkWriteDescriptorSet writeDescriptorInfo {
+		.dstSet          = descriptorSet,
+		.dstBinding      = 0,
+		.dstArrayElement = id,
+		.descriptorCount = 1,
+		.descriptorType  = image.storage ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+		.pImageInfo      = &imageDescriptorInfo
+	};
+
+	vkUpdateDescriptorSets( device, 1, &writeDescriptorInfo, 0, nullptr );
 }
 
 void FreeDescriptors() {

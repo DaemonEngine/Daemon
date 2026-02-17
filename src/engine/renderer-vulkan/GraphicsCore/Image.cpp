@@ -54,6 +54,7 @@ void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool
 	               : 1;
 
 	cube         = newCube;
+	storage      = usage & ImageUsage::ATTACHMENT | usage & ImageUsage::STORAGE;
 	depthStencil = newDepthStencil;
 
 	external     = false;
@@ -122,6 +123,7 @@ void Image::Init( VkImage newImage, const SwapChainFormat newFormat ) {
 	mipLevels    = 1;
 
 	cube         = false;
+	storage      = false;
 	depthStencil = false;
 
 	external     = true;
