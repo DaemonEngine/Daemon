@@ -136,7 +136,7 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 	return true;
 }
 
-void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config, VkDevice* device ) {
+void CreateDevice( EngineConfig& config, VkDevice* device ) {
 	VkDeviceQueueCreateInfo queueInfos[4] {};
 
 	Queue* queues[4]    { &graphicsQueue, &computeQueue, &transferQueue, &sparseQueue };

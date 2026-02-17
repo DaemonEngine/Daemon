@@ -64,7 +64,7 @@ struct Queue {
 	VkExtent3D minImageTransferGranularity;
 };
 
-void             InitQueueConfigs( const VkPhysicalDevice& device );
+void             InitQueueConfigs();
 void             InitQueues();
 Array<uint32, 4> GetConcurrentQueues( uint32* count );
 

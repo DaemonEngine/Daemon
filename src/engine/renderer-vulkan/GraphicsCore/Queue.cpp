@@ -54,10 +54,10 @@ static void InitQueue( Queue& queue, const bool downloadQueue ) {
 	vkGetDeviceQueue2( device, &info, downloadQueue ? &queue.queueDownload : &queue.queue );
 }
 
-void InitQueueConfigs( const VkPhysicalDevice& device ) {
+void InitQueueConfigs() {
 	VkQueueFamilyProperties2 propertiesArray[8] {};
-	uint32 count;
-	vkGetPhysicalDeviceQueueFamilyProperties2( device, &count, propertiesArray );
+	uint32 count = 8;
+	vkGetPhysicalDeviceQueueFamilyProperties2( physicalDevice, &count, propertiesArray );
 
 	for ( uint32 i = 0; i < count; i++ ) {
 		VkQueueFamilyProperties& coreProperties = propertiesArray[i].queueFamilyProperties;

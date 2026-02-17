@@ -111,9 +111,9 @@ void Instance::Init( const char* engineName, const char* appName ) {
 		return;
 	}
 
-	InitQueueConfigs( physicalDevice );
+	InitQueueConfigs();
 
-	CreateDevice( physicalDevice, engineConfig, &device );
+	CreateDevice( engineConfig, &device );
 
 	VulkanLoadDeviceFunctions( device );
 
