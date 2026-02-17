@@ -399,12 +399,13 @@ void Tess_AddQuadStamp2WithNormals( vec4_t quadVerts[ 4 ], const Color::Color& c
 }
 
 // Defines ATTR_POSITION, ATTR_COLOR
-void Tess_AddTetrahedron( vec4_t tetraVerts[ 4 ], const Color::Color& colorf )
+void Tess_AddTetrahedron( vec4_t tetraVerts[ 4 ], Color::Color colorf )
 {
 	int k;
 
 	Tess_CheckOverflow( 12, 12 );
 
+	colorf.Clamp();
 	Color::Color32Bit color = colorf;
 
 	// ground triangle
