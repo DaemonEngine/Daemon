@@ -57,6 +57,10 @@ static Cvar::Range<Cvar::Cvar<int>> r_glDebugSeverity(
 	"minimum severity of r_glDebugProfile messages (1=NOTIFICATION, 2=LOW, 3=MEDIUM, 4=HIGH)",
 	Cvar::NONE, 2, 1, 4);
 
+static Cvar::Cvar<bool> r_incrementalShaderCompilation(
+	"r_incrementalShaderCompilation", "Build separate shader units then link them alltogether at the end",
+	Cvar::NONE, true );
+
 // OpenGL extension cvars.
 /* Driver bug: Mesa versions > 24.0.9 produce garbage rendering when bindless textures are enabled,
 and the shader compiler crashes with material shaders
@@ -140,6 +144,10 @@ static Cvar::Cvar<bool> workaround_glDriver_amd_oglp_disableBindlessTexture(
 static Cvar::Cvar<bool> workaround_glDriver_gl4es_assumeSmoothstep(
 	"workaround.glDriver.gl4es.assumeSmoothstep",
 	"Assume smoothstep is always declared on GL4ES",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_gl4es_disableIncrementalShaderCompilation(
+	"workaround.glDriver.gl4es.disableIncrementalShaderCompilation",
+	"Disable incremental shader compilation on GL4ES",
 	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv300_useFloatVertex(
 	"workaround.glDriver.mesa.ati.rv300.useFloatVertex",
@@ -2639,6 +2647,8 @@ static void GLimp_InitExtensions()
 	}
 #endif
 
+	glConfig.incrementalShaderCompilation = r_incrementalShaderCompilation.Get();
+
 	if ( glConfig.driverVendor == glDriverVendor_t::GL4ES )
 	{
 		if ( glConfig.shadingLanguageVersion <= 120
@@ -2646,6 +2656,13 @@ static void GLimp_InitExtensions()
 		{
 			logger.Notice( "Found GLSL 1.20 on GL4ES translation layer, assuming smoothstep() is always declared." );
 			glConfig.assumeSmoothstep = true;
+		}
+
+		if ( glConfig.incrementalShaderCompilation
+			&& workaround_glDriver_gl4es_disableIncrementalShaderCompilation.Get() )
+		{
+			logger.Notice( "Found GL4ES translation layer with OpenGL ES backend, disable incremental shader compilation." );
+			glConfig.incrementalShaderCompilation = false;
 		}
 	}
 
@@ -2706,6 +2723,7 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_glDriver_amd_adrenalin_disableBindlessTexture );
 	Cvar::Latch( workaround_glDriver_amd_oglp_disableBindlessTexture );
 	Cvar::Latch( workaround_glDriver_gl4es_assumeSmoothstep );
+	Cvar::Latch( workaround_glDriver_gl4es_disableIncrementalShaderCompilation );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv300_useFloatVertex );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv600_disableHyperZ );
 	Cvar::Latch( workaround_glDriver_mesa_broadcom_vc4_useFloatVertex );
@@ -2719,6 +2737,8 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_glExtension_glsl120_disableGpuShader4 );
 	Cvar::Latch( workaround_glHardware_intel_useFirstProvokinVertex );
 	Cvar::Latch( workaround_glHardware_mthreads_disableTextureBarrier );
+
+	Cvar::Latch( r_incrementalShaderCompilation );
 
 	/* Enable S3TC on Mesa even if libtxc-dxtn is not available
 	The environment variables is currently always set,

@@ -532,7 +532,7 @@ private:
 	int cacheSaveTime;
 	uint32_t cacheSaveCount;
 
-	void BuildShader( ShaderDescriptor* descriptor );
+	void BuildShader( ShaderDescriptor* descriptor, bool force = false );
 	void BuildShaderProgram( ShaderProgramDescriptor* descriptor );
 
 	std::string GetDeformShaderName( const int index );
