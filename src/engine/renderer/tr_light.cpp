@@ -31,9 +31,9 @@ LIGHT SAMPLING
 =============================================================================
 */
 
-float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
-			      float *factors[3], vec3_t ambientLight,
-			      vec3_t directedLight, vec3_t lightDir ) {
+void R_InterpolateLightGrid( world_t *w, int from[3], int to[3], float *factors[3],
+		vec3_t lightColor, vec3_t lightDir )
+{
 	float           totalFactor = 0.0f, factor;
 	float           *xFactor, *yFactor, *zFactor;
 	int             gridStep[ 3 ];
@@ -41,8 +41,7 @@ float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 	bspGridPoint1_t *gp1;
 	bspGridPoint2_t *gp2;
 
-	VectorClear( ambientLight );
-	VectorClear( directedLight );
+	VectorClear( lightColor );
 	VectorClear( lightDir );
 
 	gridStep[ 0 ] = 1;
@@ -80,18 +79,16 @@ float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 				lightDir[ 1 ] += factor * snorm8ToFloat( gp2->direction[ 1 ] - 128 );
 				lightDir[ 2 ] += factor * snorm8ToFloat( gp2->direction[ 2 ] - 128 );
 
-				float ambientScale = 2.0f * unorm8ToFloat( gp1->ambientPart );
-				float directedScale = 2.0f - ambientScale;
-
-				ambientLight[ 0 ] += factor * ambientScale * unorm8ToFloat( gp1->color[ 0 ] );
-				ambientLight[ 1 ] += factor * ambientScale * unorm8ToFloat( gp1->color[ 1 ] );
-				ambientLight[ 2 ] += factor * ambientScale * unorm8ToFloat( gp1->color[ 2 ] );
-				directedLight[ 0 ] += factor * directedScale * unorm8ToFloat( gp1->color[ 0 ] );
-				directedLight[ 1 ] += factor * directedScale * unorm8ToFloat( gp1->color[ 1 ] );
-				directedLight[ 2 ] += factor * directedScale * unorm8ToFloat( gp1->color[ 2 ] );
+				lightColor[ 0 ] += factor * unorm8ToFloat( gp1->color[ 0 ] );
+				lightColor[ 1 ] += factor * unorm8ToFloat( gp1->color[ 1 ] );
+				lightColor[ 2 ] += factor * unorm8ToFloat( gp1->color[ 2 ] );
 			}
 		}
 	}
 
-	return totalFactor;
+	if ( totalFactor > 0.0f )
+	{
+		VectorScale( lightDir, 1.0f / totalFactor, lightDir );
+		VectorScale( lightColor, 1.0f / totalFactor, lightColor );
+	}
 }

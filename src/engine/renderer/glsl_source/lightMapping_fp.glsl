@@ -130,19 +130,10 @@ void main()
 	vec4 color;
 	color.a = diffuse.a;
 
-	#if defined(USE_GRID_LIGHTING) || defined(USE_GRID_DELUXE_MAPPING)
-		// Compute light grid position.
-		vec3 lightGridPos = (var_Position - u_LightGridOrigin) * u_LightGridScale;
-	#endif
-
 	#if defined(USE_DELUXE_MAPPING)
 		// Compute light direction in world space from deluxe map.
 		vec4 deluxe = texture2D(u_DeluxeMap, var_TexLight);
 		vec3 lightDir = normalize(2.0 * deluxe.xyz - 1.0);
-	#elif defined(USE_GRID_DELUXE_MAPPING)
-		// Compute light direction in world space from light grid.
-		vec4 texel = texture3D(u_LightGrid2, lightGridPos);
-		vec3 lightDir = normalize(texel.xyz - (128.0 / 255.0));
 	#endif
 	
 	float lightFactor = ColorModulateToLightFactor( u_ColorModulateColorGen );
@@ -156,8 +147,16 @@ void main()
 		color.rgb = vec3(0.0);
 	#else
 		// Compute light color from lightgrid.
+		vec3 lightGridPos = (var_Position - u_LightGridOrigin) * u_LightGridScale;
+		vec4 texel1 = texture3D(u_LightGrid1, lightGridPos);
+		#if defined(USE_GRID_DELUXE_MAPPING)
+			vec4 texel2 = texture3D(u_LightGrid2, lightGridPos);
+		#else
+			vec4 texel2 = vec4(128.0 / 255.0); // zero direction vector
+		#endif
+		vec3 lightDir;
 		vec3 ambientColor, lightColor;
-		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), lightFactor, ambientColor, lightColor);
+		ReadLightGrid(texel1, texel2, lightFactor, lightDir, ambientColor, lightColor);
 
 		color.rgb = ambientColor * r_AmbientScale * diffuse.rgb;
 	#endif

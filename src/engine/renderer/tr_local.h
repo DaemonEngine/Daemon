@@ -1684,13 +1684,16 @@ enum
 		bspSurface_t *firstSurface;
 	};
 
+// max combined ambient+directed contribution to one color channel
+#define LIGHTGRID_MAX_LIGHT 1.25f
+
 	// The ambient and directional colors are packed into four bytes, the color[3] is the
 	// average of the ambient and directional colors and the ambientPart factor is the
 	// proportion of ambient light in the total light
 	struct bspGridPoint1_t
 	{
 		byte  color[3];
-		byte  ambientPart;
+		byte  unused;
 	};
 	struct bspGridPoint2_t
 	{
@@ -3263,9 +3266,8 @@ void GLimp_LogComment_( std::string comment );
 	============================================================
 	*/
 
-	float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
-				      float *factors[3], vec3_t ambientLight,
-				      vec3_t directedLight, vec3_t lightDir );
+	void R_InterpolateLightGrid( world_t *w, int from[3], int to[3], float *factors[3],
+		vec3_t lightColor, vec3_t lightDir );
 
 	/*
 	============================================================

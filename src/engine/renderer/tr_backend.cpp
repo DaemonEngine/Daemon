@@ -2223,14 +2223,19 @@ static void RB_RenderDebugUtils()
 					int gridIndex = x + tr.world->lightGridBounds[ 0 ] * ( y + tr.world->lightGridBounds[ 1 ] * z );
 					const bspGridPoint1_t *gp1 = tr.world->lightGridData1 + gridIndex;
 					const bspGridPoint2_t *gp2 = tr.world->lightGridData2 + gridIndex;
-					Color::Color generalColor = Color::Adapt( gp1->color );
-					float ambientScale = 2.0f * unorm8ToFloat( gp1->ambientPart );
-					float directedScale = 2.0f - ambientScale;
-					Color::Color ambientColor = generalColor * ambientScale;
-					Color::Color directedColor = generalColor * directedScale;
 					lightDir[ 0 ] = snorm8ToFloat( gp2->direction[ 0 ] - 128 );
 					lightDir[ 1 ] = snorm8ToFloat( gp2->direction[ 1 ] - 128 );
 					lightDir[ 2 ] = snorm8ToFloat( gp2->direction[ 2 ] - 128 );
+					Color::Color totalColor = Color::Adapt( gp1->color );
+					totalColor *= LIGHTGRID_MAX_LIGHT;
+					float total1Norm = totalColor.Red() + totalColor.Green() + totalColor.Blue();
+					float directed1Norm = 3.0f * VectorLength( lightDir );
+					float directedFraction = ( 0.25 * directed1Norm ) / total1Norm;
+					float directedScale = 4.0 * directedFraction;
+					float ambientScale = 1.0 - directedFraction;
+					Color::Color ambientColor = totalColor * ambientScale;
+					Color::Color directedColor = totalColor * directedScale;
+					VectorNormalize( lightDir );
 
 					VectorNegate( lightDir, lightDir );
 
