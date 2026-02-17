@@ -34,7 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 float FogGradientFunction(float k, float t)
 {
-	return 1 - exp(-k * t);
+	return 1.0 - exp(-k * t);
 }
 
 float FogGradientAntiderivative(float k, float t)
