@@ -33,19 +33,102 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Queue.h
 
+#include "../Memory/Array.h"
+
 #include "Vulkan.h"
+
+#include "GraphicsCoreStore.h"
 
 #include "Queue.h"
 
-void GraphicsQueueRingBuffer::Init( const VkDevice device, const uint32 id, uint32 count ) {
-	count = count > maxQueues ? maxQueues : count;
+static void InitQueue( Queue& queue, const bool downloadQueue ) {
+	if ( !downloadQueue && queue.queue || downloadQueue && queue.queueDownload ) {
+		return;
+	}
 
-	for ( VkQueue* queue = queues; queue < queues + count; queue++ ) {
-		VkDeviceQueueInfo2 info {
-			.queueFamilyIndex = id,
-			.queueIndex       = ( uint32 ) ( queue - queues )
+	VkDeviceQueueInfo2 info {
+		.queueFamilyIndex = queue.id,
+		.queueIndex       = downloadQueue ? 1u : 0u
+	};
+
+	vkGetDeviceQueue2( device, &info, downloadQueue ? &queue.queueDownload : &queue.queue );
+}
+
+void InitQueueConfigs( const VkPhysicalDevice& device ) {
+	VkQueueFamilyProperties2 propertiesArray[8] {};
+	uint32 count;
+	vkGetPhysicalDeviceQueueFamilyProperties2( device, &count, propertiesArray );
+
+	for ( uint32 i = 0; i < count; i++ ) {
+		VkQueueFamilyProperties& coreProperties = propertiesArray[i].queueFamilyProperties;
+
+		Queue queue {
+			.id                          = i,
+			.type                        = ( QueueType ) coreProperties.queueFlags,
+			.queueCount                  = coreProperties.queueCount,
+			.timestampValidBits          = coreProperties.timestampValidBits,
+			.minImageTransferGranularity = coreProperties.minImageTransferGranularity
 		};
 
-		vkGetDeviceQueue2( device, &info, queue );
+		if (         queue.type & GRAPHICS  ) {
+			graphicsQueue        = queue;
+			graphicsQueue.unique = true;
+		} else if ( ( queue.type & COMPUTE  ) && !computeQueue.queueCount ) {
+			computeQueue         = queue;
+			computeQueue.unique  = true;
+		} else if ( ( queue.type & TRANSFER ) && !transferQueue.queueCount ) {
+			transferQueue        = queue;
+			transferQueue.unique = true;
+		} else if ( ( queue.type & SPARSE   ) && !sparseQueue.queueCount ) {
+			sparseQueue          = queue;
+			sparseQueue.unique   = true;
+		}
 	}
+
+	if ( !computeQueue.queueCount ) {
+		computeQueue         = graphicsQueue;
+		computeQueue.unique  = false;
+	}
+
+	if ( !transferQueue.queueCount ) {
+		transferQueue        = graphicsQueue;
+		transferQueue.unique = false;
+	}
+
+	if ( !sparseQueue.queueCount ) {
+		sparseQueue          = graphicsQueue;
+		sparseQueue.unique   = false;
+	}
+}
+
+void InitQueues() {
+	InitQueue( graphicsQueue, false );
+	InitQueue( computeQueue,  false );
+	InitQueue( transferQueue, false );
+	InitQueue( transferQueue, true  );
+	InitQueue( sparseQueue,   false );
+}
+
+Array<uint32, 4> GetConcurrentQueues( uint32* count ) {
+	Array<uint32, 4> queues { graphicsQueue.id };
+	uint32 i = 1;
+
+	if ( computeQueue.unique ) {
+		queues[i] = computeQueue.id;
+		i++;
+	}
+
+	if ( transferQueue.unique ) {
+		queues[i] = transferQueue.id;
+		i++;
+	}
+
+	if ( sparseQueue.unique ) {
+		queues[i] = sparseQueue.id;
+		i++;
+	}
+
+	*count = i;
+
+	return queues;
 }

@@ -63,29 +63,24 @@ void InitGraphicsEngine() {
 	instance.Init( "Daemon-vulkan", CLIENT_WINDOW_TITLE );
 
 	std::string foundQueues = "Found queues: graphics (present: true)";
-	graphicsQueue.Init( device, queuesConfig.graphicsQueue.id, queuesConfig.graphicsQueue.queueCount );
 
 	uint32 presentSupported;
-	vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, queuesConfig.graphicsQueue.id, mainSwapChain.surface, &presentSupported );
+	vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, graphicsQueue.id, mainSwapChain.surface, &presentSupported );
 
 	if ( !presentSupported ) {
 		Err( "Graphics queue doesn't support present" );
 		return;
 	}
 
-	if ( queuesConfig.computeQueue.unique ) {
-		computeQueue.Init( device, queuesConfig.computeQueue.id, queuesConfig.computeQueue.queueCount );
-		vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, queuesConfig.computeQueue.id, mainSwapChain.surface, &presentSupported );
+	if ( computeQueue.unique ) {
 		foundQueues += Str::Format( ", async compute (present: %s)", ( bool ) presentSupported );
 	}
 
-	if ( queuesConfig.transferQueue.unique ) {
-		transferQueue.Init( device, queuesConfig.transferQueue.id, queuesConfig.transferQueue.queueCount );
+	if ( transferQueue.unique ) {
 		foundQueues += Str::Format( ", async transfer" );
 	}
 
-	if ( queuesConfig.sparseQueue.unique ) {
-		sparseQueue.Init( device, queuesConfig.sparseQueue.id, queuesConfig.sparseQueue.queueCount );
+	if ( sparseQueue.unique ) {
 		foundQueues += Str::Format( ", async sparse binding" );
 	}
 

@@ -44,7 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../GraphicsCoreStore.h"
 #include "../FeaturesConfig.h"
 #include "../EngineConfig.h"
-#include "../QueuesConfig.h"
+#include "../Queue.h"
 
 #include "../../GraphicsShared/Bindings.h"
 

@@ -46,10 +46,7 @@ class  Surface;
 struct SwapChain;
 
 struct EngineConfig;
-struct QueuesConfig;
 struct FeaturesConfig;
-
-enum   QueueType : uint32;
 
 struct VkAllocationCallbacks;
 
@@ -89,12 +86,14 @@ using VkCommandBufferUsageFlags = uint32;
 
 struct VkSemaphoreSubmitInfo;
 
-struct GraphicsQueueRingBuffer;
+enum   QueueType : uint32;
 
-extern GraphicsQueueRingBuffer graphicsQueue;
-extern GraphicsQueueRingBuffer computeQueue;
-extern GraphicsQueueRingBuffer transferQueue;
-extern GraphicsQueueRingBuffer sparseQueue;
+struct Queue;
+
+extern Queue graphicsQueue;
+extern Queue computeQueue;
+extern Queue transferQueue;
+extern Queue sparseQueue;
 
 class  EngineAllocator;
 struct ResourceSystem;

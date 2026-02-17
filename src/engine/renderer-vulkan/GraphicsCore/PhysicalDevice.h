@@ -49,6 +49,6 @@ class PhysicalDevice {
 
 bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, EngineConfig* config, VkPhysicalDevice* deviceOut );
 
-void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config, QueuesConfig& queuesConfig, VkDevice* device );
+void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config, VkDevice* device );
 
 #endif // PHYSICAL_DEVICE_H

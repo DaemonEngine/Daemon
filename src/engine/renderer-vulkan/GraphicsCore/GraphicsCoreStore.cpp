@@ -43,7 +43,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "FeaturesConfig.h"
 #include "EngineConfig.h"
-#include "QueuesConfig.h"
 #include "Queue.h"
 
 #include "Memory/EngineAllocator.h"
@@ -59,16 +58,15 @@ SwapChain mainSwapChain;
 
 FeaturesConfig featuresConfig;
 EngineConfig   engineConfig;
-QueuesConfig   queuesConfig;
 
 VkPhysicalDevice physicalDevice;
 
 VkDevice device;
 
-GraphicsQueueRingBuffer graphicsQueue;
-GraphicsQueueRingBuffer computeQueue;
-GraphicsQueueRingBuffer transferQueue;
-GraphicsQueueRingBuffer sparseQueue;
+Queue graphicsQueue;
+Queue computeQueue;
+Queue transferQueue;
+Queue sparseQueue;
 
 VkDescriptorSetLayout descriptorSetLayout;
 VkDescriptorSet       descriptorSet;

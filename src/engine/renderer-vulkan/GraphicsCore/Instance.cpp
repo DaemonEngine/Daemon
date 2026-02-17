@@ -47,7 +47,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CapabilityPack.h"
 #include "PhysicalDevice.h"
 #include "SwapChain.h"
-#include "QueuesConfig.h"
+
+#include "Queue.h"
 
 #include "GraphicsCoreStore.h"
 
@@ -110,11 +111,13 @@ void Instance::Init( const char* engineName, const char* appName ) {
 		return;
 	}
 
-	queuesConfig = GetQueuesConfigForDevice( physicalDevice );
+	InitQueueConfigs( physicalDevice );
 
-	CreateDevice( physicalDevice, engineConfig, queuesConfig, &device );
+	CreateDevice( physicalDevice, engineConfig, &device );
 
 	VulkanLoadDeviceFunctions( device );
+
+	InitQueues();
 
 	mainSwapChain.Init( instance );
 }

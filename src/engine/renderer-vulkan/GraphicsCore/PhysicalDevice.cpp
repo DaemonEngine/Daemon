@@ -43,7 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GraphicsCoreCVars.h"
 
 #include "EngineConfig.h"
-#include "QueuesConfig.h"
+#include "Queue.h"
 #include "CapabilityPack.h"
 
 #include "GraphicsCoreStore.h"
@@ -136,32 +136,34 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 	return true;
 }
 
-void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config, QueuesConfig& queuesConfig, VkDevice* device ) {
-	DynamicArray<VkDeviceQueueCreateInfo> queueInfos;
-	queueInfos.Resize( queuesConfig.count );
-	queueInfos.Init();
+void CreateDevice( const VkPhysicalDevice& physicalDevice, EngineConfig& config, VkDevice* device ) {
+	VkDeviceQueueCreateInfo queueInfos[4] {};
 
-	for ( uint32 i = 0; i < queuesConfig.count; i++ ) {
-		DynamicArray<float> priorities;
-		priorities.Resize( queuesConfig[i].queueCount );
+	Queue* queues[4]    { &graphicsQueue, &computeQueue, &transferQueue, &sparseQueue };
 
-		for ( float* value = priorities.memory; value < priorities.memory + priorities.size; value++ ) {
-			*value = 1.0f;
+	float priorities[2] { 1.0f, 1.0f };
+
+	uint32 count = 0;
+	for ( Queue* queue : queues ) {
+		if ( !queue->unique ) {
+			continue;
 		}
 
-		VkDeviceQueueCreateInfo& queueInfo = queueInfos[i];
+		queueInfos[queue - *queues] = {
+			.queueFamilyIndex = queue->id,
+			.queueCount       = queue->queueDownload ? 2u : 1u,
+			.pQueuePriorities = priorities
+		};
 
-		queueInfo.queueFamilyIndex = i;
-		queueInfo.queueCount       = queuesConfig[i].queueCount;
-		queueInfo.pQueuePriorities = priorities.memory;
+		count++;
 	}
 
 	FeaturesConfig cfg            = GetPhysicalDeviceFeatures( physicalDevice, config );
 	DynamicArray<const char*> ext = GetCapabilityPackFeatures( ( CapabilityPackType::Type ) config.capabilityPack, cfg, &featuresConfig );
 
 	VkDeviceCreateInfo info {
-		.queueCreateInfoCount    = queuesConfig.count,
-		.pQueueCreateInfos       = queueInfos.memory,
+		.queueCreateInfoCount    = count,
+		.pQueueCreateInfos       = queueInfos,
 		.enabledExtensionCount   = ( uint32 ) ext.elements,
 		.ppEnabledExtensionNames = ext.memory
 	};

@@ -36,18 +36,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef QUEUE_H
 #define QUEUE_H
 
-#include "Decls.h"
-
 #include "../Math/NumberTypes.h"
 
-#include "QueuesConfig.h"
+#include "../Memory/Array.h"
 
-struct GraphicsQueueRingBuffer {
-	static constexpr uint32 maxQueues = 64;
+#include "Vulkan.h"
 
-	VkQueue queues[maxQueues] {};
+#include "Decls.h"
 
-	void Init( const VkDevice device, const uint32 id, uint32 count );
+enum QueueType : uint32 {
+	GRAPHICS = VK_QUEUE_GRAPHICS_BIT,
+	COMPUTE  = VK_QUEUE_COMPUTE_BIT,
+	TRANSFER = VK_QUEUE_TRANSFER_BIT,
+	SPARSE   = VK_QUEUE_SPARSE_BINDING_BIT
 };
+
+struct Queue {
+	VkQueue    queue;
+	VkQueue    queueDownload; // Only available for async transfer queue
+
+	uint32     id;
+	bool       unique;
+
+	QueueType  type;
+	uint32     queueCount;
+	uint32     timestampValidBits;
+	VkExtent3D minImageTransferGranularity;
+};
+
+void             InitQueueConfigs( const VkPhysicalDevice& device );
+void             InitQueues();
+Array<uint32, 4> GetConcurrentQueues( uint32* count );
 
 #endif // QUEUE_H

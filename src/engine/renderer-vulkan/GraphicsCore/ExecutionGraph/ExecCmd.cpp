@@ -35,9 +35,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../Math/Bit.h"
 
+#include "../Vulkan.h"
+
 #include "../Memory/CoreThreadMemory.h"
 
-#include "../QueuesConfig.h"
 #include "../Semaphore.h"
 
 #include "ExecCmd.h"
@@ -113,16 +114,16 @@ ExecCmd::~ExecCmd() {
 
 	switch ( queueType ) {
 		case GRAPHICS:
-			queue = graphicsQueue.queues[0];
+			queue = graphicsQueue.queue;
 			break;
 		case COMPUTE:
-			queue = computeQueue.queues[0];
+			queue = computeQueue.queue;
 			break;
 		case TRANSFER:
-			queue = transferQueue.queues[0];
+			queue = transferQueue.queue;
 			break;
 		case SPARSE:
-			queue = sparseQueue.queues[0];
+			queue = sparseQueue.queue;
 			break;
 	}
 

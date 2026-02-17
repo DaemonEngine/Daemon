@@ -35,28 +35,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../Math/Bit.h"
 
-#include "../QueuesConfig.h"
+#include "../Vulkan.h"
+
+#include "../Queue.h"
 
 #include "CoreThreadMemory.h"
 
 void InitCmdPools() {
 	struct QueuePool {
-		QueueConfig*   cfg;
+		Queue*         queue;
 		VkCommandPool* cmdPool;
 	};
 
 	QueuePool queues[] {
-		{ &queuesConfig.graphicsQueue, &GMEM.graphicsCmdPool },
-		{ &queuesConfig.computeQueue,  &GMEM.computeCmdPool  },
-		{ &queuesConfig.transferQueue, &GMEM.transferCmdPool },
-		{ &queuesConfig.sparseQueue,   &GMEM.sparseCmdPool   },
+		{ &graphicsQueue, &GMEM.graphicsCmdPool },
+		{ &computeQueue,  &GMEM.computeCmdPool  },
+		{ &transferQueue, &GMEM.transferCmdPool },
+		{ &sparseQueue,   &GMEM.sparseCmdPool   },
 	};
 
 	for ( QueuePool& queuePool : queues ) {
-		if ( queuePool.cfg->unique ) {
+		if ( queuePool.queue->unique ) {
 			VkCommandPoolCreateInfo cmdPoolInfo {
 				.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-				.queueFamilyIndex = queuePool.cfg->id
+				.queueFamilyIndex = queuePool.queue->id
 			};
 
 			vkCreateCommandPool( device, &cmdPoolInfo, nullptr, queuePool.cmdPool );
@@ -66,22 +68,22 @@ void InitCmdPools() {
 
 void InitExecCmdPools() {
 	struct QueueCmdPool {
-		QueueConfig*    cfg;
+		Queue*       queue;
 		ExecCmdPool* cmdPool;
 	};
 
 	QueueCmdPool execCmdQueues[] {
-		{ &queuesConfig.graphicsQueue, &GMEM.execGraphicsCmd, },
-		{ &queuesConfig.computeQueue,  &GMEM.execComputeCmd,  },
-		{ &queuesConfig.transferQueue, &GMEM.execTransferCmd, },
-		{ &queuesConfig.sparseQueue,   &GMEM.execSparseCmd,   },
+		{ &graphicsQueue, &GMEM.execGraphicsCmd, },
+		{ &computeQueue,  &GMEM.execComputeCmd,  },
+		{ &transferQueue, &GMEM.execTransferCmd, },
+		{ &sparseQueue,   &GMEM.execSparseCmd,   },
 	};
 
 	for ( QueueCmdPool& queuePool : execCmdQueues ) {
-		if ( queuePool.cfg->unique ) {
+		if ( queuePool.queue->unique ) {
 			VkCommandPoolCreateInfo cmdPoolInfo {
 				.flags              = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-				.queueFamilyIndex   = queuePool.cfg->id
+				.queueFamilyIndex   = queuePool.queue->id
 			};
 
 			vkCreateCommandPool( device, &cmdPoolInfo, nullptr, &queuePool.cmdPool->cmdPool );

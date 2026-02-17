@@ -113,8 +113,6 @@ set( graphicsCoreList
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/PhysicalDevice.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Queue.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Queue.h
-    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/QueuesConfig.cpp
-    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/QueuesConfig.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ResourceSystem.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ResourceSystem.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ResultCheck.cpp

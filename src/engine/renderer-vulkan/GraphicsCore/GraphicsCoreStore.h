@@ -46,16 +46,15 @@ extern SwapChain mainSwapChain;
 
 extern FeaturesConfig featuresConfig;
 extern EngineConfig   engineConfig;
-extern QueuesConfig   queuesConfig;
 
 extern VkPhysicalDevice physicalDevice;
 
 extern VkDevice device;
 
-extern GraphicsQueueRingBuffer graphicsQueue;
-extern GraphicsQueueRingBuffer computeQueue;
-extern GraphicsQueueRingBuffer transferQueue;
-extern GraphicsQueueRingBuffer sparseQueue;
+extern Queue graphicsQueue;
+extern Queue computeQueue;
+extern Queue transferQueue;
+extern Queue sparseQueue;
 
 extern VkDescriptorSetLayout descriptorSetLayout;
 extern VkDescriptorSet descriptorSet;

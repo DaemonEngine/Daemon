@@ -578,7 +578,7 @@ void ExecutionGraph::Exec() {
 		.pCommandBufferInfos    = &cmdInfo
 	};
 
-	vkQueueSubmit2( graphicsQueue.queues[0], 1, &submitInfo, nullptr );
+	vkQueueSubmit2( graphicsQueue.queue, 1, &submitInfo, nullptr );
 }
 
 void ResetCmdBuffer( const uint32 bufID ) {

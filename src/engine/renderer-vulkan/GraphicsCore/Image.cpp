@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/Bit.h"
 
-#include "QueuesConfig.h"
+#include "Queue.h"
 
 #include "Memory/EngineAllocator.h"
 #include "ResourceSystem.h"
