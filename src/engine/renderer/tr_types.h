@@ -244,15 +244,6 @@ enum class textureCompression_t
   TC_EXT_COMP_S3TC
 };
 
-// TODO(0.56): remove.
-enum class glDriverType_t
-{
-  GLDRV_UNKNOWN = -1,
-  GLDRV_ICD,
-  GLDRV_STANDALONE,
-  GLDRV_OPENGL3,
-};
-
 // Keep the list in sdl_glimp.c:reportHardwareType in sync with this
 enum class glHardwareType_t
 {
