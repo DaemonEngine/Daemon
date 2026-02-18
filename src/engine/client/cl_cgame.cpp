@@ -1112,6 +1112,13 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			});
 			break;
 
+		case CG_R_SYNCLERPTAGS:
+			IPC::HandleMsg<Render::SyncLerpTagsMsg>( channel, std::move( reader ), [this]( const std::vector<LerpTagUpdate>& lerpTags,
+				std::vector<LerpTagSync>& entityOrientations ) {
+					entityOrientations = re.SyncLerpTags( lerpTags );
+				} );
+			break;
+
 		case CG_GETCURRENTSNAPSHOTNUMBER:
 			IPC::HandleMsg<GetCurrentSnapshotNumberMsg>(channel, std::move(reader), [this] (int& number, int& serverTime) {
 				number = cl.snap.messageNum;
@@ -1213,12 +1220,6 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 		case CG_R_MODELBOUNDS:
 			IPC::HandleMsg<Render::ModelBoundsMsg>(channel, std::move(reader), [this] (int handle, std::array<float, 3>& mins, std::array<float, 3>& maxs) {
 				re.ModelBounds(handle, mins.data(), maxs.data());
-			});
-			break;
-
-		case CG_R_LERPTAG:
-			IPC::HandleMsg<Render::LerpTagMsg>(channel, std::move(reader), [this] (const refEntity_t& entity, const std::string& tagName, int startIndex, orientation_t& tag, int& res) {
-				res = re.LerpTag(&tag, &entity, tagName.c_str(), startIndex);
 			});
 			break;
 
@@ -1597,6 +1598,12 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
                     re.AddRefEntityToScene(&entity);
                 });
                 break;
+
+			case CG_R_SYNCREFENTITIES:
+				HandleMsg<Render::SyncRefEntitiesMsg>( std::move( reader ), [this]( const std::vector<EntityUpdate>& ents ) {
+					re.SyncRefEntities( ents );
+				} );
+				break;
 
             case CG_R_ADDPOLYTOSCENE:
                 HandleMsg<Render::AddPolyToSceneMsg>(std::move(reader), [this] (int shader, const std::vector<polyVert_t>& verts) {

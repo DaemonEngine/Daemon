@@ -31,6 +31,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 backEndData_t  *backEndData[ SMP_FRAMES ];
+trRefEntity_t   backEndEntities[SMP_FRAMES][MAX_REF_ENTITIES];
+
 backEndState_t backEnd;
 
 static Cvar::Cvar<bool> r_clear( "r_clear", "Clear screen before painting over it on every frame", Cvar::NONE, false );
@@ -1899,9 +1901,9 @@ static void RB_RenderDebugUtils()
 
 			skel = nullptr;
 
-			if ( ent->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
+			if ( ent->skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
 			{
-				skel = &ent->e.skeleton;
+				skel = &ent->skeleton;
 			}
 			else
 			{

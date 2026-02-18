@@ -427,45 +427,35 @@ static int R_GetTag( mdvModel_t *model, int frame, const char *_tagName, int sta
 RE_LerpTag
 ================
 */
-int RE_LerpTagET( orientation_t *tag, const refEntity_t *refent, const char *tagNameIn, int startIndex )
+int RE_LerpTagET( orientation_t* tag, const trRefEntity_t* ent, const char* tagNameIn, int startIndex )
 {
-	mdvTag_t  *start, *end;
-	int       i;
-	float     frontLerp, backLerp;
-	model_t   *model;
-	char      tagName[ MAX_QPATH ]; //, *ch;
-	int       retval;
-	qhandle_t handle;
-	int       startFrame, endFrame;
-	float     frac;
+	qhandle_t handle = ent->e.hModel;
+	int startFrame = ent->e.oldframe;
+	int endFrame = ent->e.frame;
 
-	handle = refent->hModel;
-	startFrame = refent->oldframe;
-	endFrame = refent->frame;
-	frac = 1.0 - refent->backlerp;
-
+	char tagName[ MAX_QPATH ];
 	Q_strncpyz( tagName, tagNameIn, MAX_QPATH );
 
-	model = R_GetModelByHandle( handle );
+	model_t* model = R_GetModelByHandle( handle );
 
-	frontLerp = frac;
-	backLerp = 1.0 - frac;
+	float frac = 1.0f - ent->e.backlerp;
+	float frontLerp = frac;
+	float backLerp  = 1.0f - frac;
 
-	start = end = nullptr;
 	if ( model->type == modtype_t::MOD_MD5 || model->type == modtype_t::MOD_IQM )
 	{
 		vec3_t tmp;
 
-		retval = RE_BoneIndex( handle, tagName );
+		int retval = RE_BoneIndex( handle, tagName );
 
 		if ( retval <= 0 )
 		{
 			return -1;
 		}
 
-		VectorScale( refent->skeleton.bones[ retval ].t.trans,
-			     refent->skeleton.scale, tag->origin );
-		QuatToAxis( refent->skeleton.bones[ retval ].t.rot, tag->axis );
+		VectorScale( ent->skeleton.bones[ retval ].t.trans,
+			ent->skeleton.scale, tag->origin );
+		QuatToAxis( ent->skeleton.bones[ retval ].t.rot, tag->axis );
 		VectorCopy( tag->axis[ 2 ], tmp );
 		VectorCopy( tag->axis[ 1 ], tag->axis[ 2 ] );
 		VectorCopy( tag->axis[ 0 ], tag->axis[ 1 ] );
@@ -478,8 +468,10 @@ int RE_LerpTagET( orientation_t *tag, const refEntity_t *refent, const char *tag
 	else if ( model->type == modtype_t::MOD_MESH )
 	{
 		// old MD3 style
-		retval = R_GetTag( model->mdv[ 0 ], startFrame, tagName, startIndex, &start );
-		retval = R_GetTag( model->mdv[ 0 ], endFrame, tagName, startIndex, &end );
+		mdvTag_t* start = nullptr;
+		mdvTag_t* end = nullptr;
+		int retval = R_GetTag( model->mdv[ 0 ], startFrame, tagName, startIndex, &start );
+		retval     = R_GetTag( model->mdv[ 0 ], endFrame,   tagName, startIndex, &end );
 
 
 		if ( !start || !end )
@@ -489,7 +481,7 @@ int RE_LerpTagET( orientation_t *tag, const refEntity_t *refent, const char *tag
 			return -1;
 		}
 
-		for ( i = 0; i < 3; i++ )
+		for ( int i = 0; i < 3; i++ )
 		{
 			tag->origin[ i ] = start->origin[ i ] * backLerp + end->origin[ i ] * frontLerp;
 			tag->axis[ 0 ][ i ] = start->axis[ 0 ][ i ] * backLerp + end->axis[ 0 ][ i ] * frontLerp;
