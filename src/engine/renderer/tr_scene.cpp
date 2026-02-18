@@ -302,7 +302,7 @@ RE_AddDynamicLightToScene
 ydnar: modified dlight system to support separate radius and intensity
 =====================
 */
-void RE_AddDynamicLightToScene( const vec3_t org, float radius, float r, float g, float b, int flags )
+void RE_AddDynamicLightToScene( const vec3_t org, float radius, float r, float g, float b, int /*flags*/)
 {
 	if ( !glConfig.realtimeLighting || !r_drawDynamicLights.Get() )
 	{
@@ -321,12 +321,6 @@ void RE_AddDynamicLightToScene( const vec3_t org, float radius, float r, float g
 
 	if ( radius <= 0 )
 	{
-		return;
-	}
-
-	if ( flags & REF_INVERSE_DLIGHT )
-	{
-		Log::Warn( "REF_INVERSE_DLIGHT not implemtented" );
 		return;
 	}
 
