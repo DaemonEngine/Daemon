@@ -6255,9 +6255,6 @@ shader_t       *R_FindShader( const char *name, int flags )
 		return tr.defaultShader;
 	}
 
-	// TODO(0.56): RSF_DEFAULT should be 0!
-	flags &= ~RSF_DEFAULT;
-
 	COM_StripExtension3( name, strippedName, sizeof( strippedName ) );
 
 	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
