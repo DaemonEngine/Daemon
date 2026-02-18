@@ -40,7 +40,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Memory/Array.h"
 
+#include "../Sync/AccessLock.h"
+
 #include "Vulkan.h"
+
+#include "Semaphore.h"
 
 #include "Decls.h"
 
@@ -53,7 +57,6 @@ enum QueueType : uint32 {
 
 struct Queue {
 	VkQueue    queue;
-	VkQueue    queueDownload; // Only available for async transfer queue
 
 	uint32     id;
 	bool       unique;
@@ -62,10 +65,17 @@ struct Queue {
 	uint32     queueCount;
 	uint32     timestampValidBits;
 	VkExtent3D minImageTransferGranularity;
+
+	Semaphore  executionPhase;
+
+	AccessLock accessLock;
+
+	uint64     Submit( VkCommandBuffer cmd );
 };
 
 void             InitQueueConfigs();
 void             InitQueues();
 Array<uint32, 4> GetConcurrentQueues( uint32* count );
+Queue&           GetQueueByType( const QueueType type );
 
 #endif // QUEUE_H

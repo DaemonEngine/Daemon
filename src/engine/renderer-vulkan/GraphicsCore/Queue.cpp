@@ -41,17 +41,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Queue.h"
 
-static void InitQueue( Queue& queue, const bool downloadQueue ) {
-	if ( !downloadQueue && queue.queue || downloadQueue && queue.queueDownload ) {
+static void InitQueue( Queue& queue, const uint32 index ) {
+	if ( queue.queue ) {
 		return;
 	}
 
 	VkDeviceQueueInfo2 info {
 		.queueFamilyIndex = queue.id,
-		.queueIndex       = downloadQueue ? 1u : 0u
+		.queueIndex       = index
 	};
 
-	vkGetDeviceQueue2( device, &info, downloadQueue ? &queue.queueDownload : &queue.queue );
+	vkGetDeviceQueue2( device, &info, &queue.queue );
+
+	queue.executionPhase.Init();
 }
 
 void InitQueueConfigs() {
@@ -99,14 +101,18 @@ void InitQueueConfigs() {
 		sparseQueue          = graphicsQueue;
 		sparseQueue.unique   = false;
 	}
+
+	transferDLQueue = transferQueue;
 }
 
 void InitQueues() {
-	InitQueue( graphicsQueue, false );
-	InitQueue( computeQueue,  false );
-	InitQueue( transferQueue, false );
-	InitQueue( transferQueue, true  );
-	InitQueue( sparseQueue,   false );
+	InitQueue( graphicsQueue, 0 );
+	InitQueue( computeQueue,  0 );
+	InitQueue( transferQueue, 0 );
+	if ( transferDLQueue.queueCount > 1 ) {
+		InitQueue( transferDLQueue, 1 );
+	}
+	InitQueue( sparseQueue,   0 );
 }
 
 Array<uint32, 4> GetConcurrentQueues( uint32* count ) {
@@ -131,4 +137,45 @@ Array<uint32, 4> GetConcurrentQueues( uint32* count ) {
 	*count = i;
 
 	return queues;
+}
+
+Queue& GetQueueByType( const QueueType type ) {
+	switch ( type ) {
+		case GRAPHICS:
+			return graphicsQueue;
+		case COMPUTE:
+			return computeQueue;
+		case TRANSFER:
+			return transferQueue;
+		case SPARSE:
+			return sparseQueue;
+		default:
+			ASSERT_UNREACHABLE();
+	}
+}
+
+uint64 Queue::Submit( VkCommandBuffer cmd ) {
+	while ( !accessLock.LockWrite() );
+
+	VkCommandBufferSubmitInfo execCmdSubmitInfo {
+		.commandBuffer = cmd
+	};
+
+	executionPhase++;
+	VkSemaphoreSubmitInfo signalSemaphoreInfo = executionPhase.GenSubmitInfo( VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT );
+
+	VkSubmitInfo2 execSubmitInfo {
+		.commandBufferInfoCount   = 1,
+		.pCommandBufferInfos      = &execCmdSubmitInfo,
+		.signalSemaphoreInfoCount = 1,
+		.pSignalSemaphoreInfos    = &signalSemaphoreInfo
+	};
+
+	vkQueueSubmit2( queue, 1, &execSubmitInfo, nullptr );
+
+	uint64 out = executionPhase.value;
+
+	accessLock.UnlockWrite();
+
+	return out;
 }

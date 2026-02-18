@@ -54,6 +54,7 @@ extern VkDevice device;
 extern Queue graphicsQueue;
 extern Queue computeQueue;
 extern Queue transferQueue;
+extern Queue transferDLQueue;
 extern Queue sparseQueue;
 
 extern VkDescriptorSetLayout descriptorSetLayout;

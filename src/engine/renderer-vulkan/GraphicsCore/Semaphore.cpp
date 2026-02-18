@@ -77,6 +77,14 @@ bool Semaphore::Wait( const uint64 timeout ) {
 	return resultCheck == VK_SUCCESS;
 }
 
+uint64 Semaphore::Current() {
+	uint64 out;
+
+	vkGetSemaphoreCounterValue( device, semaphore, &out );
+
+	return out;
+}
+
 VkSemaphoreSubmitInfo Semaphore::GenSubmitInfo( const VkPipelineStageFlags2 stages ) {
 	return VkSemaphoreSubmitInfo {
 		.semaphore = semaphore,

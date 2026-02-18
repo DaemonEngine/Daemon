@@ -95,10 +95,6 @@ void InitExecCmdPools() {
 			};
 
 			vkAllocateCommandBuffers( device, &cmdInfo, queuePool.cmdPool->cmds );
-
-			for ( Semaphore& semaphore : queuePool.cmdPool->signalSemaphores ) {
-				semaphore.Init();
-			}
 		}
 	}
 }

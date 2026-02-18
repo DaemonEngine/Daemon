@@ -48,6 +48,7 @@ struct Semaphore {
 	void                  Init( const uint64 initialValue = 0 );
 	void                  Signal();
 	bool                  Wait( const uint64 timeout = UINT64_MAX );
+	uint64                Current();
 
 	VkSemaphoreSubmitInfo GenSubmitInfo( const VkPipelineStageFlags2 stages );
 

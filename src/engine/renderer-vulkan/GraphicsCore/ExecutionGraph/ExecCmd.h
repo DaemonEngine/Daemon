@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Decls.h"
 
 struct ExecCmd {
+	uint32          cmdID;
 	VkCommandBuffer cmd;
 	QueueType       queueType;
 

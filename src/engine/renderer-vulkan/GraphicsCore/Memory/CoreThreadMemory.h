@@ -53,12 +53,11 @@ static constexpr uint32 maxExecCmdBuffers = 4;
 struct ExecCmdPool {
 	VkCommandPool   cmdPool;
 	VkCommandBuffer cmds[maxExecCmdBuffers];
-	Semaphore       signalSemaphores[maxExecCmdBuffers];
+	uint64          executionPhase[maxExecCmdBuffers];
 	uint8           allocState;
 };
 
 struct GraphicsCoreMemory {
-
 	VkCommandPool graphicsCmdPool;
 	VkCommandPool computeCmdPool;
 	VkCommandPool transferCmdPool;
@@ -68,10 +67,6 @@ struct GraphicsCoreMemory {
 	ExecCmdPool   execComputeCmd;
 	ExecCmdPool   execTransferCmd;
 	ExecCmdPool   execSparseCmd;
-
-	Semaphore*    execSemaphore;
-
-	uint32        instantCmdBuffersAllocState;
 };
 
 void InitCmdPools();

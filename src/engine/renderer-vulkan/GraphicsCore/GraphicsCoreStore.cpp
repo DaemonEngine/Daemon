@@ -66,6 +66,7 @@ VkDevice device;
 Queue graphicsQueue;
 Queue computeQueue;
 Queue transferQueue;
+Queue transferDLQueue;
 Queue sparseQueue;
 
 VkDescriptorSetLayout descriptorSetLayout;

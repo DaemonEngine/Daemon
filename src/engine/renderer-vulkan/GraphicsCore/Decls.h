@@ -90,11 +90,6 @@ enum   QueueType : uint32;
 
 struct Queue;
 
-extern Queue graphicsQueue;
-extern Queue computeQueue;
-extern Queue transferQueue;
-extern Queue sparseQueue;
-
 class  EngineAllocator;
 struct ResourceSystem;
 
