@@ -94,13 +94,15 @@ static VkSurfaceFormat2KHR SelectSurfaceFormat( DynamicArray<VkSurfaceFormat2KHR
 			continue;
 		}
 
-		if ( !FormatConfigFromFormat( surfaceFormat, format ).supported ) {
+		SwapChainFormat newFormat;
+		if ( !FormatConfigFromFormat( surfaceFormat, &newFormat ).supported ) {
 			continue;
 		}
 
 		if ( surfaceFormatPriorities[surfaceFormat] > surfaceFormatPriorities[bestFormat] ) {
 			bestFormat = surfaceFormat;
 			bestFmt    = &srfFormat;
+			*format    = newFormat;
 		}
 	}
 
