@@ -161,6 +161,10 @@ static Cvar::Cvar<bool> workaround_glDriver_gl4es_disableMat3x2(
 	"workaround.glDriver.gl4es.disableMat3x2",
 	"Disable mat3x2 GLSL support on GL4ES",
 	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_gl4es_disableTexture3D(
+	"workaround.glDriver.gl4es.disableTexture3D",
+	"Disable texture3D support on GL4ES",
+	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv300_useFloatVertex(
 	"workaround.glDriver.mesa.ati.rv300.useFloatVertex",
 	"Use float vertex instead of supported-but-slower half-float vertex on Mesa driver on ATI RV300 hardware",
@@ -2143,6 +2147,16 @@ static void GLimp_InitExtensions()
 		logger.Warn( "Missing 3D texture support because of null max size" );
 	}
 
+	if ( glConfig.driverVendor == glDriverVendor_t::GL4ES )
+	{
+		if ( glConfig.texture3DAvailable
+			&& workaround_glDriver_gl4es_disableTexture3D.Get() )
+		{
+			logger.Notice( "Found GL4ES translation layer with OpenGL ES backend, disable 3D texture support." );
+			glConfig.texture3DAvailable = false;
+		}
+	}
+
 	logger.Notice( "...using up to %d texture size.", glConfig.maxTextureSize );
 
 	if ( glConfig.texture3DAvailable )
@@ -2767,6 +2781,7 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_glDriver_gl4es_assumeSmoothstep );
 	Cvar::Latch( workaround_glDriver_gl4es_disableIncrementalShaderCompilation );
 	Cvar::Latch( workaround_glDriver_gl4es_disableMat3x2 );
+	Cvar::Latch( workaround_glDriver_gl4es_disableTexture3D );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv300_useFloatVertex );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv600_disableHyperZ );
 	Cvar::Latch( workaround_glDriver_mesa_broadcom_vc4_useFloatVertex );
