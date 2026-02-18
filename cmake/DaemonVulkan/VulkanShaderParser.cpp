@@ -268,10 +268,9 @@ int main( int argc, char** argv ) {
 		"#include \"../Vulkan.h\"\n\n"
 		"#include \"SPIRVBin.h\"\n\n"
 		"struct SPIRVModule {\n"
-		"\tconst uint32*               code;\n"
-		"\tconst uint32                size;\n"
-		"\tconst VkShaderStageFlagBits stage;\n"
-		"\tconst uint32                pushConstSize;\n"
+		"\tconst uint32* code;\n"
+		"\tconst uint32  size;\n"
+		"\tconst uint32  pushConstSize;\n"
 		"};\n\n"
 		"constexpr uint32 spirvCount = %u;\n\n"
 		"const SPIRVModule SPIRVBin[] = {\n",
@@ -322,20 +321,16 @@ int main( int argc, char** argv ) {
 		}
 
 		std::string spirvOptions = baseSpirvOptions;
-		const char* stageStr;
 		switch ( stage ) {
 			case VERTEX:
 				spirvOptions += " -S vert";
-				stageStr      = "VK_SHADER_STAGE_VERTEX_BIT";
 				break;
 			case FRAGMENT:
 				spirvOptions += " -S frag";
-				stageStr      = "VK_SHADER_STAGE_FRAGMENT_BIT";
 				break;
 			case COMPUTE:
 			default:
 				spirvOptions += " -S comp";
-				stageStr      = "VK_SHADER_STAGE_COMPUTE_BIT";
 				break;
 		}
 
@@ -365,8 +360,8 @@ int main( int argc, char** argv ) {
 
 		fprintf( spirvBinH.file, " };" );
 
-		fprintf( spirvH.file,    "\t{ ( uint32* ) %s, %u, %s, %u }",
-			( nameNoExt + "Bin" ).c_str(), binSize, stageStr, pushConstID );
+		fprintf( spirvH.file,    "\t{ ( uint32* ) %s, %u, %u }",
+			( nameNoExt + "Bin" ).c_str(), binSize, pushConstID );
 
 		fprintf( spirvIDs.file,  "constexpr uint32 %s = %u;\n\n", nameNoExt.c_str(), i - 3 );
 

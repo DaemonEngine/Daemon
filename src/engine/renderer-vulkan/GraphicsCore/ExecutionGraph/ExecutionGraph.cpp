@@ -71,7 +71,7 @@ enum PipelineLayoutState {
 static ALIGN_CACHE std::atomic<uint32> pipelineLayoutsState[pushConstSizesCount] {};
 static VkPipelineLayout                pipelineLayouts[pushConstSizesCount] {};
 
-VkPipelineLayout GetPipelineLayout( const VkShaderStageFlags stages, uint32 pushConstSizeID ) {
+VkPipelineLayout GetPipelineLayout( uint32 pushConstSizeID ) {
 	std::atomic<uint32>& layoutState  = pipelineLayoutsState[pushConstSizeID];
 	uint32 layoutStateID              = layoutState.load( std::memory_order_relaxed );
 	VkPipelineLayout& pipelineLayout  = pipelineLayouts[pushConstSizeID];
@@ -92,7 +92,7 @@ VkPipelineLayout GetPipelineLayout( const VkShaderStageFlags stages, uint32 push
 	}
 
 	VkPushConstantRange pushConst {
-		.stageFlags = stages,
+		.stageFlags = VK_SHADER_STAGE_ALL,
 		.offset     = 0,
 		.size       = pushConstSizes[pushConstSizeID]
 	};
@@ -137,12 +137,12 @@ bool BuildExecutionNode( const uint32 SPIRVID, VkPipeline* pipeline, VkPipelineL
 
 	VkPipelineShaderStageCreateInfo pipelineStageInfo {
 		.pNext  = &pipelineRobustness,
-		.stage  = SPIRV.stage,
+		.stage  = VK_SHADER_STAGE_COMPUTE_BIT,
 		.module = module,
 		.pName  = "main"
 	};
 
-	*pipelineLayout = GetPipelineLayout( VK_SHADER_STAGE_COMPUTE_BIT, SPIRV.pushConstSize );
+	*pipelineLayout = GetPipelineLayout( SPIRV.pushConstSize );
 
 	VkComputePipelineCreateInfo computeInfo {
 		.stage  = pipelineStageInfo,
@@ -190,13 +190,13 @@ bool BuildGraphicsNode( const uint32 SPIRVIDVertex, const uint32 SPIRVIDFragment
 	VkPipelineShaderStageCreateInfo pipelineStagesInfo[] {
 		{
 			.pNext  = &pipelineRobustness,
-			.stage  = SPIRVVertex.stage,
+			.stage  = VK_SHADER_STAGE_VERTEX_BIT,
 			.module = moduleVertex,
 			.pName  = "main"
 		},
 		{
 			.pNext  = &pipelineRobustness,
-			.stage  = SPIRVFragment.stage,
+			.stage  = VK_SHADER_STAGE_FRAGMENT_BIT,
 			.module = moduleFragment,
 			.pName  = "main"
 		}
@@ -250,8 +250,7 @@ bool BuildGraphicsNode( const uint32 SPIRVIDVertex, const uint32 SPIRVIDFragment
 		.pDynamicStates    = dynamicStates.memory
 	};
 
-	*pipelineLayout = GetPipelineLayout( VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-		std::max( SPIRVVertex.pushConstSize, SPIRVFragment.pushConstSize ) );
+	*pipelineLayout = GetPipelineLayout( std::max( SPIRVVertex.pushConstSize, SPIRVFragment.pushConstSize ) );
 
 	VkGraphicsPipelineCreateInfo graphicsInfo {
 		.stageCount          = 2,
@@ -304,9 +303,7 @@ static void ExecPushConstNode( PushConstNode* node, VkCommandBuffer cmd, VkPipel
 		}
 	}
 
-	vkCmdPushConstants( cmd, pipelineLayout,
-		VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
-		node->offset, node->data.size, data );
+	vkCmdPushConstants( cmd, pipelineLayout, VK_SHADER_STAGE_ALL, node->offset, node->data.size, data );
 }
 
 void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& nodes ) {
