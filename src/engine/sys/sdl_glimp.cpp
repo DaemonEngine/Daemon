@@ -2100,6 +2100,34 @@ static void GLimp_InitExtensions()
 
 	logger.Notice("...using shading language version %i", glConfig.shadingLanguageVersion );
 
+	glConfig.incrementalShaderCompilation = r_incrementalShaderCompilation.Get();
+
+	glConfig.mat3x2Available = r_useMat3x2.Get();
+
+	if ( glConfig.driverVendor == glDriverVendor_t::GL4ES )
+	{
+		if ( glConfig.shadingLanguageVersion <= 120
+			&& workaround_glDriver_gl4es_assumeSmoothstep.Get() )
+		{
+			logger.Notice( "Found GLSL 1.20 on GL4ES translation layer, assuming smoothstep() is always declared." );
+			glConfig.assumeSmoothstep = true;
+		}
+
+		if ( glConfig.incrementalShaderCompilation
+			&& workaround_glDriver_gl4es_disableIncrementalShaderCompilation.Get() )
+		{
+			logger.Notice( "Found GL4ES translation layer with OpenGL ES backend, disable incremental shader compilation." );
+			glConfig.incrementalShaderCompilation = false;
+		}
+
+		if ( glConfig.mat3x2Available
+			&& workaround_glDriver_gl4es_disableMat3x2.Get() )
+		{
+			logger.Notice( "Found GL4ES translation layer with OpenGL ES backend, disable mat3x2 GLSL support." );
+			glConfig.mat3x2Available = false;
+		}
+	}
+
 
 	// OpenGL driver constants.
 
@@ -2693,34 +2721,6 @@ static void GLimp_InitExtensions()
 			"Update GLEW to 2.2+ to be able to use this extension" );
 	}
 #endif
-
-	glConfig.incrementalShaderCompilation = r_incrementalShaderCompilation.Get();
-
-	glConfig.mat3x2Available = r_useMat3x2.Get();
-
-	if ( glConfig.driverVendor == glDriverVendor_t::GL4ES )
-	{
-		if ( glConfig.shadingLanguageVersion <= 120
-			&& workaround_glDriver_gl4es_assumeSmoothstep.Get() )
-		{
-			logger.Notice( "Found GLSL 1.20 on GL4ES translation layer, assuming smoothstep() is always declared." );
-			glConfig.assumeSmoothstep = true;
-		}
-
-		if ( glConfig.incrementalShaderCompilation
-			&& workaround_glDriver_gl4es_disableIncrementalShaderCompilation.Get() )
-		{
-			logger.Notice( "Found GL4ES translation layer with OpenGL ES backend, disable incremental shader compilation." );
-			glConfig.incrementalShaderCompilation = false;
-		}
-
-		if ( glConfig.mat3x2Available
-			&& workaround_glDriver_gl4es_disableMat3x2.Get() )
-		{
-			logger.Notice( "Found GL4ES translation layer with OpenGL ES backend, disable mat3x2 GLSL support." );
-			glConfig.mat3x2Available = false;
-		}
-	}
 
 	// Shader limits.
 
