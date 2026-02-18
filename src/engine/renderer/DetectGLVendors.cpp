@@ -47,6 +47,7 @@ std::string GetGLHardwareVendorName( glHardwareVendor_t hardwareVendor )
 		"Intel",
 		"Nvidia",
 		"Moore Threads",
+		"Imagination",
 		"OutOfRange",
 	};
 
@@ -73,6 +74,7 @@ std::string GetGLDriverVendorName( glDriverVendor_t driverVendor )
 		"Mesa",
 		"Nvidia",
 		"Moore Threads",
+		"Imagination",
 		"GL4ES",
 		"OutOfRange",
 	};
@@ -139,6 +141,8 @@ void DetectGLVendors(
 		{ "NVIDIA Corporation", { glDriverVendor_t::NVIDIA, glHardwareVendor_t::NVIDIA } },
 		// Moore Threads drivers on Linux and Windows.
 		{ "Moore Threads", { glDriverVendor_t::MTHREADS, glHardwareVendor_t::MTHREADS } },
+		// Proprietary Imagination driver for PowerVR.
+		{ "Imagination Technologies", { glDriverVendor_t::IMAGINATION, glHardwareVendor_t::IMAGINATION } },
 	};
 
 	auto it = vendorDriverHardware.find( vendorString );
