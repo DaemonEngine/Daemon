@@ -63,10 +63,6 @@ using bool8_t = uint8_t;
 #define RF_DEPTHHACK       0x000008 // for view weapon Z crunching
 #define RF_NOSHADOW        0x000010 // don't add stencil shadows
 
-#define RF_LIGHTING_ORIGIN 0x000020 // use refEntity->lightingOrigin instead of refEntity->origin
-// for lighting.  This allows entities to sink into the floor
-// with their origin going solid, and allows all parts of a
-// player to get the same lighting
 #define RF_SWAPCULL      0x000040 // swap CT_FRONT_SIDED and CT_BACK_SIDED
 
 // refdef flags
@@ -175,8 +171,6 @@ struct refEntity_t
 	qhandle_t       hModel; // opaque type outside refresh
 
 	// most recent data
-	vec3_t    lightingOrigin; // so multi-part models can be lit identically (RF_LIGHTING_ORIGIN)
-
 	vec3_t    axis[ 3 ]; // rotation vectors
 	bool8_t  nonNormalizedAxes; // axis are not normalized, i.e. they have scale
 	vec3_t    origin;
