@@ -161,13 +161,15 @@ static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFl
 		.flags  = flags
 	};
 
-	VkHostImageCopyDevicePerformanceQuery hostImageCopyInfo {};
-
-	VkImageFormatProperties2 formatPropertiesInfo {
-		.pNext  = &hostImageCopyInfo
-	};
+	VkHostImageCopyDevicePerformanceQuery hostImageCopyInfo    {};
+	VkImageFormatProperties2              formatPropertiesInfo { .pNext = resourceSystem.hostImageCopy ? &hostImageCopyInfo : nullptr };
 
 	VkResult res = vkGetPhysicalDeviceImageFormatProperties2( physicalDevice, &formatInfo, &formatPropertiesInfo );
+
+	VkFormatProperties3                   formatProperties3    { .pNext = &hostImageCopyInfo };
+	VkFormatProperties2                   formatProperties2    { .pNext = &formatProperties3 };
+
+	vkGetPhysicalDeviceFormatProperties2( physicalDevice, format, &formatProperties2 );
 
 	VkImageFormatProperties& formatProperties = formatPropertiesInfo.imageFormatProperties;
 
@@ -176,8 +178,12 @@ static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFl
 		.maxLayers           = formatProperties.maxArrayLayers,
 		.maxSamples          = formatProperties.sampleCounts,
 
-		.hostCopyOptimal     = ( bool ) hostImageCopyInfo.optimalDeviceAccess,
-		.hostIdenticalLayout = ( bool ) hostImageCopyInfo.identicalMemoryLayout,
+		.hostCopyOptimal     = resourceSystem.hostImageCopy ? ( ( bool ) hostImageCopyInfo.optimalDeviceAccess )   : false,
+		.hostIdenticalLayout = resourceSystem.hostImageCopy ? ( ( bool ) hostImageCopyInfo.identicalMemoryLayout ) : false,
+
+		.indirectCopy        = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_COPY_IMAGE_INDIRECT_DST_BIT_KHR ),
+		.minMaxSampler       = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_MINMAX_BIT ),
+		.atomicStorage       = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_STORAGE_IMAGE_ATOMIC_BIT ),
 
 		.supported           = res == VK_SUCCESS
 	};
@@ -199,6 +205,10 @@ void InitFormatConfigs() {
 		} else {
 			usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 			flags |= VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT | VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
+		}
+
+		if ( resourceSystem.hostImageCopy && ( usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT ) ) {
+			usage |= VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT;
 		}
 
 		cfg = GetFormatConfig( formats[format], usage, flags );

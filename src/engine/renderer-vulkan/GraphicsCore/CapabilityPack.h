@@ -180,6 +180,7 @@ constexpr Array featuresExperimental {
 };
 
 constexpr Array featuresOptional {
+	"hostImageCopy",
 	"swapchainMaintenance1",
 	"descriptorHeap",
 	"zeroInitializeDeviceMemory"

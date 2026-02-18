@@ -77,6 +77,9 @@ struct FormatConfig {
 	uint32     maxSamples;
 	bool       hostCopyOptimal;
 	bool       hostIdenticalLayout;
+	bool       indirectCopy;
+	bool       minMaxSampler;
+	bool       atomicStorage;
 
 	bool       supported;
 };
