@@ -82,10 +82,13 @@ using glIndex_t = unsigned int;
 // shader was auto-generated from an image.
 enum RegisterShaderFlags_t {
 	// nothing
-	RSF_DEFAULT = BIT( 0 ),
+	RSF_DEFAULT = 0,
 
 	// [implicit only] alter filter and wrap type
-	RSF_2D = BIT( 1 ),
+	RSF_2D = BIT( 0 ),
+
+	// [implicit only] enable lightmapping, front-side culling, disable (non-BSP) vertex colors, disable blending
+	RSF_3D = BIT( 1 ),
 
 	// load images without mipmaps
 	RSF_NOMIP = BIT( 2 ),
@@ -98,6 +101,9 @@ enum RegisterShaderFlags_t {
 
 	// when the shader is used on an entity sprite, face view direction instead of viewer
 	RSF_SPRITE = BIT( 6 ),
+
+	// Probably not useful for cgame. Signals that vertex colors are light values
+	RSF_BSP = BIT ( 30 ),
 };
 
 struct polyVert_t
