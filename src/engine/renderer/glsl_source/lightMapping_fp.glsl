@@ -139,6 +139,13 @@ void main()
 		// Compute light direction in world space from deluxe map.
 		vec4 deluxe = texture2D(u_DeluxeMap, var_TexLight);
 		vec3 lightDir = normalize(2.0 * deluxe.xyz - 1.0);
+
+		/* HACK: blend a bit the normal map with the deluxe map to make the normal
+		map align with the deluxe map to prevent NdotL collapsing to zero, while
+		retaining enough normal details.
+		See: https://github.com/DaemonEngine/Daemon/issues/1905 */
+		float normalBlendFactor = 0.5;
+		normal = normalize(normal * normalBlendFactor + lightDir * (1.0 - normalBlendFactor));
 	#elif defined(USE_GRID_DELUXE_MAPPING)
 		// Compute light direction in world space from light grid.
 		vec4 texel = texture3D(u_LightGrid2, lightGridPos);
