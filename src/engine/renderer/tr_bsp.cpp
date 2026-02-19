@@ -3397,9 +3397,9 @@ static void R_SetConstantColorLightGrid( const byte color[3] )
 	gridPoint1->color[ 1 ] = color[1];
 	gridPoint1->color[ 2 ] = color[2];
 	gridPoint1->ambientPart = 128;
-	gridPoint2->direction[ 0 ] = floatToSnorm8(0.0f);
-	gridPoint2->direction[ 1 ] = floatToSnorm8(0.0f);
-	gridPoint2->direction[ 2 ] = floatToSnorm8(1.0f);
+	gridPoint2->direction[ 0 ] = 128 + floatToSnorm8( 0.0f );
+	gridPoint2->direction[ 1 ] = 128 + floatToSnorm8( 0.0f );
+	gridPoint2->direction[ 2 ] = 128 + floatToSnorm8( 1.0f );
 	gridPoint2->isSet = 255;
 
 	w->lightGridData1 = gridPoint1;
