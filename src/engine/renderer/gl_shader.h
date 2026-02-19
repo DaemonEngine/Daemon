@@ -532,7 +532,7 @@ private:
 	int cacheSaveTime;
 	uint32_t cacheSaveCount;
 
-	void BuildShader( ShaderDescriptor* descriptor );
+	void BuildShader( ShaderDescriptor* descriptor, bool force = false );
 	void BuildShaderProgram( ShaderProgramDescriptor* descriptor );
 
 	std::string GetDeformShaderName( const int index );
@@ -798,6 +798,24 @@ protected:
 
 		ShaderProgramDescriptor* p = _shader->GetProgram();
 		glUniformMatrix4fv( p->uniformLocations[ _locationIndex ], 1, transpose, m );
+	}
+};
+
+class GLUniformMatrix3f : protected GLUniform
+{
+protected:
+	GLUniformMatrix3f( GLShader *shader, const char *name, const UpdateType updateType ) :
+	GLUniform( shader, name, "mat3", 9, 4, updateType ) {
+	}
+
+	inline void SetValue( GLboolean transpose, const matrix_t m )
+	{
+		if ( !CacheValue( ( void* ) m ) ) {
+			return;
+		}
+
+		ShaderProgramDescriptor* p = _shader->GetProgram();
+		glUniformMatrix3fv( p->uniformLocations[ _locationIndex ], 1, transpose, m );
 	}
 };
 
@@ -1671,16 +1689,41 @@ class u_CurrentMap :
 	}
 };
 
-class u_TextureMatrix :
+class u_TextureMatrix_Matrix3 :
+	GLUniformMatrix3f
+{
+public:
+	u_TextureMatrix_Matrix3( GLShader *shader ) :
+		GLUniformMatrix3f( shader, "u_TextureMatrix", TEXDATA_OR_PUSH )
+	{
+	}
+
+	void SetUniform_TextureMatrix_Matrix3( const matrix_t m )
+	{
+		vec_t m2[9];
+		m2[0] = m[0];
+		m2[1] = m[1];
+		m2[2] = 0;
+		m2[3] = m[4];
+		m2[4] = m[5];
+		m2[5] = 0;
+		m2[6] = m[12];
+		m2[7] = m[13];
+		m2[8] = 1;
+		this->SetValue( GL_FALSE, m2 );
+	}
+};
+
+class u_TextureMatrix_Matrix32 :
 	GLUniformMatrix32f
 {
 public:
-	u_TextureMatrix( GLShader *shader ) :
+	u_TextureMatrix_Matrix32( GLShader *shader ) :
 		GLUniformMatrix32f( shader, "u_TextureMatrix", TEXDATA_OR_PUSH )
 	{
 	}
 
-	void SetUniform_TextureMatrix( const matrix_t m )
+	void SetUniform_TextureMatrix_Matrix32( const matrix_t m )
 	{
 		/* We only actually need these 6 components to get the correct texture transformation,
 		the other ones are unused */
@@ -1694,6 +1737,18 @@ public:
 		this->SetValue( GL_FALSE, m2 );
 	}
 };
+
+template<typename Shader> void SetUniform_TextureMatrix( Shader* shader, const matrix_t m )
+{
+	if ( glConfig.mat3x2Available )
+	{
+		shader->SetUniform_TextureMatrix_Matrix32( m );
+	}
+	else
+	{
+		shader->SetUniform_TextureMatrix_Matrix3( m );
+	}
+}
 
 class u_AlphaThreshold :
 	GLUniform1f
@@ -2933,7 +2988,8 @@ class GLShader_generic :
 	public GLShader,
 	public u_ColorMap,
 	public u_DepthMap,
-	public u_TextureMatrix,
+	public u_TextureMatrix_Matrix3,
+	public u_TextureMatrix_Matrix32,
 	public u_ViewOrigin,
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
@@ -2963,7 +3019,8 @@ class GLShader_genericMaterial :
 	public GLShader,
 	public u_ColorMap,
 	public u_DepthMap,
-	public u_TextureMatrix,
+	public u_TextureMatrix_Matrix3,
+	public u_TextureMatrix_Matrix32,
 	public u_ViewOrigin,
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
@@ -2997,7 +3054,8 @@ class GLShader_lightMapping :
 	public u_LightGrid1,
 	public u_LightGrid2,
 	public u_LightTiles,
-	public u_TextureMatrix,
+	public u_TextureMatrix_Matrix3,
+	public u_TextureMatrix_Matrix32,
 	public u_SpecularExponent,
 	public u_ColorModulateColorGen_Float,
 	public u_ColorModulateColorGen_Uint,
@@ -3050,7 +3108,8 @@ class GLShader_lightMappingMaterial :
 	public u_LightGrid1,
 	public u_LightGrid2,
 	public u_LightTiles,
-	public u_TextureMatrix,
+	public u_TextureMatrix_Matrix3,
+	public u_TextureMatrix_Matrix32,
 	public u_SpecularExponent,
 	public u_ColorModulateColorGen_Uint,
 	public u_Color_Uint,
@@ -3088,7 +3147,8 @@ class GLShader_reflection :
 	public u_ColorMapCube,
 	public u_NormalMap,
 	public u_HeightMap,
-	public u_TextureMatrix,
+	public u_TextureMatrix_Matrix3,
+	public u_TextureMatrix_Matrix32,
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
@@ -3114,7 +3174,8 @@ class GLShader_reflectionMaterial :
 	public u_ColorMapCube,
 	public u_NormalMap,
 	public u_HeightMap,
-	public u_TextureMatrix,
+	public u_TextureMatrix_Matrix3,
+	public u_TextureMatrix_Matrix32,
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
@@ -3133,7 +3194,8 @@ class GLShader_skybox :
 	public GLShader,
 	public u_ColorMapCube,
 	public u_CloudMap,
-	public u_TextureMatrix,
+	public u_TextureMatrix_Matrix3,
+	public u_TextureMatrix_Matrix32,
 	public u_CloudHeight,
 	public u_UseCloudMap,
 	public u_AlphaThreshold,
@@ -3148,7 +3210,8 @@ class GLShader_skyboxMaterial :
 	public GLShader,
 	public u_ColorMapCube,
 	public u_CloudMap,
-	public u_TextureMatrix,
+	public u_TextureMatrix_Matrix3,
+	public u_TextureMatrix_Matrix32,
 	public u_CloudHeight,
 	public u_UseCloudMap,
 	public u_AlphaThreshold,
@@ -3209,7 +3272,8 @@ class GLShader_heatHaze :
 	public GLShader,
 	public u_CurrentMap,
 	public u_NormalMap,
-	public u_TextureMatrix,
+	public u_TextureMatrix_Matrix3,
+	public u_TextureMatrix_Matrix32,
 	public u_DeformMagnitude,
 	public u_ModelViewProjectionMatrix,
 	public u_ModelViewMatrixTranspose,
@@ -3230,7 +3294,8 @@ class GLShader_heatHazeMaterial :
 	public GLShader,
 	public u_CurrentMap,
 	public u_NormalMap,
-	public u_TextureMatrix,
+	public u_TextureMatrix_Matrix3,
+	public u_TextureMatrix_Matrix32,
 	public u_DeformEnable,
 	public u_DeformMagnitude,
 	public u_ModelViewProjectionMatrix,
@@ -3319,7 +3384,8 @@ class GLShader_liquid :
 	public u_LightGrid1,
 	public u_LightGrid2,
 	public u_HeightMap,
-	public u_TextureMatrix,
+	public u_TextureMatrix_Matrix3,
+	public u_TextureMatrix_Matrix32,
 	public u_ViewOrigin,
 	public u_RefractionIndex,
 	public u_ModelMatrix,
@@ -3355,7 +3421,8 @@ class GLShader_liquidMaterial :
 	public u_LightGrid1,
 	public u_LightGrid2,
 	public u_HeightMap,
-	public u_TextureMatrix,
+	public u_TextureMatrix_Matrix3,
+	public u_TextureMatrix_Matrix32,
 	public u_ViewOrigin,
 	public u_RefractionIndex,
 	public u_ModelMatrix,

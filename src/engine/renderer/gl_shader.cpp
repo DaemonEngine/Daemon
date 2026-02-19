@@ -490,17 +490,43 @@ static void AddConst( std::string& str, const std::string& name, float v1, float
 }
 #endif
 
-static std::string GenVersionDeclaration( const std::vector<addedExtension_t> &addedExtensions ) {
-	// Declare version.
-	std::string str = Str::Format( "#version %d %s\n\n",
+static std::string GenVersionLine() {
+	return Str::Format( "#version %d %s\n",
 		glConfig.shadingLanguageVersion,
 		glConfig.shadingLanguageVersion >= 150 ? ( glConfig.glCoreProfile ? "core" : "compatibility" ) : "" );
+}
+
+static std::string GenVersionDeclaration( const std::vector<addedExtension_t> &addedExtensions ) {
+	std::string str;
+
+	if ( !glConfig.incrementalShaderCompilation ) {
+		/* Add version the line, but commented out, to contribute to the shader cache checksum.
+		The #version line will be added when compiling the concatenated shader because we cannot
+		guard such line with some #ifdef, it has to be the first non-comment non-empty line. */
+		str += "// ";
+	}
+
+	// Declare version.
+	str += GenVersionLine() + "\n";
+
+	str +=
+R"(#if !defined(GENERATED_EXTENSIONS_HEADER)
+#define GENERATED_EXTENSIONS_HEADER
+)";
 
 	// Add supported GLSL extensions.
 	for ( const auto& addedExtension : addedExtensions ) {
 		addExtension( str, addedExtension.available, addedExtension.minGlslVersion, addedExtension.name );
 	}
 
+	if ( glConfig.texture3DAvailable ) {
+		str += "#define HAVE_texture3D 1\n";
+	}
+
+	str +=
+R"(#endif // GENERATED_EXTENSIONS_HEADER
+
+)";
 	return str;
 }
 
@@ -515,8 +541,13 @@ static std::string GenComputeVersionDeclaration() {
 static std::string GenCompatHeader() {
 	std::string str;
 
+	str +=
+R"(#if !defined(GENERATED_COMPAT_HEADER)
+#define GENERATED_COMPAT_HEADER
+)";
+
 	// definition of functions missing in early GLSL
-	if( glConfig.shadingLanguageVersion <= 120 ) {
+	if( glConfig.shadingLanguageVersion <= 120 && !glConfig.assumeSmoothstep ) {
 		str += "float smoothstep(float edge0, float edge1, float x) { float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }\n";
 	}
 
@@ -549,22 +580,38 @@ R"(vec4 unpackUnorm4x8( uint value )
 		str += "#define atomicCounterAndARB atomicCounterAnd\n";
 	}
 
+	if ( glConfig.mat3x2Available ) 	{
+		str += "#define textureMatrix mat3x2\n";
+	} else {
+		str += "#define textureMatrix mat3\n";
+	}
+
+	str +=
+R"(#endif // GENERATED_COMPAT_HEADER
+
+)";
+
 	return str;
 }
 
 static std::string GenVertexHeader() {
 	std::string str;
 
+	str +=
+R"(#if !defined(GENERATED_VERTEX_HEADER)
+#define GENERATED_VERTEX_HEADER
+)";
+
 	// Vertex shader compatibility defines
 	if( glConfig.shadingLanguageVersion > 120 ) {
-		str =   "#define IN in\n"
+		str += "#define IN in\n"
 			"#define OUT(mode) mode out\n"
 			"#define textureCube texture\n"
 			"#define texture2D texture\n"
 			"#define texture2DProj textureProj\n"
 			"#define texture3D texture\n";
 	} else {
-		str =   "#define IN attribute\n"
+		str += "#define IN attribute\n"
 			"#define OUT(mode) varying\n";
 	}
 
@@ -582,25 +629,35 @@ static std::string GenVertexHeader() {
 		AddDefine( str, "BIND_LIGHTMAP_DATA", BufferBind::LIGHTMAP_DATA );
 	}
 
+	str +=
+R"(#endif // GENERATED_VERTEX_HEADER
+
+)";
+
 	return str;
 }
 
 static std::string GenFragmentHeader() {
 	std::string str;
 
+	str +=
+R"(#if !defined(GENERATED_FRAGMENT_HEADER)
+#define GENERATED_FRAGMENT_HEADER
+)";
+
 	// Fragment shader compatibility defines
 	if( glConfig.shadingLanguageVersion > 120 ) {
-		str =   "#define IN(mode) mode in\n"
+		str += "#define IN(mode) mode in\n"
 			"#define DECLARE_OUTPUT(type) out type outputColor;\n"
 			"#define textureCube texture\n"
 			"#define texture2D texture\n"
 			"#define texture2DProj textureProj\n"
 			"#define texture3D texture\n";
 	} else if( glConfig.gpuShader4Available) {
-		str =   "#define IN(mode) varying\n"
+		str += "#define IN(mode) varying\n"
 			"#define DECLARE_OUTPUT(type) varying out type outputColor;\n";
 	} else {
-		str =   "#define IN(mode) varying\n"
+		str += "#define IN(mode) varying\n"
 			"#define outputColor gl_FragColor\n"
 			"#define DECLARE_OUTPUT(type) /* empty*/\n";
 	}
@@ -631,11 +688,21 @@ static std::string GenFragmentHeader() {
 		AddDefine( str, "USE_PUSH_BUFFER", 1 );
 	}
 
+	str +=
+R"(#endif // GENERATED_FRAGMENT_HEADER
+
+)";
+
 	return str;
 }
 
 static std::string GenComputeHeader() {
 	std::string str;
+
+	str +=
+R"(#if !defined(GENERATED_COMPUTE_HEADER)
+#define GENERATED_COMPUTE_HEADER
+)";
 
 	// Compute shader compatibility defines
 	if ( glConfig.usingMaterialSystem ) {
@@ -659,6 +726,11 @@ static std::string GenComputeHeader() {
 	if ( glConfig.pushBufferAvailable ) {
 		AddDefine( str, "USE_PUSH_BUFFER", 1 );
 	}
+
+	str +=
+R"(#endif // GENERATED_COMPUTE_HEADER
+
+)";
 
 	return str;
 }
@@ -902,11 +974,7 @@ static bool IsUnusedPermutation( const char *compileMacros )
 	return false;
 }
 
-void GLShaderManager::BuildShader( ShaderDescriptor* descriptor ) {
-	if ( descriptor->id ) {
-		return;
-	}
-
+void GLShaderManager::BuildShader( ShaderDescriptor* descriptor, bool force ) {
 	const int start = Sys::Milliseconds();
 
 	const GLchar* text[1] = { descriptor->shaderSource.data() };
@@ -916,29 +984,32 @@ void GLShaderManager::BuildShader( ShaderDescriptor* descriptor ) {
 	GL_CheckErrors();
 
 	glShaderSource( shader, 1, text, length );
-	glCompileShader( shader );
 
-	GL_CheckErrors();
+	if ( glConfig.incrementalShaderCompilation || force ) {
+		glCompileShader( shader );
 
-	GLint compiled;
-	glGetShaderiv( shader, GL_COMPILE_STATUS, &compiled );
+		GL_CheckErrors();
 
-	if ( !compiled ) {
-		std::string log = GetInfoLog( shader );
-		std::vector<InfoLogEntry> infoLog = ParseInfoLog( log );
-		PrintShaderSource( descriptor->name, shader, infoLog );
+		GLint compiled;
+		glGetShaderiv( shader, GL_COMPILE_STATUS, &compiled );
 
-		Log::Warn( "Compile log:\n%s", log );
+		if ( !compiled ) {
+			std::string log = GetInfoLog( shader );
+			std::vector<InfoLogEntry> infoLog = ParseInfoLog( log );
+			PrintShaderSource( descriptor->name, shader, infoLog );
 
-		switch ( descriptor->type ) {
-			case GL_VERTEX_SHADER:
-				ThrowShaderError( Str::Format( "Couldn't compile vertex shader: %s", descriptor->name ) );
-			case GL_FRAGMENT_SHADER:
-				ThrowShaderError( Str::Format( "Couldn't compile fragment shader: %s", descriptor->name ) );
-			case GL_COMPUTE_SHADER:
-				ThrowShaderError( Str::Format( "Couldn't compile compute shader: %s", descriptor->name ) );
-			default:
-				break;
+			Log::Warn( "Compile log:\n%s", log );
+
+			switch ( descriptor->type ) {
+				case GL_VERTEX_SHADER:
+					ThrowShaderError( Str::Format( "Couldn't compile vertex shader: %s", descriptor->name ) );
+				case GL_FRAGMENT_SHADER:
+					ThrowShaderError( Str::Format( "Couldn't compile fragment shader: %s", descriptor->name ) );
+				case GL_COMPUTE_SHADER:
+					ThrowShaderError( Str::Format( "Couldn't compile compute shader: %s", descriptor->name ) );
+				default:
+					break;
+			}
 		}
 	}
 
@@ -947,7 +1018,10 @@ void GLShaderManager::BuildShader( ShaderDescriptor* descriptor ) {
 	const int time = Sys::Milliseconds() - start;
 	compileTime += time;
 	compileCount++;
-	Log::Debug( "Compilation: %i", time );
+
+	if ( glConfig.incrementalShaderCompilation || force ) {
+		Log::Debug( "Compilation: %i", time );
+	}
 }
 
 void GLShaderManager::BuildShaderProgram( ShaderProgramDescriptor* descriptor ) {
@@ -955,18 +1029,91 @@ void GLShaderManager::BuildShaderProgram( ShaderProgramDescriptor* descriptor ) 
 		return;
 	}
 
-	const int start = Sys::Milliseconds();
+	int start = Sys::Milliseconds();
 
 	GLuint program = glCreateProgram();
 	GL_CheckErrors();
 
-	for ( const GLuint& shader : descriptor->shaders ) {
-		if ( shader ) {
-			glAttachShader( program, shader );
-		} else {
-			break;
+	if ( glConfig.incrementalShaderCompilation ) {
+		for ( const GLuint& shader : descriptor->shaders ) {
+			if ( shader ) {
+				glAttachShader( program, shader );
+			} else {
+				break;
+			}
 		}
 	}
+	else {
+		std::unordered_map<GLint, ShaderDescriptor> concatenatedDescriptor = {
+			{ GL_FRAGMENT_SHADER, {} },
+			{ GL_VERTEX_SHADER, {} },
+			{ GL_COMPUTE_SHADER, {} },
+		};
+
+		std::unordered_map<GLint, std::string> shaderTypeName = {
+			{ GL_FRAGMENT_SHADER, "fragment" },
+			{ GL_VERTEX_SHADER, "vertex" },
+			{ GL_COMPUTE_SHADER, "compute" },
+		};
+
+		for ( const GLuint& shader : descriptor->shaders ) {
+			if ( shader ) {
+				GLint shaderType;
+				glGetShaderiv(shader, GL_SHADER_TYPE, &shaderType);
+
+				int maxLength;
+				int actualLength;
+				glGetShaderiv( shader, GL_SHADER_SOURCE_LENGTH, &maxLength );
+				GLchar* shaderSource = new GLchar[ maxLength ];
+				glGetShaderSource( shader, maxLength, &actualLength, shaderSource );
+
+				ShaderDescriptor &concatenated = concatenatedDescriptor[ shaderType ];
+
+				// If first unit of the shader.
+				if ( concatenated.type == 0 ) {
+					concatenated.shaderSource = GenVersionLine();
+				}
+
+				concatenated.type = shaderType;
+				concatenated.shaderSource.append( shaderSource, actualLength );
+
+				delete[] shaderSource;
+			} else {
+				break;
+			}
+		}
+
+		for ( auto &pair : concatenatedDescriptor )
+		{
+			ShaderDescriptor &concatenated = pair.second;
+
+			if ( concatenated.type != 0 )
+			{
+				Log::Debug( "Building concatenated %s program.", shaderTypeName[ concatenated.type ] );
+				// WIP
+				// Log::Warn( "Concatenated source:\n<<<\n%s\n>>>", concatenated.shaderSource );
+
+				GLShaderManager::BuildShader( &concatenated, true );
+			}
+		}
+
+		// Reset the attach & link timer, we wasted it when compiling shaders.
+		start = Sys::Milliseconds();
+
+		for ( auto &pair : concatenatedDescriptor )
+		{
+			ShaderDescriptor &concatenated = pair.second;
+
+			if ( concatenated.type != 0 )
+			{
+				if ( concatenated.id )
+				{
+					glAttachShader( program, concatenated.id );
+				}
+			}
+		}
+	}
+
 	GL_CheckErrors();
 
 	BindAttribLocations( program );
@@ -1667,7 +1814,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	                           "	uvec2 u_GlowMap;\n"
 	                           "};\n\n"
 	                           + texBuf +
-		                       "#define u_TextureMatrix mat3x2( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.xy, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.zw, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix2 )\n"
+		                       "#define u_TextureMatrix textureMatrix( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.xy, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.zw, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix2 )\n"
 		                       "#define u_DiffuseMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_DiffuseMap\n"
 		                       "#define u_NormalMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_NormalMap\n"
 		                       "#define u_HeightMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_HeightMap\n"
@@ -2441,7 +2588,8 @@ GLShader_generic::GLShader_generic() :
 		false, "generic", "generic" ),
 	u_ColorMap( this ),
 	u_DepthMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_ViewOrigin( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
@@ -2475,7 +2623,8 @@ GLShader_genericMaterial::GLShader_genericMaterial() :
 		true, "generic", "generic" ),
 	u_ColorMap( this ),
 	u_DepthMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_ViewOrigin( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
@@ -2508,7 +2657,8 @@ GLShader_lightMapping::GLShader_lightMapping() :
 	u_LightGrid1( this ),
 	u_LightGrid2( this ),
 	u_LightTiles( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_SpecularExponent( this ),
 	u_ColorModulateColorGen_Float( this ),
 	u_ColorModulateColorGen_Uint( this ),
@@ -2575,7 +2725,8 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial() :
 	u_LightGrid1( this ),
 	u_LightGrid2( this ),
 	u_LightTiles( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_SpecularExponent( this ),
 	u_ColorModulateColorGen_Uint( this ),
 	u_Color_Uint( this ),
@@ -2612,7 +2763,8 @@ GLShader_reflection::GLShader_reflection():
 	u_ColorMapCube( this ),
 	u_NormalMap( this ),
 	u_HeightMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
@@ -2643,7 +2795,8 @@ GLShader_reflectionMaterial::GLShader_reflectionMaterial() :
 	u_ColorMapCube( this ),
 	u_NormalMap( this ),
 	u_HeightMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
@@ -2661,7 +2814,8 @@ GLShader_skybox::GLShader_skybox() :
 		false, "skybox", "skybox" ),
 	u_ColorMapCube( this ),
 	u_CloudMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_CloudHeight( this ),
 	u_UseCloudMap( this ),
 	u_AlphaThreshold( this ),
@@ -2680,7 +2834,8 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial() :
 		true, "skybox", "skybox" ),
 	u_ColorMapCube( this ),
 	u_CloudMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_CloudHeight( this ),
 	u_UseCloudMap( this ),
 	u_AlphaThreshold( this ),
@@ -2742,7 +2897,8 @@ GLShader_heatHaze::GLShader_heatHaze() :
 		false, "heatHaze", "heatHaze" ),
 	u_CurrentMap( this ),
 	u_NormalMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_DeformMagnitude( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ModelViewMatrixTranspose( this ),
@@ -2767,7 +2923,8 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial() :
 		true, "heatHaze", "heatHaze" ),
 	u_CurrentMap( this ),
 	u_NormalMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_DeformEnable( this ),
 	u_DeformMagnitude( this ),
 	u_ModelViewProjectionMatrix( this ),
@@ -2870,7 +3027,8 @@ GLShader_liquid::GLShader_liquid() :
 	u_LightGrid1( this ),
 	u_LightGrid2( this ),
 	u_HeightMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_ViewOrigin( this ),
 	u_RefractionIndex( this ),
 	u_ModelMatrix( this ),
@@ -2914,7 +3072,8 @@ GLShader_liquidMaterial::GLShader_liquidMaterial() :
 	u_LightGrid1( this ),
 	u_LightGrid2( this ),
 	u_HeightMap( this ),
-	u_TextureMatrix( this ),
+	u_TextureMatrix_Matrix3( this ),
+	u_TextureMatrix_Matrix32( this ),
 	u_ViewOrigin( this ),
 	u_RefractionIndex( this ),
 	u_ModelMatrix( this ),

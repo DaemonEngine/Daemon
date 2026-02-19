@@ -58,7 +58,7 @@ static void EnableAvailableFeatures()
 			glConfig.realtimeLighting = false;
 		}
 
-		if ( glConfig.max3DTextureSize == 0 )
+		if ( !glConfig.texture3DAvailable )
 		{
 			Log::Warn( "Tiled dynamic light renderer disabled because of missing 3D texture support." );
 			glConfig.realtimeLighting = false;
@@ -88,7 +88,7 @@ static void EnableAvailableFeatures()
 
 	if ( glConfig.colorGrading )
 	{
-		if ( glConfig.max3DTextureSize == 0 )
+		if ( !glConfig.texture3DAvailable )
 		{
 			Log::Warn( "Color grading disabled because of missing 3D texture support." );
 			glConfig.colorGrading = false;
@@ -693,7 +693,7 @@ static void DrawTris()
 	gl_genericShader->SetUniform_ColorMapBindless(
 		GL_BindToTMU( 0, tr.whiteImage )
 	);
-	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+	SetUniform_TextureMatrix( gl_genericShader, tess.svars.texMatrices[ TB_COLORMAP ] );
 	gl_genericShader->SetRequiredVertexPointers();
 
 	glDepthRange( 0, 0 );
@@ -959,7 +959,7 @@ void Render_generic3D( shaderStage_t *pStage )
 		gl_genericShader->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 	}
 
-	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+	SetUniform_TextureMatrix( gl_genericShader, tess.svars.texMatrices[ TB_COLORMAP ] );
 
 	if ( hasDepthFade )
 	{
@@ -1128,7 +1128,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	if ( pStage->type != stageType_t::ST_LIGHTMAP )
 	{
-		gl_lightMappingShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+		SetUniform_TextureMatrix( gl_lightMappingShader, tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 	}
 
 	// bind u_NormalMap
@@ -1319,7 +1319,7 @@ void Render_reflection_CB( shaderStage_t *pStage )
 		gl_reflectionShader->SetUniform_NormalScale( normalScale );
 	}
 
-	gl_reflectionShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
+	SetUniform_TextureMatrix( gl_reflectionShader, tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )
@@ -1476,7 +1476,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 
 	if ( pStage->enableNormalMapping )
 	{
-		gl_heatHazeShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
+		SetUniform_TextureMatrix( gl_heatHazeShader, tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
@@ -1596,7 +1596,7 @@ void Render_liquid( shaderStage_t *pStage )
 		gl_liquidShader->SetUniform_NormalScale( normalScale );
 	}
 
-	gl_liquidShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
+	SetUniform_TextureMatrix( gl_liquidShader, tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 	Tess_DrawElements();
 

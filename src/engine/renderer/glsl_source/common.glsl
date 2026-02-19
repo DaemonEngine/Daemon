@@ -109,7 +109,7 @@ ModBits_t ColorModulateToBits( const in colorModulatePack colorMod )
 #if defined(HAVE_EXT_gpu_shader4)
 	modBits.useVertexLightFactor = bool( ( colorMod >> 27u ) & 1u );
 #else
-	modBits.useVertexLightFactor = colorMod.g < 0;
+	modBits.useVertexLightFactor = colorMod.g < 0.0;
 #endif
 
 	return modBits;
@@ -154,7 +154,7 @@ void ColorModulateColor_lightFactor(
 	ModBits_t modBits = ColorModulateToBits( colorMod );
 	float lightFactor = ColorModulateToLightFactor( colorMod );
 
-	colorModulation.rgb += vec3( modBits.useVertexLightFactor ? lightFactor : 0 );
+	colorModulation.rgb += vec3( modBits.useVertexLightFactor ? lightFactor : 0.0 );
 
 	vec4 unpackedColor = UnpackColor( packedColor );
 

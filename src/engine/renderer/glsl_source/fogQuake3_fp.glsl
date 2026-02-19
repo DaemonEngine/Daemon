@@ -39,15 +39,15 @@ void	main()
 	#insert material_fp
 
 	float s = length(var_ScaledViewerOffset);
-	float t = step( 0, var_FogPlaneDistance );
+	float t = step( 0.0, var_FogPlaneDistance );
 
-	if ( u_FogEyeT < 0 ) // eye outside fog
+	if ( u_FogEyeT < 0.0 ) // eye outside fog
 	{
 		// fraction of the viewer-to-vertex ray which is inside fog
-		t *= var_FogPlaneDistance / ( max( 0, var_FogPlaneDistance ) - u_FogEyeT );
+		t *= var_FogPlaneDistance / ( max( 0.0, var_FogPlaneDistance ) - u_FogEyeT );
 	}
 
-	vec4 color = vec4(1, 1, 1, GetFogAlpha(s, t));
+	vec4 color = vec4(1.0, 1.0, 1.0, GetFogAlpha(s, t));
 
 	color *= var_Color;
 

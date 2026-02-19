@@ -3421,7 +3421,7 @@ R_LoadLightGrid
 */
 void R_LoadLightGrid( lump_t *l )
 {
-	if ( glConfig.max3DTextureSize == 0 )
+	if ( !glConfig.texture3DAvailable )
 	{
 		Log::Warn( "Grid lighting disabled because of missing 3D texture support." );
 

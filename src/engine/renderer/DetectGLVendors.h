@@ -57,6 +57,7 @@ enum class glHardwareVendor_t
 	INTEL,
 	NVIDIA,
 	MTHREADS,
+	IMAGINATION,
 	NUM_HARDWARE_VENDORS,
 };
 
@@ -69,6 +70,8 @@ enum class glDriverVendor_t
 	MESA,
 	NVIDIA,
 	MTHREADS,
+	IMAGINATION,
+	GL4ES,
 	NUM_DRIVER_VENDORS,
 };
 

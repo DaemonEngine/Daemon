@@ -145,7 +145,7 @@ void Tess_StageIteratorSky()
 
 		Tess_ComputeTexMatrices( pStage );
 
-		gl_skyboxShader->SetUniform_TextureMatrix( tess.svars.texMatrices[TB_COLORMAP] );
+		SetUniform_TextureMatrix( gl_skyboxShader, tess.svars.texMatrices[TB_COLORMAP] );
 
 		gl_skyboxShader->SetUniform_CloudMapBindless(
 			GL_BindToTMU( 1, pStage->bundle[TB_COLORMAP].image[0] )
