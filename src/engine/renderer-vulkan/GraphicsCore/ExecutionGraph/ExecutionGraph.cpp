@@ -113,32 +113,23 @@ VkPipelineLayout GetPipelineLayout( uint32 pushConstSizeID ) {
 }
 
 bool BuildExecutionNode( const uint32 SPIRVID, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout ) {
+	VkPipelineRobustnessCreateInfo pipelineRobustnessInfo {
+		.storageBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED,
+		.uniformBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED,
+		.images         = VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DISABLED
+	};
+
 	const SPIRVModule& SPIRV = SPIRVBin[SPIRVID];
 
 	VkShaderModuleCreateInfo spirvInfo {
+		.pNext    = &pipelineRobustnessInfo,
 		.codeSize = SPIRV.size,
 		.pCode    = SPIRV.code
 	};
 
-	VkShaderModule module;
-	ResultCheckRet( vkCreateShaderModule( device, &spirvInfo, nullptr, &module ) );
-
-	/* VkPipelineRobustnessCreateInfo pipelineRobustness {
-		.storageBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED,
-		.uniformBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED,
-		.images         = VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DISABLED
-	}; */
-
-	VkPipelineRobustnessCreateInfo pipelineRobustness {
-		.storageBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT,
-		.uniformBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT,
-		.images         = VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DEVICE_DEFAULT
-	};
-
 	VkPipelineShaderStageCreateInfo pipelineStageInfo {
-		.pNext  = &pipelineRobustness,
+		.pNext  = &spirvInfo,
 		.stage  = VK_SHADER_STAGE_COMPUTE_BIT,
-		.module = module,
 		.pName  = "main"
 	};
 
@@ -156,48 +147,36 @@ bool BuildExecutionNode( const uint32 SPIRVID, VkPipeline* pipeline, VkPipelineL
 
 bool BuildGraphicsNode( const uint32 SPIRVIDVertex, const uint32 SPIRVIDFragment,
 	VkPipeline* pipeline, VkPipelineLayout* pipelineLayout ) {
+	VkPipelineRobustnessCreateInfo pipelineRobustnessInfo {
+		.storageBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED,
+		.uniformBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED,
+		.images         = VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DISABLED
+	};
+
 	const SPIRVModule& SPIRVVertex   = SPIRVBin[SPIRVIDVertex];
 	const SPIRVModule& SPIRVFragment = SPIRVBin[SPIRVIDFragment];
 
-	VkShaderModuleCreateInfo spirvInfoVertex {
+	VkShaderModuleCreateInfo spirvVertexInfo {
+		.pNext    = &pipelineRobustnessInfo,
 		.codeSize = SPIRVVertex.size,
 		.pCode    = SPIRVVertex.code
 	};
 
-	VkShaderModule moduleVertex;
-	ResultCheckRet( vkCreateShaderModule( device, &spirvInfoVertex, nullptr, &moduleVertex ) );
-
-	VkShaderModuleCreateInfo spirvInfoFragment {
+	VkShaderModuleCreateInfo spirvFragmentInfo {
+		.pNext    = &pipelineRobustnessInfo,
 		.codeSize = SPIRVFragment.size,
 		.pCode    = SPIRVFragment.code
 	};
 
-	VkShaderModule moduleFragment;
-	ResultCheckRet( vkCreateShaderModule( device, &spirvInfoFragment, nullptr, &moduleFragment ) );
-
-	/* VkPipelineRobustnessCreateInfo pipelineRobustness {
-		.storageBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED,
-		.uniformBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED,
-		.images         = VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DISABLED
-	}; */
-
-	VkPipelineRobustnessCreateInfo pipelineRobustness {
-		.storageBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT,
-		.uniformBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT,
-		.images         = VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DEVICE_DEFAULT
-	};
-
 	VkPipelineShaderStageCreateInfo pipelineStagesInfo[] {
 		{
-			.pNext  = &pipelineRobustness,
+			.pNext  = &spirvVertexInfo,
 			.stage  = VK_SHADER_STAGE_VERTEX_BIT,
-			.module = moduleVertex,
 			.pName  = "main"
 		},
 		{
-			.pNext  = &pipelineRobustness,
+			.pNext  = &spirvFragmentInfo,
 			.stage  = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.module = moduleFragment,
 			.pName  = "main"
 		}
 	};

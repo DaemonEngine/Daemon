@@ -152,6 +152,7 @@ constexpr Array featuresMinimal {
 	"synchronization2",
 	"maintenance5",
 	"maintenance6",
+	"pipelineRobustness",
 	"formatA4R4G4B4",
 	"extendedDynamicState",
 	"minLod",
