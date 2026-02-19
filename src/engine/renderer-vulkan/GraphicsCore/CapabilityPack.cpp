@@ -37,17 +37,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Memory/DynamicArray.h"
 
+#include "GraphicsCoreCVars.h"
+
 #include "FeaturesConfig.h"
 #include "FeaturesConfigMap.h"
 
 #include "CapabilityPack.h"
 
+static std::unordered_set<std::string> ParseDisabledOptionalFeatures( std::string features ) {
+	const char* start = features.c_str();
+	const char** text = &start;
+
+	std::unordered_set<std::string> out;
+
+	while ( true ) {
+		const char* token = COM_ParseExt2( text, false );
+		if ( !token || *token == '\0' ) {
+			break;
+		}
+
+		out.insert( token );
+	}
+
+	return out;
+}
+
 void SetConfigFeatures( const IteratorSeq<const char* const> featuresStart, const IteratorSeq<const char* const> featuresEnd, const bool optional,
+	const std::unordered_set<std::string> disabledOptionalFeatures,
 	const FeaturesConfig& cfg, FeaturesConfig* cfgOut, std::unordered_set<const char*>& extensions ) {
 	for ( IteratorSeq<const char* const> feature = featuresStart; feature < featuresEnd; feature++ ) {
 		const FeatureData& featureData = featuresConfigMap[*feature];
 
-		bool* cfgFeature    = ( bool* ) ( ( ( uint8* ) &cfg )    + featureData.offset );
+		bool* cfgFeature    = ( bool* ) ( ( ( uint8* ) &cfg    ) + featureData.offset );
 		bool* cfgOutFeature = ( bool* ) ( ( ( uint8* )  cfgOut ) + featureData.offset );
 
 		if ( optional && !*cfgFeature ) {
@@ -57,6 +78,11 @@ void SetConfigFeatures( const IteratorSeq<const char* const> featuresStart, cons
 		*cfgOutFeature = true;
 
 		if ( featureData.version > Version { 1, 4, 0 }
+			&& std::find_if( disabledOptionalFeatures.begin(), disabledOptionalFeatures.end(),
+				[&]( const std::string& disabledoptionalFeature ) {
+					return !Q_stricmp( *feature, disabledoptionalFeature.c_str() );
+				}
+			) == disabledOptionalFeatures.end()
 			&& std::find_if( extensions.begin(), extensions.end(),
 				[&]( const char* ext ) {
 					return !Q_stricmp( featureData.extension, ext );
@@ -112,15 +138,17 @@ DynamicArray<const char*> GetCapabilityPackFeatures( const CapabilityPackType::T
 
 	memset( cfgOut, 0, sizeof( FeaturesConfig ) );
 
+	std::unordered_set<std::string> disabledOptionalFeatures = ParseDisabledOptionalFeatures( r_vkDisabledOptionalFeatures.Get() );
+
 	switch ( type ) {
 		case CapabilityPackType::MINIMAL:
-			SetConfigFeatures(      featuresMinimal.begin(),      featuresMinimal.end(), false, cfg, cfgOut, extensionsSet );
+			SetConfigFeatures(      featuresMinimal.begin(),      featuresMinimal.end(), false, {}, cfg, cfgOut, extensionsSet );
 			AddRequiredExtensions( extensionsMinimal.begin(), extensionsMinimal.end(), extensionsSet );
 		case CapabilityPackType::RECOMMENDED:
-			SetConfigFeatures(  featuresRecommended.begin(),  featuresRecommended.end(), false, cfg, cfgOut, extensionsSet );
+			SetConfigFeatures(  featuresRecommended.begin(),  featuresRecommended.end(), false, {}, cfg, cfgOut, extensionsSet );
 			AddRequiredExtensions( extensionsMinimal.begin(), extensionsMinimal.end(), extensionsSet );
 		case CapabilityPackType::EXPERIMENTAL:
-			SetConfigFeatures( featuresExperimental.begin(), featuresExperimental.end(), false, cfg, cfgOut, extensionsSet );
+			SetConfigFeatures( featuresExperimental.begin(), featuresExperimental.end(), false, {}, cfg, cfgOut, extensionsSet );
 			AddRequiredExtensions( extensionsMinimal.begin(), extensionsMinimal.end(), extensionsSet );
 			break;
 		case CapabilityPackType::NONE:
@@ -128,7 +156,7 @@ DynamicArray<const char*> GetCapabilityPackFeatures( const CapabilityPackType::T
 			break;
 	}
 
-	SetConfigFeatures( featuresOptional.begin(), featuresOptional.end(), true, cfg, cfgOut, extensionsSet );
+	SetConfigFeatures( featuresOptional.begin(), featuresOptional.end(), true, disabledOptionalFeatures, cfg, cfgOut, extensionsSet );
 
 	DynamicArray<const char*> extensions;
 	extensions.Resize( extensionsSet.size() );

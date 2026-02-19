@@ -50,6 +50,9 @@ Cvar::Cvar<std::string>      r_vkVersion( "r_vkVersion", "Daemon-vulkan version"
 Cvar::Range<Cvar::Cvar<int>> r_vkCapabilityPack( "r_vkCapabilityPack", "CapabilityPack override",
 	Cvar::NONE, CapabilityPackType::MINIMAL, CapabilityPackType::MINIMAL, CapabilityPackType::EXPERIMENTAL );
 
+Cvar::Cvar<std::string>      r_vkDisabledOptionalFeatures( "r_vkDisabledOptionalFeatures",
+	"Space-separated list of disabled optional features in the CapabilityPack", Cvar::NONE, "" );
+
 Cvar::Cvar<int>              r_vkDevice( "r_vkDevice", "Use specific GPU (-1: auto)", Cvar::NONE, -1 );
 
 Cvar::Cvar<int>              r_displayIndex( "r_displayIndex", "Display index to create the window in", Cvar::NONE, 0 );
