@@ -44,9 +44,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ThreadMemory::~ThreadMemory() {
 	for ( DynamicArray<ChunkAllocator>& chunkAllocator : chunkAllocators ) {
 		for ( uint32 i = 0; i < chunkAllocator.elements; i++ ) {
-			ChunkAllocator& alloc = chunkAllocator[i];
+			ChunkAllocator& alloc     = chunkAllocator[i];
 
-			uint64 chunkArea = alloc.availableChunks;
+			uint64          chunkArea = alloc.availableChunks;
 
 			while ( chunkArea ) {
 				uint32 chunk = FindLSB( chunkArea );
@@ -68,7 +68,7 @@ void ThreadMemory::Init() {
 
 	for ( int i = 0; i < MAX_MEMORY_AREAS; i++ ) {
 		DynamicArray<ChunkAllocator>& chunkAllocator = chunkAllocators[i];
-		MemoryAreaConfig& config = memoryChunkSystem.config.areas[i];
+		MemoryAreaConfig&             config         = memoryChunkSystem.config.areas[i];
 
 		chunkAllocator.Resize( config.chunkAreas );
 		chunkAllocator.Zero();
@@ -85,29 +85,26 @@ byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {
 	ASSERT_EQ( ( alignment & ( alignment - 1 ) ), 0 );
 
 	const uint64 paddedSize = ( size + sizeof( AllocationRecord ) + alignment - 1 ) & ~( alignment - 1 );
-	const uint64 dataSize = paddedSize - sizeof( AllocationRecord );
 
 	uint32 level;
 	uint32 count;
 
 	memoryChunkSystem.SizeToLevel( paddedSize, &level, &count );
 
-	MemoryChunkRecord* found = nullptr;
-	uint32 chunkID = level | ( 1ull << 31 );
+	MemoryChunkRecord* record  = nullptr;
+	uint32             chunkID = level | ( 1ull << 31 );
 
-	for ( uint32 i = 0; i < chunkAllocators[level].elements; i++ ) {
+	for ( uint32 i = 0; i < chunkAllocators[level].elements && !record; i++ ) {
 		ChunkAllocator& chunkAllocator = chunkAllocators[level][i];
 
-		uint64& chunkArea = chunkAllocator.availableChunks;
-		uint64 area = chunkArea;
+		uint64&         chunkArea      = chunkAllocator.availableChunks;
+		uint64          area           = chunkArea;
 
 		while ( area ) {
 			uint64 chunk = FindLSB( area );
-			MemoryChunkRecord* record = &chunkAllocator.chunks[chunk];
+			record       = &chunkAllocator.chunks[chunk];
 
 			if ( record->chunk.size >= record->offset + paddedSize ) {
-				found = record;
-
 				if ( record->offset + paddedSize == record->chunk.size ) {
 					UnSetBit( &chunkArea, chunk );
 				}
@@ -115,29 +112,26 @@ byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {
 				chunkID |= ( i * 64 + chunk ) << 4;
 
 				break;
+			} else {
+				record = nullptr;
 			}
 
 			UnSetBit( &area, chunk );
 		}
-
-		if ( found ) {
-			break;
-		}
 	}
 
-	if ( !found ) {
-		MemoryChunk chunk = memoryChunkSystem.Alloc( paddedSize );
+	if ( !record ) {
+		MemoryChunk     chunk              = memoryChunkSystem.Alloc( paddedSize );
 
-		ChunkAllocator& chunkAllocator = chunkAllocators[chunk.level][chunk.chunkArea];
-		const uint32 id = chunk.chunkArea * 64 + chunk.chunk;
+		ChunkAllocator& chunkAllocator     = chunkAllocators[chunk.level][chunk.chunkArea];
+		const uint32    id                 = chunk.chunkArea * 64 + chunk.chunk;
 
 		SetBit( &chunkAllocator.availableChunks, chunk.chunk );
-		chunkAllocator.chunks[chunk.chunk].chunk = chunk;
-		chunkAllocator.chunks[chunk.chunk].offset = 0;
+		chunkAllocator.chunks[chunk.chunk] = { .chunk = chunk };
 
 		SetBit( &chunkAllocator.allocatedChunks, chunk.chunk );
 
-		found = &chunkAllocator.chunks[chunk.chunk];
+		record   = &chunkAllocator.chunks[chunk.chunk];
 		chunkID |= id << 4;
 	}
 
@@ -154,16 +148,20 @@ byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {
 		source = source.erase( pos, strlen( pathStrip ) );
 	}
 
-	AllocationRecord alloc { .size = dataSize, .alignment = ( uint32 ) alignment, .chunkID = chunkID };
+	AllocationRecord alloc {
+		.size      = paddedSize - sizeof( AllocationRecord ),
+		.alignment = ( uint32 ) alignment,
+		.chunkID   = chunkID
+	};
 
 	Q_strncpyz( alloc.source, source.c_str(), 103 );
 	alloc.source[103] = '\0';
 
-	*( ( AllocationRecord* ) ( found->chunk.memory + found->offset ) ) = alloc;
+	*( ( AllocationRecord* ) ( record->chunk.memory + record->offset ) ) = alloc;
 
-	byte* ret = found->chunk.memory + found->offset + sizeof( AllocationRecord );
-	found->offset += paddedSize;
-	found->allocs++;
+	byte* ret         = record->chunk.memory + record->offset + sizeof( AllocationRecord );
+	record->offset   += paddedSize;
+	record->allocs++;
 
 	return ret;
 }
@@ -177,15 +175,18 @@ void ThreadMemory::Free( byte* memory ) {
 
 	UnSetBit( &record->chunkID, 31 );
 
-	uint32 chunkID = record->chunkID >> 4;
-	uint32 area = chunkID / 64;
-	ChunkAllocator& chunkAllocator = chunkAllocators[record->chunkID & 0xF][area];
+	uint32             chunkID        = record->chunkID >> 4;
+	uint32             area           = chunkID / 64;
+	ChunkAllocator&    chunkAllocator = chunkAllocators[record->chunkID & 0xF][area];
 
-	uint32 chunk = chunkID - area;
-	chunkAllocator.chunks[chunk].allocs--;
+	uint32             chunk          = chunkID - area;
 
-	if ( !chunkAllocator.chunks[chunk].allocs ) {
-		chunkAllocator.chunks[chunk].offset = 0;
+	MemoryChunkRecord& chunkRecord    = chunkAllocator.chunks[chunk];
+
+	chunkRecord.allocs--;
+
+	if ( !chunkRecord.allocs ) {
+		chunkRecord.offset = 0;
 	}
 
 	SetBit( &chunkAllocator.availableChunks, chunk );
@@ -193,13 +194,12 @@ void ThreadMemory::Free( byte* memory ) {
 
 void ThreadMemory::FreeAllChunks() {
 	for ( DynamicArray<ChunkAllocator>& allocs : chunkAllocators ) {
-		for ( uint32 i = 0; i < allocs.elements; i++ ) {
-			ChunkAllocator& chunkAllocator = allocs[i];
-			uint64& allocatedChunk = chunkAllocator.allocatedChunks;
+		for ( ChunkAllocator& chunkAllocator : allocs ) {
+			uint64&                allocatedChunk = chunkAllocator.allocatedChunks;
 
 			while ( allocatedChunk ) {
-				uint32 chunk = FindLSB( allocatedChunk );
-				MemoryChunkRecord* record = &chunkAllocator.chunks[chunk];
+				uint32             chunk          = FindLSB( allocatedChunk );
+				MemoryChunkRecord* record         = &chunkAllocator.chunks[chunk];
 
 				if ( record->allocs ) {
 					Log::WarnTagT( "Non-freed allocations in memory chunk:" );
@@ -219,7 +219,7 @@ void ThreadMemory::PrintChunkInfo( MemoryChunkRecord* memoryChunk ) {
 	Log::NoticeTagT( "Chunk: size: %u, offset: %u, active allocations: %u",
 		memoryChunk->chunk.size, memoryChunk->offset, memoryChunk->allocs );
 
-	uint64 offset = 0;
+	uint64            offset = 0;
 	AllocationRecord* record = ( AllocationRecord* ) memoryChunk->chunk.memory;
 
 	uint32 allocs = 0;
@@ -237,7 +237,7 @@ void ThreadMemory::PrintChunkInfo( MemoryChunkRecord* memoryChunk ) {
 		}
 
 		offset += record->size;
-		record = ( AllocationRecord* ) ( memoryChunk->chunk.memory + offset );
+		record  = ( AllocationRecord* ) ( memoryChunk->chunk.memory + offset );
 	}
 }
 
