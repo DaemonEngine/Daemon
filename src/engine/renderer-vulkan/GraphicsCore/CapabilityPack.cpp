@@ -45,8 +45,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CapabilityPack.h"
 
 static std::unordered_set<std::string> ParseDisabledOptionalFeatures( std::string features ) {
-	const char* start = features.c_str();
-	const char** text = &start;
+	const char*  start = features.c_str();
+	const char** text  = &start;
 
 	std::unordered_set<std::string> out;
 
