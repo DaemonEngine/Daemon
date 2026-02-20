@@ -63,6 +63,7 @@ struct SwapChain : public GraphicsResource {
 	uint32         imageCount;
 
 	DynamicArray<Image> images;
+	DynamicArray<VkSemaphore> presentSemaphores;
 
 	void Init( const VkInstance instance );
 	void Free() override;
