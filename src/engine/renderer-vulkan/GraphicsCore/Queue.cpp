@@ -179,3 +179,35 @@ uint64 Queue::Submit( VkCommandBuffer cmd ) {
 
 	return out;
 }
+
+uint64 Queue::SubmitForPresent( VkCommandBuffer cmd, VkSemaphore presentSemaphore ) {
+	while ( !accessLock.LockWrite() );
+
+	VkCommandBufferSubmitInfo execCmdSubmitInfo {
+		.commandBuffer = cmd
+	};
+
+	executionPhase++;
+	VkSemaphoreSubmitInfo signalSemaphoreInfos[] {
+		executionPhase.GenSubmitInfo( VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT ),
+		{
+			.semaphore = presentSemaphore,
+			.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
+		}
+	};
+
+	VkSubmitInfo2 execSubmitInfo {
+		.commandBufferInfoCount   = 1,
+		.pCommandBufferInfos      = &execCmdSubmitInfo,
+		.signalSemaphoreInfoCount = 2,
+		.pSignalSemaphoreInfos    = signalSemaphoreInfos
+	};
+
+	vkQueueSubmit2( queue, 1, &execSubmitInfo, nullptr );
+
+	uint64 out = executionPhase.value;
+
+	accessLock.UnlockWrite();
+
+	return out;
+}
