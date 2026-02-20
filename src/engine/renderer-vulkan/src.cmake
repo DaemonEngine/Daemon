@@ -93,6 +93,8 @@ set( graphicsCoreList
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineConfig.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineConfig.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineDispatch.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineDispatch.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/FeaturesConfig.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/FeaturesConfig.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/FeaturesConfigMap.cpp
