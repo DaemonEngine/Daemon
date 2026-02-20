@@ -63,7 +63,8 @@ enum NodeType : uint8 {
 	NODE_PUSH      = 3,
 	NODE_BUFFER    = 4,
 	NODE_IMAGE     = 5,
-	NODE_EXTERNAL  = 6
+	NODE_EXTERNAL  = 6,
+	NODE_PRESENT   = 7
 };
 
 enum ResourceType : uint32 {
@@ -76,14 +77,19 @@ enum ResourceType : uint32 {
 	RESOURCE_FRAGMENT_WRITE = RESOURCE_FRAGMENT_READ
 };
 
+struct ExecutionGraphNode {
+	uint8  type;
+	uint8  id;
+	uint8  data[23];
+};
+
 struct ExecutionNode {
 	uint8  type = NODE_EXECUTION;
 	uint8  id;
 	uint16 computeID;
 	uint32 workgroupCount;
-	uint16 readResources;
-	uint16 writeResources;
 	uint32 nodeDependencies;
+	uint32 nodeDependencyTypes;
 	uint64 graphicsSettings;
 };
 
@@ -93,7 +99,8 @@ struct BufferBindNode {
 	uint32 indirectBuffer;
 	uint32 countBuffer;
 	uint32 indexBuffer;
-	uint64 padding;
+	uint32 vertexBuffer;
+	uint32 padding;
 };
 
 struct GraphicsNode {
@@ -101,10 +108,9 @@ struct GraphicsNode {
 	uint8  id;
 	uint16 vertexID;
 	uint16 fragmentID;
-	uint16 readResources;
-	uint16 writeResources;
 	uint16 pipelineStates;
 	uint32 nodeDependencies;
+	uint32 nodeDependencyTypes;
 	uint64 graphicsSettings;
 };
 
@@ -193,10 +199,8 @@ struct BufferNode {
 	uint8     type = NODE_BUFFER;
 	uint8     id;
 	uint16    bufferID;
-	BufferSrc src = BUFFER_EXECUTION_GRAPH;
 	uint64    size;
 	uint32    usage;
-	uint32    heap;
 };
 
 struct ImageNode {
@@ -206,10 +210,23 @@ struct ImageNode {
 	uint32    TBD[5];
 };
 
+struct ExternalNode {
+	uint8     type = NODE_EXTERNAL;
+	uint8     id;
+	bool      acquireSwapChain;
+	uint8     padding[21];
+};
+
+struct PresentNode {
+	uint8     type = NODE_PRESENT;
+	uint8     id;
+	bool      active;
+	uint8     padding[21];
+};
+
 class ExecutionGraph {
 	public:
-	void Init( const char* engineName, const char* appName );
-	void Build( const uint64 newGenID, DynamicArray<ExecutionNode>& nodes );
+	void Build( const QueueType newType, const uint64 newGenID, DynamicArray<ExecutionGraphNode>& nodes );
 	void Exec();
 
 	private:
@@ -217,13 +234,20 @@ class ExecutionGraph {
 	static constexpr uint32 cmdPoolBits = 8;
 	static constexpr uint32 genIDBits   = 50;
 
-	DynamicArray<ExecutionNode> processedNodes;
+	QueueType                        type;
 
-	std::atomic<uint64>         cmdID = 0;
+	ExternalNode                     acquireNode {};
+	VkSemaphore                      acquireSemaphore = nullptr;
+	PresentNode                      presentNode { .active = false };
+
+	DynamicArray<ExecutionGraphNode> processedNodes {};
+
+	std::atomic<uint64>              cmdID = 0;
 };
 
 bool BuildExecutionNode( const uint32 SPIRVID, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout );
-void Build();
+
+DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src );
 
 void TestCmd();
 

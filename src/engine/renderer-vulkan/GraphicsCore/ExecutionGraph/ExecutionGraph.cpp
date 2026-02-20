@@ -285,14 +285,42 @@ static void ExecPushConstNode( PushConstNode* node, VkCommandBuffer cmd, VkPipel
 	vkCmdPushConstants( cmd, pipelineLayout, VK_SHADER_STAGE_ALL, node->offset, node->data.size, data );
 }
 
-void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& nodes ) {
+uint32 ExecExternalNode( ExternalNode* node, VkSemaphore acquireSemaphore ) {
+	if ( !node->acquireSwapChain ) {
+		return 0;
+	}
+
+	return mainSwapChain.AcquireNextImage( UINT64_MAX, nullptr, acquireSemaphore );
+}
+
+void ExecPresentNode( Queue& queue, PresentNode* node, VkSemaphore presentSemaphore, uint32 image ) {
+	if ( !node->active ) {
+		return;
+	}
+
+	VkPresentInfoKHR presentInfo {
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores    = &presentSemaphore,
+
+		.swapchainCount     = 1,
+		.pSwapchains        = &mainSwapChain.swapChain,
+		.pImageIndices      = &image,
+		.pResults           = nullptr
+	};
+
+	vkQueuePresentKHR( queue.queue, &presentInfo );
+}
+
+void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, DynamicArray<ExecutionGraphNode>& nodes ) {
 	if ( !buffers.size ) {
 		buffers.Resize( 32 );
 		buffers.Zero();
 	}
 
-	processedNodes.Resize( nodes.size );
+	processedNodes.Resize( nodes.elements );
 	processedNodes.Zero();
+
+	type = newType;
 
 	uint64 state        = cmdBufferStates[TLM.id].value.load( std::memory_order_relaxed );
 	uint32 bufID        = FindZeroBitFast( state );
@@ -327,67 +355,55 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 
 	PushConstNode* pushNode = nullptr;
 
-	for ( ExecutionNode& node : nodes ) {
+	for ( ExecutionGraphNode& node : nodes ) {
 		switch ( node.type ) {
 			case NODE_EXECUTION:
 			{
-				ExecutionNode& executionNode = node;
+				ExecutionNode& executionNode = ( ExecutionNode& ) node;
 				BuildExecutionNode( executionNode.computeID, &pipeline, &pipelineLayout );
 
-				uint64 nodeDeps = executionNode.nodeDependencies;
-				uint32 readDeps = executionNode.readResources;
+				uint32 nodeDeps      = executionNode.nodeDependencies;
+				uint32 nodeDepsTypes = executionNode.nodeDependencyTypes;
 
-				DynamicArray<VkBufferMemoryBarrier2> bufferBarriers;
-
-				uint32 i = 0;
-				while ( nodeDeps ) {
-					uint32 dep     = FindLSB( nodeDeps );
-					uint32 depType = BitSet( nodeDeps, dep + 1 );
-
-					uint32 depMask = readDeps & nodes[dep].writeResources;
-					i             += CountBits( depMask );
-				}
-
-				bufferBarriers.Resize( i );
-
-				i = 0;
+				VkPipelineStageFlags2 srcStage  = 0;
+				VkAccessFlags2        srcAccess = 0;
 
 				while ( nodeDeps ) {
 					uint32 dep     = FindLSB( nodeDeps );
-					uint32 depType = BitSet( nodeDeps, dep + 1 );
 
-					uint32 depMask = readDeps & nodes[dep].writeResources;
-
-					const bool executionDep = nodes[dep].type == NODE_EXECUTION;
-					const bool fragmentDep  = executionDep && depType == RESOURCE_FRAGMENT_WRITE;
-
-					while ( depMask ) {
-						bufferBarriers[i]  = VkBufferMemoryBarrier2 {
-							.srcStageMask  = executionDep
-								? VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
-								: VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-							.srcAccessMask = fragmentDep
-								? VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
-								: VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-							.dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-							.dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
-							.buffer        = buffers[FindLSB( depMask )].buffer,
-							.offset        = 0,
-							.size          = VK_WHOLE_SIZE
-						};
-
-						UnSetBit( &depMask, FindLSB( depMask ) );
-
-						i++;
+					switch ( nodes[dep].type ) {
+						case NODE_EXECUTION:
+							srcStage  |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+							srcAccess |= VK_ACCESS_2_SHADER_WRITE_BIT;
+							break;
+						case NODE_GRAPHICS:
+							srcStage  |= BitSet( nodeDepsTypes, dep )
+							             ? VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+							             : VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+							srcAccess |= BitSet( nodeDepsTypes, dep )
+							             ? VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+							             : VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+							break;
 					}
+
+					UnSetBit( &nodeDeps, dep );
 				}
 
-				VkDependencyInfo dependencyInfo {
-					.bufferMemoryBarrierCount = ( uint32 ) bufferBarriers.size,
-					.pBufferMemoryBarriers    = bufferBarriers.memory
-				};
+				if ( srcStage || srcAccess ) {
+					VkMemoryBarrier2 memoryBarrierInfo {
+						.srcStageMask  = srcStage,
+						.srcAccessMask = srcAccess,
+						.dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+						.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT
+					};
 
-				vkCmdPipelineBarrier2( cmd, &dependencyInfo );
+					VkDependencyInfo dependencyInfo {
+						.memoryBarrierCount = 1,
+						.pMemoryBarriers    = &memoryBarrierInfo
+					};
+
+					vkCmdPipelineBarrier2( cmd, &dependencyInfo );
+				}
 
 				vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline );
 				vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr );
@@ -406,74 +422,45 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 				GraphicsNode& graphicsNode = *( GraphicsNode* ) &node;
 				BuildGraphicsNode( graphicsNode.vertexID, graphicsNode.fragmentID, &pipeline, &pipelineLayout );
 
-				uint64 nodeDeps = graphicsNode.nodeDependencies;
-				uint32 readDeps = graphicsNode.readResources;
+				uint32 nodeDeps      = graphicsNode.nodeDependencies;
+				// uint32 nodeDepsTypes = graphicsNode.nodeDependencyTypes;
 
-				DynamicArray<VkBufferMemoryBarrier2> bufferBarriers;
-
-				uint32 i = 0;
-				while ( nodeDeps ) {
-					uint32 dep     = FindLSB( nodeDeps );
-					uint32 depType = BitSet( nodeDeps, dep + 1 );
-
-					uint32 depMask = readDeps & nodes[dep].writeResources;
-					i             += CountBits( depMask );
-				}
-
-				bufferBarriers.Resize( i );
-
-				i = 0;
+				VkPipelineStageFlags2 srcStage;
+				VkAccessFlags2        srcAccess;
+				VkPipelineStageFlags2 dstStage;
+				VkAccessFlags2        dstAccess;
 
 				while ( nodeDeps ) {
 					uint32 dep     = FindLSB( nodeDeps );
-					uint32 depType = BitSet( nodeDeps, dep + 1 );
 
-					uint32 depMask = readDeps & nodes[dep].writeResources;
-
-					const bool executionDep = nodes[dep].type == NODE_EXECUTION;
-					const bool fragmentDep  = executionDep && depType == RESOURCE_FRAGMENT_READ;
-
-					while ( depMask ) {
-						Buffer& buffer = buffers[FindLSB( depMask )];
-
-						VkPipelineStageFlags2 dstStage = fragmentDep ? VK_ACCESS_2_SHADER_STORAGE_READ_BIT : 0;
-
-						dstStage |= ( buffer.usage & VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT ) ? VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT : 0;
-						dstStage |= ( buffer.usage & VK_BUFFER_USAGE_INDEX_BUFFER_BIT )    ? VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT   : 0;
-
-						VkAccessFlags2 dstAccess = fragmentDep ? VK_ACCESS_2_SHADER_STORAGE_READ_BIT : 0;
-
-						dstStage |= ( buffer.usage & VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT ) ? VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT : 0;
-						dstStage |= ( buffer.usage & VK_BUFFER_USAGE_INDEX_BUFFER_BIT )    ? VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT   : 0;
-						dstStage |= ( buffer.usage & VK_BUFFER_USAGE_VERTEX_BUFFER_BIT )
-							? VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT : VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
-
-						bufferBarriers[i]  = VkBufferMemoryBarrier2 {
-							.srcStageMask  = executionDep
-								? VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
-								: VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-							.srcAccessMask = fragmentDep
-								? VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
-								: VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-							.dstStageMask  = dstStage,
-							.dstAccessMask = dstAccess,
-							.buffer        = buffer.buffer,
-							.offset        = 0,
-							.size          = VK_WHOLE_SIZE
-						};
-
-						UnSetBit( &depMask, FindLSB( depMask ) );
-
-						i++;
+					switch ( nodes[dep].type ) {
+						case NODE_EXECUTION:
+							srcStage  |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+							srcAccess |= VK_ACCESS_2_SHADER_WRITE_BIT;
+							dstStage  |= VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT
+							          |  VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+							dstAccess |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_2_INDEX_READ_BIT | VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
+							break;
 					}
+
+					UnSetBit( &nodeDeps, dep );
 				}
 
-				VkDependencyInfo dependencyInfo {
-					.bufferMemoryBarrierCount = ( uint32 ) bufferBarriers.size,
-					.pBufferMemoryBarriers    = bufferBarriers.memory
-				};
+				if ( srcStage || srcAccess ) {
+					VkMemoryBarrier2 memoryBarrierInfo {
+						.srcStageMask  = srcStage,
+						.srcAccessMask = srcAccess,
+						.dstStageMask  = dstStage,
+						.dstAccessMask = dstAccess
+					};
 
-				vkCmdPipelineBarrier2( cmd, &dependencyInfo );
+					VkDependencyInfo dependencyInfo {
+						.memoryBarrierCount = 1,
+						.pMemoryBarriers    = &memoryBarrierInfo
+					};
+
+					vkCmdPipelineBarrier2( cmd, &dependencyInfo );
+				}
 
 				vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline );
 				vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr );
@@ -526,6 +513,32 @@ void ExecutionGraph::Build( const uint64 newGenID, DynamicArray<ExecutionNode>& 
 
 				break;
 			}
+
+			case NODE_EXTERNAL:
+			{
+				acquireNode = *( ExternalNode* ) &node;
+
+				if ( !acquireSemaphore ) {
+					VkSemaphoreTypeCreateInfo semaphoreTypeInfo {
+						.semaphoreType = VK_SEMAPHORE_TYPE_BINARY
+					};
+
+					VkSemaphoreCreateInfo     semaphoreInfo {
+						.pNext = &semaphoreTypeInfo
+					};
+
+					vkCreateSemaphore( device, &semaphoreInfo, nullptr, &acquireSemaphore );
+				}
+
+				break;
+			}
+
+			case NODE_PRESENT:
+			{
+				presentNode = *( PresentNode* ) &node;
+
+				break;
+			}
 		}
 	}
 
@@ -554,7 +567,16 @@ void ExecutionGraph::Exec() {
 		.pCommandBufferInfos    = &cmdInfo
 	};
 
-	vkQueueSubmit2( graphicsQueue.queue, 1, &submitInfo, nullptr );
+	uint32 image = ExecExternalNode( &acquireNode, acquireSemaphore );
+
+	Queue& queue = GetQueueByType( type );
+
+	if ( presentNode.active ) {
+		queue.SubmitForPresent( cmdInfo.commandBuffer, mainSwapChain.presentSemaphores[image] );
+		ExecPresentNode( queue, &presentNode, mainSwapChain.presentSemaphores[image], image );
+	} else {
+		queue.Submit( cmdInfo.commandBuffer );
+	}
 }
 
 void ResetCmdBuffer( const uint32 bufID ) {
@@ -563,6 +585,282 @@ void ResetCmdBuffer( const uint32 bufID ) {
 	vkResetCommandBuffer( cmd, 0 );
 
 	cmdBufferStates[TLM.id].value.fetch_sub( SetBit( 0u, bufID ), std::memory_order_relaxed );
+}
+
+void ParseNodeDeps( const char** text, std::unordered_map<std::string, uint32>& nodes, uint32* nodeDeps, uint32* nodeDepsTypes ) {
+	const char* token = COM_ParseExt2( text, false );
+
+	if ( *token != '{' ) {
+		return;
+	}
+
+	*nodeDeps        = 0;
+	*nodeDepsTypes   = 0;
+	bool   colourDep = false;
+	while( true ) {
+		token = COM_ParseExt2( text, false );
+
+		if ( *token == '}' ) {
+			break;
+		}
+
+		if ( !Q_stricmp( token, "COLOR" ) ) {
+			colourDep = true;
+			break;
+		}
+
+		uint32 dep = nodes[token];
+
+		SetBit( nodeDeps, dep );
+
+		if ( colourDep ) {
+			SetBit( nodeDepsTypes, dep );
+		}
+	}
+}
+
+PushConstNode ParsePushConst( const char** text, std::unordered_map<std::string, uint32>& nodes ) {
+	const char* token = COM_ParseExt2( text, false );
+
+	if ( *token != '{' ) {
+		return {};
+	}
+
+	PushConstNode out {};
+
+	BitStream specialIDsStream { out.data.specialIDs };
+	BitStream dataStream       { out.data.data };
+
+	while( true ) {
+		token = COM_ParseExt2( text, false );
+
+		if ( *token == '}' ) {
+			break;
+		}
+
+		if ( !Q_stricmp( token, "coreToEngine" ) ) {
+			specialIDsStream.Write( PUSH_BUFFER_EXTRA_ADDRESS, 4 );
+			dataStream.Write( ( uint32 ) 0, 8);
+
+			out.data.size += 8;
+			continue;
+		}
+
+		if ( !Q_stricmp( token, "engineToCore" ) ) {
+			specialIDsStream.Write( PUSH_BUFFER_EXTRA_ADDRESS, 4 );
+			dataStream.Write( ( uint32 ) 1, 8);
+
+			out.data.size += 8;
+			continue;
+		}
+
+		dataStream.Write( nodes[token], 8 );
+
+		out.data.size += 8;
+	}
+
+	return out;
+}
+
+DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
+	const char*  start = src.c_str();
+	const char** text  = &start;
+
+	std::unordered_map<std::string, uint32> nodesToSPIRV;
+	std::unordered_map<std::string, uint32> nodesToBuffer;
+
+	DynamicArray<ExecutionGraphNode> out;
+
+	uint8 id = 0;
+
+	while ( true ) {
+		const char* token = COM_ParseExt2( text, true );
+		if ( !token || *token == '\0' ) {
+			break;
+		}
+
+		if ( SPIRVMap.find( token ) != SPIRVMap.end() ) {
+			const uint32 SPIRVID     = SPIRVMap.at( token );
+
+			const SPIRVModule& spirv = SPIRVBin[SPIRVID];
+
+			token                    = COM_ParseExt2( text, true );
+			nodesToSPIRV[token]      = id;
+
+			uint32 nodeDeps;
+			uint32 nodeDepsTypes;
+
+			switch ( spirv.type ) {
+				case SPIRV_COMPUTE:
+					token = COM_ParseExt2( text, false );
+
+					int workgroupCount;
+					Q_strtoi( token, &workgroupCount );
+
+					ParseNodeDeps( text, nodesToSPIRV, &nodeDeps, &nodeDepsTypes );
+
+					{
+						ExecutionNode node {
+							.id                  = id,
+							.computeID           = ( uint16 ) SPIRVID,
+							.workgroupCount      = ( uint32 ) workgroupCount,
+							.nodeDependencies    = nodeDeps,
+							.nodeDependencyTypes = nodeDepsTypes
+						};
+
+						out.Push( *( ExecutionGraphNode* ) &node );
+					}
+
+					break;
+				case SPIRV_VERTEX:
+				case SPIRV_FRAGMENT:
+					uint32 vertex;
+					uint32 fragment;
+
+					if ( spirv.type == SPIRV_VERTEX ) {
+						vertex   = SPIRVID;
+						token    = COM_ParseExt2( text, false );
+						fragment = SPIRVMap.at( token );
+					} else {
+						fragment = SPIRVID;
+						token    = COM_ParseExt2( text, false );
+						vertex   = SPIRVMap.at( token );
+					}
+
+					ParseNodeDeps( text, nodesToSPIRV, &nodeDeps, &nodeDepsTypes );
+
+					{
+						GraphicsNode node {
+							.id                  = id,
+							.vertexID            = ( uint16 ) vertex,
+							.fragmentID          = ( uint16 ) fragment,
+							.nodeDependencies    = nodeDeps,
+							.nodeDependencyTypes = nodeDepsTypes
+						};
+
+						out.Push( *( ExecutionGraphNode* ) &node );
+					}
+
+					break;
+			}
+
+			id++;
+
+			continue;
+		}
+
+		if ( !Q_stricmp( token, "bind" ) ) {
+			int indirect;
+			int count;
+			int index;
+			int vertex;
+
+			token = COM_ParseExt2( text, false );
+			Q_strtoi( token, &indirect );
+
+			token = COM_ParseExt2( text, false );
+			Q_strtoi( token, &count );
+
+			token = COM_ParseExt2( text, false );
+			Q_strtoi( token, &index );
+
+			token = COM_ParseExt2( text, false );
+			Q_strtoi( token, &vertex );
+
+			BufferBindNode node {
+				.id             = ( uint32 ) id,
+				.indirectBuffer = ( uint32 ) indirect,
+				.countBuffer    = ( uint32 ) count,
+				.indexBuffer    = ( uint32 ) index,
+				.vertexBuffer   = ( uint32 ) vertex
+			};
+
+			out.Push( *( ExecutionGraphNode* ) &node );
+
+			id++;
+
+			continue;
+		}
+
+		if ( !Q_stricmp( token, "push" ) ) {
+			PushConstNode node = ParsePushConst( text, nodesToBuffer );
+			out.Push( *( ExecutionGraphNode* ) &node );
+
+			id++;
+
+			continue;
+		}
+
+		if ( !Q_stricmp( token, "buffer" ) ) {
+			token = COM_ParseExt2( text, false );
+
+			std::string name = token;
+
+			int bufferID;
+			int size;
+			int usage;
+
+			token = COM_ParseExt2( text, false );
+			Q_strtoi( token, &bufferID );
+
+			token = COM_ParseExt2( text, false );
+			Q_strtoi( token, &size );
+
+			token = COM_ParseExt2( text, false );
+			Q_strtoi( token, &usage );
+
+			nodesToBuffer[name] = bufferID;
+
+			BufferNode node {
+				.id       = id,
+				.bufferID = ( uint16 ) bufferID,
+				.size     = ( uint64 ) size,
+				.usage    = ( uint32 ) usage
+			};
+
+			out.Push( *( ExecutionGraphNode* ) &node );
+
+			id++;
+
+			continue;
+		}
+
+		if ( !Q_stricmp( token, "image" ) ) {
+			// out.Push( *( ExecutionGraphNode* ) &ParsePushConst( text, nodesToBuffer ) );
+
+			id++;
+
+			continue;
+		}
+
+		if ( !Q_stricmp( token, "external" ) ) {
+			ExternalNode node {
+				.id               = id,
+				.acquireSwapChain = true
+			};
+
+			out.Push( *( ExecutionGraphNode* ) &node );
+
+			id++;
+
+			continue;
+		}
+
+		if ( !Q_stricmp( token, "present" ) ) {
+			PresentNode node {
+				.id     = id,
+				.active = true
+			};
+
+			out.Push( *( ExecutionGraphNode* ) &node );
+
+			id++;
+
+			continue;
+		}
+	}
+
+	return out;
 }
 
 void TestCmd() {
@@ -575,110 +873,4 @@ void TestCmd() {
 
 	extraBuffers[1] = engineAllocator.AllocDedicatedBuffer( MemoryHeap::ENGINE_TO_CORE, 65536 );
 	memset( extraBuffers[1].memory, 0, 65536 );
-
-	BufferNode testBuffer {
-		.id = 2,
-		.size = 65536
-	};
-
-	PushConstNode testPush {
-		.id = 1,
-		.offset = 0,
-		.data = {
-			{ { PUSH_BUFFER_EXTRA_ADDRESS, 0 }, { PUSH_BUFFER_EXTRA_ADDRESS, 1 } },
-			// { 0, 1, 2, 3, 4, 5, 6 , 7, 8, 9, 10 }
-		}
-	};
-
-	ExecutionNode testExec {
-		.id = 2,
-		.computeID = MsgStream,
-		.workgroupCount = 1
-	};
-
-	DynamicArray<ExecutionNode> nodes { *( ExecutionNode* ) &testBuffer, *( ExecutionNode* ) &testPush, testExec };
-
-	InitCmdPools();
-
-	ExecutionGraph testEG;
-	testEG.Build( 0, nodes );
-
-	VkSemaphoreTypeCreateInfo sInfo {
-		.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
-		.initialValue = 0
-	};
-
-	VkSemaphoreCreateInfo sInfo2 {
-		.pNext = &sInfo
-	};
-
-	VkSemaphore semaphore;
-	vkCreateSemaphore( device, &sInfo2, nullptr, &semaphore );
-
-	DynamicArray<VkImage> images;
-	images.Resize( mainSwapChain.imageCount );
-
-	uint32 imageCount = mainSwapChain.imageCount;
-	vkGetSwapchainImagesKHR( device, mainSwapChain.swapChain, &imageCount, images.memory );
-
-	uint64 waitValue = 1;
-	Timer t;
-	for ( int j = 0; j < 100; j++ ) {
-		VkSemaphoreWaitInfo waitInfo {
-			.semaphoreCount = 1,
-			.pSemaphores = &semaphore,
-			.pValues = &waitValue
-		};
-
-		VkTimelineSemaphoreSubmitInfo qsInfo {
-			.signalSemaphoreValueCount = 1,
-			.pSignalSemaphoreValues = &waitValue
-		};
-
-		/* VkSubmitInfo qInfo {
-			.pNext = &qsInfo,
-			.commandBufferCount = 1,
-			.pCommandBuffers = &cmd,
-			.signalSemaphoreCount = 1,
-			.pSignalSemaphores = &semaphore
-		};
-
-		vkQueueSubmit( graphicsQueue.queues[0], 1, &qInfo, nullptr );
-
-		vkWaitSemaphores( device, &waitInfo, UINT64_MAX ); */
-
-		testEG.Exec();
-
-		/* std::string a;
-		for ( int i = 0; i < 64; i++ ) {
-			a += Str::Format( "%u ", extraBuffers[1].memory[i] );
-		}
-
-		Log::Notice( a ); */
-
-		/* uint32 index;
-		while ( true ) {
-			VkResult res = vkAcquireNextImageKHR( device, mainSwapChain.swapChain, UINT64_MAX, nullptr, nullptr, &index );
-			if ( res == VK_SUCCESS ) {
-				break;
-			}
-		}
-
-		VkPresentInfoKHR presentInfo {};
-		presentInfo.waitSemaphoreCount = 0;
-		presentInfo.pWaitSemaphores = &semaphore;
-
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = &mainSwapChain.swapChain;
-		presentInfo.pImageIndices = &index;
-		presentInfo.pResults = nullptr;
-
-		vkQueuePresentKHR( graphicsQueue.queues[0], &presentInfo );
-
-		vkDeviceWaitIdle( device ); */
-
-		waitValue++;
-	}
-	vkDeviceWaitIdle( device );
-	Log::Notice( t.FormatTime() );
 }
