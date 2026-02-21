@@ -17,13 +17,13 @@
 	</Type>
 
 	<Type Name="DynamicArray&lt;*&gt;">
-		<DisplayString>{{ elementCount={elements}, highestID={highestID} }}</DisplayString>
+		<DisplayString>{{ elementCount={size}, highestID={highestID} }}</DisplayString>
 		<Expand>
 			<Item Name="[size]">size,d</Item>
-			<Item Name="[elementCount]">elements,d</Item>
+			<Item Name="[memorySize]">memorySize,d</Item>
 			<Item Name="[memory]">memory</Item>
 			<ArrayItems>
-				<Size>elements</Size>
+				<Size>size</Size>
 				<ValuePointer>memory</ValuePointer>
 			</ArrayItems>
 		</Expand>

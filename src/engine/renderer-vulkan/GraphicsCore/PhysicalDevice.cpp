@@ -166,7 +166,7 @@ void CreateDevice( EngineConfig& config, VkDevice* device ) {
 	VkDeviceCreateInfo info {
 		.queueCreateInfoCount    = count,
 		.pQueueCreateInfos       = queueInfos,
-		.enabledExtensionCount   = ( uint32 ) ext.elements,
+		.enabledExtensionCount   = ( uint32 ) ext.size,
 		.ppEnabledExtensionNames = ext.memory
 	};
 

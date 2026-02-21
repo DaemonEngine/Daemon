@@ -90,7 +90,7 @@ void Instance::Init( const char* engineName, const char* appName ) {
 		.pApplicationInfo        = &appInfo,
 		.enabledLayerCount       = 0,
 		.ppEnabledLayerNames     = nullptr,
-		.enabledExtensionCount   = ( uint32 ) extensions.elements,
+		.enabledExtensionCount   = ( uint32 ) extensions.size,
 		.ppEnabledExtensionNames = extensions.memory
 	};
 

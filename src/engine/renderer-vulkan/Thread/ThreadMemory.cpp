@@ -92,7 +92,7 @@ byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {
 	MemoryChunkRecord* record  = nullptr;
 	uint32             chunkID = level | ( 1ull << 31 );
 
-	for ( uint32 i = 0; i < chunkAllocators[level].elements && !record; i++ ) {
+	for ( uint32 i = 0; i < chunkAllocators[level].size && !record; i++ ) {
 		ChunkAllocator& chunkAllocator = chunkAllocators[level][i];
 
 		uint64&         chunkArea      = chunkAllocator.availableChunks;

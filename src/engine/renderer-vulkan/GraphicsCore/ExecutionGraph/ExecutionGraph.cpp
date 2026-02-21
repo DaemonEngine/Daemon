@@ -317,7 +317,7 @@ void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, Dyna
 		buffers.Zero();
 	}
 
-	processedNodes.Resize( nodes.elements );
+	processedNodes.Resize( nodes.size );
 	processedNodes.Zero();
 
 	type = newType;
@@ -480,12 +480,12 @@ void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, Dyna
 
 				uint32 id = node.id;
 
-				if ( id < buffers.elements ) {
+				if ( id < buffers.size ) {
 					if ( buffers[id].buffer ) {
 						break;
 					}
 				} else {
-					buffers.Resize( buffers.elements + 1 );
+					buffers.Resize( buffers.size + 1 );
 				}
 
 				// MemoryRequirements reqs = GetBufferRequirements( bufferNode.usage, bufferNode.size );

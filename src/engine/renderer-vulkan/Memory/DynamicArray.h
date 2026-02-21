@@ -50,9 +50,9 @@ class DynamicArray :
 	public Tag {
 
 	public:
-	uint64     elements  = 0;
-	uint64     size      = 0;
-	uint64     highestID = 0;
+	uint64     size   = 0;
+	uint64     memorySize = 0;
+	uint64     highestID  = 0;
 	T*         memory;
 	Allocator* allocator;
 
@@ -68,7 +68,7 @@ class DynamicArray :
 	DynamicArray( std::initializer_list<T> args, Allocator* newAllocator = &TLMAlloc ) :
 		allocator( newAllocator ) {
 		Resize( args.size() );
-		highestID = elements;
+		highestID = size;
 
 		for ( uint64 i = 0; i < args.size(); i++ ) {
 			memory[i] = args.begin()[i];
@@ -79,7 +79,7 @@ class DynamicArray :
 		Tag( name ),
 		allocator( newAllocator ) {
 		Resize( args.size() );
-		highestID = elements;
+		highestID = size;
 
 		for ( uint64 i = 0; i < args.size(); i++ ) {
 			memory[i] = args.begin()[i];
@@ -104,13 +104,13 @@ class DynamicArray :
 		allocator = other.allocator;
 		highestID = other.highestID;
 
-		Resize( other.elements );
+		Resize( other.size );
 
-		if ( elements ) {
+		if ( size ) {
 			if constexpr ( std::is_trivially_copy_constructible<T>() ) {
-				memcpy( memory, other.memory, size );
+				memcpy( memory, other.memory, memorySize );
 			} else {
-				for ( T* current = other.memory, *newMem = memory; current < other.memory + elements; current++, newMem++ ) {
+				for ( T* current = other.memory, *newMem = memory; current < other.memory + size; current++, newMem++ ) {
 					*newMem = *current;
 				}
 			}
@@ -127,41 +127,41 @@ class DynamicArray :
 		return *this;
 	}
 
-	void Resize( const uint64 newElements ) {
-		ASSERT_GE( newElements, 0 );
+	void Resize( const uint64 newSize ) {
+		ASSERT_GE( newSize, 0 );
 
-		const uint64 newSize = newElements * sizeof( T );
+		const uint64 newMemorySize = newSize * sizeof( T );
 
-		if ( newElements == elements ) {
+		if ( newSize == size ) {
 			return;
 		}
 
-		if ( newElements < elements ) {
+		if ( newSize < size ) {
 			if constexpr ( !std::is_trivially_destructible<T>() ) {
-				for ( T* current = memory + newElements; current < memory + elements; current++ ) {
+				for ( T* current = memory + newSize; current < memory + size; current++ ) {
 					current->~T();
 				}
 			}
 
-			elements = newElements;
-			size     = newSize;
+			size       = newSize;
+			memorySize = newMemorySize;
 
 			allocator->Free( ( byte* ) memory );
 
-			if ( elements ) {
-				memory = ( T* ) allocator->Alloc( newSize, 64 );
+			if ( size ) {
+				memory = ( T* ) allocator->Alloc( newMemorySize, 64 );
 			}
 
 			return;
 		}
 
-		T* newMemory = ( T* ) allocator->Alloc( newSize, 64 );
+		T* newMemory = ( T* ) allocator->Alloc( newMemorySize, 64 );
 
-		if ( elements ) {
+		if ( size ) {
 			if constexpr ( std::is_trivially_copy_constructible<T>() ) {
-				memcpy( newMemory, memory, size );
+				memcpy( newMemory, memory, memorySize );
 			} else {
-				for ( T* current = memory, *newMem = newMemory; current < memory + elements; current++, newMem++ ) {
+				for ( T* current = memory, *newMem = newMemory; current < memory + size; current++, newMem++ ) {
 					*newMem = *current;
 				}
 			}
@@ -169,9 +169,9 @@ class DynamicArray :
 			allocator->Free( ( byte* ) memory );
 		}
 
-		memory   = newMemory;
-		elements = newElements;
-		size     = newSize;
+		memory     = newMemory;
+		size       = newSize;
+		memorySize = newMemorySize;
 	}
 
 	void Condense() {
@@ -179,11 +179,11 @@ class DynamicArray :
 	}
 
 	void Zero() {
-		memset( memory, 0, size );
+		memset( memory, 0, memorySize );
 	}
 
 	void Init() {
-		for ( T* current = memory; current < memory + elements; current++ ) {
+		for ( T* current = memory; current < memory + size; current++ ) {
 			if constexpr ( std::is_trivially_constructible<T>() ) {
 				*current = {};
 			} else {
@@ -197,12 +197,12 @@ class DynamicArray :
 	}
 
 	const T& operator[]( const uint64 index ) const {
-		ASSERT_LT( index, elements );
+		ASSERT_LT( index, size );
 		return memory[index];
 	}
 
 	T& operator[]( const uint64 index ) {
-		if ( index >= elements ) {
+		if ( index >= size ) {
 			Resize( index + 1 );
 		}
 
@@ -215,7 +215,7 @@ class DynamicArray :
 	}
 
 	constexpr IteratorSeq<T> end() {
-		return IteratorSeq<T>{ &memory[elements] };
+		return IteratorSeq<T>{ &memory[size] };
 	}
 
 	constexpr IteratorSeq<T> begin() const {
@@ -223,7 +223,7 @@ class DynamicArray :
 	}
 
 	constexpr IteratorSeq<T> end() const {
-		return IteratorSeq<T>{ &memory[elements] };
+		return IteratorSeq<T>{ &memory[size] };
 	}
 };
 
