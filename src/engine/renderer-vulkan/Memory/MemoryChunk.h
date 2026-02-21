@@ -41,11 +41,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Sync/AlignedAtomic.h"
 
 struct MemoryChunk {
-	uint8 level;
-	uint8 chunk;
-	uint8 chunkArea;
+	uint8  level;
+	uint8  chunk;
+	uint8  chunkArea;
 	uint32 size;
-	byte* memory;
+	byte*  memory;
 };
 
 struct MemoryAreaConfig {
@@ -55,9 +55,9 @@ struct MemoryAreaConfig {
 };
 
 struct MemoryArea {
-	MemoryAreaConfig config;
+	MemoryAreaConfig     config;
 
-	byte* memory;
+	byte*                memory;
 	AlignedAtomicUint64* chunkLocks; // 1 - locked
 };
 
@@ -70,6 +70,7 @@ struct MemoryChunkConfig {
 constexpr uint64 memoryChunkConfigRequired[][2] {
 	{ 16 * 1024, 640 }, { 1024 * 1024, 640 }, { 64 * 1024 * 1024, 16 }
 };
+
 constexpr const char* defaultMemoryChunkConfig = "16:640 1024:640 65536:16";
 
 #endif // MEMORY_CHUNK_H

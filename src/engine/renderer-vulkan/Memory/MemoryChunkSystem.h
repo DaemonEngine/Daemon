@@ -54,22 +54,22 @@ class MemoryChunkSystem :
 	
 	public:
 	MemoryChunkConfig config;
-	MemoryArea memoryAreas[MAX_MEMORY_AREAS];
+	MemoryArea        memoryAreas[MAX_MEMORY_AREAS];
 
-	MemoryChunkSystem( Allocator* newAllocator );
-	~MemoryChunkSystem();
+	            MemoryChunkSystem( Allocator* newAllocator );
+	            ~MemoryChunkSystem();
 
-	void InitConfig( const char* configText );
+	void        InitConfig( const char* configText );
 
 	MemoryChunk Alloc( uint64 size );
-	void Free( MemoryChunk* memoryChunk );
+	void        Free( MemoryChunk* memoryChunk );
 
-	void SizeToLevel( const uint64 size, uint32* level, uint32* count );
+	void        SizeToLevel( const uint64 size, uint32* level, uint32* count );
 
 	private:
 	Allocator* allocator;
 
-	bool LockArea( const uint32 level, uint8* chunkArea, uint8* chunk );
+	bool        LockArea( const uint32 level, uint8* chunkArea, uint8* chunk );
 };
 
 void InitMemoryChunkSystemConfig( std::string* config );
