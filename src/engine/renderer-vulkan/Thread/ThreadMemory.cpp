@@ -43,10 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ThreadMemory::~ThreadMemory() {
 	for ( DynamicArray<ChunkAllocator>& chunkAllocator : chunkAllocators ) {
-		for ( uint32 i = 0; i < chunkAllocator.elements; i++ ) {
-			ChunkAllocator& alloc     = chunkAllocator[i];
-
-			uint64          chunkArea = alloc.availableChunks;
+		for ( ChunkAllocator& alloc : chunkAllocator ) {
+			uint64 chunkArea = alloc.availableChunks;
 
 			while ( chunkArea ) {
 				uint32 chunk = FindLSB( chunkArea );
@@ -66,7 +64,7 @@ void ThreadMemory::Init() {
 		return;
 	}
 
-	for ( int i = 0; i < MAX_MEMORY_AREAS; i++ ) {
+	for ( uint32 i = 0; i < MAX_MEMORY_AREAS; i++ ) {
 		DynamicArray<ChunkAllocator>& chunkAllocator = chunkAllocators[i];
 		MemoryAreaConfig&             config         = memoryChunkSystem.config.areas[i];
 
