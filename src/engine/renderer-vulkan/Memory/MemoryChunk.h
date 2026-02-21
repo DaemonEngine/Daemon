@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
+#include "../Sync/AccessLock.h"
 #include "../Sync/AlignedAtomic.h"
 
 struct MemoryChunk {
@@ -59,6 +60,19 @@ struct MemoryArea {
 
 	byte*                memory;
 	AlignedAtomicUint64* chunkLocks; // 1 - locked
+};
+
+struct MemoryChunkRecord {
+	MemoryChunk chunk;
+	uint64      offset;
+	uint32      allocs;
+};
+
+struct ChunkAllocator {
+	uint64            allocatedChunks;
+	uint64            availableChunks;
+	MemoryChunkRecord chunks[64];
+	AccessLock        accessLock;
 };
 
 constexpr uint32 MAX_MEMORY_AREAS = 3;

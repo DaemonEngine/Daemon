@@ -53,14 +53,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct AllocationRecord {
 	static constexpr uint64 HEADER_MAGIC = 0xACC0500D66666666;
 
-	std::string Format() const {
+	inline std::string Format() const {
 		if ( guardValue == HEADER_MAGIC ) {
 			return Str::Format( "guard value: %u, size: %u, alignment: %u, chunkID: %u, source: %s",
 				guardValue, size, alignment, chunkID,
 				source );
 		}
 		
-		return Str::Format( "guard value: %u (should be: %u), size: %u, alignment: %u, chunkID: %u, source: %s",
+		return Str::Format( "guard value: %u (corrupted, should be: %u), size: %u, alignment: %u, chunkID: %u, source: %s",
 			guardValue, HEADER_MAGIC, size, alignment, chunkID,
 			source );
 	}
@@ -68,27 +68,15 @@ struct AllocationRecord {
 	uint64 guardValue = HEADER_MAGIC;
 	uint64 size;
 	uint32 alignment;
-	uint32 chunkID; // LSB->MSB: 4 bits - level, 27 bits - chunk, 1 bit - allocated
+	uint32 chunkID; // LSB->MSB: 0-5 - chunk, 6-26 - area, 27-31 - level, 31 - allocated
 
 	char   source[104];
 };
 
-struct MemoryChunkRecord {
-	MemoryChunk chunk;
-	uint64      offset;
-	uint32      allocs;
-};
-
-struct ChunkAllocator {
-	uint64            allocatedChunks;
-	uint64            availableChunks;
-	MemoryChunkRecord chunks[64];
-};
-
 struct TaskTime {
-	uint64 count      = 0;
-	uint64 time       = 0;
-	bool syncedWithSM = false;
+	uint64 count        = 0;
+	uint64 time         = 0;
+	bool   syncedWithSM = false;
 };
 
 class ThreadMemory : public Allocator {
@@ -109,7 +97,7 @@ class ThreadMemory : public Allocator {
 	uint64      unknownTaskCount  = 0;
 	
 	Task*       tasks[maxInternalTasks];
-	uint64      tasksState = 0;
+	uint64      tasksState        = 0;
 
 	uint32      idleThreads[256] { 0 };
 

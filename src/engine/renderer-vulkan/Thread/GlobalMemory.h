@@ -42,8 +42,47 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Math/NumberTypes.h"
 
 #include "../Memory/Allocator.h"
+#include "../Memory/DynamicArray.h"
+#include "../Memory/MemoryChunk.h"
+#include "../Memory/SysAllocator.h"
 
 #include "Task.h"
+
+struct GlobalAllocationRecord {
+	static constexpr uint64 HEADER_MAGIC = 0xACC0500D66666666;
+
+	inline std::string Format() const {
+		if ( guardValue == HEADER_MAGIC ) {
+			return Str::Format( "guard value: %u, size: %u, alignment: %u, chunkID: %u, source: %s",
+				guardValue, size, alignment, chunkID,
+				source );
+		}
+		
+		return Str::Format( "guard value: %u (corrupted, should be: %u), size: %u, alignment: %u, chunkID: %u, source: %s",
+			guardValue, HEADER_MAGIC, size, alignment, chunkID,
+			source );
+	}
+
+	void operator=( const GlobalAllocationRecord& other ) {
+		guardValue = other.guardValue;
+		size       = other.size;
+		alignment  = other.alignment;
+		chunkID    = other.chunkID;
+
+		refCount.store( other.refCount.load( std::memory_order_relaxed ), std::memory_order_relaxed );
+
+		Q_strncpyz( source, other.source, 100 );
+	}
+
+	uint64              guardValue = HEADER_MAGIC;
+	uint64              size;
+	uint32              alignment;
+	uint32              chunkID; // LSB->MSB: 0-5 - chunk, 6-26 - area, 27-31 - level, 31 - allocated
+
+	std::atomic<uint32> refCount;
+
+	char                source[100];
+};
 
 struct GlobalTaskTime {
 	std::atomic<uint64> count = 0;
@@ -52,14 +91,20 @@ struct GlobalTaskTime {
 
 class GlobalMemory : public Allocator {
 	public:
+	DynamicArray<ChunkAllocator> chunkAllocators[MAX_MEMORY_AREAS] { { &sysAllocator }, { &sysAllocator }, { &sysAllocator } };
+
 	std::unordered_map<Task::TaskFunction, GlobalTaskTime> taskTimes;
-	AccessLock taskTimesLock;
+	AccessLock                                             taskTimesLock;
+
+	void  Init();
 
 	byte* Alloc( const uint64 size, const uint64 alignment );
-	void Free( byte* memory );
+	void  Free( byte* memory );
 
 	private:
 };
+
+void InitGlobalMemory();
 
 extern GlobalMemory SM;
 

@@ -40,13 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Memory/DynamicArray.h"
 
-class PhysicalDevice {
-	public:
-
-	PhysicalDevice() = default;
-	PhysicalDevice( const VkPhysicalDeviceProperties2& properties, const VkPhysicalDeviceFeatures2& features );
-};
-
 bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, EngineConfig* config, VkPhysicalDevice* deviceOut );
 
 void CreateDevice( EngineConfig& config, VkDevice* device );
