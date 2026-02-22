@@ -542,6 +542,40 @@ static void AddDebugProjectedLight()
 	light->origin[ 2 ] = r_debugProjLightOriginZ.Get();
 }
 
+// Debug sun light (directional) injection
+Cvar::Cvar<bool> r_debugSun( "r_debugSun", "inject a directional sun light each frame", Cvar::CHEAT, false );
+Cvar::Range<Cvar::Cvar<float>> r_debugSunYaw( "r_debugSunYaw", "debug sun yaw in degrees", Cvar::NONE, 45.0f, -360.0f, 360.0f );
+Cvar::Range<Cvar::Cvar<float>> r_debugSunPitch( "r_debugSunPitch", "debug sun pitch in degrees", Cvar::NONE, -60.0f, -89.0f, 89.0f );
+Cvar::Cvar<float> r_debugSunIntensity( "r_debugSunIntensity", "debug sun intensity", Cvar::NONE, 1.0f );
+Cvar::Range<Cvar::Cvar<float>> r_debugSunR( "r_debugSunR", "debug sun color R", Cvar::NONE, 1.0f, 0.0f, 10.0f );
+Cvar::Range<Cvar::Cvar<float>> r_debugSunG( "r_debugSunG", "debug sun color G", Cvar::NONE, 1.0f, 0.0f, 10.0f );
+Cvar::Range<Cvar::Cvar<float>> r_debugSunB( "r_debugSunB", "debug sun color B", Cvar::NONE, 1.0f, 0.0f, 10.0f );
+
+static void AddDebugSunLight()
+{
+	if ( r_numLights >= MAX_REF_LIGHTS )
+	{
+		return;
+	}
+	refLight_t *sun = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
+	*sun = {};
+	sun->rlType = refLightType_t::RL_DIRECTIONAL;
+	// Compute direction from yaw/pitch cvars (in degrees)
+	float yaw = DEG2RAD( r_debugSunYaw.Get() );
+	float pitch = DEG2RAD( r_debugSunPitch.Get() );
+	// Right-handed: X forward, Y left, Z up. Direction vector components:
+	sun->projTarget[ 0 ] = cosf( pitch ) * cosf( yaw );
+	sun->projTarget[ 1 ] = cosf( pitch ) * sinf( yaw );
+	sun->projTarget[ 2 ] = sinf( pitch );
+	VectorNormalize( sun->projTarget );
+	float intensity = r_debugSunIntensity.Get();
+	sun->color[ 0 ] = r_debugSunR.Get() * intensity;
+	sun->color[ 1 ] = r_debugSunG.Get() * intensity;
+	sun->color[ 2 ] = r_debugSunB.Get() * intensity;
+	// Max radius to ensure it is always included.
+	sun->radius = std::numeric_limits<float>::max();
+}
+
 /*
 @@@@@@@@@@@@@@@@@@@@@
 RE_RenderScene
@@ -620,6 +654,10 @@ void RE_RenderScene( const refdef_t *fd )
 	if ( r_debugProjLight.Get() )
 	{
 		AddDebugProjectedLight();
+	}
+	if ( r_debugSun.Get() )
+	{
+		AddDebugSunLight();
 	}
 
 	// derived info
