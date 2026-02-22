@@ -145,7 +145,7 @@ static VkSamplerAddressMode GetSamplerAddressMode( const AddressMode addressMode
 	}
 }
 
-VkSamplerCreateInfo GetSamplerInfo( const Sampler sampler ) {
+VkSampler CreateSampler( const Sampler sampler ) {
 	VkSamplerReductionMode samplerReductionMode;
 
 	switch ( sampler.reductionMode ) {
@@ -168,8 +168,7 @@ VkSamplerCreateInfo GetSamplerInfo( const Sampler sampler ) {
 	VkSamplerReductionModeCreateInfo samplerReductionInfo {
 		.reductionMode    = samplerReductionMode
 	};
-
-	return {
+	VkSamplerCreateInfo samplerInfo  {
 		.pNext            = &samplerReductionInfo,
 		.magFilter        = VK_FILTER_LINEAR,
 		.minFilter        = VK_FILTER_LINEAR,
@@ -184,6 +183,11 @@ VkSamplerCreateInfo GetSamplerInfo( const Sampler sampler ) {
 		.maxLod           = VK_LOD_CLAMP_NONE,
 		.borderColor      = border
 	};
+
+	VkSampler out;
+	vkCreateSampler( device, &samplerInfo, nullptr, &out );
+
+	return out;
 }
 
 void AllocDescriptors( uint32 imageCount, uint32 storageImageCount ) {
@@ -289,9 +293,7 @@ void AllocDescriptors( uint32 imageCount, uint32 storageImageCount ) {
 	VkDescriptorImageInfo samplerInfos[maxSamplers] {};
 
 	for ( uint8 sampler = 0; sampler < maxSamplers; sampler++ ) {
-		VkSamplerCreateInfo samplerInfo = GetSamplerInfo( UnpackSampler( sampler ) );
-
-		vkCreateSampler( device, &samplerInfo, nullptr, &samplers[sampler] );
+		samplers[sampler] = CreateSampler( UnpackSampler( sampler ) );
 
 		samplerInfos[sampler]           = {
 			.sampler = samplers[sampler]
