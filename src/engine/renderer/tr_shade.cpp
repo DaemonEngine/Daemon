@@ -256,11 +256,6 @@ static void GLSL_InitGPUShadersOrError()
 		gl_depthReductionShader->MarkProgramForBuilding();
 	}
 
-	if ( tr.world ) // this only happens with /glsl_restart
-	{
-		GLSL_InitWorldShaders();
-	}
-
 	if ( glConfig.realtimeLighting )
 	{
 		gl_shaderManager.LoadShader( gl_depthtile1Shader );
@@ -383,6 +378,12 @@ static void GLSL_InitGPUShadersOrError()
 
 	gl_shaderManager.PostProcessGlobalUniforms();
 	gl_shaderManager.InitShaders();
+
+	// Init world shaders last so that everyhthing is already initialized.
+	if ( tr.world ) // this only happens with /glsl_restart
+	{
+		GLSL_InitWorldShaders();
+	}
 
 	if ( r_lazyShaders.Get() == 0 )
 	{
