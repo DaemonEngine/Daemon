@@ -366,7 +366,7 @@ static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {
 		Log::Warn( "Cube probe face out of range! (%i/%i)", probeID, tr.cubeProbes.size() );
 		return;
 	}
-	
+
 	refdef_t refdef{};
 	const int faceID = globalID % 6;
 
@@ -487,6 +487,61 @@ static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {
 
 }
 
+// Debug spot light (projected) injection
+static Cvar::Cvar<bool> r_debugProjLight( "r_debugProjLight", "inject a directional sun light each frame", Cvar::CHEAT, false );
+static Cvar::Range<Cvar::Cvar<float>> r_debugProjLightYaw( "r_debugProjLightYaw", "debug projected yaw in degrees", Cvar::NONE, 45.0f, -360.0f, 360.0f );
+static Cvar::Range<Cvar::Cvar<float>> r_debugProjLightPitch( "r_debugProjLightPitch", "debug projected pitch in degrees", Cvar::NONE, -60.0f, -89.0f, 89.0f );
+static Cvar::Cvar<float> r_debugProjLightRadius( "r_debugProjLightRadius", "debug projected radius (size)", Cvar::NONE, 100.0f );
+static Cvar::Cvar<float> r_debugProjLightIntensity( "r_debugProjLightIntensity", "debug projected intensity", Cvar::NONE, 1.0f );
+static Cvar::Range<Cvar::Cvar<float>> r_debugProjLightR( "r_debugProjLightR", "debug projected color R", Cvar::NONE, 1.0f, 0.0f, 1.0f );
+static Cvar::Range<Cvar::Cvar<float>> r_debugProjLightG( "r_debugProjLightG", "debug projected color G", Cvar::NONE, 1.0f, 0.0f, 1.0f );
+static Cvar::Range<Cvar::Cvar<float>> r_debugProjLightB( "r_debugProjLightB", "debug projected color B", Cvar::NONE, 1.0f, 0.0f, 1.0f );
+static Cvar::Cvar<float> r_debugProjLightOriginX( "r_debugProjLightOriginX", "debug projected origin X", Cvar::NONE, 0.0f );
+static Cvar::Cvar<float> r_debugProjLightOriginY( "r_debugProjLightOriginY", "debug projected origin Y", Cvar::NONE, 0.0f );
+static Cvar::Cvar<float> r_debugProjLightOriginZ( "r_debugProjLightOriginZ", "debug projected origin Z", Cvar::NONE, 0.0f );
+static Cvar::Cvar<float> r_debugProjLightAngle( "r_debugProjLightAngle", "debug projected angle",
+                                                Cvar::NONE, 60.0f );
+
+static void AddDebugProjectedLight()
+{
+	if ( r_numLights >= MAX_REF_LIGHTS )
+	{
+		return;
+	}
+	refLight_t *light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
+	*light = {};
+	light->rlType = refLightType_t::RL_PROJ;
+	// Compute direction from yaw/pitch cvars (in degrees)
+	float yaw = DEG2RAD( r_debugProjLightYaw.Get() );
+	float pitch = DEG2RAD( r_debugProjLightPitch.Get() );
+	// Right-handed: X forward, Y left, Z up. Direction vector components:
+	light->projTarget[ 0 ] = cosf( pitch ) * cosf( yaw );
+	light->projTarget[ 1 ] = cosf( pitch ) * sinf( yaw );
+	light->projTarget[ 2 ] = sinf( pitch );
+
+	vec3_t dir;
+	VectorCopy( light->projTarget, dir );
+	VectorNormalize( dir );
+
+	PerpendicularVector( light->projUp, dir );
+
+	float upLen = VectorLength( light->projUp );
+	float tgtLen = VectorLength( light->projTarget );
+
+	VectorScale( light->projUp, tanf( DEG2RAD( r_debugProjLightAngle.Get() ) ) / upLen / tgtLen,
+	             light->projUp );
+
+	// Set properties
+	float intensity = r_debugProjLightIntensity.Get();
+	light->color[ 0 ] = r_debugProjLightR.Get() * intensity;
+	light->color[ 1 ] = r_debugProjLightG.Get() * intensity;
+	light->color[ 2 ] = r_debugProjLightB.Get() * intensity;
+	light->radius = r_debugProjLightRadius.Get();
+	light->origin[ 0 ] = r_debugProjLightOriginX.Get();
+	light->origin[ 1 ] = r_debugProjLightOriginY.Get();
+	light->origin[ 2 ] = r_debugProjLightOriginZ.Get();
+}
+
 /*
 @@@@@@@@@@@@@@@@@@@@@
 RE_RenderScene
@@ -560,6 +615,11 @@ void RE_RenderScene( const refdef_t *fd )
 			// a door just opened or something
 			tr.refdef.areamaskModified = true;
 		}
+	}
+
+	if ( r_debugProjLight.Get() )
+	{
+		AddDebugProjectedLight();
 	}
 
 	// derived info
