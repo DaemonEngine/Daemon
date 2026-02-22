@@ -166,7 +166,7 @@ static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFl
 
 	VkResult res = vkGetPhysicalDeviceImageFormatProperties2( physicalDevice, &formatInfo, &formatPropertiesInfo );
 
-	VkFormatProperties3                   formatProperties3    { .pNext = &hostImageCopyInfo };
+	VkFormatProperties3                   formatProperties3    {};
 	VkFormatProperties2                   formatProperties2    { .pNext = &formatProperties3 };
 
 	vkGetPhysicalDeviceFormatProperties2( physicalDevice, format, &formatProperties2 );
