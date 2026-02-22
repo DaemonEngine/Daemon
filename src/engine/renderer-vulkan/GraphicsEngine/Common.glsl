@@ -80,6 +80,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // #define constexpr const
 
 #include "NumberTypes.h"
+#include "Bindings.h"
 
 /* Common defines */
 
@@ -120,3 +121,44 @@ layout ( scalar, buffer_reference, buffer_reference_align = 4 ) readonly buffer
 
 #define BufferWS \
 layout ( scalar, buffer_reference, buffer_reference_align = 4 ) writeonly buffer
+
+/* layout ( set = 0, binding = BIND_STORAGE_IMAGES ) uniform image2D     images2D[];
+layout ( set = 0, binding = BIND_STORAGE_IMAGES ) uniform image3D     images3D[];
+layout ( set = 0, binding = BIND_STORAGE_IMAGES ) uniform imageCube   imagesCube[]; */
+
+layout ( set = 0, binding = BIND_SAMPLERS )       uniform sampler     samplers[];
+
+layout ( set = 0, binding = BIND_IMAGES )         uniform texture2D   textures2D[];
+layout ( set = 0, binding = BIND_IMAGES )         uniform texture3D   textures3D[];
+layout ( set = 0, binding = BIND_IMAGES )         uniform textureCube texturesCube[];
+
+const uint32 ADDRESS_REPEAT               = 0;
+const uint32 ADDRESS_CLAMP_TO_EDGE        = 1;
+const uint32 ADDRESS_CLAMP_TO_BORDER      = 2;
+const uint32 ADDRESS_MIRROR_CLAMP_TO_EDGE = 3;
+const uint32 ADDRESS_MAX_ADDRESS_MODES    = 4;
+
+const uint32 AVG                 = 0;
+const uint32 MIN                 = 1;
+const uint32 MAX                 = 2;
+const uint32 MAX_REDUCTION_MODES = 3;
+
+const uint32 BORDER_WHITE             = 0;
+const uint32 BORDER_BLACK             = 1;
+const uint32 BORDER_BLACK_TRANSPARENT = 2;
+const uint32 MAX_BORDER_COLOURS       = 3;
+
+#define Sampler2D( tex, sampler )   sampler2D( textures2D[tex], samplers[sampler] )
+
+#define Sampler3D( tex, sampler )   sampler3D( textures3D[tex], samplers[sampler] )
+
+#define SamplerCube( tex, sampler ) samplerCube( texturesCube[tex], samplers[sampler] )
+
+#define Sampler( tex, type, addressModeU, addressModeV, anisotropy, borderColour )\
+	sampler##type( textures##type[tex],\
+		samplers[bitfieldInsert( 0, anisotropy, 1, 1 ) | bitfieldInsert( 0, addressModeU, 2, 2 ) | bitfieldInsert( 0, addressModeV, 4, 2 )\
+		         | bitfieldInsert( 0, borderColour, 6, 2 )] )
+
+#define Sampler2( tex, anisotropy, shadowMap, reductionMode )\
+	sampler2D( tex,\
+		samplers[1 | bitfieldInsert( 0, anisotropy, 1, 1 ) | bitfieldInsert( 0, shadowMap, 2, 1 ) | bitfieldInsert( 0, reductionMode, 3, 2 )] )
