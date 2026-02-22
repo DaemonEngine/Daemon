@@ -3000,7 +3000,7 @@ static void RB_RenderPostProcess()
 
 static void SetFrameUniforms() {
 	// This can happen with glsl_restart/vid_restart in R_SyncRenderThread()
-	if ( !stagingBuffer.Active() ) {
+	if ( !stagingBuffer.Active() || globalUBOProxy == nullptr ) {
 		return;
 	}
 
