@@ -63,13 +63,13 @@ struct Image {
 	bool            stencil;
 	bool            external;
 
-	void Init( const Format newFormat, const VkExtent3D imageSize, const bool useMipLevels, const bool newCube = false,
-	           const ImageUsage::ImageUsage usage = ImageUsage::RESOURCE,
-	           const bool shared = false );
+	void        Init( const Format newFormat, const VkExtent3D imageSize, const bool useMipLevels, const bool newCube = false,
+	                  const ImageUsage::ImageUsage usage = ImageUsage::RESOURCE,
+	                  const bool shared = false );
 
-	void Init( VkImage newImage, const SwapChainFormat newFormat );
+	void        Init( VkImage newImage, const SwapChainFormat newFormat );
 
-	VkImageView GenView();
+	VkImageView GenView( Format newFormat = ( Format ) UINT32_MAX );
 };
 
 struct FormatConfig {

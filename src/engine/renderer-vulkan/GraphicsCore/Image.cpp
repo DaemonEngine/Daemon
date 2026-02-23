@@ -135,11 +135,11 @@ void Image::Init( VkImage newImage, const SwapChainFormat newFormat ) {
 	external     = true;
 }
 
-VkImageView Image::GenView() {
+VkImageView Image::GenView( Format newFormat ) {
 	VkImageViewCreateInfo imageViewInfo {
 		.image              = image,
 		.viewType           = type,
-		.format             = formats[format],
+		.format             = formats[newFormat < FORMAT_COUNT ? newFormat : format],
 		.subresourceRange   = {
 			.aspectMask     = ( VkImageAspectFlags )
 			                  ( depth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT ) | ( stencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0 ),
