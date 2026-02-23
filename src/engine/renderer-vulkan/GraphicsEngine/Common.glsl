@@ -51,6 +51,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #extension GL_KHR_shader_subgroup_quad             : require
 #extension GL_KHR_shader_subgroup_rotate           : require
 
+#extension GL_EXT_shader_image_load_formatted      : require
+
 // #extension GL_KHR_subgroupuniform_qualifier : require
 
 // #extension GL_EXT_shader_quad_control : require
@@ -76,8 +78,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #extension GL_KHR_samplerless_texture_functions : require
 */
-
-// #define constexpr const
 
 #include "NumberTypes.h"
 #include "Bindings.h"
@@ -174,3 +174,5 @@ const uint32 MAX_BORDER_COLOURS       = 3;
 #define Sampler2( tex, anisotropy, shadowMap, reductionMode )\
 	sampler2D( tex,\
 		samplers[1 | bitfieldInsert( 0, anisotropy, 1, 1 ) | bitfieldInsert( 0, shadowMap, 2, 1 ) | bitfieldInsert( 0, reductionMode, 3, 2 )] )
+		
+layout ( set = 0, binding = BIND_STORAGE_IMAGES ) uniform image2D images[];

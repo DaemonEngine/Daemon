@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <algorithm>
 
@@ -56,7 +57,7 @@ struct File {
 		file = fopen( path.c_str(), mode );
 
 		if ( !file ) {
-			printf( "Failed to open file: %s, mode: %s", path.c_str(), mode );
+			printf( "Failed to open file: %s, mode: %s\n", path.c_str(), mode );
 			printf( strerror( errno ) );
 			exit( 1 );
 		}
@@ -108,17 +109,17 @@ struct File {
 };
 
 std::string StripLicense( const std::string& shaderText ) {
-	const uint32_t start = shaderText.find( "/*" );
+	const uint64_t start = shaderText.find( "/*" );
 
 	if ( start == std::string::npos ) {
 		return shaderText;
 	}
 
-	const uint32_t end = shaderText.find( "*/" );
+	const uint64_t end = shaderText.find( "*/" );
 
 	const char* src = &shaderText.c_str()[end + 2];
 
-	uint32_t pos = end + 2;
+	uint64_t pos = end + 2;
 	while ( src && ( *src == ' ' || *src == '\t' || *src == '\n' ) ) {
 		src++;
 		pos++;
@@ -139,6 +140,133 @@ const std::unordered_map<std::string, Stage> stageKeywords = {
 	{ "local_size_z", COMPUTE },
 	{ "gl_Position",  VERTEX  },
 };
+
+struct Image {
+	std::string src;
+	std::string replace;
+};
+
+static std::unordered_map<std::string, Image> images;
+static uint32_t imageID = 0;
+
+void ProcessImages( const std::string& shaderText ) {
+	std::string out;
+	std::istringstream shaderTextStream( StripLicense( shaderText ) );
+
+	std::string line;
+
+	bool skip              = false;
+	bool pushConst         = false;
+	bool pushConstStart    = false;
+
+	while ( std::getline( shaderTextStream, line, '\n' ) ) {
+		if ( line.find( "#ifdef __cplusplus" ) != std::string::npos ) {
+			skip = true;
+			continue;
+		}
+
+		if ( skip ) {
+			if ( line.find( "#endif" ) != std::string::npos ) {
+				skip = false;
+			}
+
+			continue;
+		}
+
+		enum Img {
+			IMG_NONE,
+			IMG_2D,
+			IMG_3D,
+			IMG_CUBE
+		};
+
+		Img      img       = IMG_NONE;
+		uint32_t imgOffset = 0;
+
+		if ( line.find( "Image2D" ) != std::string::npos ) {
+			img       = IMG_2D;
+			imgOffset = line.find_first_not_of( "Image2D" );
+		} else if ( line.find( "Image3D" ) != std::string::npos ) {
+			img       = IMG_3D;
+			imgOffset = line.find_first_not_of( "Image3D" );
+		} else if ( line.find( "ImageCube" ) != std::string::npos ) {
+			img       = IMG_CUBE;
+			imgOffset = line.find_first_not_of( "ImageCube" );
+		}
+
+		if ( img != IMG_NONE ) {
+			uint32_t    offset  = imgOffset + 1;
+			std::string format  = line.substr( offset, line.find( " ", offset + 1 ) - offset );
+
+			std::transform( format.begin(), format.end(), format.begin(), ::toupper );
+
+			std::string image   = std::to_string( imageID ) + ", " + format + ", ";
+
+			if ( line.find( "swapchain" ) != std::string::npos ) {
+				offset          = line.find( " ", offset + 10 ) + 1;
+
+				image          += line.substr( offset, line.find( " ", offset + 1 ) - offset ) + ", 0, 0, 0, ";
+			} else {
+				image          += "0.0f, ";
+
+				for ( int i = 0; i < ( img == IMG_2D ? 2 : 3 ); i++ ) {
+					offset      = line.find( " ", offset + 1 ) + 1;
+
+					image      += line.substr( offset, line.find( " ", offset + 1 ) - offset ) + ", ";
+				}
+
+				if ( img == IMG_2D ) {
+					image      += "0, ";
+				}
+			}
+
+			image              += line.find( "nomips" ) == std::string::npos ? "true, " : "false, ";
+
+			image              += img == IMG_CUBE ? "true" : "false";
+
+			offset              = line.find_last_of( " " ) + 1;
+			std::string name    = line.substr( offset, line.size() - offset - 1 );
+
+			images[name]        = { image, "images[" + std::to_string( imageID ) + "]" };
+
+			imageID++;
+
+			continue;
+		}
+
+		const std::string::size_type posInsert = line.find( "#insert" );
+		const std::string::size_type position  = posInsert == std::string::npos ? line.find( "#include" ) : posInsert;
+
+		if ( position == std::string::npos || line.find_first_not_of( " \t" ) != position ) {
+			out += line + "\n";
+			continue;
+		}
+
+		const bool useInsert = posInsert != std::string::npos;
+
+		std::string shaderInsertPath = line.substr(
+			position + ( useInsert ? 8 : 10 ),
+			( useInsert ? std::string::npos : line.size() - position - 11 ) );
+
+		if ( useInsert ) {
+			shaderInsertPath += ".glsl";
+		}
+
+		if ( shaderInsertPath == "Images.glsl" ) {
+			continue;
+		}
+
+		File glslSource { graphicsEnginePath + shaderInsertPath, graphicsSharedPath + shaderInsertPath, "r" };
+
+		std::string glslSrc = glslSource.ReadAll();
+		glslSrc.resize( strlen( glslSrc.c_str() ) );
+		glslSrc.shrink_to_fit();
+
+		ProcessImages( glslSrc );
+	}
+}
+
+static std::unordered_set<std::string> inserts;
 
 std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_t* pushConstSize,
 	int insertCount = 0, int lineCount = 0 ) {
@@ -193,6 +321,31 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 			}
 		}
 
+		if ( line.find( "Image2D" ) != std::string::npos || line.find( "Image3D" ) != std::string::npos
+			|| line.find( "ImageCube" ) != std::string::npos ) {
+			continue;
+		}
+
+		uint64_t longestName = 0;
+		uint64_t bestOffset  = std::string::npos;
+
+		Image    bestImage;
+
+		for ( const std::pair<std::string, Image>& image : images ) {
+			uint64_t offset = line.find( image.first );
+
+			if ( offset != std::string::npos ) {
+				longestName = std::max( longestName, image.first.size() );
+				bestOffset  = offset;
+
+				bestImage   = image.second;
+			}
+		}
+
+		if ( bestOffset != std::string::npos ) {
+			line = line.substr( 0, bestOffset ) + bestImage.replace + line.substr( bestOffset + longestName );
+		}
+
 		const std::string::size_type posInsert = line.find( "#insert" );
 		const std::string::size_type position  = posInsert == std::string::npos ? line.find( "#include" ) : posInsert;
 
@@ -219,6 +372,12 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 		if ( useInsert ) {
 			shaderInsertPath += ".glsl";
 		}
+
+		if ( inserts.contains( shaderInsertPath ) ) {
+			continue;
+		}
+
+		inserts.insert( shaderInsertPath );
 
 		// Inserted shader lines will start at 10000, 20000 etc. to easily tell them apart from the main shader code
 		insertCount++;
@@ -251,9 +410,9 @@ int main( int argc, char** argv ) {
 		std::replace( spirvBinPath.begin(),                spirvBinPath.end(),                '/', '\\' );
 	#endif
 
-	File spirvBinH { graphicsCorePath   + "ExecutionGraph/SPIRVBin.h", "w" };
-	File spirvH    { graphicsCorePath   + "ExecutionGraph/SPIRV.h",    "w" };
-	File spirvIDs  { graphicsSharedPath + "SPIRVIDs.h",             "w" };
+	File spirvBinH  { graphicsCorePath   + "ExecutionGraph/SPIRVBin.h", "w" };
+	File spirvH     { graphicsCorePath   + "ExecutionGraph/SPIRV.h",    "w" };
+	File spirvIDs   { graphicsSharedPath + "SPIRVIDs.h",                "w" };
 
 	fprintf( spirvBinH.file,
 		"// Auto-generated by VulkanShaderParser, do not modify\n\n"
@@ -307,9 +466,52 @@ int main( int argc, char** argv ) {
 
 		File glslSource { graphicsEnginePath + path, "r" };
 
-		size_t nameOffset = path.rfind( "/" );
-		std::string name      = nameOffset == std::string::npos ? path : path.substr( nameOffset );
-		std::string nameNoExt = name.substr( 0, name.rfind( "." ) );
+		std::string glslSrc = glslSource.ReadAll();
+		glslSrc.resize( strlen( glslSrc.c_str() ) );
+		glslSrc.shrink_to_fit();
+
+		ProcessImages( glslSrc );
+	}
+
+	{
+		File imageBinds { graphicsEnginePath + "Images.glsl", "w" };
+
+		fprintf( imageBinds.file, "// Auto-generated by VulkanShaderParser, do not modify\n\n" );
+
+		fprintf( imageBinds.file, "struct ImageCfg {\n" );
+		fprintf( imageBinds.file, "\tuint  id;\n" );
+		fprintf( imageBinds.file, "\tuint  format;\n" );
+		fprintf( imageBinds.file, "\tfloat relativeSize;\n" );
+		fprintf( imageBinds.file, "\tuint  width;\n" );
+		fprintf( imageBinds.file, "\tuint  height;\n" );
+		fprintf( imageBinds.file, "\tuint  depth;\n" );
+		fprintf( imageBinds.file, "\tbool  useMips;\n" );
+		fprintf( imageBinds.file, "\tbool  cube;\n" );
+		fprintf( imageBinds.file, "};\n\n" );
+
+		uint32_t imageCount = images.size();
+
+		fprintf( imageBinds.file, "ImageCfg imageConfigs[%u] = ImageCfg[%u] (\n", imageCount, imageCount );
+
+		uint32_t i = 0;
+		for ( const std::pair<std::string, Image>& image : images ) {
+			fprintf( imageBinds.file, "\tImageCfg( %s )%s\n", image.second.src.c_str(), i < imageCount - 1 ? "," : "" );
+			i++;
+		}
+
+		fprintf( imageBinds.file, ");\n\n" );
+
+		fprintf( imageBinds.file, "const uint imageCount = %u;", imageCount );
+	}
+
+	for( int i = 3; i < argc; i++ ) {
+		std::string path = argv[i];
+
+		File glslSource { graphicsEnginePath + path, "r" };
+
+		size_t      nameOffset = path.rfind( "/" );
+		std::string name       = nameOffset == std::string::npos ? path : path.substr( nameOffset );
+		std::string nameNoExt  = name.substr( 0, name.rfind( "." ) );
 
 		Stage stage            = FRAGMENT;
 		uint32_t pushConstID   = 0;
@@ -388,6 +590,8 @@ int main( int argc, char** argv ) {
 			fprintf( spirvBinH.file, "\n" );
 			fprintf( spirvH.file,    ",\n" );
 		}
+
+		inserts.clear();
 	}
 
 	fprintf( spirvH.file, "\n};\n\n" );
