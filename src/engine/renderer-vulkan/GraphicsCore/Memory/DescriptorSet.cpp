@@ -313,9 +313,9 @@ void AllocDescriptors( uint32 imageCount, uint32 storageImageCount ) {
 	vkUpdateDescriptorSets( device, 1, &writeDescriptorInfo, 0, nullptr );
 }
 
-void UpdateDescriptor( const uint32 id, Image image ) {
+void UpdateDescriptor( const uint32 id, Image image, Format format ) {
 	VkDescriptorImageInfo imageDescriptorInfo {
-		.imageView   = image.GenView(),
+		.imageView   = image.GenView( format ),
 		.imageLayout = VK_IMAGE_LAYOUT_GENERAL
 	};
 
