@@ -119,6 +119,22 @@ void MsgStream() {
 
 				images[Str::Format( "~engineImage_%u", cfg.id )] = image;
 
+				if ( !formatConfigs[cfg.format].supported ) {
+					switch ( cfg.format ) {
+						case D16:
+						case D32F:
+							Log::Warn( "Unsupported image format %u requested from GraphicsEngine, using %u instead", cfg.format, D24S8 );
+
+							cfg.format = D24S8;
+							break;
+						default:
+							Log::Warn( "Unsupported image format %u requested from GraphicsEngine, using %u instead", cfg.format, RGBA8 );
+
+							cfg.format = RGBA8;
+							break;
+					}
+				}
+
 				if ( cfg.format == RGBA8S ) {
 					UpdateDescriptor( cfg.id, image, RGBA8 );
 				} else {
