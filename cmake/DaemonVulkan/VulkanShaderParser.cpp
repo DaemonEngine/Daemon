@@ -94,7 +94,10 @@ struct File {
 	std::string ReadAll() {
 		std::string data;
 		data.resize( size );
-		fread( data.data(), sizeof( char ), size, file );
+		size = fread( data.data(), sizeof( char ), size, file );
+
+		data.resize( size );
+		data.shrink_to_fit();
 
 		return data;
 	}
@@ -259,6 +262,7 @@ void ProcessImages( const std::string& shaderText ) {
 		File glslSource { graphicsEnginePath + shaderInsertPath, graphicsSharedPath + shaderInsertPath, "r" };
 
 		std::string glslSrc = glslSource.ReadAll();
+
 		glslSrc.resize( strlen( glslSrc.c_str() ) );
 		glslSrc.shrink_to_fit();
 
