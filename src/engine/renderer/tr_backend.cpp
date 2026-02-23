@@ -37,6 +37,8 @@ static Cvar::Cvar<bool> r_clear( "r_clear", "Clear screen before painting over i
 Cvar::Cvar<bool> r_drawSky( "r_drawSky", "Draw the sky (clear the sky if disabled)", Cvar::NONE, true );
 static Cvar::Cvar<int> r_showEntityBounds(
 	"r_showEntityBounds", "show bboxes used for culling (1: wireframe; 2: translucent solid)", Cvar::CHEAT, 0);
+static Cvar::Cvar<bool> r_showDynamicLights(
+	"r_showDynamicLights", "visualize dynamic lights with tetrahedrons", Cvar::CHEAT, false );
 
 void GL_Bind( image_t *image )
 {
@@ -1303,7 +1305,7 @@ static void RenderDepthTiles()
 	{
 		RB_PrepareForSamplingDepthMap();
 	}
-	
+
 	TransitionMSAAToMain( GL_DEPTH_BUFFER_BIT );
 
 	// 1st step
@@ -1319,7 +1321,7 @@ static void RenderDepthTiles()
 
 	gl_depthtile1Shader->SetUniform_zFar( zParams );
 	gl_depthtile1Shader->SetUniform_DepthMapBindless(
-		GL_BindToTMU( 0, tr.currentDepthImage ) 
+		GL_BindToTMU( 0, tr.currentDepthImage )
 	);
 
 	matrix_t ortho;
@@ -1753,7 +1755,7 @@ void RB_CameraPostFX() {
 	// tr.mainFBO
 	R_BindNullFBO();
 	gl_cameraEffectsShader->SetUniform_CurrentMapBindless(
-		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) 
+		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
 	);
 
 	if ( glConfig.colorGrading ) {
@@ -2306,6 +2308,125 @@ static void RB_RenderDebugUtils()
 					tetraVerts[ 3 ][ 3 ] = 1;
 					Tess_AddTetrahedron( tetraVerts, directedColor );
 				}
+			}
+		}
+
+		Tess_End();
+	}
+
+	if ( r_showDynamicLights.Get() && backEnd.refdef.numLights > 0 )
+	{
+		gl_genericShader->SetVertexSkinning( false );
+		gl_genericShader->SetVertexAnimation( false );
+		gl_genericShader->SetTCGenEnvironment( false );
+		gl_genericShader->SetTCGenLightmap( false );
+		gl_genericShader->SetDepthFade( false );
+		gl_genericShader->SetDeform( 0 );
+		gl_genericShader->BindProgram();
+
+		GL_State( GLS_DEFAULT );
+		GL_Cull( cullType_t::CT_TWO_SIDED );
+
+		// set uniforms
+		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
+		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX,
+		                                  alphaGen_t::AGEN_VERTEX );
+		SetUniform_Color( gl_genericShader, Color::Black );
+		gl_genericShader->SetUniform_ColorMapBindless( GL_BindToTMU( 0, tr.whiteImage ) );
+		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
+
+		// set up the transformation matrix
+		backEnd.orientation = backEnd.viewParms.world;
+		GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
+		gl_genericShader->SetUniform_ModelViewProjectionMatrix(
+			glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+
+		Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
+		GL_CheckErrors();
+
+		const refLight_t *lights = backEnd.refdef.lights;
+		for ( int i = 0; i < backEnd.refdef.numLights; ++i )
+		{
+			const refLight_t &light = lights[ i ];
+			// We can't really visualize directional lights since they don't
+			// have an origin or a radius.
+			if ( light.rlType >= refLightType_t::RL_DIRECTIONAL )
+			{
+				continue;
+			}
+
+			vec3_t baseOrigin;
+			VectorCopy( light.origin, baseOrigin );
+
+			if ( light.radius <= 0.0f )
+			{
+				Log::Warn( "Light with index %d has no radius", i );
+			}
+
+			auto addArrow = [ & ]( const vec3_t dirInput, const Color::Color &arrowColor )
+			{
+				vec3_t dir;
+				VectorCopy( dirInput, dir );
+				if ( VectorNormalize( dir ) == 0.0f )
+				{
+					VectorSet( dir, 0.0f, 0.0f, 1.0f );
+				}
+				// idk why we need to negate here, but the arrow points the wrong way otherwise.
+				VectorNegate( dir, dir );
+
+				vec3_t tip;
+				VectorMA( baseOrigin, light.radius, dir, tip );
+
+				vec3_t tmp;
+				vec3_t tmp2;
+				vec3_t tmp3;
+				PerpendicularVector( tmp, dir );
+				VectorScale( tmp, light.radius * 0.2f, tmp2 );
+				VectorMA( tmp2, light.radius * 0.3f, dir, tmp2 );
+
+				vec4_t tetraVerts[ 4 ];
+				for ( int k = 0; k < 3; k++ )
+				{
+					RotatePointAroundVector( tmp3, dir, tmp2, k * 120.0f );
+					VectorAdd( tmp3, baseOrigin, tmp3 );
+					VectorCopy( tmp3, tetraVerts[ k ] );
+					tetraVerts[ k ][ 3 ] = 1.0f;
+				}
+
+				VectorCopy( baseOrigin, tetraVerts[ 3 ] );
+				tetraVerts[ 3 ][ 3 ] = 1.0f;
+				Tess_AddTetrahedron( tetraVerts, arrowColor );
+
+				VectorCopy( tip, tetraVerts[ 3 ] );
+				tetraVerts[ 3 ][ 3 ] = 1.0f;
+
+				Tess_AddTetrahedron( tetraVerts, arrowColor );
+			};
+
+			Color::Color color;
+			switch ( light.rlType )
+			{
+				case refLightType_t::RL_PROJ:
+					color = Color::LtGrey;
+					addArrow( light.projTarget, color );
+					break;
+				default:
+					color = Color::MdGrey;
+					{
+						static const vec3_t kOmniDirs[ 6 ] = {
+							{ 1.0f,  0.0f,  0.0f },
+                            { -1.0f, 0.0f,  0.0f },
+                            { 0.0f,  1.0f,  0.0f },
+							{ 0.0f,  -1.0f, 0.0f },
+                            { 0.0f,  0.0f,  1.0f },
+                            { 0.0f,  0.0f,  -1.0f}
+                        };
+						for ( int dirIndex = 0; dirIndex < 6; ++dirIndex )
+						{
+							addArrow( kOmniDirs[ dirIndex ], color );
+						}
+					}
+					break;
 			}
 		}
 
@@ -2879,7 +3000,7 @@ static void RB_RenderPostProcess()
 
 static void SetFrameUniforms() {
 	// This can happen with glsl_restart/vid_restart in R_SyncRenderThread()
-	if ( !stagingBuffer.Active() ) {
+	if ( !stagingBuffer.Active() || globalUBOProxy == nullptr ) {
 		return;
 	}
 
@@ -3489,6 +3610,7 @@ const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 			default:
 				break;
 			}
+			VectorNormalize( buffer[i].direction );
 		}
 
 		glUnmapBuffer( bufferTarget );
