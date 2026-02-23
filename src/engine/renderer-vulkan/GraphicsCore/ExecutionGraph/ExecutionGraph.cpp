@@ -864,13 +864,12 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 }
 
 void TestCmd() {
-	extraBuffers[0] = engineAllocator.AllocDedicatedBuffer( MemoryHeap::CORE_TO_ENGINE, 65536 );
+	extraBuffers[0] = engineAllocator.AllocBuffer( MemoryHeap::CORE_TO_ENGINE, 65536 );
 	memset( extraBuffers[0].memory, 0, 65536 );
 
 	for ( int i = 0; i < 64; i++ ) {
 		extraBuffers[0].memory[i] = i % 3;
 	}
 
-	extraBuffers[1] = engineAllocator.AllocDedicatedBuffer( MemoryHeap::ENGINE_TO_CORE, 65536 );
-	memset( extraBuffers[1].memory, 0, 65536 );
+	extraBuffers[0].memory[0] = ENGINE_INIT;
 }

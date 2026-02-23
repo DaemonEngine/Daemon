@@ -48,7 +48,7 @@ void ResourceSystem::Init( uint64 newDedicatedMemorySize ) {
 }
 
 Buffer ResourceSystem::AllocBuffer( const uint64 size, const Buffer::Usage usage ) {
-	return engineAllocator.AllocBuffer( MemoryHeap::ENGINE, memoryPoolData, GetBufferRequirements( MemoryHeap::ENGINE, size, usage ), usage );
+	return engineAllocator.AllocBuffer( MemoryHeap::ENGINE, size, usage );
 }
 
 void ResourceSystem::AllocImage( const MemoryRequirements& reqs, const VkImage image, uint64* offset, uint64* size ) {

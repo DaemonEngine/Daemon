@@ -49,13 +49,15 @@ struct MemoryHeap {
 		ENGINE_TO_CORE
 	};
 
-	uint64     size;
-	uint64     maxSize;
+	uint64 size;
+	uint64 maxSize;
 
-	uint32     memoryRegion;
+	uint64 offset;
 
-	uint32     id;
-	uint32     flags;
+	uint32 memoryRegion;
+
+	uint32 id;
+	uint32 flags;
 };
 
 struct MemoryRequirements {
@@ -120,10 +122,7 @@ class EngineAllocator {
 
 	MemoryPool  AllocMemoryPool( const MemoryHeap::MemoryType type, const uint64 size, const bool image, const void* dedicatedResource = nullptr );
 
-	Buffer      AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool, const MemoryRequirements& reqs,
-	                         const Buffer::Usage usage = ( Buffer::Usage ) 0 );
-	Buffer      AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint64 size,
-	                                  const Buffer::Usage usage = ( Buffer::Usage ) 0 );
+	Buffer      AllocBuffer( const MemoryHeap::MemoryType type, const uint64 size, const Buffer::Usage usage = ( Buffer::Usage ) 0 );
 
 	void        AllocImage( MemoryPool& pool, const MemoryRequirements& reqs, const VkImage image,
 	                        uint64* offset, uint64* size );

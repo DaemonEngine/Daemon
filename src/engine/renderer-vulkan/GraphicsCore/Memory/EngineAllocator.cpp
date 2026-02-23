@@ -123,7 +123,7 @@ MemoryPool EngineAllocator::AllocMemoryPool( const MemoryHeap::MemoryType type, 
 	};
 
 	if ( dedicatedResource ) {
-		// memoryFlags.pNext = &dedicatedMemoryInfo;
+		memoryFlags.pNext = &dedicatedMemoryInfo;
 	}
 
 	MemoryHeap& heap = MemoryHeapFromType( type, image );
@@ -219,8 +219,7 @@ MemoryRequirements GetBufferRequirements( const MemoryHeap::MemoryType type, con
 	};
 }
 
-Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPool& pool,
-	const MemoryRequirements& reqs, const Buffer::Usage usage ) {
+Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, const uint64 size, const Buffer::Usage usage ) {
 	uint32           queueCount;
 	Array<uint32, 4> concurrentQueues = GetConcurrentQueues( &queueCount );
 
@@ -230,18 +229,20 @@ Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPo
 
 	VkBufferCreateInfo bufferInfo {
 		.pNext                 = &bufferFlagsInfo,
-		.size                  = reqs.size,
+		.size                  = size,
 		.sharingMode           = VK_SHARING_MODE_CONCURRENT,
 		.queueFamilyIndexCount = queueCount,
 		.pQueueFamilyIndices   = concurrentQueues.memory
 	};
 
-	if ( reqs.dedicated ) {
-		pool = AllocMemoryPool( type, reqs.size, false, nullptr );
-	}
-
 	VkBuffer buffer;
 	vkCreateBuffer( device, &bufferInfo, nullptr, &buffer );
+
+	MemoryRequirements reqs = GetBufferRequirements( type, size, usage );
+
+	reqs.dedicated  = true;
+
+	MemoryPool pool = AllocMemoryPool( type, reqs.size, false, buffer );
 
 	uint64 address   = ( uint64 ) pool.memory;
 	uint64 alignment = reqs.dedicated ? reqs.alignment : std::max( reqs.alignment, coherentAccessAlignment );
@@ -279,15 +280,6 @@ Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, MemoryPo
 	res.engineMemory = vkGetBufferDeviceAddress( device, &bdaInfo );
 
 	return res;
-}
-
-Buffer EngineAllocator::AllocDedicatedBuffer( const MemoryHeap::MemoryType type, const uint64 size, const Buffer::Usage usage ) {
-	MemoryPool pool;
-
-	MemoryRequirements reqs = GetBufferRequirements( type, size, usage );
-	reqs.dedicated          = true;
-
-	return AllocBuffer( type, pool, reqs, usage );
 }
 
 void EngineAllocator::AllocImage( MemoryPool& pool, const MemoryRequirements& reqs, const VkImage image,
