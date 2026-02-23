@@ -168,6 +168,7 @@ VkSampler CreateSampler( const Sampler sampler ) {
 	VkSamplerReductionModeCreateInfo samplerReductionInfo {
 		.reductionMode    = samplerReductionMode
 	};
+
 	VkSamplerCreateInfo samplerInfo  {
 		.pNext            = &samplerReductionInfo,
 		.magFilter        = VK_FILTER_LINEAR,
@@ -312,10 +313,10 @@ void AllocDescriptors( uint32 imageCount, uint32 storageImageCount ) {
 	vkUpdateDescriptorSets( device, 1, &writeDescriptorInfo, 0, nullptr );
 }
 
-void UpdateDescriptor( const uint32 id, Image image, const VkImageLayout layout ) {
+void UpdateDescriptor( const uint32 id, Image image ) {
 	VkDescriptorImageInfo imageDescriptorInfo {
 		.imageView   = image.GenView(),
-		.imageLayout = layout
+		.imageLayout = VK_IMAGE_LAYOUT_GENERAL
 	};
 
 	VkWriteDescriptorSet writeDescriptorInfo {

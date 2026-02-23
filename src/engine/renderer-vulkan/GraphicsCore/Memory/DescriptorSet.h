@@ -41,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../Math/NumberTypes.h"
 
 void AllocDescriptors( uint32 imageCount, uint32 storageImageCount );
-void UpdateDescriptor( const uint32 id, Image image, const VkImageLayout layout );
+void UpdateDescriptor( const uint32 id, Image image );
 void FreeDescriptors();
 
 #endif // DESCRIPTOR_SET_H
