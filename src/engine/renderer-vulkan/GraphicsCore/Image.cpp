@@ -159,7 +159,7 @@ VkImageView Image::GenView() {
 FormatConfig formatConfigs[FORMAT_COUNT]                    {};
 FormatConfig swapchainFormatConfigs[SWAPCHAIN_FORMAT_COUNT] {};
 
-static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFlags usage, const VkImageCreateFlags flags ) {
+static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFlags usage, const VkImageCreateFlags flags, bool& hostImageCopy ) {
 	VkPhysicalDeviceImageFormatInfo2 formatInfo {
 		.format = format,
 		.type   = VK_IMAGE_TYPE_2D,
@@ -169,7 +169,7 @@ static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFl
 	};
 
 	VkHostImageCopyDevicePerformanceQuery hostImageCopyInfo    {};
-	VkImageFormatProperties2              formatPropertiesInfo { .pNext = useHostImageCopy ? &hostImageCopyInfo : nullptr };
+	VkImageFormatProperties2              formatPropertiesInfo { .pNext = hostImageCopy ? &hostImageCopyInfo : nullptr };
 
 	VkImageFormatProperties&              formatProperties = formatPropertiesInfo.imageFormatProperties;
 
@@ -181,7 +181,7 @@ static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFl
 	vkGetPhysicalDeviceFormatProperties2( physicalDevice, format, &formatProperties2 );
 
 	if ( ( usage & VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT ) && !hostImageCopyInfo.optimalDeviceAccess ) {
-		useHostImageCopy = false;
+		hostImageCopy = false;
 	}
 
 	return {
@@ -189,8 +189,8 @@ static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFl
 		.maxLayers             = formatProperties.maxArrayLayers,
 		.maxSamples            = formatProperties.sampleCounts,
 
-		.hostCopyOptimal       = useHostImageCopy ? ( ( bool ) hostImageCopyInfo.optimalDeviceAccess )   : false,
-		.hostIdenticalLayout   = useHostImageCopy ? ( ( bool ) hostImageCopyInfo.identicalMemoryLayout ) : false,
+		.hostCopyOptimal       = hostImageCopy ? ( ( bool ) hostImageCopyInfo.optimalDeviceAccess )   : false,
+		.hostIdenticalLayout   = hostImageCopy ? ( ( bool ) hostImageCopyInfo.identicalMemoryLayout ) : false,
 
 		.indirectCopy          = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_COPY_IMAGE_INDIRECT_DST_BIT_KHR ),
 		.sampled               = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT ),
@@ -206,7 +206,7 @@ static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFl
 }
 
 void InitFormatConfigs() {
-	useHostImageCopy = featuresConfig.hostImageCopy;
+	bool hostImageCopy = featuresConfig.hostImageCopy;
 
 	for ( FormatConfig& cfg : formatConfigs ) {
 		Format format            = ( Format ) ( &cfg - formatConfigs );
@@ -225,11 +225,11 @@ void InitFormatConfigs() {
 			flags |= VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT | VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
 		}
 
-		if ( useHostImageCopy && ( usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT ) ) {
+		if ( hostImageCopy && ( usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT ) ) {
 			usage |= VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT;
 		}
 
-		cfg = GetFormatConfig( formats[format], usage, flags );
+		cfg = GetFormatConfig( formats[format], usage, flags, hostImageCopy );
 	}
 	
 	for ( FormatConfig& cfg : swapchainFormatConfigs ) {
@@ -238,6 +238,8 @@ void InitFormatConfigs() {
 		VkImageUsageFlags  usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 		VkImageCreateFlags flags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
-		cfg = GetFormatConfig( swapchainFormats[format], usage, flags );
+		cfg = GetFormatConfig( swapchainFormats[format], usage, flags, hostImageCopy );
 	}
+
+	resourceSystem.hostImageCopy = hostImageCopy;
 }

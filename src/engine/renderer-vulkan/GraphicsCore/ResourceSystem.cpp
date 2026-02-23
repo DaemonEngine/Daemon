@@ -40,9 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Memory/EngineAllocator.h"
 #include "ResourceSystem.h"
 
-void ResourceSystem::Init( uint64 newDedicatedMemorySize ) {
-	hostImageCopy    = featuresConfig.hostImageCopy;
 
+void ResourceSystem::Init( uint64 newDedicatedMemorySize ) {
 	memoryPoolData   = engineAllocator.AllocMemoryPool( MemoryHeap::ENGINE, 1ull * 600 * 1024 * 1024, false );
 	memoryPoolImages = engineAllocator.AllocMemoryPool( MemoryHeap::ENGINE, 1ull * 1 * 1024 * 1024,   true );
 
