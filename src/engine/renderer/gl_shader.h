@@ -919,6 +919,7 @@ protected:
 // It also works regardless of RTTI is enabled or not.
 	enum EGLCompileMacro : unsigned
 	{
+	  OUTSIDE_FOG,
 	  USE_BSP_SURFACE,
 	  USE_VERTEX_SKINNING,
 	  USE_VERTEX_ANIMATION,
@@ -983,6 +984,40 @@ public:
 	}
 
 	virtual ~GLCompileMacro() = default;
+};
+
+class GLCompileMacro_OUTSIDE_FOG :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_OUTSIDE_FOG( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const override
+	{
+		return "OUTSIDE_FOG";
+	}
+
+	EGLCompileMacro GetType() const override
+	{
+		return EGLCompileMacro::OUTSIDE_FOG;
+	}
+
+	int GetShaderTypes() const override {
+		return ShaderType::VERTEX | ShaderType::FRAGMENT;
+	}
+
+	void SetOutsideFog( bool enable )
+	{
+		SetMacro( enable );
+	}
+
+	uint32_t GetRequiredVertexAttributes() const override
+	{
+		return ATTR_FOG_PLANES;
+	}
 };
 
 class GLCompileMacro_USE_BSP_SURFACE :
@@ -1859,6 +1894,22 @@ public:
 	}
 };
 
+class u_FogGradient :
+	GLUniform2f
+{
+public:
+	u_FogGradient( GLShader *shader ) :
+		GLUniform2f( shader, "u_FogGradient", PUSH )
+	{
+	}
+
+	void SetUniform_FogGradient( float density, float falloffExp )
+	{
+		vec2_t value{ density, falloffExp };
+		this->SetValue( value );
+	}
+};
+
 class u_FogColor :
 	GLUniform3f
 {
@@ -2625,36 +2676,6 @@ template<typename Shader> void SetUniform_ColorModulateColorGen(
 	}
 }
 
-class u_FogDepthVector :
-	GLUniform4f
-{
-public:
-	u_FogDepthVector( GLShader *shader ) :
-		GLUniform4f( shader, "u_FogDepthVector", PUSH )
-	{
-	}
-
-	void SetUniform_FogDepthVector( const vec4_t v )
-	{
-		this->SetValue( v );
-	}
-};
-
-class u_FogEyeT :
-	GLUniform1f
-{
-public:
-	u_FogEyeT( GLShader *shader ) :
-		GLUniform1f( shader, "u_FogEyeT", PUSH )
-	{
-	}
-
-	void SetUniform_FogEyeT( float value )
-	{
-		this->SetValue( value );
-	}
-};
-
 class u_DeformEnable :
 	GLUniform1f {
 	public:
@@ -3137,51 +3158,19 @@ class GLShader_skyboxMaterial :
 	GLShader_skyboxMaterial();
 };
 
-class GLShader_fogQuake3 :
-	public GLShader,
-	public u_ModelMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_ColorGlobal_Float,
-	public u_ColorGlobal_Uint,
-	public u_Bones,
-	public u_VertexInterpolation,
-	public u_ViewOrigin,
-	public u_FogDensity,
-	public u_FogDepthVector,
-	public u_FogEyeT,
-	public GLDeformStage,
-	public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION
-{
-public:
-	GLShader_fogQuake3();
-};
-
-class GLShader_fogQuake3Material :
-	public GLShader,
-	public u_ModelMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_ColorGlobal_Uint,
-	public u_ViewOrigin,
-	public u_FogDensity,
-	public u_FogDepthVector,
-	public u_FogEyeT,
-	public GLDeformStage {
-	public:
-	GLShader_fogQuake3Material();
-};
-
-class GLShader_fogGlobal :
+class GLShader_fog :
 	public GLShader,
 	public u_DepthMap,
+	public u_ModelViewProjectionMatrix,
 	public u_UnprojectMatrix,
 	public u_Color_Float,
 	public u_Color_Uint,
 	public u_ViewOrigin,
-	public u_FogDensity
+	public u_FogGradient,
+	public GLCompileMacro_OUTSIDE_FOG
 {
 public:
-	GLShader_fogGlobal();
+	GLShader_fog();
 	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
@@ -3519,7 +3508,7 @@ extern GLShader_processSurfaces                 *gl_processSurfacesShader;
 extern GLShader_blur                            *gl_blurShader;
 extern GLShader_cameraEffects                   *gl_cameraEffectsShader;
 extern GLShader_contrast                        *gl_contrastShader;
-extern GLShader_fogGlobal                       *gl_fogGlobalShader;
+extern GLShader_fog                             *gl_fogShader;
 extern GLShader_fxaa                            *gl_fxaaShader;
 extern GLShader_motionblur                      *gl_motionblurShader;
 extern GLShader_ssao                            *gl_ssaoShader;
@@ -3532,8 +3521,6 @@ extern GLShader_generic                         *gl_genericShader;
 extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
 extern GLShader_lightMapping                    *gl_lightMappingShader;
 extern GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial;
-extern GLShader_fogQuake3                       *gl_fogQuake3Shader;
-extern GLShader_fogQuake3Material               *gl_fogQuake3ShaderMaterial;
 extern GLShader_heatHaze                        *gl_heatHazeShader;
 extern GLShader_heatHazeMaterial                *gl_heatHazeShaderMaterial;
 extern GLShader_liquid                          *gl_liquidShader;

@@ -85,7 +85,6 @@ struct MaterialSurface {
 	bool skyBrush;
 
 	int16_t lightMapNum;
-	int fog;
 	int portalNum = -1;
 
 	GLuint firstIndex;
@@ -148,15 +147,13 @@ struct Material {
 
 	bool usePolygonOffset = false;
 
-	int fog = 0;
-
 	uint32_t drawCommandCount = 0;
 	bool texturesResident = false;
 	std::vector<Texture*> textures;
 
 	bool operator==( const Material& other ) {
 		return program == other.program && stateBits == other.stateBits
-			&& fog == other.fog && cullType == other.cullType && usePolygonOffset == other.usePolygonOffset;
+			&& cullType == other.cullType && usePolygonOffset == other.usePolygonOffset;
 	}
 
 	void AddTexture( Texture* texture ) {
@@ -381,7 +378,7 @@ class MaterialSystem {
 		const bool vertexLit, const bool fullbright );
 	void ProcessStage( MaterialSurface* surface, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage,
 		uint32_t& previousMaterialID, bool skipStageSync = false );
-	void GenerateMaterial( MaterialSurface* surface, int globalFog );
+	void GenerateMaterial( MaterialSurface* surface );
 	void GenerateWorldMaterialsBuffer();
 	void GenerateWorldCommandBuffer( std::vector<MaterialSurface>& surfaces );
 	void GeneratePortalBoundingSpheres();
@@ -462,7 +459,6 @@ void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage, bool, 
 void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage, bool, bool );
 void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage, bool, bool );
 void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, bool );
-void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage, bool, bool );
 
 void BindShaderNONE( Material* );
 void BindShaderNOP( Material* );
@@ -473,7 +469,6 @@ void BindShaderSkybox( Material* material );
 void BindShaderScreen( Material* material );
 void BindShaderHeatHaze( Material* material );
 void BindShaderLiquid( Material* material );
-void BindShaderFog( Material* material );
 
 void ProcessMaterialNONE( Material*, shaderStage_t*, MaterialSurface* );
 void ProcessMaterialNOP( Material*, shaderStage_t*, MaterialSurface* );
@@ -484,6 +479,5 @@ void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage, MaterialS
 void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ );
 void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, MaterialSurface* surface );
 void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, MaterialSurface* /* surface */ );
-void ProcessMaterialFog( Material* material, shaderStage_t* pStage, MaterialSurface* surface );
 
 #endif // MATERIAL_H

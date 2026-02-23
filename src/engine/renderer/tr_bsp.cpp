@@ -952,7 +952,6 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 		surf->lightmapNum /= 2;
 	}
 
-	surf->fogIndex = LittleLong( ds->fogNum ) + 1;
 	surf->shader = ShaderForShaderNum( ds->shaderNum );
 
 	if ( r_singleShader->integer && !surf->shader->isSky ) {
@@ -1184,9 +1183,6 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	{
 		surf->lightmapNum /= 2;
 	}
-
-	// get fog volume
-	surf->fogIndex = LittleLong( ds->fogNum ) + 1;
 
 	// get shader value
 	surf->shader = ShaderForShaderNum( ds->shaderNum );
@@ -2720,7 +2716,6 @@ static void R_CreateWorldVBO() {
 				srf.surface = surface->data;
 				srf.bspSurface = true;
 				srf.lightMapNum = surface->lightmapNum;
-				srf.fog = surface->fogIndex;
 				srf.portalNum = surface->portalNum;
 
 				srf.firstIndex = ( ( srfGeneric_t* ) surface->data )->firstIndex;
@@ -3217,8 +3212,6 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 	int          count, brushesCount, sidesCount;
 	int          sideNum;
 	int          planeNum;
-	shader_t     *shader;
-	float        d;
 	int          firstSide = 0;
 
 	Log::Debug("...loading fogs" );
@@ -3236,9 +3229,6 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 	s_worldData.numFogs = count + 1;
 	s_worldData.fogs = (fog_t*) ri.Hunk_Alloc( s_worldData.numFogs * sizeof( *out ), ha_pref::h_low );
 	out = s_worldData.fogs + 1;
-
-	// ydnar: reset global fog
-	s_worldData.globalFog = -1;
 
 	if ( !count )
 	{
@@ -3263,6 +3253,15 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 	}
 
 	sidesCount = sidesLump->filelen / sizeof( *sides );
+
+	struct FogVert
+	{
+		vec3_t position;
+		vec4_t surface;
+		vec4_t planes[ 5 ]; // faces other than the current triangle's
+	};
+	std::vector<FogVert> fogVerts(24 * count);
+	std::vector<glIndex_t> fogIndexes(36 * count);
 
 	for ( i = 0; i < count; i++, fogs++ )
 	{
@@ -3316,32 +3315,9 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 			out->bounds[ 1 ][ 2 ] = s_worldData.planes[ planeNum ].dist;
 		}
 
-		// get information from the shader for fog parameters
 		// it says RSF_3D but if there is no shader text found it should probably just error instead
 		// of trying to create an implicit shader from an image...
-		shader = R_FindShader( fogs->shader, RSF_3D );
-
-		out->fogParms = shader->fogParms;
-
-		out->color = Color::Adapt( shader->fogParms.color );
-
-		if ( tr.worldLinearizeTexture )
-		{
-			out->color = out->color.ConvertFromSRGB();
-		}
-
-		out->color *= tr.identityLight;
-
-		out->color.SetAlpha( 1 );
-
-		d = shader->fogParms.depthForOpaque < 1 ? 1 : shader->fogParms.depthForOpaque;
-		out->tcScale = 1.0f / d;
-
-		// ydnar: global fog sets clearcolor/zfar
-		if ( out->originalBrushNumber == -1 )
-		{
-			s_worldData.globalFog = i + 1;
-		}
+		out->shader = R_FindShader( fogs->shader, RSF_3D );
 
 		// set the gradient vector
 		sideNum = LittleLong( fogs->visibleSide );
@@ -3349,17 +3325,87 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		// ydnar: made this check a little more strenuous (was sideNum == -1)
 		if ( sideNum < 0 || sideNum >= sidesCount )
 		{
-			out->hasSurface = false;
+			Vector4Set( out->surface, 0.0f, 0.0f, 0.0f, -1.0e10f );
 		}
 		else
 		{
-			out->hasSurface = true;
 			planeNum = LittleLong( sides[ firstSide + sideNum ].planeNum );
 			VectorSubtract( vec3_origin, s_worldData.planes[ planeNum ].normal, out->surface );
 			out->surface[ 3 ] = -s_worldData.planes[ planeNum ].dist;
 		}
 
+		// add faces of fog brush with information about the other planes
+		// TODO: allow non-axis-aligned boxes. The GLSL can draw any brush with up to 6 faces.
+		constexpr int faces[ 6 ][ 4 ]
+		{
+			{ 2, 0, 6, 4 },
+			{ 1, 3, 5, 7 },
+			{ 0, 1, 4, 5 },
+			{ 3, 2, 7, 6 },
+			{ 2, 3, 0, 1 },
+			{ 7, 6, 5, 4 }
+		};
+
+		for ( int face = 0; face < 6; face++ )
+		{
+			for ( int v = 0; v < 4; v++ )
+			{
+				FogVert &vert = fogVerts[ i * 24 + face * 4 + v ];
+				int p = faces[ face ][ v ];
+				vert.position[ 0 ] = out->bounds[ p & 1 ][ 0 ];
+				vert.position[ 1 ] = out->bounds[ ( p >> 1 ) & 1 ][ 1 ];
+				vert.position[ 2 ] = out->bounds[ p >> 2 ][ 2 ];
+
+				VectorCopy( out->surface, vert.surface );
+				vert.surface[ 3 ] = -out->surface[ 3 ];
+
+				vec4_t *plane = vert.planes;
+				for ( int otherFace = 0; otherFace < 6; otherFace++ )
+				{
+					if ( face != otherFace )
+					{
+						planeNum = LittleLong( sides[ firstSide + otherFace ].planeNum );
+						VectorCopy( s_worldData.planes[ planeNum ].normal, *plane );
+						( *plane )[ 3 ] = s_worldData.planes[ planeNum ].dist;
+						++plane;
+					}
+				}
+			}
+
+			fogIndexes[ 36 * i + 6 * face + 0 ] = i * 24 + face * 4 + 0;
+			fogIndexes[ 36 * i + 6 * face + 1 ] = i * 24 + face * 4 + 1;
+			fogIndexes[ 36 * i + 6 * face + 2 ] = i * 24 + face * 4 + 2;
+			fogIndexes[ 36 * i + 6 * face + 3 ] = i * 24 + face * 4 + 2;
+			fogIndexes[ 36 * i + 6 * face + 4 ] = i * 24 + face * 4 + 1;
+			fogIndexes[ 36 * i + 6 * face + 5 ] = i * 24 + face * 4 + 3;
+		}
+
+		// add draw surf for fog brush faces
+		out->surf.firstIndex = 36 * i;
+		out->surf.numTriangles = 12;
+		out->surf.surfaceType = surfaceType_t::SF_TRIANGLES;
+
 		out++;
+	}
+
+	vertexAttributeSpec_t attributes[] {
+		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].position, 3, sizeof( fogVerts[ 0 ] ), 0 },
+		{ ATTR_INDEX_FOG_SURFACE, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].surface, 4, sizeof( fogVerts[ 0 ] ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 0, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 0 ], 4, sizeof( FogVert ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 1, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 1 ], 4, sizeof( FogVert ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 2, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 2 ], 4, sizeof( FogVert ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 3, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 3 ], 4, sizeof( FogVert ), 0 },
+		{ ATTR_INDEX_FOG_PLANES_0 + 4, GL_FLOAT, GL_FLOAT, &fogVerts[ 0 ].planes[ 4 ], 4, sizeof( FogVert ), 0 },
+	};
+	VBO_t *fogVBO = R_CreateStaticVBO(
+		"fogs VBO", std::begin( attributes ), std::end( attributes ), fogVerts.size() );
+	IBO_t *fogIBO = R_CreateStaticIBO( "fogs IBO", &fogIndexes[ 0 ], fogIndexes.size() );
+	SetupVAOBuffers( fogVBO, fogIBO, ATTR_POSITION | ATTR_FOG_SURFACE | ATTR_FOG_PLANES, &fogVBO->VAO );
+
+	for ( int j = 1; j < s_worldData.numFogs; j++ )
+	{
+		s_worldData.fogs[ j ].surf.vbo = fogVBO;
+		s_worldData.fogs[ j ].surf.ibo = fogIBO;
 	}
 
 	Log::Debug("%i fog volumes loaded", s_worldData.numFogs );
@@ -3397,10 +3443,10 @@ static void R_SetConstantColorLightGrid( const byte color[3] )
 	gridPoint1->color[ 1 ] = color[1];
 	gridPoint1->color[ 2 ] = color[2];
 	gridPoint1->ambientPart = 128;
-	gridPoint2->direction[ 0 ] = floatToSnorm8(0.0f);
-	gridPoint2->direction[ 1 ] = floatToSnorm8(0.0f);
-	gridPoint2->direction[ 2 ] = floatToSnorm8(1.0f);
-	gridPoint2->unused = 0;
+	gridPoint2->direction[ 0 ] = 128 + floatToSnorm8( 0.0f );
+	gridPoint2->direction[ 1 ] = 128 + floatToSnorm8( 0.0f );
+	gridPoint2->direction[ 2 ] = 128 + floatToSnorm8( 1.0f );
+	gridPoint2->isSet = 255;
 
 	w->lightGridData1 = gridPoint1;
 	w->lightGridData2 = gridPoint2;
@@ -3411,7 +3457,11 @@ static void R_SetConstantColorLightGrid( const byte color[3] )
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
 	tr.lightGrid1Image = R_Create3DImage("<lightGrid1>", (const byte *)w->lightGridData1, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
-	tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
+
+	if ( glConfig.deluxeMapping )
+	{
+		tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
+	}
 }
 
 /*
@@ -3539,13 +3589,17 @@ void R_LoadLightGrid( lump_t *l )
 		tmpAmbient[ 2 ] = in->ambient[ 2 ];
 		tmpAmbient[ 3 ] = 255;
 
+		/* Make sure we don't change the (0, 0, 0) points because those are points in walls,
+		which we'll fill up by interpolating nearby points later */
+		if ( tmpAmbient[ 0 ] == 0 && tmpAmbient[ 1 ] == 0 && tmpAmbient[ 2 ] == 0 )
+		{
+			continue;
+		}
+
 		tmpDirected[ 0 ] = in->directed[ 0 ];
 		tmpDirected[ 1 ] = in->directed[ 1 ];
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
-
-		R_LinearizeLightingColorBytes( tmpAmbient );
-		R_LinearizeLightingColorBytes( tmpDirected );
 
 		R_ColorShiftLightingBytes( tmpAmbient );
 		R_ColorShiftLightingBytes( tmpDirected );
@@ -3556,55 +3610,53 @@ void R_LoadLightGrid( lump_t *l )
 			directedColor[ j ] = tmpDirected[ j ] * ( 1.0f / 255.0f );
 		}
 
+		if ( tr.worldLinearizeTexture )
+		{
+			convertFromSRGB( ambientColor );
+			convertFromSRGB( directedColor );
+		}
+
 		const float forceAmbient = r_forceAmbient.Get();
 		if ( ambientColor[0] < forceAmbient &&
 			ambientColor[1] < forceAmbient &&
-			ambientColor[2] < forceAmbient &&
-			/* Make sure we don't change the (0, 0, 0) points because those are points in walls,
-			which we'll fill up by interpolating nearby points later */
-			( ambientColor[0] != 0 ||
-			ambientColor[1] != 0 || 
-			ambientColor[2] != 0 ) ) {
+			ambientColor[2] < forceAmbient )
+		{
 			VectorSet( ambientColor, forceAmbient, forceAmbient, forceAmbient );
 		}
 
 		// standard spherical coordinates to cartesian coordinates conversion
-
-		// decode X as cos( lat ) * sin( long )
-		// decode Y as sin( lat ) * sin( long )
-		// decode Z as cos( long )
-
 		// RB: having a look in NormalToLatLong used by q3map2 shows the order of latLong
+		// Lng = 0 at (1,0,0), 90 at (0,1,0), etc., encoded in 8-bit sine table format
+		// Lat = 0 at (0,0,1) to 180 (0,0,-1), encoded in 8-bit sine table format
+		// (so the upper bit of lat is wasted)
 
-		// Lat = 0 at (1,0,0) to 360 (-1,0,0), encoded in 8-bit sine table format
-		// Lng = 0 at (0,0,1) to 180 (0,0,-1), encoded in 8-bit sine table format
+		lat = DEG2RAD( in->latLong[ 0 ] * ( 360.0f / 255.0f ) );
+		lng = DEG2RAD( in->latLong[ 1 ] * ( 360.0f / 255.0f ) );
 
-		lat = DEG2RAD( in->latLong[ 1 ] * ( 360.0f / 255.0f ) );
-		lng = DEG2RAD( in->latLong[ 0 ] * ( 360.0f / 255.0f ) );
-
-		direction[ 0 ] = cosf( lat ) * sinf( lng );
-		direction[ 1 ] = sinf( lat ) * sinf( lng );
-		direction[ 2 ] = cosf( lng );
+		direction[ 0 ] = cosf( lng ) * sinf( lat );
+		direction[ 1 ] = sinf( lng ) * sinf( lat );
+		direction[ 2 ] = cosf( lat );
 
 		// Pack data into an bspGridPoint
 		gridPoint1->color[ 0 ] = floatToUnorm8( 0.5f * (ambientColor[ 0 ] + directedColor[ 0 ]) );
 		gridPoint1->color[ 1 ] = floatToUnorm8( 0.5f * (ambientColor[ 1 ] + directedColor[ 1 ]) );
 		gridPoint1->color[ 2 ] = floatToUnorm8( 0.5f * (ambientColor[ 2 ] + directedColor[ 2 ]) );
 
-		// Avoid division-by-zero.
 		float ambientLength = VectorLength(ambientColor);
 		float directedLength = VectorLength(directedColor);
 		float length = ambientLength + directedLength;
-		gridPoint1->ambientPart = length ? floatToUnorm8( ambientLength / length ) : 0;
+		gridPoint1->ambientPart = floatToUnorm8( ambientLength / length );
 
 		gridPoint2->direction[0] = 128 + floatToSnorm8( direction[ 0 ] );
 		gridPoint2->direction[1] = 128 + floatToSnorm8( direction[ 1 ] );
 		gridPoint2->direction[2] = 128 + floatToSnorm8( direction[ 2 ] );
-		gridPoint2->unused = 0;
+		gridPoint2->isSet = 255;
 	}
 
 	// fill in gridpoints with zero light (samples in walls) to avoid
 	// darkening of objects near walls
+	// FIXME: the interpolation includes other interpolated data points so the
+	// result depends on iteration order
 	gridPoint1 = w->lightGridData1;
 	gridPoint2 = w->lightGridData2;
 
@@ -3621,10 +3673,10 @@ void R_LoadLightGrid( lump_t *l )
 				from[ 0 ] = i - 1;
 				to[ 0 ] = i + 1;
 
-				if( gridPoint1->color[ 0 ] ||
-				    gridPoint1->color[ 1 ] ||
-				    gridPoint1->color[ 2 ] )
+				if ( gridPoint2->isSet )
+				{
 					continue;
+				}
 
 				scale = R_InterpolateLightGrid( w, from, to, factors,
 								ambientColor, directedColor,
@@ -3645,7 +3697,7 @@ void R_LoadLightGrid( lump_t *l )
 					gridPoint2->direction[0] = 128 + floatToSnorm8(direction[0]);
 					gridPoint2->direction[1] = 128 + floatToSnorm8(direction[1]);
 					gridPoint2->direction[2] = 128 + floatToSnorm8(direction[2]);
-					gridPoint2->unused = 0;
+					gridPoint2->isSet = 255;
 				}
 			}
 		}
@@ -3657,7 +3709,11 @@ void R_LoadLightGrid( lump_t *l )
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
 	tr.lightGrid1Image = R_Create3DImage("<lightGrid1>", (const byte *)w->lightGridData1, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
-	tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
+
+	if ( glConfig.deluxeMapping )
+	{
+		tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
+	}
 
 	Log::Debug("%i light grid points created", w->numLightGridPoints );
 }
@@ -4595,14 +4651,13 @@ static void SetWorldLight() {
 			tr.modelLight = lightMode_t::GRID;
 		}
 
-		if ( glConfig.deluxeMapping ) {
-			// Enable deluxe mapping emulation if light direction grid is there.
-			if ( tr.lightGrid2Image ) {
-				// Game model surfaces use grid lighting, they don't have vertex light colors.
-				tr.modelDeluxe = deluxeMode_t::GRID;
+		// Enable deluxe mapping emulation if light direction grid is there.
+		if ( tr.lightGrid2Image ) {
+			ASSERT( glConfig.deluxeMapping );
+			// Game model surfaces use grid lighting, they don't have vertex light colors.
+			tr.modelDeluxe = deluxeMode_t::GRID;
 
-				// Only game models use emulated deluxe map from light direction grid.
-			}
+			// Only game models use emulated deluxe map from light direction grid.
 		}
 	}
 
@@ -4655,7 +4710,11 @@ static void SetConstUniforms() {
 		}
 
 		globalUBOProxy->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTGRID1, tr.lightGrid1Image ) );
-		globalUBOProxy->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_LIGHTGRID2, tr.lightGrid2Image ) );
+
+		if ( tr.lightGrid2Image )
+		{
+			globalUBOProxy->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_LIGHTGRID2, tr.lightGrid2Image ) );
+		}
 	}
 
 	if ( glConfig.usingMaterialSystem ) {

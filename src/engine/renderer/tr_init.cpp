@@ -224,7 +224,6 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 
 	cvar_t      *r_showImages;
 
-	cvar_t      *r_wolfFog;
 	cvar_t      *r_noFog;
 
 	Cvar::Range<Cvar::Cvar<float>> r_forceAmbient( "r_forceAmbient", "Minimal light amount in lightGrid; -1 to use map value",
@@ -1173,7 +1172,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_heatHaze = Cvar_Get( "r_heatHaze", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_noMarksOnTrisurfs = Cvar_Get( "r_noMarksOnTrisurfs", "1", CVAR_CHEAT );
 
-		r_wolfFog = Cvar_Get( "r_wolfFog", "1", CVAR_CHEAT );
 		r_noFog = Cvar_Get( "r_noFog", "0", CVAR_CHEAT );
 
 		Cvar::Latch( r_forceAmbient );
@@ -1551,12 +1549,10 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		if ( r_lazyShaders.Get() == 1 ) {
 			if ( tr.world->numFogs > 0 )
 			{
-				// Fog is applied dynamically based on the surface's BBox, so build all of the q3 fog shaders here
-				for ( uint32_t i = 0; i < 3; i++ ) {
-					gl_fogQuake3Shader->SetVertexSkinning( i & 1 );
-					gl_fogQuake3Shader->SetVertexAnimation( i & 2 );
-					gl_fogQuake3Shader->SetDeform( 0 );
-					gl_fogQuake3Shader->MarkProgramForBuilding();
+				for ( bool outer : { false, true } )
+				{
+					gl_fogShader->SetOutsideFog( outer );
+					gl_fogShader->MarkProgramForBuilding();
 				}
 			}
 

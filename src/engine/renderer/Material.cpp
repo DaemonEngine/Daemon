@@ -334,14 +334,6 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, 
 	gl_liquidShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
 }
 
-void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage, bool, bool ) {
-	// shader_t* shader = pStage->shader;
-
-	materials += pStage->bufferOffset;
-
-	gl_fogQuake3ShaderMaterial->WriteUniformsToBuffer( materials, GLShader::MATERIAL );
-}
-
 /*
 * Buffer layout:
 * // Static surfaces data:
@@ -746,10 +738,10 @@ class ListMaterialsCmd : public Cmd::StaticCmd {
 			       shaderSortName.at( materialPack.fromSort ), shaderSortName.at( materialPack.toSort ) );
 			for ( const Material& material : materialPack.materials ) {
 				Print( "id: %u, sync: %5s, stateBits: %10x, GLShader: %s, GLProgramID: %u,"
-				       " deform: %i, fog: %i, drawCmdCount: %u",
+				       " deform: %i, drawCmdCount: %u",
 				       material.id, material.useSync, material.stateBits,
 				       material.shader->_name, material.program,
-				       material.deformIndex, material.fog, material.drawCommandCount );
+				       material.deformIndex, material.drawCommandCount );
 			}
 		}
 	}
@@ -762,7 +754,6 @@ static std::string GetStageInfo( const shaderStage_t* pStage, const uint32_t dyn
 		{ BindShaderGeneric3D,    "genericMaterial     " },
 		{ BindShaderLightMapping, "lightMappingMaterial" },
 		{ BindShaderHeatHaze,     "heatHazeMaterial    " },
-		{ BindShaderFog,          "fogQuake3Material   " },
 		{ BindShaderLiquid,       "liquidMaterial      " },
 		{ BindShaderScreen,       "screenMaterial      " },
 		{ BindShaderSkybox,       "skyboxMaterial      " },
@@ -1086,42 +1077,6 @@ void BindShaderLiquid( Material* material ) {
 	gl_liquidShaderMaterial->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
 }
 
-void BindShaderFog( Material* material ) {
-	// Bind shader program.
-	gl_fogQuake3ShaderMaterial->SetDeform( material->deformIndex );
-	gl_fogQuake3ShaderMaterial->BindProgram();
-
-	// Set shader uniforms.
-	const fog_t* fog = tr.world->fogs + material->fog;
-
-	// rotate the gradient vector for this orientation
-	float eyeT;
-	vec4_t fogDepthVector;
-	if ( fog->hasSurface ) {
-		VectorCopy( fog->surface, fogDepthVector );
-		fogDepthVector[ 3 ] = -fog->surface[ 3 ];
-		eyeT = DotProduct( backEnd.viewParms.orientation.origin, fogDepthVector ) + fogDepthVector[ 3 ];
-	} else {
-		Vector4Set( fogDepthVector, 0, 0, 0, 1 );
-		eyeT = 1; // non-surface fog always has eye inside
-	}
-
-	// Note: things that seemingly should be per-shader or per-surface can be set as global uniforms
-	// since fognum is grouped with the GL state stuff, segregating each fognum in a separate draw call.
-
-	gl_fogQuake3ShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-	gl_fogQuake3ShaderMaterial->SetUniform_FogDensity( fog->tcScale );
-	gl_fogQuake3ShaderMaterial->SetUniform_FogDepthVector( fogDepthVector );
-	gl_fogQuake3ShaderMaterial->SetUniform_FogEyeT( eyeT );
-
-	gl_fogQuake3ShaderMaterial->SetUniform_ColorGlobal_Uint( fog->color );
-
-	gl_fogQuake3ShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_fogQuake3ShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
-
-	gl_fogQuake3ShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
-}
-
 void ProcessMaterialNONE( Material*, shaderStage_t*, MaterialSurface* ) {
 	ASSERT_UNREACHABLE();
 }
@@ -1257,15 +1212,6 @@ void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, MaterialS
 	gl_liquidShaderMaterial->SetGridLighting( lightMode == lightMode_t::GRID );
 
 	material->program = gl_liquidShaderMaterial->GetProgram( materialSystem.buildOneShader );
-}
-
-void ProcessMaterialFog( Material* material, shaderStage_t* pStage, MaterialSurface* surface ) {
-	material->shader = gl_fogQuake3ShaderMaterial;
-	material->fog = surface->fog;
-
-	gl_fogQuake3ShaderMaterial->SetDeform( pStage->deformIndex );
-
-	material->program = gl_fogQuake3ShaderMaterial->GetProgram( materialSystem.buildOneShader );
 }
 
 void MaterialSystem::AddStage( MaterialSurface* surface, shaderStage_t* pStage, uint32_t stage,
@@ -1488,7 +1434,7 @@ void MaterialSystem::ProcessStage( MaterialSurface* surface, shaderStage_t* pSta
 /* This will only generate a material itself
 A material represents a distinct global OpenGL state (e. g. blend function, depth test, depth write etc.)
 Materials can have a dependency on other materials to make sure that consecutive stages are rendered in the proper order */
-void MaterialSystem::GenerateMaterial( MaterialSurface* surface, int globalFog ) {
+void MaterialSystem::GenerateMaterial( MaterialSurface* surface ) {
 	uint32_t stage = 0;
 	uint32_t previousMaterialID = 0;
 
@@ -1505,13 +1451,6 @@ void MaterialSystem::GenerateMaterial( MaterialSurface* surface, int globalFog )
 
 	for ( shaderStage_t* pStage = surface->shader->stages; pStage < surface->shader->lastStage; pStage++ ) {
 		ProcessStage( surface, pStage, surface->shader, packIDs, stage, previousMaterialID );
-
-		surface->stages++;
-	}
-
-	if ( !surface->shader->noFog && surface->fog >= 1 && surface->fog != globalFog ) {
-		uint32_t unused;
-		ProcessStage( surface, surface->shader->fogShader->stages, surface->shader->fogShader, packIDs, stage, unused, true );
 
 		surface->stages++;
 	}
@@ -1910,7 +1849,6 @@ bool MaterialSystem::AddPortalSurface( uint32_t viewID, PortalSurface* portalSur
 		{
 			drawSurf.bspSurface = portalSurfaces[portalSurface->drawSurfID].bspSurface;
 			drawSurf.entity = &tr.worldEntity;
-			drawSurf.fog = portalSurfaces[portalSurface->drawSurfID].fog;
 			drawSurf.portalNum = portalSurfaces[portalSurface->drawSurfID].portalNum;
 			drawSurf.shader = portalSurfaces[portalSurface->drawSurfID].shader;
 			drawSurf.surface = portalSurfaces[portalSurface->drawSurfID].surface;
@@ -1986,7 +1924,7 @@ void MaterialSystem::AddAutospriteSurfaces() {
 	for ( const bspSurface_t* surface : autospriteSurfaces )
 	{
 		R_AddDrawSurf( surface->data, surface->shader,
-		               surface->lightmapNum, surface->fogIndex, true );
+		               surface->lightmapNum, true );
 	}
 }
 
@@ -2038,7 +1976,7 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 			}
 
 			tr.drawingSky = true;
-			Tess_Begin( Tess_StageIteratorSky, skyShader, false, -1, 0, false );
+			Tess_Begin( Tess_StageIteratorSky, skyShader, false, -1, false );
 			Tess_End();
 		}
 	}
@@ -2086,12 +2024,6 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		}
 
 		stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS );
-	}
-
-	if( material.shaderBinder == BindShaderFog ) {
-		if ( r_noFog->integer || !r_wolfFog->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) ) {
-			return;
-		}
 	}
 
 	backEnd.currentEntity = &tr.worldEntity;

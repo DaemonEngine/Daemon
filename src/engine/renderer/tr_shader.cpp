@@ -4603,16 +4603,22 @@ static bool ParseShader( const char *_text )
 		// fogParms
 		else if ( !Q_stricmp( token, "fogParms" ) )
 		{
-			/*
-			Log::Warn("fogParms keyword not supported in shader '%s'", shader.name);
-			SkipRestOfLine(text);
+			vec3_t fogColor;
 
-			*/
-
-			if ( !ParseVector( text, 3, shader.fogParms.color ) )
+			if ( !ParseVector( text, 3, fogColor ) )
 			{
 				return false;
 			}
+
+			shader.fogParms.color = Color::Adapt( fogColor );
+
+			if ( tr.worldLinearizeTexture )
+			{
+				shader.fogParms.color = shader.fogParms.color.ConvertFromSRGB();
+			}
+
+			shader.fogParms.color *= tr.identityLight;
+			shader.fogParms.color.SetAlpha( 1 );
 
 			token = COM_ParseExt2( text, false );
 
@@ -4622,12 +4628,45 @@ static bool ParseShader( const char *_text )
 				continue;
 			}
 
-			shader.fogParms.depthForOpaque = atof( token );
+			shader.fogParms.depthForOpaque = std::max( 1.0, atof( token ) );
 
 			shader.sort = Util::ordinal(shaderSort_t::SS_FOG);
 
 			// skip any old gradient directions
 			SkipRestOfLine( text );
+			continue;
+		}
+		// fogGradient
+		// Default: fogGradient expFalloff 5
+		// TODO: make the gradient plane configurable
+		else if ( !Q_stricmp( token, "fogGradient" ) )
+		{
+			token = COM_ParseExt2( text, false );
+
+			if ( !Q_stricmp( token, "const" ) )
+			{
+				shader.fogParms.falloffExp = 9999;
+			}
+			// fogGradient expFalloff <dist from edge at which density is 50% of max>
+			// scales density by 1 - exp(-k*t) where t is distance under fog plane
+			else if ( !Q_stricmp( token, "expFalloff" ) )
+			{
+				token = COM_ParseExt2( text, false );
+				float val = atof( token );
+
+				if ( val > 0.0f )
+				{
+					shader.fogParms.falloffExp = M_LN2 / val;
+				}
+				else
+				{
+					Log::Warn( "bad expFalloff value in shader '%s'", shader.name );
+				}
+			}
+			else
+			{
+				Log::Warn( "invalid fogGradient type '%s' in shader '%s'", token, shader.name );
+			}
 			continue;
 		}
 		// noFog
@@ -5636,11 +5675,11 @@ static void SetStagesRenderers()
 					&UpdateSurfaceDataLiquid, &BindShaderLiquid, &ProcessMaterialLiquid,
 				};
 				break;
-			case stageType_t::ST_FOGMAP:
+			case stageType_t::ST_FOGMAP_INNER:
+			case stageType_t::ST_FOGMAP_OUTER:
 				stageRendererOptions = {
-					// All q3 fog shaders are built in RE_EndRegistration because they're assigned to surfaces dynamically
 					&Render_fog, &MarkShaderBuildNOP,
-					&UpdateSurfaceDataFog, &BindShaderFog, &ProcessMaterialFog,
+					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
 				};
 				break;
 			default:
@@ -5805,17 +5844,6 @@ static void GeneratePermanentShaderTable( const float *values, int numValues )
 	shaderTableHashTable[ hash ] = newTable;
 }
 
-bool CheckShaderNameLength( const char* func_err, const char* name, const char* suffix )
-{
-	if ( strlen( name ) + strlen( suffix ) >= MAX_QPATH )
-	{
-		Log::Warn("%s Shader name %s%s length longer than MAX_QPATH %d", func_err, name, suffix, MAX_QPATH );
-		return false;
-	}
-
-	return true;
-}
-
 static void ValidateStage( shaderStage_t *pStage )
 {
 	struct stageCheck_t {
@@ -5836,7 +5864,8 @@ static void ValidateStage( shaderStage_t *pStage )
 		{ stageType_t::ST_SPECULARMAP, { true, true, false, "specularMap" } },
 		{ stageType_t::ST_HEATHAZEMAP, { true, true, false, "heatHazeMap" } },
 		{ stageType_t::ST_LIQUIDMAP, { true, true, false, "liquidMap" } },
-		{ stageType_t::ST_FOGMAP, { true, false, false, "fogMap" } },
+		{ stageType_t::ST_FOGMAP_INNER, { true, false, false, "fogMapInner" } },
+		{ stageType_t::ST_FOGMAP_OUTER, { true, false, false, "fogMapOuter" } },
 		// The lightmap is fetched at render time.
 		{ stageType_t::ST_LIGHTMAP, { true, false, false, "light map" } },
 		// The lightmap is fetched at render time.
@@ -5950,7 +5979,7 @@ static float DetermineShaderSort()
 			return Util::ordinal(shaderSort_t::SS_BLEND0);
 		}
 
-		// determine sort order and fog color adjustment
+		// determine sort order
 		if ( ( stages[ stage ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) &&
 		     ( stages[ 0 ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) )
 		{
@@ -5993,6 +6022,11 @@ static shader_t *FinishShader()
 		shader.portalRange = r_portalDefaultRange.Get();
 	}
 
+	if ( shader.fogParms.falloffExp == 0.0f )
+	{
+		shader.fogParms.falloffExp = M_LN2 / 5;
+	}
+
 	numStages = MAX_SHADER_STAGES;
 	GroupActiveStages();
 
@@ -6026,14 +6060,6 @@ static shader_t *FinishShader()
 
 	shader.sort = DetermineShaderSort();
 
-	if ( shader.sort <= Util::ordinal( shaderSort_t::SS_OPAQUE ) ) {
-		shader.fogPass = fogPass_t::FP_EQUAL;
-	} else if ( shader.contentFlags & CONTENTS_FOG ) {
-		shader.fogPass = fogPass_t::FP_LE;
-	}
-
-	shader.noFog = shader.noFog || shader.fogPass == fogPass_t::FP_NONE;
-
 	// look for multitexture potential
 	CollapseStages();
 
@@ -6046,13 +6072,7 @@ static shader_t *FinishShader()
 	// Copy the current global shader to a newly allocated shader.
 	shader_t *ret = MakeShaderPermanent();
 
-	if ( !shader.noFog ) {
-		if ( shader.fogPass == fogPass_t::FP_EQUAL ) {
-			ret->fogShader = tr.fogEqualShader;
-		} else {
-			ret->fogShader = tr.fogLEShader;
-		}
-	}
+	size_t nameLength = strlen( shader.name );
 
 	// generate depth-only shader if necessary
 	if( r_depthShaders.Get() &&
@@ -6066,26 +6086,8 @@ static shader_t *FinishShader()
 		stages[1].active = false;
 		numStages = 1;
 		shader.noFog = true;
-		shader.fogShader = nullptr;
 
-		const char* depthShaderSuffix = "$depth";
-
-		if ( !CheckShaderNameLength( "FinishShader", shader.name, depthShaderSuffix ) )
-		{
-			ret->depthShader = nullptr;
-
-			if ( glConfig.usingMaterialSystem && !tr.worldLoaded ) {
-				uint8_t maxStages = ret->lastStage - ret->stages;
-
-				// Add 1 for potential fog stages
-				maxStages = PAD( maxStages + 1, 4 ); // Aligned to 4 components
-				materialSystem.maxStages = std::max( maxStages, materialSystem.maxStages );
-			}
-
-			return ret;
-		}
-
-		strcat( shader.name, depthShaderSuffix );
+		Q_strcat( shader.name, sizeof( shader.name ), "$depth" );
 
 		if( stages[0].stateBits & GLS_ATEST_BITS ) {
 			// alpha test requires a custom depth shader
@@ -6132,12 +6134,34 @@ static shader_t *FinishShader()
 		ret->depthShader = nullptr;
 	}
 
+	if ( ret->fogParms.depthForOpaque != 0 )
+	{
+		shader.name[ nameLength ] = '\0';
+		Q_strcat( shader.name, sizeof( shader.name ), "$fogIn" );
+		stages[1].active = false;
+		numStages = 1;
+		ResetStruct( stages[ 0 ] );
+		stages[ 0 ].active = true;
+		stages[ 0 ].type = stageType_t::ST_FOGMAP_INNER;
+		stages[ 0 ].stateBits = GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+		shader.cullType = cullType_t::CT_FRONT_SIDED;
+		SetStagesRenderers();
+		ret->fogInnerShader = MakeShaderPermanent();
+
+		shader.name[ nameLength ] = '\0';
+		Q_strcat( shader.name, sizeof( shader.name ), "$fogOut" );
+		stages[ 0 ].type = stageType_t::ST_FOGMAP_OUTER;
+		stages[ 0 ].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+		shader.cullType = cullType_t::CT_BACK_SIDED;
+		SetStagesRenderers();
+		ret->fogOuterShader = MakeShaderPermanent();
+	}
+
 	if ( glConfig.usingMaterialSystem && !tr.worldLoaded ) {
 		uint8_t maxStages = ret->lastStage - ret->stages;
 
 		// Add 1 for potential depth stages
-		// Add 1 for potential fog stages
-		maxStages = PAD( maxStages + 2, 4 ); // Aligned to 4 components
+		maxStages = PAD( maxStages + 1, 4 ); // Aligned to 4 components
 		materialSystem.maxStages = std::max( maxStages, materialSystem.maxStages );
 	}
 
@@ -6279,6 +6303,7 @@ shader_t       *R_FindShader( const char *name, int flags )
 	ClearGlobalShader();
 
 	Q_strncpyz( shader.name, strippedName, sizeof( shader.name ) );
+	ASSERT_LT( strlen( shader.name ), MAX_QPATH );
 	shader.registerFlags = flags;
 
 	for ( i = 0; i < MAX_SHADER_STAGES; i++ )
@@ -6474,8 +6499,9 @@ qhandle_t RE_RegisterShader( const char *name, int flags )
 {
 	shader_t *sh;
 
-	if ( !CheckShaderNameLength( "RE_RegisterShader", name, "" ) )
+	if ( strlen( name ) >= MAX_QPATH )
 	{
+		Log::Warn( "RE_RegisterShader: name '%s' is too long", name );
 		return 0;
 	}
 
@@ -6579,7 +6605,6 @@ public:
 			{ stageType_t::ST_PORTALMAP, "PORTALMAP" },
 			{ stageType_t::ST_HEATHAZEMAP, "HEATHAZEMAP" },
 			{ stageType_t::ST_LIQUIDMAP, "LIQUIDMAP" },
-			{ stageType_t::ST_FOGMAP, "FOGMAP" },
 			{ stageType_t::ST_LIGHTMAP, "LIGHTMAP" },
 			{ stageType_t::ST_STYLELIGHTMAP, "STYLELIGHTMAP" },
 			{ stageType_t::ST_STYLECOLORMAP, "STYLECOLORMAP" },
@@ -7003,34 +7028,11 @@ static void CreateInternalShaders()
 	Q_strncpyz( shader.name, "<default>", sizeof( shader.name ) );
 
 	shader.noFog = true;
-	shader.fogShader = nullptr;
 	stages[ 0 ].type = stageType_t::ST_DIFFUSEMAP;
 	stages[ 0 ].bundle[ 0 ].image[ 0 ] = tr.defaultImage;
 	stages[ 0 ].active = true;
 	stages[ 0 ].stateBits = GLS_DEFAULT;
 	tr.defaultShader = FinishShader();
-
-	Q_strncpyz( shader.name, "<fogEqual>", sizeof( shader.name ) );
-
-	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
-	stages[0].type = stageType_t::ST_FOGMAP;
-	for ( int i = 0; i < 5; i++ ) {
-		stages[0].bundle[i].image[0] = nullptr;
-	}
-	stages[0].active = true;
-	stages[0].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_EQUAL;
-	tr.fogEqualShader = FinishShader();
-
-	Q_strncpyz( shader.name, "<fogLE>", sizeof( shader.name ) );
-
-	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
-	stages[0].type = stageType_t::ST_FOGMAP;
-	for ( int i = 0; i < 5; i++ ) {
-		stages[0].bundle[i].image[0] = nullptr;
-	}
-	stages[0].active = true;
-	stages[0].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-	tr.fogLEShader = FinishShader();
 }
 
 /*

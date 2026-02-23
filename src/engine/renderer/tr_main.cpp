@@ -341,7 +341,7 @@ R_CullBox
 Returns CULL_IN, CULL_CLIP, or CULL_OUT
 =================
 */
-cullResult_t R_CullBox( vec3_t worldBounds[ 2 ] )
+cullResult_t R_CullBox( const vec3_t worldBounds[ 2 ], int lastPlane )
 {
 	bool anyClip;
 	cplane_t *frust;
@@ -355,7 +355,7 @@ cullResult_t R_CullBox( vec3_t worldBounds[ 2 ] )
 	// check against frustum planes
 	anyClip = false;
 
-	for ( i = 0; i < FRUSTUM_PLANES; i++ )
+	for ( i = 0; i <= lastPlane; i++ )
 	{
 		frust = &tr.viewParms.frustum[ i ];
 
@@ -454,47 +454,6 @@ cullResult_t R_CullPointAndRadius( vec3_t pt, float radius )
 	}
 
 	return cullResult_t::CULL_IN; // completely inside frustum
-}
-
-/*
-=================
-R_FogWorldBox
-=================
-*/
-int R_FogWorldBox( vec3_t bounds[ 2 ] )
-{
-	int   i, j;
-	fog_t *fog;
-
-	if ( tr.refdef.rdflags & RDF_NOWORLDMODEL )
-	{
-		return 0;
-	}
-
-	for ( i = 1; i < tr.world->numFogs; i++ )
-	{
-		fog = &tr.world->fogs[ i ];
-
-		for ( j = 0; j < 3; j++ )
-		{
-			if ( bounds[ 0 ][ j ] >= fog->bounds[ 1 ][ j ] )
-			{
-				break;
-			}
-
-			if ( bounds[ 1 ][ j ] <= fog->bounds[ 0 ][ j ] )
-			{
-				break;
-			}
-		}
-
-		if ( j == 3 )
-		{
-			return i;
-		}
-	}
-
-	return 0;
 }
 
 /*
@@ -878,7 +837,7 @@ static void R_SetupFrustum()
 		MatrixAffineInverse(tr.viewParms.world.viewMatrix, invTransform);
 
 		//transform planes back to world space for culling
-		for (int i = 0; i <= FRUSTUM_NEAR; i++)
+		for (int i = 0; i < FRUSTUM_PLANES; i++)
 		{
 			plane_t plane;
 			VectorCopy(tr.viewParms.portalFrustum[i].normal, plane.normal);
@@ -922,13 +881,18 @@ static void R_SetupFrustum()
 			SetPlaneSignbits( &tr.viewParms.frustum[ i ] );
 		}
 
-		// Tr3B: set extra near plane which is required by the dynamic occlusion culling
 		tr.viewParms.frustum[ FRUSTUM_NEAR ].type = PLANE_NON_AXIAL;
 		VectorCopy( tr.viewParms.orientation.axis[ 0 ], tr.viewParms.frustum[ FRUSTUM_NEAR ].normal );
 
 		VectorMA( tr.viewParms.orientation.origin, r_znear->value, tr.viewParms.frustum[ FRUSTUM_NEAR ].normal, planeOrigin );
 		tr.viewParms.frustum[ FRUSTUM_NEAR ].dist = DotProduct( planeOrigin, tr.viewParms.frustum[ FRUSTUM_NEAR ].normal );
 		SetPlaneSignbits( &tr.viewParms.frustum[ FRUSTUM_NEAR ] );
+
+		tr.viewParms.frustum[ FRUSTUM_FAR ].type = PLANE_NON_AXIAL;
+		VectorCopy( tr.viewParms.orientation.axis[ 0 ], tr.viewParms.frustum[ FRUSTUM_FAR ].normal );
+		tr.viewParms.frustum[ FRUSTUM_FAR ].dist = tr.viewParms.zFar +
+			DotProduct( tr.viewParms.orientation.origin, tr.viewParms.frustum[ FRUSTUM_FAR ].normal );
+		SetPlaneSignbits( &tr.viewParms.frustum[ FRUSTUM_FAR ] );
 	}
 }
 
@@ -1643,53 +1607,10 @@ bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 
 /*
 =================
-R_SpriteFogNum
-
-See if a sprite is inside a fog volume
-=================
-*/
-int R_SpriteFogNum( trRefEntity_t *ent )
-{
-	int   i, j;
-	fog_t *fog;
-
-	if ( tr.refdef.rdflags & RDF_NOWORLDMODEL )
-	{
-		return 0;
-	}
-
-	for ( i = 1; i < tr.world->numFogs; i++ )
-	{
-		fog = &tr.world->fogs[ i ];
-
-		for ( j = 0; j < 3; j++ )
-		{
-			if ( ent->e.origin[ j ] - ent->e.radius >= fog->bounds[ 1 ][ j ] )
-			{
-				break;
-			}
-
-			if ( ent->e.origin[ j ] + ent->e.radius <= fog->bounds[ 0 ][ j ] )
-			{
-				break;
-			}
-		}
-
-		if ( j == 3 )
-		{
-			return i;
-		}
-	}
-
-	return 0;
-}
-
-/*
-=================
 R_AddDrawSurf
 =================
 */
-void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface, int portalNum )
+void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, bool bspSurface, int portalNum )
 {
 	// instead of checking for overflow, we just mask the index
 	// so it wraps around
@@ -1702,9 +1623,6 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 	drawSurf->surface = surface;
 	drawSurf->shader = shader;
 	drawSurf->bspSurface = bspSurface;
-	/* Allow the renderer backend to merge main surfaces that have fog, ignoring the fogNum,
-	as it only matters for the emitted fog surfaces */
-	drawSurf->fog = ( shader == tr.fogEqualShader || shader == tr.fogLEShader ) ? fogNum : 0;
 	drawSurf->portalNum = portalNum;
 
 	int entityNum;
@@ -1728,15 +1646,7 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 	tr.refdef.numDrawSurfs++;
 
 	if ( shader->depthShader != nullptr ) {
-		R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
-	}
-
-	// don't draw the global fog twice on opaque surfaces
-	// allow global fog with the fogLE shader although drawing the global fog with the
-	// volumetric (fogQuake3) shader looks kind of buggy
-	if ( !shader->noFog && fogNum >= 1 &&
-		  ( fogNum != tr.world->globalFog || shader->fogPass == fogPass_t::FP_LE ) ) {
-		R_AddDrawSurf( surface, shader->fogShader, 0, fogNum, bspSurface );
+		R_AddDrawSurf( surface, shader->depthShader, 0, bspSurface );
 	}
 }
 
@@ -1882,7 +1792,7 @@ void R_AddEntitySurfaces()
 				}
 
 				shader = R_GetShaderByHandle( ent->e.customShader );
-				R_AddDrawSurf( &entitySurface, shader, -1, R_SpriteFogNum( ent ) );
+				R_AddDrawSurf( &entitySurface, shader, -1 );
 				break;
 
 			case refEntityType_t::RT_MODEL:
@@ -1893,7 +1803,7 @@ void R_AddEntitySurfaces()
 
 				if ( !tr.currentModel )
 				{
-					R_AddDrawSurf( &entitySurface, tr.defaultShader, -1, 0 );
+					R_AddDrawSurf( &entitySurface, tr.defaultShader, -1 );
 				}
 				else
 				{
@@ -1927,7 +1837,7 @@ void R_AddEntitySurfaces()
 							VectorClear( ent->worldBounds[ 0 ] );
 							VectorClear( ent->worldBounds[ 1 ] );
 							shader = R_GetShaderByHandle( ent->e.customShader );
-							R_AddDrawSurf( &entitySurface, tr.defaultShader, -1, 0 );
+							R_AddDrawSurf( &entitySurface, tr.defaultShader, -1 );
 							break;
 
 						default:
@@ -2084,6 +1994,8 @@ void R_RenderView( viewParms_t *parms )
 
 	// set camera frustum planes in world space again, but this time including the far plane
 	tr.orientation = tr.viewParms.world;
+
+	R_AddFogBrushSurfaces();
 
 	R_AddEntitySurfaces();
 
