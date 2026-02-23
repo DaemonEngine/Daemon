@@ -46,8 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Image.h"
 
-void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool useMipLevels, const bool newCube,
-                  const ImageUsage::ImageUsage usage, const bool shared ) {
+void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool useMipLevels, const bool newCube ) {
 	type         = cube ? VK_IMAGE_VIEW_TYPE_CUBE : ( imageSize.depth ? VK_IMAGE_VIEW_TYPE_3D : VK_IMAGE_VIEW_TYPE_2D );
 	format       = newFormat;
 
@@ -56,7 +55,6 @@ void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool
 	               : 1;
 
 	cube         = newCube;
-	storage      = usage & ImageUsage::ATTACHMENT | usage & ImageUsage::STORAGE;
 	depth        = format >= D16   && format <= FORMAT_DEPTH;
 	stencil      = format >= D24S8 && format <= FORMAT_DEPTH_STENCIL;
 
@@ -83,7 +81,7 @@ void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool
 
 	VkImageCreateFlags flags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
-	if ( usage & ImageUsage::COMPRESSED_VIEW ) {
+	if ( format >= BC1 ) {
 		flags = VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT | VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
 	}
 
@@ -100,7 +98,7 @@ void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool
 		.samples               = VK_SAMPLE_COUNT_1_BIT,
 		.tiling                = VK_IMAGE_TILING_OPTIMAL,
 		.usage                 = imageUsage,
-		.sharingMode           = shared ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+		.sharingMode           = VK_SHARING_MODE_CONCURRENT,
 		.queueFamilyIndexCount = queueCount,
 		.pQueueFamilyIndices   = concurrentQueues.memory,
 		.initialLayout         = engineAllocator.zeroInitMemory ? VK_IMAGE_LAYOUT_ZERO_INITIALIZED_EXT : VK_IMAGE_LAYOUT_UNDEFINED
