@@ -45,6 +45,16 @@ void ResourceSystem::Init( uint64 newDedicatedMemorySize ) {
 
 	memoryPoolData   = engineAllocator.AllocMemoryPool( MemoryHeap::ENGINE, 1ull * 600 * 1024 * 1024, false );
 	memoryPoolImages = engineAllocator.AllocMemoryPool( MemoryHeap::ENGINE, 1ull * 1 * 1024 * 1024,   true );
+
+	if ( !( engineAllocator.rebar && hostImageCopy || engineAllocator.unifiedMemory ) ) {
+		static constexpr uint64 stagingBufferSize = 200 * 1024 * 1024;
+
+		coreToEngineBuffer = engineAllocator.AllocBuffer( MemoryHeap::CORE_TO_ENGINE, stagingBufferSize );
+	}
+
+	static constexpr uint64 engineToCoreBufferSize = 256 * 1024 * 1024;
+
+	engineToCoreBuffer = engineAllocator.AllocBuffer( MemoryHeap::ENGINE_TO_CORE, engineToCoreBufferSize );
 }
 
 Buffer ResourceSystem::AllocBuffer( const uint64 size, const Buffer::Usage usage ) {

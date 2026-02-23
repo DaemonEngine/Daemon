@@ -116,8 +116,7 @@ struct GraphicsNode {
 
 enum PushConstNodeIDs : uint32 {
 	PUSH_NOP,
-	PUSH_BUFFER_ADDRESS,
-	PUSH_BUFFER_EXTRA_ADDRESS
+	PUSH_UINT64
 };
 
 struct PushConstNodeInit {
@@ -133,8 +132,7 @@ struct PushConstNodeInit {
 				size = 0;
 				break;
 
-			case PUSH_BUFFER_ADDRESS:
-			case PUSH_BUFFER_EXTRA_ADDRESS:
+			case PUSH_UINT64:
 				size = 8;
 				break;
 

@@ -54,6 +54,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SPIRV.h"
 #include "../../GraphicsShared/PushLayout.h"
 
+#include "../../GraphicsShared/MsgStreamAPI.h"
+
 #include "../Memory/CoreThreadMemory.h"
 #include "../Memory/EngineAllocator.h"
 #include "../ResourceSystem.h"
@@ -266,13 +268,8 @@ static void ExecPushConstNode( PushConstNode* node, VkCommandBuffer cmd, VkPipel
 
 	while ( uint8 specialID = specialIDsStream.Read8( 4 ) ) {
 		switch ( specialID ) {
-			case PUSH_BUFFER_ADDRESS:
-				dataStream.Write( buffers[nodeDataStream.Read8( 8 )].engineMemory,      64 );
-
-				break;
-
-			case PUSH_BUFFER_EXTRA_ADDRESS:
-				dataStream.Write( extraBuffers[nodeDataStream.Read8( 8 )].engineMemory, 64 );
+			case PUSH_UINT64:
+				dataStream.Write( nodeDataStream.Read64( 64 ), 64 );
 
 				break;
 
@@ -639,16 +636,16 @@ PushConstNode ParsePushConst( const char** text, std::unordered_map<std::string,
 		}
 
 		if ( !Q_stricmp( token, "coreToEngine" ) ) {
-			specialIDsStream.Write( PUSH_BUFFER_EXTRA_ADDRESS, 4 );
-			dataStream.Write( ( uint32 ) 0, 8);
+			specialIDsStream.Write( PUSH_UINT64, 4 );
+			dataStream.Write( extraBuffers[0].engineMemory, 64 );
 
 			out.data.size += 8;
 			continue;
 		}
 
 		if ( !Q_stricmp( token, "engineToCore" ) ) {
-			specialIDsStream.Write( PUSH_BUFFER_EXTRA_ADDRESS, 4 );
-			dataStream.Write( ( uint32 ) 1, 8);
+			specialIDsStream.Write( PUSH_UINT64, 4 );
+			dataStream.Write( resourceSystem.engineToCoreBuffer.engineMemory, 64 );
 
 			out.data.size += 8;
 			continue;

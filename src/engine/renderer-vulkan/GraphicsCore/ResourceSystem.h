@@ -47,6 +47,9 @@ struct ResourceSystem {
 
 	bool       hostImageCopy;
 
+	Buffer     coreToEngineBuffer;
+	Buffer     engineToCoreBuffer;
+
 	void   Init( uint64 newDedicatedMemorySize );
 
 	Buffer AllocBuffer( const uint64 size, const Buffer::Usage usage = ( Buffer::Usage ) 0 );
