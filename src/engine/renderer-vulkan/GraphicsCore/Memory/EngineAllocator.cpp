@@ -65,7 +65,7 @@ MemoryRequirements GetImageRequirements( const VkImageCreateInfo& imageInfo ) {
 		out.memoryRequirements.size,
 		out.memoryRequirements.alignment,
 		out.memoryRequirements.memoryTypeBits,
-		( bool ) ( dedicatedReqs.requiresDedicatedAllocation | dedicatedReqs.prefersDedicatedAllocation )
+		( bool ) dedicatedReqs.requiresDedicatedAllocation
 	};
 }
 
@@ -215,7 +215,7 @@ MemoryRequirements GetBufferRequirements( const MemoryHeap::MemoryType type, con
 		.size      = out.memoryRequirements.size,
 		.alignment = out.memoryRequirements.alignment,
 		.type      = out.memoryRequirements.memoryTypeBits,
-		.dedicated = ( bool ) ( dedicatedReqs.requiresDedicatedAllocation | dedicatedReqs.prefersDedicatedAllocation )
+		.dedicated = ( bool ) dedicatedReqs.requiresDedicatedAllocation
 	};
 }
 
@@ -240,29 +240,30 @@ Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, const ui
 
 	MemoryRequirements reqs = GetBufferRequirements( type, size, usage );
 
-	reqs.dedicated  = true;
+	reqs.dedicated   = true;
 
-	MemoryPool pool = AllocMemoryPool( type, reqs.size, false, buffer );
+	MemoryPool pool  = AllocMemoryPool( type, reqs.size, false, buffer );
 
-	uint64 address   = ( uint64 ) pool.memory;
+	uint64 offset    = pool.offset;
 	uint64 alignment = reqs.dedicated ? reqs.alignment : std::max( reqs.alignment, coherentAccessAlignment );
 
-	if ( address & ( alignment - 1 ) ) {
-		address = ( address & ~( alignment - 1 ) ) + alignment;
+	if ( offset & ( alignment - 1 ) ) {
+		offset = ( offset & ~( alignment - 1 ) ) + alignment;
 	}
 
-	pool.offset += address + reqs.size - ( uint64 ) address;
-
 	VkBindBufferMemoryInfo bindInfo {
-		.buffer = buffer,
-		.memory = ( VkDeviceMemory ) pool.memory
+		.buffer       = buffer,
+		.memory       = ( VkDeviceMemory ) pool.memory,
+		.memoryOffset = offset
 	};
 
 	vkBindBufferMemory2( device, 1, &bindInfo );
 
+	pool.offset += offset + reqs.size;
+
 	Buffer res {
 		.buffer = buffer,
-		.offset = address - ( uint64 ) pool.memory,
+		.offset = offset,
 		.size   = reqs.size,
 		.usage  = bufferInfo.usage
 	};
@@ -282,29 +283,27 @@ Buffer EngineAllocator::AllocBuffer( const MemoryHeap::MemoryType type, const ui
 	return res;
 }
 
-void EngineAllocator::AllocImage( MemoryPool& pool, const MemoryRequirements& reqs, const VkImage image,
-	uint64* offset, uint64* size ) {
+void EngineAllocator::AllocImage( MemoryPool& pool, const MemoryRequirements& reqs, const VkImage image ) {
 	if ( reqs.dedicated ) {
 		pool = AllocMemoryPool( MemoryHeap::ENGINE, reqs.size, true, nullptr );
 	}
 
-	uint64 address = ( uint64 ) pool.memory;
+	uint64 offset    = pool.offset;
+	uint64 alignment = reqs.dedicated ? reqs.alignment : std::max( reqs.alignment, coherentAccessAlignment );
 
-	if ( address & ( reqs.alignment - 1 ) ) {
-		address    = ( address & ~( reqs.alignment - 1 ) ) + reqs.alignment;
+	if ( offset & ( alignment - 1 ) ) {
+		offset = ( offset & ~( alignment - 1 ) ) + alignment;
 	}
 
-	pool.offset += address + reqs.size - ( uint64 ) address;
-
 	VkBindImageMemoryInfo bindInfo {
-		.image  = image,
-		.memory = ( VkDeviceMemory ) pool.memory
+		.image        = image,
+		.memory       = ( VkDeviceMemory ) pool.memory,
+		.memoryOffset = offset
 	};
 
 	vkBindImageMemory2( device, 1, &bindInfo );
 
-	*offset = address - ( uint64 ) pool.memory;
-	*size   = reqs.size;
+	pool.offset += offset + reqs.size;
 }
 
 MemoryHeap EngineAllocator::MemoryHeapForUsage( const uint32 memoryRegion, const bool image, uint32 supportedTypes, const uint32 flags ) {

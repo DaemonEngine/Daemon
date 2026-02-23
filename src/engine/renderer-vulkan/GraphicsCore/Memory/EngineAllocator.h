@@ -124,8 +124,7 @@ class EngineAllocator {
 
 	Buffer      AllocBuffer( const MemoryHeap::MemoryType type, const uint64 size, const Buffer::Usage usage = ( Buffer::Usage ) 0 );
 
-	void        AllocImage( MemoryPool& pool, const MemoryRequirements& reqs, const VkImage image,
-	                        uint64* offset, uint64* size );
+	void        AllocImage( MemoryPool& pool, const MemoryRequirements& reqs, const VkImage image );
 
 	private:
 	static constexpr uint32 maxMemoryPools = 32;

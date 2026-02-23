@@ -50,7 +50,7 @@ struct ResourceSystem {
 	void   Init( uint64 newDedicatedMemorySize );
 
 	Buffer AllocBuffer( const uint64 size, const Buffer::Usage usage = ( Buffer::Usage ) 0 );
-	void   AllocImage( const MemoryRequirements& reqs, const VkImage image, uint64* offset, uint64* size );
+	void   AllocImage( const MemoryRequirements& reqs, const VkImage image );
 };
 
 #endif // RESOURCE_SYSTEM_H

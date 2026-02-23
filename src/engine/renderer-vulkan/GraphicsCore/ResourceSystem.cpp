@@ -51,6 +51,6 @@ Buffer ResourceSystem::AllocBuffer( const uint64 size, const Buffer::Usage usage
 	return engineAllocator.AllocBuffer( MemoryHeap::ENGINE, size, usage );
 }
 
-void ResourceSystem::AllocImage( const MemoryRequirements& reqs, const VkImage image, uint64* offset, uint64* size ) {
-	return engineAllocator.AllocImage( memoryPoolImages, reqs, image, offset, size );
+void ResourceSystem::AllocImage( const MemoryRequirements& reqs, const VkImage image ) {
+	return engineAllocator.AllocImage( memoryPoolImages, reqs, image );
 }

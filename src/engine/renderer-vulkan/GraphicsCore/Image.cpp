@@ -103,9 +103,7 @@ void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool
 
 	MemoryRequirements reqs = GetImageRequirements( imageInfo );
 
-	uint64 offset;
-	uint64 size;
-	resourceSystem.AllocImage( reqs, image, &offset, &size );
+	resourceSystem.AllocImage( reqs, image );
 }
 
 void Image::Init( VkImage newImage, const SwapChainFormat newFormat ) {
