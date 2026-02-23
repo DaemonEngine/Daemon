@@ -64,17 +64,21 @@ void Semaphore::Signal() {
 	ResultCheck( vkSignalSemaphore( device, &signalInfo ) );
 }
 
-bool Semaphore::Wait( const uint64 timeout ) {
+bool Semaphore::Wait( const uint64 waitValue, const uint64 timeout ) {
 	VkSemaphoreWaitInfo semaphoreWaitInfo {
 		.flags          = 0,
 		.semaphoreCount = 1,
 		.pSemaphores    = &semaphore,
-		.pValues        = &value
+		.pValues        = &waitValue
 	};
 
 	ResultCheckRet( vkWaitSemaphores( device, &semaphoreWaitInfo, timeout ) );
 
 	return resultCheck == VK_SUCCESS;
+}
+
+bool Semaphore::Wait() {
+	return Wait( value );
 }
 
 uint64 Semaphore::Current() {
