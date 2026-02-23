@@ -41,6 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef __cplusplus
+	#define constexpr const
+
 	#define int8    int8_t
 	#define int16   int16_t
 	#define int32   int32_t
