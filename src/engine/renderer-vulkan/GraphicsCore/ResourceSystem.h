@@ -40,6 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Decls.h"
 
+#include "Memory/EngineAllocator.h"
+
 struct ResourceSystem {
 	MemoryPool memoryPoolData;
 	MemoryPool memoryPoolImages;

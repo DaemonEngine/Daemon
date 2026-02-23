@@ -552,7 +552,7 @@ void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, Dyna
 	} while ( !cmdID.compare_exchange_strong( expected, combinedGenID ) );
 }
 
-void ExecutionGraph::Exec() {
+uint64 ExecutionGraph::Exec() {
 	const uint64 cmd = cmdID.load( std::memory_order_relaxed );
 
 	VkCommandBufferSubmitInfo cmdInfo {
@@ -568,12 +568,16 @@ void ExecutionGraph::Exec() {
 
 	Queue& queue = GetQueueByType( type );
 
+	uint64 out;
+
 	if ( presentNode.active ) {
-		queue.SubmitForPresent( cmdInfo.commandBuffer, mainSwapChain.presentSemaphores[image] );
+		out = queue.SubmitForPresent( cmdInfo.commandBuffer, mainSwapChain.presentSemaphores[image] );
 		ExecPresentNode( queue, &presentNode, mainSwapChain.presentSemaphores[image], image );
 	} else {
-		queue.Submit( cmdInfo.commandBuffer );
+		out = queue.Submit( cmdInfo.commandBuffer );
 	}
+
+	return out;
 }
 
 void ResetCmdBuffer( const uint32 bufID ) {

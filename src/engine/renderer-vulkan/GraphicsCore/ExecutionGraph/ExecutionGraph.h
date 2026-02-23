@@ -224,8 +224,8 @@ struct PresentNode {
 
 class ExecutionGraph {
 	public:
-	void Build( const QueueType newType, const uint64 newGenID, DynamicArray<ExecutionGraphNode>& nodes );
-	void Exec();
+	void   Build( const QueueType newType, const uint64 newGenID, DynamicArray<ExecutionGraphNode>& nodes );
+	uint64 Exec();
 
 	private:
 	static constexpr uint32 cmdBits     = 6;

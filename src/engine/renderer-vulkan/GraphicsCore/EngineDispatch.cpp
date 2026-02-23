@@ -33,32 +33,127 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // EngineDispatch.cpp
 
+#include <unordered_map>
+
 #include "../Memory/DynamicArray.h"
 
 #include "../Thread/TaskList.h"
 
 #include "Decls.h"
 
+#include "Memory/DescriptorSet.h"
 #include "ExecutionGraph/ExecutionGraph.h"
+#include "ResourceSystem.h"
 #include "Queue.h"
 
+#include "Image.h"
+
+#include "GraphicsCoreStore.h"
+
+#include "../GraphicsShared/MsgStreamAPI.h"
+
 #include "EngineDispatch.h"
+#include "../Shared/Timer.h"
+
+static std::unordered_map<std::string, Image> images;
+
+struct Msg {
+	uint32* memory;
+	uint32  offset;
+
+	uint32  Read() {
+		uint32 out = memory[offset];
+		offset++;
+
+		return out;
+	}
+
+	float   ReadFloat() {
+		float out  = *( float* ) &memory[offset];
+		offset++;
+
+		return out;
+	}
+
+	bool    ReadBool() {
+		bool out   = *( bool* ) &memory[offset];
+		offset++;
+
+		return out;
+	}
+};
+
+void MsgStream() {
+	Msg msg { resourceSystem.engineToCoreBuffer.memory };
+
+	uint32 msgCount = msg.Read();
+
+	struct ImageCfg {
+		uint  id;
+		uint  format;
+		float relativeSize;
+		uint  width;
+		uint  height;
+		uint  depth;
+		bool  useMips;
+		bool  cube;
+	};
+
+	for ( uint32 i = 0; i < msgCount; i++ ) {
+		switch ( msg.Read() ) {
+			case CORE_ALLOC_IMAGE:
+				ImageCfg cfg {
+					.id           = msg.Read(),
+					.format       = msg.Read(),
+					.relativeSize = msg.ReadFloat(),
+					.width        = msg.Read(),
+					.height       = msg.Read(),
+					.depth        = msg.Read(),
+					.useMips      = msg.ReadBool(),
+					.cube         = msg.ReadBool()
+				};
+
+				Image image;
+
+				image.Init( ( Format ) cfg.format, { cfg.width, cfg.height, cfg.depth }, cfg.useMips, cfg.cube );
+
+				images[Str::Format( "~engineImage_%u", cfg.id )] = image;
+
+				if ( cfg.format == RGBA8S ) {
+					UpdateDescriptor( cfg.id, image, RGBA8 );
+				} else {
+					UpdateDescriptor( cfg.id, image );
+				}
+		}
+	}
+}
 
 void EngineDispatch() {
 	static ExecutionGraph graphicsEG;
 
 	std::string testSrc =
 		"external\n"
-		"buffer testBuffer 3 65536 0\n"
-		"push { engineToCore coreToEngine }\n"
+		// "buffer testBuffer 3 65536 0\n"
+		"push { coreToEngine engineToCore }\n"
 		"MsgStream msg1 1 {}\n"
-		"MsgStream msg2 2 { msg1 }\n"
 		"present\n";
 
+	Timer t;
 	DynamicArray<ExecutionGraphNode> nodes = ParseExecutionGraph( testSrc );
+	Log::Warn( "parse: %s", t.FormatTime() );
+	t.Clear();
+	t.Start();
 	graphicsEG.Build( GRAPHICS, 0, nodes );
-	graphicsEG.Exec();
+	Log::Warn( "build: %s", t.FormatTime() );
+	t.Clear();
+	t.Start();
+	uint64 i = graphicsEG.Exec();
+	Log::Warn( "exec: %s", t.FormatTime() );
 
-	Task t { &EngineDispatch };
-	taskList.AddTask( t.Delay( 1_us ) );
+	graphicsQueue.executionPhase.Wait( i );
+
+	MsgStream();
+
+	Task t2 { &EngineDispatch };
+	taskList.AddTask( t2.Delay( 10000_us ) );
 }

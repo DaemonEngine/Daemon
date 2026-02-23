@@ -96,4 +96,6 @@ struct ResourceSystem;
 struct Buffer;
 struct Image;
 
+enum   Format : uint32;
+
 #endif // GRAPHICS_CORE_DECLS_H

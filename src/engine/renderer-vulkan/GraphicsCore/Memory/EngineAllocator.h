@@ -112,6 +112,9 @@ struct Data {
 
 class EngineAllocator {
 	public:
+	bool rebar;
+	bool unifiedMemory;
+
 	bool zeroInitMemory;
 
 	void        Init();
@@ -136,9 +139,6 @@ class EngineAllocator {
 
 	uint32     memoryPoolCount;
 	MemoryPool memoryPools[maxMemoryPools];
-
-	bool       rebar;
-	bool       unifiedMemory;
 
 	uint64     coherentAccessAlignment;
 };

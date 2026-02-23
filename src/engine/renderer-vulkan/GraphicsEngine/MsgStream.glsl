@@ -36,6 +36,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Common.glsl"
 
+#include "MsgStreamAPI.h"
+
+#include "Images.glsl"
+
 layout ( local_size_x = 64, local_size_y = 1, local_size_z = 1 ) in;
 
 BufferRS restrict MsgStreamRead {
@@ -51,28 +55,58 @@ layout ( scalar, push_constant ) uniform Push {
 	MsgStreamWrite msgStreamWrite;
 } push;
 
+void PushMsg( const uint id, const uint msg ) {
+	push.msgStreamWrite.msgStream[id + 1] = msg;
+}
+
+void PushMsg( const uint id, const float msg ) {
+	push.msgStreamWrite.msgStream[id + 1] = floatBitsToUint( msg );
+}
+
+void PushMsg( const uint id, const bool msg ) {
+	push.msgStreamWrite.msgStream[id + 1] = msg ? 1 : 0;
+}
+
+Image2D rgba16f swapchain 1.0f nomips testImg;
+Image2D rgba16f swapchain 1.0f testImg2;
+Image2D rgba16f 1 1 testImg3;
+Image3D rgba16f 1 1 5 testImg4;
+ImageCube rgba16f 1 1 5 testImg5;
+
 void main() {
-	const uint globalGroupID = GLOBAL_GROUP_ID;
+	const uint globalGroupID      = GLOBAL_GROUP_ID;
 	const uint globalInvocationID = GLOBAL_INVOCATION_ID;
 
-	if( globalInvocationID >= 64 ) {
+	if ( globalInvocationID >= 64 ) {
 		return;
 	}
 
-	const uint msg = push.msgStreamRead.msgStream[globalInvocationID];
-	uint msgOut = 256;
+	const uint initMsg = push.msgStreamRead.msgStream[0];
 
-	switch( msg ) {
-		case 0:
-			msgOut = 128;
-			break;
-		case 1:
-			msgOut = globalInvocationID;
-			break;
-		case 2:
-			msgOut = msg * 10;
-			break;
+	uint msgCount = 0;
+
+	if ( initMsg == ENGINE_INIT && globalInvocationID < imageCount ) {
+		const uint msgOffset = subgroupExclusiveAdd( 9 );
+		
+		PushMsg( msgOffset,     CORE_ALLOC_IMAGE );
+		PushMsg( msgOffset + 1, imageConfigs[globalInvocationID].id );
+		PushMsg( msgOffset + 2, imageConfigs[globalInvocationID].format );
+		PushMsg( msgOffset + 3, imageConfigs[globalInvocationID].relativeSize );
+		PushMsg( msgOffset + 4, imageConfigs[globalInvocationID].width );
+		PushMsg( msgOffset + 5, imageConfigs[globalInvocationID].height );
+		PushMsg( msgOffset + 6, imageConfigs[globalInvocationID].depth );
+		PushMsg( msgOffset + 7, imageConfigs[globalInvocationID].useMips );
+		PushMsg( msgOffset + 8, imageConfigs[globalInvocationID].cube );
+
+		msgCount++;
 	}
 
 	push.msgStreamWrite.msgStream[globalInvocationID] = msgOut;
+	//imageStore( testImg4, ivec2( 5, 7 ), vec4( 0 ) );
+
+	const uint totalMsgs = subgroupAdd( msgCount );
+
+	if ( subgroupElect() ) {
+		push.msgStreamWrite.msgStream[0] = totalMsgs;
+	}
 }
