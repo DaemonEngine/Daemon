@@ -35,6 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/Bit.h"
 
+#include "FeaturesConfig.h"
+
 #include "Queue.h"
 
 #include "Memory/EngineAllocator.h"
@@ -44,8 +46,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Image.h"
 
-void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool useMipLevels, const ImageUsage::ImageUsage usage,
-                  const bool newCube, const bool newDepthStencil, const bool shared ) {
+void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool useMipLevels, const bool newCube,
+                  const ImageUsage::ImageUsage usage, const bool shared ) {
 	type         = cube ? VK_IMAGE_VIEW_TYPE_CUBE : ( imageSize.depth ? VK_IMAGE_VIEW_TYPE_3D : VK_IMAGE_VIEW_TYPE_2D );
 	format       = newFormat;
 
@@ -55,23 +57,28 @@ void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool
 
 	cube         = newCube;
 	storage      = usage & ImageUsage::ATTACHMENT | usage & ImageUsage::STORAGE;
-	depthStencil = newDepthStencil;
+	depth        = format >= D16   && format <= FORMAT_DEPTH;
+	stencil      = format >= D24S8 && format <= FORMAT_DEPTH_STENCIL;
 
 	external     = false;
 
 	VkImageUsageFlags imageUsage = 0;
 
-	if ( usage & ImageUsage::ATTACHMENT ) {
-		imageUsage |= depthStencil ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		imageUsage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
-	}
-
-	if ( usage & ImageUsage::STORAGE ) {
-		imageUsage |= VK_IMAGE_USAGE_STORAGE_BIT;
-	}
-
-	if ( usage & ImageUsage::RESOURCE ) {
+	if ( formatConfigs[format].sampled ) {
 		imageUsage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	}
+
+	if ( formatConfigs[format].storage ) {
+		imageUsage |= VK_IMAGE_USAGE_STORAGE_BIT;
+		storage     = true;
+	}
+
+	if ( formatConfigs[format].colourAttachment ) {
+		imageUsage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	}
+
+	if ( formatConfigs[format].depthAttachment ) {
+		imageUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	}
 
 	VkImageCreateFlags flags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
@@ -122,7 +129,8 @@ void Image::Init( VkImage newImage, const SwapChainFormat newFormat ) {
 
 	cube         = false;
 	storage      = false;
-	depthStencil = false;
+	depth        = false;
+	stencil      = false;
 
 	external     = true;
 }
@@ -133,7 +141,8 @@ VkImageView Image::GenView() {
 		.viewType           = type,
 		.format             = formats[format],
 		.subresourceRange   = {
-			.aspectMask     = ( VkImageAspectFlags ) ( depthStencil ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_COLOR_BIT ),
+			.aspectMask     = ( VkImageAspectFlags )
+			                  ( depth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT ) | ( stencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0 ),
 			.baseMipLevel   = 0,
 			.levelCount     = mipLevels,
 			.baseArrayLayer = 0,
@@ -160,7 +169,9 @@ static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFl
 	};
 
 	VkHostImageCopyDevicePerformanceQuery hostImageCopyInfo    {};
-	VkImageFormatProperties2              formatPropertiesInfo { .pNext = resourceSystem.hostImageCopy ? &hostImageCopyInfo : nullptr };
+	VkImageFormatProperties2              formatPropertiesInfo { .pNext = useHostImageCopy ? &hostImageCopyInfo : nullptr };
+
+	VkImageFormatProperties&              formatProperties = formatPropertiesInfo.imageFormatProperties;
 
 	VkResult res = vkGetPhysicalDeviceImageFormatProperties2( physicalDevice, &formatInfo, &formatPropertiesInfo );
 
@@ -169,25 +180,34 @@ static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFl
 
 	vkGetPhysicalDeviceFormatProperties2( physicalDevice, format, &formatProperties2 );
 
-	VkImageFormatProperties& formatProperties = formatPropertiesInfo.imageFormatProperties;
+	if ( ( usage & VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT ) && !hostImageCopyInfo.optimalDeviceAccess ) {
+		useHostImageCopy = false;
+	}
 
 	return {
-		.maxSize             = formatProperties.maxExtent,
-		.maxLayers           = formatProperties.maxArrayLayers,
-		.maxSamples          = formatProperties.sampleCounts,
+		.maxSize               = formatProperties.maxExtent,
+		.maxLayers             = formatProperties.maxArrayLayers,
+		.maxSamples            = formatProperties.sampleCounts,
 
-		.hostCopyOptimal     = resourceSystem.hostImageCopy ? ( ( bool ) hostImageCopyInfo.optimalDeviceAccess )   : false,
-		.hostIdenticalLayout = resourceSystem.hostImageCopy ? ( ( bool ) hostImageCopyInfo.identicalMemoryLayout ) : false,
+		.hostCopyOptimal       = useHostImageCopy ? ( ( bool ) hostImageCopyInfo.optimalDeviceAccess )   : false,
+		.hostIdenticalLayout   = useHostImageCopy ? ( ( bool ) hostImageCopyInfo.identicalMemoryLayout ) : false,
 
-		.indirectCopy        = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_COPY_IMAGE_INDIRECT_DST_BIT_KHR ),
-		.minMaxSampler       = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_MINMAX_BIT ),
-		.atomicStorage       = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_STORAGE_IMAGE_ATOMIC_BIT ),
+		.indirectCopy          = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_COPY_IMAGE_INDIRECT_DST_BIT_KHR ),
+		.sampled               = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT ),
+		.minMaxSampler         = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_MINMAX_BIT ),
+		.atomicStorage         = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_STORAGE_IMAGE_ATOMIC_BIT ),
+		.storage               = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT ),
+		.colourAttachment      = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT ),
+		.colourAttachmentBlend = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BLEND_BIT ),
+		.depthAttachment       = ( bool ) ( formatProperties3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT ),
 
-		.supported           = res == VK_SUCCESS
+		.supported             = res == VK_SUCCESS
 	};
 }
 
 void InitFormatConfigs() {
+	useHostImageCopy = featuresConfig.hostImageCopy;
+
 	for ( FormatConfig& cfg : formatConfigs ) {
 		Format format            = ( Format ) ( &cfg - formatConfigs );
 
@@ -205,7 +225,7 @@ void InitFormatConfigs() {
 			flags |= VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT | VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
 		}
 
-		if ( resourceSystem.hostImageCopy && ( usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT ) ) {
+		if ( useHostImageCopy && ( usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT ) ) {
 			usage |= VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT;
 		}
 

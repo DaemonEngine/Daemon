@@ -59,11 +59,12 @@ struct Image {
 	uint32          mipLevels;
 	bool            cube;
 	bool            storage;
-	bool            depthStencil;
+	bool            depth;
+	bool            stencil;
 	bool            external;
 
-	void Init( const Format newFormat, const VkExtent3D imageSize, const bool useMipLevels, const ImageUsage::ImageUsage usage,
-	           const bool newCube = false, const bool newDepthStencil = false,
+	void Init( const Format newFormat, const VkExtent3D imageSize, const bool useMipLevels, const bool newCube = false,
+	           const ImageUsage::ImageUsage usage = ImageUsage::RESOURCE,
 	           const bool shared = false );
 
 	void Init( VkImage newImage, const SwapChainFormat newFormat );
@@ -75,11 +76,22 @@ struct FormatConfig {
 	VkExtent3D maxSize;
 	uint32     maxLayers;
 	uint32     maxSamples;
+
 	bool       hostCopyOptimal;
 	bool       hostIdenticalLayout;
+
 	bool       indirectCopy;
+
+	bool       sampled;
 	bool       minMaxSampler;
+
 	bool       atomicStorage;
+	bool       storage;
+
+	bool       colourAttachment;
+	bool       colourAttachmentBlend;
+
+	bool       depthAttachment;
 
 	bool       supported;
 };
