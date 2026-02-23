@@ -154,6 +154,18 @@ const uint32 MAX_BORDER_COLOURS       = 3;
 
 #define SamplerCube( tex, sampler ) samplerCube( texturesCube[tex], samplers[sampler] )
 
+#define Texture2D( tex, sampler, uv )   texture( sampler2D(   textures2D[tex],   samplers[sampler] ), uv )
+
+#define Texture3D( tex, sampler, uv )   texture( sampler3D(   textures3D[tex],   samplers[sampler] ), uv )
+
+#define TextureCube( tex, sampler, uv ) texture( samplerCube( texturesCube[tex], samplers[sampler] ), uv )
+
+#define Texture2DGrad( tex, sampler, uv, dPdx, dPdy )   textureGrad( sampler2D(   textures2D[tex],   samplers[sampler] ), uv, dPdx, dPdy )
+
+#define Texture3DGrad( tex, sampler, uv, dPdx, dPdy )   textureGrad( sampler3D(   textures3D[tex],   samplers[sampler] ), uv, dPdx, dPdy )
+
+#define TextureCubeGrad( tex, sampler, uv, dPdx, dPdy ) textureGrad( samplerCube( texturesCube[tex], samplers[sampler] ), uv, dPdx, dPdy )
+
 #define Sampler( tex, type, addressModeU, addressModeV, anisotropy, borderColour )\
 	sampler##type( textures##type[tex],\
 		samplers[bitfieldInsert( 0, anisotropy, 1, 1 ) | bitfieldInsert( 0, addressModeU, 2, 2 ) | bitfieldInsert( 0, addressModeV, 4, 2 )\
