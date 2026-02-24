@@ -39,6 +39,7 @@ namespace Keyboard {
 
 Key StringToKey(Str::StringRef name);
 std::string KeyToString(Key key);
+std::string KeyToStringUnprefixed(Key key);
 
 // Returns the code point of a character typed by the given key, or 0 if none is found.
 int GetCharForScancode(int scancode);
