@@ -313,7 +313,7 @@ void AllocDescriptors( uint32 imageCount, uint32 storageImageCount ) {
 	vkUpdateDescriptorSets( device, 1, &writeDescriptorInfo, 0, nullptr );
 }
 
-void UpdateDescriptor( const uint32 id, Image image, Format format ) {
+void UpdateDescriptor( const uint32 id, Image image, const bool storage, Format format ) {
 	VkDescriptorImageInfo imageDescriptorInfo {
 		.imageView   = image.GenView( format ),
 		.imageLayout = VK_IMAGE_LAYOUT_GENERAL
@@ -321,10 +321,10 @@ void UpdateDescriptor( const uint32 id, Image image, Format format ) {
 
 	VkWriteDescriptorSet writeDescriptorInfo {
 		.dstSet          = descriptorSet,
-		.dstBinding      = image.storage ? BIND_STORAGE_IMAGES              : BIND_IMAGES,
+		.dstBinding      = storage ? BIND_STORAGE_IMAGES              : BIND_IMAGES,
 		.dstArrayElement = id,
 		.descriptorCount = 1,
-		.descriptorType  = image.storage ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+		.descriptorType  = storage ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 		.pImageInfo      = &imageDescriptorInfo
 	};
 
