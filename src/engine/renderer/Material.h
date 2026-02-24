@@ -348,6 +348,8 @@ class MaterialSystem {
 
 	bool frameStart = false;
 
+	static int GetLightMapIdx( const MaterialSurface &surface, lightMode_t mode );
+
 	void AddPortalSurfaces();
 	void AddAutospriteSurfaces();
 	void RenderMaterials( const shaderSort_t fromSort, const shaderSort_t toSort, const uint32_t viewID );

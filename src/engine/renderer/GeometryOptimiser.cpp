@@ -633,12 +633,12 @@ std::vector<MaterialSurface> OptimiseMapGeometryMaterial( world_t* world, bspSur
 			uint32_t texData = lhs.texDataDynamic[stage]
 				? ( lhs.texDataIDs[stage] + materialSystem.GetTexDataSize() ) << TEX_BUNDLE_BITS
 					: lhs.texDataIDs[stage] << TEX_BUNDLE_BITS;
-				texData |= ( HasLightMap( &lhs ) ? GetLightMapNum( &lhs ) : 255 ) << LIGHTMAP_BITS;
+				texData |= MaterialSystem::GetLightMapIdx( lhs, tr.worldLight ) << LIGHTMAP_BITS;
 
 			uint32_t texData2 = rhs.texDataDynamic[stage]
 				? ( rhs.texDataIDs[stage] + materialSystem.GetTexDataSize() ) << TEX_BUNDLE_BITS
 					: rhs.texDataIDs[stage] << TEX_BUNDLE_BITS;
-				texData2 |= ( HasLightMap( &rhs ) ? GetLightMapNum( &rhs ) : 255 ) << LIGHTMAP_BITS;
+				texData2 |= MaterialSystem::GetLightMapIdx( rhs, tr.worldLight ) << LIGHTMAP_BITS;
 
 			if ( texData < texData2 ) {
 				return true;
