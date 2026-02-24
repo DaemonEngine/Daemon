@@ -136,40 +136,40 @@ void MsgStream() {
 				}
 
 				if ( cfg.format == RGBA8S ) {
-					UpdateDescriptor( cfg.id, image, RGBA8 );
+					UpdateDescriptor( cfg.id, image, true, RGBA8 );
 				} else {
-					UpdateDescriptor( cfg.id, image );
+					UpdateDescriptor( cfg.id, image, true );
 				}
 		}
 	}
 }
 
 void EngineDispatch() {
-	static ExecutionGraph graphicsEG;
+	static ExecutionGraph engineDispatchEG;
 
-	std::string testSrc =
-		"external\n"
-		// "buffer testBuffer 3 65536 0\n"
+	static bool init = false;
+
+	std::string engineDispatchSrc =
 		"push { coreToEngine engineToCore }\n"
-		"MsgStream msg1 1 {}\n"
-		"present\n";
+		"MsgStream msg 1 {}";
 
-	Timer t;
-	DynamicArray<ExecutionGraphNode> nodes = ParseExecutionGraph( testSrc );
-	Log::Warn( "parse: %s", t.FormatTime() );
-	t.Clear();
-	t.Start();
-	graphicsEG.Build( GRAPHICS, 0, nodes );
-	Log::Warn( "build: %s", t.FormatTime() );
-	t.Clear();
-	t.Start();
-	uint64 i = graphicsEG.Exec();
-	Log::Warn( "exec: %s", t.FormatTime() );
+	engineDispatchEG.BuildFromSrc( GRAPHICS, engineDispatchSrc );
 
-	graphicsQueue.executionPhase.Wait( i );
+	if ( !init ) {
+		resourceSystem.coreToEngineBuffer.memory[0] = ENGINE_INIT;
+		_mm_sfence();
+	}
+
+	uint64 msgStart = engineDispatchEG.Exec();
+
+	GetQueueByType( GRAPHICS ).executionPhase.Wait( msgStart );
 
 	MsgStream();
 
-	Task t2 { &EngineDispatch };
-	taskList.AddTask( t2.Delay( 10000_us ) );
+	resourceSystem.coreToEngineBuffer.memory[0] = 0;
+
+	init = true;
+
+	Task engineDispatch { &EngineDispatch };
+	taskList.AddTask( engineDispatch.Delay( 1000_us ) );
 }

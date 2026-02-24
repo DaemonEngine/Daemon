@@ -224,6 +224,7 @@ struct PresentNode {
 
 class ExecutionGraph {
 	public:
+	void   BuildFromSrc( const QueueType newType, std::string& newSrc );
 	void   Build( const QueueType newType, const uint64 newGenID, DynamicArray<ExecutionGraphNode>& nodes );
 	uint64 Exec();
 
@@ -231,6 +232,8 @@ class ExecutionGraph {
 	static constexpr uint32 cmdBits     = 6;
 	static constexpr uint32 cmdPoolBits = 8;
 	static constexpr uint32 genIDBits   = 50;
+
+	std::string                      src;
 
 	QueueType                        type;
 

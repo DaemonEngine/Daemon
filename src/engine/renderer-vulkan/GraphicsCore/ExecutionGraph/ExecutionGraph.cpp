@@ -256,7 +256,6 @@ Buffer BuildBufferNode( BufferNode* node ) {
 	return Buffer();
 }
 
-Buffer extraBuffers[2];
 DynamicArray<Buffer> buffers;
 
 static void ExecPushConstNode( PushConstNode* node, VkCommandBuffer cmd, VkPipelineLayout pipelineLayout ) {
@@ -306,6 +305,20 @@ void ExecPresentNode( Queue& queue, PresentNode* node, VkSemaphore presentSemaph
 	};
 
 	vkQueuePresentKHR( queue.queue, &presentInfo );
+}
+
+void ExecutionGraph::BuildFromSrc( const QueueType newType, std::string& newSrc ) {
+	type = newType;
+
+	if ( newSrc == src ) {
+		return;
+	}
+
+	src = newSrc;
+
+	DynamicArray<ExecutionGraphNode> nodes = ParseExecutionGraph( src );
+
+	Build( type, 0, nodes );
 }
 
 void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, DynamicArray<ExecutionGraphNode>& nodes ) {
@@ -641,7 +654,7 @@ PushConstNode ParsePushConst( const char** text, std::unordered_map<std::string,
 
 		if ( !Q_stricmp( token, "coreToEngine" ) ) {
 			specialIDsStream.Write( PUSH_UINT64, 4 );
-			dataStream.Write( extraBuffers[0].engineMemory, 64 );
+			dataStream.Write( resourceSystem.coreToEngineBuffer.engineMemory, 64 );
 
 			out.data.size += 8;
 			continue;
@@ -862,15 +875,4 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 	}
 
 	return out;
-}
-
-void TestCmd() {
-	extraBuffers[0] = engineAllocator.AllocBuffer( MemoryHeap::CORE_TO_ENGINE, 65536 );
-	memset( extraBuffers[0].memory, 0, 65536 );
-
-	for ( int i = 0; i < 64; i++ ) {
-		extraBuffers[0].memory[i] = i % 3;
-	}
-
-	extraBuffers[0].memory[0] = ENGINE_INIT;
 }
