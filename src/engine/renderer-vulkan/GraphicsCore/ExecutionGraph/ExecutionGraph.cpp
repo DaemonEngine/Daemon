@@ -321,6 +321,19 @@ void ExecutionGraph::BuildFromSrc( const QueueType newType, std::string& newSrc 
 	Build( type, 0, nodes );
 }
 
+static VkCommandPool GetCmdPoolByType( const QueueType type ) {
+	switch ( type ) {
+		case GRAPHICS:
+			return GMEM.graphicsCmdPool;
+		case COMPUTE:
+			return GMEM.computeCmdPool;
+		case TRANSFER:
+			return GMEM.transferCmdPool;
+		case SPARSE:
+			return GMEM.sparseCmdPool;
+	}
+}
+
 void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, DynamicArray<ExecutionGraphNode>& nodes ) {
 	if ( !buffers.size ) {
 		buffers.Resize( 32 );
@@ -337,7 +350,7 @@ void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, Dyna
 
 	if ( !BitSet( cmdBufferAllocState, bufID ) ) {
 		VkCommandBufferAllocateInfo cmdInfo {
-			.commandPool        = GMEM.graphicsCmdPool,
+			.commandPool        = GetCmdPoolByType( type ),
 			.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 			.commandBufferCount = 1
 		};
