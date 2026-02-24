@@ -72,7 +72,7 @@ vec4 EnvironmentalSpecularFactor( vec3 viewDir, vec3 normal )
 
 #if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || defined(r_realtimeLighting)
 void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
-	vec4 diffuseColor, vec4 materialColor,
+	vec3 lambertTerm, vec4 diffuseColor, vec4 materialColor,
 	inout vec4 color )
 {
 	vec3 H = normalize( lightDir + viewDir );
@@ -91,6 +91,10 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 	#endif
 
 	NdotL = clamp( NdotL, 0.0, 1.0 );
+
+	#if !defined(USE_LIGHT_MAPPING)
+		lambertTerm = NdotL * lightColor;
+	#endif
 
 	#if defined(USE_PHYSICAL_MAPPING)
 		// Daemon PBR packing defaults to ORM like glTF 2.0 defines
@@ -124,11 +128,11 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 
 		vec3 diffuseBRDF = NdotL * diffuseColor.rgb * ( 1.0 - metalness );
 		vec3 specularBRDF = vec3( ( D * F * G ) / max( 4.0 * NdotL * NdotV, 0.0001f ) );
-		color.rgb += ( diffuseBRDF + specularBRDF ) * lightColor.rgb * NdotL;
+		color.rgb += ( diffuseBRDF + specularBRDF ) * lambertTerm;
 		color.a = mix( diffuseColor.a, 1.0, FexpNV );
 
 	#else // !USE_PHYSICAL_MAPPING
-		color.rgb += lightColor.rgb * NdotL * diffuseColor.rgb;
+		color.rgb += lambertTerm * diffuseColor.rgb;
 		#if defined(r_specularMapping)
 			color.rgb += computeSpecularity(lightColor.rgb, materialColor, NdotH);
 		#endif // r_specularMapping
@@ -198,8 +202,9 @@ void computeDynamicLight( uint idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diff
 		attenuation = 1.0;
 	}
 
+	vec3 attenuatedColor = attenuation * attenuation * light.color;
 	computeDeluxeLight(
-		L, normal, viewDir, attenuation * attenuation * light.color,
+		L, normal, viewDir, attenuatedColor, dot(L, normal) * attenuatedColor,
 		diffuse, material, color );
 }
 
