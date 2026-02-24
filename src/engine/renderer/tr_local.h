@@ -3448,23 +3448,23 @@ void GLimp_LogComment_( std::string comment );
 		virtual const RenderCommand *ExecuteSelf() const = 0;
 	};
 
-	struct SetColorCommand : public RenderCommand {
+	struct SetColorCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		Color::Color color;
 	};
-	struct SetColorGradingCommand : public RenderCommand {
+	struct SetColorGradingCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		image_t *image;
 		int     slot;
 	};
-	struct DrawBufferCommand : public RenderCommand	{
+	struct DrawBufferCommand final : public RenderCommand	{
 		const RenderCommand *ExecuteSelf() const override;
 
 		int buffer;
 	};
-	struct SwapBuffersCommand : public RenderCommand {
+	struct SwapBuffersCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 	};
 	struct StretchPicCommand : public RenderCommand {
@@ -3476,25 +3476,25 @@ void GLimp_LogComment_( std::string comment );
 		float    s1, t1;
 		float    s2, t2;
 	};
-	struct RotatedPicCommand : public StretchPicCommand {
+	struct RotatedPicCommand final : public StretchPicCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		float    angle;
 	};
-	struct GradientPicCommand : public StretchPicCommand {
+	struct GradientPicCommand final : public StretchPicCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		Color::Color32Bit gradientColor; // color values 0-255
 		int               gradientType;
 	};
-	struct Poly2dCommand : public RenderCommand {
+	struct Poly2dCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		polyVert_t *verts;
 		int        numverts;
 		shader_t   *shader;
 	};
-	struct Poly2dIndexedCommand : public RenderCommand {
+	struct Poly2dIndexedCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		polyVert_t *verts;
@@ -3504,7 +3504,7 @@ void GLimp_LogComment_( std::string comment );
 		shader_t   *shader;
 		int         translation[2];
 	};
-	struct ScissorSetCommand : public RenderCommand {
+	struct ScissorSetCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		int       x;
@@ -3512,22 +3512,22 @@ void GLimp_LogComment_( std::string comment );
 		int       w;
 		int       h;
 	};
-	struct SetMatrixTransformCommand : public RenderCommand {
+	struct SetMatrixTransformCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		matrix_t matrix;
 	};
-	struct ResetMatrixTransformCommand : public RenderCommand {
+	struct ResetMatrixTransformCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 	};
-	struct DrawViewCommand : public RenderCommand {
+	struct DrawViewCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		trRefdef_t  refdef;
 		viewParms_t viewParms;
 		bool        depthPass;
 	};
-	struct SetupLightsCommand : public RenderCommand {
+	struct SetupLightsCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		trRefdef_t  refdef;
@@ -3538,7 +3538,7 @@ void GLimp_LogComment_( std::string comment );
 	  SSF_JPEG,
 	  SSF_PNG
 	};
-	struct ScreenshotCommand : public RenderCommand {
+	struct ScreenshotCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		int        x;
@@ -3548,7 +3548,7 @@ void GLimp_LogComment_( std::string comment );
 		char       fileName[MAX_OSPATH];
 		ssFormat_t format;
 	};
-	struct VideoFrameCommand : public RenderCommand {
+	struct VideoFrameCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		int      width;
@@ -3557,33 +3557,33 @@ void GLimp_LogComment_( std::string comment );
 		byte     *encodeBuffer;
 		bool motionJpeg;
 	};
-	struct RenderPostProcessCommand : public RenderCommand {
+	struct RenderPostProcessCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		trRefdef_t      refdef;
 		viewParms_t     viewParms;
 	};
-	struct ClearBufferCommand : public RenderCommand {
+	struct ClearBufferCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		trRefdef_t      refdef;
 		viewParms_t     viewParms;
 	};
-	struct PreparePortalCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const override;
-
-		trRefdef_t      refdef;
-		viewParms_t     viewParms;
-		drawSurf_t     *surface;
-	};
-	struct FinalisePortalCommand : public RenderCommand {
+	struct PreparePortalCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
 		trRefdef_t      refdef;
 		viewParms_t     viewParms;
 		drawSurf_t     *surface;
 	};
-	struct EndOfListCommand : public RenderCommand {
+	struct FinalisePortalCommand final : public RenderCommand {
+		const RenderCommand *ExecuteSelf() const override;
+
+		trRefdef_t      refdef;
+		viewParms_t     viewParms;
+		drawSurf_t     *surface;
+	};
+	struct EndOfListCommand final : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 	};
 

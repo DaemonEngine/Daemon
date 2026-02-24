@@ -82,7 +82,7 @@ namespace Util {
 		{
 			if (size > std::numeric_limits<uint32_t>::max())
 				Sys::Drop("IPC: Size out of range in message");
-			Write<uint32_t>(size);
+			Write<uint32_t>(static_cast<uint32_t>( size ));
 		}
 		template<typename T, typename Arg> void Write(Arg&& value)
 		{
@@ -132,10 +132,16 @@ namespace Util {
 	public:
 		Reader()
 			: pos(0), handles_pos(0) {}
+		Reader(Reader const& other) = delete;
+		Reader& operator=(Reader const& other) = delete;
 		Reader(Reader&& other) NOEXCEPT
 			: data(std::move(other.data)), handles(std::move(other.handles)), pos(other.pos), handles_pos(other.handles_pos) {}
 		Reader& operator=(Reader&& other) NOEXCEPT
 		{
+			if (this == &other)
+			{
+				return *this;
+			}
 			std::swap(data, other.data);
 			std::swap(handles, other.handles);
 			std::swap(pos, other.pos);
@@ -145,8 +151,8 @@ namespace Util {
 		~Reader()
 		{
 			// Close any handles that weren't read
-			for (size_t i = handles_pos; i < handles.size(); i++)
-				handles[i].Close();
+			for (auto it = handles.begin() + handles_pos; it != handles.end(); ++it)
+				it->Close();
 		}
 
 		void ReadData(void* p, size_t len)
@@ -249,7 +255,7 @@ namespace Util {
 	struct SerializeTraits<bool> {
 		static void Write(Writer& stream, bool value)
 		{
-			stream.Write<uint8_t>(+value);
+			stream.Write<uint8_t>(static_cast<uint8_t>(value));
 		}
 		static bool Read(Reader& stream)
 		{
