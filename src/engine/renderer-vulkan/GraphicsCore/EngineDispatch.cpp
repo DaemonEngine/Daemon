@@ -153,7 +153,7 @@ void EngineDispatch() {
 		"push { coreToEngine engineToCore }\n"
 		"MsgStream msg 1 {}";
 
-	engineDispatchEG.BuildFromSrc( GRAPHICS, engineDispatchSrc );
+	engineDispatchEG.BuildFromSrc( COMPUTE, engineDispatchSrc );
 
 	if ( !init ) {
 		resourceSystem.coreToEngineBuffer.memory[0] = ENGINE_INIT;
@@ -162,7 +162,7 @@ void EngineDispatch() {
 
 	uint64 msgStart = engineDispatchEG.Exec();
 
-	GetQueueByType( GRAPHICS ).executionPhase.Wait( msgStart );
+	GetQueueByType( COMPUTE ).executionPhase.Wait( msgStart );
 
 	MsgStream();
 
