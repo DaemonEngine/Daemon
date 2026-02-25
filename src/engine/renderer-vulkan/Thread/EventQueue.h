@@ -68,15 +68,16 @@ struct EventRing {
 };
 
 struct EventQueue {
-	Array<EventRing, 9> eventRings {
+	Array<EventRing, 10> eventRings {
 		{ .granularity = 1_us },
-		{ .granularity = 10_us },
-		{ .granularity = 50_us },
+		{ .granularity = 8_us },
+		{ .granularity = 100_us },
 		{ .granularity = 200_us },
 		{ .granularity = 1_ms },
 		{ .granularity = 16_ms },
-		{ .granularity = 100_ms },
-		{ .granularity = 5_s },
+		{ .granularity = 32_ms },
+		{ .granularity = 256_ms },
+		{ .granularity = 2_s },
 		{ .granularity = 1_m }
 	};
 
