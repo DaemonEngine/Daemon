@@ -246,10 +246,6 @@ class ExecutionGraph {
 	std::atomic<uint64>              cmdID = 0;
 };
 
-bool BuildExecutionNode( const uint32 SPIRVID, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout );
-
 DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src );
-
-void TestCmd();
 
 #endif // EXECUTION_GRAPH_H

@@ -88,6 +88,8 @@ set( graphicsCoreList
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ExecutionGraph/ExecCmd.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ExecutionGraph/ExecutionGraph.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ExecutionGraph/ExecutionGraph.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ExecutionGraph/PipelineCache.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ExecutionGraph/PipelineCache.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Decls.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.h
