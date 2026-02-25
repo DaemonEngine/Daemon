@@ -37,7 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../Math/Bit.h"
 
-#include "../../Memory/Array.h"
 #include "../../Memory/DynamicArray.h"
 
 #include "../../Thread/ThreadMemory.h"
@@ -50,13 +49,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Queue.h"
 #include "../ResultCheck.h"
 
-#include "../../GraphicsShared/SPIRVIDs.h"
 #include "SPIRV.h"
-#include "../../GraphicsShared/PushLayout.h"
 
 #include "PipelineCache.h"
-
-#include "../../GraphicsShared/MsgStreamAPI.h"
 
 #include "../Memory/CoreThreadMemory.h"
 #include "../Memory/EngineAllocator.h"
