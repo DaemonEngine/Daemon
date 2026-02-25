@@ -90,7 +90,7 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 	// clamp( NdotL, 0.0, 1.0 ) is done below
 	float NdotL = dot( normal, lightDir );
 
-	#if !defined(USE_BSP_SURFACE) && defined(r_halfLambertLighting)
+	#if defined(USE_GRID_LIGHTING) && defined(r_halfLambertLighting)
 		// http://developer.valvesoftware.com/wiki/Half_Lambert
 		NdotL = NdotL * 0.5 + 0.5;
 		NdotL *= NdotL;
