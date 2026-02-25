@@ -73,14 +73,15 @@ void InitCmdPools();
 void InitExecCmdPools();
 
 void FreeCmdPools();
-void FreeInstantCmdPools();
+void FreeExecCmdPools();
 
 constexpr uint32              maxThreadCmdBuffers = 64;
 
-extern    AlignedAtomicUint64 cmdBufferStates[MAX_THREADS];
+extern                 uint64 cmdBufferStates[MAX_THREADS];
 extern    thread_local uint64 cmdBufferAllocState;
 
 extern    VkCommandBuffer     cmdBuffers[MAX_THREADS][maxThreadCmdBuffers];
+extern    uint64              swapchainCmdBuffers[MAX_THREADS];
 extern    VkFence             cmdBufferFences[MAX_THREADS][maxThreadCmdBuffers];
 
 extern    thread_local GraphicsCoreMemory GMEM;

@@ -216,10 +216,12 @@ struct ExternalNode {
 };
 
 struct PresentNode {
-	uint8     type = NODE_PRESENT;
-	uint8     id;
-	bool      active;
-	uint8     padding[21];
+	uint8  type = NODE_PRESENT;
+	uint8  id;
+	bool   active;
+	uint32 nodeDependencies;
+	uint32 nodeDependencyTypes;
+	uint8  padding[12];
 };
 
 class ExecutionGraph {
@@ -237,13 +239,16 @@ class ExecutionGraph {
 
 	QueueType                        type;
 
-	ExternalNode                     acquireNode {};
+	ExternalNode                     acquireNode        {};
 	VkSemaphore                      acquireSemaphore = nullptr;
-	PresentNode                      presentNode { .active = false };
+	PresentNode                      presentNode        { .active = false };
 
-	DynamicArray<ExecutionGraphNode> processedNodes {};
+	DynamicArray<ExecutionGraphNode> processedNodes     {};
 
-	std::atomic<uint64>              cmdID = 0;
+	std::atomic<uint64>              cmdID            = 0;
+
+	private:
+	uint32 BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const uint32 swapchainImage, bool* hasPresentNode );
 };
 
 DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src );

@@ -48,10 +48,10 @@ void InitCmdPools() {
 	};
 
 	QueuePool queues[] {
-		{ &graphicsQueue, &GMEM.graphicsCmdPool },
-		{ &computeQueue,  &GMEM.computeCmdPool  },
-		{ &transferQueue, &GMEM.transferCmdPool },
-		{ &sparseQueue,   &GMEM.sparseCmdPool   }
+		{ graphicsQueue, &GMEM.graphicsCmdPool },
+		{ computeQueue,  &GMEM.computeCmdPool  },
+		{ transferQueue, &GMEM.transferCmdPool },
+		{ sparseQueue,   &GMEM.sparseCmdPool   }
 	};
 
 	for ( QueuePool& queuePool : queues ) {
@@ -73,10 +73,10 @@ void InitExecCmdPools() {
 	};
 
 	QueueCmdPool execCmdQueues[] {
-		{ &graphicsQueue, &GMEM.execGraphicsCmd, },
-		{ &computeQueue,  &GMEM.execComputeCmd,  },
-		{ &transferQueue, &GMEM.execTransferCmd, },
-		{ &sparseQueue,   &GMEM.execSparseCmd,   }
+		{ graphicsQueue, &GMEM.execGraphicsCmd, },
+		{ computeQueue,  &GMEM.execComputeCmd,  },
+		{ transferQueue, &GMEM.execTransferCmd, },
+		{ sparseQueue,   &GMEM.execSparseCmd,   }
 	};
 
 	for ( QueueCmdPool& queuePool : execCmdQueues ) {
@@ -104,17 +104,20 @@ void FreeCmdPools() {
 	vkDestroyCommandPool( device, GMEM.computeCmdPool,  nullptr );
 	vkDestroyCommandPool( device, GMEM.transferCmdPool, nullptr );
 	vkDestroyCommandPool( device, GMEM.sparseCmdPool,   nullptr );
+}
 
+void FreeExecCmdPools() {
 	vkDestroyCommandPool( device, GMEM.execGraphicsCmd.cmdPool, nullptr );
 	vkDestroyCommandPool( device, GMEM.execComputeCmd.cmdPool,  nullptr );
 	vkDestroyCommandPool( device, GMEM.execTransferCmd.cmdPool, nullptr );
 	vkDestroyCommandPool( device, GMEM.execSparseCmd.cmdPool,   nullptr );
-}
+} 
 
-AlignedAtomicUint64 cmdBufferStates[MAX_THREADS];
+uint64              cmdBufferStates[MAX_THREADS];
 thread_local uint64 cmdBufferAllocState;
 
 VkCommandBuffer     cmdBuffers[MAX_THREADS][maxThreadCmdBuffers];
+uint64              swapchainCmdBuffers[MAX_THREADS];
 VkFence             cmdBufferFences[MAX_THREADS][maxThreadCmdBuffers];
 
 thread_local GraphicsCoreMemory GMEM;

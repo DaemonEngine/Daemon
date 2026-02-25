@@ -139,18 +139,8 @@ static VkCommandPool GetCmdPoolByType( const QueueType type ) {
 	}
 }
 
-void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, DynamicArray<ExecutionGraphNode>& nodes ) {
-	if ( !buffers.size ) {
-		buffers.Resize( 32 );
-		buffers.Zero();
-	}
-
-	processedNodes.Resize( nodes.size );
-	processedNodes.Zero();
-
-	type                = newType;
-
-	uint64 state        = cmdBufferStates[TLM.id].value.load( std::memory_order_relaxed );
+uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const uint32 swapchainImage, bool* hasPresentNode ) {
+	uint64 state        = cmdBufferStates[TLM.id];
 	uint32 bufID        = FindZeroBitFast( state );
 
 	if ( !BitSet( cmdBufferAllocState, bufID ) ) {
@@ -167,7 +157,7 @@ void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, Dyna
 
 	VkCommandBuffer cmd = cmdBuffers[TLM.id][bufID];
 
-	cmdBufferStates[TLM.id].value.fetch_add( SetBit( 0u, bufID ), std::memory_order_relaxed );
+	SetBit( &cmdBufferStates[TLM.id], bufID );
 
 	VkCommandBufferBeginInfo cmdBegin {
 		.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT
@@ -363,6 +353,61 @@ void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, Dyna
 			{
 				presentNode = *( PresentNode* ) &node;
 
+				uint32 nodeDeps      = presentNode.nodeDependencies;
+				uint32 nodeDepsTypes = presentNode.nodeDependencyTypes;
+
+				VkPipelineStageFlags2 srcStage  = 0;
+				VkAccessFlags2        srcAccess = 0;
+
+				while ( nodeDeps ) {
+					uint32 dep     = FindLSB( nodeDeps );
+
+					switch ( nodes[dep].type ) {
+						case NODE_EXECUTION:
+							srcStage  |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+							srcAccess |= VK_ACCESS_2_SHADER_WRITE_BIT;
+							break;
+						case NODE_GRAPHICS:
+							srcStage  |= BitSet( nodeDepsTypes, dep )
+							             ? VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+							             : VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+							srcAccess |= BitSet( nodeDepsTypes, dep )
+							             ? VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+							             : VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+							break;
+					}
+
+					UnSetBit( &nodeDeps, dep );
+				}
+
+				if ( srcStage || srcAccess ) {
+					VkImageMemoryBarrier2 imageMemoryBarrierInfo {
+						.srcStageMask  = srcStage,
+						.srcAccessMask = srcAccess,
+						.dstStageMask  = 0,
+						.dstAccessMask = VK_PIPELINE_STAGE_2_NONE,
+						.oldLayout     = VK_IMAGE_LAYOUT_GENERAL,
+						.newLayout     = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+						.image         = mainSwapChain.images[swapchainImage].image
+					};
+
+					VkMemoryBarrier2 memoryBarrierInfo {
+						.srcStageMask  = srcStage,
+						.srcAccessMask = srcAccess,
+						.dstStageMask  = 0,
+						.dstAccessMask = VK_PIPELINE_STAGE_2_NONE
+					};
+
+					VkDependencyInfo dependencyInfo {
+						.memoryBarrierCount = 1,
+						.pMemoryBarriers    = &memoryBarrierInfo
+					};
+
+					vkCmdPipelineBarrier2( cmd, &dependencyInfo );
+				}
+
+				*hasPresentNode = true;
+
 				break;
 			}
 		}
@@ -370,30 +415,82 @@ void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, Dyna
 
 	vkEndCommandBuffer( cmd );
 
+	return bufID;
+}
+
+void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, DynamicArray<ExecutionGraphNode>& nodes ) {
+	if ( !buffers.size ) {
+		buffers.Resize( 32 );
+		buffers.Zero();
+	}
+
+	processedNodes.Resize( nodes.size );
+	processedNodes.Zero();
+
+	type = newType;
+
+	bool hasPresentNode        = false;
+
+	uint32 bufID = BuildCmd( nodes, 0, &hasPresentNode );
+
+	if ( hasPresentNode ) {
+		swapchainCmdBuffers[TLM.id] = 0;
+
+		for ( uint32 image = 1; image < mainSwapChain.imageCount; image++ ) {
+			uint32 swapchainBufID = BuildCmd( nodes, image, &hasPresentNode );
+
+			SetBit( &swapchainCmdBuffers[TLM.id], swapchainBufID );
+		}
+	}
+
 	uint64 combinedGenID = SetBits( ( uint64 ) ( TLM.id << cmdBits ) | bufID, newGenID, cmdPoolBits + cmdBits, genIDBits );
 	uint64 expected      = cmdID.load( std::memory_order_relaxed );
 
 	do {
 		if ( combinedGenID < expected ) {
-			vkResetCommandBuffer( cmd, 0 );
+			vkResetCommandBuffer( cmdBuffers[TLM.id][bufID], 0 );
+
+			if ( hasPresentNode ) {
+				while ( swapchainCmdBuffers[TLM.id] ) {
+					uint32 buf = FindLSB( swapchainCmdBuffers[TLM.id] );
+
+					vkResetCommandBuffer( cmdBuffers[TLM.id][buf], 0 );
+
+					UnSetBit( &swapchainCmdBuffers[TLM.id], buf );
+				}
+			}
 			break;
 		}
 	} while ( !cmdID.compare_exchange_strong( expected, combinedGenID ) );
 }
 
 uint64 ExecutionGraph::Exec() {
-	const uint64 cmd = cmdID.load( std::memory_order_relaxed );
+	const uint64 cmd       = cmdID.load( std::memory_order_relaxed );
+
+	const uint32 cmdPoolID = GetBits( cmd, cmdBits, cmdPoolBits );
+
+	uint32       bufID     = GetBits( cmd, 0, cmdBits );
+
+	uint32       image     = ExecExternalNode( &acquireNode, acquireSemaphore );
+
+	if ( presentNode.active ) {
+		uint64 swapchainCmds = swapchainCmdBuffers[cmdPoolID];
+
+		for ( uint32 i = 0; i < image; i++ ) {
+			bufID = FindLSB( swapchainCmds );
+
+			UnSetBit( &swapchainCmds, bufID );
+		}
+	}
 
 	VkCommandBufferSubmitInfo cmdInfo {
-		.commandBuffer = cmdBuffers[GetBits( cmd, cmdBits, cmdPoolBits )][GetBits( cmd, 0, cmdBits )]
+		.commandBuffer = cmdBuffers[cmdPoolID][bufID]
 	};
 
 	VkSubmitInfo2 submitInfo {
 		.commandBufferInfoCount = 1,
 		.pCommandBufferInfos    = &cmdInfo
 	};
-
-	uint32 image = ExecExternalNode( &acquireNode, acquireSemaphore );
 
 	Queue& queue = GetQueueByType( type );
 
@@ -414,7 +511,7 @@ void ResetCmdBuffer( const uint32 bufID ) {
 
 	vkResetCommandBuffer( cmd, 0 );
 
-	cmdBufferStates[TLM.id].value.fetch_sub( SetBit( 0u, bufID ), std::memory_order_relaxed );
+	UnSetBit( &cmdBufferStates[TLM.id], bufID );
 }
 
 void ParseNodeDeps( const char** text, std::unordered_map<std::string, uint32>& nodes, uint32* nodeDeps, uint32* nodeDepsTypes ) {
@@ -677,9 +774,16 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 		}
 
 		if ( !Q_stricmp( token, "present" ) ) {
+			uint32 nodeDeps;
+			uint32 nodeDepsTypes;
+
+			ParseNodeDeps( text, nodesToSPIRV, &nodeDeps, &nodeDepsTypes );
+
 			PresentNode node {
-				.id     = id,
-				.active = true
+				.id                  = id,
+				.active              = true,
+				.nodeDependencies    = nodeDeps,
+				.nodeDependencyTypes = nodeDepsTypes
 			};
 
 			out.Push( *( ExecutionGraphNode* ) &node );
