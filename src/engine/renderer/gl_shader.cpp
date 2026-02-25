@@ -868,7 +868,11 @@ static bool IsUnusedPermutation( const char *compileMacros )
 	const char* token;
 	while ( *( token = COM_ParseExt2( &compileMacros, false ) ) )
 	{
-		if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 )
+		if ( strcmp( token, "USE_VERTEX_SKINNING" ) == 0 )
+		{
+			if ( !glConfig.vboVertexSkinningAvailable ) return true;
+		}
+		else if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 )
 		{
 			if ( !glConfig.deluxeMapping ) return true;
 		}
@@ -2042,11 +2046,6 @@ bool GLCompileMacro_USE_VERTEX_SKINNING::HasConflictingMacros( size_t permutatio
 	return false;
 }
 
-bool GLCompileMacro_USE_VERTEX_SKINNING::MissesRequiredMacros( size_t /*permutation*/, const std::vector< GLCompileMacro * > &/*macros*/ ) const
-{
-	return !glConfig.vboVertexSkinningAvailable;
-}
-
 bool GLCompileMacro_USE_VERTEX_ANIMATION::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
@@ -2246,10 +2245,6 @@ uint32_t GLShader::GetUniqueCompileMacros( size_t permutation, const int type ) 
 				continue;
 			}
 
-			if ( macro->MissesRequiredMacros( permutation, _compileMacros ) ) {
-				continue;
-			}
-
 			if ( !( macro->GetShaderTypes() & type ) ) {
 				continue;
 			}
@@ -2267,10 +2262,6 @@ bool GLShader::GetCompileMacrosString( size_t permutation, std::string &compileM
 	for ( const GLCompileMacro* macro : _compileMacros ) {
 		if ( permutation & macro->GetBit() ) {
 			if ( macro->HasConflictingMacros( permutation, _compileMacros ) ) {
-				return false;
-			}
-
-			if ( macro->MissesRequiredMacros( permutation, _compileMacros ) ) {
 				return false;
 			}
 

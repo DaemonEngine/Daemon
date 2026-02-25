@@ -952,11 +952,6 @@ public:
 		return false;
 	}
 
-	virtual bool            MissesRequiredMacros( size_t, const std::vector<GLCompileMacro*>& ) const
-	{
-		return false;
-	}
-
 	virtual uint32_t        GetRequiredVertexAttributes() const
 	{
 		return 0;
@@ -1075,7 +1070,6 @@ public:
 	}
 
 	bool HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
-	bool MissesRequiredMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
 
 	uint32_t        GetRequiredVertexAttributes() const override
 	{
