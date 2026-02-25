@@ -2116,6 +2116,12 @@ bool GLCompileMacro_USE_GRID_DELUXE_MAPPING::HasConflictingMacros(size_t permuta
 		{
 			return true;
 		}
+
+		// grid lighting is required
+		if ((macro->GetType() == USE_GRID_LIGHTING) && !(permutation & macro->GetBit()))
+		{
+			return true;
+		}
 	}
 
 	return false;
