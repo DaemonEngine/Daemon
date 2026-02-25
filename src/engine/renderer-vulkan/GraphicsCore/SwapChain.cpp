@@ -177,14 +177,14 @@ void SwapChain::Init( const VkInstance instance ) {
 	uint32 count;
 	vkGetPhysicalDeviceSurfaceFormats2KHR( physicalDevice, &surfaceInfo, &count, nullptr );
 
-	DynamicArray<VkSurfaceFormat2KHR> formats;
-	formats.Resize( count );
-	formats.Init();
+	DynamicArray<VkSurfaceFormat2KHR> surfaceFormats;
+	surfaceFormats.Resize( count );
+	surfaceFormats.Init();
 
-	vkGetPhysicalDeviceSurfaceFormats2KHR( physicalDevice, &surfaceInfo, &count, formats.memory );
+	vkGetPhysicalDeviceSurfaceFormats2KHR( physicalDevice, &surfaceInfo, &count, surfaceFormats.memory );
 
 	SwapChainFormat format;
-	VkSurfaceFormat2KHR surfaceFormat = SelectSurfaceFormat( formats, &format );
+	VkSurfaceFormat2KHR surfaceFormat = SelectSurfaceFormat( surfaceFormats, &format );
 
 	vkGetPhysicalDeviceSurfacePresentModesKHR( physicalDevice, surface, &count, nullptr );
 
@@ -220,8 +220,17 @@ void SwapChain::Init( const VkInstance instance ) {
 			break;
 	}
 
+	VkImageFormatListCreateInfo swapChainFormatsInfo {
+		.viewFormatCount = 1,
+		.pViewFormats    = &formats[RGBA8]
+	};
+
 	VkSwapchainCreateInfoKHR swapChainInfo {
-		.flags            = 0,
+		.pNext            = surfaceFormat.surfaceFormat.format == VK_FORMAT_R8G8B8A8_SRGB ? &swapChainFormatsInfo : nullptr,
+
+		.flags            = surfaceFormat.surfaceFormat.format == VK_FORMAT_R8G8B8A8_SRGB
+		                                                        ? VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR
+		                                                        : 0u,
 
 		.surface          = surface,
 

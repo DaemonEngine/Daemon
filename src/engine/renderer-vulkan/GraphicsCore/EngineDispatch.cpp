@@ -113,12 +113,6 @@ void MsgStream() {
 					.cube         = msg.ReadBool()
 				};
 
-				Image image;
-
-				image.Init( ( Format ) cfg.format, { cfg.width, cfg.height, cfg.depth }, cfg.useMips, cfg.cube );
-
-				images[Str::Format( "~engineImage_%u", cfg.id )] = image;
-
 				if ( !formatConfigs[cfg.format].supported ) {
 					switch ( cfg.format ) {
 						case D16:
@@ -134,6 +128,12 @@ void MsgStream() {
 							break;
 					}
 				}
+
+				Image image;
+
+				image.Init( ( Format ) cfg.format, { cfg.width, cfg.height, cfg.depth }, cfg.useMips, cfg.cube );
+
+				images[Str::Format( "~engineImage_%u", cfg.id )] = image;
 
 				if ( cfg.format == RGBA8S ) {
 					UpdateDescriptor( cfg.id, image, true, RGBA8 );
