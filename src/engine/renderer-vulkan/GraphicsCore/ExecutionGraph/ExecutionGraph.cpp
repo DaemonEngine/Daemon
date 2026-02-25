@@ -186,6 +186,8 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 				VkPipelineStageFlags2 srcStage  = 0;
 				VkAccessFlags2        srcAccess = 0;
 
+				bool externalDep = false;
+
 				while ( nodeDeps ) {
 					uint32 dep     = FindLSB( nodeDeps );
 
@@ -202,12 +204,24 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 							             ? VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
 							             : VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 							break;
+						case NODE_EXTERNAL:
+							externalDep = true;
 					}
 
 					UnSetBit( &nodeDeps, dep );
 				}
 
 				if ( srcStage || srcAccess ) {
+					VkImageMemoryBarrier2 imageMemoryBarrierInfo {
+						.srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+						.srcAccessMask = VK_ACCESS_NONE,
+						.dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+						.dstAccessMask = VK_PIPELINE_STAGE_2_NONE,
+						.oldLayout     = VK_IMAGE_LAYOUT_UNDEFINED,
+						.newLayout     = VK_IMAGE_LAYOUT_GENERAL,
+						.image         = mainSwapChain.images[swapchainImage].image
+					};
+
 					VkMemoryBarrier2 memoryBarrierInfo {
 						.srcStageMask  = srcStage,
 						.srcAccessMask = srcAccess,
@@ -216,8 +230,10 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 					};
 
 					VkDependencyInfo dependencyInfo {
-						.memoryBarrierCount = 1,
-						.pMemoryBarriers    = &memoryBarrierInfo
+						.memoryBarrierCount      = 1,
+						.pMemoryBarriers         = &memoryBarrierInfo,
+						.imageMemoryBarrierCount = externalDep,
+						.pImageMemoryBarriers    = externalDep ? &imageMemoryBarrierInfo : nullptr
 					};
 
 					vkCmdPipelineBarrier2( cmd, &dependencyInfo );
@@ -399,8 +415,10 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 					};
 
 					VkDependencyInfo dependencyInfo {
-						.memoryBarrierCount = 1,
-						.pMemoryBarriers    = &memoryBarrierInfo
+						.memoryBarrierCount      = 1,
+						.pMemoryBarriers         = &memoryBarrierInfo,
+						.imageMemoryBarrierCount = 1,
+						.pImageMemoryBarriers    = &imageMemoryBarrierInfo
 					};
 
 					vkCmdPipelineBarrier2( cmd, &dependencyInfo );
