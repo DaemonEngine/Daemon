@@ -434,7 +434,7 @@ void TaskList::AddTask( Task& task, std::initializer_list<TaskProxy> dependencie
 	MarkDependencies( task, TaskInitList { dependencies.begin(), dependencies.end() } );
 
 	uint64 time = TimeNs();
-	if ( time < task.time && time - task.time > eventQueue.minGranularity ) {
+	if ( time < task.time && task.time - time > eventQueue.minGranularity ) {
 		eventQueue.AddTask( task );
 	} else {
 		AddTask( task, TaskInitList { dependencies.begin(), dependencies.end() } );
