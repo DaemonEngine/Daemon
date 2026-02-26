@@ -756,6 +756,11 @@ void R_InitVBOs()
 		geometryCache.InitGLBuffers();
 	}
 
+	if ( glConfig.adaptiveExposureAvailable ) {
+		luminanceBuffer.GenBuffer();
+		luminanceBuffer.BufferData( 1, nullptr, GL_DYNAMIC_COPY );
+	}
+
 	if ( glConfig.directStateAccessAvailable && glConfig.uniformBufferObjectAvailable ) {
 		stagingBuffer.InitGLBuffer();
 	}
@@ -835,6 +840,10 @@ void R_ShutdownVBOs()
 
 	if ( glConfig.usingGeometryCache ) {
 		geometryCache.FreeGLBuffers();
+	}
+
+	if ( glConfig.adaptiveExposureAvailable ) {
+		luminanceBuffer.DelBuffer();
 	}
 
 	if ( glConfig.directStateAccessAvailable && glConfig.uniformBufferObjectAvailable ) {

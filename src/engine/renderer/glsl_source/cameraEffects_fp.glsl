@@ -27,12 +27,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D u_CurrentMap;
 
 #if defined(r_colorGrading)
-uniform sampler3D u_ColorMap3D;
+	uniform sampler3D u_ColorMap3D;
 #endif
 
-uniform vec4      u_ColorModulate;
-uniform float     u_GlobalLightFactor; // 1 / tr.identityLight
-uniform float     u_InverseGamma;
+uniform vec4 u_ColorModulate;
+uniform float u_GlobalLightFactor; // 1 / tr.identityLight
+uniform float u_InverseGamma;
 uniform bool u_SRGB;
 
 void convertToSRGB(inout vec3 color) {
@@ -58,24 +58,43 @@ uniform float u_Exposure;
 
 // Tone mapping is not available when high-precision float framebuffer isn't enabled or supported.
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
+uniform uint u_ViewWidth;
+uniform uint u_ViewHeight;
+
+uniform bool u_Tonemap;
+#if defined(ADAPTIVE_EXPOSURE_AVAILABLE)
+uniform bool u_TonemapAdaptiveExposure;
+#endif
 /* x: contrast
 y: highlightsCompressionSpeed
 z: shoulderClip
 w: highlightsCompression */
-uniform bool u_Tonemap;
 uniform vec4 u_TonemapParms;
+#if defined(ADAPTIVE_EXPOSURE_AVAILABLE)
+uniform vec4 u_TonemapParms2;
+#endif
 
 vec3 TonemapLottes( vec3 color ) {
   // Lottes 2016, "Advanced Techniques and Optimization of HDR Color Pipelines"
   return pow( color, vec3( u_TonemapParms[0] ) )
          / ( pow( color, vec3( u_TonemapParms[0] * u_TonemapParms[1] ) ) * u_TonemapParms[2] + u_TonemapParms[3] );
 }
+
+#if defined(ADAPTIVE_EXPOSURE_AVAILABLE)
+	layout(std140, binding = BIND_LUMINANCE) uniform ub_LuminanceUBO {
+		uint luminanceU;
+	};
+
+	float GetAverageLuminance( const in uint luminance ) {
+		return float( luminanceU ) / ( u_TonemapParms2[1] * u_ViewWidth * u_ViewHeight );
+	}
+#endif
+
 #endif
 
 DECLARE_OUTPUT(vec4)
 
-void main()
-{
+void main() {
 	#insert material_fp
 
 	// calculate the screen texcoord in the 0.0 to 1.0 range
@@ -89,13 +108,24 @@ void main()
 		convertToSRGB( color.rgb );
 	}
 
-	color.rgb *= u_Exposure;
-
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
 	if( u_Tonemap ) {
+		#if defined(ADAPTIVE_EXPOSURE_AVAILABLE)
+			if( u_TonemapAdaptiveExposure ) {
+					const float l = GetAverageLuminance( luminanceU ) - 8;
+					color.rgb *= clamp( 0.18f / exp2( l * 0.8f + 0.1f ), 0.0f, 2.0f );
+			}
+		#endif
+
+		color.rgb *= u_Exposure;
+
 		color.rgb = TonemapLottes( color.rgb );
 	}
+	else
 #endif
+	{
+		color.rgb *= u_Exposure;
+	}
 
 	color.rgb = clamp( color.rgb, vec3( 0.0f ), vec3( 1.0f ) );
 

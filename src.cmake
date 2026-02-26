@@ -121,6 +121,8 @@ set(GLSL_EMBED_LIST
     lighttile_fp.glsl
     computeLight_fp.glsl
     reliefMapping_fp.glsl
+    luminanceReduction_cp.glsl
+    clearFrameData_cp.glsl
 
     # Common vertex shader libraries
     deformVertexes_vp.glsl
