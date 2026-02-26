@@ -44,7 +44,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Decls.h"
 
-#include "../Queue.h"
 #include "../Semaphore.h"
 #include "../GraphicsCoreStore.h"
 

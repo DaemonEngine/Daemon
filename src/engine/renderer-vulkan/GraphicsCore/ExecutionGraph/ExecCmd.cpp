@@ -41,6 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Semaphore.h"
 
+#include "../Queue.h"
+
 #include "ExecCmd.h"
 
 static ExecCmdPool* GetExecCmdPoolByType( const QueueType type ) {
@@ -61,9 +63,9 @@ static ExecCmdPool* GetExecCmdPoolByType( const QueueType type ) {
 static uint32 GetExecCmdBuf( const QueueType queueType, VkCommandBuffer* cmd ) {
 	ExecCmdPool* execCmd = GetExecCmdPoolByType( queueType );
 
-	Queue& queue = GetQueueByType( queueType );
+	Queue&       queue   = GetQueueByType( queueType );
 
-	uint32 id = FindLZeroBit( execCmd->allocState );
+	uint32       id      = FindLZeroBit( execCmd->allocState );
 
 	while ( true ) {
 		if ( id < maxExecCmdBuffers ) {

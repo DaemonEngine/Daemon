@@ -40,27 +40,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Error.h"
 
 #include "../Thread/TaskList.h"
+#include "../Thread/ThreadMemory.h"
+#include "../Sync/Barrier.h"
 #include "../Sync/Fence.h"
 
-#include "GraphicsCoreStore.h"
 #include "Instance.h"
-
-#include "PhysicalDevice.h"
 
 #include "EngineConfig.h"
 
+#include "Memory/CoreThreadMemory.h"
 #include "Memory/DescriptorSet.h"
-#include "Memory/EngineAllocator.h"
 #include "ResourceSystem.h"
+#include "GraphicsCoreStore.h"
 
-#include "Init.h"
+#include "Queue.h"
+
+#include "SwapChain.h"
 
 #include "EngineDispatch.h"
 
-#include "SwapChain.h"
-#include "Vulkan.h"
+#include "Init.h"
 
-#include "Memory/CoreThreadMemory.h"
 void InitGraphicsEngine() {
 	instance.Init( "Daemon-vulkan", CLIENT_WINDOW_TITLE );
 
@@ -107,8 +107,6 @@ void InitGraphicsEngine() {
 	resourceSystem.Init( 0 );
 
 	initExecCmdFence.Wait();
-
-	TestCmd();
 
 	Task engineDispatchStart { &EngineDispatch };
 	taskList.AddTask( engineDispatchStart );
