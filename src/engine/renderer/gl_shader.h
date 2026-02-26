@@ -3533,6 +3533,8 @@ class GlobalUBOProxy :
 	public u_InverseGamma,
 	public u_Tonemap,
 	public u_TonemapParms,
+	public u_TonemapAdaptiveExposure,
+	public u_TonemapParms2,
 	public u_Exposure {
 
 	public:
