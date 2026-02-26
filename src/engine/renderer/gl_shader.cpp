@@ -3103,6 +3103,8 @@ GlobalUBOProxy::GlobalUBOProxy() :
 	u_numLights( this ),
 	u_ColorModulate( this ),
 	u_InverseGamma( this ),
+	u_TonemapParms2( this ),
+	u_TonemapAdaptiveExposure( this ),
 	u_Tonemap( this ),
 	u_TonemapParms( this ),
 	u_Exposure( this ) {
