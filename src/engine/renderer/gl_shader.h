@@ -3300,8 +3300,8 @@ class GLShader_cameraEffects :
 	public u_ViewWidth,
 	public u_ViewHeight,
 	public u_Tonemap,
-	public u_TonemapAdaptiveExposure,
 	public u_TonemapParms,
+	public u_TonemapAdaptiveExposure,
 	public u_TonemapParms2,
 	public u_Exposure,
 	public u_InverseGamma
