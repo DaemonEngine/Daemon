@@ -3105,7 +3105,7 @@ GlobalUBOProxy::GlobalUBOProxy() :
 	u_InverseGamma( this ),
 	u_TonemapParms2( this ),
 	u_TonemapAdaptiveExposure( this ),
-	u_Tonemap( this ),
 	u_TonemapParms( this ),
+	u_Tonemap( this ),
 	u_Exposure( this ) {
 }
