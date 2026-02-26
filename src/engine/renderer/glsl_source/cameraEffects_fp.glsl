@@ -103,8 +103,6 @@ void main() {
 	vec4 color = texture2D(u_CurrentMap, st);
 	color *= u_GlobalLightFactor;
 
-	color.rgb *= u_Exposure;
-
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
 	if( u_Tonemap ) {
 		#if defined(ADAPTIVE_EXPOSURE_AVAILABLE)
@@ -114,9 +112,15 @@ void main() {
 			}
 		#endif
 
+		color.rgb *= u_Exposure;
+
 		color.rgb = TonemapLottes( color.rgb );
 	}
+	else
 #endif
+	{
+		color.rgb *= u_Exposure;
+	}
 
 	color.rgb = clamp( color.rgb, vec3( 0.0f ), vec3( 1.0f ) );
 
