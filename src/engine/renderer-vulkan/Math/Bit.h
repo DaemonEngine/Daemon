@@ -274,7 +274,7 @@ inline void SetBits( uint16* value, const uint16 bits, const uint32 start, const
 	*value = SetBits( *value, bits, start, count );
 }
 
-inline void SetBits( uint32* value, const uint32 bits, const uint32 count, const uint32 start ) {
+inline void SetBits( uint32* value, const uint32 bits, const uint32 start, const uint32 count ) {
 	*value = SetBits( *value, bits, start, count );
 }
 
