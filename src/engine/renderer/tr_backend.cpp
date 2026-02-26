@@ -1728,11 +1728,13 @@ void RB_CameraPostFX() {
 		vec4_t parms{ log2f( r_toneMappingHDRMax.Get() ) };
 		parms[1] = UINT32_MAX / ( windowConfig.vidWidth * windowConfig.vidHeight * ( uint32_t( parms[0] ) + 8 ) );
 		gl_cameraEffectsShader->SetUniform_TonemapParms2( parms );
-
-		gl_cameraEffectsShader->SetUniform_TonemapAdaptiveExposure(
-			glConfig.adaptiveExposureAvailable && r_toneMappingAdaptiveExposure.Get() );
 	}
 	gl_cameraEffectsShader->SetUniform_Tonemap( tonemap );
+
+	if ( glConfig.adaptiveExposureAvailable ) {
+		gl_cameraEffectsShader->SetUniform_TonemapAdaptiveExposure(
+			r_toneMappingAdaptiveExposure.Get() );
+	}
 
 	// This shader is run last, so let it render to screen instead of
 	// tr.mainFBO
