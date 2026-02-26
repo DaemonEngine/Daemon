@@ -156,8 +156,6 @@ byte* GlobalMemory::Alloc( const uint64 size, const uint64 alignment ) {
 	Q_strncpyz( alloc.source, source.c_str(), 99 );
 	alloc.source[99] = '\0';
 
-	alloc.refCount.store( 0, std::memory_order_relaxed );
-
 	*( ( GlobalAllocationRecord* ) ( record->chunk.memory + record->offset ) ) = alloc;
 
 	byte* ret         = record->chunk.memory + record->offset + sizeof( GlobalAllocationRecord );

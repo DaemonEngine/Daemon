@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../Memory/DynamicArray.h"
 
+#include "../../Thread/TaskList.h"
 #include "../../Thread/ThreadMemory.h"
 
 #include "../../Sys/MemoryInfo.h"
@@ -436,6 +437,22 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 	return bufID;
 }
 
+struct CmdBufferResetParms {
+	QueueType type;
+	uint64    executionPhase;
+	uint32    bufferID;
+};
+
+void ResetCmdBuffer( CmdBufferResetParms* parms ) {
+	VkCommandBuffer cmd = cmdBuffers[TLM.id][parms->bufferID];
+
+	GetQueueByType( parms->type ).executionPhase.Wait( parms->executionPhase );
+
+	vkResetCommandBuffer( cmd, 0 );
+
+	UnSetBit( &cmdBufferStates[TLM.id], parms->bufferID );
+}
+
 void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, DynamicArray<ExecutionGraphNode>& nodes ) {
 	if ( !buffers.size ) {
 		buffers.Resize( 32 );
@@ -481,9 +498,26 @@ void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, Dyna
 			break;
 		}
 	} while ( !cmdID.compare_exchange_strong( expected, combinedGenID ) );
+
+	if ( combinedGenID > expected && expected > 0 ) {
+		lastExecLock.LockWrite();
+
+		Task cmdBufferResetTask {
+			&ResetCmdBuffer,
+			CmdBufferResetParms { .type = type, .executionPhase = lastExecutionPhase, .bufferID = ( uint32 ) GetBits( expected, 0, cmdBits ) }
+		};
+
+		const uint32 cmdPoolID = GetBits( expected, cmdBits, cmdPoolBits );
+
+		taskList.AddTask( cmdBufferResetTask.ThreadMask( SetBit( 0u, cmdPoolID ) ) );
+
+		lastExecLock.UnlockWrite();
+	}
 }
 
 uint64 ExecutionGraph::Exec() {
+	lastExecLock.LockWrite();
+
 	const uint64 cmd       = cmdID.load( std::memory_order_relaxed );
 
 	const uint32 cmdPoolID = GetBits( cmd, cmdBits, cmdPoolBits );
@@ -512,15 +546,11 @@ uint64 ExecutionGraph::Exec() {
 		out = queue.Submit( cmdBuffers[cmdPoolID][bufID] );
 	}
 
+	lastExecutionPhase = out;
+
+	lastExecLock.UnlockWrite();
+
 	return out;
-}
-
-void ResetCmdBuffer( const uint32 bufID ) {
-	VkCommandBuffer cmd = cmdBuffers[TLM.id][bufID];
-
-	vkResetCommandBuffer( cmd, 0 );
-
-	UnSetBit( &cmdBufferStates[TLM.id], bufID );
 }
 
 void ParseNodeDeps( const char** text, std::unordered_map<std::string, uint32>& nodes, uint32* nodeDeps, uint32* nodeDepsTypes ) {
