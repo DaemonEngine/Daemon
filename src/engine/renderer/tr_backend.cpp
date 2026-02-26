@@ -1725,9 +1725,12 @@ void RB_CameraPostFX() {
 			r_toneMappingDarkAreaPointHDR.Get(), r_toneMappingDarkAreaPointLDR.Get(), tonemapParms[2], tonemapParms[3] );
 		gl_cameraEffectsShader->SetUniform_TonemapParms( tonemapParms );
 
-		vec4_t parms{ log2f( r_toneMappingHDRMax.Get() ) };
-		parms[1] = UINT32_MAX / ( windowConfig.vidWidth * windowConfig.vidHeight * ( uint32_t( parms[0] ) + 8 ) );
-		gl_cameraEffectsShader->SetUniform_TonemapParms2( parms );
+		if ( glConfig.adaptiveExposureAvailable ) {
+			vec4_t parms{ log2f( r_toneMappingHDRMax.Get() ) };
+			parms[1] = UINT32_MAX / ( windowConfig.vidWidth * windowConfig.vidHeight * ( uint32_t( parms[0] ) + 8 ) );
+
+			gl_cameraEffectsShader->SetUniform_TonemapParms2( parms );
+		}
 	}
 	gl_cameraEffectsShader->SetUniform_Tonemap( tonemap );
 

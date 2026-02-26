@@ -70,7 +70,9 @@ y: highlightsCompressionSpeed
 z: shoulderClip
 w: highlightsCompression */
 uniform vec4 u_TonemapParms;
+#if defined(ADAPTIVE_EXPOSURE_AVAILABLE)
 uniform vec4 u_TonemapParms2;
+#endif
 
 vec3 TonemapLottes( vec3 color ) {
   // Lottes 2016, "Advanced Techniques and Optimization of HDR Color Pipelines"
