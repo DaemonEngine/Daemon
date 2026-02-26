@@ -62,7 +62,9 @@ uniform uint u_ViewWidth;
 uniform uint u_ViewHeight;
 
 uniform bool u_Tonemap;
+#if defined(ADAPTIVE_EXPOSURE_AVAILABLE)
 uniform bool u_TonemapAdaptiveExposure;
+#endif
 /* x: contrast
 y: highlightsCompressionSpeed
 z: shoulderClip
