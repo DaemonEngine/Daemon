@@ -140,8 +140,8 @@ static VkCommandPool GetCmdPoolByType( const QueueType type ) {
 }
 
 uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const uint32 swapchainImage, bool* hasPresentNode ) {
-	uint64 state        = cmdBufferStates[TLM.id];
-	uint32 bufID        = FindZeroBitFast( state );
+	uint64 state = cmdBufferStates[TLM.id];
+	uint32 bufID = FindZeroBitFast( state );
 
 	if ( !BitSet( cmdBufferAllocState, bufID ) ) {
 		VkCommandBufferAllocateInfo cmdInfo {
@@ -477,6 +477,7 @@ void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, Dyna
 					UnSetBit( &swapchainCmdBuffers[TLM.id], buf );
 				}
 			}
+
 			break;
 		}
 	} while ( !cmdID.compare_exchange_strong( expected, combinedGenID ) );
@@ -486,7 +487,6 @@ uint64 ExecutionGraph::Exec() {
 	const uint64 cmd       = cmdID.load( std::memory_order_relaxed );
 
 	const uint32 cmdPoolID = GetBits( cmd, cmdBits, cmdPoolBits );
-
 	uint32       bufID     = GetBits( cmd, 0, cmdBits );
 
 	uint32       image     = ExecExternalNode( &acquireNode, acquireSemaphore );
@@ -501,24 +501,15 @@ uint64 ExecutionGraph::Exec() {
 		}
 	}
 
-	VkCommandBufferSubmitInfo cmdInfo {
-		.commandBuffer = cmdBuffers[cmdPoolID][bufID]
-	};
-
-	VkSubmitInfo2 submitInfo {
-		.commandBufferInfoCount = 1,
-		.pCommandBufferInfos    = &cmdInfo
-	};
-
 	Queue& queue = GetQueueByType( type );
 
 	uint64 out;
 
 	if ( presentNode.active ) {
-		out = queue.SubmitForPresent( cmdInfo.commandBuffer, mainSwapChain.presentSemaphores[image] );
+		out = queue.SubmitForPresent( cmdBuffers[cmdPoolID][bufID], mainSwapChain.presentSemaphores[image] );
 		ExecPresentNode( queue, &presentNode, mainSwapChain.presentSemaphores[image], image );
 	} else {
-		out = queue.Submit( cmdInfo.commandBuffer );
+		out = queue.Submit( cmdBuffers[cmdPoolID][bufID] );
 	}
 
 	return out;
