@@ -1682,7 +1682,7 @@ void RB_CameraPostFX() {
 	gl_cameraEffectsShader->SetUniform_InverseGamma( 1.0 / r_gamma->value );
 
 	gl_cameraEffectsShader->SetUniform_SRGB( tr.worldLinearizeTexture );
-	gl_cameraEffectsShader->SetUniform_Exposure( r_toneMappingExposure.Get() );
+	gl_cameraEffectsShader->SetUniform_Exposure( r_exposure.Get() );
 
 	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig.textureFloatAvailable;
 	if ( tonemap ) {
@@ -2841,7 +2841,7 @@ static void SetFrameUniforms() {
 
 	globalUBOProxy->SetUniform_ColorModulate( tr.viewParms.gradingWeights );
 	globalUBOProxy->SetUniform_InverseGamma( 1.0f / r_gamma->value );
-	globalUBOProxy->SetUniform_Exposure( r_toneMappingExposure.Get() );
+	globalUBOProxy->SetUniform_Exposure( r_exposure.Get() );
 
 	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig.textureFloatAvailable;
 	if ( tonemap ) {
