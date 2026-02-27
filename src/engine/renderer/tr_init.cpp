@@ -192,7 +192,7 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 		"r_toneMappingExposure", "Exposure (brightness adjustment)", Cvar::NONE, 1.0f );
 	Cvar::Range<Cvar::Cvar<float>> r_toneMappingContrast(
 		"r_toneMappingContrast", "Makes dark areas light up faster",
-		Cvar::NONE, 1.6f, 1.0f, 10.0f );
+		Cvar::NONE, 1.4f, 1.0f, 10.0f );
 	Cvar::Range<Cvar::Cvar<float>> r_toneMappingHighlightsCompressionSpeed(
 		"r_toneMappingHighlightsCompressionSpeed", "Highlights saturation",
 		Cvar::NONE, 0.977f, 0.0f, 10.0f );
