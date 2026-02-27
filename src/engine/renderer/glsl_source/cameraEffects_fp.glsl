@@ -92,6 +92,42 @@ void main()
 	}
 #endif
 
+	#if defined(r_lowLightDithering)
+	{
+		float threshold;
+
+		if ( u_SRGB )
+		{
+			threshold = pow( float( r_lowLightDitheringThreshold ) / 255.0f, 2.2f );
+		}
+		else
+		{
+			threshold = float( r_lowLightDitheringThreshold ) / 255.0f;
+		}
+
+		if ( ( color.r + color.g + color.b ) < ( 3.0f * threshold ) )
+		{
+			const float bayer[ 16 ] = {
+				 0.0f,  8.0f,  2.0f, 10.0f,
+				12.0f,  4.0f, 14.0f,  6.0f,
+				 3.0f, 11.0f,  1.0f,  9.0f,
+				15.0f,  7.0f, 13.0f,  5.0f
+			};
+
+			float dither = bayer[
+					int( mod( gl_FragCoord.x, 4.0f ) ) +
+					int( mod( gl_FragCoord.y, 4.0f ) ) * 4
+				] / 16.0f;
+
+			color.rgb += vec3( ( ( dither - 0.5f ) / 255.0f ) * r_lowLightDitheringAmplitudeFactor );
+
+			#if defined(r_showLowLightDithering)
+				color.rgb = vec3(1.0f, 0.0f, 0.0f);
+			#endif
+		}
+	}
+	#endif
+
 	color.rgb = clamp( color.rgb, vec3( 0.0f ), vec3( 1.0f ) );
 
 	if ( u_SRGB )

@@ -206,6 +206,17 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 		"r_toneMappingDarkAreaPointLDR", "Convert to this brightness at dark area cut-off",
 		Cvar::NONE, 0.268f, 0.0f, 1.0f );
 
+	Cvar::Cvar<bool> r_lowLightDithering(
+		"r_lowLightDithering", "Use dithering in low light areas", Cvar::NONE, true );
+	Cvar::Range<Cvar::Cvar<int>> r_lowLightDitheringThreshold(
+		"r_lowLightDitheringThreshold", "Color channel sRGB value under which low light is dithered",
+		Cvar::NONE, 6, 2, 20 );
+	Cvar::Range<Cvar::Cvar<float>> r_lowLightDitheringAmplitudeFactor(
+		"r_lowLightDitheringAmplitudeFactor", "Amplitude factor for the dithering noise",
+		Cvar::NONE, 0.25, 0.05, 1.0 );
+	Cvar::Cvar<bool> r_showLowLightDithering(
+		"r_showLowLightDithering", "Show dithering applied on low light areas", Cvar::CHEAT, false );
+
 	cvar_t      *r_lockpvs;
 	cvar_t      *r_noportals;
 
@@ -1267,6 +1278,11 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Cvar::Latch( r_highPrecisionRendering );
 		Cvar::Latch( r_accurateSRGB );
+
+		Cvar::Latch( r_lowLightDithering );
+		Cvar::Latch( r_lowLightDitheringThreshold );
+		Cvar::Latch( r_lowLightDitheringAmplitudeFactor );
+		Cvar::Latch( r_showLowLightDithering );
 
 		r_drawBuffer = Cvar_Get( "r_drawBuffer", "GL_BACK", CVAR_CHEAT );
 		r_lockpvs = Cvar_Get( "r_lockpvs", "0", CVAR_CHEAT );
