@@ -25,20 +25,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "engine/qcommon/q_shared.h"
 
-#define SVF_NOCLIENT              0x00000001
-#define SVF_CLIENTMASK            0x00000002
-#define SVF_VISDUMMY              0x00000004
-#define SVF_BROADCAST             0x00000020
-#define SVF_PORTAL                0x00000040
-#define SVF_VISDUMMY_MULTIPLE     0x00000400
-#define SVF_SINGLECLIENT          0x00000800
-#define SVF_NOSERVERINFO          0x00001000 // only meaningful for entities numbered in [0..MAX_CLIENTS)
-#define SVF_NOTSINGLECLIENT       0x00002000
-#define SVF_IGNOREBMODELEXTENTS   0x00004000
-#define SVF_SELF_PORTAL           0x00008000
-#define SVF_SELF_PORTAL_EXCLUSIVE 0x00010000
-#define SVF_CLIENTS_IN_RANGE      0x00040000 // clients within range
-#define SVF_BROADCAST_ONCE        0x00080000 // broadcasted to newly connecting clients, and once to connected clients when spawned
+// flags for masking which clients can see the entity
+#define SVF_CLIENTMASK            BIT( 0 )
+#define SVF_SINGLECLIENT          BIT( 1 )
+#define SVF_NOCLIENT              BIT( 2 )
+#define SVF_NOTSINGLECLIENT       BIT( 3 )
+
+// flags for modifying visibility
+#define SVF_BROADCAST             BIT( 4 ) // visible from anywhere
+#define SVF_BROADCAST_ONCE        BIT( 5 ) // broadcasted to newly connecting clients, and once to connected clients when spawned
+#define SVF_CLIENTS_IN_RANGE      BIT( 6 )
+#define SVF_IGNOREBMODELEXTENTS   BIT( 7 )
+
+#define SVF_PORTAL                BIT( 8 ) // if you see the portal, you also see what can be seen through its camera
+#define SVF_NOSERVERINFO          BIT( 9 ) // only meaningful for entities numbered in [0..MAX_CLIENTS)
+
+// ???
+#define SVF_VISDUMMY              BIT( 10 )
+#define SVF_VISDUMMY_MULTIPLE     BIT( 11 )
+#define SVF_SELF_PORTAL           BIT( 12 )
+#define SVF_SELF_PORTAL_EXCLUSIVE BIT( 13 )
+
 
 #define MAX_ENT_CLUSTERS  16
 
