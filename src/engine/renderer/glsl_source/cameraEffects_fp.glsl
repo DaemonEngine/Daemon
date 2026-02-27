@@ -88,7 +88,73 @@ void main()
 
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
 	if( u_Tonemap ) {
-		color.rgb = TonemapLottes( color.rgb );
+		#if defined(r_toneMappingLowLightRestorationSteps)
+			vec3 mapped = TonemapLottes( color.rgb );
+
+			/* The threshold is the color channel value under which we blend
+			the tone mapped color with the original color to restore low
+			light in dark shadows clipped by the tone mapper.
+
+			The threshold is in sRGB space for convenience. For example,
+			a threshold of 5 would make sure we start restoring low light
+			when the sRGB-converted tone mapped color goes below #050505,
+			a threshold of 10 would do the same for #0A0A0A and 16 would
+			target #101010.
+
+			We need to convert the threshold back to linear because we're
+			still operating in linear space at this point.
+
+			We don't exactly restore up to the threshold, we blend half
+			the tone-mapped color with half the color, to avoid producing
+			color artifacts that would happen by bumping the RGB channels
+			directly. Each step does the half blend again, so we can say
+			that the restoration _tends to the threshold_ with each step.
+
+			Each step is done with a small bias to lower the threshold a bit
+			every step to not not always use the exact same frontier between
+			the area having light restored and the area being kept unmodified,
+			then smoothly blending the restoratiin with a gradient.
+
+			Since we blend with half the colors, a threshold smaller than 2
+			would do nothing. */
+			float threshold;
+
+			if ( u_SRGB )
+			{
+				threshold = pow( float( r_toneMappingLowLightRestorationThreshold ) / 255.0f, 2.2f );
+			}
+			else
+			{
+				threshold = float( r_toneMappingLowLightRestorationThreshold ) / 255.0f;
+			}
+
+			#if defined(r_showToneMappingLowLightRestoration)
+				color.rgb = vec3(1.0f, 0.0f, 0.0f);
+			#endif
+
+			bvec3 colorCutoff = lessThan( color.rgb, vec3( threshold ) );
+
+			for ( int i = 0; i < r_toneMappingLowLightRestorationSteps; i++ )
+			{
+				float t = threshold - ( i * ( threshold / 10.0f ) );
+
+				bvec3 mappedCutoff = lessThan( mapped, vec3(t) );
+
+				bvec3 cutoff = bvec3(ivec3(mappedCutoff) * ivec3(colorCutoff));
+
+				#if __VERSION__ > 120
+					vec3 interpolation = vec3(0.5f) * vec3(cutoff);
+				#else
+					vec3 interpolation = 0.5f * cutoff;
+				#endif
+
+				mapped = mix( mapped, color.rgb, interpolation );
+			}
+
+			color.rgb = mapped;
+		#else
+			color.rgb = TonemapLottes( color.rgb );
+		#endif
 	}
 #endif
 

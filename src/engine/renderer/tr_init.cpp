@@ -206,6 +206,16 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 		"r_toneMappingDarkAreaPointLDR", "Convert to this brightness at dark area cut-off",
 		Cvar::NONE, 0.268f, 0.0f, 1.0f );
 
+	Cvar::Range<Cvar::Cvar<int>> r_toneMappingLowLightRestorationSteps(
+		"r_toneMappingLowLightRestorationSteps", "Amount of steps to restore the low lights",
+		Cvar::NONE, 1, 0, 5 );
+	Cvar::Range<Cvar::Cvar<int>> r_toneMappingLowLightRestorationThreshold(
+		"r_toneMappingLowLightRestorationThreshold", "Color channel sRGB value under which low light is restored",
+		Cvar::NONE, 10, 2, 20 );
+	Cvar::Cvar<bool> r_showToneMappingLowLightRestoration(
+		"r_showToneMappingLowLightRestoration", "Show pixels affected by tone mapping low light restoration",
+		Cvar::CHEAT, false );
+
 	Cvar::Cvar<bool> r_lowLightDithering(
 		"r_lowLightDithering", "Use dithering in low light areas", Cvar::NONE, true );
 	Cvar::Range<Cvar::Cvar<int>> r_lowLightDitheringThreshold(
@@ -1278,6 +1288,10 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Cvar::Latch( r_highPrecisionRendering );
 		Cvar::Latch( r_accurateSRGB );
+
+		Cvar::Latch( r_toneMappingLowLightRestorationSteps );
+		Cvar::Latch( r_toneMappingLowLightRestorationThreshold );
+		Cvar::Latch( r_showToneMappingLowLightRestoration );
 
 		Cvar::Latch( r_lowLightDithering );
 		Cvar::Latch( r_lowLightDitheringThreshold );
