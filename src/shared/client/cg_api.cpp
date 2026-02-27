@@ -414,18 +414,6 @@ std::vector<bool> trap_R_BatchInPVS(
 	return inPVS;
 }
 
-int trap_R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir )
-{
-	int result;
-	std::array<float, 3> mypoint, myambient, mydirected, mydir;
-	VectorCopy(point, mypoint);
-	VM::SendMsg<Render::LightForPointMsg>(mypoint, myambient, mydirected, mydir, result);
-	VectorCopy(myambient, ambientLight);
-	VectorCopy(mydirected, directedLight);
-	VectorCopy(mydir, lightDir);
-	return result;
-}
-
 qhandle_t trap_R_RegisterAnimation( const char *name )
 {
 	int handle;
