@@ -1632,28 +1632,43 @@ static void DelayAnimationTexture( const char* texturePath, const size_t animati
 	delayedAnimationTextures[ animationIndex ].active = true;
 }
 
+enum class mapLoadingMode_t {
+	DELAYED,
+	IMMEDIATE,
+	IMMEDIATE_COLORMAP,
+};
+
+static void LoadMapOrDelay( shaderStage_t *stage, char* buffer, const stageType_t stageType,
+	const int bundleIndex, const mapLoadingMode_t mode=mapLoadingMode_t::DELAYED )
+{
+	switch ( mode )
+	{
+		case mapLoadingMode_t::DELAYED:
+			DelayStageTexture( buffer, stageType, bundleIndex );
+			break;
+		case mapLoadingMode_t::IMMEDIATE:
+			LoadMap( stage, buffer, stageType, bundleIndex );
+			break;
+		case mapLoadingMode_t::IMMEDIATE_COLORMAP:
+			LoadMap( stage, buffer, stageType, TB_COLORMAP );
+			break;
+	}
+}
+
 /*
 ===================
 ParseDifuseMap
 and others
 ===================
 */
-static void ParseDiffuseMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_DIFFUSEMAP )
+static void ParseDiffuseMap( shaderStage_t *stage, const char **text,
+	const mapLoadingMode_t mode=mapLoadingMode_t::DELAYED )
 {
 	char buffer[ 1024 ] = "";
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		stageType_t stageType = stageType_t::ST_DIFFUSEMAP;
-
-		if ( bundleIndex == TB_DIFFUSEMAP )
-		{
-			DelayStageTexture( buffer, stageType, bundleIndex );
-		}
-		else
-		{
-			LoadMap( stage, buffer, stageType, bundleIndex );
-		}
+		LoadMapOrDelay( stage, buffer, stageType_t::ST_DIFFUSEMAP, TB_DIFFUSEMAP, mode );
 	}
 }
 
@@ -1664,10 +1679,11 @@ static void ParseLegacyDiffuseStage( shaderStage_t *stage, const char **text )
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
-	ParseDiffuseMap( stage, text, TB_COLORMAP );
+	ParseDiffuseMap( stage, text, mapLoadingMode_t::IMMEDIATE_COLORMAP );
 }
 
-static void ParseNormalMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_NORMALMAP )
+static void ParseNormalMap( shaderStage_t *stage, const char **text,
+	const mapLoadingMode_t mode=mapLoadingMode_t::DELAYED )
 {
 	char buffer[ 1024 ] = "";
 
@@ -1682,16 +1698,7 @@ static void ParseNormalMap( shaderStage_t *stage, const char **text, const int b
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		stageType_t stageType = stageType_t::ST_NORMALMAP;
-
-		if ( bundleIndex == TB_NORMALMAP )
-		{
-			DelayStageTexture( buffer, stageType, bundleIndex );
-		}
-		else
-		{
-			LoadMap( stage, buffer, stageType, bundleIndex );
-		}
+		LoadMapOrDelay( stage, buffer, stageType_t::ST_NORMALMAP, TB_NORMALMAP, mode );
 	}
 }
 
@@ -1702,10 +1709,11 @@ static void ParseLegacyNormalStage( shaderStage_t *stage, const char **text )
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
-	ParseNormalMap( stage, text, TB_COLORMAP );
+	ParseNormalMap( stage, text, mapLoadingMode_t::IMMEDIATE_COLORMAP );
 }
 
-static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_NORMALMAP )
+static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **text,
+	const mapLoadingMode_t mode )
 {
 	/* Always call this function on assets known to never use RGTC format
 	or the engine running on hardware with driver not implementing the
@@ -1723,16 +1731,16 @@ static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **te
 
 	const char* initialText = *text;
 
-	ParseNormalMap( stage, text, bundleIndex );
+	ParseNormalMap( stage, text, mode );
 
 	/* Tell renderer to enable relief mapping since an heightmap is found,
 	also tell renderer to not abuse normalmap alpha channel because it's an heightmap.
 
 	See https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252 */
 
-	if ( stage->bundle[ bundleIndex ].image[ 0 ]
-		&& stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP
-		&& stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_ALPHA )
+	if ( stage->bundle[ TB_NORMALMAP ].image[ 0 ]
+		&& stage->bundle[ TB_NORMALMAP ].image[ 0 ]->bits & IF_NORMALMAP
+		&& stage->bundle[ TB_NORMALMAP ].image[ 0 ]->bits & IF_ALPHA )
 	{
 		Log::defaultLogger.DoDebugCode([&] {
 			char buffer[ 1024 ];
@@ -1750,43 +1758,29 @@ static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **te
 
 // There is no ParseLegacyNormalStageDetectHeightMap.
 
-static void ParseHeightMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_HEIGHTMAP )
+static void ParseHeightMap( shaderStage_t* /* stage */, const char **text,
+	const mapLoadingMode_t mode=mapLoadingMode_t::DELAYED )
 {
+	Q_UNUSED(mode);
+
 	char buffer[ 1024 ] = "";
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		stageType_t stageType = stageType_t::ST_HEIGHTMAP;
-
-		if ( bundleIndex == TB_HEIGHTMAP )
-		{
-			DelayStageTexture( buffer, stageType, bundleIndex );
-		}
-		else
-		{
-			LoadMap( stage, buffer, stageType, bundleIndex );
-		}
+		DelayStageTexture( buffer, stageType_t::ST_HEIGHTMAP, TB_HEIGHTMAP );
 	}
 }
 
 // There is no ParseLegacyHeightStage.
 
-static void ParseSpecularMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_SPECULARMAP )
+static void ParseSpecularMap( shaderStage_t *stage, const char **text,
+	const mapLoadingMode_t mode=mapLoadingMode_t::DELAYED )
 {
 	char buffer[ 1024 ] = "";
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		stageType_t stageType = stageType_t::ST_SPECULARMAP;
-
-		if ( bundleIndex == TB_SPECULARMAP )
-		{
-			DelayStageTexture( buffer, stageType, bundleIndex );
-		}
-		else
-		{
-			LoadMap( stage, buffer, stageType, bundleIndex );
-		}
+		LoadMapOrDelay( stage, buffer, stageType_t::ST_SPECULARMAP, TB_SPECULARMAP, mode );
 	}
 }
 
@@ -1797,10 +1791,10 @@ static void ParseLegacySpecularStage( shaderStage_t *stage, const char **text )
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
-	ParseSpecularMap( stage, text, TB_COLORMAP );
+	ParseSpecularMap( stage, text, mapLoadingMode_t::IMMEDIATE_COLORMAP );
 }
 
-static void ParsePhysicalMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_PHYSICALMAP )
+static void ParsePhysicalMap( shaderStage_t *stage, const char **text )
 {
 	char buffer[ 1024 ] = "";
 
@@ -1810,37 +1804,19 @@ static void ParsePhysicalMap( shaderStage_t *stage, const char **text, const int
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		stageType_t stageType = stageType_t::ST_PHYSICALMAP;
-
-		if ( bundleIndex == TB_PHYSICALMAP )
-		{
-			DelayStageTexture( buffer, stageType, bundleIndex );
-		}
-		else
-		{
-			LoadMap( stage, buffer, stageType, bundleIndex );
-		}
+		DelayStageTexture( buffer, stageType_t::ST_PHYSICALMAP, TB_PHYSICALMAP );
 	}
 }
 
 // There is no ParseLegacyPhysicalStage.
 
-static void ParseGlowMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_GLOWMAP )
+static void ParseGlowMap( shaderStage_t *stage, const char **text, const mapLoadingMode_t mode=mapLoadingMode_t::DELAYED )
 {
 	char buffer[ 1024 ] = "";
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		stageType_t stageType = stageType_t::ST_GLOWMAP;
-
-		if ( bundleIndex == TB_GLOWMAP )
-		{
-			DelayStageTexture( buffer, stageType, bundleIndex );
-		}
-		else
-		{
-			LoadMap( stage, buffer, stageType, bundleIndex );
-		}
+		LoadMapOrDelay( stage, buffer, stageType_t::ST_GLOWMAP, TB_GLOWMAP, mode );
 	}
 }
 
@@ -1851,10 +1827,11 @@ static void ParseLegacyGlowStage( shaderStage_t *stage, const char **text )
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE; // blend add
 
-	ParseGlowMap( stage, text, TB_COLORMAP );
+	ParseGlowMap( stage, text, mapLoadingMode_t::IMMEDIATE_COLORMAP );
 }
 
-static void ParseReflectionMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_REFLECTIONMAP )
+static void ParseReflectionMap( shaderStage_t *stage, const char **text,
+	const mapLoadingMode_t mode=mapLoadingMode_t::IMMEDIATE )
 {
 	char buffer[ 1024 ] = "";
 
@@ -1864,7 +1841,7 @@ static void ParseReflectionMap( shaderStage_t *stage, const char **text, const i
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
 		stage->isCubeMap = true;
-		LoadMap( stage, buffer, stageType_t::ST_REFLECTIONMAP, bundleIndex );
+		LoadMapOrDelay( stage, buffer, stageType_t::ST_REFLECTIONMAP, TB_REFLECTIONMAP, mode );
 	}
 }
 
@@ -1876,7 +1853,7 @@ static void ParseReflectionStage( shaderStage_t *stage, const char **text )
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
-	ParseReflectionMap( stage, text, TB_COLORMAP );
+	ParseReflectionMap( stage, text, mapLoadingMode_t::IMMEDIATE_COLORMAP );
 }
 
 static void ParseReflectionStageBlended( shaderStage_t *stage, const char **text )
@@ -1886,7 +1863,7 @@ static void ParseReflectionStageBlended( shaderStage_t *stage, const char **text
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ONE;
 
-	ParseReflectionMap( stage, text, TB_COLORMAP );
+	ParseReflectionMap( stage, text, mapLoadingMode_t::IMMEDIATE_COLORMAP );
 }
 
 static bool HasNormalFormat( shaderStage_t *stage )
@@ -1941,19 +1918,34 @@ struct extraMapParser_t
 {
 	const char *suffix;
 	const char *description;
-	void ( *parser ) ( shaderStage_t*, const char**, int );
-	int bundleIndex;
+	const mapLoadingMode_t mode;
+	void ( *parser ) ( shaderStage_t*, const char**, mapLoadingMode_t );
 };
 
 static const extraMapParser_t dpExtraMapParsers[] =
 {
-	{ "_norm",    "DarkPlaces normal map",     ParseNormalMapDetectHeightMap,   TB_NORMALMAP, },
-	{ "_bump",    "DarkPlaces height map",     ParseHeightMap,     TB_HEIGHTMAP, },
-	{ "_gloss",   "DarkPlaces specular map",   ParseSpecularMap,   TB_SPECULARMAP, },
-	{ "_glow",    "DarkPlaces glow map",       ParseGlowMap,       TB_GLOWMAP, },
+	{ "_norm",
+		"DarkPlaces normal map",
+		mapLoadingMode_t::IMMEDIATE,
+		ParseNormalMapDetectHeightMap, },
+	{ "_bump",
+		"DarkPlaces height map",
+		mapLoadingMode_t::DELAYED,
+		ParseHeightMap, },
+	{ "_gloss",
+		"DarkPlaces specular map",
+		mapLoadingMode_t::DELAYED,
+		ParseSpecularMap, },
+	{ "_glow",
+		"DarkPlaces glow map",
+		mapLoadingMode_t::DELAYED,
+		ParseGlowMap, },
 	// DarkPlaces implemented _luma for Tenebrae compatibility, the
 	// probability of finding this suffix with Xonotic maps is very low.
-	{ "_luma",    "Tenebrae glow map",         ParseGlowMap,       TB_GLOWMAP, },
+	{ "_luma",
+		"Tenebrae glow map",
+		mapLoadingMode_t::DELAYED,
+		ParseGlowMap, },
 };
 
 /*
@@ -2069,9 +2061,9 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 				Log::Debug( "found extra %s '%s'", parser.description, extraMapName.c_str() );
 
 				const char *name = extraMapName.c_str();
-				parser.parser( stage, &name, parser.bundleIndex );
+				parser.parser( stage, &name, parser.mode );
 
-				if ( parser.bundleIndex == TB_NORMALMAP )
+				if ( parser.parser == &ParseNormalMapDetectHeightMap )
 				{
 					// Xonotic uses +X +Y +Z (OpenGL)
 					SetNormalFormat( stage, glNormalFormat );
