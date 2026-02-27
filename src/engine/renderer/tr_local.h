@@ -2717,6 +2717,11 @@ enum
 	extern Cvar::Cvar<bool> r_highPrecisionRendering;
 	extern Cvar::Cvar<bool> r_accurateSRGB;
 
+	extern Cvar::Cvar<bool> r_lowLightDithering;
+	extern Cvar::Range<Cvar::Cvar<int>> r_lowLightDitheringThreshold;
+	extern Cvar::Range<Cvar::Cvar<float>> r_lowLightDitheringAmplitudeFactor;
+	extern Cvar::Cvar<bool> r_showLowLightDithering;
+
 	extern Cvar::Range<Cvar::Cvar<int>> r_shadows;
 
 	extern cvar_t *r_lockpvs;
