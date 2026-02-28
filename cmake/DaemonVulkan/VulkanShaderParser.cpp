@@ -152,7 +152,10 @@ struct Image {
 static std::unordered_map<std::string, Image> images;
 static uint32_t imageID = 0;
 
-void ProcessImages( const std::string& shaderText ) {
+static std::unordered_map<std::string, std::string> buffers;
+static uint32_t bufferID = 0;
+
+void ProcessImagesBuffers( const std::string& shaderText ) {
 	std::string out;
 	std::istringstream shaderTextStream( StripLicense( shaderText ) );
 
@@ -198,7 +201,14 @@ void ProcessImages( const std::string& shaderText ) {
 		}
 
 		if ( img != IMG_NONE ) {
-			uint32_t    offset  = imgOffset + 1;
+			uint32_t    offset = line.find_last_of( " " ) + 1;
+			std::string name    = line.substr( offset, line.size() - offset - 1 );
+
+			if ( images.find( name ) != images.end() ) {
+				continue;
+			}
+
+			offset  = imgOffset + 1;
 			std::string format  = line.substr( offset, line.find( " ", offset + 1 ) - offset );
 
 			std::transform( format.begin(), format.end(), format.begin(), ::toupper );
@@ -227,15 +237,46 @@ void ProcessImages( const std::string& shaderText ) {
 
 			image              += img == IMG_CUBE ? "true" : "false";
 
-			offset              = line.find_last_of( " " ) + 1;
-			std::string name    = line.substr( offset, line.size() - offset - 1 );
-
 			images[name]        = { image, "images[" + std::to_string( imageID ) + "]" };
 
 			imageID++;
 
 			continue;
 		}
+
+		const uint64_t bufferOffset = line.find( "Buffer" );
+
+		if ( bufferOffset == line.find_first_not_of( " \t" ) && line.find( "{" ) == std::string::npos && line.find( ";" ) != std::string::npos ) {
+			uint64_t    offset = line.find( "Buffer resource" );
+
+			std::string buffer = std::to_string( bufferID ) + ", ";
+
+			if ( offset != std::string::npos ) {
+				offset += 16;
+
+				buffer += line.substr( offset, line.find( " ", offset ) - offset ) + ", 0, ";
+			} else {
+				offset = bufferOffset + 7;
+
+				buffer += "0.0f, ";
+
+				buffer += line.substr( offset, line.find( " ", offset ) - offset ) + ", ";
+			}
+
+			const uint64_t usageEnd = line.find_last_of( " " );
+
+			offset  = line.find( " ", offset ) + 1;
+
+			if ( usageEnd > offset ) {
+				buffer += line.substr( offset, usageEnd - offset );
+			} else {
+				buffer += "0";
+			}
+
+			buffers[line.substr( usageEnd + 1, line.size() - usageEnd - 2 )] = buffer;
+
+			bufferID++;
+		};
 
 		const std::string::size_type posInsert = line.find( "#insert" );
 		const std::string::size_type position  = posInsert == std::string::npos ? line.find( "#include" ) : posInsert;
@@ -255,7 +296,7 @@ void ProcessImages( const std::string& shaderText ) {
 			shaderInsertPath += ".glsl";
 		}
 
-		if ( shaderInsertPath == "Images.glsl" ) {
+		if ( shaderInsertPath == "Images.glsl" || shaderInsertPath == "Buffers.glsl" ) {
 			continue;
 		}
 
@@ -266,11 +307,19 @@ void ProcessImages( const std::string& shaderText ) {
 		glslSrc.resize( strlen( glslSrc.c_str() ) );
 		glslSrc.shrink_to_fit();
 
-		ProcessImages( glslSrc );
+		ProcessImagesBuffers( glslSrc );
 	}
 }
 
 static std::unordered_set<std::string> inserts;
+
+struct BufferPushIDs {
+	uint32_t count = 0;
+	uint32_t ids[16];
+};
+
+struct std::unordered_map<uint32_t, BufferPushIDs> bufferPushIDs;
+static uint32_t currentSPIRVID = 0;
 
 std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_t* pushConstSize,
 	int insertCount = 0, int lineCount = 0 ) {
@@ -311,13 +360,24 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 			} else if ( pushConstStart ) {
 				pushConstStart = false;
 			} else {
-				const uint32_t start = line.find_first_not_of( " \t" );
-				const uint32_t end   = std::min( line.find( " ", start ), line.find( "\t", start ) );
+				uint32_t start = line.find_first_not_of( " \t" );
+				uint32_t end   = std::min( line.find( " ", start ), line.find( "\t", start ) );
 
 				const std::string type = line.substr( start, end - start );
+				
+				start = line.find_first_not_of( " \t", end );
+				end   = line.find( ";", start );
+
+				const std::string name = line.substr( start, end - start );
 
 				if ( type == "uint" || type == "uint32" || type == "float" ) {
 					*pushConstSize += 4;
+				} else if ( buffers.find( name ) != buffers.end() ) {
+					*pushConstSize += 8;
+
+					BufferPushIDs& pushIDs     = bufferPushIDs[currentSPIRVID];
+					pushIDs.ids[pushIDs.count] = stoi( buffers[name].substr( 0, buffers[name].find( "," ) ) );
+					pushIDs.count++;
 				} else {
 					// Assumed BDA
 					*pushConstSize += 8;
@@ -327,6 +387,11 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 
 		if ( line.find( "Image2D" ) != std::string::npos || line.find( "Image3D" ) != std::string::npos
 			|| line.find( "ImageCube" ) != std::string::npos ) {
+			continue;
+		}
+
+		if ( line.find( "Buffer" ) == line.find_first_not_of( " \t" )
+			&& line.find( "{" ) == std::string::npos && line.find( ";" ) != std::string::npos ) {
 			continue;
 		}
 
@@ -403,6 +468,20 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 	return out;
 }
 
+std::string BufferIDsToString( const BufferPushIDs& buffer ) {
+	std::string out;
+
+	for ( uint32_t i = 0; i < buffer.count; i++ ) {
+		out += std::to_string( buffer.ids[i] ) + ( i < 15 ? ", " : "" );
+	}
+
+	for ( uint32_t i = buffer.count; i < 16; i++ ) {
+		out += i < 15 ? "0, " : "0";
+	}
+
+	return out;
+}
+
 int main( int argc, char** argv ) {
 	#ifdef _MSC_VER
 		std::replace( graphicsCorePath.begin(),            graphicsCorePath.end(),            '/', '\\' );
@@ -474,7 +553,7 @@ int main( int argc, char** argv ) {
 		glslSrc.resize( strlen( glslSrc.c_str() ) );
 		glslSrc.shrink_to_fit();
 
-		ProcessImages( glslSrc );
+		ProcessImagesBuffers( glslSrc );
 	}
 
 	{
@@ -499,7 +578,8 @@ int main( int argc, char** argv ) {
 
 		uint32_t i = 0;
 		for ( const std::pair<std::string, Image>& image : images ) {
-			fprintf( imageBinds.file, "\tImageCfg( %s )%s\n", image.second.src.c_str(), i < imageCount - 1 ? "," : "" );
+			fprintf( imageBinds.file, "\tImageCfg( %s )%s // %s\n", image.second.src.c_str(), i < imageCount - 1 ? "," : "",
+			                                                        image.first.c_str() );
 			i++;
 		}
 
@@ -519,6 +599,9 @@ int main( int argc, char** argv ) {
 
 		Stage stage            = FRAGMENT;
 		uint32_t pushConstID   = 0;
+
+		currentSPIRVID         = i - 3;
+
 		{
 			File processedGLSL { srcPath + name, "w" };
 
@@ -598,11 +681,65 @@ int main( int argc, char** argv ) {
 		inserts.clear();
 	}
 
+	{
+		File bufferBinds { graphicsEnginePath + "Buffers.glsl", "w" };
+
+		fprintf( bufferBinds.file, "// Auto-generated by VulkanShaderParser, do not modify\n\n" );
+
+		fprintf( bufferBinds.file, "struct BufferCfg {\n" );
+		fprintf( bufferBinds.file, "\tuint  id;\n" );
+		fprintf( bufferBinds.file, "\tfloat relativeSize;\n" );
+		fprintf( bufferBinds.file, "\tuint  size;\n" );
+		fprintf( bufferBinds.file, "\tuint  usage;\n" );
+		fprintf( bufferBinds.file, "};\n\n" );
+
+		uint32_t bufferCount = buffers.size();
+
+		fprintf( bufferBinds.file, "BufferCfg bufferConfigs[%u] = BufferCfg[%u] (\n", bufferCount, bufferCount );
+
+		uint32_t i = 0;
+		for ( const std::pair<std::string, std::string>& buffer : buffers ) {
+			fprintf( bufferBinds.file, "\tBufferCfg( %s )%s // %s\n", buffer.second.c_str(), i < bufferCount - 1 ? "," : "",
+			                                                          buffer.first.c_str() );
+			i++;
+		}
+
+		fprintf( bufferBinds.file, ");\n\n" );
+
+		fprintf( bufferBinds.file, "const uint bufferCount = %u;\n\n", bufferCount );
+
+		fprintf( bufferBinds.file, "struct SPIRVBufferCfg {\n" );
+		fprintf( bufferBinds.file, "\tuint id;\n" );
+		fprintf( bufferBinds.file, "\tuint count;\n" );
+		fprintf( bufferBinds.file, "\tuint buffers[16];\n" );
+		fprintf( bufferBinds.file, "};\n\n" );
+
+		fprintf( bufferBinds.file, "SPIRVBufferCfg SPIRVBufferConfigs[%u] = SPIRVBufferCfg[%u] (\n", argc - 3, argc - 3 );
+
+		for ( int i = 0; i < argc - 3; i++ ) {
+			if ( !bufferPushIDs.contains( i ) ) {
+				static constexpr BufferPushIDs emptyBufferIDs {};
+
+				fprintf( bufferBinds.file, "\tSPIRVBufferCfg( %i, 0, uint[16] ( %s ) )%s\n", i, BufferIDsToString( emptyBufferIDs ).c_str(),
+					i < argc - 4 ? "," : "" );
+
+				continue;
+			}
+
+			fprintf( bufferBinds.file, "\tSPIRVBufferCfg( %i, %u, uint[16] ( %s ) )%s\n", i, bufferPushIDs[i].count,
+				BufferIDsToString( bufferPushIDs[i] ).c_str(), i < argc - 4 ? "," : "" );
+		}
+
+		fprintf( bufferBinds.file, ");\n\n" );
+
+		fprintf( bufferBinds.file, "const uint SPIRVCount = %u;", argc - 3 );
+	}
+
 	fprintf( spirvH.file, "\n};\n\n" );
 	
 	fprintf( spirvH.file, "const std::unordered_map<std::string, uint32> SPIRVMap {\n" );
 	
-	for( int i = 0; i < argc - 3; i++ ) {
+	for ( int i = 0; i < argc - 3; i++ ) {
 		fprintf( spirvH.file, "\t{ \"%s\", %s }%s\n", SPIRVMap[i].c_str(), SPIRVMap[i].c_str(), i < argc - 4 ? "," : "" );
 	}
 

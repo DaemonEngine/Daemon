@@ -40,6 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Images.glsl"
 
+#include "Buffers.glsl"
+
 layout ( local_size_x = 64, local_size_y = 1, local_size_z = 1 ) in;
 
 BufferRS restrict MsgStreamRead {
@@ -53,18 +55,27 @@ BufferWS restrict MsgStreamWrite {
 layout ( scalar, push_constant ) uniform Push {
 	MsgStreamRead  msgStreamRead;
 	MsgStreamWrite msgStreamWrite;
+	MsgStreamWrite buf2;
+	MsgStreamWrite buf3;
+	MsgStreamWrite buf4;
 } push;
 
-void PushMsg( const uint id, const uint msg ) {
+void PushMsg( inout uint id, const uint msg ) {
 	push.msgStreamWrite.msgStream[id + 1] = msg;
+
+	id++;
 }
 
-void PushMsg( const uint id, const float msg ) {
+void PushMsg( inout uint id, const float msg ) {
 	push.msgStreamWrite.msgStream[id + 1] = floatBitsToUint( msg );
+
+	id++;
 }
 
-void PushMsg( const uint id, const bool msg ) {
+void PushMsg( inout uint id, const bool msg ) {
 	push.msgStreamWrite.msgStream[id + 1] = msg ? 1 : 0;
+
+	id++;
 }
 
 Image2D rgba16f swapchain 1.0f nomips testImg;
@@ -73,7 +84,13 @@ Image2D rgba16f 1 1 testImg3;
 Image3D rgba16f 1 1 5 testImg4;
 ImageCube rgba16f 1 1 5 testImg5;
 
-void main() {
+Buffer 566 3 buf1;
+Buffer 5667 30 buf2;
+Buffer 5664545 0 buf3;
+Buffer 5664545 buf4;
+Buffer 5664545 buf5;
+
+void main() [[maximally_reconverges]] {
 	const uint globalGroupID      = GLOBAL_GROUP_ID;
 	const uint globalInvocationID = GLOBAL_INVOCATION_ID;
 
@@ -81,22 +98,54 @@ void main() {
 		return;
 	}
 
-	const uint initMsg = push.msgStreamRead.msgStream[0];
+	const uint initImgMsg = push.msgStreamRead.msgStream[0];
 
-	uint msgCount = 0;
+	uint msgCount  = 0;
 
-	if ( initMsg == ENGINE_INIT && globalInvocationID < imageCount ) {
-		const uint msgOffset = subgroupExclusiveAdd( 9 );
+	uint msgID     = 0;
+
+	if ( initImgMsg == ENGINE_INIT && globalInvocationID < imageCount ) {
+		msgID     += subgroupExclusiveAdd( 9 );
 		
-		PushMsg( msgOffset,     CORE_ALLOC_IMAGE );
-		PushMsg( msgOffset + 1, imageConfigs[globalInvocationID].id );
-		PushMsg( msgOffset + 2, imageConfigs[globalInvocationID].format );
-		PushMsg( msgOffset + 3, imageConfigs[globalInvocationID].relativeSize );
-		PushMsg( msgOffset + 4, imageConfigs[globalInvocationID].width );
-		PushMsg( msgOffset + 5, imageConfigs[globalInvocationID].height );
-		PushMsg( msgOffset + 6, imageConfigs[globalInvocationID].depth );
-		PushMsg( msgOffset + 7, imageConfigs[globalInvocationID].useMips );
-		PushMsg( msgOffset + 8, imageConfigs[globalInvocationID].cube );
+		PushMsg( msgID, CORE_ALLOC_IMAGE );
+		PushMsg( msgID, imageConfigs[globalInvocationID].id );
+		PushMsg( msgID, imageConfigs[globalInvocationID].format );
+		PushMsg( msgID, imageConfigs[globalInvocationID].relativeSize );
+		PushMsg( msgID, imageConfigs[globalInvocationID].width );
+		PushMsg( msgID, imageConfigs[globalInvocationID].height );
+		PushMsg( msgID, imageConfigs[globalInvocationID].depth );
+		PushMsg( msgID, imageConfigs[globalInvocationID].useMips );
+		PushMsg( msgID, imageConfigs[globalInvocationID].cube );
+
+		msgCount++;
+	}
+
+	msgID = imageCount * 9;
+
+	if ( initImgMsg == ENGINE_INIT && globalInvocationID < bufferCount ) {
+		msgID     += subgroupExclusiveAdd( 5 );
+		
+		PushMsg( msgID, CORE_ALLOC_BUFFER );
+		PushMsg( msgID, bufferConfigs[globalInvocationID].id );
+		PushMsg( msgID, bufferConfigs[globalInvocationID].relativeSize );
+		PushMsg( msgID, bufferConfigs[globalInvocationID].size );
+		PushMsg( msgID, bufferConfigs[globalInvocationID].usage );
+
+		msgCount++;
+	}
+
+	msgID = imageCount * 9 + bufferCount * 5;
+
+	if ( initImgMsg == ENGINE_INIT && globalInvocationID < SPIRVCount ) {
+		msgID     += subgroupExclusiveAdd( 3 + SPIRVBufferConfigs[globalInvocationID].count );
+		
+		PushMsg( msgID, CORE_PUSH_BUFFER );
+		PushMsg( msgID, SPIRVBufferConfigs[globalInvocationID].id );
+		PushMsg( msgID, SPIRVBufferConfigs[globalInvocationID].count );
+
+		for ( uint i = 0; i < SPIRVBufferConfigs[globalInvocationID].count; i++ ) {
+			PushMsg( msgID, SPIRVBufferConfigs[globalInvocationID].buffers[i] );
+		}
 
 		msgCount++;
 	}

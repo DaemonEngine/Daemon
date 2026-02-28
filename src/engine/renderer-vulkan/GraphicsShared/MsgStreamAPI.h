@@ -45,8 +45,9 @@ constexpr uint32 ENGINE_GRAPHICS_SETTINGS_CHANGED = 2;
 constexpr uint32 CORE_NOP                   = 0;
 constexpr uint32 CORE_ALLOC_BUFFER          = 1;
 constexpr uint32 CORE_ALLOC_IMAGE           = 2;
-constexpr uint32 CORE_UPDATE_DESCRIPTOR     = 3;
-constexpr uint32 CORE_BUILD_EXECUTION_GRAPH = 3;
+constexpr uint32 CORE_PUSH_BUFFER           = 3;
+constexpr uint32 CORE_UPDATE_DESCRIPTOR     = 4;
+constexpr uint32 CORE_BUILD_EXECUTION_GRAPH = 5;
 
 #ifndef __cplusplus
 	constexpr uint32 ABGR_2_10 = 0;
