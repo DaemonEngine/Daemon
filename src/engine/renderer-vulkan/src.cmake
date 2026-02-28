@@ -131,6 +131,7 @@ set( graphicsCoreList
 # Graphics Engine
 set( graphicsEngineListH
     Common.glsl
+    Buffers.glsl
     Images.glsl
 )
 

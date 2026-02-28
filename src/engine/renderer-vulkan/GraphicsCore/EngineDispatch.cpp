@@ -55,7 +55,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EngineDispatch.h"
 #include "../Shared/Timer.h"
 
-static std::unordered_map<std::string, Image> images;
+struct SPIRVBufferCfg {
+	uint id;
+	uint count;
+	uint buffers[16];
+};
+
+static std::unordered_map<std::string, Image>     images;
+static std::unordered_map<uint32, Buffer>         buffers;
+static std::unordered_map<uint32, SPIRVBufferCfg> SPIRVBufferConfigs;
 
 struct Msg {
 	uint32* memory;
@@ -99,9 +107,17 @@ void MsgStream() {
 		bool  cube;
 	};
 
+	struct BufferCfg {
+		uint  id;
+		float relativeSize;
+		uint  size;
+		uint  usage;
+	};
+
 	for ( uint32 i = 0; i < msgCount; i++ ) {
 		switch ( msg.Read() ) {
 			case CORE_ALLOC_IMAGE:
+			{
 				ImageCfg cfg {
 					.id           = msg.Read(),
 					.format       = msg.Read(),
@@ -140,6 +156,39 @@ void MsgStream() {
 				} else {
 					UpdateDescriptor( cfg.id, image, true );
 				}
+
+				break;
+			}
+
+			case CORE_ALLOC_BUFFER:
+			{
+				BufferCfg bufferCfg {
+					.id           = msg.Read(),
+					.relativeSize = msg.ReadFloat(),
+					.size         = msg.Read(),
+					.usage        = msg.Read()
+				};
+
+				buffers[bufferCfg.id] = resourceSystem.AllocBuffer( bufferCfg.size, ( Buffer::Usage ) bufferCfg.usage );
+
+				break;
+			}
+
+			case CORE_PUSH_BUFFER:
+			{
+				SPIRVBufferCfg SPIRVBufferCfg {
+					.id    = msg.Read(),
+					.count = msg.Read()
+				};
+
+				for ( uint32 j = 0; j < SPIRVBufferCfg.count; j++ ) {
+					SPIRVBufferCfg.buffers[j] = msg.Read();
+				}
+
+				SPIRVBufferConfigs[SPIRVBufferCfg.id] = SPIRVBufferCfg;
+
+				break;
+			}
 		}
 	}
 }
