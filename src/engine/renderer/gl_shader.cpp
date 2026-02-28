@@ -799,6 +799,29 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_highPrecisionRendering", 1 );
 	}
 
+	if ( r_toneMappingLowLightRestorationSteps.Get() )
+	{
+		AddDefine( str, "r_toneMappingLowLightRestorationSteps", r_toneMappingLowLightRestorationSteps.Get() );
+		AddDefine( str, "r_toneMappingLowLightRestorationThreshold", r_toneMappingLowLightRestorationThreshold.Get() );
+
+		if ( r_showToneMappingLowLightRestoration.Get() )
+		{
+			AddDefine( str, "r_showToneMappingLowLightRestoration", 1 );
+		}
+	}
+
+	if ( r_lowLightDithering.Get() )
+	{
+		AddDefine( str, "r_lowLightDithering", 1 );
+		AddDefine( str, "r_lowLightDitheringThreshold", r_lowLightDitheringThreshold.Get() );
+		AddDefine( str, "r_lowLightDitheringAmplitudeFactor", r_lowLightDitheringAmplitudeFactor.Get() );
+
+		if ( r_showLowLightDithering.Get() )
+		{
+			AddDefine( str, "r_showLowLightDithering", 1 );
+		}
+	}
+
 	return str;
 }
 
