@@ -51,12 +51,12 @@ vec4 EnvironmentalSpecularFactor( vec3 viewDir, vec3 normal )
 
 #if defined(USE_GRID_LIGHTING) || defined(USE_GRID_DELUXE_MAPPING)
 	void ReadLightGrid( in vec4 texel1, in vec4 texel2, in float lightFactor, out vec3 lightDir, out vec3 ambientColor, out vec3 lightColor ) {
-		vec3 totalColor = /*LIGHTGRID_MAX_LIGHT*/ 1.25 * texel1.rgb;
+		vec3 totalColor = (1.0 + LIGHTGRID_AVERAGE_COSINE) * texel1.rgb;
 		float total1Norm = totalColor.r + totalColor.g + totalColor.b;
 		vec3 scaledLightDir = 2.0 * (texel2.xyz - (128.0 / 255.0));
 		float directed1Norm = 3.0 * length(scaledLightDir);
-		float directedFraction = clamp((0.25 * directed1Norm) / total1Norm, 0.0, 1.0);
-		float directedScale = 4.0 * directedFraction;
+		float directedFraction = clamp((LIGHTGRID_AVERAGE_COSINE * directed1Norm) / total1Norm, 0.0, 1.0);
+		float directedScale = directedFraction / LIGHTGRID_AVERAGE_COSINE;
 		float ambientScale = 1.0 - directedFraction;
 		ambientColor = ambientScale * totalColor;
 		lightColor = directedScale * totalColor;

@@ -1350,6 +1350,21 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			}
 		}
 
+		if ( glConfig.deluxeMapping )
+		{
+			// Average value of max(0, dot(random vector, light dir)) over the unit sphere, used to
+			// compare directed lighting's average contribution with ambient. See TraceGrid in light.c in
+			// q3map2 for more information about this calculation. Though if we took half-Lambert lighting's
+			// cosine modification into account it would be 1/3 instead of 1/4.
+			tr.lightGridAverageCosine = 0.25f;
+		}
+		else
+		{
+			// Boost it when deluxe is disabled because otherwise it's too dark. Normals tend to line up
+			// with the light direction better than chance.
+			tr.lightGridAverageCosine = 0.4f;
+		}
+
 		R_NoiseInit();
 
 		R_Register();
