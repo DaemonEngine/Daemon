@@ -4657,7 +4657,11 @@ static void SetWorldLight() {
 			// Game model surfaces use grid lighting, they don't have vertex light colors.
 			tr.modelDeluxe = deluxeMode_t::GRID;
 
-			// Only game models use emulated deluxe map from light direction grid.
+			// Only game models use emulated deluxe map from light direction grid, unless the
+			// `r_lightMode 2` debug option is used.
+			if ( tr.worldLight == lightMode_t::GRID ) {
+				tr.worldDeluxe = deluxeMode_t::GRID;
+			}
 		}
 	}
 
