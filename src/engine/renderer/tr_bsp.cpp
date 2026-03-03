@@ -3636,13 +3636,11 @@ void R_LoadLightGrid( lump_t *l )
 		direction[ 2 ] = cosf( lat );
 
 		// Separate ambient and directed colors are not implemented, so this is the total average light
-		// (averaged over all direction vectors): ambient + 0.25 * directed. See TraceGrid in light.c in
-		// q3map2 for more information about this equation. Though if to take
-		// half-Lambert lighting's cosine modification into account, the 1/4 factor should be replaced
-		// by 1/3. The result is scaled down to fit in [0, 1].
-		gridPoint1->color[ 0 ] = floatToUnorm8( ( ambientColor[ 0 ] + 0.25f * directedColor[ 0 ] ) / LIGHTGRID_MAX_LIGHT );
-		gridPoint1->color[ 1 ] = floatToUnorm8( ( ambientColor[ 1 ] + 0.25f * directedColor[ 1 ] ) / LIGHTGRID_MAX_LIGHT );
-		gridPoint1->color[ 2 ] = floatToUnorm8( ( ambientColor[ 2 ] + 0.25f * directedColor[ 2 ] ) / LIGHTGRID_MAX_LIGHT );
+		// (averaged over all direction vectors). The result is scaled down to fit in [0, 1].
+		float colorScale = 1.0f / ( 1.0f + tr.lightGridAverageCosine );
+		gridPoint1->color[ 0 ] = floatToUnorm8( ( ambientColor[ 0 ] + tr.lightGridAverageCosine * directedColor[ 0 ] ) * colorScale );
+		gridPoint1->color[ 1 ] = floatToUnorm8( ( ambientColor[ 1 ] + tr.lightGridAverageCosine * directedColor[ 1 ] ) * colorScale );
+		gridPoint1->color[ 2 ] = floatToUnorm8( ( ambientColor[ 2 ] + tr.lightGridAverageCosine * directedColor[ 2 ] ) * colorScale );
 		gridPoint1->unused = 255;
 
 		// The length of the direction vector is used to determine how much directed light there is.

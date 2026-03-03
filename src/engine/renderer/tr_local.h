@@ -1684,9 +1684,6 @@ enum
 		bspSurface_t *firstSurface;
 	};
 
-// max combined ambient+directed contribution to one color channel
-#define LIGHTGRID_MAX_LIGHT 1.25f
-
 	// The ambient and directional colors are packed into four bytes, the color[3] is the
 	// average of the ambient and directional colors and the ambientPart factor is the
 	// proportion of ambient light in the total light
@@ -2501,6 +2498,7 @@ enum
 		vec3_t ambientLight;
 		bool ambientLightSet = false;
 
+		float lightGridAverageCosine;
 		image_t   *lightGrid1Image;
 		image_t   *lightGrid2Image;
 

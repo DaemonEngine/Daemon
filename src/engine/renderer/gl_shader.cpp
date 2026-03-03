@@ -687,6 +687,8 @@ static std::string GenEngineConstants() {
 
 	AddDefine( str, "r_tileStep", glState.tileStep[0], glState.tileStep[1] );
 
+	AddDefine( str, "LIGHTGRID_AVERAGE_COSINE", tr.lightGridAverageCosine );
+
 	if ( glConfig.realtimeLighting )
 	{
 		AddDefine( str, "r_realtimeLighting", 1 );

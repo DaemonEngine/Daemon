@@ -2227,11 +2227,11 @@ static void RB_RenderDebugUtils()
 					lightDir[ 1 ] = snorm8ToFloat( gp2->direction[ 1 ] - 128 );
 					lightDir[ 2 ] = snorm8ToFloat( gp2->direction[ 2 ] - 128 );
 					Color::Color totalColor = Color::Adapt( gp1->color );
-					totalColor *= LIGHTGRID_MAX_LIGHT;
+					totalColor *= 1.0f + tr.lightGridAverageCosine;
 					float total1Norm = totalColor.Red() + totalColor.Green() + totalColor.Blue();
 					float directed1Norm = 3.0f * VectorLength( lightDir );
-					float directedFraction = ( 0.25 * directed1Norm ) / total1Norm;
-					float directedScale = 4.0 * directedFraction;
+					float directedFraction = ( tr.lightGridAverageCosine * directed1Norm ) / total1Norm;
+					float directedScale = directedFraction / tr.lightGridAverageCosine;
 					float ambientScale = 1.0 - directedFraction;
 					Color::Color ambientColor = totalColor * ambientScale;
 					Color::Color directedColor = totalColor * directedScale;
