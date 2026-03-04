@@ -42,8 +42,6 @@ layout(std430, binding = BIND_LUMINANCE_STORAGE) writeonly buffer luminanceBuffe
     uint luminance;
 };
 
-uniform uint u_Frame;
-
 void main() {
     const uint globalInvocationID = GLOBAL_INVOCATION_ID;
     if( globalInvocationID >= 1 ) {
