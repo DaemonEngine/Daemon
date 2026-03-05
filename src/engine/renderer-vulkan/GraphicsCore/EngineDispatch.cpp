@@ -55,16 +55,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EngineDispatch.h"
 #include "../Shared/Timer.h"
 
-struct SPIRVBufferCfg {
-	uint id;
-	uint count;
-	uint buffers[16];
-};
-
-static std::unordered_map<std::string, Image>     images;
-static std::unordered_map<uint32, Buffer>         buffers;
-static std::unordered_map<uint32, SPIRVBufferCfg> SPIRVBufferConfigs;
-
 struct Msg {
 	uint32* memory;
 	uint32  offset;
@@ -156,7 +146,7 @@ void MsgStream() {
 
 				image.Init( ( Format ) cfg.format, { cfg.width, cfg.height, cfg.depth }, cfg.useMips, cfg.cube );
 
-				images[Str::Format( "~engineImage_%u", cfg.id )] = image;
+				resourceSystem.images[Str::Format( "~engineImage_%u", cfg.id )] = image;
 
 				if ( cfg.format == RGBA8S ) {
 					UpdateDescriptor( cfg.id, image, true, RGBA8 );
@@ -176,7 +166,7 @@ void MsgStream() {
 					.usage        = msg.Read()
 				};
 
-				buffers[bufferCfg.id] = resourceSystem.AllocBuffer( bufferCfg.size, ( Buffer::Usage ) bufferCfg.usage );
+				resourceSystem.buffers[bufferCfg.id] = resourceSystem.AllocBuffer( bufferCfg.size, ( Buffer::Usage ) bufferCfg.usage );
 
 				break;
 			}

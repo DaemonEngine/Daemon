@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef RESOURCE_SYSTEM_H
 #define RESOURCE_SYSTEM_H
 
+#include <unordered_map>
+
 #include "../GraphicsShared/MemoryPool.h"
 
 #include "Decls.h"
@@ -51,6 +53,9 @@ struct ResourceSystem {
 
 	Buffer     coreToEngineBuffer;
 	Buffer     engineToCoreBuffer;
+
+	std::unordered_map<std::string, Image> images;
+	std::unordered_map<uint32, Buffer>     buffers;
 
 	void   Init( uint64 newDedicatedMemorySize );
 

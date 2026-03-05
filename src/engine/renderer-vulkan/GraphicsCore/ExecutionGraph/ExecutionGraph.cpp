@@ -64,12 +64,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 DynamicArray<Buffer> buffers;
 
-static void ExecPushConstNode( PushConstNode* node, VkCommandBuffer cmd, VkPipelineLayout pipelineLayout ) {
+static void ExecPushConstNode( PushConstNode* node, VkCommandBuffer cmd, VkPipelineLayout pipelineLayout, uint32 SPIRVID ) {
 	uint64 data[8];
 
 	BitStream specialIDsStream { node->data.specialIDs };
 	BitStream nodeDataStream   { node->data.data };
 	BitStream dataStream       { data };
+
+	SPIRVBufferCfg& cfg = SPIRVBufferConfigs[SPIRVID];
+
+	for ( uint32* bufferID = cfg.buffers; bufferID < cfg.buffers + cfg.count; bufferID++ ) {
+		dataStream.Write( resourceSystem.buffers[*bufferID].engineMemory, 64 );
+	}
 
 	while ( uint8 specialID = specialIDsStream.Read8( 4 ) ) {
 		switch ( specialID ) {
@@ -244,7 +250,7 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 				vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr );
 
 				if ( pushNode ) {
-					ExecPushConstNode( pushNode, cmd, pipelineLayout );
+					ExecPushConstNode( pushNode, cmd, pipelineLayout, executionNode.computeID );
 				}
 
 				vkCmdDispatch( cmd, executionNode.workgroupCount, 1, 1 );
@@ -301,7 +307,7 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 				vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr );
 
 				if ( pushNode ) {
-					ExecPushConstNode( pushNode, cmd, pipelineLayout );
+					ExecPushConstNode( pushNode, cmd, pipelineLayout, graphicsNode.fragmentID );
 				}
 
 				vkCmdDrawIndexedIndirectCount( cmd, indirectBuffer, 0, countBuffer, 0, 1, 0 );
@@ -835,3 +841,5 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 
 	return out;
 }
+
+std::unordered_map<uint32, SPIRVBufferCfg> SPIRVBufferConfigs;

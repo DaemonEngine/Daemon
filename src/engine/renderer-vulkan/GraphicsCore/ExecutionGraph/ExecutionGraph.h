@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <atomic>
 #include <initializer_list>
+#include <unordered_map>
 
 #include "../../Memory/BitStream.h"
 
@@ -257,5 +258,13 @@ class ExecutionGraph {
 };
 
 DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src );
+
+struct SPIRVBufferCfg {
+	uint id;
+	uint count;
+	uint buffers[16];
+};
+
+extern std::unordered_map<uint32, SPIRVBufferCfg> SPIRVBufferConfigs;
 
 #endif // EXECUTION_GRAPH_H
