@@ -63,11 +63,13 @@ VkPhysicalDevice physicalDevice;
 
 VkDevice device;
 
-Queue graphicsQueue;
-Queue computeQueue;
-Queue transferQueue;
-Queue transferDLQueue;
-Queue sparseQueue;
+Queue  queues[5] {};
+
+Queue* graphicsQueue;
+Queue* computeQueue;
+Queue* transferQueue;
+Queue* transferDLQueue;
+Queue* sparseQueue;
 
 VkDescriptorSetLayout descriptorSetLayout;
 VkDescriptorSet       descriptorSet;

@@ -51,11 +51,13 @@ extern VkPhysicalDevice physicalDevice;
 
 extern VkDevice device;
 
-extern Queue graphicsQueue;
-extern Queue computeQueue;
-extern Queue transferQueue;
-extern Queue transferDLQueue;
-extern Queue sparseQueue;
+extern Queue  queues[5];
+
+extern Queue* graphicsQueue;
+extern Queue* computeQueue;
+extern Queue* transferQueue;
+extern Queue* transferDLQueue;
+extern Queue* sparseQueue;
 
 extern VkDescriptorSetLayout descriptorSetLayout;
 extern VkDescriptorSet descriptorSet;

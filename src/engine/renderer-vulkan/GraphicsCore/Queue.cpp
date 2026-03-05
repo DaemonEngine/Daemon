@@ -61,6 +61,11 @@ void InitQueueConfigs() {
 	uint32 count = 8;
 	vkGetPhysicalDeviceQueueFamilyProperties2( physicalDevice, &count, propertiesArray );
 
+	graphicsQueue = &queues[GRAPHICS];
+	computeQueue  = &queues[COMPUTE];
+	transferQueue = &queues[TRANSFER];
+	sparseQueue   = &queues[SPARSE];
+
 	for ( uint32 i = 0; i < count; i++ ) {
 		VkQueueFamilyProperties& coreProperties = propertiesArray[i].queueFamilyProperties;
 
@@ -73,64 +78,64 @@ void InitQueueConfigs() {
 		};
 
 		if (         queue.type & GRAPHICS  ) {
-			graphicsQueue        = queue;
-			graphicsQueue.unique = true;
-		} else if ( ( queue.type & COMPUTE  ) && !computeQueue.queueCount ) {
-			computeQueue         = queue;
-			computeQueue.unique  = true;
-		} else if ( ( queue.type & TRANSFER ) && !transferQueue.queueCount ) {
-			transferQueue        = queue;
-			transferQueue.unique = true;
-		} else if ( ( queue.type & SPARSE   ) && !sparseQueue.queueCount ) {
-			sparseQueue          = queue;
-			sparseQueue.unique   = true;
+			*graphicsQueue        = queue;
+			graphicsQueue->unique = true;
+		} else if ( ( queue.type & COMPUTE  ) && !computeQueue->queueCount ) {
+			*computeQueue         = queue;
+			computeQueue->unique  = true;
+		} else if ( ( queue.type & TRANSFER ) && !transferQueue->queueCount ) {
+			*transferQueue        = queue;
+			transferQueue->unique = true;
+		} else if ( ( queue.type & SPARSE   ) && !sparseQueue->queueCount ) {
+			*sparseQueue          = queue;
+			sparseQueue->unique   = true;
 		}
 	}
 
-	if ( !computeQueue.queueCount ) {
-		computeQueue         = graphicsQueue;
-		computeQueue.unique  = false;
+	if ( !computeQueue->queueCount ) {
+		computeQueue          = graphicsQueue;
+		computeQueue->unique  = false;
 	}
 
-	if ( !transferQueue.queueCount ) {
-		transferQueue        = graphicsQueue;
-		transferQueue.unique = false;
+	if ( !transferQueue->queueCount ) {
+		transferQueue         = graphicsQueue;
+		transferQueue->unique = false;
 	}
 
-	if ( !sparseQueue.queueCount ) {
-		sparseQueue          = graphicsQueue;
-		sparseQueue.unique   = false;
+	if ( !sparseQueue->queueCount ) {
+		sparseQueue           = graphicsQueue;
+		sparseQueue->unique   = false;
 	}
 
 	transferDLQueue = transferQueue;
 }
 
 void InitQueues() {
-	InitQueue( graphicsQueue, 0 );
-	InitQueue( computeQueue,  0 );
-	InitQueue( transferQueue, 0 );
-	if ( transferDLQueue.queueCount > 1 ) {
-		InitQueue( transferDLQueue, 1 );
+	InitQueue( *graphicsQueue, 0 );
+	InitQueue( *computeQueue,  0 );
+	InitQueue( *transferQueue, 0 );
+	if ( transferDLQueue->queueCount > 1 ) {
+		InitQueue( *transferDLQueue, 1 );
 	}
-	InitQueue( sparseQueue,   0 );
+	InitQueue( *sparseQueue,   0 );
 }
 
 Array<uint32, 4> GetConcurrentQueues( uint32* count ) {
-	Array<uint32, 4> queues { graphicsQueue.id };
+	Array<uint32, 4> queues { graphicsQueue->id };
 	uint32 i = 1;
 
-	if ( computeQueue.unique ) {
-		queues[i] = computeQueue.id;
+	if ( computeQueue->unique ) {
+		queues[i] = computeQueue->id;
 		i++;
 	}
 
-	if ( transferQueue.unique ) {
-		queues[i] = transferQueue.id;
+	if ( transferQueue->unique ) {
+		queues[i] = transferQueue->id;
 		i++;
 	}
 
-	if ( sparseQueue.unique ) {
-		queues[i] = sparseQueue.id;
+	if ( sparseQueue->unique ) {
+		queues[i] = sparseQueue->id;
 		i++;
 	}
 
@@ -142,13 +147,13 @@ Array<uint32, 4> GetConcurrentQueues( uint32* count ) {
 Queue& GetQueueByType( const QueueType type ) {
 	switch ( type ) {
 		case GRAPHICS:
-			return graphicsQueue;
+			return *graphicsQueue;
 		case COMPUTE:
-			return computeQueue;
+			return *computeQueue;
 		case TRANSFER:
-			return transferQueue;
+			return *transferQueue;
 		case SPARSE:
-			return sparseQueue;
+			return *sparseQueue;
 		default:
 			ASSERT_UNREACHABLE();
 	}

@@ -139,7 +139,7 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 void CreateDevice( EngineConfig& config, VkDevice* device ) {
 	VkDeviceQueueCreateInfo queueInfos[4] {};
 
-	const Queue* queues[4] { &graphicsQueue, &computeQueue, &transferQueue, &sparseQueue };
+	const Queue* queues[4] { graphicsQueue, computeQueue, transferQueue, sparseQueue };
 
 	float priorities[2] { 1.0f, 1.0f };
 
@@ -153,7 +153,7 @@ void CreateDevice( EngineConfig& config, VkDevice* device ) {
 
 		queueInfos[i] = {
 			.queueFamilyIndex = queue->id,
-			.queueCount       = ( queue == &transferQueue && queue->unique && queue->queueCount > 1 ) ? 2u : 1u,
+			.queueCount       = ( queue == transferQueue && queue->unique && queue->queueCount > 1 ) ? 2u : 1u,
 			.pQueuePriorities = priorities
 		};
 

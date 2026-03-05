@@ -67,22 +67,22 @@ void InitGraphicsEngine() {
 	std::string foundQueues = "Found queues: graphics (present: true)";
 
 	uint32 presentSupported;
-	vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, graphicsQueue.id, mainSwapChain.surface, &presentSupported );
+	vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, graphicsQueue->id, mainSwapChain.surface, &presentSupported );
 
 	if ( !presentSupported ) {
 		Err( "Graphics queue doesn't support present" );
 		return;
 	}
 
-	if ( computeQueue.unique ) {
+	if ( computeQueue->unique ) {
 		foundQueues += Str::Format( ", async compute (present: %s)", ( bool ) presentSupported );
 	}
 
-	if ( transferQueue.unique ) {
+	if ( transferQueue->unique ) {
 		foundQueues += Str::Format( ", async transfer" );
 	}
 
-	if ( sparseQueue.unique ) {
+	if ( sparseQueue->unique ) {
 		foundQueues += Str::Format( ", async sparse binding" );
 	}
 
