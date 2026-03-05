@@ -247,7 +247,14 @@ void ProcessImagesBuffers( const std::string& shaderText ) {
 		const uint64_t bufferOffset = line.find( "Buffer" );
 
 		if ( bufferOffset == line.find_first_not_of( " \t" ) && line.find( "{" ) == std::string::npos && line.find( ";" ) != std::string::npos ) {
-			uint64_t    offset = line.find( "Buffer resource" );
+			uint64_t    offset = line.find_last_of( " " ) + 1;
+			std::string name   = line.substr( offset, line.size() - offset - 1 );
+
+			if ( buffers.find( name ) != buffers.end() ) {
+				continue;
+			}
+
+			offset = line.find( "Buffer resource" );
 
 			std::string buffer = std::to_string( bufferID ) + ", ";
 
@@ -273,7 +280,7 @@ void ProcessImagesBuffers( const std::string& shaderText ) {
 				buffer += "0";
 			}
 
-			buffers[line.substr( usageEnd + 1, line.size() - usageEnd - 2 )] = buffer;
+			buffers[name] = buffer;
 
 			bufferID++;
 		};
