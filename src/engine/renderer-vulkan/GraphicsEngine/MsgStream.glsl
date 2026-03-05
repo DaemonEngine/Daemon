@@ -66,6 +66,16 @@ void PushMsg( inout uint id, const uint msg ) {
 	id++;
 }
 
+void PushMsg( inout uint id, const uint64 msg ) {
+	push.msgStreamWrite.msgStream[id + 1] = uint32( msg & 0xFFFFFFFF );
+
+	id++;
+
+	push.msgStreamWrite.msgStream[id + 1] = uint32( msg >> 32 );
+
+	id++;
+}
+
 void PushMsg( inout uint id, const float msg ) {
 	push.msgStreamWrite.msgStream[id + 1] = floatBitsToUint( msg );
 
@@ -123,7 +133,7 @@ void main() [[maximally_reconverges]] {
 	msgID = imageCount * 9;
 
 	if ( initImgMsg == ENGINE_INIT && globalInvocationID < bufferCount ) {
-		msgID     += subgroupExclusiveAdd( 5 );
+		msgID     += subgroupExclusiveAdd( 6 );
 		
 		PushMsg( msgID, CORE_ALLOC_BUFFER );
 		PushMsg( msgID, bufferConfigs[globalInvocationID].id );

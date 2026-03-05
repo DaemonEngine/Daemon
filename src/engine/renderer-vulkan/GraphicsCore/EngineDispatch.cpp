@@ -76,6 +76,13 @@ struct Msg {
 		return out;
 	}
 
+	uint64  ReadUint64() {
+		uint64 out = memory[offset] | ( memory[offset + 1] << 32 );
+		offset    += 2;
+
+		return out;
+	}
+
 	float   ReadFloat() {
 		float out  = *( float* ) &memory[offset];
 		offset++;
@@ -108,10 +115,10 @@ void MsgStream() {
 	};
 
 	struct BufferCfg {
-		uint  id;
-		float relativeSize;
-		uint  size;
-		uint  usage;
+		uint   id;
+		float  relativeSize;
+		uint64 size;
+		uint   usage;
 	};
 
 	for ( uint32 i = 0; i < msgCount; i++ ) {
@@ -165,7 +172,7 @@ void MsgStream() {
 				BufferCfg bufferCfg {
 					.id           = msg.Read(),
 					.relativeSize = msg.ReadFloat(),
-					.size         = msg.Read(),
+					.size         = msg.ReadUint64(),
 					.usage        = msg.Read()
 				};
 
