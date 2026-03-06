@@ -2778,8 +2778,10 @@ enum
 	extern Cvar::Cvar<bool> r_bloom;
 	extern Cvar::Cvar<float> r_bloomBlur;
 	extern Cvar::Cvar<int> r_bloomPasses;
-	extern cvar_t *r_FXAA;
 	extern Cvar::Range<Cvar::Cvar<int>> r_ssao;
+
+	extern Cvar::Cvar<bool> r_FXAA;
+
 	extern Cvar::Range<Cvar::Cvar<int>> r_msaa;
 
 	extern cvar_t *r_evsmPostProcess;

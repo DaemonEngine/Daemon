@@ -374,7 +374,7 @@ static void GLSL_InitGPUShadersOrError()
 		gl_ssaoShader->MarkProgramForBuilding();
 	}
 
-	if ( r_FXAA->integer != 0 )
+	if ( r_FXAA.Get() )
 	{
 		gl_shaderManager.LoadShader( gl_fxaaShader );
 
