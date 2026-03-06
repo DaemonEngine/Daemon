@@ -33,9 +33,16 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 
 /* fxaa_fp.glsl */
 
-// The FXAA parameters are put directly in fxaa3_11_fp.glsl
-// because we cannot #include in the middle of a shader
-// ^This is no longer true, but I'm not touching that mess
+// Control knobs.
+#if __VERSION__ == 120
+#define FXAA_GLSL_120 1
+#else
+#define FXAA_GLSL_130 1
+#endif
+
+#define FXAA_PC 1
+#define FXAA_QUALITY_PRESET 12
+#define FXAA_GREEN_AS_LUMA 1
 
 #insert fxaa3_11_fp
 
