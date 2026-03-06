@@ -1603,7 +1603,7 @@ void RB_RenderSSAO()
 
 void RB_FXAA()
 {
-	if ( !r_FXAA->integer || !gl_fxaaShader )
+	if ( !r_FXAA.Get() || !gl_fxaaShader )
 	{
 		return;
 	}
