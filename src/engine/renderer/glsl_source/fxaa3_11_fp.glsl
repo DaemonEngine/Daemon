@@ -20,20 +20,6 @@ DAMAGES.
 
 kangz: This code has been set in the public domain by TIMOTHY LOTTES
 
-============================================================================*/
-
-//Due to our shader system, we put the defines for the control knobs here
-#define FXAA_PC 1
-#if __VERSION__ == 120
-#define FXAA_GLSL_120 1
-#else
-#define FXAA_GLSL_130 1
-#endif
-
-#define FXAA_QUALITY_PRESET 12
-#define FXAA_GREEN_AS_LUMA 1
-
-/*============================================================================
 ------------------------------------------------------------------------------
                            INTEGRATION CHECKLIST
 ------------------------------------------------------------------------------
