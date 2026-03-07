@@ -133,10 +133,12 @@ set( graphicsEngineListH
     Common.glsl
     Buffers.glsl
     Images.glsl
+    Resources.glsl
 )
 
 set( graphicsEngineList
     MsgStream.glsl
+    Tonemap.glsl
     TestV.glsl
     TestF.glsl
 )
@@ -148,10 +150,12 @@ list( TRANSFORM graphicsEngineIDEList PREPEND ${ENGINE_DIR}/renderer-vulkan/Grap
 # Graphics Shared
 set( graphicsSharedList
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/Bindings.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/CoreData.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/MemoryPool.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/MsgStreamAPI.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/NumberTypes.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/PushLayout.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/SharedResources.h
 )
 
 # Vulkan Loader

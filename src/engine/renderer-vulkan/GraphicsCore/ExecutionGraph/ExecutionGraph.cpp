@@ -71,12 +71,6 @@ static void ExecPushConstNode( PushConstNode* node, VkCommandBuffer cmd, VkPipel
 	BitStream nodeDataStream   { node->data.data };
 	BitStream dataStream       { data };
 
-	SPIRVBufferCfg& cfg = SPIRVBufferConfigs[SPIRVID];
-
-	for ( uint32* bufferID = cfg.buffers; bufferID < cfg.buffers + cfg.count; bufferID++ ) {
-		dataStream.Write( resourceSystem.buffers[*bufferID].engineMemory, 64 );
-	}
-
 	while ( uint8 specialID = specialIDsStream.Read8( 4 ) ) {
 		switch ( specialID ) {
 			case PUSH_UINT64:
@@ -88,6 +82,12 @@ static void ExecPushConstNode( PushConstNode* node, VkCommandBuffer cmd, VkPipel
 			default:
 				break;
 		}
+	}
+
+	SPIRVBufferCfg& cfg = SPIRVBufferConfigs[SPIRVID];
+
+	for ( uint32* bufferID = cfg.buffers; bufferID < cfg.buffers + cfg.count; bufferID++ ) {
+		dataStream.Write( resourceSystem.buffers[*bufferID].engineMemory, 64 );
 	}
 
 	vkCmdPushConstants( cmd, pipelineLayout, VK_SHADER_STAGE_ALL, node->offset, node->data.size, data );
@@ -627,7 +627,20 @@ PushConstNode ParsePushConst( const char** text, std::unordered_map<std::string,
 			continue;
 		}
 
-		dataStream.Write( nodes[token], 8 );
+		if ( !Q_stricmp( token, "coreData" ) ) {
+			specialIDsStream.Write( PUSH_UINT64, 4 );
+			dataStream.Write( resourceSystem.coreDataBuffer.engineMemory, 64 );
+
+			out.data.size += 8;
+			continue;
+		}
+
+		if ( nodes.contains( token ) ) {
+			dataStream.Write( nodes[token], 8 );
+
+			out.data.size += 8;
+			continue;
+		}
 
 		out.data.size += 8;
 	}

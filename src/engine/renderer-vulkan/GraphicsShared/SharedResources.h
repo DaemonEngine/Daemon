@@ -31,38 +31,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// ResourceSystem.h
+// SharedResources.h
 
-#ifndef RESOURCE_SYSTEM_H
-#define RESOURCE_SYSTEM_H
+#ifndef SHARED_RESOURCES_H
+#define SHARED_RESOURCES_H
 
-#include <unordered_map>
+#include "NumberTypes.h"
 
-#include "../GraphicsShared/MemoryPool.h"
+const uint32 depthImage              = 0; // 0-15 for mipmaps
+const uint32 visBufferMaterialsImage = 16;
+const uint32 shadowMapImage          = 17;
 
-#include "Decls.h"
+const uint32 imageOffset             = 18;
 
-#include "Memory/EngineAllocator.h"
-
-struct ResourceSystem {
-	MemoryPool memoryPoolData;
-	MemoryPool memoryPoolImages;
-	uint64     dedicatedMemorySize;
-
-	bool       hostImageCopy;
-
-	Buffer     coreToEngineBuffer;
-	Buffer     engineToCoreBuffer;
-
-	std::unordered_map<std::string, Image> images;
-	std::unordered_map<uint32, Buffer>     buffers;
-
-	Buffer     coreDataBuffer;
-
-	void   Init( uint64 newDedicatedMemorySize );
-
-	Buffer AllocBuffer( const uint64 size, const Buffer::Usage usage = ( Buffer::Usage ) 0 );
-	void   AllocImage( const MemoryRequirements& reqs, const VkImage image );
-};
-
-#endif // RESOURCE_SYSTEM_H
+#endif // SHARED_RESOURCES_H

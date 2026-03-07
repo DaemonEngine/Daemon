@@ -31,38 +31,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// ResourceSystem.h
 
-#ifndef RESOURCE_SYSTEM_H
-#define RESOURCE_SYSTEM_H
+/* Tonemap.glsl */
 
-#include <unordered_map>
+#include "Common.glsl"
 
-#include "../GraphicsShared/MemoryPool.h"
+#include "CoreData.h"
 
-#include "Decls.h"
+#include "Resources.glsl"
 
-#include "Memory/EngineAllocator.h"
+layout ( local_size_x = 8, local_size_y = 8, local_size_z = 1 ) in;
 
-struct ResourceSystem {
-	MemoryPool memoryPoolData;
-	MemoryPool memoryPoolImages;
-	uint64     dedicatedMemorySize;
+layout ( scalar, push_constant ) uniform Push {
+	CoreDataBuffer coreData;
+} push;
 
-	bool       hostImageCopy;
+void main() {
+	const uint globalGroupID      = GLOBAL_GROUP_ID;
+	const uint globalInvocationID = GLOBAL_INVOCATION_ID;
 
-	Buffer     coreToEngineBuffer;
-	Buffer     engineToCoreBuffer;
+	if ( gl_GlobalInvocationID.x >= push.coreData.coreData[0].width || gl_GlobalInvocationID.y >= push.coreData.coreData[0].height ) {
+		return;
+	}
 
-	std::unordered_map<std::string, Image> images;
-	std::unordered_map<uint32, Buffer>     buffers;
-
-	Buffer     coreDataBuffer;
-
-	void   Init( uint64 newDedicatedMemorySize );
-
-	Buffer AllocBuffer( const uint64 size, const Buffer::Usage usage = ( Buffer::Usage ) 0 );
-	void   AllocImage( const MemoryRequirements& reqs, const VkImage image );
-};
-
-#endif // RESOURCE_SYSTEM_H
+	imageStore( images[push.coreData.coreData[0].currentSwapChainImage], ivec2( gl_GlobalInvocationID.xy ), vec4( 0, 1, 0, 1 ) );
+}

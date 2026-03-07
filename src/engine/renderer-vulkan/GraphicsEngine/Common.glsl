@@ -133,6 +133,8 @@ layout ( set = 0, binding = BIND_SAMPLERS )       uniform sampler     samplers[]
 layout ( set = 0, binding = BIND_IMAGES )         uniform texture2D   textures2D[];
 layout ( set = 0, binding = BIND_IMAGES )         uniform texture3D   textures3D[];
 layout ( set = 0, binding = BIND_IMAGES )         uniform textureCube texturesCube[];
+		
+layout ( set = 0, binding = BIND_STORAGE_IMAGES ) uniform image2D     images[];
 
 const uint32 ADDRESS_REPEAT               = 0;
 const uint32 ADDRESS_CLAMP_TO_EDGE        = 1;
@@ -177,6 +179,4 @@ const uint32 MAX_BORDER_COLOURS       = 3;
 	sampler2D( tex,\
 		samplers[1 | bitfieldInsert( 0, anisotropy, 1, 1 ) | bitfieldInsert( 0, shadowMap, 2, 1 ) | bitfieldInsert( 0, reductionMode, 3, 2 )] )
 
-#define imageSwapChain images[imageCount + coreData.currentSwapChainImage]
-		
-layout ( set = 0, binding = BIND_STORAGE_IMAGES ) uniform image2D images[];
+// #define imageSwapChain images[imageCount + coreData.currentSwapChainImage]

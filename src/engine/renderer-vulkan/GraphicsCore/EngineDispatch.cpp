@@ -38,6 +38,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Memory/DynamicArray.h"
 
 #include "../Thread/TaskList.h"
+#include "../Shared/Timer.h"
+
+#include "../Surface/Surface.h"
 
 #include "Decls.h"
 
@@ -50,10 +53,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GraphicsCoreStore.h"
 
+#include "SwapChain.h"
+
+#include "../GraphicsShared/CoreData.h"
 #include "../GraphicsShared/MsgStreamAPI.h"
 
 #include "EngineDispatch.h"
-#include "../Shared/Timer.h"
 
 struct Msg {
 	uint32* memory;
@@ -190,23 +195,23 @@ void MsgStream() {
 	}
 }
 
-void EngineDispatch() {
-	static ExecutionGraph engineDispatchEG;
+void EngineDispatchInit() {
+	static ExecutionGraph engineDispatchInitEG;
 
 	static bool init = false;
 
-	std::string engineDispatchSrc =
+	std::string engineDispatchInitSrc =
 		"push { coreToEngine engineToCore }\n"
 		"MsgStream msg 1 {}";
 
-	engineDispatchEG.BuildFromSrc( COMPUTE, engineDispatchSrc );
+	engineDispatchInitEG.BuildFromSrc( COMPUTE, engineDispatchInitSrc );
 
 	if ( !init ) {
 		resourceSystem.coreToEngineBuffer.memory[0] = ENGINE_INIT;
 		_mm_sfence();
 	}
 
-	uint64 msgStart = engineDispatchEG.Exec();
+	uint64 msgStart = engineDispatchInitEG.Exec();
 
 	GetQueueByType( COMPUTE ).executionPhase.Wait( msgStart );
 
@@ -214,7 +219,38 @@ void EngineDispatch() {
 
 	resourceSystem.coreToEngineBuffer.memory[0] = 0;
 
+	UpdateDescriptor( 64, mainSwapChain.images[0], true );
+	UpdateDescriptor( 65, mainSwapChain.images[1], true );
+
 	init = true;
+}
+
+void EngineDispatch() {
+	static ExecutionGraph engineDispatchEG;
+
+	std::string engineDispatchSrc =
+		"external\n"
+		"push { coreData }\n"
+		"Tonemap tonemap 100 {}\n"
+		"present { tonemap }";
+
+	engineDispatchEG.BuildFromSrc( COMPUTE, engineDispatchSrc );
+
+	static uint32 currentSwapChainImage = 0;
+
+	*( CoreData* ) resourceSystem.coreDataBuffer.memory = {
+		.currentSwapChainImage = currentSwapChainImage + 64,
+		.width                 = ( uint32 ) mainSurface.screenWidth,
+		.height                = ( uint32 ) mainSurface.screenHeight
+	};
+
+	currentSwapChainImage = ( currentSwapChainImage + 1 ) & 1;
+
+	_mm_sfence();
+
+	uint64 start = engineDispatchEG.Exec();
+
+	GetQueueByType( COMPUTE ).executionPhase.Wait( start );
 
 	Task engineDispatch { &EngineDispatch };
 	taskList.AddTask( engineDispatch.Delay( 1000_us ) );

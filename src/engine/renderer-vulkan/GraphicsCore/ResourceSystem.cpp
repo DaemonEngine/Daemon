@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Memory/EngineAllocator.h"
 #include "ResourceSystem.h"
 
+#include "../GraphicsShared/CoreData.h"
 
 void ResourceSystem::Init( uint64 newDedicatedMemorySize ) {
 	memoryPoolData   = engineAllocator.AllocMemoryPool( MemoryHeap::ENGINE, 1ull * 600 * 1024 * 1024, false );
@@ -54,6 +55,8 @@ void ResourceSystem::Init( uint64 newDedicatedMemorySize ) {
 	static constexpr uint64 engineToCoreBufferSize = 256 * 1024 * 1024;
 
 	engineToCoreBuffer = engineAllocator.AllocBuffer( MemoryHeap::ENGINE_TO_CORE, engineToCoreBufferSize );
+
+	coreDataBuffer     = engineAllocator.AllocBuffer( MemoryHeap::CORE_TO_ENGINE, 2 * sizeof( CoreData ) );
 }
 
 Buffer ResourceSystem::AllocBuffer( const uint64 size, const Buffer::Usage usage ) {

@@ -36,6 +36,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Common.glsl"
 
+#include "CoreData.h"
+
+BufferRS restrict CoreDataBuffer {
+	CoreData coreData;
+};
+
 #include "MsgStreamAPI.h"
 
 #include "Images.glsl"
@@ -97,7 +103,6 @@ ImageCube rgba16f 1 1 5 testImg5;
 Buffer 566 3 buf1;
 Buffer 5667 30 buf2;
 Buffer 5664545 0 buf3;
-Buffer 5664545 buf4;
 Buffer 5664545 buf5;
 
 void main() [[maximally_reconverges]] {
@@ -144,7 +149,7 @@ void main() [[maximally_reconverges]] {
 		msgCount++;
 	}
 
-	msgID = imageCount * 9 + bufferCount * 5;
+	msgID = imageCount * 9 + bufferCount * 6;
 
 	if ( initImgMsg == ENGINE_INIT && globalInvocationID < SPIRVCount ) {
 		msgID     += subgroupExclusiveAdd( 3 + SPIRVBufferConfigs[globalInvocationID].count );

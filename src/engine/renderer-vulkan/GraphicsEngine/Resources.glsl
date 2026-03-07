@@ -31,38 +31,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// ResourceSystem.h
 
-#ifndef RESOURCE_SYSTEM_H
-#define RESOURCE_SYSTEM_H
+/* Resources.glsl */
 
-#include <unordered_map>
+#include "CoreData.h"
 
-#include "../GraphicsShared/MemoryPool.h"
-
-#include "Decls.h"
-
-#include "Memory/EngineAllocator.h"
-
-struct ResourceSystem {
-	MemoryPool memoryPoolData;
-	MemoryPool memoryPoolImages;
-	uint64     dedicatedMemorySize;
-
-	bool       hostImageCopy;
-
-	Buffer     coreToEngineBuffer;
-	Buffer     engineToCoreBuffer;
-
-	std::unordered_map<std::string, Image> images;
-	std::unordered_map<uint32, Buffer>     buffers;
-
-	Buffer     coreDataBuffer;
-
-	void   Init( uint64 newDedicatedMemorySize );
-
-	Buffer AllocBuffer( const uint64 size, const Buffer::Usage usage = ( Buffer::Usage ) 0 );
-	void   AllocImage( const MemoryRequirements& reqs, const VkImage image );
+BufferRS restrict CoreDataBuffer {
+	CoreData coreData[2];
 };
-
-#endif // RESOURCE_SYSTEM_H

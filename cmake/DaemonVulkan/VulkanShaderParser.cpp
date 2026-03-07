@@ -150,7 +150,7 @@ struct Image {
 };
 
 static std::unordered_map<std::string, Image> images;
-static uint32_t imageID = 0;
+static uint32_t imageID  = 18;
 
 static std::unordered_map<std::string, std::string> buffers;
 static uint32_t bufferID = 0;
