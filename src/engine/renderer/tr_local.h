@@ -2784,6 +2784,7 @@ enum
 	extern Cvar::Cvar<bool> r_showLuma;
 
 	extern Cvar::Cvar<bool> r_FXAA;
+	extern Cvar::Cvar<bool> r_showFXAA;
 
 	extern Cvar::Range<Cvar::Cvar<int>> r_msaa;
 
