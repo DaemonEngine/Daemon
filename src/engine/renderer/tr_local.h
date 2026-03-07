@@ -2781,6 +2781,8 @@ enum
 	extern Cvar::Cvar<int> r_bloomPasses;
 	extern Cvar::Range<Cvar::Cvar<int>> r_ssao;
 
+	extern Cvar::Cvar<bool> r_showLuma;
+
 	extern Cvar::Cvar<bool> r_FXAA;
 
 	extern Cvar::Range<Cvar::Cvar<int>> r_msaa;

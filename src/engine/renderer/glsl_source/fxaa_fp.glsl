@@ -42,7 +42,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 
 #define FXAA_PC 1
 #define FXAA_QUALITY_PRESET 12
-#define FXAA_GREEN_AS_LUMA 1
+#define FXAA_GREEN_AS_LUMA 0
 
 #insert fxaa3_11_fp
 
@@ -56,7 +56,7 @@ out vec4 outputColor;
 
 void	main()
 {
-	outputColor = FxaaPixelShader(
+	vec4 color = FxaaPixelShader(
 		gl_FragCoord.xy / r_FBufSize, //pos
 		vec4(0.0), //not used
 		u_ColorMap, //tex
@@ -74,4 +74,6 @@ void	main()
 		0.0, //not used
 		vec4(0.0) //not used
 	);
+
+	outputColor = vec4( color.rgb, 1.0f );
 }

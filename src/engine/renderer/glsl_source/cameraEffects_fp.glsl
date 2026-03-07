@@ -111,5 +111,23 @@ void main()
 
 	color.xyz = pow(color.xyz, vec3(u_InverseGamma));
 
+	#if defined(r_FXAA) || defined(r_showLuma)
+	{
+		// That luma vector comes from a comment in fxaa3_11_fp.glsl.
+		vec3 lumaVector = vec3( 0.299, 0.587, 0.114 );
+
+		float luma = dot( color.rgb, lumaVector );
+
+		#if defined(r_showLuma)
+			color.rgb = vec3( luma );
+		#endif
+
+		#if defined(r_FXAA)
+			// Encode luma in alpha channel.
+			color.a = luma;
+		#endif
+	}
+	#endif
+
 	outputColor = color;
 }
