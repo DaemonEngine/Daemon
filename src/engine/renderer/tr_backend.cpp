@@ -1625,10 +1625,18 @@ void RB_FXAA()
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
 	);
 
+	// The framebuffer should use GL_LINEAR for FXAA to work.
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
 	// This shader is run last, so let it render to screen.
 	R_BindNullFBO();
 
 	Tess_InstantScreenSpaceQuad();
+
+	// Restore GL_NEAREST to not break other effects.
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 
 	GL_CheckErrors();
 }
