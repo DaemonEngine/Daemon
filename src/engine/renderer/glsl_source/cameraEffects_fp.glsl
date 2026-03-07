@@ -111,5 +111,23 @@ void main()
 
 	color.xyz = pow(color.xyz, vec3(u_InverseGamma));
 
+	#if defined(r_FXAA) || defined(r_showLuminance)
+	{
+		// That luminance vector comes from a comment in fxaa3_11_fp.glsl.
+		vec3 luminanceVector = vec3( 0.299, 0.587, 0.114 );
+
+		float luminance = dot( color.rgb, luminanceVector );
+
+		#if defined(r_showLuminance)
+			color.rgb = vec3( luminance );
+		#endif
+
+		#if defined(r_FXAA)
+			// Encode luminance in alpha channel.
+			color.a = luminance;
+		#endif
+	}
+	#endif
+
 	outputColor = color;
 }

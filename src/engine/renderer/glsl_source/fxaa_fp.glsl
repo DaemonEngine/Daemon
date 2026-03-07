@@ -33,9 +33,16 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 
 /* fxaa_fp.glsl */
 
-// The FXAA parameters are put directly in fxaa3_11_fp.glsl
-// because we cannot #include in the middle of a shader
-// ^This is no longer true, but I'm not touching that mess
+// Control knobs.
+#if __VERSION__ == 120
+#define FXAA_GLSL_120 1
+#else
+#define FXAA_GLSL_130 1
+#endif
+
+#define FXAA_PC 1
+#define FXAA_QUALITY_PRESET 12
+#define FXAA_GREEN_AS_LUMA 0
 
 #insert fxaa3_11_fp
 
@@ -49,7 +56,7 @@ out vec4 outputColor;
 
 void	main()
 {
-	outputColor = FxaaPixelShader(
+	vec4 color = FxaaPixelShader(
 		gl_FragCoord.xy / r_FBufSize, //pos
 		vec4(0.0), //not used
 		u_ColorMap, //tex
@@ -67,4 +74,19 @@ void	main()
 		0.0, //not used
 		vec4(0.0) //not used
 	);
+
+	#if defined(r_showFXAA)
+	{
+		vec4 originalColor = FxaaTexTop( u_ColorMap, gl_FragCoord.xy / r_FBufSize );
+
+		if ( color.r != originalColor.r
+			|| color.g != originalColor.g
+			|| color.b != originalColor.b )
+		{
+			color.rgb = vec3(1.0, 0.0, 0.0);
+		}
+	}
+	#endif
+
+	outputColor = vec4( color.rgb, 1.0f );
 }

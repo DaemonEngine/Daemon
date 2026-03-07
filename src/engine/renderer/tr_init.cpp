@@ -285,8 +285,14 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Cvar<bool> r_bloom( "r_bloom", "Use bloom", Cvar::ARCHIVE, false );
 	Cvar::Cvar<float> r_bloomBlur( "r_bloomBlur", "Bloom strength", Cvar::NONE, 0.2 );
 	Cvar::Cvar<int> r_bloomPasses( "r_bloomPasses", "Amount of bloom passes in each direction", Cvar::NONE, 2 );
-	cvar_t      *r_FXAA;
+
+	Cvar::Cvar<bool> r_showLuminance( "r_showLuminance", "Show luminance", Cvar::CHEAT, false );
+
+	Cvar::Cvar<bool> r_FXAA( "r_FXAA", "Fast approximate anti-aliasing", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_showFXAA( "r_showFXAA", "Show pixels modified by FXAA", Cvar::CHEAT, false );
+
 	Cvar::Range<Cvar::Cvar<int>> r_msaa( "r_msaa", "Amount of MSAA samples. 0 to disable", Cvar::NONE, 0, 0, 64 );
+
 	Cvar::Range<Cvar::Cvar<int>> r_ssao( "r_ssao",
 		"Screen space ambient occlusion: "
 		"-1: show, 0: disabled, 1: enabled",
@@ -1205,8 +1211,13 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_printShaders = Cvar_Get( "r_printShaders", "0", 0 );
 
 		Cvar::Latch( r_bloom );
-		r_FXAA = Cvar_Get( "r_FXAA", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		Cvar::Latch( r_ssao );
+
+		Cvar::Latch( r_showLuminance );
+
+		Cvar::Latch( r_FXAA );
+		Cvar::Latch( r_showFXAA );
+
 		Cvar::Latch( r_msaa );
 
 		// temporary variables that can change at any time

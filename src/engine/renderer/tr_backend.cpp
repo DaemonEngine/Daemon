@@ -1603,7 +1603,7 @@ void RB_RenderSSAO()
 
 void RB_FXAA()
 {
-	if ( !r_FXAA->integer || !gl_fxaaShader )
+	if ( !r_FXAA.Get() || !gl_fxaaShader )
 	{
 		return;
 	}
@@ -1621,14 +1621,22 @@ void RB_FXAA()
 	// set the shader parameters
 	gl_fxaaShader->BindProgram();
 
-	// Swap main FBOs
 	gl_fxaaShader->SetUniform_ColorMapBindless(
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
 	);
-	backEnd.currentMainFBO = 1 - backEnd.currentMainFBO;
-	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
+
+	// The framebuffer should use GL_LINEAR for FXAA to work.
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
+	// This shader is run last, so let it render to screen.
+	R_BindNullFBO();
 
 	Tess_InstantScreenSpaceQuad();
+
+	// Restore GL_NEAREST to not break other effects.
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 
 	GL_CheckErrors();
 }
@@ -1693,12 +1701,21 @@ void RB_CameraPostFX() {
 	}
 	gl_cameraEffectsShader->SetUniform_Tonemap( tonemap );
 
-	// This shader is run last, so let it render to screen instead of
-	// tr.mainFBO
-	R_BindNullFBO();
 	gl_cameraEffectsShader->SetUniform_CurrentMapBindless(
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) 
 	);
+
+	if ( r_FXAA.Get() && gl_fxaaShader )
+	{
+		// Swap main FBOs.
+		backEnd.currentMainFBO = 1 - backEnd.currentMainFBO;
+		R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
+	}
+	else
+	{
+		// Without FXAA this shader is run last, so let it render to screen.
+		R_BindNullFBO();
+	}
 
 	if ( glConfig.colorGrading ) {
 		gl_cameraEffectsShader->SetUniform_ColorMap3DBindless( GL_BindToTMU( 3, tr.colorGradeImage ) );
@@ -2810,10 +2827,10 @@ static void RB_RenderPostProcess()
 
 	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT );
 
-	RB_FXAA();
-
 	// render chromatic aberration
 	RB_CameraPostFX();
+
+	RB_FXAA();
 
 	// copy to given byte buffer that is NOT a FBO
 	if ( tr.refdef.pixelTarget != nullptr ) {
