@@ -272,6 +272,11 @@ static void GLSL_InitGPUShadersOrError()
 		gl_lighttileShader->MarkProgramForBuilding();
 	}
 
+	if ( glConfig.adaptiveExposureAvailable ) {
+		gl_shaderManager.LoadShader( gl_luminanceReductionShader );
+		gl_shaderManager.LoadShader( gl_clearFrameDataShader );
+	}
+
 	if ( glConfig.reflectionMappingAvailable )
 	{
 		// bumped cubemap reflection for abitrary polygons ( EMBM )
@@ -468,12 +473,14 @@ void GLSL_ShutdownGPUShaders()
 	gl_genericShader = nullptr;
 	gl_genericShaderMaterial = nullptr;
 	globalUBOProxy = nullptr;
+	gl_clearFrameDataShader = nullptr;
 	gl_cullShader = nullptr;
 	gl_depthReductionShader = nullptr;
 	gl_clearSurfacesShader = nullptr;
 	gl_processSurfacesShader = nullptr;
 	gl_lightMappingShader = nullptr;
 	gl_lightMappingShaderMaterial = nullptr;
+	gl_luminanceReductionShader = nullptr;
 	gl_reflectionShader = nullptr;
 	gl_reflectionShaderMaterial = nullptr;
 	gl_skyboxShader = nullptr;

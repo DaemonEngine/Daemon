@@ -2671,6 +2671,7 @@ enum
 	extern cvar_t *r_gamma;
 
 	extern Cvar::Cvar<bool> r_toneMapping;
+	extern Cvar::Cvar<bool> r_toneMappingAdaptiveExposure;
 	extern Cvar::Cvar<float> r_exposure;
 	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingContrast;
 	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingHighlightsCompressionSpeed;
