@@ -90,6 +90,8 @@ static Cvar::Cvar<bool> r_arb_multi_draw_indirect( "r_arb_multi_draw_indirect",
 	"Use GL_ARB_multi_draw_indirect if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_program_interface_query( "r_arb_program_interface_query",
 	"Load GL_ARB_program_interface_query if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_sampler_objects( "r_arb_sampler_objects",
+	"Use GL_ARB_sampler_objects if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_shader_draw_parameters( "r_arb_shader_draw_parameters",
 	"Use GL_ARB_shader_draw_parameters if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_shader_atomic_counters( "r_arb_shader_atomic_counters",
@@ -2018,6 +2020,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_internalformat_query2 );
 	Cvar::Latch( r_arb_map_buffer_range );
 	Cvar::Latch( r_arb_multi_draw_indirect );
+	Cvar::Latch( r_arb_sampler_objects );
 	Cvar::Latch( r_arb_shader_atomic_counters );
 	Cvar::Latch( r_arb_shader_atomic_counter_ops );
 	Cvar::Latch( r_arb_shader_draw_parameters );
@@ -2373,6 +2376,9 @@ static void GLimp_InitExtensions()
 
 	// made required in OpenGL 3.0
 	glConfig.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range.Get() );
+
+	// made required in OpenGL 3.3
+	glConfig.samplerObjectsAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_sampler_objects, r_arb_sampler_objects.Get() );
 
 	// made required in OpenGL 3.2
 	glConfig.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync.Get() );

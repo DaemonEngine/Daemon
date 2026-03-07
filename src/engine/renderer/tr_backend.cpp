@@ -1603,7 +1603,7 @@ void RB_RenderSSAO()
 
 void RB_FXAA()
 {
-	if ( !r_FXAA.Get() || !gl_fxaaShader )
+	if ( !r_FXAA.Get() || !gl_fxaaShader || !glConfig.samplerObjectsAvailable )
 	{
 		return;
 	}
@@ -1625,10 +1625,41 @@ void RB_FXAA()
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
 	);
 
+	// FXAA expects GL_LINEAR for the sampling to work.
+	GLuint64 handle = 0;
+
+	if ( glConfig.usingBindlessTextures )
+	{
+		// Set a handler.
+		GLuint texture = tr.currentRenderImage[backEnd.currentMainFBO]->texnum;
+		handle = glGetTextureSamplerHandleARB( texture, tr.linearSampler );
+		glMakeTextureHandleResidentARB( handle );
+		GLuint program = gl_fxaaShader->GetProgram()->id;
+		GLint location = glGetUniformLocation( program, "u_ColorMap_linear" );
+		glUniformHandleui64ARB( location, handle );
+	}
+	else
+	{
+		// Bind a sampler.
+		glBindSampler( 0, tr.linearSampler );
+	}
+
 	// This shader is run last, so let it render to screen.
 	R_BindNullFBO();
 
 	Tess_InstantScreenSpaceQuad();
+
+	// Make sure we didn't break other effects expecting GL_NEAREST.
+	if ( glConfig.usingBindlessTextures )
+	{
+		// Unset the handler.
+		glMakeTextureHandleNonResidentARB( handle );
+	}
+	else
+	{
+		// Unbind the sampler.
+		glBindSampler( 0, 0 );
+	}
 
 	GL_CheckErrors();
 }
@@ -1697,7 +1728,7 @@ void RB_CameraPostFX() {
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) 
 	);
 
-	if ( r_FXAA.Get() && gl_fxaaShader )
+	if ( r_FXAA.Get() && gl_fxaaShader && glConfig.samplerObjectsAvailable )
 	{
 		// Swap main FBOs.
 		backEnd.currentMainFBO = 1 - backEnd.currentMainFBO;
@@ -3848,6 +3879,12 @@ void R_ShutdownBackend()
 		glDisableVertexAttribArray( i );
 	}
 	glState.vertexAttribsState = 0;
+
+	if ( tr.linearSampler )
+	{
+		glDeleteSamplers( 1, &tr.linearSampler );
+		tr.linearSampler = 0;
+	}
 }
 
 const RenderCommand *EndOfListCommand::ExecuteSelf( ) const
