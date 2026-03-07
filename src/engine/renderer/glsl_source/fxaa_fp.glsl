@@ -46,7 +46,12 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 
 #insert fxaa3_11_fp
 
+#if defined(HAVE_ARB_bindless_texture)
+uniform sampler2D u_ColorMap_linear;
+#define u_ColorMap u_ColorMap_linear
+#else
 uniform sampler2D	u_ColorMap;
+#endif
 
 #if __VERSION__ > 120
 out vec4 outputColor;

@@ -140,6 +140,7 @@ struct GLConfig
 	bool bufferStorageAvailable;
 	bool uniformBufferObjectAvailable;
 	bool mapBufferRangeAvailable;
+	bool samplerObjectsAvailable;
 	bool syncAvailable;
 	bool textureBarrierAvailable;
 	bool halfFloatVertexAvailable;
