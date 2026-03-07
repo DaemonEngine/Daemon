@@ -2595,6 +2595,8 @@ enum
 		float         inverseSawToothTable[ FUNCTABLE_SIZE ];
 
 		scissorState_t scissor;
+
+		GLuint linearSampler;
 	};
 
 	extern const matrix_t quakeToOpenGLMatrix;

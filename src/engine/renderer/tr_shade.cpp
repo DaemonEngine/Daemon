@@ -222,6 +222,8 @@ static void GLSL_InitGPUShadersOrError()
 
 	GL_CheckErrors();
 
+	bool requireLinearSampler = false;
+
 	gl_shaderManager.InitDriverInfo();
 
 	/* It must be done before GenerateBuiltinHeaders() because glConfig.realtimeLighting
@@ -374,6 +376,15 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.LoadShader( gl_fxaaShader );
 
 		gl_fxaaShader->MarkProgramForBuilding();
+
+		requireLinearSampler = true;
+	}
+
+	if ( requireLinearSampler && !tr.linearSampler )
+	{
+		glGenSamplers( 1, &tr.linearSampler );
+		glSamplerParameteri( tr.linearSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR) ;
+		glSamplerParameteri( tr.linearSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	}
 
 	gl_shaderManager.PostProcessGlobalUniforms();
