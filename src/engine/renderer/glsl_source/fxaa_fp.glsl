@@ -75,5 +75,18 @@ void	main()
 		vec4(0.0) //not used
 	);
 
+	#if defined(r_showFXAA)
+	{
+		vec4 originalColor = FxaaTexTop( u_ColorMap, gl_FragCoord.xy / r_FBufSize );
+
+		if ( color.r != originalColor.r
+			|| color.g != originalColor.g
+			|| color.b != originalColor.b )
+		{
+			color.rgb = vec3(1.0, 0.0, 0.0);
+		}
+	}
+	#endif
+
 	outputColor = vec4( color.rgb, 1.0f );
 }

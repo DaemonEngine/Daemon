@@ -289,6 +289,7 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Cvar<bool> r_showLuminance( "r_showLuminance", "Show luminance", Cvar::CHEAT, false );
 
 	Cvar::Cvar<bool> r_FXAA( "r_FXAA", "Fast approximate anti-aliasing", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_showFXAA( "r_showFXAA", "Show pixels modified by FXAA", Cvar::CHEAT, false );
 
 	Cvar::Range<Cvar::Cvar<int>> r_msaa( "r_msaa", "Amount of MSAA samples. 0 to disable", Cvar::NONE, 0, 0, 64 );
 
@@ -1215,6 +1216,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_showLuminance );
 
 		Cvar::Latch( r_FXAA );
+		Cvar::Latch( r_showFXAA );
 
 		Cvar::Latch( r_msaa );
 

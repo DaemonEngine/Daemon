@@ -803,6 +803,11 @@ static std::string GenEngineConstants() {
 	if ( r_FXAA.Get() )
 	{
 		AddDefine( str, "r_FXAA", 1 );
+
+		if ( r_showFXAA.Get() )
+		{
+			AddDefine( str, "r_showFXAA", 1 );
+		}
 	}
 
 	if ( r_highPrecisionRendering.Get() ) {
