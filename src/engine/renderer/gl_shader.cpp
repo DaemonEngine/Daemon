@@ -797,6 +797,16 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_colorGrading", 1 );
 	}
 
+	if ( r_showLuma.Get() )
+	{
+		AddDefine( str, "r_showLuma", 1 );
+	}
+
+	if ( r_FXAA.Get() )
+	{
+		AddDefine( str, "r_FXAA", 1 );
+	}
+
 	if ( r_highPrecisionRendering.Get() ) {
 		AddDefine( str, "r_highPrecisionRendering", 1 );
 	}

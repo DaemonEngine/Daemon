@@ -286,6 +286,8 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Cvar<float> r_bloomBlur( "r_bloomBlur", "Bloom strength", Cvar::NONE, 0.2 );
 	Cvar::Cvar<int> r_bloomPasses( "r_bloomPasses", "Amount of bloom passes in each direction", Cvar::NONE, 2 );
 
+	Cvar::Cvar<bool> r_showLuma( "r_showLuma", "Show luminance", Cvar::CHEAT, false );
+
 	Cvar::Cvar<bool> r_FXAA( "r_FXAA", "Fast approximate anti-aliasing", Cvar::NONE, false );
 
 	Cvar::Range<Cvar::Cvar<int>> r_msaa( "r_msaa", "Amount of MSAA samples. 0 to disable", Cvar::NONE, 0, 0, 64 );
@@ -1209,6 +1211,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Cvar::Latch( r_bloom );
 		Cvar::Latch( r_ssao );
+
+		Cvar::Latch( r_showLuma );
 
 		Cvar::Latch( r_FXAA );
 
