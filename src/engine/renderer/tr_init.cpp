@@ -289,6 +289,12 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Cvar<bool> r_showLuma( "r_showLuma", "Show luminance", Cvar::CHEAT, false );
 
 	Cvar::Cvar<bool> r_FXAA( "r_FXAA", "Fast approximate anti-aliasing", Cvar::NONE, false );
+
+	// Values taken from comments in fxaa3_11_fp.glsl.
+	Cvar::Range<Cvar::Cvar<float>> r_FXAASubPix( "r_FXAASubPix", "0: off, 0.25: almost off, 0.50: sharper, 0.75, standard, 1: softer", Cvar::NONE, 0.75f, 0.0f, 1.0f );
+	Cvar::Range<Cvar::Cvar<float>> r_FXAAEdgeThreshold( "r_FXAAEdgeThreshold", "0.063: overkill and slower, 0.125: high quality, 0.166: standard, 0.250: low quality, 0.333 too little and faster", Cvar::NONE, 0.166f, 0.063f, 0.333f );
+	Cvar::Range<Cvar::Cvar<float>> r_FXAAEdgeThresholdMin( "r_FXAAEdgeThresholdMin", "0.0312: visible limit, 0.0625: high quality, 0.0833: upper limit", Cvar::NONE, 0.0625f, 0.0312f, 0.0833f );
+
 	Cvar::Cvar<bool> r_showFXAA( "r_showFXAA", "Show pixels modified by FXAA", Cvar::CHEAT, false );
 
 	Cvar::Range<Cvar::Cvar<int>> r_MSAA( "r_MSAA", "Amount of MSAA samples. 0 to disable", Cvar::NONE, 0, 0, 64 );
@@ -1216,6 +1222,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_showLuma );
 
 		Cvar::Latch( r_FXAA );
+		Cvar::Latch( r_FXAASubPix );
+		Cvar::Latch( r_FXAAEdgeThreshold );
+		Cvar::Latch( r_FXAAEdgeThresholdMin );
 		Cvar::Latch( r_showFXAA );
 
 		Cvar::Latch( r_MSAA );

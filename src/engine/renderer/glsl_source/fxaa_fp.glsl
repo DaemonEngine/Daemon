@@ -71,9 +71,9 @@ void	main()
 		vec4(0.0), //not used
 		vec4(0.0), //not used
 		vec4(0.0), //not used
-		0.75, //fxaaQualitySubpix
-		0.166, //fxaaQualityEdgeThreshold
-		0.0625, //fxaaQualityEdgeThresholdMin
+		r_FXAASubPix, //fxaaQualitySubpix
+		r_FXAAEdgeThreshold, //fxaaQualityEdgeThreshold
+		r_FXAAEdgeThresholdMin, //fxaaQualityEdgeThresholdMin
 		0.0, //not used
 		0.0, //not used
 		0.0, //not used

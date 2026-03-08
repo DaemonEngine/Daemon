@@ -806,6 +806,10 @@ static std::string GenEngineConstants() {
 	{
 		AddDefine( str, "r_FXAA", 1 );
 
+		AddDefine( str, "r_FXAASubPix", r_FXAASubPix.Get() );
+		AddDefine( str, "r_FXAAEdgeThreshold", r_FXAAEdgeThreshold.Get() );
+		AddDefine( str, "r_FXAAEdgeThresholdMin", r_FXAAEdgeThresholdMin.Get() );
+
 		if ( r_showFXAA.Get() )
 		{
 			AddDefine( str, "r_showFXAA", 1 );
