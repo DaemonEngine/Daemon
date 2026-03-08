@@ -156,6 +156,7 @@ struct GLConfig
 	bool reflectionMappingAvailable;
 	bool reflectionMapping;
 	bool bloom;
+	bool FXAA; // automatically disabled when MSAA is not null
 	int  MSAA; // 0 == disabled, otherwise used as sample count
 	bool ssao;
 	bool motionBlur;
