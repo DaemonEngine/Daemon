@@ -291,7 +291,7 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Cvar<bool> r_FXAA( "r_FXAA", "Fast approximate anti-aliasing", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_showFXAA( "r_showFXAA", "Show pixels modified by FXAA", Cvar::CHEAT, false );
 
-	Cvar::Range<Cvar::Cvar<int>> r_msaa( "r_msaa", "Amount of MSAA samples. 0 to disable", Cvar::NONE, 0, 0, 64 );
+	Cvar::Range<Cvar::Cvar<int>> r_MSAA( "r_MSAA", "Amount of MSAA samples. 0 to disable", Cvar::NONE, 0, 0, 64 );
 
 	Cvar::Range<Cvar::Cvar<int>> r_ssao( "r_ssao",
 		"Screen space ambient occlusion: "
@@ -1218,7 +1218,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_FXAA );
 		Cvar::Latch( r_showFXAA );
 
-		Cvar::Latch( r_msaa );
+		Cvar::Latch( r_MSAA );
 
 		// temporary variables that can change at any time
 		r_showImages = Cvar_Get( "r_showImages", "0", CVAR_TEMP );
