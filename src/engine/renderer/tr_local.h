@@ -2784,6 +2784,9 @@ enum
 	extern Cvar::Cvar<bool> r_showLuma;
 
 	extern Cvar::Cvar<bool> r_FXAA;
+	extern Cvar::Range<Cvar::Cvar<float>> r_FXAASubPix;
+	extern Cvar::Range<Cvar::Cvar<float>> r_FXAAEdgeThreshold;
+	extern Cvar::Range<Cvar::Cvar<float>> r_FXAAEdgeThresholdMin;
 	extern Cvar::Cvar<bool> r_showFXAA;
 
 	extern Cvar::Range<Cvar::Cvar<int>> r_MSAA;
