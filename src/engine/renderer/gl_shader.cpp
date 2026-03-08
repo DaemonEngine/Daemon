@@ -802,7 +802,7 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showLuma", 1 );
 	}
 
-	if ( r_FXAA.Get() )
+	if ( glConfig.FXAA )
 	{
 		AddDefine( str, "r_FXAA", 1 );
 

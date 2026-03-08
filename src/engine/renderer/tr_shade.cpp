@@ -192,6 +192,20 @@ static void EnableAvailableFeatures()
 		Log::Warn( "MSAA unavailable because GL version is lower than required (%i.%i < %i.%i)", glConfig.glMajor, glConfig.glMinor, 3, 2 );
 	}
 
+	glConfig.FXAA = r_FXAA.Get();
+
+	if ( glConfig.FXAA && glConfig.MSAA )
+	{
+		Log::Notice( "FXAA disabled because MSAA is enabled." );
+		glConfig.FXAA = false;
+	}
+
+	if ( glConfig.FXAA && !glConfig.samplerObjectsAvailable )
+	{
+		Log::Warn( "FXAA disabled because ARB_sampler_objects is not available." );
+		glConfig.FXAA = false;
+	}
+
 	glConfig.usingMaterialSystem = r_materialSystem.Get() && glConfig.materialSystemAvailable;
 	glConfig.usingBindlessTextures = glConfig.usingMaterialSystem ||
 		( r_preferBindlessTextures.Get() && glConfig.bindlessTexturesAvailable );
@@ -369,7 +383,7 @@ static void GLSL_InitGPUShadersOrError()
 		gl_ssaoShader->MarkProgramForBuilding();
 	}
 
-	if ( r_FXAA.Get() )
+	if ( glConfig.FXAA )
 	{
 		gl_shaderManager.LoadShader( gl_fxaaShader );
 
