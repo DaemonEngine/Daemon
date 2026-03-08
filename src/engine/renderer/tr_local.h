@@ -2788,7 +2788,7 @@ enum
 	extern Cvar::Cvar<bool> r_FXAA;
 	extern Cvar::Cvar<bool> r_showFXAA;
 
-	extern Cvar::Range<Cvar::Cvar<int>> r_msaa;
+	extern Cvar::Range<Cvar::Cvar<int>> r_MSAA;
 
 	extern cvar_t *r_evsmPostProcess;
 
