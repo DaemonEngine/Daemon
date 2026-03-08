@@ -1552,7 +1552,7 @@ void RB_RenderMotionBlur()
 
 void RB_RenderSSAO()
 {
-	if ( !glConfig.ssao )
+	if ( !glConfig.SSAO )
 	{
 		return;
 	}
@@ -1570,7 +1570,7 @@ void RB_RenderSSAO()
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
-	if ( glConfig.ssao && r_ssao.Get() == Util::ordinal( ssaoMode::SHOW ) ) {
+	if ( glConfig.SSAO && r_SSAO.Get() == Util::ordinal( ssaoMode::SHOW ) ) {
 		// clear the screen to show only SSAO
 		GL_ClearColor( 1.0, 1.0, 1.0, 1.0 );
 		glClear( GL_COLOR_BUFFER_BIT );

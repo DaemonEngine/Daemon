@@ -299,7 +299,7 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 
 	Cvar::Range<Cvar::Cvar<int>> r_MSAA( "r_MSAA", "Amount of MSAA samples. 0 to disable", Cvar::NONE, 0, 0, 64 );
 
-	Cvar::Range<Cvar::Cvar<int>> r_ssao( "r_ssao",
+	Cvar::Range<Cvar::Cvar<int>> r_SSAO( "r_SSAO",
 		"Screen space ambient occlusion: "
 		"-1: show, 0: disabled, 1: enabled",
 		Cvar::NONE,
@@ -1217,7 +1217,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_printShaders = Cvar_Get( "r_printShaders", "0", 0 );
 
 		Cvar::Latch( r_bloom );
-		Cvar::Latch( r_ssao );
+		Cvar::Latch( r_SSAO );
 
 		Cvar::Latch( r_showLuma );
 
