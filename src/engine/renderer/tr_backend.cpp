@@ -1603,7 +1603,7 @@ void RB_RenderSSAO()
 
 void RB_FXAA()
 {
-	if ( !r_FXAA.Get() || !gl_fxaaShader || !glConfig.samplerObjectsAvailable )
+	if ( !glConfig.FXAA || !gl_fxaaShader )
 	{
 		return;
 	}
@@ -1728,7 +1728,7 @@ void RB_CameraPostFX() {
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) 
 	);
 
-	if ( r_FXAA.Get() && gl_fxaaShader && glConfig.samplerObjectsAvailable )
+	if ( r_FXAA.Get() && gl_fxaaShader )
 	{
 		// Swap main FBOs.
 		backEnd.currentMainFBO = 1 - backEnd.currentMainFBO;
