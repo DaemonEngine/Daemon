@@ -135,7 +135,7 @@ static void EnableAvailableFeatures()
 
 	glConfig.bloom = r_bloom.Get();
 
-	glConfig.ssao = r_ssao.Get() != Util::ordinal( ssaoMode::DISABLED );
+	glConfig.SSAO = r_SSAO.Get() != Util::ordinal( ssaoMode::DISABLED );
 
 	static const std::pair<bool*, std::string> ssaoRequiredExtensions[] = {
 		{ &glConfig.textureGatherAvailable, "ARB_texture_gather" },
@@ -147,7 +147,7 @@ static void EnableAvailableFeatures()
 		if ( !*e.first )
 		{
 			Log::Warn( "SSAO disabled because %s is not available.", e.second );
-			glConfig.ssao = false;
+			glConfig.SSAO = false;
 		}
 	}
 
@@ -378,7 +378,7 @@ static void GLSL_InitGPUShadersOrError()
 		gl_motionblurShader->MarkProgramForBuilding();
 	}
 
-	if ( glConfig.ssao )
+	if ( glConfig.SSAO )
 	{
 		gl_shaderManager.LoadShader( gl_ssaoShader );
 
