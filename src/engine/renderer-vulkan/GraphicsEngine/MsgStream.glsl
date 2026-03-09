@@ -38,10 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CoreData.h"
 
-BufferRS restrict CoreDataBuffer {
-	CoreData coreData;
-};
-
 #include "MsgStreamAPI.h"
 
 #include "Images.glsl"
@@ -50,60 +46,52 @@ BufferRS restrict CoreDataBuffer {
 
 layout ( local_size_x = 64, local_size_y = 1, local_size_z = 1 ) in;
 
-BufferRS restrict MsgStreamRead {
-	uint msgStream[];
-};
-
-BufferWS restrict MsgStreamWrite {
-	uint msgStream[];
-};
-
 layout ( scalar, push_constant ) uniform Push {
-	MsgStreamRead  msgStreamRead;
-	MsgStreamWrite msgStreamWrite;
-	MsgStreamWrite buf2;
-	MsgStreamWrite buf3;
-	MsgStreamWrite buf4;
+	const uint* msgStreamRead;
+	uint* msgStreamWrite;
+	uint* buf2;
+	uint* buf3;
+	uint* buf4;
 } push;
 
 void PushMsg( inout uint id, const uint msg ) {
-	push.msgStreamWrite.msgStream[id + 1] = msg;
+	msgStreamWrite[id + 1] = msg;
 
 	id++;
 }
 
 void PushMsg( inout uint id, const uint64 msg ) {
-	push.msgStreamWrite.msgStream[id + 1] = uint32( msg & 0xFFFFFFFF );
+	msgStreamWrite[id + 1] = uint32( msg & 0xFFFFFFFF );
 
 	id++;
 
-	push.msgStreamWrite.msgStream[id + 1] = uint32( msg >> 32 );
+	msgStreamWrite[id + 1] = uint32( msg >> 32 );
 
 	id++;
 }
 
 void PushMsg( inout uint id, const float msg ) {
-	push.msgStreamWrite.msgStream[id + 1] = floatBitsToUint( msg );
+	msgStreamWrite[id + 1] = floatBitsToUint( msg );
 
 	id++;
 }
 
 void PushMsg( inout uint id, const bool msg ) {
-	push.msgStreamWrite.msgStream[id + 1] = msg ? 1 : 0;
+	msgStreamWrite[id + 1] = msg ? 1 : 0;
 
 	id++;
 }
 
-Image2D rgba16f swapchain 1.0f nomips testImg;
-Image2D rgba16f swapchain 1.0f testImg2;
-Image2D rgba16f 1 1 testImg3;
-Image3D rgba16f 1 1 5 testImg4;
-ImageCube rgba16f 1 1 5 testImg5;
+Image2D testImg { rgba16f rel 1.0f nomips };
+Image2D testImg2 { rgba16f rel 1.0f };
+Image2D testImg3 { rgba16f 1 1 };
+Image3D testImg4 { rgba16f 1 1 5 };
+ImageCube testImg5 { rgba16f 1 1 5 };
 
-Buffer 566 3 buf1;
-Buffer 5667 30 buf2;
-Buffer 5664545 0 buf3;
-Buffer 5664545 buf5;
+Buffer buf1 { 566 3 };
+Buffer buf2 { 5667 30 };
+Buffer buf3 { 5664545 0 };
+Buffer buf5 { 5664545 };
 
 void main() [[maximally_reconverges]] {
 	const uint globalGroupID      = GLOBAL_GROUP_ID;
@@ -113,7 +101,7 @@ void main() [[maximally_reconverges]] {
 		return;
 	}
 
-	const uint initImgMsg = push.msgStreamRead.msgStream[0];
+	const uint initImgMsg = msgStreamRead[0];
 
 	uint msgCount  = 0;
 
@@ -168,6 +156,6 @@ void main() [[maximally_reconverges]] {
 	const uint totalMsgs = subgroupAdd( msgCount );
 
 	if ( subgroupElect() ) {
-		push.msgStreamWrite.msgStream[0] = totalMsgs;
+		msgStreamWrite[0] = totalMsgs;
 	}
 }
