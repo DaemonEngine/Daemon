@@ -550,7 +550,6 @@ private:
 	std::string BuildDeformShaderText( const std::string& steps );
 	std::string ProcessInserts( const std::string& shaderText ) const;
 
-	void LinkProgram( GLuint program ) const;
 	void BindAttribLocations( GLuint program ) const;
 	void PrintShaderSource( Str::StringRef programName, GLuint object, std::vector<InfoLogEntry>& infoLogLines ) const;
 
