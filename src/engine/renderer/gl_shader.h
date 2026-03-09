@@ -188,6 +188,7 @@ private:
 
 	const bool worldShader;
 	const bool pushSkip;
+	const bool compileSkip;
 protected:
 	int _activeMacros = 0;
 	int _deformIndex = 0;
@@ -212,7 +213,7 @@ protected:
 	GLShader( const std::string& name, uint32_t vertexAttribsRequired,
 		const bool useMaterialSystem,
 		const std::string newVertexShaderName, const std::string newFragmentShaderName,
-		const bool newPushSkip = false ) :
+		const bool newPushSkip = false, const bool compileSkip = false ) :
 		_name( name ),
 		_vertexAttribsRequired( vertexAttribsRequired ),
 		_useMaterialSystem( useMaterialSystem ),
@@ -222,7 +223,8 @@ protected:
 		hasFragmentShader( true ),
 		hasComputeShader( false ),
 		worldShader( false ),
-		pushSkip( newPushSkip ) {
+		pushSkip( newPushSkip ),
+		compileSkip( compileSkip ) {
 	}
 
 	GLShader( const std::string& name,
@@ -236,7 +238,8 @@ protected:
 		hasFragmentShader( false ),
 		hasComputeShader( true ),
 		worldShader( newWorldShader ),
-		pushSkip( false ) {
+		pushSkip( false ),
+		compileSkip( false ) {
 	}
 
 public:
@@ -266,6 +269,10 @@ public:
 
 	ShaderProgramDescriptor* GetProgram() const {
 		return currentProgram;
+	}
+
+	bool SkipCompilation() const {
+		return compileSkip;
 	}
 
 protected:

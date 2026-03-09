@@ -1065,6 +1065,10 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int index, const bool 
 		return false;
 	}
 
+	if ( shader->SkipCompilation() ) {
+		return false;
+	}
+
 	if ( IsUnusedPermutation( compileMacros.c_str() ) ) {
 		return false;
 	}
@@ -3013,7 +3017,7 @@ GlobalUBOProxy::GlobalUBOProxy() :
 	/* HACK: A GLShader* is required to initialise uniforms,
 	but we don't need the GLSL shader itself, so we won't actually build it */
 	GLShader( "proxy", 0,
-		false, "screenSpace", "generic", true ),
+		false, "screenSpace", "generic", true, true ),
 	// CONST
 	u_ColorMap3D( this ),
 	u_DepthMap( this ),
