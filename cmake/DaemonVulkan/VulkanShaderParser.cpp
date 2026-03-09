@@ -610,6 +610,10 @@ struct BufferPushIDs {
 struct std::unordered_map<uint32_t, BufferPushIDs> bufferPushIDs;
 static uint32_t currentSPIRVID = 0;
 
+static std::unordered_set<std::string> bufferPointers;
+static std::unordered_set<std::string> bufferPointerTypes;
+static std::string extensions;
+
 std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_t* pushConstSize,
 	int insertCount = 0, int lineCount = 0 ) {
 	std::string out;
@@ -620,6 +624,8 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 
 	uint32_t offset   = 0;
 	uint32_t lastSize = v.size;
+
+	static uint32_t stackDepth = 0;
 
 	do {
 		SkipCPPIfDef( v );
@@ -659,19 +665,54 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 			while ( true ) {
 				o = Parse( v, &outStr );
 
-				out += outStr;
-
 				if ( o == "}" ) {
+					out += outStr;
+
 					break;
 				}
+
+				bool constPointer = o == "const";
+
+				if ( constPointer ) {
+					o = Parse( v, &outStr );
+				}
+
+				out += outStr;
 
 				std::string type { o.memory, o.size };
 
 				o = Parse( v, &outStr );
 
+				bool pointer = o == "*";
+
+				if ( pointer ) {
+					o = Parse( v, &outStr );
+
+					out += constPointer ? "_ConstPointer" : "_Pointer";
+
+					std::string pointerType = type + ( constPointer ? "_ConstPointer" : "_Pointer" );
+
+					if ( !bufferPointerTypes.contains( pointerType ) ) {
+						static const std::string bufPointer = "layout ( scalar, buffer_reference, buffer_reference_align = 4 ) ";
+
+						out = bufPointer
+							+ ( constPointer ? "restrict readonly buffer " : "restrict buffer " )
+							+ pointerType + " {\n\t"
+							+ type
+							+ " memory[];\n};\n\n"
+							+ out;
+
+						bufferPointerTypes.insert( pointerType );
+					}
+				}
+
 				out += outStr;
 
 				std::string name { o.memory, o.size };
+
+				if ( pointer ) {
+					bufferPointers.insert( name );
+				}
 
 				o = Parse( v, &outStr ); // ;
 
@@ -691,6 +732,18 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 					*pushConstSize += 8;
 				}
 			};
+
+			continue;
+		}
+
+		if ( o == "#extension" ) {
+			extensions += outStr;
+
+			do {
+				o = Parse( v, &outStr );
+
+				extensions += outStr;
+			} while ( o != "require" );
 
 			continue;
 		}
@@ -724,15 +777,31 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 			out += "\n#line " + std::to_string( insertCount * 10000 ) + "\n";
 			out += "/**************************************************/\n";
 
+			stackDepth++;
+
 			out += ProcessInserts( glslSrc, stage, pushConstSize, insertCount, 0 );
 
-			out += "/**************************************************/\n";
+			stackDepth--;
+
+			out += "\n\n/**************************************************/\n";
 			out += "#line " + std::to_string( insertStartCount * 10000 + lineCount ) + "\n";
 
 			continue;
 		}
 
 		std::string chk { o.memory, o.size };
+
+		if ( o.size ) {
+			StringView bufView = Parse( o, nullptr, "" );
+
+			std::string bufferName { bufView.memory, bufView.size };
+
+			if ( bufferPointers.contains( bufferName ) ) {
+				out += " push." + bufferName + ".memory";
+
+				continue;
+			}
+		}
 
 		if ( !*stage && stageKeywords.contains( chk ) ) {
 			*stage = stageKeywords.at( chk );
@@ -741,7 +810,7 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 		out += outStr;
 	} while ( v.size );
 
-	return out;
+	return stackDepth ? out : extensions + "\n\n" + out;
 }
 
 std::string BufferIDsToString( const BufferPushIDs& buffer ) {
@@ -865,6 +934,9 @@ int main( int argc, char** argv ) {
 	}
 
 	for( int i = 3; i < argc; i++ ) {
+		bufferPointers.clear();
+		bufferPointerTypes.clear();
+
 		std::string path = argv[i];
 
 		File glslSource { graphicsEnginePath + path, "r" };
