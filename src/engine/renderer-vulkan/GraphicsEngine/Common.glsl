@@ -106,8 +106,8 @@ array must be in the form of uvec4 array[] */
 
 #define sizeof( Type ) ( uint64( Type( uint64( 0 ) ) + 1 ) )
 
-#define Buffer( alignment ) \
-layout ( scalar, buffer_reference, buffer_reference_align = alignment ) buffer
+// #define Buffer( alignment ) \
+// layout ( scalar, buffer_reference, buffer_reference_align = alignment ) buffer
 
 #define BufferR( alignment ) \
 layout ( scalar, buffer_reference, buffer_reference_align = alignment ) readonly buffer

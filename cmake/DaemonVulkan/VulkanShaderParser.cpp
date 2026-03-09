@@ -157,8 +157,12 @@ bool operator==( const StringView& lhs, const char* rhs ) {
 	return true;
 }
 
-StringView Parse( StringView& data, const char* allowedSymbols = "_/\\$~-@.#" ) {
+static uint32_t newLines;
+
+StringView Parse( StringView& data, std::string* outStr = nullptr, const char* allowedSymbols = "_/\\$~-@.#" ) {
 	const char* text = data.memory;
+
+	newLines = 0;
 
 	if ( !text ) {
 		return {};
@@ -168,6 +172,11 @@ StringView Parse( StringView& data, const char* allowedSymbols = "_/\\$~-@.#" ) 
 
 	if ( !current ) {
 		return { text };
+	}
+
+	if ( outStr ) {
+		outStr->reserve( data.size );
+		*outStr = "";
 	}
 
 	uint32_t offset = 0;
@@ -181,8 +190,16 @@ StringView Parse( StringView& data, const char* allowedSymbols = "_/\\$~-@.#" ) 
 				break;
 			}
 
+			if ( c == '\n' ) {
+				newLines++;
+			}
+
 			current++;
 			offset++;
+
+			if ( outStr ) {
+				outStr->push_back( c );
+			}
 		}
 
 		if ( !current ) {
@@ -196,6 +213,8 @@ StringView Parse( StringView& data, const char* allowedSymbols = "_/\\$~-@.#" ) 
 			current += 2;
 			offset  += 2;
 
+			newLines++;
+
 			while ( *current && *current != '\n' ) {
 				current++;
 				offset++;
@@ -205,6 +224,10 @@ StringView Parse( StringView& data, const char* allowedSymbols = "_/\\$~-@.#" ) 
 			offset  += 2;
 
 			while ( *current && ( *current != '*' || current[1] != '/' ) ) {
+				if ( c == '\n' ) {
+					newLines++;
+				}
+
 				current++;
 				offset++;
 			}
@@ -230,6 +253,14 @@ StringView Parse( StringView& data, const char* allowedSymbols = "_/\\$~-@.#" ) 
 
 			current++;
 
+			if ( c == '\n' ) {
+				newLines++;
+			}
+
+			if ( outStr ) {
+				outStr->push_back( c );
+			}
+
 			if ( ( c == '\\' ) && ( *current == '\"' ) ) {
 				// Allow quoted strings to use \" to indicate the " character
 				current++;
@@ -247,6 +278,10 @@ StringView Parse( StringView& data, const char* allowedSymbols = "_/\\$~-@.#" ) 
 		c = *current;
 
 		while ( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' ) ) {
+			if ( outStr ) {
+				outStr->push_back( c );
+			}
+
 			current++;
 			size++;
 			c = *current;
@@ -258,6 +293,10 @@ StringView Parse( StringView& data, const char* allowedSymbols = "_/\\$~-@.#" ) 
 
 		for ( allowedSymbol = allowedSymbols; allowedSymbol < allowedSymbols + strlen( allowedSymbols ); allowedSymbol++ ) {
 			if ( c == *allowedSymbol ) {
+				if ( outStr ) {
+					outStr->push_back( c );
+				}
+
 				current++;
 				size++;
 
@@ -281,6 +320,11 @@ StringView Parse( StringView& data, const char* allowedSymbols = "_/\\$~-@.#" ) 
 
 	// Single character punctuation / EOF
 	data += offset + ( c ? 1 : 0 );
+
+	if ( outStr && c ) {
+		outStr->push_back( c );
+	}
+
 	return { text + offset, c ? 1u : 0u };
 }
 
@@ -335,15 +379,20 @@ void SkipCPPIfDef( StringView& data ) {
 	do {
 		StringView o = Parse( v );
 
-		if ( o == "#ifdef __cplusplus" ) {
-			skip = true;
-			continue;
+		if ( o == "#ifdef" ) {
+			o = Parse( v );
+
+			if ( o == "__cplusplus" ) {
+				skip = true;
+				continue;
+			}
 		} else if ( !skip ) {
 			return;
 		}
 
-		if ( skip && "#endif" ) {
+		if ( skip && o == "#endif" ) {
 			data = v;
+			return;
 		}
 	} while ( v.size );
 }
@@ -362,10 +411,24 @@ void SkipScope( StringView& data ) {
 			return;
 		}
 
-		if ( skip && "}" ) {
+		if ( skip && o == "}" ) {
 			data = v;
+			return;
 		}
 	} while ( v.size );
+}
+
+void SkipRestOfLine( StringView& data ) {
+	int c;
+
+	while ( ( c = *data.memory & 0xFF ) != '\n' ) {
+		if ( !c ) {
+			return;
+		}
+
+		data.memory++;
+		data.size--;
+	}
 }
 
 enum Img {
@@ -382,6 +445,7 @@ void ParseImage( StringView& data, Img type ) {
 
 	if ( images.find( name ) != images.end() ) {
 		SkipScope( data );
+		SkipRestOfLine( data );
 
 		return;
 	}
@@ -432,6 +496,8 @@ void ParseImage( StringView& data, Img type ) {
 
 	image += type == IMG_CUBE ? "true" : "false";
 
+	SkipRestOfLine( data );
+
 	images[name] = { image, "images[" + std::to_string( imageID ) + "]" };
 
 	imageID++;
@@ -444,6 +510,7 @@ void ParseBuffer( StringView& data ) {
 
 	if ( buffers.find( name ) != buffers.end() ) {
 		SkipScope( data );
+		SkipRestOfLine( data );
 
 		return;
 	}
@@ -474,6 +541,8 @@ void ParseBuffer( StringView& data ) {
 	} else {
 		buffer += "0";
 	}
+
+	SkipRestOfLine( data );
 
 	buffers[name] = buffer;
 
@@ -544,146 +613,133 @@ static uint32_t currentSPIRVID = 0;
 std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_t* pushConstSize,
 	int insertCount = 0, int lineCount = 0 ) {
 	std::string out;
-	std::istringstream shaderTextStream( StripLicense( shaderText ) );
-
-	std::string line;
 
 	int insertStartCount = insertCount;
-	bool skip              = false;
-	bool pushConst         = false;
-	bool pushConstStart    = false;
 
-	while ( std::getline( shaderTextStream, line, '\n' ) ) {
-		lineCount++;
+	StringView v { shaderText.c_str(), shaderText.size() };
 
-		if ( line.find( "#ifdef __cplusplus" ) != std::string::npos ) {
-			skip = true;
+	uint32_t offset   = 0;
+	uint32_t lastSize = v.size;
+
+	do {
+		SkipCPPIfDef( v );
+
+		uint32_t insertLastSize = shaderText.size() - v.size;
+
+		std::string outStr;
+		StringView o = Parse( v, &outStr );
+
+		lineCount += newLines;
+
+		if ( o == "Image2D" ) {
+			ParseImage( v, IMG_2D );
+			continue;
+		} else if ( o == "Image3D" ) {
+			ParseImage( v, IMG_3D );
+			continue;
+		} else if ( o == "ImageCube" ) {
+			ParseImage( v, IMG_CUBE );
 			continue;
 		}
 
-		if ( skip ) {
-			if ( line.find( "#endif" ) != std::string::npos ) {
-				skip = false;
+		if ( o == "Buffer" ) {
+			ParseBuffer( v );
+			continue;
+		}
+
+		if ( o == "push_constant" ) {
+			out += outStr;
+
+			while ( o != "{" ) {
+				o = Parse( v, &outStr );
+
+				out += outStr;
 			}
 
-			continue;
-		}
+			while ( true ) {
+				o = Parse( v, &outStr );
 
-		if ( line.find( "push_constant" ) != std::string::npos ) {
-			pushConst      = true;
-			pushConstStart = true;
-		}
+				out += outStr;
 
-		if ( pushConst ) {
-			if ( line.find( "}" ) != std::string::npos ) {
-				pushConst = false;
-			} else if ( pushConstStart ) {
-				pushConstStart = false;
-			} else {
-				uint32_t start = line.find_first_not_of( " \t" );
-				uint32_t end   = std::min( line.find( " ", start ), line.find( "\t", start ) );
+				if ( o == "}" ) {
+					break;
+				}
 
-				const std::string type = line.substr( start, end - start );
-				
-				start = line.find_first_not_of( " \t", end );
-				end   = line.find( ";", start );
+				std::string type { o.memory, o.size };
 
-				const std::string name = line.substr( start, end - start );
+				o = Parse( v, &outStr );
+
+				out += outStr;
+
+				std::string name { o.memory, o.size };
+
+				o = Parse( v, &outStr ); // ;
+
+				out += outStr;
 
 				if ( type == "uint" || type == "uint32" || type == "float" ) {
 					*pushConstSize += 4;
 				} else if ( buffers.find( name ) != buffers.end() ) {
 					*pushConstSize += 8;
 
-					BufferPushIDs& pushIDs     = bufferPushIDs[currentSPIRVID];
+					BufferPushIDs& pushIDs = bufferPushIDs[currentSPIRVID];
+
 					pushIDs.ids[pushIDs.count] = stoi( buffers[name].substr( 0, buffers[name].find( "," ) ) );
 					pushIDs.count++;
 				} else {
 					// Assumed BDA
 					*pushConstSize += 8;
 				}
+			};
+
+			continue;
+		}
+
+		if ( o == "#include" || o == "#insert" ) {
+			o = Parse( v );
+
+			std::string shaderInsertPath { o.memory, o.size };
+
+			if ( inserts.contains( shaderInsertPath ) ) {
+				continue;
 			}
-		}
 
-		if ( line.find( "Image2D" ) != std::string::npos || line.find( "Image3D" ) != std::string::npos
-			|| line.find( "ImageCube" ) != std::string::npos ) {
+			inserts.insert( shaderInsertPath );
+
+			File glslSource {
+				graphicsEnginePath + shaderInsertPath,
+				graphicsSharedPath + shaderInsertPath,
+				"r"
+			};
+
+			std::string glslSrc = glslSource.ReadAll();
+
+			glslSrc.resize( strlen( glslSrc.c_str() ) );
+			glslSrc.shrink_to_fit();
+
+			lastSize = v.size;
+
+			// Inserted shader lines will start at 10000, 20000 etc. to easily tell them apart from the main shader code
+			insertCount++;
+			out += "\n#line " + std::to_string( insertCount * 10000 ) + "\n";
+			out += "/**************************************************/\n";
+
+			out += ProcessInserts( glslSrc, stage, pushConstSize, insertCount, 0 );
+
+			out += "/**************************************************/\n";
+			out += "#line " + std::to_string( insertStartCount * 10000 + lineCount ) + "\n";
+
 			continue;
 		}
 
-		if ( line.find( "Buffer" ) == line.find_first_not_of( " \t" )
-			&& line.find( ";" ) != std::string::npos ) {
-			continue;
+		std::string chk { o.memory, o.size };
+
+		if ( !*stage && stageKeywords.contains( chk ) ) {
+			*stage = stageKeywords.at( chk );
 		}
 
-		uint64_t longestName = 0;
-		uint64_t bestOffset  = std::string::npos;
-
-		Image    bestImage;
-
-		for ( const std::pair<std::string, Image>& image : images ) {
-			uint64_t offset = line.find( image.first );
-
-			if ( offset != std::string::npos ) {
-				longestName = std::max( longestName, image.first.size() );
-				bestOffset  = offset;
-
-				bestImage   = image.second;
-			}
-		}
-
-		if ( bestOffset != std::string::npos ) {
-			line = line.substr( 0, bestOffset ) + bestImage.replace + line.substr( bestOffset + longestName );
-		}
-
-		const std::string::size_type posInsert = line.find( "#insert" );
-		const std::string::size_type position  = posInsert == std::string::npos ? line.find( "#include" ) : posInsert;
-
-		if ( !*stage ) {
-			for ( const std::pair<std::string, Stage>& pair : stageKeywords ) {
-				if ( line.find( pair.first ) != std::string::npos ) {
-					*stage = pair.second;
-					break;
-				}
-			}
-		}
-
-		if ( position == std::string::npos || line.find_first_not_of( " \t" ) != position ) {
-			out += line + "\n";
-			continue;
-		}
-
-		const bool useInsert = posInsert != std::string::npos;
-
-		std::string shaderInsertPath = line.substr(
-			position + ( useInsert ? 8 : 10 ),
-			( useInsert ? std::string::npos : line.size() - position - 11 ) );
-
-		if ( useInsert ) {
-			shaderInsertPath += ".glsl";
-		}
-
-		if ( inserts.contains( shaderInsertPath ) ) {
-			continue;
-		}
-
-		inserts.insert( shaderInsertPath );
-
-		// Inserted shader lines will start at 10000, 20000 etc. to easily tell them apart from the main shader code
-		insertCount++;
-		out += "#line " + std::to_string( insertCount * 10000 ) + "\n";
-		out += "/**************************************************/\n";
-
-		File glslSource { graphicsEnginePath + shaderInsertPath, graphicsSharedPath + shaderInsertPath, "r" };
-
-		std::string glslSrc = glslSource.ReadAll();
-		glslSrc.resize( strlen( glslSrc.c_str() ) );
-		glslSrc.shrink_to_fit();
-
-		out += ProcessInserts( glslSrc, stage, pushConstSize, insertCount, 0 );
-		
-		out += "/**************************************************/\n";
-		out += "#line " + std::to_string( insertStartCount * 10000 + lineCount ) + "\n";
-	}
+		out += outStr;
+	} while ( v.size );
 
 	return out;
 }
