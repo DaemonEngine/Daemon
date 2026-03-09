@@ -111,6 +111,179 @@ struct File {
 	}
 };
 
+struct StringView {
+	const char* memory;
+	uint32_t    size;
+
+	StringView& operator++() {
+		( *this ) += 1;
+		return *this;
+	}
+
+	StringView operator++( int ) {
+		StringView t = *this;
+		( *this )++;
+		return t;
+	}
+
+	StringView& operator+=( const uint32_t offset ) {
+		size -= offset;
+		memory += offset;
+		return *this;
+	}
+};
+
+bool operator==( const StringView& lhs, const char* rhs ) {
+	if ( !lhs.size || !lhs.memory && rhs ) {
+		return false;
+	}
+
+	if ( lhs.size && !rhs ) {
+		return false;
+	}
+
+	const uint32_t strSize = strlen( rhs );
+
+	if ( lhs.size != strSize ) {
+		return false;
+	}
+
+	for ( const char* c = lhs.memory, *c2 = rhs; c < lhs.memory + lhs.size; c++, c2++ ) {
+		if ( *c != *c2 ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+StringView Parse( StringView& data, const char* allowedSymbols = "_/\\$~-@.#" ) {
+	const char* text = data.memory;
+
+	if ( !text ) {
+		return {};
+	}
+
+	const char* current = text;
+
+	if ( !current ) {
+		return { text };
+	}
+
+	uint32_t offset = 0;
+
+	int c;
+
+	while ( *current ) {
+		// Whitespace
+		while ( ( c = *current & 0xFF ) <= ' ' ) {
+			if ( !c ) {
+				break;
+			}
+
+			current++;
+			offset++;
+		}
+
+		if ( !current ) {
+			return {};
+		}
+
+		c = *current;
+
+		// Comments
+		if ( c == '/' && current[1] == '/' ) {
+			current += 2;
+			offset  += 2;
+
+			while ( *current && *current != '\n' ) {
+				current++;
+				offset++;
+			}
+		} else if ( c == '/' && current[1] == '*' ) {
+			current += 2;
+			offset  += 2;
+
+			while ( *current && ( *current != '*' || current[1] != '/' ) ) {
+				current++;
+				offset++;
+			}
+
+			if ( *current ) {
+				current += 2;
+				offset  += 2;
+			}
+		} else {
+			break;
+		}
+	}
+
+	uint32_t size = 0;
+
+	// Quoted strings
+	if ( c == '\"' ) {
+		current++;
+		offset++;
+
+		while ( true ) {
+			c = *current;
+
+			current++;
+
+			if ( ( c == '\\' ) && ( *current == '\"' ) ) {
+				// Allow quoted strings to use \" to indicate the " character
+				current++;
+			} else if ( c == '\"' || !c ) {
+				data += offset + size + 1;
+				return { text + offset, size };
+			}
+
+			size++;
+		}
+	}
+
+	bool id = false;
+	while ( true ) {
+		c = *current;
+
+		while ( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' ) ) {
+			current++;
+			size++;
+			c = *current;
+
+			id = true;
+		}
+
+		const char* allowedSymbol;
+
+		for ( allowedSymbol = allowedSymbols; allowedSymbol < allowedSymbols + strlen( allowedSymbols ); allowedSymbol++ ) {
+			if ( c == *allowedSymbol ) {
+				current++;
+				size++;
+
+				id = true;
+
+				break;
+			}
+		}
+
+		c = *current;
+
+		if ( !*allowedSymbol ) {
+			break;
+		}
+	}
+
+	if ( id ) {
+		data += offset + size;
+		return { text + offset, size };
+	}
+
+	// Single character punctuation / EOF
+	data += offset + ( c ? 1 : 0 );
+	return { text + offset, c ? 1u : 0u };
+}
+
 std::string StripLicense( const std::string& shaderText ) {
 	const uint64_t start = shaderText.find( "/*" );
 
@@ -155,167 +328,207 @@ static uint32_t imageID  = 18;
 static std::unordered_map<std::string, std::string> buffers;
 static uint32_t bufferID = 0;
 
-void ProcessImagesBuffers( const std::string& shaderText ) {
-	std::string out;
-	std::istringstream shaderTextStream( StripLicense( shaderText ) );
+void SkipCPPIfDef( StringView& data ) {
+	StringView v    = data;
+	bool       skip = false;
 
-	std::string line;
+	do {
+		StringView o = Parse( v );
 
-	bool skip              = false;
-	bool pushConst         = false;
-	bool pushConstStart    = false;
-
-	while ( std::getline( shaderTextStream, line, '\n' ) ) {
-		if ( line.find( "#ifdef __cplusplus" ) != std::string::npos ) {
+		if ( o == "#ifdef __cplusplus" ) {
 			skip = true;
 			continue;
+		} else if ( !skip ) {
+			return;
 		}
 
-		if ( skip ) {
-			if ( line.find( "#endif" ) != std::string::npos ) {
-				skip = false;
-			}
+		if ( skip && "#endif" ) {
+			data = v;
+		}
+	} while ( v.size );
+}
 
+void SkipScope( StringView& data ) {
+	StringView v = data;
+	bool       skip = false;
+
+	do {
+		StringView o = Parse( v );
+
+		if ( o == "{" ) {
+			skip = true;
 			continue;
+		} else if ( !skip ) {
+			return;
 		}
 
-		enum Img {
-			IMG_NONE,
-			IMG_2D,
-			IMG_3D,
-			IMG_CUBE
-		};
-
-		Img      img       = IMG_NONE;
-		uint32_t imgOffset = 0;
-
-		if ( line.find( "Image2D" ) != std::string::npos ) {
-			img       = IMG_2D;
-			imgOffset = line.find_first_not_of( "Image2D" );
-		} else if ( line.find( "Image3D" ) != std::string::npos ) {
-			img       = IMG_3D;
-			imgOffset = line.find_first_not_of( "Image3D" );
-		} else if ( line.find( "ImageCube" ) != std::string::npos ) {
-			img       = IMG_CUBE;
-			imgOffset = line.find_first_not_of( "ImageCube" );
+		if ( skip && "}" ) {
+			data = v;
 		}
+	} while ( v.size );
+}
 
-		if ( img != IMG_NONE ) {
-			uint32_t    offset = line.find_last_of( " " ) + 1;
-			std::string name    = line.substr( offset, line.size() - offset - 1 );
+enum Img {
+	IMG_NONE,
+	IMG_2D,
+	IMG_3D,
+	IMG_CUBE
+};
 
-			if ( images.find( name ) != images.end() ) {
-				continue;
-			}
+void ParseImage( StringView& data, Img type ) {
+	StringView o = Parse( data );
 
-			offset  = imgOffset + 1;
-			std::string format  = line.substr( offset, line.find( " ", offset + 1 ) - offset );
+	std::string name { o.memory, o.size };
 
-			std::transform( format.begin(), format.end(), format.begin(), ::toupper );
+	if ( images.find( name ) != images.end() ) {
+		SkipScope( data );
 
-			std::string image   = std::to_string( imageID ) + ", " + format + ", ";
-
-			if ( line.find( "swapchain" ) != std::string::npos ) {
-				offset          = line.find( " ", offset + 10 ) + 1;
-
-				image          += line.substr( offset, line.find( " ", offset + 1 ) - offset ) + ", 0, 0, 0, ";
-			} else {
-				image          += "0.0f, ";
-
-				for ( int i = 0; i < ( img == IMG_2D ? 2 : 3 ); i++ ) {
-					offset      = line.find( " ", offset + 1 ) + 1;
-
-					image      += line.substr( offset, line.find( " ", offset + 1 ) - offset ) + ", ";
-				}
-
-				if ( img == IMG_2D ) {
-					image      += "0, ";
-				}
-			}
-
-			image              += line.find( "nomips" ) == std::string::npos ? "true, " : "false, ";
-
-			image              += img == IMG_CUBE ? "true" : "false";
-
-			images[name]        = { image, "images[" + std::to_string( imageID ) + "]" };
-
-			imageID++;
-
-			continue;
-		}
-
-		const uint64_t bufferOffset = line.find( "Buffer" );
-
-		if ( bufferOffset == line.find_first_not_of( " \t" ) && line.find( "{" ) == std::string::npos && line.find( ";" ) != std::string::npos ) {
-			uint64_t    offset = line.find_last_of( " " ) + 1;
-			std::string name   = line.substr( offset, line.size() - offset - 1 );
-
-			if ( buffers.find( name ) != buffers.end() ) {
-				continue;
-			}
-
-			offset = line.find( "Buffer resource" );
-
-			std::string buffer = std::to_string( bufferID ) + ", ";
-
-			if ( offset != std::string::npos ) {
-				offset += 16;
-
-				buffer += line.substr( offset, line.find( " ", offset ) - offset ) + ", 0, ";
-			} else {
-				offset = bufferOffset + 7;
-
-				buffer += "0.0f, ";
-
-				buffer += line.substr( offset, line.find( " ", offset ) - offset ) + ", ";
-			}
-
-			const uint64_t usageEnd = line.find_last_of( " " );
-
-			offset  = line.find( " ", offset ) + 1;
-
-			if ( usageEnd > offset ) {
-				buffer += line.substr( offset, usageEnd - offset );
-			} else {
-				buffer += "0";
-			}
-
-			buffers[name] = buffer;
-
-			bufferID++;
-		};
-
-		const std::string::size_type posInsert = line.find( "#insert" );
-		const std::string::size_type position  = posInsert == std::string::npos ? line.find( "#include" ) : posInsert;
-
-		if ( position == std::string::npos || line.find_first_not_of( " \t" ) != position ) {
-			out += line + "\n";
-			continue;
-		}
-
-		const bool useInsert = posInsert != std::string::npos;
-
-		std::string shaderInsertPath = line.substr(
-			position + ( useInsert ? 8 : 10 ),
-			( useInsert ? std::string::npos : line.size() - position - 11 ) );
-
-		if ( useInsert ) {
-			shaderInsertPath += ".glsl";
-		}
-
-		if ( shaderInsertPath == "Images.glsl" || shaderInsertPath == "Buffers.glsl" ) {
-			continue;
-		}
-
-		File glslSource { graphicsEnginePath + shaderInsertPath, graphicsSharedPath + shaderInsertPath, "r" };
-
-		std::string glslSrc = glslSource.ReadAll();
-
-		glslSrc.resize( strlen( glslSrc.c_str() ) );
-		glslSrc.shrink_to_fit();
-
-		ProcessImagesBuffers( glslSrc );
+		return;
 	}
+
+	o = Parse( data );
+
+	if ( o != "{" ) {
+		return;
+	}
+
+	o = Parse( data );
+
+	std::string format { o.memory, o.size };
+
+	std::transform( format.begin(), format.end(), format.begin(), ::toupper );
+
+	std::string image = std::to_string( imageID ) + ", " + format + ", ";
+
+	o = Parse( data );
+
+	if ( o == "rel" ) {
+		o = Parse( data );
+
+		image += std::string { o.memory, o.size } + ", 0, 0, 0, ";
+	} else {
+		image += "0.0f, " + std::string { o.memory, o.size } + ", ";
+
+		o = Parse( data );
+
+		image += std::string { o.memory, o.size } + ", ";
+
+		if ( type == IMG_2D ) {
+			image += "0, ";
+		} else {
+			o = Parse( data );
+
+			image += std::string { o.memory, o.size } + ", ";
+		}
+	}
+
+	o = Parse( data );
+
+	if ( o == "nomips" ) {
+		image += "false, ";
+	} else {
+		image += "true, ";
+	}
+
+	image += type == IMG_CUBE ? "true" : "false";
+
+	images[name] = { image, "images[" + std::to_string( imageID ) + "]" };
+
+	imageID++;
+}
+
+void ParseBuffer( StringView& data ) {
+	StringView o = Parse( data );
+
+	std::string name { o.memory, o.size };
+
+	if ( buffers.find( name ) != buffers.end() ) {
+		SkipScope( data );
+
+		return;
+	}
+
+	o = Parse( data );
+
+	if ( o != "{" ) {
+		return;
+	}
+
+	std::string buffer = std::to_string( bufferID ) + ", ";
+
+	o = Parse( data );
+
+	if ( o == "rel" ) {
+		o = Parse( data );
+
+		buffer += std::string { o.memory, o.size } + ", 0, ";
+	} else {
+		buffer += "0.0f, " + std::string { o.memory, o.size } + ", ";
+	}
+
+	o = Parse( data );
+
+	// usage
+	if ( o != "}" ) {
+		buffer += std::string { o.memory, o.size };
+	} else {
+		buffer += "0";
+	}
+
+	buffers[name] = buffer;
+
+	bufferID++;
+}
+
+void ProcessImagesBuffers( const std::string& shaderText ) {
+	StringView v { shaderText.c_str(), shaderText.size() };
+
+	do {
+		SkipCPPIfDef( v );
+
+		StringView o = Parse( v );
+
+		if ( o == "Image2D" ) {
+			ParseImage( v, IMG_2D );
+			continue;
+		} else if ( o == "Image3D" ) {
+			ParseImage( v, IMG_3D );
+			continue;
+		} else if ( o == "ImageCube" ) {
+			ParseImage( v, IMG_CUBE );
+			continue;
+		}
+
+		if ( o == "Buffer" ) {
+			ParseBuffer( v );
+			continue;
+		}
+
+		if ( o == "#" ) {
+			o = Parse( v );
+
+			if ( o == "include" || o == "insert" ) {
+				o = Parse( v );
+
+				if ( o == "Images.glsl" || o == "Buffers.glsl" ) {
+					continue;
+				}
+
+				File glslSource {
+					graphicsEnginePath + std::string { o.memory, o.size },
+					graphicsSharedPath + std::string { o.memory, o.size },
+					"r"
+				};
+
+				std::string glslSrc = glslSource.ReadAll();
+
+				glslSrc.resize( strlen( glslSrc.c_str() ) );
+				glslSrc.shrink_to_fit();
+
+				ProcessImagesBuffers( glslSrc );
+			}
+		}
+	} while ( v.size );
 }
 
 static std::unordered_set<std::string> inserts;
@@ -398,7 +611,7 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 		}
 
 		if ( line.find( "Buffer" ) == line.find_first_not_of( " \t" )
-			&& line.find( "{" ) == std::string::npos && line.find( ";" ) != std::string::npos ) {
+			&& line.find( ";" ) != std::string::npos ) {
 			continue;
 		}
 
