@@ -198,7 +198,7 @@ static void EnableAvailableFeatures()
 	glConfig.usingGeometryCache = glConfig.usingMaterialSystem && glConfig.geometryCacheAvailable;
 }
 
-// For shaders that require map data for compile-time values 
+// For shaders that require map data for compile-time values
 void GLSL_InitWorldShaders() {
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
@@ -326,7 +326,7 @@ static void GLSL_InitGPUShadersOrError()
 
 		gl_contrastShader->MarkProgramForBuilding();
 	}
-	
+
 	// portal process effect
 	gl_shaderManager.LoadShader( gl_portalShader );
 
@@ -1448,7 +1448,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 
 	// bind u_NormalMap
 	gl_heatHazeShader->SetUniform_NormalMapBindless(
-		GL_BindToTMU( 0, pStage->bundle[TB_NORMALMAP].image[0] ) 
+		GL_BindToTMU( 0, pStage->bundle[TB_NORMALMAP].image[0] )
 	);
 
 	if ( pStage->enableNormalMapping )
@@ -1464,7 +1464,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 
 	// bind u_CurrentMap
 	gl_heatHazeShader->SetUniform_CurrentMapBindless(
-		GL_BindToTMU( 1, tr.currentRenderImage[backEnd.currentMainFBO] ) 
+		GL_BindToTMU( 1, tr.currentRenderImage[backEnd.currentMainFBO] )
 	);
 
 	gl_heatHazeShader->SetRequiredVertexPointers();
@@ -1474,7 +1474,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 	// copy to foreground image
 	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
 	gl_heatHazeShader->SetUniform_CurrentMapBindless(
-		GL_BindToTMU( 1, tr.currentRenderImage[1 - backEnd.currentMainFBO] ) 
+		GL_BindToTMU( 1, tr.currentRenderImage[1 - backEnd.currentMainFBO] )
 	);
 	gl_heatHazeShader->SetUniform_DeformMagnitude( 0.0f );
 	Tess_DrawElements();
