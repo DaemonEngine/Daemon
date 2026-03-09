@@ -985,7 +985,7 @@ void GLShaderManager::BuildShaderProgram( ShaderProgramDescriptor* descriptor ) 
 	glGetProgramiv( program, GL_LINK_STATUS, &linked );
 
 	if ( !linked ) {
-		Log::Warn( "Link log:" );
+		Log::Warn( "Link log for %s:", descriptor->mainShader );
 		Log::Warn( GetInfoLog( program ) );
 		ThrowShaderError( "Shader program failed to link!" );
 	}
