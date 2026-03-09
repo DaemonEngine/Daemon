@@ -59,6 +59,8 @@ void	main()
 
 	vec4 color = texture2D(u_ColorMap, var_TexCoords);
 
+	color *= var_Color;
+
 	if( abs(color.a + u_AlphaThreshold) <= 1.0 )
 	{
 		discard;
@@ -77,8 +79,6 @@ void	main()
 	// fade curve will be different depending on the distance to the viewer and znear/zfar
 	color.a *= smoothstep(gl_FragCoord.z, fadeDepth, depth);
 #endif
-
-	color *= var_Color;
 	
 	SHADER_PROFILER_SET( color )
 

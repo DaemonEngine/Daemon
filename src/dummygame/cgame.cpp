@@ -80,7 +80,7 @@ void VM::VMHandleSyscall(uint32_t id, Util::Reader reader) {
 			break;
 
 		case CG_ROCKET_VM_INIT:
-			IPC::HandleMsg<CGameRocketInitMsg>(VM::rootChannel, std::move(reader), [] (const glconfig_t& gl) {
+			IPC::HandleMsg<CGameRocketInitMsg>(VM::rootChannel, std::move(reader), [] (const WindowConfig& gl) {
 				refdef.width = gl.vidWidth;
 				refdef.height = gl.vidHeight;
 			});

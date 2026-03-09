@@ -494,7 +494,7 @@ static void SVC_Status( const netadr_t& from, const Cmd::Args& args )
 
 		if ( cl->state >= clientState_t::CS_CONNECTED )
 		{
-			OpaquePlayerState* ps = SV_GameClientNum( i );
+			const OpaquePlayerState* ps = SV_GameClientNum( i );
 			status +=  Str::Format( "%i %i \"%s\"\n", ps->persistant[ PERS_SCORE ], cl->ping, cl->name );
 		}
 	}
@@ -596,6 +596,10 @@ static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 	}
 
 	info_map["gamename"] = GAMENAME_STRING;  // Arnout: to be able to filter out Quake servers
+	info_map["abi"] = IPC::SYSCALL_ABI_VERSION;
+	// Add the engine version. But is that really what we want? Probably the gamelogic version would
+	// be more interesting to players. Oh well, it's what's available for now.
+	info_map["daemonver"] = ENGINE_VERSION;
 
 	Net::OutOfBandPrint( netsrc_t::NS_SERVER, from, "infoResponse\n%s", InfoMapToString( info_map ) );
 }
@@ -1208,10 +1212,6 @@ void SV_CalcPings()
 				cl->ping = 999;
 			}
 		}
-
-		// let the game module know about the ping
-		OpaquePlayerState* ps = SV_GameClientNum( i );
-		ps->ping = cl->ping;
 	}
 }
 

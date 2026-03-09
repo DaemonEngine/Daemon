@@ -2683,8 +2683,6 @@ of OpenGL
 */
 bool GLimp_Init()
 {
-	glConfig.driverType = glDriverType_t::GLDRV_OPENGL3;
-
 	r_sdlDriver = Cvar_Get( "r_sdlDriver", "", CVAR_ROM );
 	r_allowResize = Cvar_Get( "r_allowResize", "0", CVAR_LATCH );
 	r_displayIndex = Cvar_Get( "r_displayIndex", "0", 0 );

@@ -328,7 +328,7 @@ public:
 					connection = "ERROR";
 				}
 			}
-			OpaquePlayerState* ps = SV_GameClientNum( i );
+			const OpaquePlayerState* ps = SV_GameClientNum( i );
 
 			const char *address = NET_AdrToString( cl.netchan.remoteAddress );
 

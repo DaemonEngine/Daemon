@@ -43,7 +43,6 @@ extern IPC::CommandBufferClient cmdBuffer;
 
 void            trap_SendClientCommand( const char *s );
 void            trap_UpdateScreen();
-int             trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projection, int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
 
 void trap_CM_BatchMarkFragments(
 	unsigned maxPoints,
@@ -54,8 +53,8 @@ void trap_CM_BatchMarkFragments(
 void            trap_S_StartSound( vec3_t origin, int entityNum, soundChannel_t entchannel, sfxHandle_t sfx );
 void            trap_S_StartLocalSound( sfxHandle_t sfx, soundChannel_t channelNum );
 void            trap_S_ClearLoopingSounds( bool killall );
-void            trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx );
-void            trap_S_AddRealLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx );
+void            trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx,
+                                        bool persistent = false );
 void            trap_S_StopLoopingSound( int entityNum );
 void            trap_S_UpdateEntityPosition( int entityNum, const vec3_t origin );
 void            trap_S_Respatialize( int entityNum, const vec3_t origin, vec3_t axis[ 3 ], int inwater );
@@ -69,8 +68,7 @@ void            trap_R_ClearScene();
 void            trap_R_AddRefEntityToScene( const refEntity_t *re );
 void            trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 void            trap_R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
-void            trap_R_AddLightToScene( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags );
-void            trap_R_AddAdditiveLightToScene( const vec3_t org, float intensity, float r, float g, float b );
+void            trap_R_AddLightToScene( const vec3_t origin, float radius, float intensity, float r, float g, float b, int flags );
 void            trap_R_Add2dPolysIndexedToScene( const polyVert_t *polys, int numVerts, const int *indexes, int numIndexes, int trans_x, int trans_y, qhandle_t shader );
 void            trap_R_SetMatrixTransform( const matrix_t matrix );
 void            trap_R_ResetMatrixTransform();
@@ -101,17 +99,13 @@ std::vector<bool> trap_Key_KeysDown( const std::vector<Keyboard::Key>& keys );
 void            trap_SetMouseMode( MouseMode mode );
 void            trap_S_StopBackgroundTrack();
 void            trap_R_RemapShader( const char *oldShader, const char *newShader, const char *timeOffset );
-bool        trap_GetEntityToken( char *buffer, int bufferSize );
 std::vector<std::vector<Keyboard::Key>> trap_Key_GetKeysForBinds(int team, const std::vector<std::string>& binds);
 int             trap_Key_GetCharForScancode( int scancode );
-bool        trap_R_inPVS( const vec3_t p1, const vec3_t p2 );
 
 std::vector<bool> trap_R_BatchInPVS(
 	const vec3_t origin,
 	const std::vector<std::array<float, 3>>& posEntities );
 
-bool        trap_R_inPVVS( const vec3_t p1, const vec3_t p2 );
-int             trap_R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
 qhandle_t       trap_R_RegisterAnimation( const char *name );
 int             trap_R_BuildSkeleton( refSkeleton_t *skel, qhandle_t anim, int startFrame, int endFrame, float frac, bool clearOrigin );
 int             trap_R_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float frac );
@@ -119,7 +113,6 @@ int             trap_R_BoneIndex( qhandle_t hModel, const char *boneName );
 int             trap_R_AnimNumFrames( qhandle_t hAnim );
 int             trap_R_AnimFrameRate( qhandle_t hAnim );
 void            trap_RegisterButtonCommands( const char *cmds );
-void            trap_QuoteString( const char *, char*, int );
 void            trap_notify_onTeamChange( int newTeam );
 qhandle_t       trap_RegisterVisTest();
 void            trap_AddVisTestToScene( qhandle_t hTest, const vec3_t pos,
@@ -130,7 +123,7 @@ void            trap_SetColorGrading( int slot, qhandle_t hShader );
 void            trap_R_ScissorEnable( bool enable );
 void            trap_R_ScissorSet( int x, int y, int w, int h );
 int             trap_LAN_GetServerCount( int source );
-void            trap_LAN_GetServerInfo( int source, int n, char *buf, int buflen );
+void            trap_LAN_GetServerInfo( int source, int n, trustedServerInfo_t &trustedInfo, std::string &info );
 int             trap_LAN_GetServerPing( int source, int n );
 void            trap_LAN_MarkServerVisible( int source, int n, bool visible );
 int             trap_LAN_ServerIsVisible( int source, int n );
@@ -144,7 +137,7 @@ void            trap_R_SetAltShaderTokens( const char * );
 void            trap_S_UpdateEntityVelocity( int entityNum, const vec3_t velocity );
 void trap_S_UpdateEntityPositionVelocity( int entityNum, const vec3_t position, const vec3_t velocity );
 void            trap_S_SetReverb( int slotNum, const char* presetName, float ratio );
-void            trap_S_BeginRegistration();
+void            trap_S_BeginRegistration( const int playerNum );
 void            trap_S_EndRegistration();
 
 #endif

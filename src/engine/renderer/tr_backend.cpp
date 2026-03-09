@@ -1682,7 +1682,7 @@ void RB_CameraPostFX() {
 	gl_cameraEffectsShader->SetUniform_InverseGamma( 1.0 / r_gamma->value );
 
 	gl_cameraEffectsShader->SetUniform_SRGB( tr.worldLinearizeTexture );
-	gl_cameraEffectsShader->SetUniform_Exposure( r_toneMappingExposure.Get() );
+	gl_cameraEffectsShader->SetUniform_Exposure( r_exposure.Get() );
 
 	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig.textureFloatAvailable;
 	if ( tonemap ) {
@@ -2223,14 +2223,19 @@ static void RB_RenderDebugUtils()
 					int gridIndex = x + tr.world->lightGridBounds[ 0 ] * ( y + tr.world->lightGridBounds[ 1 ] * z );
 					const bspGridPoint1_t *gp1 = tr.world->lightGridData1 + gridIndex;
 					const bspGridPoint2_t *gp2 = tr.world->lightGridData2 + gridIndex;
-					Color::Color generalColor = Color::Adapt( gp1->color );
-					float ambientScale = 2.0f * unorm8ToFloat( gp1->ambientPart );
-					float directedScale = 2.0f - ambientScale;
-					Color::Color ambientColor = generalColor * ambientScale;
-					Color::Color directedColor = generalColor * directedScale;
 					lightDir[ 0 ] = snorm8ToFloat( gp2->direction[ 0 ] - 128 );
 					lightDir[ 1 ] = snorm8ToFloat( gp2->direction[ 1 ] - 128 );
 					lightDir[ 2 ] = snorm8ToFloat( gp2->direction[ 2 ] - 128 );
+					Color::Color totalColor = Color::Adapt( gp1->color );
+					totalColor *= 1.0f + tr.lightGridAverageCosine;
+					float total1Norm = totalColor.Red() + totalColor.Green() + totalColor.Blue();
+					float directed1Norm = 3.0f * VectorLength( lightDir );
+					float directedFraction = ( tr.lightGridAverageCosine * directed1Norm ) / total1Norm;
+					float directedScale = directedFraction / tr.lightGridAverageCosine;
+					float ambientScale = 1.0 - directedFraction;
+					Color::Color ambientColor = totalColor * ambientScale;
+					Color::Color directedColor = totalColor * directedScale;
+					VectorNormalize( lightDir );
 
 					VectorNegate( lightDir, lightDir );
 
@@ -2830,7 +2835,7 @@ static void RB_RenderPostProcess()
 
 static void SetFrameUniforms() {
 	// This can happen with glsl_restart/vid_restart in R_SyncRenderThread()
-	if ( !stagingBuffer.Active() ) {
+	if ( !stagingBuffer.Active() || globalUBOProxy == nullptr ) {
 		return;
 	}
 
@@ -2841,7 +2846,7 @@ static void SetFrameUniforms() {
 
 	globalUBOProxy->SetUniform_ColorModulate( tr.viewParms.gradingWeights );
 	globalUBOProxy->SetUniform_InverseGamma( 1.0f / r_gamma->value );
-	globalUBOProxy->SetUniform_Exposure( r_toneMappingExposure.Get() );
+	globalUBOProxy->SetUniform_Exposure( r_exposure.Get() );
 
 	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig.textureFloatAvailable;
 	if ( tonemap ) {
@@ -3405,18 +3410,18 @@ const RenderCommand *GradientPicCommand::ExecuteSelf( ) const
 RB_SetupLights
 =============
 */
-const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
+const RenderCommand *SetupLightsCommand::ExecuteSelf() const
 {
-	int numLights;
 	GLenum bufferTarget = glConfig.uniformBufferObjectAvailable ? GL_UNIFORM_BUFFER : GL_PIXEL_UNPACK_BUFFER;
 
 	GLIMP_LOGCOMMENT( "--- SetupLightsCommand::ExecuteSelf ---" );
 
-	if( (numLights = refdef.numLights) > 0 ) {
+	const int numLights = refdef.numLights;
+	if( numLights ) {
 		shaderLight_t *buffer;
 
 		glBindBuffer( bufferTarget, tr.dlightUBO );
-		buffer = (shaderLight_t *)glMapBufferRange( bufferTarget,
+		buffer = (shaderLight_t *) glMapBufferRange( bufferTarget,
 							    0, numLights * sizeof( shaderLight_t ),
 							    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
 
@@ -3425,20 +3430,19 @@ const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 
 			VectorCopy( light->origin, buffer[i].center );
 			buffer[i].radius = light->radius;
-			VectorScale( light->color, 4.0f * light->scale, buffer[i].color );
+			VectorCopy( light->color, buffer[i].color );
+
 			buffer[i].type = Util::ordinal( light->rlType );
 			switch( light->rlType ) {
-			case refLightType_t::RL_PROJ:
-				VectorCopy( light->projTarget,
-					    buffer[i].direction );
-				buffer[i].angle = cosf( atan2f( VectorLength( light->projUp), VectorLength( light->projTarget ) ) );
-				break;
-			case refLightType_t::RL_DIRECTIONAL:
-				VectorCopy( light->projTarget,
-					    buffer[i].direction );
-				break;
-			default:
-				break;
+				case refLightType_t::RL_PROJ:
+					VectorCopy( light->projTarget, buffer[i].direction );
+					buffer[i].angle = cosf( atan2f( VectorLength( light->projUp), VectorLength( light->projTarget ) ) );
+					break;
+				case refLightType_t::RL_DIRECTIONAL:
+					VectorCopy( light->projTarget, buffer[i].direction );
+					break;
+				default:
+					break;
 			}
 		}
 

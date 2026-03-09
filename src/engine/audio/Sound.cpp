@@ -49,8 +49,6 @@ namespace Audio {
     static sourceRecord_t* sources = nullptr;
     static CONSTEXPR int nSources = 128; //TODO see what's the limit for OpenAL soft
 
-    sourceRecord_t* GetSource(int priority);
-
     static bool initialized = false;
 
     void InitSounds() {
@@ -85,18 +83,18 @@ namespace Audio {
 
         for (int i = 0; i < nSources; i++) {
             if (sources[i].active) {
-                auto sound = sources[i].usingSound;
+                std::shared_ptr<Sound> sound = sources[i].usingSound;
 
                 // Update and Emitter::UpdateSound can call Sound::Stop
-                if (not sound->IsStopped()) {
+                if ( sound->playing ) {
                     sound->Update();
                 }
 
-                if (not sound->IsStopped()) {
-                    sound->GetEmitter()->UpdateSound(*sound);
+                if ( sound->playing ) {
+                    sound->emitter->UpdateSound(*sound);
                 }
 
-                if (sound->IsStopped()) {
+                if ( !sound->playing ) {
                     sources[i].active = false;
                     sources[i].usingSound = nullptr;
                 }
@@ -116,34 +114,40 @@ namespace Audio {
         }
     }
 
-    void AddSound(std::shared_ptr<Emitter> emitter, std::shared_ptr<Sound> sound, int priority) {
-        if (not initialized) {
-            return;
+    static Cvar::Range<Cvar::Cvar<int>> a_clientSoundPriorityMaxDistance( "a_clientSoundPriorityMaxDistance",
+        "Sounds emitted by players/bots within this distance (in qu) will have higher priority than other sounds"
+        " (multiplier: a_clientSoundPriorityMultiplier)", Cvar::NONE, 32 * 32, 0, BIT( 16 ) );
+
+    static Cvar::Range<Cvar::Cvar<float>> a_clientSoundPriorityMultiplier( "a_clientSoundPriorityMultiplier",
+        "Sounds emitted by players/bots within a_clientSoundPriorityMaxDistance"
+        " will use this value as their priority multiplier",
+        Cvar::NONE, 2.0f, 0.0f, 1024.0f );
+
+    static float GetAdjustedVolumeForPosition( const Vec3& origin, const Vec3& src, const bool isClient ) {
+        vec3_t v0 { origin.Data()[0], origin.Data()[1], origin.Data()[2] };
+        vec3_t v1 { src.Data()[0], src.Data()[1], src.Data()[2] };
+
+        float totalPriority = VectorDistanceSquared( v0, v1 );
+
+        const float distanceThreshold = a_clientSoundPriorityMaxDistance.Get();
+        if ( isClient && totalPriority < distanceThreshold * distanceThreshold ) {
+            totalPriority *= 1.0f / a_clientSoundPriorityMultiplier.Get();
         }
 
-        sourceRecord_t* source = GetSource(priority);
-
-        if (source) {
-            // Make the source forget if it was a "static" or a "streaming" source.
-            source->source.ResetBuffer();
-            sound->SetEmitter(emitter);
-            sound->AcquireSource(source->source);
-            source->usingSound = sound;
-            source->priority = priority;
-            source->active = true;
-
-            sound->FinishSetup();
-            sound->Play();
-        }
+       return 1.0f / totalPriority;
     }
 
     // Finds a inactive or low-priority source to play a new sound.
-    sourceRecord_t* GetSource(int priority) {
-        //TODO make a better heuristic? (take into account the distance / the volume /... ?)
+    static sourceRecord_t* GetSource( const Vec3& position, int priority, const float currentGain ) {
         int best = -1;
-        int bestPriority = priority;
 
-        // Gets the minimum sound by comparing activity first then priority
+        const Vec3& playerPos = entities[playerClientNum].position;
+
+        // Sound volume is inversely proportional to distance to the source
+        const float adjustedVolume = Q_rsqrt_fast( currentGain )
+            * GetAdjustedVolumeForPosition( playerPos, position, priority == CLIENT );
+
+        // Gets the minimum sound by comparing activity first, then the adjusted volume
         for (int i = 0; i < nSources; i++) {
             sourceRecord_t& source = sources[i];
 
@@ -151,9 +155,14 @@ namespace Audio {
                 return &source;
             }
 
-            if (source.priority < bestPriority || (best < 0 && source.priority <= priority)) {
+            const Vec3& sourcePos = source.usingSound->emitter->GetPosition();
+
+            // Sound volume is inversely proportional to distance to the source
+            const float adjustedSourceVolume = Q_rsqrt_fast( source.usingSound->currentGain )
+                * GetAdjustedVolumeForPosition( playerPos, sourcePos, source.priority == CLIENT );
+
+            if ( adjustedVolume > adjustedSourceVolume ) {
                 best = i;
-                bestPriority = source.priority;
                 continue;
             }
         }
@@ -168,6 +177,30 @@ namespace Audio {
             return &source;
         } else {
             return nullptr;
+        }
+    }
+
+    void AddSound( std::shared_ptr<Emitter> emitter, std::shared_ptr<Sound> sound, int priority ) {
+        if ( not initialized ) {
+            return;
+        }
+
+        const Vec3& position = emitter->GetPosition();
+        const float currentGain = sound->positionalGain * sound->soundGain
+            * SliderToAmplitude( sound->volumeModifier->Get() );
+        sourceRecord_t* source = GetSource( position, priority, currentGain );
+
+        if ( source ) {
+            // Make the source forget if it was a "static" or a "streaming" source.
+            source->source.ResetBuffer();
+            sound->emitter = emitter;
+            sound->AcquireSource( source->source );
+            source->usingSound = sound;
+            source->priority = priority;
+            source->active = true;
+
+            sound->FinishSetup();
+            sound->Play();
         }
     }
 
@@ -188,40 +221,6 @@ namespace Audio {
         playing = false;
     }
 
-    bool Sound::IsStopped() {
-        return not playing;
-    }
-
-    void Sound::SetPositionalGain(float gain) {
-        positionalGain = gain;
-    }
-
-    void Sound::SetSoundGain(float gain) {
-        soundGain = gain;
-    }
-
-    float Sound::GetCurrentGain() {
-        return currentGain;
-    }
-
-    void Sound::SetVolumeModifier(const Cvar::Range<Cvar::Cvar<float>>& volumeMod)
-    {
-        this->volumeModifier = &volumeMod;
-    }
-
-    float Sound::GetVolumeModifier() const
-    {
-        return volumeModifier->Get();
-    }
-
-    void Sound::SetEmitter(std::shared_ptr<Emitter> emitter) {
-        this->emitter = emitter;
-    }
-
-    std::shared_ptr<Emitter> Sound::GetEmitter() {
-        return emitter;
-    }
-
     void Sound::AcquireSource(AL::Source& source) {
         this->source = &source;
 
@@ -231,19 +230,15 @@ namespace Audio {
         emitter->SetupSound(*this);
     }
 
-    AL::Source& Sound::GetSource() {
-        return *source;
-    }
-
     // Set the gain before the source is started to avoid having a few milliseconds of very loud sound
     void Sound::FinishSetup() {
-        currentGain = positionalGain * soundGain * SliderToAmplitude(GetVolumeModifier());
+        currentGain = positionalGain * soundGain * SliderToAmplitude(volumeModifier->Get());
         source->SetGain(currentGain);
     }
 
     void Sound::Update() {
         // Fade the Gain update to avoid "ticking" sounds when there is a gain discontinuity
-        float targetGain = positionalGain * soundGain * SliderToAmplitude(GetVolumeModifier());
+        float targetGain = positionalGain * soundGain * SliderToAmplitude(volumeModifier->Get());
 
         //TODO make it framerate independent and fade out in about 1/8 seconds ?
         if (currentGain > targetGain) {
@@ -267,15 +262,15 @@ namespace Audio {
 
     void OneShotSound::SetupSource(AL::Source& source) {
         source.SetBuffer(sample->GetBuffer());
-        SetSoundGain(GetVolumeModifier());
+        soundGain = volumeModifier->Get();
     }
 
     void OneShotSound::InternalUpdate() {
-        if (GetSource().IsStopped()) {
+        if ( source->IsStopped() ) {
             Stop();
             return;
         }
-        SetSoundGain(GetVolumeModifier());
+        soundGain = volumeModifier->Get();
     }
 
     // Implementation of LoopingSound
@@ -289,7 +284,7 @@ namespace Audio {
 
     void LoopingSound::FadeOutAndDie() {
         fadingOut = true;
-        SetSoundGain(0.0f);
+        soundGain = 0.0f;
     }
 
     void LoopingSound::SetupSource(AL::Source& source) {
@@ -298,23 +293,23 @@ namespace Audio {
         } else {
             SetupLoopingSound(source);
         }
-        SetSoundGain(GetVolumeModifier());
+        soundGain = volumeModifier->Get();
     }
 
     void LoopingSound::InternalUpdate() {
-        if (fadingOut and GetCurrentGain() == 0.0f) {
+        if (fadingOut and currentGain == 0.0f) {
             Stop();
         }
 
         if (not fadingOut) {
             if (leadingSample) {
-                if (GetSource().IsStopped()) {
-                    SetupLoopingSound(GetSource());
-                    GetSource().Play();
+                if ( source->IsStopped() ) {
+                    SetupLoopingSound( *source );
+                    source->Play();
                     leadingSample = nullptr;
                 }
             }
-            SetSoundGain(GetVolumeModifier());
+            soundGain = volumeModifier->Get();
         }
     }
 
@@ -335,32 +330,25 @@ namespace Audio {
     }
 
     void StreamingSound::InternalUpdate() {
-        AL::Source& source = GetSource();
-
-        while (source.GetNumProcessedBuffers() > 0) {
-            source.PopBuffer();
+        while ( source->GetNumProcessedBuffers() > 0 ) {
+            source->PopBuffer();
         }
 
-        if (source.GetNumQueuedBuffers() == 0) {
+        if ( source->GetNumQueuedBuffers() == 0 ) {
             Stop();
         }
     }
 
     //TODO somehow try to catch back when data is coming faster than we consume (e.g. capture data)
     void StreamingSound::AppendBuffer(AL::Buffer buffer) {
-        if (IsStopped()) {
+        if ( !playing ) {
             return;
         }
 
-        AL::Source& source = GetSource();
-        source.QueueBuffer(std::move(buffer));
+        source->QueueBuffer(std::move(buffer));
 
-        if (source.IsStopped()) {
-            source.Play();
+        if ( source->IsStopped() ) {
+            source->Play();
         }
-    }
-
-    void StreamingSound::SetGain(float gain) {
-        SetSoundGain(gain);
     }
 }

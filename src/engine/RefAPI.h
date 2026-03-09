@@ -45,12 +45,6 @@ Maryland 20850 USA.
 
 extern Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen;
 
-struct WindowConfig {
-	float displayAspect;
-	int displayWidth, displayHeight; // the entire monitor (the one indicated by displayIndex)
-	int vidWidth, vidHeight; // what the game is using
-};
-
 // font support
 struct glyphInfo_t
 {
@@ -120,13 +114,10 @@ struct refexport_t {
 	void ( *ClearScene )( );
 	void ( *AddRefEntityToScene )( const refEntity_t* re );
 
-	int ( *LightForPoint )( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
-
 	void ( *AddPolyToScene )( qhandle_t hShader, int numVerts, const polyVert_t* verts );
 	void ( *AddPolysToScene )( qhandle_t hShader, int numVerts, const polyVert_t* verts, int numPolys );
 
-	void ( *AddLightToScene )( const vec3_t org, float radius, float intensity, float r, float g, float b,
-		qhandle_t hShader, int flags );
+	void ( *AddLightToScene )( const vec3_t org, float radius, float r, float g, float b, int flags );
 
 	void ( *AddAdditiveLightToScene )( const vec3_t org, float intensity, float r, float g, float b );
 
@@ -152,8 +143,6 @@ struct refexport_t {
 	void ( *ModelBounds )( qhandle_t model, vec3_t mins, vec3_t maxs );
 
 	void ( *RemapShader )( const char* oldShader, const char* newShader, const char* offsetTime );
-
-	bool( *GetEntityToken )( char* buffer, int size );
 
 	bool( *inPVS )( const vec3_t p1, const vec3_t p2 );
 	bool( *inPVVS )( const vec3_t p1, const vec3_t p2 );

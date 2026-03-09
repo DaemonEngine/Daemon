@@ -49,7 +49,7 @@ using bool8_t = uint8_t;
 
 // XreaL BEGIN
 #define MAX_REF_LIGHTS     1024
-#define MAX_REF_ENTITIES   1023 // can't be increased without changing drawsurf bit packing
+#define MAX_REF_ENTITIES   8191 // can't be increased without changing drawsurf bit packing
 #define MAX_BONES          256
 #define MAX_WEIGHTS        4 // GPU vertex skinning limit, never change this without rewriting many GLSL shaders
 // XreaL END
@@ -57,36 +57,20 @@ using bool8_t = uint8_t;
 #define MAX_ENTITIES       MAX_REF_ENTITIES // RB: for compatibility
 
 // renderfx flags
-#define RF_MINLIGHT        0x000001 // always have some light (viewmodel, some items)
 #define RF_THIRD_PERSON    0x000002 // don't draw through eyes, only mirrors (player bodies, chat sprites)
 #define RF_FIRST_PERSON    0x000004 // only draw through eyes (view weapon, damage blood blob)
 #define RF_DEPTHHACK       0x000008 // for view weapon Z crunching
 #define RF_NOSHADOW        0x000010 // don't add stencil shadows
 
-#define RF_LIGHTING_ORIGIN 0x000020 // use refEntity->lightingOrigin instead of refEntity->origin
-// for lighting.  This allows entities to sink into the floor
-// with their origin going solid, and allows all parts of a
-// player to get the same lighting
-#define RF_WRAP_FRAMES   0x000080 // mod the model frames by the maxframes to allow continuous
-// animation without needing to know the frame count
-#define RF_FORCENOLOD    0x000400
-#define RF_SWAPCULL      0x000800 // swap CT_FRONT_SIDED and CT_BACK_SIDED
+#define RF_SWAPCULL      0x000040 // swap CT_FRONT_SIDED and CT_BACK_SIDED
 
 // refdef flags
 #define RDF_NOWORLDMODEL ( 1 << 0 ) // used for player configuration screen
-#define RDF_NOSHADOWS    ( 1 << 1 ) // force renderer to use faster lighting only path
-#define RDF_HYPERSPACE   ( 1 << 2 ) // teleportation effect
-
-// Rafael
-#define RDF_SKYBOXPORTAL ( 1 << 3 )
-
-//----(SA)
-#define RDF_UNDERWATER   ( 1 << 4 ) // so the renderer knows to use underwater fog when the player is underwater
-#define RDF_DRAWINGSKY   ( 1 << 5 )
+#define RDF_HYPERSPACE   ( 1 << 1 ) // teleportation effect
 
 // XreaL BEGIN
-#define RDF_NOCUBEMAP    ( 1 << 7 ) // RB: don't use cubemaps
-#define RDF_NOBLOOM      ( 1 << 8 ) // RB: disable bloom. useful for HUD models
+#define RDF_NOCUBEMAP    ( 1 << 3 ) // RB: don't use cubemaps
+#define RDF_NOBLOOM      ( 1 << 4 ) // RB: disable bloom. useful for HUD models
 // XreaL END
 
 #define MAX_ALTSHADERS   64 // alternative shaders ('when <condition> <shader>') – selection controlled from cgame
@@ -96,13 +80,15 @@ using glIndex_t = unsigned int;
 
 // "[implicit only]" means the flag only has effect if there is no shader text and the
 // shader was auto-generated from an image.
-// TODO(0.56): drop RSF_LIGHT_ATTENUATION, RSF_NOLIGHTSCALE
 enum RegisterShaderFlags_t {
 	// nothing
-	RSF_DEFAULT = BIT( 0 ),
+	RSF_DEFAULT = 0,
 
 	// [implicit only] alter filter and wrap type
-	RSF_2D = BIT( 1 ),
+	RSF_2D = BIT( 0 ),
+
+	// [implicit only] enable lightmapping, front-side culling, disable (non-BSP) vertex colors, disable blending
+	RSF_3D = BIT( 1 ),
 
 	// load images without mipmaps
 	RSF_NOMIP = BIT( 2 ),
@@ -110,14 +96,14 @@ enum RegisterShaderFlags_t {
 	// mip images to the screen size when they are larger than the screen
 	RSF_FITSCREEN = BIT( 3 ),
 
-	// nothing
-	RSF_LIGHT_ATTENUATION = BIT( 4 ),
-
-	// nothing
-	RSF_NOLIGHTSCALE = BIT( 5 ),
+	// used to make particles/trails work with the lightGrid in GLSL
+	RSF_FORCE_LIGHTMAP = BIT( 5 ),
 
 	// when the shader is used on an entity sprite, face view direction instead of viewer
 	RSF_SPRITE = BIT( 6 ),
+
+	// Probably not useful for cgame. Signals that vertex colors are light values
+	RSF_BSP = BIT ( 30 ),
 };
 
 struct polyVert_t
@@ -190,8 +176,6 @@ struct refEntity_t
 	qhandle_t       hModel; // opaque type outside refresh
 
 	// most recent data
-	vec3_t    lightingOrigin; // so multi-part models can be lit identically (RF_LIGHTING_ORIGIN)
-
 	vec3_t    axis[ 3 ]; // rotation vectors
 	bool8_t  nonNormalizedAxes; // axis are not normalized, i.e. they have scale
 	vec3_t    origin;
@@ -266,15 +250,6 @@ enum class textureCompression_t
   TC_EXT_COMP_S3TC
 };
 
-// TODO(0.56): remove.
-enum class glDriverType_t
-{
-  GLDRV_UNKNOWN = -1,
-  GLDRV_ICD,
-  GLDRV_STANDALONE,
-  GLDRV_OPENGL3,
-};
-
 // Keep the list in sdl_glimp.c:reportHardwareType in sync with this
 enum class glHardwareType_t
 {
@@ -288,30 +263,13 @@ enum class glHardwareType_t
 
 /**
  * Contains variables specific to the OpenGL configuration
- * being run right now.  These are constant once the OpenGL
+ * being run right now. These are constant once the OpenGL
  * subsystem is initialized.
  */
-struct glconfig_t
-{
-	char                 renderer_string[ MAX_STRING_CHARS ];
-	char                 vendor_string[ MAX_STRING_CHARS ];
-	char                 version_string[ MAX_STRING_CHARS ];
-
-	int                  maxTextureSize; // queried from GL
-
-	int colorBits;
-
-	glDriverType_t       driverType;
-	glHardwareType_t     hardwareType;
-
-	textureCompression_t textureCompression;
-
-	int displayIndex;
+struct WindowConfig {
 	float displayAspect;
 	int displayWidth, displayHeight; // the entire monitor (the one indicated by displayIndex)
 	int vidWidth, vidHeight; // what the game is using
-
-	bool8_t smpActive; // dual processor
 };
 
 #pragma pop_macro("bool")

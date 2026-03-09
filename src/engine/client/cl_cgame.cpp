@@ -395,12 +395,9 @@ static int LAN_GetServerCount( int source )
  * LAN_GetServerInfo
  * ====================
  */
-static void LAN_GetServerInfo( int source, int n, char *buf, int buflen )
+static void LAN_GetServerInfo( int source, int n, trustedServerInfo_t &trustedInfo, std::string &info )
 {
-	char         info[ MAX_STRING_CHARS ];
 	serverInfo_t *server = nullptr;
-
-	info[ 0 ] = '\0';
 
 	switch ( source )
 	{
@@ -421,32 +418,17 @@ static void LAN_GetServerInfo( int source, int n, char *buf, int buflen )
 			break;
 	}
 
-	if ( server && buf )
+	if ( server )
 	{
-		buf[ 0 ] = '\0';
-		Info_SetValueForKey( info, "hostname", server->hostName, false );
-		Info_SetValueForKey( info, "serverload", va( "%i", server->load ), false );
-		Info_SetValueForKey( info, "mapname", server->mapName, false );
-		Info_SetValueForKey( info, "label", server->label, false );
-		Info_SetValueForKey( info, "clients", va( "%i", server->clients ), false );
-		Info_SetValueForKey( info, "bots", va( "%i", server->bots ), false );
-		Info_SetValueForKey( info, "sv_maxclients", va( "%i", server->maxClients ), false );
-		Info_SetValueForKey( info, "ping", va( "%i", server->ping ), false );
-		Info_SetValueForKey( info, "minping", va( "%i", server->minPing ), false );
-		Info_SetValueForKey( info, "maxping", va( "%i", server->maxPing ), false );
-		Info_SetValueForKey( info, "game", server->game, false );
-		Info_SetValueForKey( info, "nettype", Util::enum_str(server->netType), false );
-		Info_SetValueForKey( info, "addr", Net::AddressToString( server->adr, true ).c_str(), false );
-		Info_SetValueForKey( info, "needpass", va( "%i", server->needpass ), false );   // NERVE - SMF
-		Info_SetValueForKey( info, "gamename", server->gameName, false );  // Arnout
-		Q_strncpyz( buf, info, buflen );
+		trustedInfo.responseProto = server->responseProto;
+		Q_strncpyz( trustedInfo.addr, Net::AddressToString( server->adr, true ).c_str(), sizeof( trustedInfo.addr ) );
+		Q_strncpyz( trustedInfo.featuredLabel, server->label, sizeof( trustedInfo.featuredLabel ) );
+		info = server->infoString;
 	}
 	else
 	{
-		if ( buf )
-		{
-			buf[ 0 ] = '\0';
-		}
+		trustedInfo = {};
+		info.clear();
 	}
 }
 
@@ -974,15 +956,7 @@ void CGameVM::CGameStaticInit()
 
 void CGameVM::CGameInit(int serverMessageNum, int clientNum)
 {
-	glconfig_t glConfig;
-	memset( &glConfig, 0, sizeof( glconfig_t ) );
-	glConfig.displayAspect = cls.windowConfig.displayAspect;
-	glConfig.displayWidth = cls.windowConfig.displayWidth;
-	glConfig.displayHeight = cls.windowConfig.displayHeight;
-	glConfig.vidWidth = cls.windowConfig.vidWidth;
-	glConfig.vidHeight = cls.windowConfig.vidHeight;
-
-	this->SendMsg<CGameInitMsg>(serverMessageNum, clientNum, glConfig, cl.gameState);
+	this->SendMsg<CGameInitMsg>(serverMessageNum, clientNum, cls.windowConfig, cl.gameState);
 	NetcodeTable psTable;
 	size_t psSize;
 	this->SendMsg<VM::GetNetcodeTablesMsg>(psTable, psSize);
@@ -1046,15 +1020,7 @@ void CGameVM::CGameTextInputEvent(int c)
 
 void CGameVM::CGameRocketInit()
 {
-	glconfig_t glConfig;
-	memset( &glConfig, 0, sizeof( glconfig_t ) );
-	glConfig.displayAspect = cls.windowConfig.displayAspect;
-	glConfig.displayWidth = cls.windowConfig.displayWidth;
-	glConfig.displayHeight = cls.windowConfig.displayHeight;
-	glConfig.vidWidth = cls.windowConfig.vidWidth;
-	glConfig.vidHeight = cls.windowConfig.vidHeight;
-
-	this->SendMsg<CGameRocketInitMsg>( glConfig );
+	this->SendMsg<CGameRocketInitMsg>( cls.windowConfig );
 }
 
 void CGameVM::CGameRocketFrame()
@@ -1104,17 +1070,6 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 		case CG_UPDATESCREEN:
 			IPC::HandleMsg<UpdateScreenMsg>(channel, std::move(reader), [this]  {
 				SCR_UpdateScreen();
-			});
-			break;
-
-		case CG_CM_MARKFRAGMENTS:
-			// TODO wow this is very ugly and expensive, find something better?
-			// plus we have a lot of const casts for the vector buffers
-			IPC::HandleMsg<CMMarkFragmentsMsg>(channel, std::move(reader), [this] (std::vector<std::array<float, 3>> points, std::array<float, 3> projection, int maxPoints, int maxFragments, std::vector<std::array<float, 3>>& pointBuffer, std::vector<markFragment_t>& fragmentBuffer) {
-				pointBuffer.resize(maxPoints);
-				fragmentBuffer.resize(maxFragments);
-				int numFragments = re.MarkFragments(points.size(), (vec3_t*)points.data(), projection.data(), maxPoints, (float*) pointBuffer.data(), maxFragments, fragmentBuffer.data());
-				fragmentBuffer.resize(numFragments);
 			});
 			break;
 
@@ -1190,27 +1145,9 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			});
 			break;
 
-		case CG_GET_ENTITY_TOKEN:
-			IPC::HandleMsg<CgGetEntityTokenMsg>(channel, std::move(reader), [this] (int len, bool& res, std::string& token) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				buffer[0] = '\0';
-				res = re.GetEntityToken(buffer.get(), len);
-				token.assign(buffer.get());
-			});
-			break;
-
 		case CG_REGISTER_BUTTON_COMMANDS:
 			IPC::HandleMsg<RegisterButtonCommandsMsg>(channel, std::move(reader), [this] (const std::string& commands) {
 				CL_RegisterButtonCommands(commands.c_str());
-			});
-			break;
-
-		case CG_QUOTESTRING:
-			IPC::HandleMsg<QuoteStringMsg>(channel, std::move(reader), [this] (int len, const std::string& input, std::string& output) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				buffer[0] = '\0';
-				Cmd_QuoteStringBuffer(input.c_str(), buffer.get(), len);
-				output.assign(buffer.get());
 			});
 			break;
 
@@ -1245,12 +1182,6 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 		case CG_R_GETSHADERNAMEFROMHANDLE:
 			IPC::HandleMsg<Render::GetShaderNameFromHandleMsg>(channel, std::move(reader), [this] (int handle, std::string& name) {
 			    name = re.ShaderNameFromHandle(handle);
-			});
-			break;
-
-		case CG_R_INPVVS:
-			IPC::HandleMsg<Render::InPVVSMsg>(channel, std::move(reader), [this] (const std::array<float, 3>& p1, const std::array<float, 3>& p2, bool& res) {
-				res = re.inPVVS(p1.data(), p2.data());
 			});
 			break;
 
@@ -1297,12 +1228,6 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			});
 			break;
 
-		case CG_R_INPVS:
-			IPC::HandleMsg<Render::InPVSMsg>(channel, std::move(reader), [this] (const std::array<float, 3>& p1, const std::array<float, 3>& p2, bool& res) {
-				res = re.inPVS(p1.data(), p2.data());
-			});
-			break;
-
 		case CG_R_BATCHINPVS:
 			IPC::HandleMsg<Render::BatchInPVSMsg>(channel, std::move(reader), [this] (
 				const std::array<float, 3>& origin,
@@ -1315,12 +1240,6 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 				{
 					inPVS.push_back(re.inPVS(origin.data(), posEntity.data()));
 				}
-			});
-			break;
-
-		case CG_R_LIGHTFORPOINT:
-			IPC::HandleMsg<Render::LightForPointMsg>(channel, std::move(reader), [this] (std::array<float, 3> point, std::array<float, 3>& ambient, std::array<float, 3>& directed, std::array<float, 3>& dir, int& res) {
-				res = re.LightForPoint(point.data(), ambient.data(), directed.data(), dir.data());
 			});
 			break;
 
@@ -1482,11 +1401,8 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			break;
 
 		case CG_LAN_GETSERVERINFO:
-			IPC::HandleMsg<LAN::GetServerInfoMsg>(channel, std::move(reader), [this] (int source, int n, int len, std::string& info) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				buffer[0] = '\0';
-				LAN_GetServerInfo(source, n, buffer.get(), len);
-				info.assign(buffer.get());
+			IPC::HandleMsg<LAN::GetServerInfoMsg>(channel, std::move(reader), [this] (int source, int n, trustedServerInfo_t& trustedInfo, std::string& info) {
+				LAN_GetServerInfo(source, n, trustedInfo, info);
 			});
 			break;
 
@@ -1584,8 +1500,8 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 				break;
 
 			case CG_S_ADDLOOPINGSOUND:
-				HandleMsg<Audio::AddLoopingSoundMsg>(std::move(reader), [this] (int entityNum, int sfx) {
-					Audio::AddEntityLoopingSound(entityNum, sfx);
+				HandleMsg<Audio::AddLoopingSoundMsg>(std::move(reader), [this] (int entityNum, int sfx, bool persistent) {
+					Audio::AddEntityLoopingSound(entityNum, sfx, persistent);
 				});
 				break;
 
@@ -1639,8 +1555,8 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 				break;
 
 			case CG_S_BEGINREGISTRATION:
-				HandleMsg<Audio::BeginRegistrationMsg>(std::move(reader), [this] {
-					Audio::BeginRegistration();
+				HandleMsg<Audio::BeginRegistrationMsg>(std::move(reader), [this] ( const int playerNum ) {
+					Audio::BeginRegistration( playerNum );
 				});
 				break;
 
@@ -1689,14 +1605,8 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
                 break;
 
             case CG_R_ADDLIGHTTOSCENE:
-                HandleMsg<Render::AddLightToSceneMsg>(std::move(reader), [this] (const std::array<float, 3>& point, float radius, float intensity, float r, float g, float b, int shader, int flags) {
-                    re.AddLightToScene(point.data(), radius, intensity, r, g, b, shader, flags);
-                });
-                break;
-
-            case CG_R_ADDADDITIVELIGHTTOSCENE:
-                HandleMsg<Render::AddAdditiveLightToSceneMsg>(std::move(reader), [this] (const std::array<float, 3>& point, float intensity, float r, float g, float b) {
-                    re.AddAdditiveLightToScene(point.data(), intensity, r, g, b);
+                HandleMsg<Render::AddLightToSceneMsg>(std::move(reader), [this] (const std::array<float, 3>& point, float radius, float r, float g, float b, int flags) {
+                    re.AddLightToScene(point.data(), radius, r, g, b, flags);
                 });
                 break;
 

@@ -45,7 +45,6 @@ struct GLConfig
 
 	int colorBits;
 
-	glDriverType_t driverType;
 	glHardwareType_t hardwareType;
 
 	textureCompression_t textureCompression;

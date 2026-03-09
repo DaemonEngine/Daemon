@@ -103,15 +103,6 @@ void trap_GetUsercmd(int clientNum, usercmd_t *cmd)
     VM::SendMsg<GetUsercmdMsg>(clientNum, *cmd);
 }
 
-bool trap_GetEntityToken(char *buffer, int bufferSize)
-{
-    std::string text;
-    bool res;
-    VM::SendMsg<SgGetEntityTokenMsg>(res, text);
-    Q_strncpyz(buffer, text.c_str(), bufferSize);
-    return res;
-}
-
 int trap_RSA_GenerateMessage(const char *public_key, char *cleartext, char *encrypted)
 {
     std::string cleartext2, encrypted2;
@@ -143,6 +134,15 @@ void trap_GetTimeString(char *buffer, int size, const char *format, const qtime_
     VM::SendMsg<GetTimeStringMsg>(size, format, *tm, text);
     Q_strncpyz(buffer, text.c_str(), size);
 }
+
+// length of returned vector is sv_maxclients
+std::vector<int> trap_GetPings()
+{
+    std::vector<int> pings;
+    VM::SendMsg<GetPingsMsg>(pings);
+    return pings;
+}
+
 
 int trap_BotAllocateClient()
 {

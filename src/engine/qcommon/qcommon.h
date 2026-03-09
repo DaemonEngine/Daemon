@@ -96,8 +96,8 @@ void  MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, 
 void  MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *to, int number );
 
 void MSG_InitNetcodeTables(NetcodeTable playerStateTable, int playerStateSize);
-void  MSG_WriteDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayerState *to );
-void  MSG_ReadDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayerState *to );
+void  MSG_WriteDeltaPlayerstate( msg_t *msg, const OpaquePlayerState *from, const OpaquePlayerState *to );
+void  MSG_ReadDeltaPlayerstate( msg_t *msg, const OpaquePlayerState *from, OpaquePlayerState *to );
 
 //============================================================================
 
@@ -248,12 +248,13 @@ enum svc_ops_e
   svc_bad,
   svc_nop,
   svc_gamestate,
+  svc_gamestatePartial,
   svc_configstring, // [short] [string] only in gamestate messages
   svc_baseline, // only in gamestate messages
   svc_serverCommand, // [string] to be executed by client game module
   svc_download, // [short] size [size bytes]
   svc_snapshot,
-  svc_EOF,
+  svc_EOF
 };
 
 //
@@ -322,8 +323,6 @@ char *Cmd_ArgsFrom( int arg );
 // these all share an output buffer
 const char *Cmd_QuoteString( const char *in );
 const char *Cmd_UnquoteString( const char *in );
-
-void Cmd_QuoteStringBuffer( const char *in, char *buffer, int size );
 
 // The functions that execute commands get their parameters with these
 // functions. Cmd_Argv () will return an empty string, not a nullptr

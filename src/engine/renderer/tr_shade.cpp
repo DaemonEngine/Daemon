@@ -198,7 +198,7 @@ static void EnableAvailableFeatures()
 	glConfig.usingGeometryCache = glConfig.usingMaterialSystem && glConfig.geometryCacheAvailable;
 }
 
-// For shaders that require map data for compile-time values 
+// For shaders that require map data for compile-time values
 void GLSL_InitWorldShaders() {
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
@@ -254,11 +254,6 @@ static void GLSL_InitGPUShadersOrError()
 		gl_clearSurfacesShader->MarkProgramForBuilding();
 		gl_processSurfacesShader->MarkProgramForBuilding();
 		gl_depthReductionShader->MarkProgramForBuilding();
-	}
-
-	if ( tr.world ) // this only happens with /glsl_restart
-	{
-		GLSL_InitWorldShaders();
 	}
 
 	if ( glConfig.realtimeLighting )
@@ -331,7 +326,7 @@ static void GLSL_InitGPUShadersOrError()
 
 		gl_contrastShader->MarkProgramForBuilding();
 	}
-	
+
 	// portal process effect
 	gl_shaderManager.LoadShader( gl_portalShader );
 
@@ -383,6 +378,12 @@ static void GLSL_InitGPUShadersOrError()
 
 	gl_shaderManager.PostProcessGlobalUniforms();
 	gl_shaderManager.InitShaders();
+
+	// Init world shaders last so that everyhthing is already initialized.
+	if ( tr.world ) // this only happens with /glsl_restart
+	{
+		GLSL_InitWorldShaders();
+	}
 
 	if ( r_lazyShaders.Get() == 0 )
 	{
@@ -794,7 +795,7 @@ void ProcessShaderGeneric3D( const shaderStage_t* pStage ) {
 void ProcessShaderLightMapping( const shaderStage_t* pStage ) {
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( &tess, pStage, lightMode, deluxeMode );
 
 	bool enableDeluxeMapping = ( deluxeMode == deluxeMode_t::MAP );
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
@@ -844,7 +845,7 @@ void ProcessShaderHeatHaze( const shaderStage_t* pStage ) {
 void ProcessShaderLiquid( const shaderStage_t* pStage ) {
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( &tess, pStage, lightMode, deluxeMode );
 
 	gl_liquidShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
@@ -899,9 +900,8 @@ void Render_generic3D( shaderStage_t *pStage )
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
-	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && tess.bspSurface;
 	const bool styleLightMap = pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP;
-	SetUniform_ColorModulateColorGen( gl_genericShader, rgbGen, alphaGen, mayUseVertexOverbright, styleLightMap );
+	SetUniform_ColorModulateColorGen( gl_genericShader, rgbGen, alphaGen, styleLightMap );
 
 	// u_Color
 	SetUniform_Color( gl_genericShader, tess.svars.color );
@@ -999,7 +999,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( &tess, pStage, lightMode, deluxeMode );
 
 	// u_Map, u_DeluxeMap
 	image_t *lightmap = SetLightMap( &tess, lightMode );
@@ -1072,7 +1072,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 	gl_lightMappingShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// u_ColorModulate
-	SetUniform_ColorModulateColorGen( gl_lightMappingShader, rgbGen, alphaGen, false, lightMode != lightMode_t::FULLBRIGHT );
+	SetUniform_ColorModulateColorGen( gl_lightMappingShader, rgbGen, alphaGen, lightMode != lightMode_t::FULLBRIGHT );
 
 	// u_Color
 	SetUniform_Color( gl_lightMappingShader, tess.svars.color );
@@ -1448,7 +1448,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 
 	// bind u_NormalMap
 	gl_heatHazeShader->SetUniform_NormalMapBindless(
-		GL_BindToTMU( 0, pStage->bundle[TB_NORMALMAP].image[0] ) 
+		GL_BindToTMU( 0, pStage->bundle[TB_NORMALMAP].image[0] )
 	);
 
 	if ( pStage->enableNormalMapping )
@@ -1464,7 +1464,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 
 	// bind u_CurrentMap
 	gl_heatHazeShader->SetUniform_CurrentMapBindless(
-		GL_BindToTMU( 1, tr.currentRenderImage[backEnd.currentMainFBO] ) 
+		GL_BindToTMU( 1, tr.currentRenderImage[backEnd.currentMainFBO] )
 	);
 
 	gl_heatHazeShader->SetRequiredVertexPointers();
@@ -1474,7 +1474,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 	// copy to foreground image
 	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
 	gl_heatHazeShader->SetUniform_CurrentMapBindless(
-		GL_BindToTMU( 1, tr.currentRenderImage[1 - backEnd.currentMainFBO] ) 
+		GL_BindToTMU( 1, tr.currentRenderImage[1 - backEnd.currentMainFBO] )
 	);
 	gl_heatHazeShader->SetUniform_DeformMagnitude( 0.0f );
 	Tess_DrawElements();
@@ -1499,7 +1499,7 @@ void Render_liquid( shaderStage_t *pStage )
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( &tess, tess.surfaceShader, pStage->type, lightMode, deluxeMode );
+	SetLightDeluxeMode( &tess, pStage, lightMode, deluxeMode );
 
 	// choose right shader program
 	ProcessShaderLiquid( pStage );

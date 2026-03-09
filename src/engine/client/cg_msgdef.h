@@ -127,16 +127,13 @@ enum cgameImport_t
   // Misc
   CG_SENDCLIENTCOMMAND,
   CG_UPDATESCREEN,
-  CG_CM_MARKFRAGMENTS,
   CG_CM_BATCHMARKFRAGMENTS,
   CG_GETCURRENTSNAPSHOTNUMBER,
   CG_GETSNAPSHOT,
   CG_GETCURRENTCMDNUMBER,
   CG_GETUSERCMD,
   CG_SETUSERCMDVALUE,
-  CG_GET_ENTITY_TOKEN,
   CG_REGISTER_BUTTON_COMMANDS,
-  CG_QUOTESTRING,
   CG_NOTIFY_TEAMCHANGE,
   CG_PREPAREKEYUP,
 
@@ -162,7 +159,6 @@ enum cgameImport_t
   CG_R_GETSHADERNAMEFROMHANDLE,
   CG_R_SCISSOR_ENABLE,
   CG_R_SCISSOR_SET,
-  CG_R_INPVVS,
   CG_R_LOADWORLDMAP,
   CG_R_REGISTERMODEL,
   CG_R_REGISTERSKIN,
@@ -173,7 +169,6 @@ enum cgameImport_t
   CG_R_ADDPOLYTOSCENE,
   CG_R_ADDPOLYSTOSCENE,
   CG_R_ADDLIGHTTOSCENE,
-  CG_R_ADDADDITIVELIGHTTOSCENE,
   CG_R_RENDERSCENE,
   CG_R_ADD2DPOLYSINDEXED,
   CG_R_SETMATRIXTRANSFORM,
@@ -186,9 +181,7 @@ enum cgameImport_t
   CG_R_MODELBOUNDS,
   CG_R_LERPTAG,
   CG_R_REMAP_SHADER,
-  CG_R_INPVS,
   CG_R_BATCHINPVS,
-  CG_R_LIGHTFORPOINT,
   CG_R_REGISTERANIMATION,
   CG_R_BUILDSKELETON,
   CG_R_BONEINDEX,
@@ -239,11 +232,7 @@ using SendClientCommandMsg = IPC::SyncMessage<
 using UpdateScreenMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_UPDATESCREEN>>
 >;
-// TODO can move to VM too ?
-using CMMarkFragmentsMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_CM_MARKFRAGMENTS>, std::vector<std::array<float, 3>>, std::array<float, 3>, int, int>,
-	IPC::Reply<std::vector<std::array<float, 3>>, std::vector<markFragment_t>>
->;
+// TODO can move to VM too?
 using CMBatchMarkFragments = IPC::SyncMessage<
 	IPC::Message<
 		IPC::Id<VM::QVM, CG_CM_BATCHMARKFRAGMENTS>,
@@ -271,17 +260,7 @@ using GetUserCmdMsg = IPC::SyncMessage<
 	IPC::Reply<bool, usercmd_t>
 >;
 using SetUserCmdValueMsg = IPC::Message<IPC::Id<VM::QVM, CG_SETUSERCMDVALUE>, int, int, float>;
-// TODO what?
-using CgGetEntityTokenMsg =  IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_GET_ENTITY_TOKEN>, int>,
-	IPC::Reply<bool, std::string>
->;
 using RegisterButtonCommandsMsg = IPC::Message<IPC::Id<VM::QVM, CG_REGISTER_BUTTON_COMMANDS>, std::string>;
-// TODO using Command.h for that ?
-using QuoteStringMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_QUOTESTRING>, int, std::string>,
-	IPC::Reply<std::string>
->;
 using NotifyTeamChangeMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_NOTIFY_TEAMCHANGE>, int>
 >;
@@ -302,7 +281,7 @@ namespace Audio {
 	using StartSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STARTSOUND>, bool, Vec3, int, int>;
 	using StartLocalSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STARTLOCALSOUND>, int>;
 	using ClearLoopingSoundsMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_CLEARLOOPINGSOUNDS>>;
-	using AddLoopingSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_ADDLOOPINGSOUND>, int, int>;
+	using AddLoopingSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_ADDLOOPINGSOUND>, int, int, bool>;
 	using StopLoopingSoundMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STOPLOOPINGSOUND>, int>;
 	using UpdateEntityPositionMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYPOSITION>, int, Vec3>;
 	using RespatializeMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_RESPATIALIZE>, int, std::array<Vec3, 3>>;
@@ -311,7 +290,7 @@ namespace Audio {
 	using UpdateEntityVelocityMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYVELOCITY>, int, Vec3>;
 	using UpdateEntityPositionVelocityMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYPOSITIONVELOCITY>, int, Vec3, Vec3>;
 	using SetReverbMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_SETREVERB>, int, std::string, float>;
-	using BeginRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_BEGINREGISTRATION>>;
+	using BeginRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_BEGINREGISTRATION>, int>;
 	using EndRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_ENDREGISTRATION>>;
 }
 
@@ -320,11 +299,6 @@ namespace Render {
 	using GetShaderNameFromHandleMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_R_GETSHADERNAMEFROMHANDLE>, int>,
 		IPC::Reply<std::string>
-	>;
-	// TODO not a renderer call, handle in CM in the VM?
-	using InPVVSMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_R_INPVVS>, std::array<float, 3>, std::array<float, 3>>,
-		IPC::Reply<bool>
 	>;
 	// TODO is it really async?
 	using LoadWorldMapMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_LOADWORLDMAP>, std::string>;
@@ -350,20 +324,12 @@ namespace Render {
 	>;
 	using RemapShaderMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_REMAP_SHADER>, std::string, std::string, std::string>;
 	// TODO not a renderer call, handle in CM in the VM?
-	using InPVSMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_R_INPVS>, std::array<float, 3>, std::array<float, 3>>,
-		IPC::Reply<bool>
-	>;
 	using BatchInPVSMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<
 			VM::QVM, CG_R_BATCHINPVS>,
 			std::array<float, 3>,
 			std::vector<std::array<float, 3>>>,
 		IPC::Reply<std::vector<bool>>
-	>;
-	using LightForPointMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_R_LIGHTFORPOINT>, std::array<float, 3>>,
-		IPC::Reply<std::array<float, 3>, std::array<float, 3>, std::array<float, 3>, int>
 	>;
 	using RegisterAnimationMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_R_REGISTERANIMATION>, std::string>,
@@ -410,8 +376,7 @@ namespace Render {
 	using AddRefEntityToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDREFENTITYTOSCENE>, refEntity_t>;
 	using AddPolyToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDPOLYTOSCENE>, int, std::vector<polyVert_t>>;
 	using AddPolysToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDPOLYSTOSCENE>, int, std::vector<polyVert_t>, int, int>;
-	using AddLightToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDLIGHTTOSCENE>, std::array<float, 3>, float, float, float, float, float, int, int>;
-	using AddAdditiveLightToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDADDITIVELIGHTTOSCENE>, std::array<float, 3>, float, float, float, float>;
+	using AddLightToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDLIGHTTOSCENE>, std::array<float, 3>, float, float, float, float, int>;
 	using SetColorMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_SETCOLOR>, Color::Color>;
 	using SetClipRegionMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_SETCLIPREGION>, std::array<float, 4>>;
 	using ResetClipRegionMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_RESETCLIPREGION>>;
@@ -464,8 +429,8 @@ namespace LAN {
 		IPC::Reply<int>
 	>;
 	using GetServerInfoMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_LAN_GETSERVERINFO>, int, int, int>,
-		IPC::Reply<std::string>
+		IPC::Message<IPC::Id<VM::QVM, CG_LAN_GETSERVERINFO>, int, int>,
+		IPC::Reply<trustedServerInfo_t, std::string>
 	>;
 	using GetServerPingMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_LAN_GETSERVERPING>, int, int>,
@@ -540,7 +505,7 @@ using CGameStaticInitMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_STATIC_INIT>, int>
 >;
 using CGameInitMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_INIT>, int, int, glconfig_t, GameStateCSs>
+	IPC::Message<IPC::Id<VM::QVM, CG_INIT>, int, int, WindowConfig, GameStateCSs>
 >;
 using CGameShutdownMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_SHUTDOWN>>
@@ -570,7 +535,7 @@ using CGameFocusEventMsg = IPC::SyncMessage<
 
 //TODO Check all rocket calls
 using CGameRocketInitMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_VM_INIT>, glconfig_t>
+	IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_VM_INIT>, WindowConfig>
 >;
 using CGameRocketFrameMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_FRAME>, cgClientState_t>

@@ -302,10 +302,8 @@ RE_AddDynamicLightToScene
 ydnar: modified dlight system to support separate radius and intensity
 =====================
 */
-void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t, int flags )
+void RE_AddDynamicLightToScene( const vec3_t org, float radius, float r, float g, float b, int /*flags*/)
 {
-	refLight_t *light;
-
 	if ( !glConfig.realtimeLighting || !r_drawDynamicLights.Get() )
 	{
 		return;
@@ -316,23 +314,17 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 		return;
 	}
 
-	if ( flags & REF_INVERSE_DLIGHT )
-	{
-		Log::Warn( "REF_INVERSE_DLIGHT not implemtented" );
-		return;
-	}
-
 	if ( r_numLights >= MAX_REF_LIGHTS )
 	{
 		return;
 	}
 
-	if ( intensity <= 0 || radius <= 0 )
+	if ( radius <= 0 )
 	{
 		return;
 	}
 
-	light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
+	refLight_t *light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
 
 	light->rlType = refLightType_t::RL_OMNI;
 	VectorCopy( org, light->origin );
@@ -348,13 +340,6 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 	{
 		convertFromSRGB( light->color );
 	}
-
-	light->scale = intensity;
-}
-
-void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float radius, float r, float g, float b )
-{
-	RE_AddDynamicLightToSceneET( org, radius, r_lightScale->value, r, g, b, 0, 0 );
 }
 
 static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {

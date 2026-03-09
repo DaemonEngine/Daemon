@@ -49,24 +49,6 @@ void trap_UpdateScreen()
 	VM::SendMsg<UpdateScreenMsg>();
 }
 
-int trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projection, int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer )
-{
-	if (!numPoints) return 0;
-
-	std::vector<std::array<float, 3>> mypoints(numPoints);
-	std::array<float, 3> myproj;
-	memcpy(mypoints.data(), points, sizeof(float) * 3 * numPoints);
-	VectorCopy(projection, myproj);
-
-	std::vector<std::array<float, 3>> mypointBuffer;
-	std::vector<markFragment_t> myfragmentBuffer;
-	VM::SendMsg<CMMarkFragmentsMsg>(mypoints, myproj, maxPoints, maxFragments, mypointBuffer, myfragmentBuffer);
-
-	memcpy(pointBuffer, mypointBuffer.data(), sizeof(float) * 3 * maxPoints);
-	std::copy(myfragmentBuffer.begin(), myfragmentBuffer.end(), fragmentBuffer);
-	return myfragmentBuffer.size();
-}
-
 void trap_CM_BatchMarkFragments(
 	unsigned maxPoints, //per mark
 	unsigned maxFragments, //per mark
@@ -135,25 +117,9 @@ void trap_SetUserCmdValue( int stateValue, int flags, float sensitivityScale )
 	VM::SendMsg<SetUserCmdValueMsg>(stateValue, flags, sensitivityScale);
 }
 
-bool trap_GetEntityToken( char *buffer, int bufferSize )
-{
-	bool res;
-	std::string token;
-	VM::SendMsg<CgGetEntityTokenMsg>(bufferSize, res, token);
-	Q_strncpyz(buffer, token.c_str(), bufferSize);
-	return res;
-}
-
 void trap_RegisterButtonCommands( const char *cmds )
 {
 	VM::SendMsg<RegisterButtonCommandsMsg>(cmds);
-}
-
-void trap_QuoteString( const char *str, char *buffer, int size )
-{
-	std::string quoted;
-	VM::SendMsg<QuoteStringMsg>(size, str, quoted);
-	Q_strncpyz(buffer, quoted.c_str(), size);
 }
 
 void trap_notify_onTeamChange( int newTeam )
@@ -187,7 +153,7 @@ void trap_S_ClearLoopingSounds( bool )
 	cmdBuffer.SendMsg<Audio::ClearLoopingSoundsMsg>();
 }
 
-void trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx )
+void trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, bool persistent )
 {
 	if (origin) {
 		trap_S_UpdateEntityPosition(entityNum, origin);
@@ -195,12 +161,7 @@ void trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t ve
 	if (velocity) {
 		trap_S_UpdateEntityVelocity(entityNum, velocity);
 	}
-	cmdBuffer.SendMsg<Audio::AddLoopingSoundMsg>(entityNum, sfx);
-}
-
-void trap_S_AddRealLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx )
-{
-	trap_S_AddLoopingSound(entityNum, origin, velocity, sfx);
+	cmdBuffer.SendMsg<Audio::AddLoopingSoundMsg>( entityNum, sfx, persistent );
 }
 
 void trap_S_StopLoopingSound( int entityNum )
@@ -257,9 +218,9 @@ void trap_S_SetReverb( int slotNum, const char* name, float ratio )
 	cmdBuffer.SendMsg<Audio::SetReverbMsg>(slotNum, name, ratio);
 }
 
-void trap_S_BeginRegistration()
+void trap_S_BeginRegistration( const int playerNum )
 {
-	cmdBuffer.SendMsg<Audio::BeginRegistrationMsg>();
+	cmdBuffer.SendMsg<Audio::BeginRegistrationMsg>( playerNum );
 }
 
 void trap_S_EndRegistration()
@@ -289,16 +250,6 @@ void trap_R_ScissorEnable( bool enable )
 void trap_R_ScissorSet( int x, int y, int w, int h )
 {
 	cmdBuffer.SendMsg<Render::ScissorSetMsg>(x, y, w, h);
-}
-
-bool trap_R_inPVVS( const vec3_t p1, const vec3_t p2 )
-{
-	bool res;
-	std::array<float, 3> myp1, myp2;
-	VectorCopy(p1, myp1);
-	VectorCopy(p2, myp2);
-	VM::SendMsg<Render::InPVVSMsg>(myp1, myp2, res);
-	return res;
 }
 
 void trap_R_LoadWorldMap( const char *mapname )
@@ -390,18 +341,11 @@ void trap_R_ResetMatrixTransform()
 	cmdBuffer.SendMsg<Render::ResetMatrixTransformMsg>();
 }
 
-void trap_R_AddLightToScene( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags )
+void trap_R_AddLightToScene( const vec3_t origin, float radius, float intensity, float r, float g, float b, int flags )
 {
 	std::array<float, 3> myorg;
-	VectorCopy(org, myorg);
-	cmdBuffer.SendMsg<Render::AddLightToSceneMsg>(myorg, radius, intensity, r, g, b, hShader, flags);
-}
-
-void trap_R_AddAdditiveLightToScene( const vec3_t org, float intensity, float r, float g, float b )
-{
-	std::array<float, 3> myorg;
-	VectorCopy(org, myorg);
-	cmdBuffer.SendMsg<Render::AddAdditiveLightToSceneMsg>(myorg, intensity, r, g, b);
+	VectorCopy( origin, myorg );
+	cmdBuffer.SendMsg<Render::AddLightToSceneMsg>(myorg, radius, r * intensity, g * intensity, b * intensity, flags);
 }
 
 void trap_R_RenderScene( const refdef_t *fd )
@@ -459,16 +403,6 @@ void trap_R_RemapShader( const char *oldShader, const char *newShader, const cha
 	VM::SendMsg<Render::RemapShaderMsg>(oldShader, newShader, timeOffset);
 }
 
-bool trap_R_inPVS( const vec3_t p1, const vec3_t p2 )
-{
-	bool res;
-	std::array<float, 3> myp1, myp2;
-	VectorCopy(p1, myp1);
-	VectorCopy(p2, myp2);
-	VM::SendMsg<Render::InPVSMsg>(myp1, myp2, res);
-	return res;
-}
-
 std::vector<bool> trap_R_BatchInPVS(
 	const vec3_t origin,
 	const std::vector<std::array<float, 3>>& posEntities )
@@ -478,18 +412,6 @@ std::vector<bool> trap_R_BatchInPVS(
 	std::vector<bool> inPVS;
 	VM::SendMsg<Render::BatchInPVSMsg>(myOrigin, posEntities, inPVS);
 	return inPVS;
-}
-
-int trap_R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir )
-{
-	int result;
-	std::array<float, 3> mypoint, myambient, mydirected, mydir;
-	VectorCopy(point, mypoint);
-	VM::SendMsg<Render::LightForPointMsg>(mypoint, myambient, mydirected, mydir, result);
-	VectorCopy(myambient, ambientLight);
-	VectorCopy(mydirected, directedLight);
-	VectorCopy(mydir, lightDir);
-	return result;
 }
 
 qhandle_t trap_R_RegisterAnimation( const char *name )
@@ -688,11 +610,10 @@ int trap_LAN_GetServerCount( int source )
 	return count;
 }
 
-void trap_LAN_GetServerInfo( int source, int n, char *buf, int buflen )
+// See SVC_Info() for the keys that are supposed to be available in `info`
+void trap_LAN_GetServerInfo( int source, int n, trustedServerInfo_t &trustedInfo, std::string &info )
 {
-	std::string info;
-	VM::SendMsg<LAN::GetServerInfoMsg>(source, n, buflen, info);
-	Q_strncpyz(buf, info.c_str(), buflen);
+	VM::SendMsg<LAN::GetServerInfoMsg>(source, n, trustedInfo, info);
 }
 
 int trap_LAN_GetServerPing( int source, int n )

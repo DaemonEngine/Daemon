@@ -40,11 +40,11 @@ enum gameImport_t
   G_GET_USERINFO,
   G_GET_SERVERINFO,
   G_GET_USERCMD,
-  G_GET_ENTITY_TOKEN,
   G_RSA_GENMSG, // ( const char *public_key, char *cleartext, char *encrypted )
   G_GEN_FINGERPRINT,
   G_GET_PLAYER_PUBKEY,
   G_GET_TIME_STRING,
+  G_GET_PINGS,
 
   BOT_ALLOCATE_CLIENT,
   BOT_FREE_CLIENT,
@@ -82,10 +82,6 @@ using GetUsercmdMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_GET_USERCMD>, int>,
     IPC::Reply<usercmd_t>
 >;
-using SgGetEntityTokenMsg = IPC::SyncMessage<
-    IPC::Message<IPC::Id<VM::QVM, G_GET_ENTITY_TOKEN>>,
-    IPC::Reply<bool, std::string>
->;
 using RSAGenMsgMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_RSA_GENMSG>, std::string>,
     IPC::Reply<int, std::string, std::string>
@@ -101,6 +97,10 @@ using GetPlayerPubkeyMsg = IPC::SyncMessage<
 using GetTimeStringMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_GET_TIME_STRING>, int, std::string, qtime_t>,
     IPC::Reply<std::string>
+>;
+using GetPingsMsg = IPC::SyncMessage<
+    IPC::Message<IPC::Id<VM::QVM, G_GET_PINGS>>,
+    IPC::Reply<std::vector<int>>
 >;
 
 using BotAllocateClientMsg = IPC::SyncMessage<

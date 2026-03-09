@@ -31,9 +31,9 @@ LIGHT SAMPLING
 =============================================================================
 */
 
-float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
-			      float *factors[3], vec3_t ambientLight,
-			      vec3_t directedLight, vec3_t lightDir ) {
+void R_InterpolateLightGrid( world_t *w, int from[3], int to[3], float *factors[3],
+		vec3_t lightColor, vec3_t lightDir )
+{
 	float           totalFactor = 0.0f, factor;
 	float           *xFactor, *yFactor, *zFactor;
 	int             gridStep[ 3 ];
@@ -41,8 +41,7 @@ float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 	bspGridPoint1_t *gp1;
 	bspGridPoint2_t *gp2;
 
-	VectorClear( ambientLight );
-	VectorClear( directedLight );
+	VectorClear( lightColor );
 	VectorClear( lightDir );
 
 	gridStep[ 0 ] = 1;
@@ -80,99 +79,16 @@ float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 				lightDir[ 1 ] += factor * snorm8ToFloat( gp2->direction[ 1 ] - 128 );
 				lightDir[ 2 ] += factor * snorm8ToFloat( gp2->direction[ 2 ] - 128 );
 
-				float ambientScale = 2.0f * unorm8ToFloat( gp1->ambientPart );
-				float directedScale = 2.0f - ambientScale;
-
-				ambientLight[ 0 ] += factor * ambientScale * unorm8ToFloat( gp1->color[ 0 ] );
-				ambientLight[ 1 ] += factor * ambientScale * unorm8ToFloat( gp1->color[ 1 ] );
-				ambientLight[ 2 ] += factor * ambientScale * unorm8ToFloat( gp1->color[ 2 ] );
-				directedLight[ 0 ] += factor * directedScale * unorm8ToFloat( gp1->color[ 0 ] );
-				directedLight[ 1 ] += factor * directedScale * unorm8ToFloat( gp1->color[ 1 ] );
-				directedLight[ 2 ] += factor * directedScale * unorm8ToFloat( gp1->color[ 2 ] );
+				lightColor[ 0 ] += factor * unorm8ToFloat( gp1->color[ 0 ] );
+				lightColor[ 1 ] += factor * unorm8ToFloat( gp1->color[ 1 ] );
+				lightColor[ 2 ] += factor * unorm8ToFloat( gp1->color[ 2 ] );
 			}
 		}
 	}
 
-	return totalFactor;
+	if ( totalFactor > 0.0f )
+	{
+		VectorScale( lightDir, 1.0f / totalFactor, lightDir );
+		VectorScale( lightColor, 1.0f / totalFactor, lightColor );
+	}
 }
-
-/*
-=================
-R_LightForPoint
-=================
-*/
-int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir )
-{
-	int             i;
-	int             from[ 3 ], to[ 3 ];
-	float           frac[ 3 ][ 2 ];
-	float           *factors[ 3 ] = { frac[ 0 ], frac[ 1 ], frac[ 2 ] };
-	float           totalFactor;
-
-	// bk010103 - this segfaults with -nolight maps
-	if ( tr.world->lightGridData1 == nullptr ||
-	     tr.world->lightGridData2 == nullptr )
-	{
-		return false;
-	}
-
-	for ( i = 0; i < 3; i++ )
-	{
-		float v;
-
-		v = point[ i ] - tr.world->lightGridOrigin[ i ];
-		v *= tr.world->lightGridInverseSize[ i ];
-		from[ i ] = floor( v );
-		frac[ i ][ 0 ] = v - from[ i ];
-
-		if ( from[ i ] < 0 )
-		{
-			from[ i ] = 0;
-			frac[ i ][ 0 ] = 0.0f;
-		}
-		else if ( from[ i ] >= tr.world->lightGridBounds[ i ] - 1 )
-		{
-			from[ i ] = tr.world->lightGridBounds[ i ] - 2;
-			frac[ i ][ 0 ] = 1.0f;
-		}
-
-		to[ i ] = from[ i ] + 1;
-		frac[ i ][ 1 ] = 1.0f - frac[ i ][ 0 ];
-	}
-
-	totalFactor = R_InterpolateLightGrid( tr.world, from, to, factors,
-					      ambientLight, directedLight,
-					      lightDir );
-
-	if ( totalFactor > 0 && totalFactor < 0.99 )
-	{
-		totalFactor = 1.0f / totalFactor;
-
-		VectorScale( lightDir, totalFactor, lightDir );
-		VectorScale( ambientLight, totalFactor, ambientLight );
-		VectorScale( directedLight, totalFactor, directedLight );
-	}
-
-	// compute z-component of direction
-	lightDir[ 2 ] = 1.0f - fabsf( lightDir[ 0 ] ) - fabsf( lightDir[ 1 ] );
-	if( lightDir[ 2 ] < 0.0f ) {
-		float X = lightDir[ 0 ];
-		float Y = lightDir[ 1 ];
-		lightDir[ 0 ] = copysignf( 1.0f - fabsf( Y ), X );
-		lightDir[ 1 ] = copysignf( 1.0f - fabsf( X ), Y );
-	}
-
-	VectorNormalize( lightDir );
-
-	if ( ambientLight[ 0 ] < r_forceAmbient.Get() &&
-	     ambientLight[ 1 ] < r_forceAmbient.Get() &&
-	     ambientLight[ 2 ] < r_forceAmbient.Get() )
-	{
-		ambientLight[ 0 ] = r_forceAmbient.Get();
-		ambientLight[ 1 ] = r_forceAmbient.Get();
-		ambientLight[ 2 ] = r_forceAmbient.Get();
-	}
-
-	return true;
-}
-

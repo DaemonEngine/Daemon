@@ -84,11 +84,6 @@ void main()
 	vec4 color = texture2D(u_CurrentMap, st);
 	color *= u_GlobalLightFactor;
 
-	if ( u_SRGB )
-	{
-		convertToSRGB( color.rgb );
-	}
-
 	color.rgb *= u_Exposure;
 
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
@@ -98,6 +93,11 @@ void main()
 #endif
 
 	color.rgb = clamp( color.rgb, vec3( 0.0f ), vec3( 1.0f ) );
+
+	if ( u_SRGB )
+	{
+		convertToSRGB( color.rgb );
+	}
 
 #if defined(r_colorGrading)
 	// apply color grading

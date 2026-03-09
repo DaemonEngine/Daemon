@@ -79,14 +79,9 @@ void RE_SetWorldVisData( const byte * ) { }
 void RE_EndRegistration() { }
 void RE_ClearScene() { }
 void RE_AddRefEntityToScene( const refEntity_t * ) { }
-int R_LightForPoint( vec3_t, vec3_t, vec3_t, vec3_t )
-{
-	return 0;
-}
 void RE_AddPolyToScene( qhandle_t, int, const polyVert_t* ) { }
 void RE_AddPolysToScene( qhandle_t, int, const polyVert_t*, int ) { }
-void RE_AddLightToScene( const vec3_t, float, float, float, float, float, qhandle_t, int ) { }
-void RE_AddLightToSceneQ3A( const vec3_t, float, float, float, float ) { }
+void RE_AddLightToScene( const vec3_t, float, float, float, float, int ) { }
 void RE_RenderScene( const refdef_t* ) { }
 void RE_SetColor( const Color::Color& ) { }
 void RE_SetClipRegion( const float* ) { }
@@ -107,10 +102,6 @@ int R_LerpTag( orientation_t*, const refEntity_t*, const char*, int )
 }
 void R_ModelBounds( qhandle_t, vec3_t, vec3_t ) { }
 void R_RemapShader( const char*, const char*, const char* ) { }
-bool R_GetEntityToken( char*, int )
-{
-	return true;
-}
 bool R_inPVS( const vec3_t, const vec3_t )
 {
 	return false;
@@ -212,14 +203,12 @@ refexport_t    *GetRefAPI( int, refimport_t* )
 
     re.ClearScene = RE_ClearScene;
     re.AddRefEntityToScene = RE_AddRefEntityToScene;
-    re.LightForPoint = R_LightForPoint;
 
     re.AddPolyToScene = RE_AddPolyToScene;
     // Ridah
     re.AddPolysToScene = RE_AddPolysToScene;
     // done.
     re.AddLightToScene = RE_AddLightToScene;
-    re.AddAdditiveLightToScene = RE_AddLightToSceneQ3A;
 
     re.RenderScene = RE_RenderScene;
 
@@ -239,7 +228,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.ModelBounds = R_ModelBounds;
 
     re.RemapShader = R_RemapShader;
-    re.GetEntityToken = R_GetEntityToken;
 
     re.inPVS = R_inPVS;
     re.inPVVS = R_inPVVS;

@@ -60,10 +60,10 @@ sharedEntity_t *SV_GentityNum( int num )
 		Sys::Drop( "SV_GentityNum: bad num %d", num );
 	}
 
-	return ( sharedEntity_t * )( ( byte * ) sv.gentities + sv.gentitySize * ( num ) );
+	return reinterpret_cast<sharedEntity_t *>( sv.gentities + sv.gentitySize * num );
 }
 
-OpaquePlayerState *SV_GameClientNum( int num )
+const OpaquePlayerState *SV_GameClientNum( int num )
 {
 	if ( num < 0 || num >= sv_maxClients.Get() || sv.gameClients == nullptr )
 	{
@@ -194,12 +194,12 @@ void SV_LocateGameData( const IPC::SharedMemory& shmRegion, int numGEntities, in
 	if ( int64_t(shmRegion.GetSize()) < int64_t(MAX_GENTITIES) * sizeofGEntity_t + int64_t(sv_maxClients.Get()) * sizeofGameClient )
 		Sys::Drop( "SV_LocateGameData: Shared memory region too small" );
 
-	char* base = static_cast<char*>(shmRegion.GetBase());
-	sv.gentities = reinterpret_cast<sharedEntity_t*>(base);
+	byte* base = static_cast<byte*>(shmRegion.GetBase());
+	sv.gentities = base;
 	sv.gentitySize = sizeofGEntity_t;
 	sv.num_entities = numGEntities;
 
-	sv.gameClients = reinterpret_cast<OpaquePlayerState*>(base + MAX_GENTITIES * size_t(sizeofGEntity_t));
+	sv.gameClients = base + MAX_GENTITIES * size_t(sizeofGEntity_t);
 	sv.gameClientSize = sizeofGameClient;
 }
 
@@ -275,14 +275,9 @@ Called for both a full init and a restart
 */
 static void SV_InitGameVM()
 {
-	int i;
-
-	// start the entity parsing at the beginning
-	sv.entityParsePoint = CM_EntityString();
-
 	// clear all gentity pointers that might still be set from
 	// a previous level
-	for ( i = 0; i < sv_maxClients.Get(); i++ )
+	for ( int i = 0; i < sv_maxClients.Get(); i++ )
 	{
 		svs.clients[ i ].gentity = nullptr;
 	}
@@ -520,13 +515,6 @@ void GameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& chan
 		});
 		break;
 
-	case G_GET_ENTITY_TOKEN:
-		IPC::HandleMsg<SgGetEntityTokenMsg>(channel, std::move(reader), [this](bool& boolRes, std::string& res) {
-			res = COM_Parse(&sv.entityParsePoint);
-			boolRes = sv.entityParsePoint or res.size() > 0;
-		});
-		break;
-
 	case G_RSA_GENMSG:
 		IPC::HandleMsg<RSAGenMsgMsg>(channel, std::move(reader), [this](std::string pubkey, int& res, std::string& cleartext, std::string& encrypted) {
 			char cleartextBuffer[RSA_STRING_LENGTH];
@@ -561,6 +549,16 @@ void GameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& chan
 			buffer[0] = '\0';
 			SV_GetTimeString(buffer.get(), len, format.c_str(), &time);
 			res.assign(buffer.get());
+		});
+		break;
+
+	case G_GET_PINGS:
+		IPC::HandleMsg<GetPingsMsg>(channel, std::move(reader), [this](std::vector<int>& pings) {
+			int count = sv_maxClients.Get();
+			pings.resize(count);
+			for (int i = 0; i < count; i++) {
+				pings[i] = svs.clients[i].ping;
+			}
 		});
 		break;
 

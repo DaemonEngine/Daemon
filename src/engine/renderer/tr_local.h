@@ -417,9 +417,7 @@ enum class ssaoMode {
 		refLightType_t rlType;
 
 		vec3_t    origin;
-		vec3_t    color; // range from 0.0 to 1.0, should be color normalized
-
-		float     scale; // r_lightScale if not set
+		vec3_t    color; // should be color normalized
 
 		// omni-directional light specific
 		float     radius;
@@ -964,21 +962,16 @@ enum
 	struct Material;
 	struct MaterialSurface;
 
-	// [implicit only] enable lightmapping, front-side culling, disable (non-BSP) vertex colors, disable blending
-	// TODO(0.56): move to the public RegisterShaderFlags_t interface
-#define RSF_3D ( BIT( 30 ) )
-
 	using stageRenderer_t = void(*)(shaderStage_t *);
 	using stageShaderBuildMarker_t = void(*)(const shaderStage_t*);
-	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
+	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool);
 	using stageShaderBinder_t = void(*)(Material*);
 	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, MaterialSurface*);
 
 	enum ShaderStageVariant {
-		VERTEX_OVERBRIGHT = 1,
-		VERTEX_LIT = BIT( 1 ),
-		FULLBRIGHT = BIT( 2 ),
-		ALL = BIT( 3 )
+		VERTEX_LIT = BIT( 0 ),
+		FULLBRIGHT = BIT( 1 ),
+		ALL = BIT( 2 )
 	};
 
 	using floatProcessor_t = float(*)(float);
@@ -1044,6 +1037,8 @@ enum
 
 		bool        highQuality;
 		bool        forceHighQuality;
+
+		bool forceVertexLighting;
 
 		bool        hasDepthFade; // for soft particles
 		float           depthFadeValue;
@@ -1181,6 +1176,8 @@ enum
 
 		int		autoSpriteMode;
 		bool autoSpriteWarned = false;
+
+		bool forceLightMap;
 
 		bool shaderRemapWarned;
 
@@ -1693,7 +1690,7 @@ enum
 	struct bspGridPoint1_t
 	{
 		byte  color[3];
-		byte  ambientPart;
+		byte  unused;
 	};
 	struct bspGridPoint2_t
 	{
@@ -2501,6 +2498,7 @@ enum
 		vec3_t ambientLight;
 		bool ambientLightSet = false;
 
+		float lightGridAverageCosine;
 		image_t   *lightGrid1Image;
 		image_t   *lightGrid2Image;
 
@@ -2637,7 +2635,6 @@ enum
 
 	extern Cvar::Range<Cvar::Cvar<float>> r_forceAmbient;
 	extern Cvar::Cvar<float> r_ambientScale;
-	extern cvar_t *r_lightScale;
 
 	extern Cvar::Cvar<bool> r_drawSky; // Controls whether sky should be drawn or cleared.
 	extern Cvar::Cvar<bool> r_realtimeLighting;
@@ -2674,7 +2671,7 @@ enum
 	extern cvar_t *r_gamma;
 
 	extern Cvar::Cvar<bool> r_toneMapping;
-	extern Cvar::Cvar<float> r_toneMappingExposure;
+	extern Cvar::Cvar<float> r_exposure;
 	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingContrast;
 	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingHighlightsCompressionSpeed;
 	extern Cvar::Range<Cvar::Cvar<float>> r_toneMappingHDRMax;
@@ -2968,7 +2965,6 @@ void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLin
 	qhandle_t RE_RegisterSkin( const char *name );
 	void      RE_Shutdown( bool destroyWindow );
 
-	bool   R_GetEntityToken( char *buffer, int size );
 	void R_ProcessLightmap( byte *bytes, int width, int height, int bits ); // Arnout
 
 	model_t    *R_AllocModel();
@@ -3268,10 +3264,8 @@ void GLimp_LogComment_( std::string comment );
 	============================================================
 	*/
 
-	float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
-				      float *factors[3], vec3_t ambientLight,
-				      vec3_t directedLight, vec3_t lightDir );
-	int      R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
+	void R_InterpolateLightGrid( world_t *w, int from[3], int to[3], float *factors[3],
+		vec3_t lightColor, vec3_t lightDir );
 
 	/*
 	============================================================
@@ -3335,10 +3329,9 @@ void GLimp_LogComment_( std::string comment );
 	void RE_AddPolyToSceneET( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 	void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 
+	void RE_AddDynamicLightToScene( const vec3_t org, float radius, float r, float g, float b, int flags );
+	
 	void R_AddFogBrushSurfaces();
-
-	void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags );
-	void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float intensity, float r, float g, float b );
 
 	void RE_RenderScene( const refdef_t *fd );
 

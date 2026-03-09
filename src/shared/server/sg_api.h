@@ -47,11 +47,11 @@ void             trap_GetServerinfo( char *buffer, int bufferSize );
 int              trap_BotAllocateClient();
 void             trap_BotFreeClient( int clientNum );
 void             trap_GetUsercmd( int clientNum, usercmd_t *cmd );
-bool         trap_GetEntityToken( char *buffer, int bufferSize );
 int              trap_BotGetServerCommand( int clientNum, char *message, int size );
 int              trap_RSA_GenerateMessage( const char *public_key, char *cleartext, char *encrypted );
 void             trap_GenFingerprint( const char *pubkey, int size, char *buffer, int bufsize );
 void             trap_GetPlayerPubkey( int clientNum, char *pubkey, int size );
 void             trap_GetTimeString( char *buffer, int size, const char *format, const qtime_t *tm );
+std::vector<int> trap_GetPings();
 
 #endif

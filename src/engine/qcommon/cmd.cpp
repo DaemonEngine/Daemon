@@ -399,18 +399,6 @@ const char *Cmd_QuoteString( const char *in )
 }
 
 /*
-============
-Cmd_QuoteStringBuffer
-
-Cmd_QuoteString for VM usage
-============
-*/
-void Cmd_QuoteStringBuffer( const char *in, char *buffer, int size )
-{
-	Q_strncpyz( buffer, Cmd_QuoteString( in ), size );
-}
-
-/*
 ===================
 Cmd_UnquoteString
 

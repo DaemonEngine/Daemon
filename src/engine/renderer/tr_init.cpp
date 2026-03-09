@@ -187,12 +187,11 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 
 	Cvar::Cvar<bool> r_toneMapping(
 		"r_toneMapping", "Use  HDR->LDR tonemapping", Cvar::NONE, true );
-	// TODO(0.56): rename because it can be used without tone mapping now
-	Cvar::Cvar<float> r_toneMappingExposure(
-		"r_toneMappingExposure", "Exposure (brightness adjustment)", Cvar::NONE, 1.0f );
+	Cvar::Cvar<float> r_exposure(
+		"r_exposure", "Exposure (brightness adjustment)", Cvar::NONE, 1.0f );
 	Cvar::Range<Cvar::Cvar<float>> r_toneMappingContrast(
 		"r_toneMappingContrast", "Makes dark areas light up faster",
-		Cvar::NONE, 1.6f, 1.0f, 10.0f );
+		Cvar::NONE, 1.4f, 1.0f, 10.0f );
 	Cvar::Range<Cvar::Cvar<float>> r_toneMappingHighlightsCompressionSpeed(
 		"r_toneMappingHighlightsCompressionSpeed", "Highlights saturation",
 		Cvar::NONE, 0.977f, 0.0f, 10.0f );
@@ -229,7 +228,6 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Range<Cvar::Cvar<float>> r_forceAmbient( "r_forceAmbient", "Minimal light amount in lightGrid; -1 to use map value",
 		Cvar::CHEAT, -1.0f, -1.0f, 0.3f );
 	Cvar::Cvar<float> r_ambientScale( "r_ambientScale", "Scale lightGrid produced by ambientColor keyword by this much", Cvar::CHEAT, 1.0 );
-	cvar_t      *r_lightScale;
 	cvar_t      *r_debugSort;
 	cvar_t      *r_printShaders;
 
@@ -1193,7 +1191,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_facePlaneCull = Cvar_Get( "r_facePlaneCull", "1", 0 );
 
 		Cvar::Latch( r_ambientScale );
-		r_lightScale = Cvar_Get( "r_lightScale", "2", CVAR_CHEAT );
 
 		r_vboFaces = Cvar_Get( "r_vboFaces", "1", CVAR_CHEAT );
 		r_vboCurves = Cvar_Get( "r_vboCurves", "1", CVAR_CHEAT );
@@ -1351,6 +1348,21 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			{
 				tr.triangleTable[ i ] = -tr.triangleTable[ i - FUNCTABLE_SIZE / 2 ];
 			}
+		}
+
+		if ( glConfig.deluxeMapping )
+		{
+			// Average value of max(0, dot(random vector, light dir)) over the unit sphere, used to
+			// compare directed lighting's average contribution with ambient. See TraceGrid in light.c in
+			// q3map2 for more information about this calculation. Though if we took half-Lambert lighting's
+			// cosine modification into account it would be 1/3 instead of 1/4.
+			tr.lightGridAverageCosine = 0.25f;
+		}
+		else
+		{
+			// Boost it when deluxe is disabled because otherwise it's too dark. Normals tend to line up
+			// with the light direction better than chance.
+			tr.lightGridAverageCosine = 0.4f;
 		}
 
 		R_NoiseInit();
@@ -1663,10 +1675,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		re.AddPolyToScene = RE_AddPolyToSceneET;
 		re.AddPolysToScene = RE_AddPolysToScene;
-		re.LightForPoint = R_LightForPoint;
 
-		re.AddLightToScene = RE_AddDynamicLightToSceneET;
-		re.AddAdditiveLightToScene = RE_AddDynamicLightToSceneQ3A;
+		re.AddLightToScene = RE_AddDynamicLightToScene;
 
 		re.RenderScene = RE_RenderScene;
 
@@ -1687,7 +1697,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.UnregisterFont = RE_UnregisterFont;
 
 		re.RemapShader = R_RemapShader;
-		re.GetEntityToken = R_GetEntityToken;
 		re.inPVS = R_inPVS;
 		re.inPVVS = R_inPVVS;
 		// Q3A END
