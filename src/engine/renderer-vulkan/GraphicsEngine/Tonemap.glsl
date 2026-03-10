@@ -43,16 +43,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 layout ( local_size_x = 8, local_size_y = 8, local_size_z = 1 ) in;
 
 layout ( scalar, push_constant ) uniform Push {
-	CoreDataBuffer coreData;
+	CoreData* coreData;
 } push;
 
 void main() {
 	const uint globalGroupID      = GLOBAL_GROUP_ID;
 	const uint globalInvocationID = GLOBAL_INVOCATION_ID;
 
-	if ( gl_GlobalInvocationID.x >= push.coreData.coreData[0].width || gl_GlobalInvocationID.y >= push.coreData.coreData[0].height ) {
+	if ( gl_GlobalInvocationID.x >= coreData[0].width || gl_GlobalInvocationID.y >= coreData[0].height ) {
 		return;
 	}
 
-	imageStore( images[push.coreData.coreData[0].currentSwapChainImage], ivec2( gl_GlobalInvocationID.xy ), vec4( 0, 1, 0, 1 ) );
+	imageStore( images[coreData[0].currentSwapChainImage], ivec2( gl_GlobalInvocationID.xy ), vec4( 0, 1, 0, 1 ) );
 }
