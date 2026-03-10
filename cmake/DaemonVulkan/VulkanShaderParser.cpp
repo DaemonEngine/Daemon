@@ -607,12 +607,12 @@ struct BufferPushIDs {
 	uint32_t ids[16];
 };
 
-struct std::unordered_map<uint32_t, BufferPushIDs> bufferPushIDs;
-static uint32_t currentSPIRVID = 0;
+struct std::unordered_map<uint32_t, BufferPushIDs>  bufferPushIDs;
+static uint32_t                                     currentSPIRVID = 0;
 
-static std::unordered_set<std::string> bufferPointers;
-static std::unordered_set<std::string> bufferPointerTypes;
-static std::string extensions;
+static std::unordered_set<std::string>              bufferPointers;
+static std::unordered_map<std::string, std::string> bufferPointerTypes;
+static std::string                                  extensions;
 
 std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_t* pushConstSize,
 	int insertCount = 0, int lineCount = 0 ) {
@@ -624,8 +624,6 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 
 	uint32_t offset   = 0;
 	uint32_t lastSize = v.size;
-
-	static uint32_t stackDepth = 0;
 
 	do {
 		SkipCPPIfDef( v );
@@ -695,14 +693,12 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 					if ( !bufferPointerTypes.contains( pointerType ) ) {
 						static const std::string bufPointer = "layout ( scalar, buffer_reference, buffer_reference_align = 4 ) ";
 
-						out = bufPointer
+						bufferPointerTypes[pointerType] =
+						      bufPointer
 							+ ( constPointer ? "restrict readonly buffer " : "restrict buffer " )
 							+ pointerType + " {\n\t"
 							+ type
-							+ " memory[];\n};\n\n"
-							+ out;
-
-						bufferPointerTypes.insert( pointerType );
+							+ " memory[];\n};";
 					}
 				}
 
@@ -777,11 +773,7 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 			out += "\n#line " + std::to_string( insertCount * 10000 ) + "\n";
 			out += "/**************************************************/\n";
 
-			stackDepth++;
-
 			out += ProcessInserts( glslSrc, stage, pushConstSize, insertCount, 0 );
-
-			stackDepth--;
 
 			out += "\n\n/**************************************************/\n";
 			out += "#line " + std::to_string( insertStartCount * 10000 + lineCount ) + "\n";
@@ -810,7 +802,65 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 		out += outStr;
 	} while ( v.size );
 
-	return stackDepth ? out : extensions + "\n\n" + out;
+	return out;
+}
+
+std::string AddPointers( const std::string& shaderText ) {
+	std::string out;
+
+	StringView v { shaderText.c_str(), shaderText.size() };
+
+	uint32_t offset = 0;
+	uint32_t lastSize = v.size;
+
+	static uint32_t stackDepth = 0;
+
+	do {
+		SkipCPPIfDef( v );
+
+		uint32_t insertLastSize = shaderText.size() - v.size;
+
+		std::string outStr;
+		StringView o = Parse( v, &outStr );
+
+		out += outStr;
+
+		if ( o == "struct" ) {
+			o = Parse( v, &outStr );
+
+			std::string structName { o.memory, o.size };
+
+			out += outStr;
+
+			static constexpr const char* pointerTypes[] { "_Pointer", "_ConstPointer" };
+
+			for ( const char* pointerType : pointerTypes ) {
+				const std::string pointerName = structName + pointerType;
+
+				if ( bufferPointerTypes.contains( pointerName ) ) {
+					do {
+						o = Parse( v, &outStr );
+
+						out += outStr;
+					} while ( o != "}" );
+
+					o = Parse( v, &outStr ); // ;
+
+					out += outStr;
+
+					out += "\n\n" + bufferPointerTypes[pointerName] + "\n\n";
+
+					bufferPointerTypes.erase( pointerName );
+				}
+			}
+		}
+	} while ( v.size );
+
+	for ( const std::pair<std::string, std::string>& it : bufferPointerTypes ) {
+		out = it.second + "\n\n" + out;
+	}
+
+	return extensions + "\n\n" + out;
 }
 
 std::string BufferIDsToString( const BufferPushIDs& buffer ) {
@@ -958,7 +1008,10 @@ int main( int argc, char** argv ) {
 			glslSrc.shrink_to_fit();
 
 			uint32_t pushConstSize = 0;
-			const std::string processedSrc = ProcessInserts( glslSrc, &stage, &pushConstSize, 0, 0 );
+
+			std::string processedSrc = ProcessInserts( glslSrc, &stage, &pushConstSize, 0, 0 );
+			processedSrc = AddPointers( processedSrc );
+
 			fwrite( processedSrc.c_str(), sizeof( char ), processedSrc.size(), processedGLSL.file );
 
 			std::vector<uint32_t>::iterator it = std::find( pushConstSizes.begin(), pushConstSizes.end(), pushConstSize );
