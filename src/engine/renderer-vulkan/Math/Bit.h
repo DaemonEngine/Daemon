@@ -42,16 +42,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(DAEMON_USE_COMPILER_INTRINSICS) && defined(__GNUC__)
 
+	inline uint32 FindLSB( const uint8  value ) {
+		return value ? __builtin_ctz( value )   : 8;
+	}
+
+	inline uint32 FindLSB( const uint16 value ) {
+		return value ? __builtin_ctz( value )   : 16;
+	}
+
 	inline uint32 FindLSB( const uint32 value ) {
-		return value ? __builtin_ctzl( value ) : 32;
+		return value ? __builtin_ctzl( value )  : 32;
 	}
 
 	inline uint32 FindLSB( const uint64 value ) {
 		return value ? __builtin_ctzll( value ) : 64;
 	}
 
+	inline uint32 FindMSB( const uint8  value ) {
+		return value ? __builtin_clzl( value )  : 8;
+	}
+
+	inline uint32 FindMSB( const uint16 value ) {
+		return value ? __builtin_clzl( value )  : 16;
+	}
+
 	inline uint32 FindMSB( const uint32 value ) {
-		return value ? __builtin_clzl( value ) : 32;
+		return value ? __builtin_clzl( value )  : 32;
 	}
 
 	inline uint32 FindMSB( const uint64 value ) {
@@ -84,7 +100,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #elif defined(DAEMON_USE_COMPILER_INTRINSICS) && defined(_MSC_VER)
 
-	inline uint32 FindLSB( const uint8 value ) {
+	inline uint32 FindLSB( const uint8  value ) {
 		unsigned long index;
 		const bool nonZero = _BitScanForward( &index, value );
 		return nonZero ? index : 8;
@@ -108,7 +124,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		return nonZero ? index : 64;
 	}
 
-	inline uint32 FindMSB( const uint8 value ) {
+	inline uint32 FindMSB( const uint8  value ) {
 		unsigned long index;
 		const bool nonZero = _BitScanReverse( &index, value );
 		return nonZero ? index : 8;
@@ -160,32 +176,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Set a single bit to 1
 
-[[nodiscard]] inline uint8 SetBit(  const uint8 value, const uint32 bit ) {
-	return value | ( 1u << bit );
+[[nodiscard]] inline uint8  SetBit( const uint8  value, const uint32 bit ) {
+	return value | ( 1u   << bit );
 }
 
 [[nodiscard]] inline uint16 SetBit( const uint16 value, const uint32 bit ) {
-	return value | ( 1u << bit );
+	return value | ( 1u   << bit );
 }
 
 [[nodiscard]] inline uint32 SetBit( const uint32 value, const uint32 bit ) {
-	return value | ( 1u << bit );
+	return value | ( 1u   << bit );
 }
 
 [[nodiscard]] inline uint64 SetBit( const uint64 value, const uint32 bit ) {
 	return value | ( 1ull << bit );
 }
 
-inline void SetBit( uint8* value,  const uint32 bit ) {
-	*value |= ( 1u << bit );
+inline void SetBit( uint8*  value, const uint32 bit ) {
+	*value |= ( 1u   << bit );
 }
 
 inline void SetBit( uint16* value, const uint32 bit ) {
-	*value |= ( 1u << bit );
+	*value |= ( 1u   << bit );
 }
 
 inline void SetBit( uint32* value, const uint32 bit ) {
-	*value |= ( 1u << bit );
+	*value |= ( 1u   << bit );
 }
 
 inline void SetBit( uint64* value, const uint32 bit ) {
@@ -195,7 +211,7 @@ inline void SetBit( uint64* value, const uint32 bit ) {
 // Return a uint with only bits in range [start, start + count) set to 1
 
 [[nodiscard]] inline uint8 BitMask8(   const uint32 start, const uint32 count ) {
-	return ( UINT8_MAX  >> ( 8 - count ) ) << start;
+	return ( UINT8_MAX  >> (  8 - count ) ) << start;
 }
 
 [[nodiscard]] inline uint16 BitMask16( const uint32 start, const uint32 count ) {
@@ -212,7 +228,7 @@ inline void SetBit( uint64* value, const uint32 bit ) {
 
 // Set bits in range [start, start + count) to 1
 
-[[nodiscard]] inline uint8 SetBits( const uint8 value,  const uint32 start, const uint32 count ) {
+[[nodiscard]] inline uint8  SetBits( const uint8  value, const uint32 start, const uint32 count ) {
 	return value | BitMask8(  start, count );
 }
 
@@ -228,7 +244,7 @@ inline void SetBit( uint64* value, const uint32 bit ) {
 	return value | BitMask64( start, count );
 }
 
-inline void SetBits( uint8* value, const uint32 start,  const uint32 count ) {
+inline void SetBits( uint8*  value, const uint32 start,  const uint32 count ) {
 	*value |= BitMask8(  start,  count );
 }
 
@@ -246,9 +262,9 @@ inline void SetBits( uint64* value, const uint32 start, const uint32 count ) {
 
 // Set bits in range [start, start + count) to a given value
 
-[[nodiscard]] inline uint8 SetBits(  const uint8 value,  const uint8 bits, const uint32 start, const uint32 count ) {
+[[nodiscard]] inline uint8 SetBits(  const uint8  value, const uint8  bits, const uint32 start, const uint32 count ) {
 	return ( value & ~BitMask8(  start, count ) )
-		| ( ( bits & BitMask8( 0, count ) ) << start );
+		 | ( ( bits & BitMask8( 0, count ) ) << start );
 }
 
 [[nodiscard]] inline uint16 SetBits( const uint16 value, const uint16 bits, const uint32 start, const uint32 count ) {
@@ -266,7 +282,7 @@ inline void SetBits( uint64* value, const uint32 start, const uint32 count ) {
 	     | ( ( bits & BitMask64( 0, count ) ) << start );
 }
 
-inline void SetBits( uint8* value,  const uint8 bits,  const uint32 start, const uint32 count ) {
+inline void SetBits( uint8*  value, const uint8  bits, const uint32 start, const uint32 count ) {
 	*value = SetBits( *value, bits, start, count );
 }
 
@@ -284,32 +300,32 @@ inline void SetBits( uint64* value, const uint64 bits, const uint32 start, const
 
 // Set a single bit to 0
 
-[[nodiscard]] inline uint8 UnSetBit( const uint8 value,   const uint32 bit ) {
-	return value & ~( 1u << bit );
+[[nodiscard]] inline uint8  UnSetBit( const uint8  value, const uint32 bit ) {
+	return value & ~( 1u   << bit );
 }
 
 [[nodiscard]] inline uint16 UnSetBit( const uint16 value, const uint32 bit ) {
-	return value & ~( 1u << bit );
+	return value & ~( 1u   << bit );
 }
 
 [[nodiscard]] inline uint32 UnSetBit( const uint32 value, const uint32 bit ) {
-	return value & ~( 1u << bit );
+	return value & ~( 1u   << bit );
 }
 
 [[nodiscard]] inline uint64 UnSetBit( const uint64 value, const uint32 bit ) {
 	return value & ~( 1ull << bit );
 }
 
-inline void UnSetBit( uint8* value,  const uint32 bit ) {
-	*value &= ~( 1u << bit );
+inline void UnSetBit( uint8*  value, const uint32 bit ) {
+	*value &= ~( 1u   << bit );
 }
 
 inline void UnSetBit( uint16* value, const uint32 bit ) {
-	*value &= ~( 1u << bit );
+	*value &= ~( 1u   << bit );
 }
 
 inline void UnSetBit( uint32* value, const uint32 bit ) {
-	*value &= ~( 1u << bit );
+	*value &= ~( 1u   << bit );
 }
 
 inline void UnSetBit( uint64* value, const uint32 bit ) {
@@ -318,8 +334,8 @@ inline void UnSetBit( uint64* value, const uint32 bit ) {
 
 // Return bits in range [start, start + count) in the lowest bits
 
-[[nodiscard]] inline uint8 GetBits( const uint8 value,   const uint32 start, const uint32 count ) {
-	return ( value >> start ) & BitMask8( 0, count );
+[[nodiscard]] inline uint8  GetBits( const uint8  value, const uint32 start, const uint32 count ) {
+	return ( value >> start ) & BitMask8(  0, count );
 }
 
 [[nodiscard]] inline uint16 GetBits( const uint16 value, const uint32 start, const uint32 count ) {
@@ -334,7 +350,7 @@ inline void UnSetBit( uint64* value, const uint32 bit ) {
 	return ( value >> start ) & BitMask64( 0, count );
 }
 
-inline int CompareBit( const uint8 lhs,  const uint8 rhs, const uint32 bit ) {
+inline int CompareBit( const uint8  lhs, const uint8  rhs, const uint32 bit ) {
 	const uint8 lhsBit = lhs & ( 1u << bit );
 	const uint8 rhsBit = rhs & ( 1u << bit );
 	return lhsBit < rhsBit ? -1 : ( lhsBit > rhsBit ? 1 : 0 );
@@ -358,24 +374,24 @@ inline int CompareBit( const uint64 lhs, const uint64 rhs, const uint32 bit ) {
 	return lhsBit < rhsBit ? -1 : ( lhsBit > rhsBit ? 1 : 0 );
 }
 
-inline const bool BitSet( const uint8 value, const uint32 bit ) {
-	return value & ( 1u << bit );
+inline const bool BitSet( const uint8 value, const  uint32 bit ) {
+	return value & ( 1u   << bit );
 }
 
 inline const bool BitSet( const uint16 value, const uint32 bit ) {
-	return value & ( 1u << bit );
+	return value & ( 1u   << bit );
 }
 
 inline const bool BitSet( const uint32 value, const uint32 bit ) {
-	return value & ( 1u << bit );
+	return value & ( 1u   << bit );
 }
 
 inline const bool BitSet( const uint64 value, const uint32 bit ) {
 	return value & ( 1ull << bit );
 }
 
-inline uint32 FindLZeroBit( uint8 value ) {
-	return FindLSB( ( uint8 ) ~value );
+inline uint32 FindLZeroBit( uint8  value ) {
+	return FindLSB( ( uint8 )  ~value );
 }
 
 inline uint32 FindLZeroBit( uint16 value ) {
