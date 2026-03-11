@@ -31,28 +31,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Light.h
 
-#ifndef LIGHT_H
-#define LIGHT_H
+/* SparseCopy.glsl */
 
-#include "NumberTypes.h"
+#include "Common.glsl"
 
-struct Light {
-	float  x;
-	float  y;
-	float  z;
-	float  radius;
+#include "Entity.h"
+#include "Light.h"
 
-	uint8  r;
-	uint8  g;
-	uint8  b;
+#include "Resources.glsl"
 
-	uint8  material;
+layout ( local_size_x = 64, local_size_y = 1, local_size_z = 1 ) in;
 
-	float  strength;
+layout ( scalar, push_constant ) uniform Push {
+	Entity* entityRingBuffer;
+	Light*  lightRingBuffer;
+	Entity* entities;
+	Light*  lights;
+} push;
 
-	uint32 shadowMapID;
-};
+void main() {
+	const uint globalGroupID      = GLOBAL_GROUP_ID;
+	const uint globalInvocationID = GLOBAL_INVOCATION_ID;
 
-#endif // LIGHT_H
+	if ( globalInvocationID >= 64 ) {
+		return;
+	}
+
+
+}

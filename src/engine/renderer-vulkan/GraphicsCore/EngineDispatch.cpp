@@ -56,6 +56,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SwapChain.h"
 
 #include "../GraphicsShared/CoreData.h"
+#include "../GraphicsShared/Entity.h"
 #include "../GraphicsShared/MsgStreamAPI.h"
 
 #include "EngineDispatch.h"
