@@ -38,10 +38,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NumberTypes.h"
 
+#include "Entity.h"
+#include "Light.h"
+
 const uint32 depthImage              = 0; // 0-15 for mipmaps
 const uint32 visBufferMaterialsImage = 16;
 const uint32 shadowMapImage          = 17;
 
 const uint32 imageOffset             = 18;
+
+const uint32 entityRingBufferSize    = 16384 * sizeof( Entity );
+const uint32 lightRingBufferSize     = 16384 * sizeof( Light );
 
 #endif // SHARED_RESOURCES_H

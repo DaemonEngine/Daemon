@@ -40,6 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "MsgStreamAPI.h"
 
+#include "Resources.glsl"
+
 #include "Images.glsl"
 
 #include "Buffers.glsl"

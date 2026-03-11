@@ -151,6 +151,8 @@ list( TRANSFORM graphicsEngineIDEList PREPEND ${ENGINE_DIR}/renderer-vulkan/Grap
 set( graphicsSharedList
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/Bindings.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/CoreData.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/Entity.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/Light.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/MemoryPool.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/MsgStreamAPI.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/NumberTypes.h

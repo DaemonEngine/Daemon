@@ -31,14 +31,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
+// Light.h
 
-/* Resources.glsl */
+#ifndef LIGHT_H
+#define LIGHT_H
 
-#include "Entity.h"
-#include "Light.h"
+#include "NumberTypes.h"
 
-const uint entitiesSize = uint( sizeof( Entity ) );
-const uint lightsSize   = uint( sizeof( Light ) );
+struct Light {
+	float x;
+	float y;
+	float z;
+	float radius;
+};
 
-Buffer entities { entitiesSize };
-Buffer lights   { lightsSize };
+#endif // LIGHT_H
