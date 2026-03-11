@@ -64,28 +64,28 @@ struct Msg {
 	uint32* memory;
 	uint32  offset;
 
-	uint32  Read() {
+	uint32 Read() {
 		uint32 out = memory[offset];
 		offset++;
 
 		return out;
 	}
 
-	uint64  ReadUint64() {
-		uint64 out = memory[offset] | ( memory[offset + 1] << 32 );
+	uint64 ReadUint64() {
+		uint64 out = memory[offset] | ( ( uint64 ) memory[offset + 1] << 32 );
 		offset    += 2;
 
 		return out;
 	}
 
-	float   ReadFloat() {
+	float  ReadFloat() {
 		float out  = *( float* ) &memory[offset];
 		offset++;
 
 		return out;
 	}
 
-	bool    ReadBool() {
+	bool   ReadBool() {
 		bool out   = *( bool* ) &memory[offset];
 		offset++;
 
