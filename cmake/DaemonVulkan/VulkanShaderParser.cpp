@@ -870,20 +870,57 @@ std::string AddPointers( const std::string& shaderText ) {
 
 			static constexpr const char* pointerTypes[] { "_Pointer", "_ConstPointer", "_Decl" };
 
+			o = Parse( v, &outStr ); // {
+
+			out += outStr;
+			
+			bool        unsizedArray = false;
+			std::string unsizedArrayMember;
+
+			do {
+				std::string structMember;
+				bool        end = false;
+
+				do {
+					o = Parse( v, &outStr );
+
+					structMember += outStr;
+
+					if ( o == "}" ) {
+						out += outStr;
+
+						end = true;
+						break;
+					}
+
+					if ( o == "[" ) {
+						o = Parse( v, &outStr );
+
+						structMember += outStr;
+
+						if ( o == "]" ) {
+							unsizedArray = true;
+						}
+					}
+				} while ( o != ";" );
+
+				if ( unsizedArray && !end ) {
+					unsizedArrayMember = structMember;
+				}
+
+				if ( !unsizedArray && !end ) {
+					out += structMember;
+				}
+			} while ( o != "}" );
+
+			o = Parse( v, &outStr ); // ;
+
+			out += outStr;
+
 			for ( const char* pointerType : pointerTypes ) {
 				const std::string pointerName = structName + pointerType;
 
 				if ( bufferPointerTypes.contains( pointerName ) ) {
-					do {
-						o = Parse( v, &outStr );
-
-						out += outStr;
-					} while ( o != "}" );
-
-					o = Parse( v, &outStr ); // ;
-
-					out += outStr;
-
 					out += "\n\n" + bufferPointerTypes[pointerName] + "\n\n";
 
 					bufferPointerTypes.erase( pointerName );
