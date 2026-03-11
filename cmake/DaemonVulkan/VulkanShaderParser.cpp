@@ -651,6 +651,42 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 			continue;
 		}
 
+		if ( o == "sizeof" ) {
+			out += outStr;
+
+			o = Parse( v, &outStr ); // (
+
+			out += outStr;
+
+			o = Parse( v, &outStr );
+
+			out += outStr;
+
+			std::string type { o.memory, o.size };
+
+			// #define sizeof in Common.glsl
+			if ( type == "Type" ) {
+				continue;
+			}
+
+			if ( bufferPointerTypes.contains( type + "_Decl" ) ) {
+				out += "_Decl";
+			} else {
+				static const std::string bufPointer = "layout ( scalar, buffer_reference, buffer_reference_align = 4 ) ";
+
+				out += "_Decl";
+
+				bufferPointerTypes[type + "_Decl"] =
+					  bufPointer
+					+ "restrict buffer "
+					+ type + "_Decl" + " {\n\t"
+					+ type
+					+ " memory;\n};";
+			}
+
+			continue;
+		}
+
 		if ( o == "push_constant" ) {
 			out += outStr;
 
@@ -694,7 +730,7 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 						static const std::string bufPointer = "layout ( scalar, buffer_reference, buffer_reference_align = 4 ) ";
 
 						bufferPointerTypes[pointerType] =
-						      bufPointer
+							  bufPointer
 							+ ( constPointer ? "restrict readonly buffer " : "restrict buffer " )
 							+ pointerType + " {\n\t"
 							+ type
@@ -832,7 +868,7 @@ std::string AddPointers( const std::string& shaderText ) {
 
 			out += outStr;
 
-			static constexpr const char* pointerTypes[] { "_Pointer", "_ConstPointer" };
+			static constexpr const char* pointerTypes[] { "_Pointer", "_ConstPointer", "_Decl" };
 
 			for ( const char* pointerType : pointerTypes ) {
 				const std::string pointerName = structName + pointerType;
