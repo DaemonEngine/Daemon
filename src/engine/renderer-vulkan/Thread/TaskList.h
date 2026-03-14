@@ -71,7 +71,7 @@ struct TaskInitList {
 
 struct ThreadQueue {
 	std::atomic<uint64> pointer = 0;
-	uint8 current = 0;
+	uint8               current = 0;
 
 	static constexpr uint16 TASK_NONE = UINT16_MAX;
 	static constexpr uint32 MAX_TASKS = 59;
@@ -94,86 +94,86 @@ class TaskList :
 	friend class  Thread;
 	friend struct ThreadQueue;
 
-	static constexpr uint32 MAX_TASKS         = 2048;
-	static constexpr uint32 MAX_DATA_PER_TASK = 128;
-	static constexpr uint32 MAX_TASK_DATA     = MAX_TASKS * MAX_DATA_PER_TASK;
+	static constexpr uint32 MAX_TASKS                     = 2048;
+	static constexpr uint32 MAX_DATA_PER_TASK             = 128;
+	static constexpr uint32 MAX_TASK_DATA                 = MAX_TASKS * MAX_DATA_PER_TASK;
 
 	static constexpr uint16 TASK_SHIFT_ADDED              = 0;
 	static constexpr uint16 TASK_SHIFT_HAS_UNTRACKED_DEPS = 1;
 	static constexpr uint16 TASK_SHIFT_TRACKED_DEPENDENCY = 2;
 	static constexpr uint16 TASK_SHIFT_UPDATED_DEPENDENCY = 3;
 
-	AccessLock threadCountLock;
+	AccessLock          threadCountLock;
 	std::atomic<uint32> currentMaxThreads = 0;
 
 	std::atomic<uint32> threadExecutionNodes[MAX_THREADS];
 
-	FenceMain exitFence;
+	FenceMain           exitFence;
 
 	TaskList();
 	~TaskList();
 
-	void Init();
-	void Shutdown();
-	void FinishShutdown();
+	void  Init();
+	void  Shutdown();
+	void  FinishShutdown();
 
-	bool AddedToTaskList( const uint16 id );
-	bool AddedToTaskMemory( const uint16 bufferID );
-	bool HasUntrackedDeps( const uint16 id );
-	bool IsTrackedDependency( const uint16 id );
-	bool IsUpdatedDependency( const uint16 id );
+	bool  AddedToTaskList( const uint16 id );
+	bool  AddedToTaskMemory( const uint16 bufferID );
+	bool  HasUntrackedDeps( const uint16 id );
+	bool  IsTrackedDependency( const uint16 id );
+	bool  IsUpdatedDependency( const uint16 id );
 
 	byte* AllocTaskData( const uint16 dataSize );
 
-	void AddTask( Task& task, std::initializer_list<TaskProxy> dependencies = {} );
-	void AddTasksExt( std::initializer_list<TaskInit> dependencies );
+	void  AddTask( Task& task, std::initializer_list<TaskProxy> dependencies = {} );
+	void  AddTasksExt( std::initializer_list<TaskInit> dependencies );
 	Task* FetchTask( Thread* thread, const bool longestTask );
 
-	void TaskWait( Task& task );
+	void  TaskWait( Task& task );
 
-	void TasksCleared( const uint32 count );
-	void TaskStarted();
-	bool ThreadFinished( const bool hadTask );
+	void  TasksCleared( const uint32 count );
+	void  TaskStarted();
+	bool  ThreadFinished( const bool hadTask );
 
-	void FinishTask( Task* task );
-	void FinishDependency( const uint16 bufferID );
+	void  FinishTask( Task* task );
+	void  FinishDependency( const uint16 bufferID );
 
-	void AdjustThreadCount( const uint32 newMaxThreads );
+	void  AdjustThreadCount( const uint32 newMaxThreads );
 
 	private:
 	struct ThreadExecutionNode {
 		uint8 nextThreadExecutionNode;
 	};
 
-	AtomicRingBuffer<Task> tasks { "GlobalTaskMemory", &sysAllocator };
+	AtomicRingBuffer<Task>       tasks     { "GlobalTaskMemory",     &sysAllocator };
 	AtomicRingBuffer<byte, true> tasksData { "GlobalTaskDataMemory", &sysAllocator };
 
-	Thread threads[MAX_THREADS];
+	Thread                       threads[MAX_THREADS];
 
-	ThreadQueue threadQueues[MAX_THREADS];
-	std::atomic<uint32> currentThreadExecutionNode = UINT32_MAX;
-	std::atomic<uint32> taskCount;
-	std::atomic<uint32> taskWithDependenciesCount;
+	ThreadQueue                  threadQueues[MAX_THREADS];
+	std::atomic<uint32>          currentThreadExecutionNode = UINT32_MAX;
+	std::atomic<uint32>          taskCount;
+	std::atomic<uint32>          taskWithDependenciesCount;
 
-	ALIGN_CACHE std::atomic<uint32> executingThreads = 1;
-	ALIGN_CACHE std::atomic<bool>   exiting          = false;
+	std::atomic<uint32>          executingThreads = 1;
+	std::atomic<bool>            exiting          = false;
 
-	void AddToThreadQueueExt( Task& task );
-	void AddToThreadQueue( Task& task );
+	void  AddToThreadQueueExt( Task& task );
+	void  AddToThreadQueue( Task& task );
 
 	Task* GetTaskMemory( Task& task );
 
 	template<IsTask T>
-	void ResolveDependencies( Task& task, TaskInitList<T>& dependencies );
+	void  ResolveDependencies( Task& task, TaskInitList<T>& dependencies );
 
 	template<IsTask T>
-	void AddTask( Task& task, TaskInitList<T>&& dependencies = {} );
+	void  AddTask( Task& task, TaskInitList<T>&& dependencies = {} );
 
 	template<IsTask T>
-	void MarkDependencies( Task& task, TaskInitList<T>&& dependencies );
+	void  MarkDependencies( Task& task, TaskInitList<T>&& dependencies );
 
 	template<IsTask T>
-	void UnMarkDependencies( TaskInitList<T>&& dependencies );
+	void  UnMarkDependencies( TaskInitList<T>&& dependencies );
 };
 
 extern TaskList taskList;

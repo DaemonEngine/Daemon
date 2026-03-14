@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct TLMAllocator : public Allocator {
 	byte* Alloc( const uint64 size, const uint64 alignment ) override;
-	void Free( byte* memory ) override;
+	void  Free( byte* memory ) override;
 };
 
 extern thread_local TLMAllocator TLMAlloc;

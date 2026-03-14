@@ -63,39 +63,39 @@ template<typename T>
 constexpr bool IsPointer = IsPointer_<T>::out;
 
 struct Task {
-	using TaskFunction                                = void( * )( void* );
+	using TaskFunction = void( * )( void* );
 
-	TaskFunction Execute;
-	void* data;
+	TaskFunction        Execute;
+	void*               data;
 
-	FenceMain complete;
+	FenceMain           complete;
 
-	bool active                                       = false;
-	bool shutdownTask                                 = false;
+	bool                active                 = false;
+	bool                shutdownTask           = false;
 
-	uint32 eventMask                                  = 0;
+	uint32              eventMask              = 0;
 
-	uint64 gen                                        = 0;
-	uint64 time                                       = 0;
+	uint64              gen                    = 0;
+	uint64              time                   = 0;
 
-	ALIGN_CACHE std::atomic<uint32> dependencyCounter = 1;
-	std::atomic<uint32> forwardTaskCounter            = 0;
-	uint32 forwardTaskCounterFast                     = 0;
+	std::atomic<uint32> dependencyCounter      = 1;
+	std::atomic<uint32> forwardTaskCounter     = 0;
+	uint32              forwardTaskCounterFast = 0;
 
-	uint8 id                                          = 0; // 4 bits - task memory/dependency tracking in TaskList
-	const bool dataIsPointer                          = false;
+	uint8               id                     = 0; // 4 bits - task memory/dependency tracking in TaskList
+	const bool          dataIsPointer          = false;
 
-	static constexpr uint32 UNALLOCATED               = UINT16_MAX;
-	uint16 bufferID                                   = UNALLOCATED; // Task RingBuffer id
-	uint64 threadMask                                 = 0;
-	std::atomic<uint32> threadCount                   = 0;
+	static constexpr uint32 UNALLOCATED        = UINT16_MAX;
+	uint16              bufferID               = UNALLOCATED; // Task RingBuffer id
+	uint64              threadMask             = 0;
+	std::atomic<uint32> threadCount            = 0;
 
-	AccessLock forwardTaskLock;
+	AccessLock          forwardTaskLock;
 
-	uint16 dataSize                                   = 0;
+	uint16              dataSize               = 0;
 
-	static constexpr uint32 MAX_FORWARD_TASKS         = 14;
-	uint16 forwardTasks[MAX_FORWARD_TASKS]              { 0 };
+	static constexpr uint32 MAX_FORWARD_TASKS  = 14;
+	uint16 forwardTasks[MAX_FORWARD_TASKS]       { 0 };
 
 	Task();
 

@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -43,12 +43,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "MiscCVarStore.h"
 
-Cvar::Cvar<bool> r_vkLogExtend( "r_vkLogExtend", "Print src location in all logs", Cvar::NONE, false );
+Cvar::Cvar<bool> r_vkLogExtend(        "r_vkLogExtend",        "Print src location in all logs",     Cvar::NONE, false );
 
-Cvar::Cvar<bool> r_vkLogExtendWarn( "r_vkLogExtendWarn", "Print src location in warn logs", Cvar::NONE, false );
-Cvar::Cvar<bool> r_vkLogExtendNotice( "r_vkLogExtendNotice", "Print src location in notice logs", Cvar::NONE, false );
+Cvar::Cvar<bool> r_vkLogExtendWarn(    "r_vkLogExtendWarn",    "Print src location in warn logs",    Cvar::NONE, false );
+Cvar::Cvar<bool> r_vkLogExtendNotice(  "r_vkLogExtendNotice",  "Print src location in notice logs",  Cvar::NONE, false );
 Cvar::Cvar<bool> r_vkLogExtendVerbose( "r_vkLogExtendVerbose", "Print src location in verbose logs", Cvar::NONE, false );
-Cvar::Cvar<bool> r_vkLogExtendDebug( "r_vkLogExtendDebug", "Print src location in debug logs", Cvar::NONE, false );
+Cvar::Cvar<bool> r_vkLogExtendDebug(   "r_vkLogExtendDebug",   "Print src location in debug logs",   Cvar::NONE, false );
 
 Cvar::Range<Cvar::Cvar<int>> r_vkLogExtendedFunctionNames( "r_vkLogExtendedFunctionNames",
 	"Extended log function format: 0 - none, 1 - only name/only struct or class name (for struct/class functions),"
@@ -68,7 +68,7 @@ Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount( "r_vkThreadCount",
 		taskList.AdjustThreadCount( value );
 	}, 0, MAX_THREADS );
 
-Cvar::Cvar<std::string> r_vkMemoryChunkConfig( "r_vkMemoryChunkConfig",
+Cvar::Cvar<std::string>      r_vkMemoryChunkConfig( "r_vkMemoryChunkConfig",
 	"Configuration for memory chunk system: \"[chunkSize]:[chunkCount] .. [chunkSize]:[chunkCount]\", sizes are in kb."
 	"16:640 1024:640 65536:16 must be reserved for internal use", Cvar::NONE, defaultMemoryChunkConfig );
 

@@ -49,7 +49,7 @@ void Surface::Init() {
 	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_VERSION_STRING, PRODUCT_VERSION );
 	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_TYPE_STRING, "game" );
 
-	/* Let X11 and Wayland desktops (Linux, FreeBSD…) associate the game
+	/* Let X11 and Wayland desktops (Linux, FreeBSDâ€¦) associate the game
 	window with the XDG .desktop file, with the proper name and icon.
 	The .desktop file should have PRODUCT_APPID as base name or set the
 	StartupWMClass variable to PRODUCT_APPID. */

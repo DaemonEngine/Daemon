@@ -51,6 +51,7 @@ void FenceMain::Wait( const std::memory_order order ) {
 Fence FenceMain::Target( const uint64 target ) {
 	Fence fence { *this };
 	fence.target = target;
+
 	return fence;
 }
 
@@ -84,8 +85,8 @@ Fence::Fence( FenceMain& other ) :
 }
 
 void Fence::operator=( const Fence& other ) {
-	value = other.value;
-	done = other.done;
+	value  = other.value;
+	done   = other.done;
 	target = other.target;
 }
 

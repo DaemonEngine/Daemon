@@ -47,12 +47,12 @@ MemoryInfo::MemoryInfo() {
 		GetSystemInfo( &info );
 
 		PAGE_SIZE_DEFAULT = info.dwPageSize;
-		PAGE_SIZE_64 = 64 * 1024;
-		PAGE_SIZE_LARGE = GetLargePageMinimum();
+		PAGE_SIZE_64      = 64 * 1024;
+		PAGE_SIZE_LARGE   = GetLargePageMinimum();
 	#else
 		PAGE_SIZE_DEFAULT = sysconf( _SC_PAGESIZE );
-		PAGE_SIZE_64 = PAGE_SIZE_DEFAULT; // TODO: Can this even be specified on Linux?
-		PAGE_SIZE_LARGE = 0;
+		PAGE_SIZE_64      = PAGE_SIZE_DEFAULT; // TODO: Can this even be specified on Linux?
+		PAGE_SIZE_LARGE   = 0;
 	#endif
 }
 

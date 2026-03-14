@@ -66,7 +66,7 @@ void Thread::Run() {
 	idle.Clear();
 	executing.Clear();
 
-	TLM.id       = id;
+	TLM.id = id;
 
 	total.Start();
 

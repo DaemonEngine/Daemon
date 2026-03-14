@@ -66,6 +66,7 @@ void Init( WindowConfig* windowConfig ) {
 	Task initSMTask  { &InitGlobalMemory };
 
 	Task initTLMTask { &InitTLM };
+
 	taskList.AddTasks( { initSMTask, initMemTask }, { initTLMTask.ThreadMaskAll(), initMemTask } );
 
 	mainSurface.Init();
@@ -85,5 +86,6 @@ void Init( WindowConfig* windowConfig ) {
 	Cvar::Latch( r_vkMemoryPageSize );
 
 	Task initGraphicsEngineTask { &InitGraphicsEngine };
+
 	taskList.AddTasks( { initGraphicsEngineTask } );
 }

@@ -60,15 +60,15 @@ void SysAllocator::Init() {
 		switch ( r_vkMemoryPageSize.Get() ) {
 			case PageSize::SIZE_64:
 				allocationFlags |= MEM_64K_PAGES;
-				pageSize = memoryInfo.PAGE_SIZE_64;
+				pageSize         = memoryInfo.PAGE_SIZE_64;
 				break;
 			case PageSize::SIZE_LARGE:
 				if ( memoryInfo.PAGE_SIZE_LARGE ) {
 					allocationFlags |= MEM_LARGE_PAGES;
-					pageSize = memoryInfo.PAGE_SIZE_LARGE;
+					pageSize         = memoryInfo.PAGE_SIZE_LARGE;
 				} else {
 					allocationFlags |= MEM_64K_PAGES;
-					pageSize = memoryInfo.PAGE_SIZE_64;
+					pageSize         = memoryInfo.PAGE_SIZE_64;
 				}
 				break;
 			case PageSize::SIZE_DEFAULT:
@@ -87,7 +87,7 @@ void SysAllocator::Init() {
 			case PageSize::SIZE_LARGE:
 				if ( memoryInfo.PAGE_SIZE_LARGE ) {
 					allocationFlags |= MAP_HUGETLB | MAP_HUGE_2MB;
-					pageSize = memoryInfo.PAGE_SIZE_LARGE;
+					pageSize         = memoryInfo.PAGE_SIZE_LARGE;
 				}
 				break;
 			case PageSize::SIZE_DEFAULT:
@@ -101,13 +101,14 @@ void SysAllocator::Init() {
 }
 
 byte* SysAllocator::Alloc( const uint64 size, const uint64 alignment ) {
-	bool allocated = false;
+	bool   allocated      = false;
 	uint32 allocationSync = 0;
 	uint32 sync;
 
 	while ( !allocated ) {
 		uint64 expectedSync;
 		uint64 desiredSync;
+
 		allocated = true;
 
 		do {
@@ -143,20 +144,22 @@ byte* SysAllocator::Alloc( const uint64 size, const uint64 alignment ) {
 	const uint32 pageCount = allocationSize / pageSize;
 
 	AllocationRecord& alloc = allocations[allocationID];
+
 	alloc.pageCount = pageCount;
 	alloc.alignment = alignment;
-	alloc.id = allocationID;
+	alloc.id        = allocationID;
 
 	#ifdef _MSC_VER
 		alloc.memory = ( byte* ) VirtualAlloc2( nullptr, nullptr, allocationSize, allocationFlags, PAGE_NOACCESS, nullptr, 0 );
 		
 		unsigned long unused;
-		VirtualProtect( alloc.memory, ( pageCount - 1 ) * pageSize, allocationProtection, &unused );
-		VirtualProtect( alloc.memory + ( pageCount - 1 ) * pageSize, pageSize, PAGE_READONLY | PAGE_GUARD, &unused );
+		VirtualProtect( alloc.memory,                                ( pageCount - 1 ) * pageSize, allocationProtection,       &unused );
+		VirtualProtect( alloc.memory + ( pageCount - 1 ) * pageSize, pageSize,                     PAGE_READONLY | PAGE_GUARD, &unused );
 	#else
 		alloc.memory = ( byte* ) mmap( nullptr, allocationSize, allocationProtection, allocationFlags, -1, 0 );
-		mprotect( alloc.memory, ( pageCount - 1 ) * pageSize, allocationProtection );
-		mprotect( alloc.memory + ( pageCount - 1 ) * pageSize, pageSize, PROT_NONE );
+
+		mprotect( alloc.memory,                                ( pageCount - 1 ) * pageSize, allocationProtection );
+		mprotect( alloc.memory + ( pageCount - 1 ) * pageSize, pageSize,                     PROT_NONE );
 	#endif
 
 	memcpy( alloc.memory, &alloc, sizeof( AllocationRecord ) );

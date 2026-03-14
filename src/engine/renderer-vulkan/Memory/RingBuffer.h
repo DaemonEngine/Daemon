@@ -232,11 +232,11 @@ class AtomicRingBuffer :
 	}
 
 	private:
-	uint64                          size;
-	uint64                          mask;
-	ALIGN_CACHE uint64              elementCount;
-	ALIGN_CACHE std::atomic<uint64> pointer;
-	ALIGN_CACHE std::atomic<uint64> current;
+	uint64              size;
+	uint64              mask;
+	uint64              elementCount;
+	std::atomic<uint64> pointer;
+	std::atomic<uint64> current;
 };
 
 #endif // RINGBUFFER_H

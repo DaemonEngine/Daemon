@@ -45,7 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template<typename T, uint64 newSize>
 struct Array {
 	const uint64 size = newSize;
-    T memory[newSize];
+    T            memory[newSize];
 
 	constexpr Array() {
 	}

@@ -81,9 +81,9 @@ struct EventQueue {
 		{ .granularity = 1_m }
 	};
 
-	const uint64 minGranularity = eventRings[0].granularity;
+	const uint64      minGranularity = eventRings[0].granularity;
 
-	std::atomic<bool> exiting   = false;
+	std::atomic<bool> exiting        = false;
 
 	void AddTask( Task& task );
 	void Rotate();

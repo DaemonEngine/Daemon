@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -40,8 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount;
 
-extern Cvar::Cvar<std::string> r_vkMemoryChunkConfig;
+extern Cvar::Cvar<std::string>                      r_vkMemoryChunkConfig;
 
-extern Cvar::Range<Cvar::Cvar<int>> r_vkMemoryPageSize;
+extern Cvar::Range<Cvar::Cvar<int>>                 r_vkMemoryPageSize;
 
 #endif // MISC_CVARSTORE_H

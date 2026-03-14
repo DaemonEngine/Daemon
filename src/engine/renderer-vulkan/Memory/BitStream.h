@@ -59,7 +59,7 @@ struct BitStream {
 
 	BitStream( void* newMemory, const uint32 newElementSize = 0 );
 
-	uint8 Read8(   const uint32 size );
+	uint8  Read8(  const uint32 size );
 	uint16 Read16( const uint32 size );
 	uint32 Read32( const uint32 size );
 	uint64 Read64( const uint32 size );

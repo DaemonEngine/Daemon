@@ -44,17 +44,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Surface {
 	public:
-	SDL_Window* window;
+	SDL_Window*  window;
 
 	#ifdef _MSC_VER
 		HMONITOR hmonitor;
 	#endif
 
-	int         width;
-	int         height;
+	int          width;
+	int          height;
 
-	int         screenWidth;
-	int         screenHeight;
+	int          screenWidth;
+	int          screenHeight;
 
 	void Init();
 

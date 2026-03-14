@@ -62,8 +62,8 @@ struct FenceMain {
 
 struct Fence {
 	std::atomic<uint64>* value;
-	std::atomic<bool>* done;
-	uint64 target = 0;
+	std::atomic<bool>*   done;
+	uint64               target = 0;
 
 	void Signal();
 

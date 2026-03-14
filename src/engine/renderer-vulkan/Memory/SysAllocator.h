@@ -47,21 +47,21 @@ class SysAllocator : public Allocator {
 	SysAllocator() = default;
 	~SysAllocator() = default;
 
-	void Init();
+	void  Init();
 
 	byte* Alloc( const uint64 size, const uint64 alignment ) override;
-	void Free( byte* memory ) override;
+	void  Free( byte* memory ) override;
 
 	private:
 	struct AllocationRecord {
 		uint64 alignment;
 
-		byte* memory;
+		byte*  memory;
 
 		uint32 pageCount;
-		uint8 id;
+		uint8  id;
 
-		char source[107];
+		char   source[107];
 	};
 
 	static constexpr uint32 MAX_THREAD_ALLOCATIONS = 256;
@@ -77,14 +77,14 @@ class SysAllocator : public Allocator {
 	std::atomic<uint32> currentAllocatedPages;
 
 	#ifdef _MSC_VER
-		uint32 allocationFlags;
-		uint32 allocationProtection;
+		uint32          allocationFlags;
+		uint32          allocationProtection;
 	#else
-		int    allocationFlags;
-		int    allocationProtection;
+		int             allocationFlags;
+		int             allocationProtection;
 	#endif
 
-	uint64 pageSize;
+	uint64              pageSize;
 };
 
 extern SysAllocator sysAllocator;

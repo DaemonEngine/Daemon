@@ -41,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Math/NumberTypes.h"
 
 MALLOC_LIKE void* AllocAligned( const uint64 size, const uint64 alignment );
-void FreeAligned( void* memory );
+void              FreeAligned( void* memory );
 
 inline void* Alloc64( const uint64 size ) {
 	return AllocAligned( size, 64 );
