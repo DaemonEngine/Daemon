@@ -141,6 +141,7 @@ constexpr Array featuresMinimal {
 	"uniformBufferStandardLayout",
 	"vulkanMemoryModel",
 	"vulkanMemoryModelAvailabilityVisibilityChains",
+	"vulkanMemoryModelDeviceScope",
 	"computeFullSubgroups",
 	"dynamicRendering",
 	"maintenance4",
