@@ -166,7 +166,7 @@ VkSampler CreateSampler( const Sampler sampler ) {
 	                       : ( sampler.borderColour == BORDER_BLACK ? VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK : VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK );
 
 	VkSamplerReductionModeCreateInfo samplerReductionInfo {
-		.reductionMode    = samplerReductionMode
+		.reductionMode    = sampler.shadowMap ? VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE : samplerReductionMode
 	};
 
 	VkSamplerCreateInfo samplerInfo  {
