@@ -3012,6 +3012,7 @@ class GLShader_lightMapping :
 	public u_LightGridScale,
 	public u_numLights,
 	public u_Lights,
+	public u_SRGB,
 	public u_ProfilerZero,
 	public u_ProfilerRenderSubGroups,
 	public GLDeformStage,

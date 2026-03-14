@@ -2528,6 +2528,7 @@ GLShader_lightMapping::GLShader_lightMapping() :
 	u_LightGridScale( this ),
 	u_numLights( this ),
 	u_Lights( this ),
+	u_SRGB( this ),
 	u_ProfilerZero( this ),
 	u_ProfilerRenderSubGroups( this ),
 	GLDeformStage( this ),
