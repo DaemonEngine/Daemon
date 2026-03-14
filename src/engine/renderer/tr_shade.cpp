@@ -1059,6 +1059,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 		if ( backEnd.refdef.numLights > 0 )
 		{
+			gl_lightMappingShader->SetUniform_SRGB( tr.worldLinearizeTexture );
+
 			gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
 
 			// bind u_LightTiles

@@ -170,6 +170,7 @@ layout(std140) uniform u_Lights {
 #define GetLight( idx ) lights[idx]
 
 uniform int u_numLights;
+uniform bool u_SRGB;
 
 void computeDynamicLight( uint idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
 	vec4 material, inout vec4 color )
@@ -204,8 +205,27 @@ void computeDynamicLight( uint idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diff
 		attenuation = 1.0;
 	}
 
+	vec3 lightColor = attenuation * attenuation * light.color;
+
+	if ( u_SRGB )
+	{
+		// HACK: choose the light color so that the result would be close to naive blending in the
+		// case that the other lighting amounts to (0.8, 0.8, 0.8) and the cosine angle is 0.3.
+		// Just doing the gamma curve directly gives results that are too dim for weak lights, due
+		// to not accounting for the too-large results of naive, additive blending, and too bright for
+		// bright lights, due to the cosine angle factor reducing things too much in naive mode.
+		vec3 gamma = vec3(2.2);
+		vec3 refLightNaive = vec3(0.8);
+		vec3 refLightLinear = pow(refLightNaive, gamma);
+		float refNdotL = 0.3;
+		vec3 naiveOut = refLightNaive + lightColor * refNdotL;
+		vec3 linearOut = pow(naiveOut, gamma);
+		vec3 linearGain = (linearOut - refLightLinear) / refNdotL;
+		lightColor = linearGain;
+	}
+
 	computeDeluxeLight(
-		L, normal, viewDir, attenuation * attenuation * light.color,
+		L, normal, viewDir, lightColor,
 		diffuse, material, color );
 }
 
