@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Daemon BSD Source Code
@@ -65,8 +65,8 @@ void Init( WindowConfig* windowConfig ) {
 	Task initMemTask { &InitMemoryChunkSystemConfig, cfg };
 	Task initSMTask  { &InitGlobalMemory };
 
-	FenceMain initTLMFence;
-	taskList.AddTasks( { initSMTask, initMemTask }, { Task { &InitTLM, initTLMFence }.ThreadMaskAll(), initMemTask } );
+	Task initTLMTask { &InitTLM };
+	taskList.AddTasks( { initSMTask, initMemTask }, { initTLMTask.ThreadMaskAll(), initMemTask } );
 
 	mainSurface.Init();
 
@@ -78,7 +78,7 @@ void Init( WindowConfig* windowConfig ) {
 
 	IN_Init( mainSurface.window );
 
-	initTLMFence.Wait();
+	initTLMTask.Wait();
 
 	Log::Notice( "Large page size: %u", memoryInfo.PAGE_SIZE_LARGE );
 

@@ -499,6 +499,22 @@ Task* TaskList::FetchTask( Thread* thread, const bool longestTask ) {
 	return &tasks[id];
 }
 
+void TaskList::TaskWait( Task& task ) {
+	if ( !AddedToTaskMemory( task.bufferID ) ) {
+		Log::WarnTag( "Tried to wait for a non-added task" );
+
+		return;
+	}
+
+	Task* taskMemory = GetTaskMemory( task );
+
+	if ( taskMemory->gen > task.gen ) {
+		return;
+	}
+
+	taskMemory->complete.Wait();
+}
+
 void TaskList::TasksCleared( const uint32 count ) {
 	taskCount.fetch_sub( count, std::memory_order_relaxed );
 }

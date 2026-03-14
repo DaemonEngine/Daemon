@@ -68,7 +68,7 @@ struct Task {
 	TaskFunction Execute;
 	void* data;
 
-	Fence complete;
+	FenceMain complete;
 
 	bool active                                       = false;
 	bool shutdownTask                                 = false;
@@ -105,32 +105,10 @@ struct Task {
 		Execute( ( TaskFunction ) func ) {
 	}
 
-	template<typename FuncType>
-	Task( FuncType func, FenceMain& fence ) :
-		Execute( ( TaskFunction ) func ),
-		complete( fence ) {
-	}
-
 	template<typename FuncType, typename DataType>
 	Task( FuncType func, DataType&& newData ) :
 		Execute( ( TaskFunction ) func ),
 		dataIsPointer( IsPointer<DataType> ) {
-
-		if constexpr ( IsPointer<DataType> ) {
-			data     = ( void* ) newData;
-			dataSize = sizeof( void* );
-		} else {
-			dataSize = sizeof( newData );
-			data     = AllocTaskData( dataSize );
-			memcpy( data, &newData, dataSize );
-		}
-	}
-
-	template<typename FuncType, typename DataType>
-	Task( FuncType func, DataType&& newData, FenceMain& fence ) :
-		Execute( ( TaskFunction ) func ),
-		dataIsPointer( IsPointer<DataType> ),
-		complete( fence ) {
 
 		if constexpr ( IsPointer<DataType> ) {
 			data     = ( void* ) newData;
@@ -152,6 +130,8 @@ struct Task {
 	Task& ThreadMaskAll();
 	Task& ThreadMaskAllOthers();
 	Task& ThreadMaskCurrent();
+
+	void  Wait();
 
 	const Task& operator*() {
 		return *this;
