@@ -61,10 +61,10 @@ void InitQueueConfigs() {
 	uint32 count = 8;
 	vkGetPhysicalDeviceQueueFamilyProperties2( physicalDevice, &count, propertiesArray );
 
-	graphicsQueue = &queues[GRAPHICS];
-	computeQueue  = &queues[COMPUTE];
-	transferQueue = &queues[TRANSFER];
-	sparseQueue   = &queues[SPARSE];
+	graphicsQueue = &queues[0];
+	computeQueue  = &queues[1];
+	transferQueue = &queues[2];
+	sparseQueue   = &queues[3];
 
 	for ( uint32 i = 0; i < count; i++ ) {
 		VkQueueFamilyProperties& coreProperties = propertiesArray[i].queueFamilyProperties;
