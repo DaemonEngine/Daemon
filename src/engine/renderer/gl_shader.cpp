@@ -2095,7 +2095,7 @@ bool GLCompileMacro_USE_GRID_DELUXE_MAPPING::HasConflictingMacros(size_t permuta
 {
 	for (const GLCompileMacro* macro : macros)
 	{
-		if ((permutation & macro->GetBit()) != 0 && (macro->GetType() == USE_DELUXE_MAPPING || macro->GetType() == USE_BSP_SURFACE))
+		if ((permutation & macro->GetBit()) != 0 && (macro->GetType() == USE_DELUXE_MAPPING))
 		{
 			return true;
 		}
@@ -2115,19 +2115,6 @@ bool GLCompileMacro_USE_GRID_LIGHTING::HasConflictingMacros(size_t permutation, 
 	for (const GLCompileMacro* macro : macros)
 	{
 		if ((permutation & macro->GetBit()) != 0 && (macro->GetType() == USE_DELUXE_MAPPING))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool GLCompileMacro_USE_BSP_SURFACE::HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const
-{
-	for (const GLCompileMacro* macro : macros)
-	{
-		if ((permutation & macro->GetBit()) != 0 && (macro->GetType() == USE_GRID_DELUXE_MAPPING))
 		{
 			return true;
 		}
