@@ -135,7 +135,7 @@ static void EnableAvailableFeatures()
 
 	glConfig.bloom = r_bloom.Get();
 
-	glConfig.ssao = r_ssao.Get() != Util::ordinal( ssaoMode::DISABLED );
+	glConfig.SSAO = r_SSAO.Get() != Util::ordinal( ssaoMode::DISABLED );
 
 	static const std::pair<bool*, std::string> ssaoRequiredExtensions[] = {
 		{ &glConfig.textureGatherAvailable, "ARB_texture_gather" },
@@ -147,7 +147,7 @@ static void EnableAvailableFeatures()
 		if ( !*e.first )
 		{
 			Log::Warn( "SSAO disabled because %s is not available.", e.second );
-			glConfig.ssao = false;
+			glConfig.SSAO = false;
 		}
 	}
 
@@ -181,15 +181,29 @@ static void EnableAvailableFeatures()
 	}
 
 	if ( std::make_pair( glConfig.glMajor, glConfig.glMinor ) >= std::make_pair( 3, 2 ) ) {
-		glConfig.MSAA = r_msaa.Get();
+		glConfig.MSAA = r_MSAA.Get();
 		const int maxSamples = std::min( glConfig.maxColorTextureSamples, glConfig.maxDepthTextureSamples );
 
 		if ( glConfig.MSAA > maxSamples ) {
-			Log::Warn( "MSAA samples %i > %i, setting to %i", r_msaa.Get(), maxSamples, maxSamples );
+			Log::Warn( "MSAA samples %i > %i, setting to %i", r_MSAA.Get(), maxSamples, maxSamples );
 			glConfig.MSAA = maxSamples;
 		}
-	} else if ( r_msaa.Get() ) {
+	} else if ( r_MSAA.Get() ) {
 		Log::Warn( "MSAA unavailable because GL version is lower than required (%i.%i < %i.%i)", glConfig.glMajor, glConfig.glMinor, 3, 2 );
+	}
+
+	glConfig.FXAA = r_FXAA.Get();
+
+	if ( glConfig.FXAA && glConfig.MSAA )
+	{
+		Log::Notice( "FXAA disabled because MSAA is enabled." );
+		glConfig.FXAA = false;
+	}
+
+	if ( glConfig.FXAA && !glConfig.samplerObjectsAvailable )
+	{
+		Log::Warn( "FXAA disabled because ARB_sampler_objects is not available." );
+		glConfig.FXAA = false;
 	}
 
 	glConfig.usingMaterialSystem = r_materialSystem.Get() && glConfig.materialSystemAvailable;
@@ -362,14 +376,14 @@ static void GLSL_InitGPUShadersOrError()
 		gl_motionblurShader->MarkProgramForBuilding();
 	}
 
-	if ( glConfig.ssao )
+	if ( glConfig.SSAO )
 	{
 		gl_shaderManager.LoadShader( gl_ssaoShader );
 
 		gl_ssaoShader->MarkProgramForBuilding();
 	}
 
-	if ( r_FXAA->integer != 0 )
+	if ( glConfig.FXAA )
 	{
 		gl_shaderManager.LoadShader( gl_fxaaShader );
 

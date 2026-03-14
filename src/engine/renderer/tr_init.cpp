@@ -285,9 +285,21 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Cvar<bool> r_bloom( "r_bloom", "Use bloom", Cvar::ARCHIVE, false );
 	Cvar::Cvar<float> r_bloomBlur( "r_bloomBlur", "Bloom strength", Cvar::NONE, 0.2 );
 	Cvar::Cvar<int> r_bloomPasses( "r_bloomPasses", "Amount of bloom passes in each direction", Cvar::NONE, 2 );
-	cvar_t      *r_FXAA;
-	Cvar::Range<Cvar::Cvar<int>> r_msaa( "r_msaa", "Amount of MSAA samples. 0 to disable", Cvar::NONE, 0, 0, 64 );
-	Cvar::Range<Cvar::Cvar<int>> r_ssao( "r_ssao",
+
+	Cvar::Cvar<bool> r_showLuma( "r_showLuma", "Show luminance", Cvar::CHEAT, false );
+
+	Cvar::Cvar<bool> r_FXAA( "r_FXAA", "Fast approximate anti-aliasing", Cvar::NONE, false );
+
+	// Values taken from comments in fxaa3_11_fp.glsl.
+	Cvar::Range<Cvar::Cvar<float>> r_FXAASubPix( "r_FXAASubPix", "0: off, 0.25: almost off, 0.50: sharper, 0.75, standard, 1: softer", Cvar::NONE, 0.75f, 0.0f, 1.0f );
+	Cvar::Range<Cvar::Cvar<float>> r_FXAAEdgeThreshold( "r_FXAAEdgeThreshold", "0.063: overkill and slower, 0.125: high quality, 0.166: standard, 0.250: low quality, 0.333 too little and faster", Cvar::NONE, 0.250f, 0.063f, 0.333f );
+	Cvar::Range<Cvar::Cvar<float>> r_FXAAEdgeThresholdMin( "r_FXAAEdgeThresholdMin", "0.0312: visible limit, 0.0625: high quality, 0.0833: upper limit", Cvar::NONE, 0.0625f, 0.0312f, 0.0833f );
+
+	Cvar::Cvar<bool> r_showFXAA( "r_showFXAA", "Show pixels modified by FXAA", Cvar::CHEAT, false );
+
+	Cvar::Range<Cvar::Cvar<int>> r_MSAA( "r_MSAA", "Amount of MSAA samples. 0 to disable", Cvar::NONE, 0, 0, 64 );
+
+	Cvar::Range<Cvar::Cvar<int>> r_SSAO( "r_SSAO",
 		"Screen space ambient occlusion: "
 		"-1: show, 0: disabled, 1: enabled",
 		Cvar::NONE,
@@ -1205,9 +1217,17 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_printShaders = Cvar_Get( "r_printShaders", "0", 0 );
 
 		Cvar::Latch( r_bloom );
-		r_FXAA = Cvar_Get( "r_FXAA", "0", CVAR_LATCH | CVAR_ARCHIVE );
-		Cvar::Latch( r_ssao );
-		Cvar::Latch( r_msaa );
+		Cvar::Latch( r_SSAO );
+
+		Cvar::Latch( r_showLuma );
+
+		Cvar::Latch( r_FXAA );
+		Cvar::Latch( r_FXAASubPix );
+		Cvar::Latch( r_FXAAEdgeThreshold );
+		Cvar::Latch( r_FXAAEdgeThresholdMin );
+		Cvar::Latch( r_showFXAA );
+
+		Cvar::Latch( r_MSAA );
 
 		// temporary variables that can change at any time
 		r_showImages = Cvar_Get( "r_showImages", "0", CVAR_TEMP );

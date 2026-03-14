@@ -1552,7 +1552,7 @@ void RB_RenderMotionBlur()
 
 void RB_RenderSSAO()
 {
-	if ( !glConfig.ssao )
+	if ( !glConfig.SSAO )
 	{
 		return;
 	}
@@ -1570,7 +1570,7 @@ void RB_RenderSSAO()
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
-	if ( glConfig.ssao && r_ssao.Get() == Util::ordinal( ssaoMode::SHOW ) ) {
+	if ( glConfig.SSAO && r_SSAO.Get() == Util::ordinal( ssaoMode::SHOW ) ) {
 		// clear the screen to show only SSAO
 		GL_ClearColor( 1.0, 1.0, 1.0, 1.0 );
 		glClear( GL_COLOR_BUFFER_BIT );
@@ -1603,7 +1603,7 @@ void RB_RenderSSAO()
 
 void RB_FXAA()
 {
-	if ( !r_FXAA->integer || !gl_fxaaShader )
+	if ( !glConfig.FXAA || !gl_fxaaShader )
 	{
 		return;
 	}
@@ -1621,14 +1621,49 @@ void RB_FXAA()
 	// set the shader parameters
 	gl_fxaaShader->BindProgram();
 
-	// Swap main FBOs
 	gl_fxaaShader->SetUniform_ColorMapBindless(
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
 	);
-	backEnd.currentMainFBO = 1 - backEnd.currentMainFBO;
-	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
+
+	// FXAA expects GL_LINEAR for the sampling to work.
+	GLuint64 handle = 0;
+	GLuint sampler = 0;
+	glGenSamplers( 1, &sampler );
+	glSamplerParameteri( sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR) ;
+	glSamplerParameteri( sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+
+	if ( glConfig.usingBindlessTextures )
+	{
+		// Set a handler.
+		GLuint texture = tr.currentRenderImage[backEnd.currentMainFBO]->texnum;
+		handle = glGetTextureSamplerHandleARB( texture, sampler );
+		glMakeTextureHandleResidentARB( handle );
+		GLuint program = gl_fxaaShader->GetProgram()->id;
+		GLint location = glGetUniformLocation( program, "u_ColorMap_linear" );
+		glUniformHandleui64ARB( location, handle );
+	}
+	else
+	{
+		// Bind a sampler.
+		glBindSampler( 0, sampler );
+	}
+
+	// This shader is run last, so let it render to screen.
+	R_BindNullFBO();
 
 	Tess_InstantScreenSpaceQuad();
+
+	// Make sure we didn't break other effects expecting GL_NEAREST.
+	if ( glConfig.usingBindlessTextures )
+	{
+		// Unset the handler.
+		glMakeTextureHandleNonResidentARB( handle );
+	}
+	else
+	{
+		// Unbind the sampler.
+		glBindSampler( 0, 0 );
+	}
 
 	GL_CheckErrors();
 }
@@ -1693,12 +1728,21 @@ void RB_CameraPostFX() {
 	}
 	gl_cameraEffectsShader->SetUniform_Tonemap( tonemap );
 
-	// This shader is run last, so let it render to screen instead of
-	// tr.mainFBO
-	R_BindNullFBO();
 	gl_cameraEffectsShader->SetUniform_CurrentMapBindless(
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) 
 	);
+
+	if ( r_FXAA.Get() && gl_fxaaShader )
+	{
+		// Swap main FBOs.
+		backEnd.currentMainFBO = 1 - backEnd.currentMainFBO;
+		R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
+	}
+	else
+	{
+		// Without FXAA this shader is run last, so let it render to screen.
+		R_BindNullFBO();
+	}
 
 	if ( glConfig.colorGrading ) {
 		gl_cameraEffectsShader->SetUniform_ColorMap3DBindless( GL_BindToTMU( 3, tr.colorGradeImage ) );
@@ -2815,10 +2859,10 @@ static void RB_RenderPostProcess()
 
 	TransitionMSAAToMain( GL_COLOR_BUFFER_BIT );
 
-	RB_FXAA();
-
 	// render chromatic aberration
 	RB_CameraPostFX();
+
+	RB_FXAA();
 
 	// copy to given byte buffer that is NOT a FBO
 	if ( tr.refdef.pixelTarget != nullptr ) {

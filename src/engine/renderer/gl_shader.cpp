@@ -797,6 +797,25 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_colorGrading", 1 );
 	}
 
+	if ( r_showLuma.Get() )
+	{
+		AddDefine( str, "r_showLuma", 1 );
+	}
+
+	if ( glConfig.FXAA )
+	{
+		AddDefine( str, "r_FXAA", 1 );
+
+		AddDefine( str, "r_FXAASubPix", r_FXAASubPix.Get() );
+		AddDefine( str, "r_FXAAEdgeThreshold", r_FXAAEdgeThreshold.Get() );
+		AddDefine( str, "r_FXAAEdgeThresholdMin", r_FXAAEdgeThresholdMin.Get() );
+
+		if ( r_showFXAA.Get() )
+		{
+			AddDefine( str, "r_showFXAA", 1 );
+		}
+	}
+
 	if ( r_highPrecisionRendering.Get() ) {
 		AddDefine( str, "r_highPrecisionRendering", 1 );
 	}
