@@ -185,7 +185,7 @@ uint64 Queue::Submit( VkCommandBuffer cmd ) {
 	return out;
 }
 
-uint64 Queue::SubmitForPresent( VkCommandBuffer cmd, VkSemaphore presentSemaphore ) {
+uint64 Queue::SubmitForPresent( VkCommandBuffer cmd, VkSemaphore acquireSemaphore, VkSemaphore presentSemaphore ) {
 	while ( !accessLock.LockWrite() );
 
 	VkCommandBufferSubmitInfo execCmdSubmitInfo {
@@ -193,6 +193,12 @@ uint64 Queue::SubmitForPresent( VkCommandBuffer cmd, VkSemaphore presentSemaphor
 	};
 
 	executionPhase++;
+
+	VkSemaphoreSubmitInfo waitSemaphoreInfo {
+		.semaphore = acquireSemaphore,
+		.stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
+	};
+
 	VkSemaphoreSubmitInfo signalSemaphoreInfos[] {
 		executionPhase.GenSubmitInfo( VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT ),
 		{
@@ -202,6 +208,8 @@ uint64 Queue::SubmitForPresent( VkCommandBuffer cmd, VkSemaphore presentSemaphor
 	};
 
 	VkSubmitInfo2 execSubmitInfo {
+		.waitSemaphoreInfoCount   = 1,
+		.pWaitSemaphoreInfos      = &waitSemaphoreInfo,
 		.commandBufferInfoCount   = 1,
 		.pCommandBufferInfos      = &execCmdSubmitInfo,
 		.signalSemaphoreInfoCount = 2,

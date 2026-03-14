@@ -90,7 +90,7 @@ static void ExecPushConstNode( PushConstNode* node, VkCommandBuffer cmd, VkPipel
 		dataStream.Write( resourceSystem.buffers[*bufferID].engineMemory, 64 );
 	}
 
-	vkCmdPushConstants( cmd, pipelineLayout, VK_SHADER_STAGE_ALL, node->offset, node->data.size, data );
+	vkCmdPushConstants( cmd, pipelineLayout, VK_SHADER_STAGE_ALL, node->offset, dataStream.offset >> 3, data );
 }
 
 uint32 ExecExternalNode( ExternalNode* node, VkSemaphore acquireSemaphore ) {
@@ -412,19 +412,16 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 						.dstAccessMask = VK_PIPELINE_STAGE_2_NONE,
 						.oldLayout     = VK_IMAGE_LAYOUT_GENERAL,
 						.newLayout     = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-						.image         = mainSwapChain.images[swapchainImage].image
-					};
+						.image         = mainSwapChain.images[swapchainImage].image,
 
-					VkMemoryBarrier2 memoryBarrierInfo {
-						.srcStageMask  = srcStage,
-						.srcAccessMask = srcAccess,
-						.dstStageMask  = 0,
-						.dstAccessMask = VK_PIPELINE_STAGE_2_NONE
+						.subresourceRange = {
+							.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+							.levelCount = 1,
+							.layerCount = 1
+						}
 					};
 
 					VkDependencyInfo dependencyInfo {
-						.memoryBarrierCount      = 1,
-						.pMemoryBarriers         = &memoryBarrierInfo,
 						.imageMemoryBarrierCount = 1,
 						.pImageMemoryBarriers    = &imageMemoryBarrierInfo
 					};
@@ -547,7 +544,7 @@ uint64 ExecutionGraph::Exec() {
 	uint64 out;
 
 	if ( presentNode.active ) {
-		out = queue.SubmitForPresent( cmdBuffers[cmdPoolID][bufID], mainSwapChain.presentSemaphores[image] );
+		out = queue.SubmitForPresent( cmdBuffers[cmdPoolID][bufID], acquireSemaphore, mainSwapChain.presentSemaphores[image] );
 		ExecPresentNode( queue, &presentNode, mainSwapChain.presentSemaphores[image], image );
 	} else {
 		out = queue.Submit( cmdBuffers[cmdPoolID][bufID] );

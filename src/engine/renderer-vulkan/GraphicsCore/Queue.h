@@ -72,7 +72,7 @@ struct Queue {
 	AccessLock accessLock;
 
 	uint64     Submit( VkCommandBuffer cmd );
-	uint64     SubmitForPresent( VkCommandBuffer cmd, VkSemaphore presentSemaphore );
+	uint64     SubmitForPresent( VkCommandBuffer cmd, VkSemaphore acquireSemaphore, VkSemaphore presentSemaphore );
 };
 
 void             InitQueueConfigs();
