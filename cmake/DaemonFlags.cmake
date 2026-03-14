@@ -260,7 +260,13 @@ if (USE_FLOAT_EXCEPTIONS)
 endif()
 
 if (NOT NACL AND BUILD_CLIENT)
-	option(USE_OPENMP "Use OpenMP to parallelize some tasks" OFF)
+	if (LINUX)
+		set(DEFAULT_OPENMP ON)
+	else()
+		set(DEFAULT_OPENMP OFF)
+	endif()
+
+	option(USE_OPENMP "Use OpenMP to parallelize some tasks" "${DEFAULT_OPENMP}")
 endif()
 
 if (MSVC)
