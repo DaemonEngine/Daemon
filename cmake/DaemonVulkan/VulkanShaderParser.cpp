@@ -328,26 +328,6 @@ StringView Parse( StringView& data, std::string* outStr = nullptr, const char* a
 	return { text + offset, c ? 1u : 0u };
 }
 
-std::string StripLicense( const std::string& shaderText ) {
-	const uint64_t start = shaderText.find( "/*" );
-
-	if ( start == std::string::npos ) {
-		return shaderText;
-	}
-
-	const uint64_t end = shaderText.find( "*/" );
-
-	const char* src = &shaderText.c_str()[end + 2];
-
-	uint64_t pos = end + 2;
-	while ( src && ( *src == ' ' || *src == '\t' || *src == '\n' ) ) {
-		src++;
-		pos++;
-	}
-
-	return shaderText.substr( pos );
-}
-
 enum Stage {
 	FRAGMENT,
 	VERTEX,
@@ -750,15 +730,17 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 
 				out += outStr;
 
-				if ( type == "uint" || type == "uint32" || type == "float" ) {
-					*pushConstSize += 4;
-				} else if ( buffers.find( name ) != buffers.end() ) {
+				if ( pointer ) {
 					*pushConstSize += 8;
 
-					BufferPushIDs& pushIDs = bufferPushIDs[currentSPIRVID];
+					if ( buffers.find( name ) != buffers.end() ) {
+						BufferPushIDs& pushIDs = bufferPushIDs[currentSPIRVID];
 
-					pushIDs.ids[pushIDs.count] = stoi( buffers[name].substr( 0, buffers[name].find( "," ) ) );
-					pushIDs.count++;
+						pushIDs.ids[pushIDs.count] = stoi( buffers[name].substr( 0, buffers[name].find( "," ) ) );
+						pushIDs.count++;
+					}
+				} else if ( type == "uint" || type == "uint32" || type == "float" ) {
+					*pushConstSize += 4;
 				} else {
 					// Assumed BDA
 					*pushConstSize += 8;
