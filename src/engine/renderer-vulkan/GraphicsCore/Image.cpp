@@ -46,7 +46,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Image.h"
 
-void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool useMipLevels, const bool newCube ) {
+void Image::Init( const Format newFormat, VkExtent3D imageSize, const bool useMipLevels, const bool newCube ) {
+	cube         = newCube;
+
+	if ( cube && imageSize.depth ) {
+		Log::Warn( "Cube images must specify depth as 0!" );
+		imageSize.depth = 0;
+	}
+
 	type         = cube ? VK_IMAGE_VIEW_TYPE_CUBE : ( imageSize.depth ? VK_IMAGE_VIEW_TYPE_3D : VK_IMAGE_VIEW_TYPE_2D );
 	format       = newFormat;
 
@@ -54,7 +61,6 @@ void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool
 	               ? log2f( std::max( std::max( imageSize.width, imageSize.height ), imageSize.depth ) ) + 1
 	               : 1;
 
-	cube         = newCube;
 	depth        = format >= D16   && format <= FORMAT_DEPTH;
 	stencil      = format >= D24S8 && format <= FORMAT_DEPTH_STENCIL;
 
@@ -85,12 +91,16 @@ void Image::Init( const Format newFormat, const VkExtent3D imageSize, const bool
 		flags = VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT | VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
 	}
 
+	VkImageType      imageType        = imageSize.depth ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D;
+
+	imageSize.depth                   = imageSize.depth ? imageSize.depth : 1;
+
 	uint32           queueCount;
 	Array<uint32, 4> concurrentQueues = GetConcurrentQueues( &queueCount );
 
 	VkImageCreateInfo imageInfo {
 		.flags                 = flags,
-		.imageType             = imageSize.depth ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D,
+		.imageType             = imageType,
 		.format                = formats[format],
 		.extent                = imageSize,
 		.mipLevels             = mipLevels,
@@ -167,7 +177,9 @@ static FormatConfig GetFormatConfig( const VkFormat format, const VkImageUsageFl
 	};
 
 	VkHostImageCopyDevicePerformanceQuery hostImageCopyInfo    {};
-	VkImageFormatProperties2              formatPropertiesInfo { .pNext = hostImageCopy ? &hostImageCopyInfo : nullptr };
+	VkImageFormatProperties2              formatPropertiesInfo {
+		.pNext = hostImageCopy && ( usage & VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT ) ? &hostImageCopyInfo : nullptr
+	};
 
 	VkImageFormatProperties&              formatProperties = formatPropertiesInfo.imageFormatProperties;
 

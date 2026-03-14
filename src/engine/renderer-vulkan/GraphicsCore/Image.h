@@ -64,7 +64,7 @@ struct Image {
 	bool            stencil;
 	bool            external;
 
-	void        Init( const Format newFormat, const VkExtent3D imageSize, const bool useMipLevels, const bool newCube = false );
+	void        Init( const Format newFormat, VkExtent3D imageSize, const bool useMipLevels, const bool newCube = false );
 
 	void        Init( VkImage newImage, const SwapChainFormat newFormat );
 
