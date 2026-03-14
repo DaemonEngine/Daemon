@@ -260,7 +260,24 @@ if (USE_FLOAT_EXCEPTIONS)
 endif()
 
 if (NOT NACL AND BUILD_CLIENT)
-	option(USE_OPENMP "Use OpenMP to parallelize some tasks" OFF)
+	set(OPENMP_DESCRIPTION "Use OpenMP to parallelize some tasks.")
+	set(OPENMP_DEFAULT OFF)
+
+	if (LINUX)
+		set(OPENMP_DEFAULT ON)
+	endif()
+
+	option(USE_OPENMP "${OPENMP_DESCRIPTION}" "${OPENMP_DEFAULT}")
+
+	if (USE_OPENMP)
+		find_package(OpenMP)
+
+		if (NOT OpenMP_C_FOUND)
+			message(WARNING "Missing OpenMP")
+
+			set(USE_OPENMP "OFF" CACHE STRING "${OPENMP_DESCRIPTION}" FORCE)
+		endif()
+	endif()
 endif()
 
 if (MSVC)
@@ -272,7 +289,7 @@ if (MSVC)
     endif()
 
 	if (NOT NACL AND BUILD_CLIENT AND USE_OPENMP)
-		# Flag checks doen't work with MSVC so we assume it's there.
+		# We already verified that OpenMP is working.
 		set(OPENMP_COMPILE_FLAG "/openmp")
 	endif()
 
@@ -372,14 +389,9 @@ else()
 	endif()
 
 	if (NOT NACL AND BUILD_CLIENT AND USE_OPENMP)
-		check_CXX_compiler_flag("-fopenmp" FLAG_FOPENMP)
-
-		if (FLAG_FOPENMP)
-			set(OPENMP_COMPILE_FLAG "-fopenmp")
-			set(OPENMP_LINK_FLAG "-fopenmp")
-		else()
-			message(WARNING "Missing OpenMP")
-		endif()
+		# We already verified that OpenMP is working.
+		set(OPENMP_COMPILE_FLAG "-fopenmp")
+		set(OPENMP_LINK_FLAG "-fopenmp")
 	endif()
 
 	if (NACL AND USE_NACL_SAIGO AND SAIGO_ARCH STREQUAL "arm")
