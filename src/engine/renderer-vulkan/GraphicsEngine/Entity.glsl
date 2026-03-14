@@ -31,16 +31,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Entity.h
-
-#ifndef ENTITY_H
-#define ENTITY_H
+// Entity.glsl
 
 #include "NumberTypes.h"
 
-struct EntityMsg {
-	uint32 id;
-
+struct Entity {
 	uint32 geometryID;
 
 	uint16 albedoMap;
@@ -61,5 +56,3 @@ struct EntityMsg {
 
 	uint32 time;
 };
-
-#endif // ENTITY_H

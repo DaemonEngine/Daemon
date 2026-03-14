@@ -38,7 +38,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NumberTypes.h"
 
-struct Light {
+struct LightMsg {
+	uint32 id;
+
 	float  x;
 	float  y;
 	float  z;
@@ -51,8 +53,6 @@ struct Light {
 	uint8  material;
 
 	float  strength;
-
-	uint32 shadowMapID;
 };
 
 #endif // LIGHT_H

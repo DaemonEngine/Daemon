@@ -47,7 +47,9 @@ const uint32 shadowMapImage          = 17;
 
 const uint32 imageOffset             = 18;
 
-const uint32 entityRingBufferSize    = 16384 * sizeof( Entity );
-const uint32 lightRingBufferSize     = 16384 * sizeof( Light );
+const uint32 entityRingBufferCount   = 16384;
+const uint32 lightRingBufferCount    = 16384;
+const uint32 entityRingBufferSize    = entityRingBufferCount * sizeof( EntityMsg );
+const uint32 lightRingBufferSize     = lightRingBufferCount  * sizeof( LightMsg );
 
 #endif // SHARED_RESOURCES_H

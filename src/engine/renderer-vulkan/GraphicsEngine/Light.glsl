@@ -31,35 +31,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Entity.h
+// Light.glsl
 
-#ifndef ENTITY_H
-#define ENTITY_H
+struct Light {
+	float  x;
+	float  y;
+	float  z;
+	float  radius;
 
-#include "NumberTypes.h"
+	uint8  r;
+	uint8  g;
+	uint8  b;
 
-struct EntityMsg {
-	uint32 id;
+	uint8  material;
 
-	uint32 geometryID;
+	float  strength;
 
-	uint16 albedoMap;
-	uint16 normalMap;
-	uint16 heightMap;
-	uint16 materialMap;
-	uint16 glowMap;
-
-	uint8  albedoSampler;
-	uint8  normalSampler;
-	uint8  heightSampler;
-	uint8  materialSampler;
-	uint8  glowSampler;
-
-	uint32 colour;
-
-	uint64 material;
-
-	uint32 time;
+	uint32 shadowMapID;
 };
-
-#endif // ENTITY_H

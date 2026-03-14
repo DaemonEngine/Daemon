@@ -130,6 +130,8 @@ set( graphicsCoreList
 set( graphicsEngineListH
     Common.glsl
     Buffers.glsl
+    Entity.glsl
+    Light.glsl
     Images.glsl
     Resources.glsl
 )

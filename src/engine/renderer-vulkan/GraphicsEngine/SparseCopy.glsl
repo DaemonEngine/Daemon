@@ -44,8 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 layout ( local_size_x = 64, local_size_y = 1, local_size_z = 1 ) in;
 
 layout ( scalar, push_constant ) uniform Push {
-	Entity* entityRingBuffer;
-	Light*  lightRingBuffer;
+	EntityMsg* entityRingBuffer;
+	LightMsg*  lightRingBuffer;
 	Entity* entities;
 	Light*  lights;
 } push;

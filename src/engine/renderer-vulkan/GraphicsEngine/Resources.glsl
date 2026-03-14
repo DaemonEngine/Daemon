@@ -34,11 +34,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* Resources.glsl */
 
-#include "Entity.h"
-#include "Light.h"
+#include "Entity.glsl"
+#include "Light.glsl"
 
-const uint entitiesSize = uint( sizeof( Entity ) );
-const uint lightsSize   = uint( sizeof( Light ) );
+const uint maxEntities  = 16384;
+const uint maxLights    = 16384;
+
+const uint entitiesSize = maxEntities * uint( sizeof( Entity ) );
+const uint lightsSize   = maxLights   * uint( sizeof( Light ) );
 
 Buffer entities { entitiesSize };
 Buffer lights   { lightsSize };
