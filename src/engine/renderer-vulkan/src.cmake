@@ -91,6 +91,8 @@ set( graphicsCoreList
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Decls.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/DebugMsg.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/DebugMsg.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineConfig.cpp
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineConfig.h
     ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineDispatch.cpp

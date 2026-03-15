@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2025 Daemon Developers
+Copyright (c) 2026 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -31,41 +31,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// GraphicsCoreCVars.h
+// DebugMsg.h
 
-#ifndef GRAPHICS_CORE_CVARS_H
-#define GRAPHICS_CORE_CVARS_H
-
-#include "common/Common.h"
+#ifndef DEBUG_MSG_H
+#define DEBUG_MSG_H
 
 #include "../Math/NumberTypes.h"
 
-extern Cvar::Cvar<int>                r_rendererAPI;
+enum DebugMsgSeverity : uint32 {
+	DEBUG_MSG_VERBOSE      = 1,
+	DEBUG_MSG_INFO         = 2,
+	DEBUG_MSG_WARNING      = 4,
+	DEBUG_MSG_ERROR        = 8,
+	DEBUG_MSG_SEVERITY_ALL = DEBUG_MSG_VERBOSE | DEBUG_MSG_INFO | DEBUG_MSG_WARNING | DEBUG_MSG_ERROR
+};
 
-extern Cvar::Cvar<std::string>        r_vkVersion;
+enum DebugMsgType : uint32 {
+	DEBUG_MSG_GENERAL     = 1,
+	DEBUG_MSG_VALIDATION  = 2,
+	DEBUG_MSG_PERFORMANCE = 4,
+	DEBUG_MSG_TYPE_ALL    = DEBUG_MSG_GENERAL | DEBUG_MSG_VALIDATION | DEBUG_MSG_PERFORMANCE
+};
 
-extern Cvar::Range<Cvar::Cvar<int>>   r_vkCapabilityPack;
-extern Cvar::Cvar<std::string>        r_vkDisabledOptionalFeatures;
+void InitDebugMsg();
 
-extern Cvar::Cvar<int>                r_vkDevice;
-
-extern Cvar::Cvar<int>                r_displayIndex;
-
-extern Cvar::Range<Cvar::Cvar<int>>   r_vkDebugMsgSeverity;
-extern Cvar::Range<Cvar::Cvar<int>>   r_vkDebugMsgType;
-
-extern Cvar::Range<Cvar::Cvar<int>>   r_vkPresentMode;
-extern Cvar::Range<Cvar::Cvar<int>>   r_mode;
-extern Cvar::Cvar<int>                r_customWidth;
-extern Cvar::Cvar<int>                r_customHeight;
-extern Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen;
-extern Cvar::Cvar<bool>               r_noBorder;
-// extern cvar_t*                      r_allowResize;
-
-extern Cvar::Range<Cvar::Cvar<int>>   r_vkGraphicsMaxMemory;
-extern Cvar::Cvar<bool>               r_vkGraphicsMaxMemoryAuto;
-
-extern Cvar::Range < Cvar::Cvar<int>> r_vkVSync;
-extern Cvar::Range < Cvar::Cvar<int>> r_vkExecutionGraphRate;
-
-#endif // GRAPHICS_CORE_CVARS_H
+#endif // DEBUG_MSG_H

@@ -39,6 +39,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "SwapChain.h"
 
+#include "DebugMsg.h"
+
 #include "Memory/EngineAllocator.h"
 
 #include "GraphicsCoreCVars.h"
@@ -56,6 +58,14 @@ Cvar::Cvar<std::string>      r_vkDisabledOptionalFeatures( "r_vkDisabledOptional
 Cvar::Cvar<int>              r_vkDevice( "r_vkDevice", "Use specific GPU (-1: auto)", Cvar::NONE, -1 );
 
 Cvar::Cvar<int>              r_displayIndex( "r_displayIndex", "Display index to create the window in", Cvar::NONE, 0 );
+
+Cvar::Range<Cvar::Cvar<int>> r_vkDebugMsgSeverity( "r_vkDebugMsgSeverity",
+	"DebugUtilsMessenger severity bitmask: 0 - none, 1 - verbose, 2 - info, 4 - warning, 8 - error",
+	Cvar::NONE, 0, 0, DebugMsgSeverity::DEBUG_MSG_SEVERITY_ALL );
+
+Cvar::Range<Cvar::Cvar<int>> r_vkDebugMsgType( "r_vkDebugMsgType",
+	"DebugUtilsMessenger type bitmask: 0 - none, 1 - general, 2 - validation, 4 - performance",
+	Cvar::NONE, 0, 0, DebugMsgType::DEBUG_MSG_TYPE_ALL );
 
 Cvar::Range<Cvar::Cvar<int>> r_vkPresentMode( "r_vkPresentMode",
 	"Presentation mode: 0 - immediate, 1 - vsync on last presented frame, 2 - vsync on first presented frame before scanout, "
