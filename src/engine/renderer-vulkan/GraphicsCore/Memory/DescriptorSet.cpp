@@ -251,7 +251,7 @@ void AllocDescriptors( uint32 imageCount, uint32 storageImageCount ) {
 		{
 			.binding         = BIND_SAMPLERS,
 			.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER,
-			.descriptorCount = imageCount,
+			.descriptorCount = maxSamplers,
 			.stageFlags      = VK_SHADER_STAGE_ALL
 		},
 		{
