@@ -191,6 +191,132 @@ static VkBool32 DebugUtilsMsg( VkDebugUtilsMessageSeverityFlagBitsEXT messageSev
 	return false;
 }
 
+void LogDeviceFaultInfo() {
+	if ( !featuresConfig.deviceFault ) {
+		Log::Warn( "Unable to generate device fault info: deviceFault not supported" );
+		return;
+	}
+
+	VkDeviceFaultCountsEXT deviceFaultCounts {};
+
+	vkGetDeviceFaultInfoEXT( device, &deviceFaultCounts, nullptr );
+
+	DynamicArray<VkDeviceFaultAddressInfoEXT> addressInfos;
+	addressInfos.Resize( deviceFaultCounts.addressInfoCount );
+
+	DynamicArray<VkDeviceFaultVendorInfoEXT>  vendorInfos;
+	vendorInfos.Resize( deviceFaultCounts.vendorInfoCount );
+
+	VkDeviceFaultInfoEXT deviceFaultInfo {
+		.pAddressInfos = addressInfos.memory,
+		.pVendorInfos  = vendorInfos.memory
+	};
+
+	vkGetDeviceFaultInfoEXT( device, &deviceFaultCounts, &deviceFaultInfo );
+
+	Log::Warn( "^1Device fault: %s", deviceFaultInfo.description );
+
+	for ( const VkDeviceFaultAddressInfoEXT& addressInfo : addressInfos ) {
+		const uint64      addressLower  = ( addressInfo.reportedAddress & ~( addressInfo.addressPrecision - 1 ) );
+		const uint64      addressUpper  = ( addressInfo.reportedAddress |  ( addressInfo.addressPrecision - 1 ) );
+
+		const std::string addressString = addressLower == addressUpper
+		                                ? Str::Format( "%u",   addressLower )
+		                                : Str::Format( "%u-%u", addressLower, addressUpper );
+
+		switch ( addressInfo.addressType ) {
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_NONE_EXT:
+				Log::Warn( "^1Unknown fault type" );
+				continue;
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_READ_INVALID_EXT:
+				Log::Warn( "^1[Invalid Read]: %s",                addressString );
+				break;
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_WRITE_INVALID_EXT:
+				Log::Warn( "^1[Invalid Write]: %s",               addressString );
+				break;
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_EXECUTE_INVALID_EXT:
+				Log::Warn( "^1[Invalid Execution]: %s",           addressString );
+				break;
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_UNKNOWN_EXT:
+				Log::Warn( "^1[Unknown Instruction Pointer]: %s", addressString );
+				break;
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_INVALID_EXT:
+				Log::Warn( "^1[Invalid Instruction Pointer]: %s", addressString );
+				break;
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_FAULT_EXT:
+				Log::Warn( "^1[Related Instruction Pointer]: %s", addressString );
+				break;
+		}
+	}
+
+	for ( const VkDeviceFaultVendorInfoEXT& vendorInfo : vendorInfos ) {
+		Log::Warn( "^1[%u:%u]: %s", vendorInfo.vendorFaultCode, vendorInfo.vendorFaultCode, vendorInfo.description );
+	}
+}
+
+void LogDeviceFaultInfo() {
+	if ( !featuresConfig.deviceFault ) {
+		Log::Warn( "Unable to generate device fault info: deviceFault not supported" );
+		return;
+	}
+
+	VkDeviceFaultCountsEXT deviceFaultCounts {};
+
+	vkGetDeviceFaultInfoEXT( device, &deviceFaultCounts, nullptr );
+
+	DynamicArray<VkDeviceFaultAddressInfoEXT> addressInfos;
+	addressInfos.Resize( deviceFaultCounts.addressInfoCount );
+
+	DynamicArray<VkDeviceFaultVendorInfoEXT>  vendorInfos;
+	vendorInfos.Resize( deviceFaultCounts.vendorInfoCount );
+
+	VkDeviceFaultInfoEXT deviceFaultInfo {
+		.pAddressInfos = addressInfos.memory,
+		.pVendorInfos  = vendorInfos.memory
+	};
+
+	vkGetDeviceFaultInfoEXT( device, &deviceFaultCounts, &deviceFaultInfo );
+
+	Log::Warn( "^1Device fault: %s", deviceFaultInfo.description );
+
+	for ( const VkDeviceFaultAddressInfoEXT& addressInfo : addressInfos ) {
+		const uint64      addressLower  = ( addressInfo.reportedAddress & ~( addressInfo.addressPrecision - 1 ) );
+		const uint64      addressUpper  = ( addressInfo.reportedAddress |  ( addressInfo.addressPrecision - 1 ) );
+
+		const std::string addressString = addressLower == addressUpper
+		                                ? Str::Format( "%u",   addressLower )
+		                                : Str::Format( "%u-%u", addressLower, addressUpper );
+
+		switch ( addressInfo.addressType ) {
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_NONE_EXT:
+				Log::Warn( "^1Unknown fault type" );
+				continue;
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_READ_INVALID_EXT:
+				Log::Warn( "^1[Invalid Read]: %s",                addressString );
+				break;
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_WRITE_INVALID_EXT:
+				Log::Warn( "^1[Invalid Write]: %s",               addressString );
+				break;
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_EXECUTE_INVALID_EXT:
+				Log::Warn( "^1[Invalid Execution]: %s",           addressString );
+				break;
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_UNKNOWN_EXT:
+				Log::Warn( "^1[Unknown Instruction Pointer]: %s", addressString );
+				break;
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_INVALID_EXT:
+				Log::Warn( "^1[Invalid Instruction Pointer]: %s", addressString );
+				break;
+			case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_FAULT_EXT:
+				Log::Warn( "^1[Related Instruction Pointer]: %s", addressString );
+				break;
+		}
+	}
+
+	for ( const VkDeviceFaultVendorInfoEXT& vendorInfo : vendorInfos ) {
+		Log::Warn( "^1[%u:%u]: %s", vendorInfo.vendorFaultCode, vendorInfo.vendorFaultCode, vendorInfo.description );
+	}
+}
+
 void InitDebugMsg() {
 	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerInfo {
 		.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT

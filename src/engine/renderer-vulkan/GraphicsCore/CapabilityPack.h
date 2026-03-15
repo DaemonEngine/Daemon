@@ -184,9 +184,10 @@ constexpr Array featuresExperimental {
 };
 
 constexpr Array featuresOptional {
+	"descriptorHeap",
+	"deviceFault",
 	"hostImageCopy",
 	"swapchainMaintenance1",
-	"descriptorHeap",
 	"zeroInitializeDeviceMemory"
 };
 
