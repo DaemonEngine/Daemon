@@ -40,6 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Error.h"
 
+#include "../Version.h"
+
 #include "../VulkanLoader/VulkanLoadFunctions.h"
 
 #include "Vulkan.h"
@@ -59,7 +61,7 @@ void Instance::Init( const char* engineName, const char* appName ) {
 		.pApplicationName   = appName,
 		.applicationVersion = 0,
 		.pEngineName        = engineName,
-		.engineVersion      = 0,
+		.engineVersion      = DAEMON_VULKAN_VERSION.major | ( DAEMON_VULKAN_VERSION.minor << 10 ) | ( DAEMON_VULKAN_VERSION.patch << 21 ),
 		.apiVersion         = VK_MAKE_API_VERSION( 0, 1, 4, 0 )
 	};
 
