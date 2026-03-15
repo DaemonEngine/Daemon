@@ -84,8 +84,8 @@ void PushMsg( inout uint id, const bool msg ) {
 	id++;
 }
 
-Image2D testImg { rgba16f rel 1.0f nomips };
-Image2D testImg2 { rgba16f rel 1.0f };
+// Image2D testImg { rgba16f rel 1.0f nomips };
+// Image2D testImg2 { rgba16f rel 1.0f };
 Image2D testImg3 { rgba16f 1 1 };
 Image3D testImg4 { rgba16f 1 1 5 };
 ImageCube testImg5 { rgba16f 1 1 5 };
