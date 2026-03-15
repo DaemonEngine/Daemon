@@ -109,9 +109,7 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 	VkPhysicalDeviceDepthClipControlFeaturesEXT featuresVkPhysicalDeviceDepthClipControlFeaturesEXT { .pNext = &featuresVkPhysicalDeviceAddressBindingReportFeaturesEXT };
 	VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT featuresVkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT { .pNext = &featuresVkPhysicalDeviceDepthClipControlFeaturesEXT };
 	VkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT featuresVkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT { .pNext = &featuresVkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT };
-	VkPhysicalDeviceSubpassShadingFeaturesHUAWEI featuresVkPhysicalDeviceSubpassShadingFeaturesHUAWEI { .pNext = &featuresVkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT };
-	VkPhysicalDeviceInvocationMaskFeaturesHUAWEI featuresVkPhysicalDeviceInvocationMaskFeaturesHUAWEI { .pNext = &featuresVkPhysicalDeviceSubpassShadingFeaturesHUAWEI };
-	VkPhysicalDeviceExternalMemoryRDMAFeaturesNV featuresVkPhysicalDeviceExternalMemoryRDMAFeaturesNV { .pNext = &featuresVkPhysicalDeviceInvocationMaskFeaturesHUAWEI };
+	VkPhysicalDeviceExternalMemoryRDMAFeaturesNV featuresVkPhysicalDeviceExternalMemoryRDMAFeaturesNV { .pNext = &featuresVkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT };
 	VkPhysicalDevicePipelinePropertiesFeaturesEXT featuresVkPhysicalDevicePipelinePropertiesFeaturesEXT { .pNext = &featuresVkPhysicalDeviceExternalMemoryRDMAFeaturesNV };
 	VkPhysicalDeviceFrameBoundaryFeaturesEXT featuresVkPhysicalDeviceFrameBoundaryFeaturesEXT { .pNext = &featuresVkPhysicalDevicePipelinePropertiesFeaturesEXT };
 	VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT featuresVkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT { .pNext = &featuresVkPhysicalDeviceFrameBoundaryFeaturesEXT };
@@ -124,9 +122,7 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 	VkPhysicalDeviceImage2DViewOf3DFeaturesEXT featuresVkPhysicalDeviceImage2DViewOf3DFeaturesEXT { .pNext = &featuresVkPhysicalDeviceMultiDrawFeaturesEXT };
 	VkPhysicalDeviceShaderTileImageFeaturesEXT featuresVkPhysicalDeviceShaderTileImageFeaturesEXT { .pNext = &featuresVkPhysicalDeviceImage2DViewOf3DFeaturesEXT };
 	VkPhysicalDeviceOpacityMicromapFeaturesEXT featuresVkPhysicalDeviceOpacityMicromapFeaturesEXT { .pNext = &featuresVkPhysicalDeviceShaderTileImageFeaturesEXT };
-	VkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI featuresVkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI { .pNext = &featuresVkPhysicalDeviceOpacityMicromapFeaturesEXT };
-	VkPhysicalDeviceClusterCullingShaderVrsFeaturesHUAWEI featuresVkPhysicalDeviceClusterCullingShaderVrsFeaturesHUAWEI { .pNext = &featuresVkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI };
-	VkPhysicalDeviceBorderColorSwizzleFeaturesEXT featuresVkPhysicalDeviceBorderColorSwizzleFeaturesEXT { .pNext = &featuresVkPhysicalDeviceClusterCullingShaderVrsFeaturesHUAWEI };
+	VkPhysicalDeviceBorderColorSwizzleFeaturesEXT featuresVkPhysicalDeviceBorderColorSwizzleFeaturesEXT { .pNext = &featuresVkPhysicalDeviceOpacityMicromapFeaturesEXT };
 	VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT featuresVkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT { .pNext = &featuresVkPhysicalDeviceBorderColorSwizzleFeaturesEXT };
 	VkPhysicalDeviceSchedulingControlsFeaturesARM featuresVkPhysicalDeviceSchedulingControlsFeaturesARM { .pNext = &featuresVkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT };
 	VkPhysicalDeviceImageSlicedViewOf3DFeaturesEXT featuresVkPhysicalDeviceImageSlicedViewOf3DFeaturesEXT { .pNext = &featuresVkPhysicalDeviceSchedulingControlsFeaturesARM };
@@ -184,8 +180,7 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 	VkPhysicalDevicePushConstantBankFeaturesNV featuresVkPhysicalDevicePushConstantBankFeaturesNV { .pNext = &featuresVkPhysicalDeviceImageAlignmentControlFeaturesMESA };
 	VkPhysicalDeviceRayTracingInvocationReorderFeaturesEXT featuresVkPhysicalDeviceRayTracingInvocationReorderFeaturesEXT { .pNext = &featuresVkPhysicalDevicePushConstantBankFeaturesNV };
 	VkPhysicalDeviceDepthClampControlFeaturesEXT featuresVkPhysicalDeviceDepthClampControlFeaturesEXT { .pNext = &featuresVkPhysicalDeviceRayTracingInvocationReorderFeaturesEXT };
-	VkPhysicalDeviceHdrVividFeaturesHUAWEI featuresVkPhysicalDeviceHdrVividFeaturesHUAWEI { .pNext = &featuresVkPhysicalDeviceDepthClampControlFeaturesEXT };
-	VkPhysicalDeviceCooperativeMatrix2FeaturesNV featuresVkPhysicalDeviceCooperativeMatrix2FeaturesNV { .pNext = &featuresVkPhysicalDeviceHdrVividFeaturesHUAWEI };
+	VkPhysicalDeviceCooperativeMatrix2FeaturesNV featuresVkPhysicalDeviceCooperativeMatrix2FeaturesNV { .pNext = &featuresVkPhysicalDeviceDepthClampControlFeaturesEXT };
 	VkPhysicalDevicePipelineOpacityMicromapFeaturesARM featuresVkPhysicalDevicePipelineOpacityMicromapFeaturesARM { .pNext = &featuresVkPhysicalDeviceCooperativeMatrix2FeaturesNV };
 	VkPhysicalDevicePerformanceCountersByRegionFeaturesARM featuresVkPhysicalDevicePerformanceCountersByRegionFeaturesARM { .pNext = &featuresVkPhysicalDevicePipelineOpacityMicromapFeaturesARM };
 	VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT featuresVkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT { .pNext = &featuresVkPhysicalDevicePerformanceCountersByRegionFeaturesARM };
@@ -486,8 +481,6 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 		.primitiveTopologyListRestart = ( bool ) featuresVkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT.primitiveTopologyListRestart,
 		.primitiveTopologyPatchListRestart = ( bool ) featuresVkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT.primitiveTopologyPatchListRestart,
 		.presentModeFifoLatestReady = ( bool ) featuresVkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT.presentModeFifoLatestReady,
-		.subpassShading = ( bool ) featuresVkPhysicalDeviceSubpassShadingFeaturesHUAWEI.subpassShading,
-		.invocationMask = ( bool ) featuresVkPhysicalDeviceInvocationMaskFeaturesHUAWEI.invocationMask,
 		.externalMemoryRDMA = ( bool ) featuresVkPhysicalDeviceExternalMemoryRDMAFeaturesNV.externalMemoryRDMA,
 		.pipelinePropertiesIdentifier = ( bool ) featuresVkPhysicalDevicePipelinePropertiesFeaturesEXT.pipelinePropertiesIdentifier,
 		.frameBoundary = ( bool ) featuresVkPhysicalDeviceFrameBoundaryFeaturesEXT.frameBoundary,
@@ -510,9 +503,6 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 		.micromap = ( bool ) featuresVkPhysicalDeviceOpacityMicromapFeaturesEXT.micromap,
 		.micromapCaptureReplay = ( bool ) featuresVkPhysicalDeviceOpacityMicromapFeaturesEXT.micromapCaptureReplay,
 		.micromapHostCommands = ( bool ) featuresVkPhysicalDeviceOpacityMicromapFeaturesEXT.micromapHostCommands,
-		.clustercullingShader = ( bool ) featuresVkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI.clustercullingShader,
-		.multiviewClusterCullingShader = ( bool ) featuresVkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI.multiviewClusterCullingShader,
-		.clusterShadingRate = ( bool ) featuresVkPhysicalDeviceClusterCullingShaderVrsFeaturesHUAWEI.clusterShadingRate,
 		.borderColorSwizzle = ( bool ) featuresVkPhysicalDeviceBorderColorSwizzleFeaturesEXT.borderColorSwizzle,
 		.borderColorSwizzleFromImage = ( bool ) featuresVkPhysicalDeviceBorderColorSwizzleFeaturesEXT.borderColorSwizzleFromImage,
 		.pageableDeviceLocalMemory = ( bool ) featuresVkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT.pageableDeviceLocalMemory,
@@ -622,7 +612,6 @@ FeaturesConfig GetPhysicalDeviceFeatures( const VkPhysicalDevice physicalDevice,
 		.pushConstantBank = ( bool ) featuresVkPhysicalDevicePushConstantBankFeaturesNV.pushConstantBank,
 		.rayTracingInvocationReorderEXT = ( bool ) featuresVkPhysicalDeviceRayTracingInvocationReorderFeaturesEXT.rayTracingInvocationReorder,
 		.depthClampControl = ( bool ) featuresVkPhysicalDeviceDepthClampControlFeaturesEXT.depthClampControl,
-		.hdrVivid = ( bool ) featuresVkPhysicalDeviceHdrVividFeaturesHUAWEI.hdrVivid,
 		.cooperativeMatrixWorkgroupScope = ( bool ) featuresVkPhysicalDeviceCooperativeMatrix2FeaturesNV.cooperativeMatrixWorkgroupScope,
 		.cooperativeMatrixFlexibleDimensions = ( bool ) featuresVkPhysicalDeviceCooperativeMatrix2FeaturesNV.cooperativeMatrixFlexibleDimensions,
 		.cooperativeMatrixReductions = ( bool ) featuresVkPhysicalDeviceCooperativeMatrix2FeaturesNV.cooperativeMatrixReductions,
@@ -1407,18 +1396,8 @@ int CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCall
 		.presentModeFifoLatestReady = cfg.presentModeFifoLatestReady,
 	};
 
-	VkPhysicalDeviceSubpassShadingFeaturesHUAWEI featuresVkPhysicalDeviceSubpassShadingFeaturesHUAWEI {
-		.pNext = &featuresVkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT,
-		.subpassShading = cfg.subpassShading,
-	};
-
-	VkPhysicalDeviceInvocationMaskFeaturesHUAWEI featuresVkPhysicalDeviceInvocationMaskFeaturesHUAWEI {
-		.pNext = &featuresVkPhysicalDeviceSubpassShadingFeaturesHUAWEI,
-		.invocationMask = cfg.invocationMask,
-	};
-
 	VkPhysicalDeviceExternalMemoryRDMAFeaturesNV featuresVkPhysicalDeviceExternalMemoryRDMAFeaturesNV {
-		.pNext = &featuresVkPhysicalDeviceInvocationMaskFeaturesHUAWEI,
+		.pNext = &featuresVkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT,
 		.externalMemoryRDMA = cfg.externalMemoryRDMA,
 	};
 
@@ -1491,19 +1470,8 @@ int CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCall
 		.micromapHostCommands = cfg.micromapHostCommands,
 	};
 
-	VkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI featuresVkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI {
-		.pNext = &featuresVkPhysicalDeviceOpacityMicromapFeaturesEXT,
-		.clustercullingShader = cfg.clustercullingShader,
-		.multiviewClusterCullingShader = cfg.multiviewClusterCullingShader,
-	};
-
-	VkPhysicalDeviceClusterCullingShaderVrsFeaturesHUAWEI featuresVkPhysicalDeviceClusterCullingShaderVrsFeaturesHUAWEI {
-		.pNext = &featuresVkPhysicalDeviceClusterCullingShaderFeaturesHUAWEI,
-		.clusterShadingRate = cfg.clusterShadingRate,
-	};
-
 	VkPhysicalDeviceBorderColorSwizzleFeaturesEXT featuresVkPhysicalDeviceBorderColorSwizzleFeaturesEXT {
-		.pNext = &featuresVkPhysicalDeviceClusterCullingShaderVrsFeaturesHUAWEI,
+		.pNext = &featuresVkPhysicalDeviceOpacityMicromapFeaturesEXT,
 		.borderColorSwizzle = cfg.borderColorSwizzle,
 		.borderColorSwizzleFromImage = cfg.borderColorSwizzleFromImage,
 	};
@@ -1843,13 +1811,8 @@ int CreatePhysicalDevice( VkDeviceCreateInfo& deviceInfo, const VkAllocationCall
 		.depthClampControl = cfg.depthClampControl,
 	};
 
-	VkPhysicalDeviceHdrVividFeaturesHUAWEI featuresVkPhysicalDeviceHdrVividFeaturesHUAWEI {
-		.pNext = &featuresVkPhysicalDeviceDepthClampControlFeaturesEXT,
-		.hdrVivid = cfg.hdrVivid,
-	};
-
 	VkPhysicalDeviceCooperativeMatrix2FeaturesNV featuresVkPhysicalDeviceCooperativeMatrix2FeaturesNV {
-		.pNext = &featuresVkPhysicalDeviceHdrVividFeaturesHUAWEI,
+		.pNext = &featuresVkPhysicalDeviceDepthClampControlFeaturesEXT,
 		.cooperativeMatrixWorkgroupScope = cfg.cooperativeMatrixWorkgroupScope,
 		.cooperativeMatrixFlexibleDimensions = cfg.cooperativeMatrixFlexibleDimensions,
 		.cooperativeMatrixReductions = cfg.cooperativeMatrixReductions,

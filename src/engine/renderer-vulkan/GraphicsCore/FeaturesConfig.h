@@ -277,8 +277,6 @@ struct FeaturesConfig {
 	bool primitiveTopologyListRestart;
 	bool primitiveTopologyPatchListRestart;
 	bool presentModeFifoLatestReady;
-	bool subpassShading;
-	bool invocationMask;
 	bool externalMemoryRDMA;
 	bool pipelinePropertiesIdentifier;
 	bool frameBoundary;
@@ -301,9 +299,6 @@ struct FeaturesConfig {
 	bool micromap;
 	bool micromapCaptureReplay;
 	bool micromapHostCommands;
-	bool clustercullingShader;
-	bool multiviewClusterCullingShader;
-	bool clusterShadingRate;
 	bool borderColorSwizzle;
 	bool borderColorSwizzleFromImage;
 	bool pageableDeviceLocalMemory;
@@ -413,7 +408,6 @@ struct FeaturesConfig {
 	bool pushConstantBank;
 	bool rayTracingInvocationReorderEXT;
 	bool depthClampControl;
-	bool hdrVivid;
 	bool cooperativeMatrixWorkgroupScope;
 	bool cooperativeMatrixFlexibleDimensions;
 	bool cooperativeMatrixReductions;
