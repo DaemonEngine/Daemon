@@ -72,6 +72,35 @@ void SetupThreads()
 	}
 	else
 	{
+		/* Only GCC and Clang on Linux and MinGW have been tested for performance yet,
+		We currently not enable OpenMP in releases on other systems yet. */
+		#if defined(__MINGW32__)
+		/* On Windows with a MinGW build, using all available threads is known to
+		work best with:
+
+		- 4 threads on low-end 4-cores (no SMT) Ryzen 3 3200G.
+
+		It has not been tested yet on a Windows system where ompMaxThreads > 4.
+
+		At least on Wine over Linux, using a few amount of threads is known to work
+		best with:
+
+		- 4 threads on high-end 16-cores/32-threads Ryzen Threadripper PRO 3955WX.
+
+		Performance regression has been observed above 4 threads on Wine on Linux. */
+		constexpr int threadDivisor = 1;
+		constexpr int threadCap = 4;
+		#else
+		/* On Linux, using half threads than available is known to work best with:
+
+		- 2 threads on low-end 4-core (no SMT) Ryzen 3 3200G,
+		- 16 threads on high-end 16-cores/32-threads Ryzen Threadripper PRO 3955WX.
+
+		It has not been tested yet on a system where ompMaxThreads / 2 > 16. */
+		constexpr int threadDivisor = 2;
+		constexpr int threadCap = 16;
+		#endif
+
 		switch( ompMaxThreads )
 		{
 			case 1:
@@ -82,12 +111,7 @@ void SetupThreads()
 				ompThreads = 2;
 				break;
 			default:
-				/* Using half threads than available is known to work best with:
-				- 2 threads on Low-end 4-cores (no SMP) Ryzen 3 3200G,
-				- 16 threads on High-end 16-cores/32-threads Ryzen Threadripper PRO 3955WX
-
-				It has not been tested on a system where ompMaxThreads / 2 > 16. */
-				ompThreads = std::min( ompMaxThreads / 2, 16 );
+				ompThreads = std::min( ompMaxThreads / threadDivisor, threadCap );
 		}
 	}
 #endif
