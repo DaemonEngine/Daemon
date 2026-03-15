@@ -66,6 +66,12 @@ void Image::Init( const Format newFormat, VkExtent3D imageSize, const bool useMi
 
 	external     = false;
 
+	if ( !imageSize.width || !imageSize.height ) {
+		Log::Warn( "Tried to create an image with a 0 dimension (width: %u height: %u depth: %u)",
+		           imageSize.width, imageSize.height, imageSize.depth );
+		return;
+	}
+
 	VkImageUsageFlags imageUsage = 0;
 
 	if ( formatConfigs[format].sampled ) {
