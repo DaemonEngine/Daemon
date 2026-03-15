@@ -214,20 +214,27 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 							break;
 						case NODE_EXTERNAL:
 							externalDep = true;
+							break;
 					}
 
 					UnSetBit( &nodeDeps, dep );
 				}
 
-				if ( srcStage || srcAccess ) {
+				if ( srcStage || srcAccess || externalDep ) {
 					VkImageMemoryBarrier2 imageMemoryBarrierInfo {
-						.srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-						.srcAccessMask = VK_ACCESS_NONE,
-						.dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+						.srcStageMask  = 0,
+						.srcAccessMask = VK_ACCESS_2_NONE,
+						.dstStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
 						.dstAccessMask = VK_PIPELINE_STAGE_2_NONE,
 						.oldLayout     = VK_IMAGE_LAYOUT_UNDEFINED,
 						.newLayout     = VK_IMAGE_LAYOUT_GENERAL,
-						.image         = mainSwapChain.images[swapchainImage].image
+						.image         = mainSwapChain.images[swapchainImage].image,
+
+						.subresourceRange = {
+							.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+							.levelCount = 1,
+							.layerCount = 1
+						}
 					};
 
 					VkMemoryBarrier2 memoryBarrierInfo {
