@@ -442,7 +442,15 @@ class COutputGenerator(OutputGenerator):
         typeElem = typeinfo.elem
         body = self.deprecationComment(typeElem)
 
+        DONT_CARE_DIDNT_ASK = ( "ubm", "directfb", "vi", "ios", "huawei", "fuchsia", "ggp", "screen", "ohos" )
+
         feature = "Features" in typeName
+
+        for shit in DONT_CARE_DIDNT_ASK:
+            if str.lower( typeName ).endswith( shit ):
+                feature = False
+                print(typeName,shit)
+                break
         
         featureSuffixPref = {
             "Vulkan11" : 0,
