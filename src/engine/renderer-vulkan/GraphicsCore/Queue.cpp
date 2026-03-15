@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// Queue.h
+// Queue.cpp
 
 #include "../Memory/Array.h"
 
