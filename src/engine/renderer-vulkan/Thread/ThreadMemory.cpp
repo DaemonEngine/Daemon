@@ -234,7 +234,7 @@ void ThreadMemory::PrintChunkInfo( MemoryChunkRecord* memoryChunk ) {
 	uint32            allocs = 0;
 
 	while ( allocs < memoryChunk->allocs ) {
-		if ( BitSet( record->chunkID, 31 ) ) {
+		if ( !BitSet( record->chunkID, 31 ) ) {
 			Log::NoticeTagT( record->Format() );
 			allocs++;
 		}
