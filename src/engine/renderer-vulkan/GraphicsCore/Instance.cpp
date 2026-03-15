@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Instance.cpp
 
+#include <stdlib.h>
+
 #include <SDL3/SDL_vulkan.h>
 
 #include "../Math/NumberTypes.h"
@@ -88,6 +90,27 @@ void Instance::Init( const char* engineName, const char* appName ) {
 	memcpy( extensions.memory, sdlext, count * sizeof( const char* ) );
 	memcpy( extensions.memory + count, capabilityPackMinimal.requiredInstanceExtensions.memory,
 		capabilityPackMinimal.requiredInstanceExtensions.size * sizeof( const char* ) );
+
+	uint32 layerCount;
+	vkEnumerateInstanceLayerProperties( &layerCount, nullptr );
+
+	DynamicArray<VkLayerProperties> layers;
+	layers.Resize( layerCount );
+
+	vkEnumerateInstanceLayerProperties( &layerCount, layers.memory );
+
+	/* Go fuck your-implicit-layer-self - steam, epic games & whoever the fuck else thinks they can add implicit layers
+	and are not Khronos/IHV/driver/debugger/profiler/LunarG */
+
+	const char* allowedLayers = "VK_LOADER_LAYERS_ALLOW=VK_LAYER_KHRONOS_*, VK_LAYER_NV_*, VK_LAYER_AMD_*, VK_LAYER_LUNARG_*";
+
+	#ifdef _MSC_VER
+		_putenv( "VK_LOADER_LAYERS_DISABLE=~all~" );
+		_putenv( allowedLayers );
+	#else
+		putenv( "VK_LOADER_LAYERS_DISABLE=~all~" );
+		putenv( allowedLayers );
+	#endif
 
 	VkInstanceCreateInfo createInfo {
 		.pApplicationInfo        = &appInfo,
