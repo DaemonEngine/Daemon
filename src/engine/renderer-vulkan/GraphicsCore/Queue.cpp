@@ -61,10 +61,11 @@ void InitQueueConfigs() {
 	uint32 count = 8;
 	vkGetPhysicalDeviceQueueFamilyProperties2( physicalDevice, &count, propertiesArray );
 
-	graphicsQueue = &queues[0];
-	computeQueue  = &queues[1];
-	transferQueue = &queues[2];
-	sparseQueue   = &queues[3];
+	graphicsQueue   = &queues[0];
+	computeQueue    = &queues[1];
+	transferQueue   = &queues[2];
+	sparseQueue     = &queues[3];
+	transferDLQueue = &queues[4];
 
 	for ( uint32 i = 0; i < count; i++ ) {
 		VkQueueFamilyProperties& coreProperties = propertiesArray[i].queueFamilyProperties;
@@ -107,16 +108,22 @@ void InitQueueConfigs() {
 		sparseQueue->unique   = false;
 	}
 
-	transferDLQueue = transferQueue;
+	if ( transferQueue->queueCount > 1 ) {
+		*transferDLQueue = *transferQueue;
+	} else {
+		transferDLQueue  = transferQueue;
+	}
 }
 
 void InitQueues() {
 	InitQueue( *graphicsQueue, 0 );
 	InitQueue( *computeQueue,  0 );
 	InitQueue( *transferQueue, 0 );
-	if ( transferDLQueue->queueCount > 1 ) {
+
+	if ( transferQueue->queueCount > 1 ) {
 		InitQueue( *transferDLQueue, 1 );
 	}
+
 	InitQueue( *sparseQueue,   0 );
 }
 
