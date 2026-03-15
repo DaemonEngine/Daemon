@@ -54,6 +54,11 @@ void Image::Init( const Format newFormat, VkExtent3D imageSize, const bool useMi
 		imageSize.depth = 0;
 	}
 
+	if ( cube && imageSize.width != imageSize.height ) {
+		Log::Warn( "Cube images must have width == height!" );
+		return;
+	}
+
 	type         = cube ? VK_IMAGE_VIEW_TYPE_CUBE : ( imageSize.depth ? VK_IMAGE_VIEW_TYPE_3D : VK_IMAGE_VIEW_TYPE_2D );
 	format       = newFormat;
 
@@ -94,7 +99,11 @@ void Image::Init( const Format newFormat, VkExtent3D imageSize, const bool useMi
 	VkImageCreateFlags flags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
 	if ( format >= BC1 ) {
-		flags = VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT | VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
+		flags  = VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT | VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
+	}
+
+	if ( cube ) {
+		flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 	}
 
 	VkImageType      imageType        = imageSize.depth ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D;
