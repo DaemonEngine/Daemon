@@ -187,6 +187,8 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 
 	Cvar::Cvar<bool> r_toneMapping(
 		"r_toneMapping", "Use  HDR->LDR tonemapping", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_toneMappingAdaptiveExposure( "r_toneMappingAdaptiveExposure",
+		"Use adaptive exposure based on scene brightness", Cvar::NONE, false );
 	Cvar::Cvar<float> r_exposure(
 		"r_exposure", "Exposure (brightness adjustment)", Cvar::NONE, 1.0f );
 	Cvar::Range<Cvar::Cvar<float>> r_toneMappingContrast(
