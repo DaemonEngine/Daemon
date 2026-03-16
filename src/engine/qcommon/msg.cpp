@@ -431,15 +431,14 @@ float MSG_ReadFloat( msg_t *msg )
 
 std::string MSG_ReadString( msg_t *msg )
 {
-	std::string string;
 	uint32_t size = MSG_ReadLong( msg );
 
-	string.resize( size );
+	std::vector<char> data;
+	data.resize( size );
 
-	void* fuckOffGCC = const_cast<char*>( string.data() );
-	MSG_ReadData( msg, fuckOffGCC, size );
+	MSG_ReadData( msg, data.data(), size );
 
-	return string;
+	return std::string( data.begin(), data.end() );
 }
 
 std::vector<std::string> MSG_ReadStringLines( msg_t* msg ) {
