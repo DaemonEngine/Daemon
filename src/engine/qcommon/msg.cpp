@@ -436,7 +436,7 @@ std::string MSG_ReadString( msg_t *msg )
 
 	string.resize( size );
 
-	void* fuckOffGCC = string.data();
+	void* fuckOffGCC = const_cast<char*>( string.data() );
 	MSG_ReadData( msg, fuckOffGCC, size );
 
 	return string;
