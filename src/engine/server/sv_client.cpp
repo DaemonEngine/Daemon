@@ -1338,7 +1338,7 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg )
 	// NOTE: when the client message is fux0red the acknowledgement numbers
 	// can be out of range, this could cause the server to send thousands of server
 	// commands which the server thinks are not yet acknowledged in SV_UpdateServerCommandsToClient
-	if ( cl->reliableAcknowledge < 0 || cl->reliableAcknowledge > cl->reliableSequence )
+	if ( cl->reliableAcknowledge > cl->reliableSequence )
 	{
 		// usually only hackers create messages like this
 		// it is more annoying for them to let them hanging
