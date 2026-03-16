@@ -1,6 +1,6 @@
 #!/usr/bin/env python3 -i
 #
-# Copyright 2013-2025 The Khronos Group Inc.
+# Copyright 2013-2026 The Khronos Group Inc.
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -10,7 +10,7 @@ import re
 from generator import (GeneratorOptions,
                        MissingGeneratorOptionsConventionsError,
                        MissingGeneratorOptionsError, MissingRegistryError,
-                       OutputGenerator, noneStr, regSortFeatures, write)
+                       OutputGenerator, noneStr, write)
 
 class CGeneratorOptions(GeneratorOptions):
     """CGeneratorOptions - subclass of GeneratorOptions.
@@ -355,6 +355,10 @@ class COutputGenerator(OutputGenerator):
             if alias:
                 # If the type is an alias, just emit a typedef declaration
                 body += f"typedef {alias} {name};\n"
+            elif category == 'funcpointer':
+                # Only include the typedef
+                decls = self.makeCDecls(typeElem)
+                body += decls[1]
             else:
                 # Replace <apientry /> tags with an APIENTRY-style string
                 # (from self.genOpts). Copy other text through unchanged.
