@@ -242,16 +242,12 @@ const Cmd::Args& trap_Args() {
 	return *argStack.back();
 }
 
-void trap_EscapedArgs( char *buffer, int bufferLength ) {
-	const Cmd::Args* args = argStack.back();
-	std::string res = args->EscapedArgs(0);
-	Q_strncpyz( buffer, res.c_str(), bufferLength );
+std::string trap_EscapedArgs() {
+	return argStack.back()->EscapedArgs(0);
 }
 
-void trap_LiteralArgs( char *buffer, int bufferLength ) {
-	const Cmd::Args* args = argStack.back();
-	std::string res = args->ConcatArgs(0);
-	Q_strncpyz( buffer, res.c_str(), bufferLength );
+std::string trap_LiteralArgs() {
+	return argStack.back()->ConcatArgs(0);
 }
 
 namespace Cmd {
