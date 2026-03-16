@@ -46,6 +46,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GraphicsCoreStore.h"
 #include "GraphicsCoreCVars.h"
 
+#include "DebugMsg.h"
+
 #include "SwapChain.h"
 
 struct VkFormatHasher {
@@ -255,6 +257,8 @@ void SwapChain::Init( const VkInstance instance ) {
 
 	VkResult res = vkCreateSwapchainKHR( device, &swapChainInfo, nullptr, &swapChain );
 
+	DebugLabel( swapChain, "swapChain" );
+
 	/* #ifdef _MSC_VER
 		res = vkAcquireFullScreenExclusiveModeEXT( device, swapChain );
 
@@ -285,6 +289,8 @@ void SwapChain::Init( const VkInstance instance ) {
 		};
 
 		vkCreateSemaphore( device, &semaphoreInfo, nullptr, &presentSemaphores[i] );
+
+		DebugLabel( presentSemaphores[i], Str::Format( "present_%u", i ).c_str() );
 	}
 }
 

@@ -38,6 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
+#include "Vulkan.h"
+
 enum DebugMsgSeverity : uint32 {
 	DEBUG_MSG_VERBOSE      = 1,
 	DEBUG_MSG_INFO         = 2,
@@ -54,5 +56,36 @@ enum DebugMsgType : uint32 {
 };
 
 void InitDebugMsg();
+
+void DebugLabel( VkObjectType type, void* pointer, const char* name );
+
+void DebugLabel( VkInstance                  instance,            const char* name );
+void DebugLabel( VkPhysicalDevice            physicalDevice,      const char* name );
+void DebugLabel( VkDevice                    device,              const char* name );
+void DebugLabel( VkQueue                     queue,               const char* name );
+void DebugLabel( VkSemaphore                 semaphore,           const char* name );
+void DebugLabel( VkCommandBuffer             cmd,                 const char* name );
+void DebugLabel( VkFence                     fence,               const char* name );
+void DebugLabel( uint32*                     memory,              const char* name );
+void DebugLabel( VkBuffer                    buffer,              const char* name );
+void DebugLabel( VkImage                     image,               const char* name );
+void DebugLabel( VkEvent                     event,               const char* name );
+void DebugLabel( VkQueryPool                 queryPool,           const char* name );
+void DebugLabel( VkImageView                 imageView,           const char* name );
+void DebugLabel( VkPipelineCache             pipelineCache,       const char* name );
+void DebugLabel( VkPipelineLayout            pipelineLayout,      const char* name );
+void DebugLabel( VkPipeline                  pipeline,            const char* name );
+void DebugLabel( VkDescriptorSetLayout       descriptorSetLayout, const char* name );
+void DebugLabel( VkSampler                   sampler,             const char* name );
+void DebugLabel( VkDescriptorPool            descriptorPool,      const char* name );
+void DebugLabel( VkDescriptorSet             descriptorSet,       const char* name );
+void DebugLabel( VkCommandPool               cmdPool,             const char* name );
+void DebugLabel( VkSurfaceKHR                surface,             const char* name );
+void DebugLabel( VkSwapchainKHR              swapChain,           const char* name );
+void DebugLabel( VkAccelerationStructureKHR  as,                  const char* name );
+void DebugLabel( VkMicromapEXT               microMap,            const char* name );
+void DebugLabel( VkPipelineBinaryKHR         pipelineBinary,      const char* name );
+void DebugLabel( VkIndirectCommandsLayoutEXT DGCLayout,           const char* name );
+void DebugLabel( VkIndirectExecutionSetEXT   DGCSet,              const char* name );
 
 #endif // DEBUG_MSG_H

@@ -39,9 +39,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GraphicsCoreStore.h"
 
+#include "DebugMsg.h"
+
 #include "Queue.h"
 
-static void InitQueue( Queue& queue, const uint32 index ) {
+static void InitQueue( Queue& queue, const uint32 index, const char* name ) {
 	if ( queue.queue ) {
 		return;
 	}
@@ -54,6 +56,10 @@ static void InitQueue( Queue& queue, const uint32 index ) {
 	vkGetDeviceQueue2( device, &info, &queue.queue );
 
 	queue.executionPhase.Init();
+
+	DebugLabel( queue.queue,                    name );
+
+	DebugLabel( queue.executionPhase.semaphore, name );
 }
 
 void InitQueueConfigs() {
@@ -116,15 +122,15 @@ void InitQueueConfigs() {
 }
 
 void InitQueues() {
-	InitQueue( *graphicsQueue, 0 );
-	InitQueue( *computeQueue,  0 );
-	InitQueue( *transferQueue, 0 );
+	InitQueue( *graphicsQueue, 0, "graphics" );
+	InitQueue( *computeQueue,  0, "compute" );
+	InitQueue( *transferQueue, 0, "transfer" );
 
 	if ( transferQueue->queueCount > 1 ) {
-		InitQueue( *transferDLQueue, 1 );
+		InitQueue( *transferDLQueue, 1, "transferDL" );
 	}
 
-	InitQueue( *sparseQueue,   0 );
+	InitQueue( *sparseQueue,   0, "sparse" );
 }
 
 Array<uint32, 4> GetConcurrentQueues( uint32* count ) {

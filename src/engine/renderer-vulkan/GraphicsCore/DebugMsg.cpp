@@ -254,69 +254,6 @@ void LogDeviceFaultInfo() {
 	}
 }
 
-void LogDeviceFaultInfo() {
-	if ( !featuresConfig.deviceFault ) {
-		Log::Warn( "Unable to generate device fault info: deviceFault not supported" );
-		return;
-	}
-
-	VkDeviceFaultCountsEXT deviceFaultCounts {};
-
-	vkGetDeviceFaultInfoEXT( device, &deviceFaultCounts, nullptr );
-
-	DynamicArray<VkDeviceFaultAddressInfoEXT> addressInfos;
-	addressInfos.Resize( deviceFaultCounts.addressInfoCount );
-
-	DynamicArray<VkDeviceFaultVendorInfoEXT>  vendorInfos;
-	vendorInfos.Resize( deviceFaultCounts.vendorInfoCount );
-
-	VkDeviceFaultInfoEXT deviceFaultInfo {
-		.pAddressInfos = addressInfos.memory,
-		.pVendorInfos  = vendorInfos.memory
-	};
-
-	vkGetDeviceFaultInfoEXT( device, &deviceFaultCounts, &deviceFaultInfo );
-
-	Log::Warn( "^1Device fault: %s", deviceFaultInfo.description );
-
-	for ( const VkDeviceFaultAddressInfoEXT& addressInfo : addressInfos ) {
-		const uint64      addressLower  = ( addressInfo.reportedAddress & ~( addressInfo.addressPrecision - 1 ) );
-		const uint64      addressUpper  = ( addressInfo.reportedAddress |  ( addressInfo.addressPrecision - 1 ) );
-
-		const std::string addressString = addressLower == addressUpper
-		                                ? Str::Format( "%u",   addressLower )
-		                                : Str::Format( "%u-%u", addressLower, addressUpper );
-
-		switch ( addressInfo.addressType ) {
-			case VK_DEVICE_FAULT_ADDRESS_TYPE_NONE_EXT:
-				Log::Warn( "^1Unknown fault type" );
-				continue;
-			case VK_DEVICE_FAULT_ADDRESS_TYPE_READ_INVALID_EXT:
-				Log::Warn( "^1[Invalid Read]: %s",                addressString );
-				break;
-			case VK_DEVICE_FAULT_ADDRESS_TYPE_WRITE_INVALID_EXT:
-				Log::Warn( "^1[Invalid Write]: %s",               addressString );
-				break;
-			case VK_DEVICE_FAULT_ADDRESS_TYPE_EXECUTE_INVALID_EXT:
-				Log::Warn( "^1[Invalid Execution]: %s",           addressString );
-				break;
-			case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_UNKNOWN_EXT:
-				Log::Warn( "^1[Unknown Instruction Pointer]: %s", addressString );
-				break;
-			case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_INVALID_EXT:
-				Log::Warn( "^1[Invalid Instruction Pointer]: %s", addressString );
-				break;
-			case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_FAULT_EXT:
-				Log::Warn( "^1[Related Instruction Pointer]: %s", addressString );
-				break;
-		}
-	}
-
-	for ( const VkDeviceFaultVendorInfoEXT& vendorInfo : vendorInfos ) {
-		Log::Warn( "^1[%u:%u]: %s", vendorInfo.vendorFaultCode, vendorInfo.vendorFaultCode, vendorInfo.description );
-	}
-}
-
 void InitDebugMsg() {
 	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerInfo {
 		.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
@@ -327,4 +264,126 @@ void InitDebugMsg() {
 	};
 
 	vkCreateDebugUtilsMessengerEXT( instance.instance, &debugUtilsMessengerInfo, nullptr, &debugUtilsMessenger );
+}
+
+void DebugLabel( VkObjectType type, void* pointer, const char* name ) {
+	VkDebugUtilsObjectNameInfoEXT debugObjectInfo {
+		.objectType   = type,
+		.objectHandle = ( uint64 ) pointer,
+		.pObjectName  = name
+	};
+
+	vkSetDebugUtilsObjectNameEXT( device, &debugObjectInfo );
+}
+
+void DebugLabel( VkInstance instance, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_INSTANCE, instance, name );
+}
+
+void DebugLabel( VkPhysicalDevice physicalDevice, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_PHYSICAL_DEVICE, physicalDevice, name );
+}
+
+void DebugLabel( VkDevice device, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_DEVICE, device, name );
+}
+
+void DebugLabel( VkQueue queue, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_QUEUE, queue, name );
+}
+
+void DebugLabel( VkSemaphore semaphore, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_SEMAPHORE, semaphore, name );
+}
+
+void DebugLabel( VkCommandBuffer cmd, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_COMMAND_BUFFER, cmd, name );
+}
+
+void DebugLabel( VkFence fence, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_FENCE, fence, name );
+}
+
+void DebugLabel( uint32* memory, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_DEVICE_MEMORY, memory, name );
+}
+
+void DebugLabel( VkBuffer buffer, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_BUFFER, buffer, name );
+}
+
+void DebugLabel( VkImage image, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_IMAGE, image, name );
+}
+
+void DebugLabel( VkEvent event, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_EVENT, event, name );
+}
+
+void DebugLabel( VkQueryPool queryPool, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_QUERY_POOL, queryPool, name );
+}
+
+void DebugLabel( VkImageView imageView, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_IMAGE_VIEW, imageView, name );
+}
+
+void DebugLabel( VkPipelineCache pipelineCache, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_PIPELINE_CACHE, pipelineCache, name );
+}
+
+void DebugLabel( VkPipelineLayout pipelineLayout, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_PIPELINE_LAYOUT, pipelineLayout, name );
+}
+
+void DebugLabel( VkPipeline pipeline, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_PIPELINE, pipeline, name );
+}
+
+void DebugLabel( VkDescriptorSetLayout descriptorSetLayout, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, descriptorSetLayout, name );
+}
+
+void DebugLabel( VkSampler sampler, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_SAMPLER, sampler, name );
+}
+
+void DebugLabel( VkDescriptorPool descriptorPool, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_DESCRIPTOR_POOL, descriptorPool, name );
+}
+
+void DebugLabel( VkDescriptorSet descriptorSet, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_DESCRIPTOR_SET, descriptorSet, name );
+}
+
+void DebugLabel( VkCommandPool cmdPool, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_COMMAND_POOL, cmdPool, name );
+}
+
+void DebugLabel( VkSurfaceKHR surface, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_SURFACE_KHR, surface, name );
+}
+
+void DebugLabel( VkSwapchainKHR swapChain, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_SWAPCHAIN_KHR, swapChain, name );
+}
+
+void DebugLabel( VkAccelerationStructureKHR as, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR, as, name );
+}
+
+void DebugLabel( VkMicromapEXT microMap, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_MICROMAP_EXT, microMap, name );
+}
+
+void DebugLabel( VkPipelineBinaryKHR pipelineBinary, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_PIPELINE_BINARY_KHR, pipelineBinary, name );
+}
+
+void DebugLabel( VkIndirectCommandsLayoutEXT DGCLayout, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_EXT, DGCLayout, name );
+}
+
+void DebugLabel( VkIndirectExecutionSetEXT DGCSet, const char* name ) {
+	DebugLabel( VK_OBJECT_TYPE_INDIRECT_EXECUTION_SET_EXT, DGCSet, name );
 }

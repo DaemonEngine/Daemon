@@ -43,6 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../GraphicsCoreStore.h"
 #include "../ResultCheck.h"
 
+#include "../DebugMsg.h"
+
 #include "../Image.h"
 
 #include "../../GraphicsShared/Bindings.h"
@@ -145,6 +147,19 @@ static VkSamplerAddressMode GetSamplerAddressMode( const AddressMode addressMode
 	}
 }
 
+static const char* GetSamplerAddressModeString( const AddressMode addressMode ) {
+	switch ( addressMode ) {
+		case REPEAT:
+			return "repeat";
+		case CLAMP_TO_EDGE:
+			return "clampEdge";
+		case CLAMP_TO_BORDER:
+			return "clampBorder";
+		case MIRROR_CLAMP_TO_EDGE:
+			return "clampEdgeMirror";
+	}
+}
+
 VkSampler CreateSampler( const Sampler sampler ) {
 	VkSamplerReductionMode samplerReductionMode;
 
@@ -187,6 +202,17 @@ VkSampler CreateSampler( const Sampler sampler ) {
 
 	VkSampler out;
 	vkCreateSampler( device, &samplerInfo, nullptr, &out );
+
+	DebugLabel( out,
+		Str::Format( "%s %s %s %s %f%s",
+			sampler.reductionMode == AVG ? "avg" : ( sampler.reductionMode == MIN ? "min" : "max" ),
+			GetSamplerAddressModeString( sampler.addressModeU ),
+			GetSamplerAddressModeString( sampler.addressModeV ),
+			GetSamplerAddressModeString( sampler.addressModeW ),
+			sampler.anisotropy,
+			sampler.shadowMap ? " shadow" : ""
+		).c_str()
+	);
 
 	return out;
 }
@@ -241,6 +267,8 @@ void AllocDescriptors( uint32 imageCount, uint32 storageImageCount ) {
 		}
 	}
 
+	DebugLabel( descriptorPool, "descriptorPool" );
+
 	VkDescriptorSetLayoutBinding imageBinds[] {
 		{
 			.binding         = BIND_STORAGE_IMAGES,
@@ -283,6 +311,8 @@ void AllocDescriptors( uint32 imageCount, uint32 storageImageCount ) {
 
 	ResultCheck( vkCreateDescriptorSetLayout( device, &descriptorLayoutInfo, nullptr, &descriptorSetLayout ) );
 
+	DebugLabel( descriptorSetLayout, "descriptorSetLayout" );
+
 	VkDescriptorSetAllocateInfo allocInfo {
 		.descriptorPool     = descriptorPool,
 		.descriptorSetCount = 1,
@@ -290,6 +320,8 @@ void AllocDescriptors( uint32 imageCount, uint32 storageImageCount ) {
 	};
 
 	ResultCheck( vkAllocateDescriptorSets( device, &allocInfo, &descriptorSet ) );
+
+	DebugLabel( descriptorSet, "descriptorSet" );
 
 	VkDescriptorImageInfo samplerInfos[maxSamplers] {};
 
