@@ -56,8 +56,6 @@ if( USE_VULKAN )
 	file( MAKE_DIRECTORY ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/bin/ )
 endif()
 
-include( DaemonEmbed )
-
 macro( GenerateVulkanShaders target )
 	# Pre-processing for #insert/#include
 	foreach( src IN LISTS graphicsEngineList )
@@ -140,8 +138,6 @@ macro( GenerateVulkanShaders target )
 		
 		list( APPEND spirvBinList ${spirvBinPath} )
 	endforeach()
-	
-	#GenerateEmbedFilesConstexpr( "${spirvBinList}" ${DAEMON_GENERATED_DIR}/DaemonVulkan/GraphicsEngine/bin/spirv.h BINARY client-objects )
 
 	#add_custom_target( VulkanShaderBin ALL
 	#	DEPENDS "${graphicsEngineOutputList}" ${GRAPHICS_CORE_PATH}/ExecutionGraph/SPIRVBin.h  ${GRAPHICS_CORE_PATH}/ExecutionGraph/SPIRV.h ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DaemonVulkan.cmake
