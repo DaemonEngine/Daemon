@@ -43,7 +43,7 @@ void             trap_SetConfigstringRestrictions( int num, const clientList_t *
 void             trap_GetConfigstring( int num, char *buffer, int bufferSize );
 void             trap_SetUserinfo( int num, const std::string& userinfo );
 std::string      trap_GetUserinfo( int num );
-void             trap_GetServerinfo( char *buffer, int bufferSize );
+std::string      trap_GetServerinfo();
 int              trap_BotAllocateClient();
 void             trap_BotFreeClient( int clientNum );
 void             trap_GetUsercmd( int clientNum, usercmd_t *cmd );

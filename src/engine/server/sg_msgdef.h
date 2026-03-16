@@ -75,7 +75,7 @@ using GetUserinfoMsg =  IPC::SyncMessage<
     IPC::Reply<std::string>
 >;
 using GetServerinfoMsg = IPC::SyncMessage<
-    IPC::Message<IPC::Id<VM::QVM, G_GET_SERVERINFO>, int>,
+    IPC::Message<IPC::Id<VM::QVM, G_GET_SERVERINFO>>,
     IPC::Reply<std::string>
 >;
 using GetUsercmdMsg = IPC::SyncMessage<

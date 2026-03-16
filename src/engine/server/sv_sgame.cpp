@@ -167,14 +167,9 @@ SV_GetServerinfo
 
 ===============
 */
-void SV_GetServerinfo( char *buffer, int bufferSize )
+std::string SV_GetServerinfo()
 {
-	if ( bufferSize < 1 )
-	{
-		Sys::Drop( "SV_GetServerinfo: bufferSize == %i", bufferSize );
-	}
-
-	Q_strncpyz( buffer, Cvar_InfoString( CVAR_SERVERINFO ).c_str(), bufferSize );
+	return Cvar_InfoString( CVAR_SERVERINFO );
 }
 
 /*
@@ -498,11 +493,8 @@ void GameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& chan
 		break;
 
 	case G_GET_SERVERINFO:
-		IPC::HandleMsg<GetServerinfoMsg>(channel, std::move(reader), [this](int len, std::string& res) {
-			std::unique_ptr<char[]> buffer(new char[len]);
-			buffer[0] = '\0';
-			SV_GetServerinfo(buffer.get(), len);
-			res.assign(buffer.get());
+		IPC::HandleMsg<GetServerinfoMsg>(channel, std::move(reader), [this](std::string& res) {
+			res = SV_GetServerinfo();
 		});
 		break;
 
