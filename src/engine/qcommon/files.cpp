@@ -621,18 +621,18 @@ int FS_GetFileListRecursive(const char* path, const char* extension, char* listB
 	return numFiles;
 }
 
-const char* FS_LoadedPaks()
+std::string FS_LoadedPaks()
 {
-	static char info[BIG_INFO_STRING];
-	info[0] = '\0';
+	std::string out;
 	for (const FS::LoadedPakInfo& x: FS::PakPath::GetLoadedPaks()) {
 		if (!x.pathPrefix.empty())
 			continue;
-		if (info[0])
-			Q_strcat(info, sizeof(info), " ");
-		Q_strcat(info, sizeof(info), FS::MakePakName(x.name, x.version, x.realChecksum).c_str());
+		if ( out.size() ) {
+			out += " ";
+		}
+		out += FS::MakePakName(x.name, x.version, x.realChecksum);
 	}
-	return info;
+	return out;
 }
 
 bool FS_LoadPak(const Str::StringRef name)

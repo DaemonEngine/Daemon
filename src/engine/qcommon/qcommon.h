@@ -423,7 +423,7 @@ int FS_Seek( fileHandle_t f, long offset, fsOrigin_t origin );
 
 // seek on a file (doesn't work for zip files!!!!!!!!)
 
-const char* FS_LoadedPaks();
+std::string FS_LoadedPaks();
 
 // Returns a space separated string containing all loaded dpk/pk3 files.
 
