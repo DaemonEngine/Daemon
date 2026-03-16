@@ -174,7 +174,7 @@ void SV_GetServerinfo( char *buffer, int bufferSize )
 		Sys::Drop( "SV_GetServerinfo: bufferSize == %i", bufferSize );
 	}
 
-	Q_strncpyz( buffer, Cvar_InfoString( CVAR_SERVERINFO, false ), bufferSize );
+	Q_strncpyz( buffer, Cvar_InfoString( CVAR_SERVERINFO ).c_str(), bufferSize );
 }
 
 /*

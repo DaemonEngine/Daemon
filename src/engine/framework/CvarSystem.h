@@ -87,7 +87,7 @@ namespace Cvar {
     cvar_t* FindCCvar(const std::string& cvarName);
     std::string GetCvarConfigText();
 	// DEPRECATED: Use PopulateInfoMap
-    char* InfoString(int flag, bool big);
+    std::string InfoString(int flag);
 	void PopulateInfoMap(int flag, InfoMap& map);
     void SetValueCProxy(const std::string& cvarName, const std::string& value);
 

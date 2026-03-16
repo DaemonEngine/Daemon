@@ -547,9 +547,8 @@ namespace Cvar {
         return result.str();
     }
 
-    char* InfoString(int flag, bool big) {
-        static char info[BIG_INFO_STRING];
-        info[0] = 0;
+    std::string InfoString(int flag) {
+        std::string out;
 
         CvarMap& cvars = GetCvarMap();
 
@@ -557,11 +556,11 @@ namespace Cvar {
             cvarRecord_t* cvar = entry.second;
 
             if (cvar->flags & flag) {
-                Info_SetValueForKey(info, entry.first.c_str(), cvar->value.c_str(), big);
+                out += entry.first + "\\" + cvar->value;
             }
         }
 
-        return info;
+        return out;
     }
 
     void PopulateInfoMap(int flag, InfoMap& map) {

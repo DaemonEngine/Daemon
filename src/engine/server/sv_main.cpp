@@ -1360,13 +1360,13 @@ void SV_Frame( int msec )
 	// update infostrings if anything has been changed
 	if ( cvar_modifiedFlags & CVAR_SERVERINFO )
 	{
-		SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO, false ) );
+		SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO ).c_str() );
 		cvar_modifiedFlags &= ~CVAR_SERVERINFO;
 	}
 
 	if ( cvar_modifiedFlags & CVAR_SYSTEMINFO )
 	{
-		SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString( CVAR_SYSTEMINFO, true ) );
+		SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString( CVAR_SYSTEMINFO ).c_str() );
 		cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
 	}
 
