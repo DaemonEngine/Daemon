@@ -182,8 +182,6 @@ using clipHandle_t = int;
 #define MAX_ADDR_CHARS    sizeof("[1111:2222:3333:4444:5555:6666:7777:8888]:99999")
 
 #define MAX_INFO_STRING   1024
-#define MAX_INFO_KEY      1024
-#define MAX_INFO_VALUE    1024
 
 #define BIG_INFO_STRING   8192 // used for system info key only
 #define BIG_INFO_KEY      8192
