@@ -1161,7 +1161,7 @@ if __name__ == '__main__':
         pdb.run('reg.apiGen()')
     else:
         startTimer(args.time)
-        reg.apiGen( args.registry.removesuffix( 'vk.xml' ), args.directory, args.mode, args.define )
+        reg.apiGen( args.registry.rstrip( 'vk.xml' ), args.directory, args.mode, args.define )
         endTimer(args.time, f"* Time to generate {options.filename} =")
 
     if not args.quiet:

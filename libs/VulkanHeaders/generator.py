@@ -636,12 +636,12 @@ class OutputGenerator:
             expandPrefix = expandName.rsplit(expandSuffix, 1)[0]
 
         # Prefix
-        body = ["typedef enum %s : %s {" % ( groupName, "uint32_t" if bitwidth == 32 else "uint64_t" )]
+        body = ["typedef enum %s%s {" % ( groupName, "" if bitwidth == 32 else ": uint64_t" )]
 
         # @@ Should use the type="bitmask" attribute instead
         isEnum = ('FLAG_BITS' not in expandPrefix)
 
-        maxValidValue = 2**(bitwidth - 1) - 1
+        maxValidValue = 2 ** ( bitwidth ) - 1
         minValidValue = (maxValidValue * -1) - 1
 
         # Get a list of nested 'enum' tags.
@@ -998,6 +998,8 @@ class OutputGenerator:
         prefix = '' if isfuncpointer else 'PFN_'
 
         return f'({self.genOpts.apientryp}{prefix}{name}{tail})'
+
+    def makeCParamDecl(self, param, aligncol, feature = False):
         """Return a string which is an indented, formatted
         declaration for a `<param>` or `<member>` block (e.g. function parameter
         or structure/union member).
@@ -1013,9 +1015,18 @@ class OutputGenerator:
         paramdecl = indent
         prefix = noneStr(param.text)
 
+        featureOut = ""
+        lastType   = ""
+
         for elem in param:
             text = noneStr(elem.text)
             tail = noneStr(elem.tail)
+
+            if elem.tag == "type":
+                lastType = text
+            
+            if feature and elem.tag == "name" and not ( text == "sType" or text == "pNext" ) and lastType == "VkBool32":
+                featureOut = text
 
             if text == "sType":
                 sType = param.get( "values" )
@@ -1023,7 +1034,7 @@ class OutputGenerator:
                 if sType:
                     text += " = " + sType
             elif text == "VkStructureType":
-                text = "const VkStructureType"
+                text = "VkStructureType"
 
             if self.should_insert_may_alias_macro and self.genOpts.conventions.is_voidpointer_alias(elem.tag, text, tail):
                 # OpenXR-specific macro insertion - but not in apiinc for the spec
@@ -1055,7 +1066,8 @@ class OutputGenerator:
         if aligncol == 0:
             # Squeeze out multiple spaces other than the indentation
             paramdecl = indent + ' '.join(paramdecl.split())
-        return paramdecl
+        
+        return paramdecl, featureOut
 
     def getCParamTypeLength(self, param):
         """Return the length of the type field is an indented, formatted
@@ -1272,14 +1284,15 @@ class OutputGenerator:
                 pdecl += self.makeProtoName(text, tail)
                 tdecl += self.makeTypedefName(text, tail, isfuncpointer)
 
-                Globals.headerText              += 'extern PFN_' + text + ' ' + text + ';\n\n'
-                Globals.functionDefinitionsText +=        'PFN_' + text + ' ' + text + ';\n\n'
-                
-                if not text.endswith( ( 'vkGetInstanceProcAddr', 'vkEnumerateInstanceVersion', 'vkEnumerateInstanceExtensionProperties', 'vkEnumerateInstanceLayerProperties', 'vkCreateInstance', 'vkDestroyInstance' ) ):
-                    functionName = text
+                if not isfuncpointer:
+                    Globals.headerText              += 'extern PFN_' + text + ' ' + text + ';\n\n'
+                    Globals.functionDefinitionsText +=        'PFN_' + text + ' ' + text + ';\n\n'
+                    
+                    if not text.endswith( ( 'vkGetInstanceProcAddr', 'vkEnumerateInstanceVersion', 'vkEnumerateInstanceExtensionProperties', 'vkEnumerateInstanceLayerProperties', 'vkCreateInstance', 'vkDestroyInstance' ) ):
+                        functionName = text
 
-                    if text == 'vkGetDeviceProcAddr':
-                        deviceFunction = False
+                        if text == 'vkGetDeviceProcAddr':
+                            deviceFunction = False
             else:
                 pdecl += text + tail
                 tdecl += text + tail
