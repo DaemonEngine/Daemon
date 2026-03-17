@@ -67,14 +67,18 @@ MESSAGE PARSING
 
 // TODO(kangz) if we can make sure that the baseline entities have the correct entity
 // number, then we could grab the entity number from old directly, simplifying code a bit.
-void CL_DeltaEntity( msg_t *msg, clSnapshot_t *snapshot, int entityNum, const entityState_t &oldEntity)
+bool CL_DeltaEntity( msg_t *msg, clSnapshot_t *snapshot, int entityNum, const entityState_t &oldEntity)
 {
     entityState_t entity;
-    MSG_ReadDeltaEntity(msg, &oldEntity, &entity, entityNum);
+	if ( MSG_ReadDeltaEntity( msg, &oldEntity, &entity, entityNum ) ) {
+		return true;
+	}
 
     if (entity.number != MAX_GENTITIES - 1) {
         snapshot->entities.push_back(entity);
     }
+
+	return false;
 }
 
 /*
@@ -136,7 +140,9 @@ void CL_ParsePacketEntities( msg_t *msg, const clSnapshot_t *oldSnapshot, clSnap
 
         // (2) there is an entry for an entity in the old snapshot, apply the delta
         if (oldEntityNum == newEntityNum) {
-            CL_DeltaEntity(msg, newSnapshot, newEntityNum, oldEntities[oldIndex]);
+			if ( CL_DeltaEntity( msg, newSnapshot, newEntityNum, oldEntities[oldIndex] ) ) {
+				break;
+			}
 
             oldIndex ++;
             if (oldIndex >= oldEntities.size()) {
@@ -149,7 +155,9 @@ void CL_ParsePacketEntities( msg_t *msg, const clSnapshot_t *oldSnapshot, clSnap
             // from the baseline
             ASSERT_GT(oldEntityNum, newEntityNum);
 
-            CL_DeltaEntity(msg, newSnapshot, newEntityNum, cl.entityBaselines[newEntityNum]);
+			if ( CL_DeltaEntity( msg, newSnapshot, newEntityNum, cl.entityBaselines[newEntityNum] ) ) {
+				break;
+			}
         }
     }
 
@@ -421,7 +429,11 @@ void CL_ParseGamestate( msg_t *msg )
 			break;
 		}
 
-		if ( cmd == svc_configstring )
+		if ( cmd == svc_partial ) {
+			cl.reading = true;
+			break;
+		}
+		else if ( cmd == svc_configstring )
 		{
 			i = MSG_ReadShort( msg );
 
@@ -447,11 +459,6 @@ void CL_ParseGamestate( msg_t *msg )
 			MSG_ReadDeltaEntity( msg, &nullstate, es, newnum );
 
 			cl.reading = false;
-		}
-		else if ( cmd == svc_gamestatePartial )
-		{
-			cl.reading = true;
-			break;
 		}
 		else
 		{
@@ -587,6 +594,9 @@ void CL_ParseServerMessage( msg_t *msg )
 
 			case svc_download:
 				CL_ParseDownload( msg );
+				break;
+
+			case svc_partial:
 				break;
 		}
 	}
