@@ -48,6 +48,8 @@ int              trap_BotAllocateClient();
 void             trap_BotFreeClient( int clientNum );
 void             trap_GetUsercmd( int clientNum, usercmd_t *cmd );
 int              trap_BotGetServerCommand( int clientNum, char *message, int size );
+void             trap_DispatchRawData( const std::string& data );
+std::string      trap_DispatchRawDataSync( const std::string& data );
 int              trap_RSA_GenerateMessage( const char *public_key, char *cleartext, char *encrypted );
 void             trap_GenFingerprint( const char *pubkey, int size, char *buffer, int bufsize );
 void             trap_GetPlayerPubkey( int clientNum, char *pubkey, int size );

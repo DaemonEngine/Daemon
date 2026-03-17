@@ -50,6 +50,9 @@ enum gameImport_t
   BOT_FREE_CLIENT,
   BOT_GET_CONSOLE_MESSAGE,
   BOT_DEBUG_DRAW,
+
+  DISPATCH_RAWDATA,
+  DISPATCH_RAWDATASYNC
 };
 
 using LocateGameDataMsg1 = IPC::Message<IPC::Id<VM::QVM, G_LOCATE_GAME_DATA1>, IPC::SharedMemory, int, int, int>;
@@ -114,6 +117,11 @@ using BotGetConsoleMessageMsg = IPC::SyncMessage<
 >;
 // HACK: sgame message that only works when running in a client
 using BotDebugDrawMsg = IPC::Message<IPC::Id<VM::QVM, BOT_DEBUG_DRAW>, std::vector<char>>;
+using DispatchRawDataMsg = IPC::Message<IPC::Id<VM::QVM, DISPATCH_RAWDATA>, std::string>;
+using DispatchRawDataSyncMsg = IPC::SyncMessage<
+    IPC::Message<IPC::Id<VM::QVM, DISPATCH_RAWDATASYNC>, std::string>,
+    IPC::Reply<std::string>
+>;
 
 
 

@@ -45,6 +45,10 @@ Maryland 20850 USA.
 #include "client/client.h" // For bot debug draw
 #endif
 
+#if USE_VULKAN
+#include "../renderer-vulkan/DispatchRawData.h"
+#endif
+
 // Suppress warnings for unused [this] lambda captures.
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wunused-lambda-capture"
@@ -323,6 +327,31 @@ void SV_InitGameProgs()
 	SV_InitGameVM();
 }
 
+static void DispatchRawData( const std::string& data ) {
+#if USE_VULKAN
+	DispatchRawData( data.data() );
+#else
+	Q_UNUSED( data );
+#endif
+}
+
+static std::string DispatchRawDataSync( const std::string& data ) {
+#if USE_VULKAN
+	void* outMem;
+	int   size;
+
+	DispatchRawDataSync( data.data(), &outMem, &size );
+
+	out.resize( size );
+	std::string out { ( const char* ) outMem, size };
+
+	return out;
+#else
+	Q_UNUSED( data );
+	return "";
+#endif
+}
+
 GameVM::GameVM(): VM::VMBase("sgame", Cvar::NONE), services(nullptr) {
 }
 
@@ -592,6 +621,18 @@ void GameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& chan
 			re.SendBotDebugDrawCommands(std::move(commands));
 #endif
 		});
+		break;
+
+	case DISPATCH_RAWDATA:
+		IPC::HandleMsg<DispatchRawDataMsg>( channel, std::move( reader ), [this] ( const std::string& data ) {
+			DispatchRawData( data );
+		} );
+		break;
+
+	case DISPATCH_RAWDATASYNC:
+		IPC::HandleMsg<DispatchRawDataSyncMsg>( channel, std::move( reader ), [this]( const std::string& data, std::string& out ) {
+			out = DispatchRawDataSync( data );
+		} );
 		break;
 
 	default:
