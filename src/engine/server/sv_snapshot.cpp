@@ -68,8 +68,7 @@ SV_EmitPacketEntities
 Writes a delta update of an entityState_t list to the message.
 =============
 */
-static void SV_EmitPacketEntities( const clientSnapshot_t *from, clientSnapshot_t *to, msg_t *msg,
-	client_t* client, int lastframe, int snapFlags )
+static void SV_EmitPacketEntities( const clientSnapshot_t *from, clientSnapshot_t *to, msg_t *msg )
 {
 	entityState_t *oldent, *newent;
 	int           oldindex, newindex;
@@ -98,42 +97,6 @@ static void SV_EmitPacketEntities( const clientSnapshot_t *from, clientSnapshot_
 
 	while ( newindex < to->num_entities || oldindex < from_num_entities )
 	{
-
-		if ( MAX_MSGLEN - msg->cursize < 128 ) {
-			MSG_WriteBits( msg, 0, GENTITYNUM_BITS );
-			MSG_WriteBits( msg, 1, 1 );
-			MSG_WriteBits( msg, 1, 1 );
-
-			SV_SendMessageToClient( msg, client );
-
-			MSG_Init( msg, msg->data, msg->maxsize );
-			MSG_WriteByte( msg, svc_snapshot );
-
-			MSG_WriteLong( msg, sv.time );
-
-			// what we are delta'ing from
-			MSG_WriteByte( msg, lastframe );
-
-			snapFlags = svs.snapFlagServerBit;
-
-			MSG_WriteByte( msg, snapFlags );
-
-			// send over the areabits
-			MSG_WriteByte( msg, to->areabytes );
-			MSG_WriteData( msg, to->areabits, to->areabytes );
-
-			{
-				// delta encode the playerstate
-				if ( from ) {
-					MSG_WriteDeltaPlayerstate( msg, &from->ps, &to->ps );
-				} else {
-					MSG_WriteDeltaPlayerstate( msg, nullptr, &to->ps );
-				}
-			}
-
-			MSG_WriteShort( msg, to->num_entities - newindex );
-		}
-
 		if ( newindex >= to->num_entities )
 		{
 			newnum = MAX_GENTITIES;
@@ -273,7 +236,7 @@ static void SV_WriteSnapshotToClient( client_t *client, msg_t *msg )
 	}
 
 	// delta encode the entities
-	SV_EmitPacketEntities( oldframe, frame, msg, client, lastframe, snapFlags );
+	SV_EmitPacketEntities( oldframe, frame, msg );
 
 	// padding for rate debugging
 	if ( sv_padPackets.Get() )
@@ -302,14 +265,6 @@ void SV_UpdateServerCommandsToClient( client_t *client, msg_t *msg )
 		MSG_WriteByte( msg, svc_serverCommand );
 		MSG_WriteLong( msg, i );
 		MSG_WriteString( msg, client->reliableCommands[ i & ( MAX_RELIABLE_COMMANDS - 1 ) ] );
-
-		if ( MAX_MSGLEN - msg->cursize < 128 ) {
-			MSG_WriteByte( msg, svc_partial );
-			SV_SendMessageToClient( msg, client );
-
-			MSG_Init( msg, msg->data, msg->maxsize );
-			MSG_WriteLong( msg, client->lastClientCommand );
-		}
 	}
 
 	client->reliableSent = client->reliableSequence;

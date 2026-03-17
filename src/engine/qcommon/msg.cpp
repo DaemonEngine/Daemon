@@ -919,7 +919,6 @@ void MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, b
 
 		MSG_WriteBits( msg, from->number, GENTITYNUM_BITS );
 		MSG_WriteBits( msg, 1, 1 );
-		MSG_WriteBits( msg, 0, 1 );
 		return;
 	}
 
@@ -1062,7 +1061,7 @@ Can go from either a baseline or a previous packet_entity
 */
 extern cvar_t *cl_shownet;
 
-bool MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *to, int number )
+void MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *to, int number )
 {
 	int        i, lc;
 	int        numFields;
@@ -1089,11 +1088,6 @@ bool MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *
 	// check for a remove
 	if ( MSG_ReadBits( msg, 1 ) == 1 )
 	{
-		// partial snapshot; this is not an actual entity, the next entity had to be put into a different msg
-		if ( MSG_ReadBits( msg, 1 ) == 1 ) {
-			return true;
-		}
-
 		*to = {};
 		to->number = MAX_GENTITIES - 1;
 
@@ -1102,7 +1096,7 @@ bool MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *
 			Log::Notice( "%3i: #%-3i remove", msg->readcount, number );
 		}
 
-		return false;
+		return;
 	}
 
 	// check for no delta
@@ -1110,7 +1104,7 @@ bool MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *
 	{
 		*to = *from;
 		to->number = number;
-		return false;
+		return;
 	}
 
 	numFields = ARRAY_LEN( entityStateFields );
@@ -1222,8 +1216,6 @@ bool MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *
 
 		Log::Notice( " (%i bits)", endBit - startBit );
 	}
-
-	return false;
 }
 
 /*
