@@ -164,3 +164,15 @@ int trap_BotGetServerCommand(int clientNum, char *message, int size)
     Q_strncpyz(message, message2.c_str(), size);
     return res;
 }
+
+void trap_DispatchRawData( const std::string& data ) {
+    VM::SendMsg<DispatchRawDataMsg>( data );
+}
+
+std::string trap_DispatchRawDataSync( const std::string& data ) {
+    std::string out;
+
+    VM::SendMsg<DispatchRawDataSyncMsg>( data, out );
+
+    return out;
+}
