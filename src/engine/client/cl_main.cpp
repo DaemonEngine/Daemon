@@ -420,6 +420,24 @@ void CL_Record(std::string demo_name)
         MSG_WriteByte( &buf, svc_configstring );
         MSG_WriteShort( &buf, i );
         MSG_WriteBigString( &buf, cl.gameState[i].c_str() );
+
+		if ( MAX_MSGLEN - buf.cursize < 128 ) {
+			// We have too much configstring data to put it all into one msg_t, so split it here
+			MSG_WriteByte( &buf, svc_partial );
+
+			int len = LittleLong( clc.serverMessageSequence - 1 );
+			FS_Write( &len, 4, clc.demofile );
+
+			len = LittleLong( buf.cursize );
+			FS_Write( &len, 4, clc.demofile );
+			FS_Write( buf.data, buf.cursize, clc.demofile );
+
+			MSG_Init( &buf, bufData, sizeof( bufData ) );
+			MSG_Bitstream( &buf );
+			MSG_WriteLong( &buf, clc.reliableSequence );
+			MSG_WriteByte( &buf, svc_gamestate );
+			MSG_WriteLong( &buf, clc.serverCommandSequence );
+		}
     }
 
     // baselines
