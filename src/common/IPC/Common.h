@@ -71,17 +71,15 @@ namespace IPC {
 	};
 
     // Version of the protocol for detecting what ABI version the VM has upon startup
-    constexpr uint32_t ABI_VERSION_DETECTION_ABI_VERSION = 4;
+    constexpr uint32_t ABI_VERSION_DETECTION_ABI_VERSION = 5;
 
     // Version for the syscall signatures between engine and VM. This must change if the syscall
     // IDs, argument types, or return types change, or if serialization procedures change.
-    // Follows Daemon major versions.
-    // This should be updated only by update-version-number.py when a "major" release is indicated
-    constexpr const char* SYSCALL_ABI_VERSION = "0.56";
-
-    // This should be manually set to true when starting a 'for-X.Y.Z/sync' branch.
-    // This should be set to false by update-version-number.py when a (major) release is created.
-    constexpr bool DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES = true;
+    // This is updated by update-version-number.py when a "major" release is indicated.
+    // For the master branch with a stable ABI, this follows Daemon major versions.
+    // For next-release branches, the convention is to use "test/<next release version>". On
+    // the next-release branch the ABI is unstable so any two commits may be incompatible.
+    constexpr const char* SYSCALL_ABI_VERSION = "test/0.57.0";
 
     /*
      * The messages sent between the VM and the engine are defined by a numerical
