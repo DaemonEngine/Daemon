@@ -46,6 +46,10 @@ Maryland 20850 USA.
 #include "qcommon/crypto.h"
 #include "qcommon/sys.h"
 
+#if USE_VULKAN
+#include "../renderer-vulkan/DispatchRawData.h"
+#endif
+
 #include "framework/CommonVMServices.h"
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
@@ -938,6 +942,31 @@ void  CL_OnTeamChanged( int newTeam )
 	Cmd::BufferCommandText( "exec -f " TEAMCONFIG_NAME );
 }
 
+static void DispatchRawData( const std::string& data ) {
+#if USE_VULKAN
+	DispatchRawData( data.data() );
+#else
+	Q_UNUSED( data );
+#endif
+}
+
+static std::string DispatchRawDataSync( const std::string& data ) {
+#if USE_VULKAN
+	void* outMem;
+	int   size;
+
+	DispatchRawDataSync( data.data(), &outMem, &size );
+
+	out.resize( size );
+	std::string out { ( const char* ) outMem, size };
+
+	return out;
+#else
+	Q_UNUSED( data );
+	return "";
+#endif
+}
+
 CGameVM::CGameVM(): VM::VMBase("cgame", Cvar::CHEAT), services(nullptr), cmdBuffer("client")
 {
 }
@@ -1161,6 +1190,18 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			IPC::HandleMsg<PrepareKeyUpMsg>(channel, std::move(reader), [this] {
 				IN_PrepareKeyUp();
 			});
+			break;
+
+		case CG_DISPATCHRAWDATA:
+			IPC::HandleMsg<DispatchRawDataMsg>( channel, std::move( reader ), [this] ( const std::string& data ) {
+				DispatchRawData( data );
+			} );
+			break;
+
+		case CG_DISPATCHRAWDATASYNC:
+			IPC::HandleMsg<DispatchRawDataSyncMsg>( channel, std::move( reader ), [this]( const std::string& data, std::string& out ) {
+				out = DispatchRawDataSync( data );
+			} );
 			break;
 
 		// All sounds

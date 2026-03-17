@@ -136,6 +136,8 @@ enum cgameImport_t
   CG_REGISTER_BUTTON_COMMANDS,
   CG_NOTIFY_TEAMCHANGE,
   CG_PREPAREKEYUP,
+  CG_DISPATCHRAWDATA,
+  CG_DISPATCHRAWDATASYNC,
 
   // Sound
   CG_S_STARTSOUND,
@@ -266,6 +268,11 @@ using NotifyTeamChangeMsg = IPC::SyncMessage<
 >;
 using PrepareKeyUpMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_PREPAREKEYUP>>
+>;
+using DispatchRawDataMsg = IPC::Message<IPC::Id<VM::QVM, CG_DISPATCHRAWDATA>, std::string>;
+using DispatchRawDataSyncMsg = IPC::SyncMessage<
+	IPC::Message<IPC::Id<VM::QVM, CG_DISPATCHRAWDATASYNC>, std::string>,
+	IPC::Reply<std::string>
 >;
 
 // All Sounds
