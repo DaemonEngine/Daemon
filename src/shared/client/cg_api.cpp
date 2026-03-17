@@ -132,6 +132,18 @@ void trap_PrepareKeyUp()
 	VM::SendMsg<PrepareKeyUpMsg>();
 }
 
+void trap_DispatchRawData( const std::string& data ) {
+	VM::SendMsg<DispatchRawDataMsg>( data );
+}
+
+std::string trap_DispatchRawDataSync( const std::string& data ) {
+	std::string out;
+
+	VM::SendMsg<DispatchRawDataSyncMsg>( data, out );
+
+	return out;
+}
+
 // All Sounds
 
 void trap_S_StartSound( vec3_t origin, int entityNum, soundChannel_t, sfxHandle_t sfx )

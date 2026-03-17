@@ -133,6 +133,8 @@ int             trap_LAN_ServerStatus( const char *serverAddress, char *serverSt
 void            trap_LAN_ResetServerStatus();
 void            trap_R_GetShaderNameFromHandle( const qhandle_t shader, char *out, int len );
 void            trap_PrepareKeyUp();
+void            trap_DispatchRawData( const std::string& data );
+std::string     trap_DispatchRawDataSync( const std::string& data );
 void            trap_R_SetAltShaderTokens( const char * );
 void            trap_S_UpdateEntityVelocity( int entityNum, const vec3_t velocity );
 void trap_S_UpdateEntityPositionVelocity( int entityNum, const vec3_t position, const vec3_t velocity );
