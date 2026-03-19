@@ -2573,6 +2573,7 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial() :
 	u_LightGridScale( this ),
 	u_numLights( this ),
 	u_Lights( this ),
+	u_SRGB( this ),
 	u_ShowTris( this ),
 	u_MaterialColour( this ),
 	u_ProfilerZero( this ),

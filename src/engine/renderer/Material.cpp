@@ -946,6 +946,7 @@ void BindShaderLightMapping( Material* material ) {
 	}
 
 	gl_lightMappingShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
+	gl_lightMappingShaderMaterial->SetUniform_SRGB( tr.worldLinearizeTexture );
 	gl_lightMappingShaderMaterial->SetUniform_numLights( backEnd.refdef.numLights );
 	gl_lightMappingShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_lightMappingShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
