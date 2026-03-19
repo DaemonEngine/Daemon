@@ -69,7 +69,6 @@ static void CommonInit(Sys::OSHandle rootSocket)
 	Util::Writer writer;
 	writer.Write<uint32_t>(IPC::ABI_VERSION_DETECTION_ABI_VERSION);
 	writer.Write<std::string>(IPC::SYSCALL_ABI_VERSION);
-	writer.Write<bool>(IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES);
 	VM::rootChannel.SendMsg(writer);
 
 	// Start the main loop
