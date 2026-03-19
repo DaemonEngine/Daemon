@@ -122,6 +122,8 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 		} else {
 			Log::Warn( "r_vkDevice out of range, using default instead" );
 		}
+	} else {
+		Log::Notice( "Selecting %s", bestCFG.deviceName );
 	}
 
 	if ( bestCFG.capabilityPack == CapabilityPackType::NONE ) {
