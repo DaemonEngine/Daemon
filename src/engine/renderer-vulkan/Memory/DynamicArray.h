@@ -152,6 +152,10 @@ class DynamicArray :
 				memory = ( T* ) allocator->Alloc( newMemorySize, 64 );
 			}
 
+			if ( highestID >= newSize ) {
+				highestID = newSize - 1;
+			}
+
 			return;
 		}
 
@@ -172,6 +176,10 @@ class DynamicArray :
 		memory     = newMemory;
 		size       = newSize;
 		memorySize = newMemorySize;
+	}
+
+	void Clear() {
+		Resize( 0 );
 	}
 
 	void Condense() {
