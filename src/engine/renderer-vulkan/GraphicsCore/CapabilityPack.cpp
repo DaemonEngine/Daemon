@@ -93,31 +93,51 @@ void SetConfigFeatures( const IteratorSeq<const char* const> featuresStart, cons
 	}
 }
 
-constexpr bool EngineConfigSupportedMinimal( const EngineConfig& config ) {
-	const bool ret =
-		config.subgroupQuadOpsAllStages && config.robustBufferAccessDynamic
-		&& config.quadDivergentImplicitLod
-		&& config.textureCompressionBC
-		&& config.descriptorIndexing
-		&& config.descriptorBindingUpdateUnusedWhilePending
-		&& config.descriptorBindingPartiallyBound
-		&& config.descriptorBindingVariableDescriptorCount
-		&& config.runtimeDescriptorArray
-		&& config.shaderSampledImageArrayNonUniformIndexing
-		&& config.shaderStorageImageArrayNonUniformIndexing
-		&& config.dynamicRendering
-		&& config.synchronization2
-		&& config.bufferDeviceAddress;
+static uint32 GetSupportedFeatures( const IteratorSeq<const char* const> featuresStart, const IteratorSeq<const char* const> featuresEnd,
+	const FeaturesConfig& cfg, DynamicArray<const char*>* out ) {
+	uint32 unsupportedFeatureCount = 0;
 
-	return ret;
-};
+	for ( IteratorSeq<const char* const> feature = featuresStart; feature < featuresEnd; feature++ ) {
+		const FeatureData& featureData = featuresConfigMap[*feature];
 
-CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig& config ) {
-	if ( EngineConfigSupportedMinimal( config ) ) {
+		bool* cfgFeature = ( bool* ) ( ( ( uint8* ) &cfg ) + featureData.offset );
+
+		if ( *cfgFeature ) {
+			continue;
+		}
+
+		unsupportedFeatureCount++;
+		out->Push( *feature );
+	}
+
+	return unsupportedFeatureCount;
+}
+
+CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig& config, const FeaturesConfig& cfg,
+	bool* supportedVersion, DynamicArray<const char*>* unsupportedFeatures ) {
+	if ( config.version.major < 1 || config.version.minor < 4 ) {
+		*supportedVersion = false;
+		return CapabilityPackType::NONE;
+	}
+
+	*supportedVersion = true;
+
+	unsupportedFeatures->Clear();
+	if ( GetSupportedFeatures( featuresMinimal.begin(),      featuresMinimal.end(),      cfg, unsupportedFeatures ) ) {
+		return CapabilityPackType::NONE;
+	}
+
+	unsupportedFeatures->Clear();
+	if ( GetSupportedFeatures( featuresRecommended.begin(),  featuresRecommended.end(),  cfg, unsupportedFeatures ) ) {
 		return CapabilityPackType::MINIMAL;
 	}
 
-	return CapabilityPackType::NONE;
+	unsupportedFeatures->Clear();
+	if ( GetSupportedFeatures( featuresExperimental.begin(), featuresExperimental.end(), cfg, unsupportedFeatures ) ) {
+		return CapabilityPackType::RECOMMENDED;
+	}
+
+	return CapabilityPackType::EXPERIMENTAL;
 }
 
 void AddRequiredExtensions( const IteratorSeq<const char* const> extensionsStart, const IteratorSeq<const char* const> extensionsEnd,
@@ -142,10 +162,10 @@ DynamicArray<const char*> GetCapabilityPackFeatures( const CapabilityPackType::T
 
 	switch ( type ) {
 		case CapabilityPackType::MINIMAL:
-			SetConfigFeatures(      featuresMinimal.begin(),      featuresMinimal.end(), false, {}, cfg, cfgOut, extensionsSet );
+			SetConfigFeatures( featuresMinimal.begin(),      featuresMinimal.end(),      false, {}, cfg, cfgOut, extensionsSet );
 			AddRequiredExtensions( extensionsMinimal.begin(), extensionsMinimal.end(), extensionsSet );
 		case CapabilityPackType::RECOMMENDED:
-			SetConfigFeatures(  featuresRecommended.begin(),  featuresRecommended.end(), false, {}, cfg, cfgOut, extensionsSet );
+			SetConfigFeatures( featuresRecommended.begin(),  featuresRecommended.end(),  false, {}, cfg, cfgOut, extensionsSet );
 			AddRequiredExtensions( extensionsMinimal.begin(), extensionsMinimal.end(), extensionsSet );
 		case CapabilityPackType::EXPERIMENTAL:
 			SetConfigFeatures( featuresExperimental.begin(), featuresExperimental.end(), false, {}, cfg, cfgOut, extensionsSet );

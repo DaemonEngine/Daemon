@@ -43,14 +43,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GraphicsCoreCVars.h"
 
 #include "EngineConfig.h"
+#include "FeaturesConfig.h"
 #include "Queue.h"
 #include "CapabilityPack.h"
 
 #include "GraphicsCoreStore.h"
 
 #include "PhysicalDevice.h"
-
-#include "FeaturesConfig.h"
 
 static void PrintDeviceInfo( const EngineConfig& config ) {
 	static const char* deviceTypes[] = {
@@ -63,43 +62,63 @@ static void PrintDeviceInfo( const EngineConfig& config ) {
 	Log::Notice( "%s, type: %s, driver name: %s, driver info: %s, maximum supported capability pack: %s, Vulkan: %u.%u.%u",
 		config.deviceName, deviceTypes[config.deviceType], config.driverName, config.driverInfo,
 		CapabilityPackType::typeStrings[config.capabilityPack],
-		config.conformanceVersion.major, config.conformanceVersion.minor, config.conformanceVersion.patch );
+		config.version.major, config.version.minor, config.version.patch );
 }
 
 bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, EngineConfig* config, VkPhysicalDevice* deviceOut ) {
 	if ( !devices.size ) {
 		Err( "No Vulkan devices found" );
+
 		return false;
 	}
 
 	Log::Notice( "Found Vulkan devices:" );
 
-	const VkPhysicalDevice* bestDevice = &devices[0];
+	const VkPhysicalDevice*   bestDevice = devices.memory;
 
-	EngineConfig bestCFG   = GetEngineConfigForDevice( *bestDevice );
-	bestCFG.capabilityPack = GetHighestSuppportedCapabilityPack( bestCFG );
+	bool                      supportedVersion;
+	DynamicArray<const char*> unsupportedFeatures;
 
-	PrintDeviceInfo( bestCFG );
+	EngineConfig              bestCFG      {};
 
 	for ( const VkPhysicalDevice& device : devices ) {
-		if ( &device == bestDevice ) {
-			continue;
-		}
-
 		EngineConfig cfg   = GetEngineConfigForDevice( device );
-		cfg.capabilityPack = GetHighestSuppportedCapabilityPack( cfg );
+		cfg.capabilityPack = GetHighestSuppportedCapabilityPack( cfg, GetPhysicalDeviceFeatures( device, cfg ),
+			&supportedVersion, &unsupportedFeatures );
 
 		PrintDeviceInfo( cfg );
 
 		if ( cfg.capabilityPack == CapabilityPackType::NONE ) {
-			Log::Notice( "%s doesn't support the minimal capability pack", cfg.deviceName );
+			Log::Notice( "%s doesn't support the minimal capability pack%s", cfg.deviceName,
+				supportedVersion ? Str::Format( " (version %u.%u.%u < %u.%u.%u)",
+				                   cfg.version.major, cfg.version.minor, cfg.version.subminor, 1, 4, 0 )
+				                 : "" );
+			if ( unsupportedFeatures.size ) {
+				std::string features = "Unsupported features: ";
+
+				for ( const char* unsupportedFeature : unsupportedFeatures ) {
+					features += unsupportedFeature;
+				}
+
+				Log::Notice( features );
+			}
+
+			continue;
+		}
+
+		if ( !bestCFG.capabilityPack ) {
+			bestDevice = &device;
+			bestCFG    = cfg;
+
 			continue;
 		}
 
 		if ( cfg.deviceType < bestCFG.deviceType ) {
 			bestDevice = &device;
 			bestCFG    = cfg;
+
 			Log::Notice( "Selecting %s because it has a better GPU type", cfg.deviceName );
+
 			continue;
 		}
 
@@ -108,17 +127,32 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 			bestCFG    = cfg;
 
 			Log::Notice( "Selecting %s because it supports a higher capability pack", cfg.deviceName );
+
 			continue;
 		}
 	}
 
+	if ( !bestCFG.capabilityPack ) {
+		Err( "No suitable Vulkan devices found" );
+
+		return false;
+	}
+
 	if ( r_vkDevice.Get() != -1 ) {
 		if ( r_vkDevice.Get() < devices.size ) {
-			bestDevice             = &devices[r_vkDevice.Get()];
-			bestCFG                = GetEngineConfigForDevice( *bestDevice );
-			bestCFG.capabilityPack = GetHighestSuppportedCapabilityPack( bestCFG );
+			const VkPhysicalDevice& device = devices[r_vkDevice.Get()];
+			EngineConfig            cfg    = GetEngineConfigForDevice( device );
+			cfg.capabilityPack             = GetHighestSuppportedCapabilityPack( cfg, GetPhysicalDeviceFeatures( device, cfg ),
+				&supportedVersion, &unsupportedFeatures );
 
-			Log::Notice( "Selecting %s because device was overridden with r_vkDevice = %i", bestCFG.deviceName, r_vkDevice.Get() );
+			if ( cfg.capabilityPack == CapabilityPackType::NONE ) {
+				Log::Warn( "Ignoring r_vkDevice because the selected device doesn't support the minimal capability pack" );
+			} else {
+				bestCFG    = cfg;
+				bestDevice = &device;
+
+				Log::Notice( "Selecting %s because device was overridden with r_vkDevice = %i", bestCFG.deviceName, r_vkDevice.Get() );
+			}
 		} else {
 			Log::Warn( "r_vkDevice out of range, using default instead" );
 		}
@@ -128,6 +162,7 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 
 	if ( bestCFG.capabilityPack == CapabilityPackType::NONE ) {
 		Err( "No available Vulkan devices support the minimal capability pack" );
+
 		return false;
 	}
 
@@ -141,9 +176,9 @@ bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, Engine
 void CreateDevice( EngineConfig& config, VkDevice* device ) {
 	VkDeviceQueueCreateInfo queueInfos[4] {};
 
-	const Queue* queues[4] { graphicsQueue, computeQueue, transferQueue, sparseQueue };
+	const Queue* queues[4]     { graphicsQueue, computeQueue, transferQueue, sparseQueue };
 
-	float priorities[2] { 1.0f, 1.0f };
+	float        priorities[2] { 1.0f, 1.0f };
 
 	uint32 count = 0;
 	for ( uint32 i = 0; i < 4; i++ ) {
@@ -162,7 +197,7 @@ void CreateDevice( EngineConfig& config, VkDevice* device ) {
 		count++;
 	}
 
-	FeaturesConfig cfg            = GetPhysicalDeviceFeatures( physicalDevice, config );
+	FeaturesConfig            cfg = GetPhysicalDeviceFeatures( physicalDevice, config );
 	DynamicArray<const char*> ext = GetCapabilityPackFeatures( ( CapabilityPackType::Type ) config.capabilityPack, cfg, &featuresConfig );
 
 	VkDeviceCreateInfo info {
@@ -172,7 +207,6 @@ void CreateDevice( EngineConfig& config, VkDevice* device ) {
 		.ppEnabledExtensionNames = ext.memory
 	};
 
-	VkResult res                  = ( VkResult ) CreatePhysicalDevice( info, nullptr, config, featuresConfig, device );
+	VkResult res = ( VkResult ) CreatePhysicalDevice( info, nullptr, config, featuresConfig, device );
 	Q_UNUSED( res );
-	Q_UNUSED( config );
 }

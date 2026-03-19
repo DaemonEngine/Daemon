@@ -64,7 +64,7 @@ EngineConfig GetEngineConfigForDevice( const VkPhysicalDevice& device ) {
 
 	EngineConfig cfg {
 		.driverID                                  = properties12.driverID,
-		.conformanceVersion                        = properties12.conformanceVersion,
+		.version                                   = properties12.conformanceVersion,
 
 		.driverVersion                             = coreProperties.driverVersion,
 		.vendorID                                  = coreProperties.vendorID,

@@ -55,7 +55,7 @@ struct EngineConfig {
 	VkDriverId driverID;
 	char   driverName[VK_MAX_DRIVER_NAME_SIZE];
 	char   driverInfo[VK_MAX_DRIVER_INFO_SIZE];
-	VkConformanceVersion conformanceVersion;
+	VkConformanceVersion version;
 
 	uint32 driverVersion;
 	uint32 vendorID;

@@ -190,9 +190,8 @@ constexpr Array featuresOptional {
 	"zeroInitializeDeviceMemory"
 };
 
-constexpr bool            EngineConfigSupportedMinimal( const EngineConfig& config );
-
-CapabilityPackType::Type  GetHighestSuppportedCapabilityPack( const EngineConfig& config );
+CapabilityPackType::Type  GetHighestSuppportedCapabilityPack( const EngineConfig& config, const FeaturesConfig& cfg,
+	bool* supportedVersion, DynamicArray<const char*>* unsupportedFeatures );
 
 DynamicArray<const char*> GetCapabilityPackFeatures( const CapabilityPackType::Type type, const FeaturesConfig& cfg, FeaturesConfig* cfgOut );
 
