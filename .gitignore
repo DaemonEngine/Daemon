@@ -21,6 +21,13 @@ build
 *.so
 *.a
 
+#ignore daemon-vulkan generated Graphics Engine files
+src/engine/renderer-vulkan/GraphicsCore/ExecutionGraph/SPIRV.h
+src/engine/renderer-vulkan/GraphicsCore/ExecutionGraph/SPIRVBin.h
+src/engine/renderer-vulkan/GraphicsEngine/Buffers.glsl
+src/engine/renderer-vulkan/GraphicsEngine/Images.glsl
+src/engine/renderer-vulkan/GraphicsShared/SPIRVIDs.h
+
 #ignore editor temporary files
 .*.swp
 .#*
@@ -56,6 +63,9 @@ external_deps/*
 #ignore Visual Studio / Visual Studio Code settings
 .vs
 .vscode
+
+#ignore python cache
+*.pyc
 
 #ignore removed recastnavigation submodule
 libs/recastnavigation

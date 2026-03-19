@@ -78,6 +78,8 @@ endif()
 include(DaemonSourceGenerator)
 include(DaemonPlatform)
 
+include( DaemonVulkan )
+
 ################################################################################
 # Configuration options
 ################################################################################
@@ -108,7 +110,7 @@ if(NOT DAEMON_EXTERNAL_APP)
     endif()
 
     if (BUILD_CLIENT)
-        # option(USE_VULKAN "Use Vulkan rendering API instead of OpenGL." OFF)
+        option(USE_VULKAN "Use Vulkan rendering API instead of OpenGL." OFF)
     endif()
 
     option(USE_SMP "Compile with support for running the renderer in a separate thread" ON)
@@ -929,10 +931,14 @@ if (BUILD_CLIENT)
         Tests ${CLIENTTESTLIST}
     )
 
-    # Generate GLSL include files.
-    daemon_embed_files("EngineShaders" "${GLSL_EMBED_DIR}" "${GLSL_EMBED_LIST}" "TEXT" "client-objects")
+    if (USE_VULKAN)
+        GenerateVulkanShaders( client-objects )
+    else()
+        # Generate GLSL include files.
+        daemon_embed_files("EngineShaders" "${GLSL_EMBED_DIR}" "${GLSL_EMBED_LIST}" "TEXT" "client-objects")
 
-    daemon_embed_files(ConsoleFont "${CMAKE_CURRENT_SOURCE_DIR}/libs/unifont" unifont.otf BINARY client-objects)
+        daemon_embed_files(ConsoleFont "${CMAKE_CURRENT_SOURCE_DIR}/libs/unifont" unifont.otf BINARY client-objects)
+    endif()
 endif()
 
 if (BUILD_SERVER)
