@@ -57,12 +57,21 @@ using bool8_t = uint8_t;
 #define MAX_ENTITIES       MAX_REF_ENTITIES // RB: for compatibility
 
 // renderfx flags
-#define RF_THIRD_PERSON    0x000002 // don't draw through eyes, only mirrors (player bodies, chat sprites)
-#define RF_FIRST_PERSON    0x000004 // only draw through eyes (view weapon, damage blood blob)
-#define RF_DEPTHHACK       0x000008 // for view weapon Z crunching
-#define RF_NOSHADOW        0x000010 // don't add stencil shadows
+enum RenderFx : uint8_t {
+	RF_THIRD_PERSON = 0x000001, // don't draw through eyes, only mirrors (player bodies, chat sprites)
+	RF_FIRST_PERSON = 0x000002, // only draw through eyes (view weapon, damage blood blob)
+	RF_DEPTHHACK    = 0x000004, // for view weapon Z crunching
+	RF_NOSHADOW     = 0x000008, // don't add stencil shadows
+	RF_SWAPCULL     = 0x000010  // swap CT_FRONT_SIDED and CT_BACK_SIDED
+};
 
-#define RF_SWAPCULL      0x000040 // swap CT_FRONT_SIDED and CT_BACK_SIDED
+inline RenderFx operator|( const RenderFx& lhs, const RenderFx& rhs ) {
+	return ( RenderFx ) ( ( uint8_t ) lhs | ( uint8_t ) rhs );
+}
+
+inline RenderFx operator|=( const RenderFx& lhs, const RenderFx& rhs ) {
+	return ( RenderFx ) ( ( uint8_t ) lhs | ( uint8_t ) rhs );
+}
 
 // refdef flags
 #define RDF_NOWORLDMODEL ( 1 << 0 ) // used for player configuration screen
@@ -120,7 +129,7 @@ struct poly_t
 	polyVert_t *verts;
 };
 
-enum class refEntityType_t
+enum class refEntityType_t : int8_t
 {
   RT_MODEL,
 
@@ -188,7 +197,7 @@ struct alignas(16) refSkeleton_t
 
 // XreaL END
 
-enum class EntityTag {
+enum EntityTag : uint8_t {
 	NONE,
 	ON_TAG,
 	ON_TAG_ROTATED
@@ -196,16 +205,13 @@ enum class EntityTag {
 
 struct refEntity_t
 {
-	refEntityType_t reType;
-	int             renderfx;
-
-	qhandle_t       hModel; // opaque type outside refresh
+	qhandle_t hModel; // opaque type outside refresh
 
 	// most recent data
-	int       frame;
+	int16_t   frame;
 
 	// previous data for frame interpolation
-	int       oldframe;
+	int16_t   oldframe;
 	float     backlerp; // 0.0 = current, 1.0 = old
 
 	// texturing
@@ -225,40 +231,48 @@ struct refEntity_t
 
 	// Skeleton information
 	qhandle_t animationHandle;
-	int       startFrame;
-	int       endFrame;
+	int16_t   startFrame;
+	int16_t   endFrame;
 	float     lerp;
-	int       clearOrigin;
 
 	qhandle_t animationHandle2;
-	int       startFrame2;
-	int       endFrame2;
+	int16_t   startFrame2;
+	int16_t   endFrame2;
 	float     lerp2;
-	int       clearOrigin2;
 
 	float     blendLerp;
 	float     scale;
 
-	int       boundsAdd;
+	// All of the 1-byte types are placed below for better packing
+	refEntityType_t reType;
+
+	RenderFx  renderfx;
 
 	EntityTag positionOnTag;
-	int       attachmentEntity;
 
-	vec4_t    dynamicLight;
+	int8_t    clearOrigin;
+	int8_t    clearOrigin2;
 
-	vec3_t    lightingOrigin; // so multi-part models can be lit identically (RF_LIGHTING_ORIGIN)
+	int8_t    boundsAdd;
+
+	int8_t    nonNormalizedAxes; // axis are not normalized, i.e. they have scale
+
+	int8_t    active;
+
+	uint16_t  attachmentEntity;
+
+	uint16_t  padding; // for better address alignment of shaderRGBA
+
+	Color::Color32Bit shaderRGBA; // colors used by rgbgen entity shaders
+
+	vec4_t    dynamicLight; // r, g, b, radius; pre-multiplied by intensity
 
 	vec3_t    axis[3]; // rotation vectors
-	bool8_t   nonNormalizedAxes; // axis are not normalized, i.e. they have scale
 
 	vec3_t    origin;
 	vec3_t    oldorigin; // also used as MODEL_BEAM's "to"
 
-	Color::Color32Bit shaderRGBA; // colors used by rgbgen entity shaders
-
-	bool8_t   active;
-
-	vec3_t boundsRotation;
+	vec3_t    boundsRotation;
 
 	std::string tag;
 
