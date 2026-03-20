@@ -206,8 +206,6 @@ not have future usercmd_t executed before it is executed
 */
 void CL_AddReliableCommand( const char *cmd )
 {
-	int index;
-
 	// catch empty commands
 	while ( *cmd && *cmd <= ' ' )
 	{
@@ -219,16 +217,9 @@ void CL_AddReliableCommand( const char *cmd )
 		return;
 	}
 
-	// if we would be losing an old command that hasn't been acknowledged,
-	// we must drop the connection
-	if ( clc.reliableSequence - clc.reliableAcknowledge > MAX_RELIABLE_COMMANDS )
-	{
-		Sys::Drop( "Client command overflow" );
-	}
+	clc.reliableCommands.push_back( cmd );
 
 	clc.reliableSequence++;
-	index = clc.reliableSequence & ( MAX_RELIABLE_COMMANDS - 1 );
-	Q_strncpyz( clc.reliableCommands[ index ], cmd, sizeof( clc.reliableCommands[ index ] ) );
 }
 
 /*
@@ -376,8 +367,9 @@ std::string GenerateDemoName()
 
 void CL_Record(std::string demo_name)
 {
-    if ( demo_name.empty() )
-        demo_name = GenerateDemoName();
+	if ( demo_name.empty() ) {
+		demo_name = GenerateDemoName();
+	}
 
     std::string file_name = Str::Format("demos/%s.dm_%d", demo_name, PROTOCOL_VERSION);
     clc.demofile = FS_FOpenFileWrite(file_name.c_str());
@@ -389,7 +381,7 @@ void CL_Record(std::string demo_name)
     Log::Notice( "recording to %s.", file_name );
 
     clc.demorecording = true;
-    Q_strncpyz(clc.demoName, demo_name.c_str(), std::min<std::size_t>(demo_name.size(), MAX_QPATH));
+	clc.demoName = demo_name;
     Cvar::SetValueForce(cvar_demo_status_isrecording.Name(), "1");
     Cvar::SetValueForce(cvar_demo_status_filename.Name(), demo_name);
 
@@ -419,7 +411,7 @@ void CL_Record(std::string demo_name)
 
         MSG_WriteByte( &buf, svc_configstring );
         MSG_WriteShort( &buf, i );
-        MSG_WriteBigString( &buf, cl.gameState[i].c_str() );
+        MSG_WriteString( &buf, cl.gameState[i] );
     }
 
     // baselines
@@ -597,7 +589,7 @@ class DemoPlayCmd: public Cmd::StaticCmd {
                 Sys::Drop("couldn't open %s", name);
             }
 
-            Q_strncpyz(clc.demoName, arg, sizeof(clc.demoName));
+			clc.demoName = arg;
 
             Con_Close();
 
@@ -715,11 +707,11 @@ void CL_MapLoading()
 	cls.keyCatchers = 0;
 
 	// if we are already connected to the local host, stay connected
-	if ( cls.state >= connstate_t::CA_CONNECTED && !Q_stricmp( cls.servername, "loopback" ) )
+	if ( cls.state >= connstate_t::CA_CONNECTED && cls.servername == "loopback" )
 	{
 		cls.state = connstate_t::CA_CONNECTED; // so the connect screen is drawn
-		memset( cls.updateInfoString, 0, sizeof( cls.updateInfoString ) );
-		memset( clc.serverMessage, 0, sizeof( clc.serverMessage ) );
+		cls.updateInfoString.clear();
+		clc.serverMessage.clear();
 		cl.gameState.fill("");
 		clc.lastPacketSentTime = -9999;
 		SCR_UpdateScreen();
@@ -731,13 +723,13 @@ void CL_MapLoading()
 		} catch (Sys::DropErr& err) {
 			Sys::Error( "CL_Disconnect error during map load: %s", err.what() );
 		}
-		Q_strncpyz( cls.servername, "loopback", sizeof( cls.servername ) );
+		cls.servername = "loopback";
 		*cls.reconnectCmd = 0; // can't reconnect to this!
 		cls.state = connstate_t::CA_CHALLENGING; // so the connect screen is drawn
 		cls.keyCatchers = 0;
 		SCR_UpdateScreen();
 		clc.connectTime = -RETRANSMIT_TIMEOUT;
-		NET_StringToAdr( cls.servername, &clc.serverAddress, netadrtype_t::NA_UNSPEC );
+		NET_StringToAdr( cls.servername.c_str(), &clc.serverAddress, netadrtype_t::NA_UNSPEC);
 		// we don't need a challenge on the localhost
 
 		CL_CheckForResend();
@@ -802,7 +794,8 @@ void CL_Disconnect( bool showMainMenu )
 		clc.download = 0;
 	}
 
-	*cls.downloadTempName = *cls.downloadName = 0;
+	cls.downloadName.clear();
+	cls.downloadTempName.clear();
 	Cvar_Set( "cl_downloadName", "" );
 
 	StopVideo();
@@ -926,9 +919,9 @@ CL_Reconnect_f
 */
 void CL_Reconnect_f()
 {
-	if ( !*cls.servername )
+	if ( cls.servername.empty() )
 	{
-		Log::Notice("Can't reconnect to nothing." );
+		Log::Notice( "Can't reconnect to nothing." );
 	}
 	else if ( !*cls.reconnectCmd )
 	{
@@ -1003,13 +996,13 @@ void CL_Connect_f()
 	}
 
 	//Copy the arguments before they can be overwritten, after that server is invalid
-	Q_strncpyz( cls.servername, server, sizeof( cls.servername ) );
+	cls.servername = server;
 	Q_strncpyz( cls.reconnectCmd, Cmd::GetCurrentArgs().EscapedArgs(0).c_str(), sizeof( cls.reconnectCmd ) );
 
 	Audio::StopAllSounds(); // NERVE - SMF
 
 	// clear any previous "server full" type messages
-	clc.serverMessage[ 0 ] = 0;
+	clc.serverMessage.clear();
 
 	if ( com_sv_running.Get() && !strcmp( server, "loopback" ) )
 	{
@@ -1028,7 +1021,7 @@ void CL_Connect_f()
 	}
 	Con_Close();
 
-	if ( !NET_StringToAdr( cls.servername, &clc.serverAddress, family ) )
+	if ( !NET_StringToAdr( cls.servername.c_str(), &clc.serverAddress, family ) )
 	{
 		Log::Notice("Bad server address" );
 		cls.state = connstate_t::CA_DISCONNECTED;
@@ -1302,9 +1295,9 @@ public:
 
 static RconDiscoverCmd RconDiscoverCmdRegistration;
 
-static void CL_ServerRconInfoPacket( netadr_t, msg_t *msg )
+static void CL_ServerRconInfoPacket( netadr_t, const std::string& message )
 {
-	InfoMap info = InfoStringToMap( MSG_ReadString( msg ) );
+	InfoMap info = InfoStringToMap( message );
 	int value;
 	if ( Str::ParseInt( value, info["secure"] ) )
 	{
@@ -1514,7 +1507,7 @@ void CL_Clientinfo_f()
 	Log::Notice( "state: %s", Util::enum_str(cls.state));
 	Log::Notice( "Server: %s", cls.servername );
 	Log::Notice("User info settings:" );
-	Info_Print( Cvar_InfoString( CVAR_USERINFO, false ) );
+	Info_Print( Cvar_InfoString( CVAR_USERINFO ).c_str() );
 	Log::Notice("--------------------------------------" );
 }
 
@@ -1601,10 +1594,6 @@ Resend a connect message if the last one has timed out
 */
 void CL_CheckForResend()
 {
-	int  port;
-	char info[ MAX_INFO_STRING ];
-	char data[ MAX_INFO_STRING ];
-
 	// don't send anything if playing back a demo
 	if ( clc.demoplaying )
 	{
@@ -1637,18 +1626,26 @@ void CL_CheckForResend()
 
 			mpz_get_str( key, 16, public_key.n);
 			// sending back the challenge
-			port = Cvar_VariableValue( "net_qport" );
+			int port = Cvar_VariableValue( "net_qport" );
 
-			Q_strncpyz( info, Cvar_InfoString( CVAR_USERINFO, false ), sizeof( info ) );
-			Info_SetValueForKey( info, "protocol", va( "%i", PROTOCOL_VERSION ), false );
-			Info_SetValueForKey( info, "qport", va( "%i", port ), false );
-			Info_SetValueForKey( info, "challenge", clc.challenge.c_str(), false );
-			Info_SetValueForKey( info, "pubkey", key, false );
+			InfoMap info;
+			Cvar::PopulateInfoMap( CVAR_USERINFO, info );
+			
+			info["protocol"] = Str::Format( "%i", PROTOCOL_VERSION );
+			info["qport"] = Str::Format( "%i", port );
+			info["challenge"] = clc.challenge;
+			info["pubkey"] = key;
 
-			Com_sprintf( data, sizeof(data), "connect %s", Cmd_QuoteString( info ) );
+			std::string data = Str::Format( "connect %s", Cmd_QuoteString( InfoMapToString( info ).c_str() ) );
+			// This will be read by MSG_ReadString, which expects the string length
+			data.resize( data.size() + 4 );
+			std::move( data.data(), data.data() + data.size() - 4, data.data() + 4 );
+
+			uint32_t* sizeEncode = ( uint32_t* ) data.data();
+			*sizeEncode = data.size() - 4;
 
 			Net::OutOfBandData( netsrc_t::NS_CLIENT, clc.serverAddress,
-				reinterpret_cast<byte*>( data ), strlen( data ) );
+				reinterpret_cast<byte*>( data.data() ), data.size() );
 			// the most current userinfo has been sent, so watch for any
 			// newer changes to userinfo variables
 			cvar_modifiedFlags &= ~CVAR_USERINFO;
@@ -1712,23 +1709,16 @@ print OOB are the only messages we handle markups in
   to 256 chars.
 ===================
 */
-void CL_PrintPacket( msg_t *msg )
+static void CL_PrintPacket( const std::string& message )
 {
-	char *s;
+	clc.serverMessage = message;
 
-	s = MSG_ReadBigString( msg );
-
-	if ( !Q_strnicmp( s, "[err_dialog]", 12 ) )
+	if ( clc.serverMessage.substr( 0, 12 ) == "[err_dialog]" )
 	{
-		Q_strncpyz( clc.serverMessage, s + 12, sizeof( clc.serverMessage ) );
-		Sys::Drop( "^3Server disconnected:\n^7%s", clc.serverMessage );
-	}
-	else
-	{
-		Q_strncpyz( clc.serverMessage, s, sizeof( clc.serverMessage ) );
+		Sys::Drop( "^3Server disconnected:\n^7%s", clc.serverMessage.substr( 12, clc.serverMessage.size() ) );
 	}
 
-	Log::Notice("%s", clc.serverMessage );
+	Log::Notice( clc.serverMessage );
 }
 
 /*
@@ -1743,7 +1733,8 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	MSG_BeginReadingOOB( msg );
 	MSG_ReadLong( msg );  // skip the -1
 
-	Cmd::Args args(MSG_ReadStringLine( msg ));
+	std::vector<std::string> lines = MSG_ReadStringLines( msg );
+	Cmd::Args args( lines[0] );
 
 	if ( args.Argc() < 1 )
 	{
@@ -1754,7 +1745,7 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 
 	// challenge from the server we are connecting to
 
-	if ( args.Argv(0) == "challengeResponse" )
+	if ( args.Argv( 0 ).starts_with( "challengeResponse" ) )
 	{
 		if ( cls.state == connstate_t::CA_CONNECTING )
 		{
@@ -1782,7 +1773,7 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	}
 
 	// server connection
-	if ( args.Argv(0) == "connectResponse" )
+	if ( args.Argv( 0 ).starts_with( "connectResponse" ) )
 	{
 		if ( cls.state >= connstate_t::CA_CONNECTED )
 		{
@@ -1811,73 +1802,73 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	}
 
 	// server responding to an info broadcast
-	if ( args.Argv(0) == "infoResponse" )
+	if ( args.Argv( 0 ).starts_with( "infoResponse" ) )
 	{
-		CL_ServerInfoPacket( from, msg );
+		CL_ServerInfoPacket( from, lines[1] );
 		return;
 	}
 
 	// server responding to a get playerlist
 	if ( args.Argv(0) == "statusResponse" )
 	{
-		CL_ServerStatusResponse( from, msg );
+		CL_ServerStatusResponse( from, lines );
 		return;
 	}
 
 	// a disconnect message from the server, which will happen if the server
 	// dropped the connection but it is still getting packets from us
-	if ( args.Argv(0) == "disconnect" )
+	if ( args.Argv( 0 ).starts_with( "disconnect" ) )
 	{
 		CL_DisconnectPacket( from );
 		return;
 	}
 
 	// echo request from server
-	if ( args.Argv(0) == "echo" && args.Argc() >= 2)
+	if ( args.Argv( 0 ).starts_with( "echo" ) && args.Argc() >= 2)
 	{
 		Net::OutOfBandPrint( netsrc_t::NS_CLIENT, from, "%s", args.Argv(1) );
 		return;
 	}
 
 	// echo request from server
-	if ( args.Argv(0) == "print" )
+	if ( args.Argv( 0 ).starts_with( "print" ) )
 	{
-		CL_PrintPacket( msg );
+		CL_PrintPacket( lines[1] );
 		return;
 	}
 
 	// echo request from server
-	if ( args.Argv(0) == "getserversResponse" )
+	if ( args.Argv( 0 ).starts_with( "getserversResponse" ) )
 	{
 		CL_ServersResponsePacket( &from, msg, false );
 		return;
 	}
 
 	// list of servers with both IPv4 and IPv6 addresses; sent back by a master server (extended)
-	if ( args.Argv(0) == "getserversExtResponseLinks" )
+	if ( args.Argv( 0 ).starts_with( "getserversExtResponseLinks" ) )
 	{
 		CL_ServerLinksResponsePacket( msg );
 		return;
 	}
 
 	// list of servers sent back by a master server (extended)
-	if ( args.Argv(0) == "getserversExtResponse" )
+	if ( args.Argv( 0 ).starts_with( "getserversExtResponse" ) )
 	{
 		CL_ServersResponsePacket( &from, msg, true );
 		return;
 	}
 
 	// prints a n error message returned by the server
-	if ( args.Argv(0) == "error" )
+	if ( args.Argv( 0 ).starts_with( "error" ) )
 	{
-		Log::Warn( MSG_ReadStringLine(msg) );
+		Log::Warn( lines[1] );
 		return;
 	}
 
 	// prints a n error message returned by the server
-	if ( args.Argv(0) == "rconInfoResponse" )
+	if ( args.Argv( 0 ).starts_with( "rconInfoResponse" ) )
 	{
-		CL_ServerRconInfoPacket( from, msg );
+		CL_ServerRconInfoPacket( from, lines[1] );
 		return;
 	}
 
@@ -1998,7 +1989,7 @@ void CL_CheckUserinfo()
 	if ( cvar_modifiedFlags & CVAR_USERINFO )
 	{
 		cvar_modifiedFlags &= ~CVAR_USERINFO;
-		CL_AddReliableCommand( va( "userinfo %s", Cmd_QuoteString( Cvar_InfoString( CVAR_USERINFO, false ) ) ) );
+		CL_AddReliableCommand( va( "userinfo %s", Cmd_QuoteString( Cvar_InfoString( CVAR_USERINFO ).c_str() ) ) );
 	}
 }
 

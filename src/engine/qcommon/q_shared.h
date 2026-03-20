@@ -182,8 +182,6 @@ using clipHandle_t = int;
 #define MAX_ADDR_CHARS    sizeof("[1111:2222:3333:4444:5555:6666:7777:8888]:99999")
 
 #define MAX_INFO_STRING   1024
-#define MAX_INFO_KEY      1024
-#define MAX_INFO_VALUE    1024
 
 #define BIG_INFO_STRING   8192 // used for system info key only
 #define BIG_INFO_KEY      8192
@@ -1510,17 +1508,11 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	void       COM_ParseError( const char *format, ... ) PRINTF_LIKE(1);
 	void       COM_ParseWarning( const char *format, ... ) PRINTF_LIKE(1);
 
-	int        Com_ParseInfos( const char *buf, int max, char infos[][ MAX_INFO_STRING ] );
-
 	int        Com_HashKey( char *string, int maxlen );
 
 	bool  SkipBracedSection( const char **program );
 	bool  SkipBracedSection_Depth( const char **program, int depth );  // start at given depth if already
 	void      SkipRestOfLine( const char **data );
-
-	void      Parse1DMatrix( const char **buf_p, int x, float *m );
-	void      Parse2DMatrix( const char **buf_p, int y, int x, float *m );
-	void      Parse3DMatrix( const char **buf_p, int z, int y, int x, float *m );
 
 	int Com_sprintf( char *dest, int size, const char *fmt, ... ) PRINTF_LIKE(3);
 
@@ -1610,8 +1602,6 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	void       Info_RemoveKey( char *s, const char *key , bool big );
 	// DEPRECATED: Use InfoMap
 	void       Info_SetValueForKey( char *s, const char *key, const char *value , bool big );
-	// DEPRECATED: Use InfoMap
-	void       Info_SetValueForKeyRocket( char *s, const char *key, const char *value, bool big );
 	// DEPRECATED: Use InfoMap
 	bool   Info_Validate( const char *s );
 	// DEPRECATED: Use InfoMap

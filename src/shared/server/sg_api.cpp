@@ -79,23 +79,23 @@ void trap_SetConfigstringRestrictions(int, const clientList_t*)
     VM::SendMsg<SetConfigStringRestrictionsMsg>(); // not implemented
 }
 
-void trap_SetUserinfo(int num, const char *buffer)
+void trap_SetUserinfo( int num, const std::string& userinfo )
 {
-    VM::SendMsg<SetUserinfoMsg>(num, buffer);
+    VM::SendMsg<SetUserinfoMsg>( num, userinfo );
 }
 
-void trap_GetUserinfo(int num, char *buffer, int bufferSize)
+std::string trap_GetUserinfo( int num )
 {
     std::string res;
-    VM::SendMsg<GetUserinfoMsg>(num, bufferSize, res);
-    Q_strncpyz(buffer, res.c_str(), bufferSize);
+    VM::SendMsg<GetUserinfoMsg>( num, res );
+    return res;
 }
 
-void trap_GetServerinfo(char *buffer, int bufferSize)
+std::string trap_GetServerinfo()
 {
     std::string res;
-    VM::SendMsg<GetServerinfoMsg>(bufferSize, res);
-    Q_strncpyz(buffer, res.c_str(), bufferSize);
+    VM::SendMsg<GetServerinfoMsg>(res);
+    return res;
 }
 
 void trap_GetUsercmd(int clientNum, usercmd_t *cmd)

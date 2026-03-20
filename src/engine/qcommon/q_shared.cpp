@@ -979,75 +979,6 @@ void SkipRestOfLine( const char **data )
 }
 
 /*
-===============
-Com_ParseInfos
-===============
-*/
-int Com_ParseInfos( const char *buf, int max, char infos[][ MAX_INFO_STRING ] )
-{
-	const char *token;
-	int        count;
-	char       key[ MAX_TOKEN_CHARS ];
-
-	count = 0;
-
-	while (true)
-	{
-		token = COM_Parse( &buf );
-
-		if ( !token[ 0 ] )
-		{
-			break;
-		}
-
-		if ( strcmp( token, "{" ) )
-		{
-            Log::Notice( "Missing { in info file" );
-			break;
-		}
-
-		if ( count == max )
-		{
-            Log::Notice( "Max infos exceeded" );
-			break;
-		}
-
-		infos[ count ][ 0 ] = 0;
-
-		while (true)
-		{
-			token = COM_Parse( &buf );
-
-			if ( !token[ 0 ] )
-			{
-                Log::Notice( "Unexpected end of info file" );
-				break;
-			}
-
-			if ( !strcmp( token, "}" ) )
-			{
-				break;
-			}
-
-			Q_strncpyz( key, token, sizeof( key ) );
-
-			token = COM_ParseExt( &buf, false );
-
-			if ( !token[ 0 ] )
-			{
-				token = "<NULL>";
-			}
-
-			Info_SetValueForKey( infos[ count ], key, token, false );
-		}
-
-		count++;
-	}
-
-	return count;
-}
-
-/*
 ===================
 Com_HexStrToInt
 ===================
@@ -2036,41 +1967,6 @@ void Info_SetValueForKey( char *s, const char *key, const char *value, bool big 
 	}
 
 	Info_RemoveKey( s, key, big );
-
-	if ( !value || !strlen( value ) )
-	{
-		return;
-	}
-
-	Com_sprintf( newi, maxlen, "\\%s\\%s", key, value );
-
-	if ( strlen( newi ) + slen >= (unsigned) maxlen )
-	{
-        Log::Notice( "Info string length exceeded" );
-		return;
-	}
-
-	strcat( s, newi );
-}
-
-void Info_SetValueForKeyRocket( char *s, const char *key, const char *value, bool big )
-{
-	int maxlen = big ? BIG_INFO_STRING : MAX_INFO_STRING;
-	int slen = strlen( s );
-	static char newi[ BIG_INFO_STRING ];
-
-	if ( slen >= maxlen )
-	{
-        Sys::Drop( "Info_SetValueForKey: oversize infostring [%s] [%s] [%s]", s, key, value );
-	}
-
-	if ( strchr( key, '\\' ) || ( value && strchr( value, '\\' ) ) )
-	{
-        Log::Notice( "Can't use keys or values with a \\" );
-		return;
-	}
-
-	Info_RemoveKey( s, key, true );
 
 	if ( !value || !strlen( value ) )
 	{

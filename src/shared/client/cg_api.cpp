@@ -659,12 +659,10 @@ void trap_LAN_ResetPings( int n )
 	VM::SendMsg<LAN::ResetPingsMsg>(n);
 }
 
-int trap_LAN_ServerStatus( const char *serverAddress, char *serverStatus, int maxLen )
+bool trap_LAN_ServerStatus( const char *serverAddress, std::string& serverStatus )
 {
-	std::string status;
 	int res;
-	VM::SendMsg<LAN::ServerStatusMsg>(serverAddress, maxLen, status, res);
-	Q_strncpyz(serverStatus, status.c_str(), maxLen);
+	VM::SendMsg<LAN::ServerStatusMsg>(serverAddress, serverStatus, res);
 	return res;
 }
 

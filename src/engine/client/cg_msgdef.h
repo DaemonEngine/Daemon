@@ -120,6 +120,29 @@ namespace Util {
 			return value;
 		}
 	};
+
+	template<>
+	struct SerializeTraits<cgClientState_t> {
+		static void Write( Writer& stream, const cgClientState_t& clientState ) {
+			stream.Write<int>( ( int ) clientState.connState );
+			stream.Write<int>( clientState.connectPacketCount );
+			stream.Write<int>( clientState.clientNum );
+			stream.Write<std::string>( clientState.servername );
+			stream.Write<std::string>( clientState.updateInfoString );
+			stream.Write<std::string>( clientState.messageString );
+		}
+		static cgClientState_t Read( Reader& stream ) {
+			cgClientState_t clientState;
+			clientState.connState = ( connstate_t ) stream.Read<int>();
+			clientState.connectPacketCount = stream.Read<int>();
+			clientState.clientNum = stream.Read<int>();
+			clientState.servername = stream.Read<std::string>();
+			clientState.updateInfoString = stream.Read<std::string>();
+			clientState.messageString = stream.Read<std::string>();
+
+			return clientState;
+		}
+	};
 }
 
 enum cgameImport_t
@@ -454,7 +477,7 @@ namespace LAN {
 	>;
 	using ResetPingsMsg = IPC::Message<IPC::Id<VM::QVM, CG_LAN_RESETPINGS>, int>;
 	using ServerStatusMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_LAN_SERVERSTATUS>, std::string, int>,
+		IPC::Message<IPC::Id<VM::QVM, CG_LAN_SERVERSTATUS>, std::string>,
 		IPC::Reply<std::string, int>
 	>;
 	using ResetServerStatusMsg = IPC::Message<IPC::Id<VM::QVM, CG_LAN_RESETSERVERSTATUS>>;
