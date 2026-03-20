@@ -1509,9 +1509,6 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 				case stageType_t::ST_SKYBOXMAP:
 					imageParams.bits |= IF_SRGB;
 					break;
-				case stageType_t::ST_SPECULARMAP:
-					imageParams.bits |= stage->colorspaceBits & LINEAR_SPECULARMAP ? 0 : IF_SRGB;
-					break;
 				default:
 					break;
 			}
@@ -2678,19 +2675,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			}
 
 			stage->colorspaceBits |= LINEAR_COLORMAP;
-		}
-		else if ( !Q_stricmp( token, "rawSpecularMap" ) )
-		{
-			stage->colorspaceBits |= LINEAR_SPECULARMAP;
-		}
-		else if ( !Q_stricmp( token, "linearSpecularMap" ) )
-		{
-			if ( !tr.worldLinearizeTexture )
-			{
-				Log::Warn("Usage of linearSpecularMap in naive pipeline, assuming rawSpecularMap");
-			}
-
-			stage->colorspaceBits |= LINEAR_SPECULARMAP;
 		}
 		// stage <type>
 		else if ( !Q_stricmp( token, "stage" ) )
