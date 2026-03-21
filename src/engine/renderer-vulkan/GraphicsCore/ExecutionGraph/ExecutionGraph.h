@@ -91,8 +91,9 @@ struct ExecutionNode {
 	uint8  id;
 	uint16 computeID;
 	uint32 workgroupCount;
+	uint16 workgroupCount2;
+	uint16 workgroupCount3;
 	uint32 nodeDependencies;
-	uint32 nodeDependencyTypes;
 	uint64 graphicsSettings;
 };
 

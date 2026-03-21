@@ -191,7 +191,6 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 				BuildExecutionNode( executionNode.computeID, &pipeline, &pipelineLayout );
 
 				uint32 nodeDeps      = executionNode.nodeDependencies;
-				uint32 nodeDepsTypes = executionNode.nodeDependencyTypes;
 
 				VkPipelineStageFlags2 srcStage  = 0;
 				VkAccessFlags2        srcAccess = 0;
@@ -207,12 +206,12 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 							srcAccess |= VK_ACCESS_2_SHADER_WRITE_BIT;
 							break;
 						case NODE_GRAPHICS:
-							srcStage  |= BitSet( nodeDepsTypes, dep )
+							/* srcStage  |= BitSet( nodeDepsTypes, dep )
 							             ? VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
 							             : VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
 							srcAccess |= BitSet( nodeDepsTypes, dep )
 							             ? VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
-							             : VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+							             : VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT; */
 							break;
 						case NODE_EXTERNAL:
 							externalDep = true;
@@ -263,7 +262,9 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 					ExecPushConstNode( pushNode, cmd, pipelineLayout, executionNode.computeID );
 				}
 
-				vkCmdDispatch( cmd, executionNode.workgroupCount, 1, 1 );
+				vkCmdDispatch( cmd, executionNode.workgroupCount,
+				                    executionNode.workgroupCount2 ? executionNode.workgroupCount2 : 1,
+				                    executionNode.workgroupCount3 ? executionNode.workgroupCount3 : 1 );
 
 				break;
 			}
@@ -566,53 +567,54 @@ uint64 ExecutionGraph::Exec() {
 	return out;
 }
 
-void ParseNodeDeps( StringView& v, std::unordered_map<std::string, uint32>& nodes, uint32* nodeDeps, uint32* nodeDepsTypes ) {
-	StringView o = Parse( v );
-
-	if ( o != "{" ) {
-		return;
-	}
-
-	*nodeDeps        = 0;
-	*nodeDepsTypes   = 0;
-	bool   colourDep = false;
+void ParseNodeDeps( StringView& v, std::unordered_map<std::string, uint32>& nodes, uint32* nodeDeps ) {
+	*nodeDeps      = 0;
+	bool colourDep = false;
 
 	while( true ) {
-		o = Parse( v );
+		StringView o = Parse( v );
+
+		if ( o == "{" ) {
+			continue;
+		}
 
 		if ( o == "}" ) {
 			break;
 		}
 
-		if ( o == "COLOR" ) {
+		/* if ( o == "COLOR" ) {
 			colourDep = true;
 			break;
-		}
+		} */
 
 		uint32 dep = nodes[std::string { o.memory, o.size }];
 
 		SetBit( nodeDeps, dep );
 
 		if ( colourDep ) {
-			SetBit( nodeDepsTypes, dep );
+			// SetBit( nodeDepsTypes, dep );
 		}
 	}
 }
 
 PushConstNode ParsePushConst( StringView& v, std::unordered_map<std::string, uint32>& nodes ) {
+	PushConstNode out {};
+
+	BitStream specialIDsStream { out.data.specialIDs };
+	BitStream dataStream       { out.data.data };
+
 	StringView o = Parse( v );
 
 	if ( o != "{" ) {
 		return {};
 	}
 
-	PushConstNode out {};
-
-	BitStream specialIDsStream { out.data.specialIDs };
-	BitStream dataStream       { out.data.data };
-
 	while( true ) {
 		o = Parse( v );
+
+		if ( o == "{" ) {
+			continue;
+		}
 
 		if ( o == "}" ) {
 			break;
@@ -674,7 +676,6 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 
 		if ( SPIRVMap.find( token ) != SPIRVMap.end() ) {
 			const uint32       SPIRVID = SPIRVMap.at( token );
-
 			const SPIRVModule& spirv   = SPIRVBin[SPIRVID];
 
 			o                   = Parse( v );
@@ -685,26 +686,37 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 
 			switch ( spirv.type ) {
 				case SPIRV_COMPUTE:
-					o = Parse( v );
+				{
+					int workgroupCount[3] {};
 
-					int workgroupCount;
-					Q_strtoi( o.memory, &workgroupCount );
+					for ( uint32 i = 0; i < 3; i++ ) {
+						o = Parse( v );
 
-					ParseNodeDeps( v, nodesToSPIRV, &nodeDeps, &nodeDepsTypes );
+						if ( o == "{" ) {
+							break;
+						}
+
+						Q_strtoi( o.memory, &workgroupCount[i] );
+					}
+
+					ParseNodeDeps( v, nodesToSPIRV, &nodeDeps );
 
 					{
 						ExecutionNode node {
 							.id                  = id,
 							.computeID           = ( uint16 ) SPIRVID,
-							.workgroupCount      = ( uint32 ) workgroupCount,
-							.nodeDependencies    = nodeDeps,
-							.nodeDependencyTypes = nodeDepsTypes
+							.workgroupCount      = ( uint32 ) workgroupCount[0],
+							.workgroupCount2     = ( uint16 ) workgroupCount[1],
+							.workgroupCount3     = ( uint16 ) workgroupCount[2],
+							.nodeDependencies    = nodeDeps
+							// .nodeDependencyTypes = nodeDepsTypes
 						};
 
 						out.Push( *( ExecutionGraphNode* ) &node );
 					}
 
 					break;
+				}
 				case SPIRV_VERTEX:
 				case SPIRV_FRAGMENT:
 					uint32 vertex;
@@ -720,7 +732,7 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 						vertex   = SPIRVMap.at( std::string { o.memory, o.size } );
 					}
 
-					ParseNodeDeps( v, nodesToSPIRV, &nodeDeps, &nodeDepsTypes );
+					ParseNodeDeps( v, nodesToSPIRV, &nodeDeps );
 
 					{
 						GraphicsNode node {
@@ -728,7 +740,7 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 							.vertexID            = ( uint16 ) vertex,
 							.fragmentID          = ( uint16 ) fragment,
 							.nodeDependencies    = nodeDeps,
-							.nodeDependencyTypes = nodeDepsTypes
+							// .nodeDependencyTypes = nodeDepsTypes
 						};
 
 						out.Push( *( ExecutionGraphNode* ) &node );
@@ -843,13 +855,13 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 			uint32 nodeDeps;
 			uint32 nodeDepsTypes;
 
-			ParseNodeDeps( v, nodesToSPIRV, &nodeDeps, &nodeDepsTypes );
+			ParseNodeDeps( v, nodesToSPIRV, &nodeDeps );
 
 			PresentNode node {
 				.id                  = id,
 				.active              = true,
 				.nodeDependencies    = nodeDeps,
-				.nodeDependencyTypes = nodeDepsTypes
+				// .nodeDependencyTypes = nodeDepsTypes
 			};
 
 			out.Push( *( ExecutionGraphNode* ) &node );
