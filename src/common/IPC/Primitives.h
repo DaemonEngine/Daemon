@@ -155,6 +155,8 @@ namespace IPC {
 		size_t size;
 	};
 
+	std::string AbiVersion();
+
 } // namespace IPC
 
 namespace Util {
