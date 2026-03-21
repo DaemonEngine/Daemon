@@ -194,6 +194,8 @@ set( RENDERERLIST
     ${ENGINE_DIR}/renderer-vulkan/Init.h
     ${ENGINE_DIR}/renderer-vulkan/MiscCVarStore.cpp
     ${ENGINE_DIR}/renderer-vulkan/MiscCVarStore.h
+    ${ENGINE_DIR}/renderer-vulkan/Parser.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Parser.h
     ${ENGINE_DIR}/renderer-vulkan/RefAPI.cpp
     ${ENGINE_DIR}/renderer-vulkan/Version.cpp
     ${ENGINE_DIR}/renderer-vulkan/Version.h
