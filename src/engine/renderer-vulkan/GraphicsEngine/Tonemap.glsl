@@ -40,11 +40,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Resources.glsl"
 
-layout ( local_size_x = 8, local_size_y = 8, local_size_z = 1 ) in;
+WorkGroupSize { 8, 8, 1 };
 
-layout ( scalar, push_constant ) uniform Push {
+Buffer testBuffer { 4 };
+
+Push {
 	CoreData* coreData;
-} push;
+	uint* testBuffer;
+};
 
 void main() {
 	const uint globalGroupID      = GLOBAL_GROUP_ID;
@@ -54,5 +57,7 @@ void main() {
 		return;
 	}
 
-	imageStore( images[coreData[0].currentSwapChainImage], ivec2( gl_GlobalInvocationID.xy ), vec4( 0, 1, 0, 1 ) );
+	uint i = atomicAdd( testBuffer[0], 1u );
+
+	imageStore( images[coreData[0].currentSwapChainImage], ivec2( gl_GlobalInvocationID.xy ), vec4( (i % 256)/255.0f, 1, 0, 1 ) );
 }

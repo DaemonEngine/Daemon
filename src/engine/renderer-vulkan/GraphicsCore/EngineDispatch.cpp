@@ -232,7 +232,7 @@ void EngineDispatch() {
 	std::string engineDispatchSrc =
 		"external\n"
 		"push { coreData }\n"
-		"Tonemap tonemap 325 { external }\n"
+		"Tonemap tonemap 325 200 { external }\n"
 		"present { tonemap }";
 
 	engineDispatchEG.BuildFromSrc( COMPUTE, engineDispatchSrc );
