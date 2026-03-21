@@ -1148,6 +1148,7 @@ int main( int argc, char** argv ) {
 		std::string binPath = spirvBinPath + nameNoExt + ".spirvBin";
 
 		spirvOptions += " -V " + srcPath + name + " -o " + binPath;
+
 		if ( spirvAsm ) {
 			spirvOptions += " -H > " + spirvPath + nameNoExt + ".spirv";
 		}
@@ -1166,6 +1167,7 @@ int main( int argc, char** argv ) {
 			for ( unsigned char* c = spirvBinData.data(); c < spirvBinData.data() + spirvBinData.size() - 1; c++ ) {
 				fprintf( spirvBinH.file, "0x%02x,", *c );
 			}
+
 			fprintf( spirvBinH.file, "0x%02x", spirvBinData.back() );
 		}
 
