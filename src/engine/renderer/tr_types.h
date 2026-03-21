@@ -160,7 +160,8 @@ enum BoneModType {
 	/* Builds an extra skeleton from refEntity_t::animationHandle, use animationHandle2 for the main skeleton,
 	*  Used to combine torso and legs sketons for human models since they use the same refEntity */
 	BUILD_EXTRA_SKELETON,
-	BONE_FROM_EXTRA_SKELETON // Use bone BoneMod::animationHandle from the extra skeleton instead of the main one
+	BONE_FROM_EXTRA_SKELETON, // Use bone BoneMod::animationHandle from the extra skeleton instead of the main one
+	BUILD_EXTRA_BLEND_SKELETON
 };
 
 struct BoneMod {
@@ -173,6 +174,7 @@ struct BoneMod {
 	int startFrame;
 	int endFrame;
 	float lerp;
+	float blendLerp;
 };
 
 struct alignas(16) refSkeleton_t
