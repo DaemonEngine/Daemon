@@ -117,18 +117,21 @@ struct StringView {
 
 	StringView& operator++() {
 		( *this ) += 1;
+
 		return *this;
 	}
 
 	StringView operator++( int ) {
 		StringView t = *this;
 		( *this )++;
+
 		return t;
 	}
 
 	StringView& operator+=( const uint32_t offset ) {
-		size -= offset;
+		size   -= offset;
 		memory += offset;
+
 		return *this;
 	}
 };
