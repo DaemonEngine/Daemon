@@ -87,7 +87,25 @@ static void BuildSkeleton( trRefEntity_t* ent ) {
 		}
 	}
 
-	refSkeleton_t skel;
+	refSkeleton_t skel {};
+
+	/* This follows the original weird and buggy code in cgame
+	This is used to make alien attack animations blend with the movement animation
+	Unlike human models, aliens use the same refEntity_t for all their animations (referred to as `legs` in cgame)
+	The intent seems to have been to blend last and current movement animation, then blend them with the attack animation
+	(the attack animation isn't blended with the one from the previous frame for whatever reason) */
+	for ( const BoneMod& boneMod : ent->e.boneMods ) {
+		if ( boneMod.type == BUILD_EXTRA_BLEND_SKELETON ) {
+			if ( ent->e.animationHandle ) {
+				RE_BuildSkeleton( &skel, boneMod.animationHandle, boneMod.startFrame, boneMod.endFrame,
+					boneMod.lerp, ent->e.clearOrigin );
+				RE_BlendSkeleton( &ent->skeleton, &skel, boneMod.blendLerp );
+			}
+
+			break;
+		}
+	}
+
 	if ( ent->e.animationHandle2 ) {
 		refSkeleton_t* skeleton2 = ent->e.animationHandle ? &skel : &ent->skeleton;
 
@@ -95,7 +113,9 @@ static void BuildSkeleton( trRefEntity_t* ent ) {
 			ent->e.lerp2, ent->e.clearOrigin2 );
 
 		for ( const BoneMod& boneMod : ent->e.boneMods ) {
-			QuatMultiply2( skeleton2->bones[boneMod.index].t.rot, boneMod.rotation );
+			if ( boneMod.type == BONE_ROTATE ) {
+				QuatMultiply2( skeleton2->bones[boneMod.index].t.rot, boneMod.rotation );
+			}
 		}
 
 		if ( ent->e.animationHandle && ent->e.blendLerp > 0.0 ) {
