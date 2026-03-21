@@ -44,6 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../Sys/MemoryInfo.h"
 
+#include "../../Parser.h"
+
 #include "../Vulkan.h"
 
 #include "../GraphicsCoreStore.h"
@@ -564,29 +566,30 @@ uint64 ExecutionGraph::Exec() {
 	return out;
 }
 
-void ParseNodeDeps( const char** text, std::unordered_map<std::string, uint32>& nodes, uint32* nodeDeps, uint32* nodeDepsTypes ) {
-	const char* token = COM_ParseExt2( text, false );
+void ParseNodeDeps( StringView& v, std::unordered_map<std::string, uint32>& nodes, uint32* nodeDeps, uint32* nodeDepsTypes ) {
+	StringView o = Parse( v );
 
-	if ( *token != '{' ) {
+	if ( o != "{" ) {
 		return;
 	}
 
 	*nodeDeps        = 0;
 	*nodeDepsTypes   = 0;
 	bool   colourDep = false;
-	while( true ) {
-		token = COM_ParseExt2( text, false );
 
-		if ( *token == '}' ) {
+	while( true ) {
+		o = Parse( v );
+
+		if ( o == "}" ) {
 			break;
 		}
 
-		if ( !Q_stricmp( token, "COLOR" ) ) {
+		if ( o == "COLOR" ) {
 			colourDep = true;
 			break;
 		}
 
-		uint32 dep = nodes[token];
+		uint32 dep = nodes[std::string { o.memory, o.size }];
 
 		SetBit( nodeDeps, dep );
 
@@ -596,10 +599,10 @@ void ParseNodeDeps( const char** text, std::unordered_map<std::string, uint32>& 
 	}
 }
 
-PushConstNode ParsePushConst( const char** text, std::unordered_map<std::string, uint32>& nodes ) {
-	const char* token = COM_ParseExt2( text, false );
+PushConstNode ParsePushConst( StringView& v, std::unordered_map<std::string, uint32>& nodes ) {
+	StringView o = Parse( v );
 
-	if ( *token != '{' ) {
+	if ( o != "{" ) {
 		return {};
 	}
 
@@ -609,13 +612,13 @@ PushConstNode ParsePushConst( const char** text, std::unordered_map<std::string,
 	BitStream dataStream       { out.data.data };
 
 	while( true ) {
-		token = COM_ParseExt2( text, false );
+		o = Parse( v );
 
-		if ( *token == '}' ) {
+		if ( o == "}" ) {
 			break;
 		}
 
-		if ( !Q_stricmp( token, "coreToEngine" ) ) {
+		if ( o == "coreToEngine" ) {
 			specialIDsStream.Write( PUSH_UINT64, 4 );
 			dataStream.Write( resourceSystem.coreToEngineBuffer.engineMemory, 64 );
 
@@ -623,7 +626,7 @@ PushConstNode ParsePushConst( const char** text, std::unordered_map<std::string,
 			continue;
 		}
 
-		if ( !Q_stricmp( token, "engineToCore" ) ) {
+		if ( o == "engineToCore" ) {
 			specialIDsStream.Write( PUSH_UINT64, 4 );
 			dataStream.Write( resourceSystem.engineToCoreBuffer.engineMemory, 64 );
 
@@ -631,13 +634,15 @@ PushConstNode ParsePushConst( const char** text, std::unordered_map<std::string,
 			continue;
 		}
 
-		if ( !Q_stricmp( token, "coreData" ) ) {
+		if ( o == "coreData" ) {
 			specialIDsStream.Write( PUSH_UINT64, 4 );
 			dataStream.Write( resourceSystem.coreDataBuffer.engineMemory, 64 );
 
 			out.data.size += 8;
 			continue;
 		}
+
+		std::string token { o.memory, o.size };
 
 		if ( nodes.contains( token ) ) {
 			dataStream.Write( nodes[token], 8 );
@@ -653,8 +658,7 @@ PushConstNode ParsePushConst( const char** text, std::unordered_map<std::string,
 }
 
 DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
-	const char*  start = src.c_str();
-	const char** text  = &start;
+	StringView v { src.c_str(), src.size() };
 
 	std::unordered_map<std::string, uint32> nodesToSPIRV;
 	std::unordered_map<std::string, uint32> nodesToBuffer;
@@ -663,31 +667,30 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 
 	uint8 id = 0;
 
-	while ( true ) {
-		const char* token = COM_ParseExt2( text, true );
-		if ( !token || *token == '\0' ) {
-			break;
-		}
+	do {
+		StringView o = Parse( v );
+
+		std::string token { o.memory, o.size };
 
 		if ( SPIRVMap.find( token ) != SPIRVMap.end() ) {
-			const uint32 SPIRVID     = SPIRVMap.at( token );
+			const uint32       SPIRVID = SPIRVMap.at( token );
 
-			const SPIRVModule& spirv = SPIRVBin[SPIRVID];
+			const SPIRVModule& spirv   = SPIRVBin[SPIRVID];
 
-			token                    = COM_ParseExt2( text, true );
-			nodesToSPIRV[token]      = id;
+			o                   = Parse( v );
+			nodesToSPIRV[token] = id;
 
 			uint32 nodeDeps;
 			uint32 nodeDepsTypes;
 
 			switch ( spirv.type ) {
 				case SPIRV_COMPUTE:
-					token = COM_ParseExt2( text, false );
+					o = Parse( v );
 
 					int workgroupCount;
-					Q_strtoi( token, &workgroupCount );
+					Q_strtoi( o.memory, &workgroupCount );
 
-					ParseNodeDeps( text, nodesToSPIRV, &nodeDeps, &nodeDepsTypes );
+					ParseNodeDeps( v, nodesToSPIRV, &nodeDeps, &nodeDepsTypes );
 
 					{
 						ExecutionNode node {
@@ -709,15 +712,15 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 
 					if ( spirv.type == SPIRV_VERTEX ) {
 						vertex   = SPIRVID;
-						token    = COM_ParseExt2( text, false );
-						fragment = SPIRVMap.at( token );
+						o        = Parse( v );
+						fragment = SPIRVMap.at( std::string { o.memory, o.size } );
 					} else {
 						fragment = SPIRVID;
-						token    = COM_ParseExt2( text, false );
-						vertex   = SPIRVMap.at( token );
+						o        = Parse( v );
+						vertex   = SPIRVMap.at( std::string { o.memory, o.size } );
 					}
 
-					ParseNodeDeps( text, nodesToSPIRV, &nodeDeps, &nodeDepsTypes );
+					ParseNodeDeps( v, nodesToSPIRV, &nodeDeps, &nodeDepsTypes );
 
 					{
 						GraphicsNode node {
@@ -739,23 +742,23 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 			continue;
 		}
 
-		if ( !Q_stricmp( token, "bind" ) ) {
+		if ( o == "bind" ) {
 			int indirect;
 			int count;
 			int index;
 			int vertex;
 
-			token = COM_ParseExt2( text, false );
-			Q_strtoi( token, &indirect );
+			o = Parse( v );
+			Q_strtoi( o.memory, &indirect );
 
-			token = COM_ParseExt2( text, false );
-			Q_strtoi( token, &count );
+			o = Parse( v );
+			Q_strtoi( o.memory, &count );
 
-			token = COM_ParseExt2( text, false );
-			Q_strtoi( token, &index );
+			o = Parse( v );
+			Q_strtoi( o.memory, &index );
 
-			token = COM_ParseExt2( text, false );
-			Q_strtoi( token, &vertex );
+			o = Parse( v );
+			Q_strtoi( o.memory, &vertex );
 
 			BufferBindNode node {
 				.id             = ( uint32 ) id,
@@ -772,8 +775,8 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 			continue;
 		}
 
-		if ( !Q_stricmp( token, "push" ) ) {
-			PushConstNode node = ParsePushConst( text, nodesToBuffer );
+		if ( o == "push" ) {
+			PushConstNode node = ParsePushConst( v, nodesToBuffer );
 			out.Push( *( ExecutionGraphNode* ) &node );
 
 			id++;
@@ -781,23 +784,23 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 			continue;
 		}
 
-		if ( !Q_stricmp( token, "buffer" ) ) {
-			token = COM_ParseExt2( text, false );
+		if ( o == "buffer" ) {
+			o = Parse( v );
 
-			std::string name = token;
+			std::string name { o.memory, o.size };
 
 			int bufferID;
 			int size;
 			int usage;
 
-			token = COM_ParseExt2( text, false );
-			Q_strtoi( token, &bufferID );
+			o = Parse( v );
+			Q_strtoi( o.memory, &bufferID );
 
-			token = COM_ParseExt2( text, false );
-			Q_strtoi( token, &size );
+			o = Parse( v );
+			Q_strtoi( o.memory, &size );
 
-			token = COM_ParseExt2( text, false );
-			Q_strtoi( token, &usage );
+			o = Parse( v );
+			Q_strtoi( o.memory, &usage );
 
 			nodesToBuffer[name] = bufferID;
 
@@ -815,7 +818,7 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 			continue;
 		}
 
-		if ( !Q_stricmp( token, "image" ) ) {
+		if ( o == "image" ) {
 			// out.Push( *( ExecutionGraphNode* ) &ParsePushConst( text, nodesToBuffer ) );
 
 			id++;
@@ -823,7 +826,7 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 			continue;
 		}
 
-		if ( !Q_stricmp( token, "external" ) ) {
+		if ( o == "external" ) {
 			ExternalNode node {
 				.id               = id,
 				.acquireSwapChain = true
@@ -836,11 +839,11 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 			continue;
 		}
 
-		if ( !Q_stricmp( token, "present" ) ) {
+		if ( o == "present" ) {
 			uint32 nodeDeps;
 			uint32 nodeDepsTypes;
 
-			ParseNodeDeps( text, nodesToSPIRV, &nodeDeps, &nodeDepsTypes );
+			ParseNodeDeps( v, nodesToSPIRV, &nodeDeps, &nodeDepsTypes );
 
 			PresentNode node {
 				.id                  = id,
@@ -855,7 +858,7 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 
 			continue;
 		}
-	}
+	} while ( v.size );
 
 	return out;
 }
