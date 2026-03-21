@@ -776,7 +776,7 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 				"local_size_z"
 			};
 
-			out += "layout ( ";
+			out += "\n\nlayout ( ";
 
 			int i = 0;
 			while ( true ) {
@@ -805,6 +805,28 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 			out += " ) in";
 
 			*stage = COMPUTE;
+
+			continue;
+		}
+
+		if ( o == "Push" ) {
+			if ( Parse( v ) != "{" ) {
+				continue;
+			}
+
+			out += "\n\nlayout ( scalar, push_constant ) uniform Push {";
+
+			while ( true ) {
+				o = Parse( v, &outStr );
+
+				if ( o == "}" ) {
+					break;
+				}
+
+				out += outStr;
+			}
+
+			out += "\n} push";
 
 			continue;
 		}
