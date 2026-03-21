@@ -937,7 +937,7 @@ R_CullIQM
 */
 static cullResult_t R_CullIQM( trRefEntity_t *ent ) {
 	vec3_t     localBounds[ 2 ];
-	float      scale = ent->e.skeleton.scale;
+	float      scale = ent->skeleton.scale;
 	IQModel_t *model = tr.currentModel->iqm;
 	IQAnim_t  *anim = model->anims;
 	float     *bounds;
@@ -955,7 +955,7 @@ static cullResult_t R_CullIQM( trRefEntity_t *ent ) {
 
 	// merge bounding box provided by skeleton
 	BoundsAdd( localBounds[ 0 ], localBounds[ 1 ],
-		   ent->e.skeleton.bounds[ 0 ], ent->e.skeleton.bounds[ 1 ] );
+		   ent->skeleton.bounds[ 0 ], ent->skeleton.bounds[ 1 ] );
 
 	VectorScale( localBounds[0], scale, ent->localBounds[ 0 ] );
 	VectorScale( localBounds[1], scale, ent->localBounds[ 1 ] );

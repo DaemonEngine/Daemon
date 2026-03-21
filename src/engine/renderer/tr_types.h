@@ -49,7 +49,7 @@ using bool8_t = uint8_t;
 
 // XreaL BEGIN
 #define MAX_REF_LIGHTS     1024
-#define MAX_REF_ENTITIES   8191 // can't be increased without changing drawsurf bit packing
+#define MAX_REF_ENTITIES   16384 // can't be increased without changing drawsurf bit packing
 #define MAX_BONES          256
 #define MAX_WEIGHTS        4 // GPU vertex skinning limit, never change this without rewriting many GLSL shaders
 // XreaL END
@@ -57,12 +57,21 @@ using bool8_t = uint8_t;
 #define MAX_ENTITIES       MAX_REF_ENTITIES // RB: for compatibility
 
 // renderfx flags
-#define RF_THIRD_PERSON    0x000002 // don't draw through eyes, only mirrors (player bodies, chat sprites)
-#define RF_FIRST_PERSON    0x000004 // only draw through eyes (view weapon, damage blood blob)
-#define RF_DEPTHHACK       0x000008 // for view weapon Z crunching
-#define RF_NOSHADOW        0x000010 // don't add stencil shadows
+enum RenderFx : uint8_t {
+	RF_THIRD_PERSON = 0x000001, // don't draw through eyes, only mirrors (player bodies, chat sprites)
+	RF_FIRST_PERSON = 0x000002, // only draw through eyes (view weapon, damage blood blob)
+	RF_DEPTHHACK    = 0x000004, // for view weapon Z crunching
+	RF_NOSHADOW     = 0x000008, // don't add stencil shadows
+	RF_SWAPCULL     = 0x000010  // swap CT_FRONT_SIDED and CT_BACK_SIDED
+};
 
-#define RF_SWAPCULL      0x000040 // swap CT_FRONT_SIDED and CT_BACK_SIDED
+inline RenderFx operator|( const RenderFx& lhs, const RenderFx& rhs ) {
+	return ( RenderFx ) ( ( uint8_t ) lhs | ( uint8_t ) rhs );
+}
+
+inline RenderFx operator|=( const RenderFx& lhs, const RenderFx& rhs ) {
+	return ( RenderFx ) ( ( uint8_t ) lhs | ( uint8_t ) rhs );
+}
 
 // refdef flags
 #define RDF_NOWORLDMODEL ( 1 << 0 ) // used for player configuration screen
@@ -120,7 +129,7 @@ struct poly_t
 	polyVert_t *verts;
 };
 
-enum class refEntityType_t
+enum class refEntityType_t : int8_t
 {
   RT_MODEL,
 
@@ -154,6 +163,28 @@ enum class refSkeletonType_t
   SK_ABSOLUTE
 };
 
+enum BoneModType {
+	BONE_ROTATE,             // Rotates the bone at BoneMod::index by BoneMod::rotation
+	/* Builds an extra skeleton from refEntity_t::animationHandle, use animationHandle2 for the main skeleton,
+	*  Used to combine torso and legs sketons for human models since they use the same refEntity */
+	BUILD_EXTRA_SKELETON,
+	BONE_FROM_EXTRA_SKELETON, // Use bone BoneMod::animationHandle from the extra skeleton instead of the main one
+	BUILD_EXTRA_BLEND_SKELETON
+};
+
+struct BoneMod {
+	int index;
+	vec3_t translation;
+	quat_t rotation;
+	int type = 0;
+	int count;
+	int animationHandle;
+	int startFrame;
+	int endFrame;
+	float lerp;
+	float blendLerp;
+};
+
 struct alignas(16) refSkeleton_t
 {
 	refSkeletonType_t type; // skeleton has been reset
@@ -168,22 +199,21 @@ struct alignas(16) refSkeleton_t
 
 // XreaL END
 
+enum EntityTag : uint8_t {
+	NONE,
+	ON_TAG,
+	ON_TAG_ROTATED
+};
+
 struct refEntity_t
 {
-	refEntityType_t reType;
-	int             renderfx;
-
-	qhandle_t       hModel; // opaque type outside refresh
+	qhandle_t hModel; // opaque type outside refresh
 
 	// most recent data
-	vec3_t    axis[ 3 ]; // rotation vectors
-	bool8_t  nonNormalizedAxes; // axis are not normalized, i.e. they have scale
-	vec3_t    origin;
-	int       frame;
+	int16_t   frame;
 
 	// previous data for frame interpolation
-	vec3_t    oldorigin; // also used as MODEL_BEAM's "to"
-	int       oldframe;
+	int16_t   oldframe;
 	float     backlerp; // 0.0 = current, 1.0 = old
 
 	// texturing
@@ -192,7 +222,6 @@ struct refEntity_t
 	qhandle_t customShader; // use one image for the entire thing
 
 	// misc
-	Color::Color32Bit shaderRGBA; // colors used by rgbgen entity shaders
 	float shaderTexCoord[ 2 ]; // texture coordinates used by tcMod entity modifiers
 	float shaderTime; // subtracted from refdef time to control effect start times
 
@@ -202,11 +231,69 @@ struct refEntity_t
 
 	int altShaderIndex;
 
-	// KEEP SKELETON AT THE END OF THE STRUCTURE
-	// it is to make a serialization hack for refEntity_t easier
-	// by memcpying up to skeleton and then serializing skeleton
-	refSkeleton_t skeleton;
+	// Skeleton information
+	qhandle_t animationHandle;
+	int16_t   startFrame;
+	int16_t   endFrame;
+	float     lerp;
 
+	qhandle_t animationHandle2;
+	int16_t   startFrame2;
+	int16_t   endFrame2;
+	float     lerp2;
+
+	float     blendLerp;
+	float     scale;
+
+	// All of the 1-byte types are placed below for better packing
+	refEntityType_t reType;
+
+	RenderFx  renderfx;
+
+	EntityTag positionOnTag;
+
+	int8_t    clearOrigin;
+	int8_t    clearOrigin2;
+
+	int8_t    boundsAdd;
+
+	int8_t    nonNormalizedAxes; // axis are not normalized, i.e. they have scale
+
+	int8_t    active;
+
+	uint16_t  attachmentEntity;
+
+	uint16_t  padding; // for better address alignment of shaderRGBA
+
+	Color::Color32Bit shaderRGBA; // colors used by rgbgen entity shaders
+
+	vec4_t    dynamicLight; // r, g, b, radius; pre-multiplied by intensity
+
+	vec3_t    axis[3]; // rotation vectors
+
+	vec3_t    origin;
+	vec3_t    oldorigin; // also used as MODEL_BEAM's "to"
+
+	vec3_t    boundsRotation;
+
+	std::string tag;
+
+	std::vector<BoneMod> boneMods;
+};
+
+struct EntityUpdate {
+	refEntity_t ent;
+	uint16_t    id;
+};
+
+struct LerpTagUpdate {
+	std::string tag;
+	uint16_t    id;
+};
+
+struct LerpTagSync {
+	orientation_t entityOrientation;
+	orientation_t orientation;
 };
 
 // ================================================================================================
