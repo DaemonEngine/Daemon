@@ -275,7 +275,6 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 				BuildGraphicsNode( graphicsNode.vertexID, graphicsNode.fragmentID, &pipeline, &pipelineLayout );
 
 				uint32 nodeDeps      = graphicsNode.nodeDependencies;
-				// uint32 nodeDepsTypes = graphicsNode.nodeDependencyTypes;
 
 				VkPipelineStageFlags2 srcStage;
 				VkAccessFlags2        srcAccess;
@@ -388,7 +387,6 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 				presentNode = *( PresentNode* ) &node;
 
 				uint32 nodeDeps      = presentNode.nodeDependencies;
-				uint32 nodeDepsTypes = presentNode.nodeDependencyTypes;
 
 				VkPipelineStageFlags2 srcStage  = 0;
 				VkAccessFlags2        srcAccess = 0;
@@ -402,12 +400,12 @@ uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const 
 							srcAccess |= VK_ACCESS_2_SHADER_WRITE_BIT;
 							break;
 						case NODE_GRAPHICS:
-							srcStage  |= BitSet( nodeDepsTypes, dep )
+							/* srcStage  |= BitSet( nodeDepsTypes, dep )
 							             ? VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
 							             : VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
 							srcAccess |= BitSet( nodeDepsTypes, dep )
 							             ? VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
-							             : VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+							             : VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT; */
 							break;
 					}
 
@@ -568,8 +566,7 @@ uint64 ExecutionGraph::Exec() {
 }
 
 void ParseNodeDeps( StringView& v, std::unordered_map<std::string, uint32>& nodes, uint32* nodeDeps ) {
-	*nodeDeps      = 0;
-	bool colourDep = false;
+	*nodeDeps = 0;
 
 	while( true ) {
 		StringView o = Parse( v );
@@ -582,18 +579,9 @@ void ParseNodeDeps( StringView& v, std::unordered_map<std::string, uint32>& node
 			break;
 		}
 
-		/* if ( o == "COLOR" ) {
-			colourDep = true;
-			break;
-		} */
-
 		uint32 dep = nodes[std::string { o.memory, o.size }];
 
 		SetBit( nodeDeps, dep );
-
-		if ( colourDep ) {
-			// SetBit( nodeDepsTypes, dep );
-		}
 	}
 }
 
@@ -709,7 +697,6 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 							.workgroupCount2     = ( uint16 ) workgroupCount[1],
 							.workgroupCount3     = ( uint16 ) workgroupCount[2],
 							.nodeDependencies    = nodeDeps
-							// .nodeDependencyTypes = nodeDepsTypes
 						};
 
 						out.Push( *( ExecutionGraphNode* ) &node );
@@ -739,8 +726,7 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 							.id                  = id,
 							.vertexID            = ( uint16 ) vertex,
 							.fragmentID          = ( uint16 ) fragment,
-							.nodeDependencies    = nodeDeps,
-							// .nodeDependencyTypes = nodeDepsTypes
+							.nodeDependencies    = nodeDeps
 						};
 
 						out.Push( *( ExecutionGraphNode* ) &node );
@@ -860,8 +846,7 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 			PresentNode node {
 				.id                  = id,
 				.active              = true,
-				.nodeDependencies    = nodeDeps,
-				// .nodeDependencyTypes = nodeDepsTypes
+				.nodeDependencies    = nodeDeps
 			};
 
 			out.Push( *( ExecutionGraphNode* ) &node );

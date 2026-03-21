@@ -114,7 +114,7 @@ struct GraphicsNode {
 	uint16 fragmentID;
 	uint16 pipelineStates;
 	uint32 nodeDependencies;
-	uint32 nodeDependencyTypes;
+	uint32 padding;
 	uint64 graphicsSettings;
 };
 
@@ -224,8 +224,7 @@ struct PresentNode {
 	uint8  id;
 	bool   active;
 	uint32 nodeDependencies;
-	uint32 nodeDependencyTypes;
-	uint8  padding[12];
+	uint8  padding[16];
 };
 
 class ExecutionGraph {
