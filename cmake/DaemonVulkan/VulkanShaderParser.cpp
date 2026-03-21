@@ -598,7 +598,7 @@ static std::unordered_map<std::string, std::string> bufferPointerTypes;
 static std::string                                  extensions;
 
 std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_t* pushConstSize,
-	int insertCount = 0, int lineCount = 0 ) {
+	int insertCount = 0, int lineCount = 0, uint16_t* workGroupSize = nullptr ) {
 	std::string out;
 
 	int insertStartCount = insertCount;
@@ -761,6 +761,50 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 
 				extensions += outStr;
 			} while ( o != "require" );
+
+			continue;
+		}
+
+		if ( o == "WorkGroupSize" ) {
+			if ( Parse( v ) != "{" ) {
+				continue;
+			}
+
+			static constexpr const char* workGroupSizeNames[] {
+				"local_size_x",
+				"local_size_y",
+				"local_size_z"
+			};
+
+			out += "layout ( ";
+
+			int i = 0;
+			while ( true ) {
+				o = Parse( v );
+
+				if ( o == "{" || o == "}" ) {
+					break;
+				}
+
+				if ( o == "," ) {
+					continue;
+				}
+
+				if ( i ) {
+					out += ", ";
+				}
+
+				out += workGroupSizeNames[i];
+				out += " = " + std::string { o.memory, o.size };
+
+				workGroupSize[i] = strtod( o.memory, nullptr );
+
+				i++;
+			}
+
+			out += " ) in";
+
+			*stage = COMPUTE;
 
 			continue;
 		}
@@ -975,6 +1019,7 @@ int main( int argc, char** argv ) {
 		"\tconst SPIRVType type;\n"
 		"\tconst uint32    size;\n"
 		"\tconst uint32    pushConstSize;\n"
+		"\tconst uint16    workgroupSize[3];"
 		"};\n\n"
 		"constexpr uint32 spirvCount = %u;\n\n"
 		"const SPIRVModule SPIRVBin[] = {\n",
@@ -1053,8 +1098,9 @@ int main( int argc, char** argv ) {
 		std::string name       = nameOffset == std::string::npos ? path : path.substr( nameOffset );
 		std::string nameNoExt  = name.substr( 0, name.rfind( "." ) );
 
-		Stage stage            = FRAGMENT;
-		uint32_t pushConstID   = 0;
+		Stage    stage            = FRAGMENT;
+		uint32_t pushConstID      = 0;
+		uint16_t workGroupSize[3]  {};
 
 		currentSPIRVID         = i - 3;
 
@@ -1067,7 +1113,7 @@ int main( int argc, char** argv ) {
 
 			uint32_t pushConstSize = 0;
 
-			std::string processedSrc = ProcessInserts( glslSrc, &stage, &pushConstSize, 0, 0 );
+			std::string processedSrc = ProcessInserts( glslSrc, &stage, &pushConstSize, 0, 0, workGroupSize );
 			processedSrc = AddPointers( processedSrc );
 
 			fwrite( processedSrc.c_str(), sizeof( char ), processedSrc.size(), processedGLSL.file );
@@ -1125,8 +1171,15 @@ int main( int argc, char** argv ) {
 
 		fprintf( spirvBinH.file, " };" );
 
-		fprintf( spirvH.file,    "\t{ ( uint32* ) %s, %s, %u, %u }",
-			( nameNoExt + "Bin" ).c_str(), spirvType.c_str(), binSize, pushConstID);
+		if ( stage == COMPUTE ) {
+			for ( uint16_t& size : workGroupSize ) {
+				size = size ? size : 1;
+			}
+		}
+
+		fprintf( spirvH.file,    "\t{ ( uint32* ) %s, %s, %u, %u, { %u, %u, %u } }",
+			( nameNoExt + "Bin" ).c_str(), spirvType.c_str(), binSize, pushConstID,
+			workGroupSize[0], workGroupSize[1], workGroupSize[2] );
 		
 		SPIRVMap.push_back( nameNoExt );
 
