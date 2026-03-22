@@ -583,8 +583,6 @@ void ProcessImagesBuffers( const std::string& shaderText ) {
 	} while ( v.size );
 }
 
-static std::unordered_set<std::string> inserts;
-
 struct BufferPushIDs {
 	uint32_t count = 0;
 	uint32_t ids[16];
@@ -596,6 +594,86 @@ static uint32_t                                     currentSPIRVID = 0;
 static std::unordered_set<std::string>              bufferPointers;
 static std::unordered_map<std::string, std::string> bufferPointerTypes;
 static std::string                                  extensions;
+
+std::string ParsePushConst( StringView& v, uint32_t* pushConstSize ) {
+	std::string out;
+	std::string outStr;
+
+	while ( true ) {
+		StringView o = Parse( v, &outStr );
+
+		if ( o == "}" ) {
+			out += outStr;
+
+			break;
+		}
+
+		bool constPointer = o == "const";
+
+		if ( constPointer ) {
+			o = Parse( v, &outStr );
+		}
+
+		out += outStr;
+
+		std::string type { o.memory, o.size };
+
+		o = Parse( v, &outStr );
+
+		bool pointer = o == "*";
+
+		if ( pointer ) {
+			o = Parse( v, &outStr );
+
+			out += constPointer ? "_ConstPointer" : "_Pointer";
+
+			std::string pointerType = type + ( constPointer ? "_ConstPointer" : "_Pointer" );
+
+			if ( !bufferPointerTypes.contains( pointerType ) ) {
+				static const std::string bufPointer = "layout ( scalar, buffer_reference, buffer_reference_align = 4 ) ";
+
+				bufferPointerTypes[pointerType] =
+						bufPointer
+					+ ( constPointer ? "restrict readonly buffer " : "restrict buffer " )
+					+ pointerType + " {\n\t"
+					+ type
+					+ " memory[];\n};";
+			}
+		}
+
+		out += outStr;
+
+		std::string name { o.memory, o.size };
+
+		if ( pointer ) {
+			bufferPointers.insert( name );
+		}
+
+		o = Parse( v, &outStr ); // ;
+
+		out += outStr;
+
+		if ( pointer ) {
+			*pushConstSize += 8;
+
+			if ( buffers.find( name ) != buffers.end() ) {
+				BufferPushIDs& pushIDs = bufferPushIDs[currentSPIRVID];
+
+				pushIDs.ids[pushIDs.count] = stoi( buffers[name].substr( 0, buffers[name].find( "," ) ) );
+				pushIDs.count++;
+			}
+		} else if ( type == "uint" || type == "uint32" || type == "float" ) {
+			*pushConstSize += 4;
+		} else {
+			// Assumed BDA
+			*pushConstSize += 8;
+		}
+	}
+
+	return out;
+}
+
+static std::unordered_set<std::string> inserts;
 
 std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_t* pushConstSize,
 	int insertCount = 0, int lineCount = 0, uint16_t* workGroupSize = nullptr ) {
@@ -679,76 +757,7 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 				out += outStr;
 			}
 
-			while ( true ) {
-				o = Parse( v, &outStr );
-
-				if ( o == "}" ) {
-					out += outStr;
-
-					break;
-				}
-
-				bool constPointer = o == "const";
-
-				if ( constPointer ) {
-					o = Parse( v, &outStr );
-				}
-
-				out += outStr;
-
-				std::string type { o.memory, o.size };
-
-				o = Parse( v, &outStr );
-
-				bool pointer = o == "*";
-
-				if ( pointer ) {
-					o = Parse( v, &outStr );
-
-					out += constPointer ? "_ConstPointer" : "_Pointer";
-
-					std::string pointerType = type + ( constPointer ? "_ConstPointer" : "_Pointer" );
-
-					if ( !bufferPointerTypes.contains( pointerType ) ) {
-						static const std::string bufPointer = "layout ( scalar, buffer_reference, buffer_reference_align = 4 ) ";
-
-						bufferPointerTypes[pointerType] =
-							  bufPointer
-							+ ( constPointer ? "restrict readonly buffer " : "restrict buffer " )
-							+ pointerType + " {\n\t"
-							+ type
-							+ " memory[];\n};";
-					}
-				}
-
-				out += outStr;
-
-				std::string name { o.memory, o.size };
-
-				if ( pointer ) {
-					bufferPointers.insert( name );
-				}
-
-				o = Parse( v, &outStr ); // ;
-
-				out += outStr;
-
-				if ( pointer ) {
-					*pushConstSize += 8;
-
-					if ( buffers.find( name ) != buffers.end() ) {
-						BufferPushIDs& pushIDs = bufferPushIDs[currentSPIRVID];
-
-						pushIDs.ids[pushIDs.count] = stoi( buffers[name].substr( 0, buffers[name].find( "," ) ) );
-						pushIDs.count++;
-					}
-				} else if ( type == "uint" || type == "uint32" || type == "float" ) {
-					*pushConstSize += 4;
-				} else {
-					// Assumed BDA
-					*pushConstSize += 8;
-				}
-			};
+			out += ParsePushConst( v, pushConstSize );
 
 			continue;
 		}
@@ -816,17 +825,9 @@ std::string ProcessInserts( const std::string& shaderText, Stage* stage, uint32_
 
 			out += "\n\nlayout ( scalar, push_constant ) uniform Push {";
 
-			while ( true ) {
-				o = Parse( v, &outStr );
+			out += ParsePushConst( v, pushConstSize );
 
-				if ( o == "}" ) {
-					break;
-				}
-
-				out += outStr;
-			}
-
-			out += "\n} push";
+			out += " push";
 
 			continue;
 		}
