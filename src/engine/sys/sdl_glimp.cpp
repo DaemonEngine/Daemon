@@ -179,6 +179,10 @@ static Cvar::Cvar<bool> workaround_glExtension_glsl120_disableShaderDrawParamete
 	"workaround.glExtension.glsl120.disableShaderDrawParameters",
 	"Disable ARB_shader_draw_parameters on GLSL 1.20",
 	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glExtension_glsl120_disableTextureBarrier(
+	"workaround.glExtension.glsl120.disableTextureBarrier",
+	"Disable ARB_texture_barrier on GLSL 1.20",
+	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glExtension_glsl120_disableGpuShader4(
 	"workaround.glExtension.glsl120.disableGpuShader4",
 	"Disable EXT_gpu_shader4 on GLSL 1.20",
@@ -2386,24 +2390,33 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 4.5
 	glConfig.textureBarrierAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_barrier, r_arb_texture_barrier.Get() );
 
-	if ( glConfig.textureBarrierAvailable
-		&& glConfig.hardwareVendor == glHardwareVendor_t::MTHREADS
-		&& workaround_glHardware_mthreads_disableTextureBarrier.Get() )
+	if ( glConfig.textureBarrierAvailable )
 	{
-		/* Texture barrier doesn't make sense on a tiled GPU architecture,
-		so implementing it on Moore Threads hardware would be meaningless,
-		see: https://github.com/DaemonEngine/Daemon/pull/1890#issuecomment-3872010479
+		if ( glConfig.hardwareVendor == glHardwareVendor_t::MTHREADS
+			&& workaround_glHardware_mthreads_disableTextureBarrier.Get() )
+		{
+			/* Texture barrier doesn't make sense on a tiled GPU architecture,
+			so implementing it on Moore Threads hardware would be meaningless,
+			see: https://github.com/DaemonEngine/Daemon/pull/1890#issuecomment-3872010479
 
-		It's still possible for drivers to implement unoptimal emulation just
-		to provide compliance.
+			It's still possible for drivers to implement unoptimal emulation just
+			to provide compliance.
 
-		It happens that the implementation of the MTT actually produces garbage
-		on screen, see: https://github.com/DaemonEngine/Daemon/issues/1891
+			It happens that the implementation of the MTT actually produces garbage
+			on screen, see: https://github.com/DaemonEngine/Daemon/issues/1891
 
-		Either being unoptimal, or the implementation being buggy, we better
-		disable the feature on such hardware. */
-		logger.Warn( "Found Moore Threads hardware with tiled architecture, disabling ARB_texture_barrier.");
-		glConfig.textureBarrierAvailable = false;
+			Either being unoptimal, or the implementation being buggy, we better
+			disable the feature on such hardware. */
+			logger.Warn( "Found Moore Threads hardware with tiled architecture, disabling ARB_texture_barrier.");
+			glConfig.textureBarrierAvailable = false;
+		}
+		else if ( glConfig.shadingLanguageVersion <= 120
+			&& workaround_glExtension_glsl120_disableTextureBarrier.Get() )
+		{
+			// Seen as available but broken on ATI RV570 with Mesa 25.2.8 r300 driver.
+			logger.Warn( "Found ARB_texture_barrier with likely incompatible GLSL 1.20, disabling ARB_texture_barrier." );
+			glConfig.textureBarrierAvailable = false;
+		}
 	}
 
 	// made required in OpenGL 4.3
@@ -2705,6 +2718,7 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_glDriver_nvidia_v340_disableTextureGather );
 	Cvar::Latch( workaround_glExtension_missingArbFbo_useExtFbo );
 	Cvar::Latch( workaround_glExtension_glsl120_disableShaderDrawParameters );
+	Cvar::Latch( workaround_glExtension_glsl120_disableTextureBarrier );
 	Cvar::Latch( workaround_glExtension_glsl120_disableGpuShader4 );
 	Cvar::Latch( workaround_glHardware_intel_useFirstProvokinVertex );
 	Cvar::Latch( workaround_glHardware_mthreads_disableTextureBarrier );
