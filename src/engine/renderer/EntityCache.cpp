@@ -114,6 +114,7 @@ static void BuildSkeleton( trRefEntity_t* ent ) {
 
 		for ( const BoneMod& boneMod : ent->e.boneMods ) {
 			if ( boneMod.type == BONE_ROTATE ) {
+				VectorAdd( skeleton2->bones[boneMod.index].t.trans, boneMod.translation, skeleton2->bones[boneMod.index].t.trans );
 				QuatMultiply2( skeleton2->bones[boneMod.index].t.rot, boneMod.rotation );
 			}
 		}
