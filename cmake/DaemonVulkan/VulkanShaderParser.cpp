@@ -460,7 +460,7 @@ void ParseImage( StringView& data, Img type ) {
 
 		image += std::string { o.memory, o.size } + ", ";
 
-		if ( type == IMG_2D ) {
+		if ( type & ( IMG_2D | IMG_CUBE ) ) {
 			image += "0, ";
 		} else {
 			o = Parse( data );
