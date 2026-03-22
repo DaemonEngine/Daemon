@@ -46,15 +46,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Buffers.glsl"
 
-layout ( local_size_x = 64, local_size_y = 1, local_size_z = 1 ) in;
+WorkGroupSize { 64 };
 
-layout ( scalar, push_constant ) uniform Push {
+Push {
 	const uint* msgStreamRead;
 	uint* msgStreamWrite;
 	uint* buf2;
 	uint* buf3;
 	uint* buf4;
-} push;
+};
 
 void PushMsg( inout uint id, const uint msg ) {
 	msgStreamWrite[id + 1] = msg;
@@ -88,12 +88,7 @@ void PushMsg( inout uint id, const bool msg ) {
 // Image2D testImg2 { rgba16f rel 1.0f };
 Image2D testImg3 { rgba16f 1 1 };
 Image3D testImg4 { rgba16f 1 1 5 };
-ImageCube testImg5 { rgba16f 1 1 5 };
-
-Buffer buf1 { 566 3 };
-Buffer buf2 { 5667 30 };
-Buffer buf3 { 5664545 0 };
-Buffer buf5 { 5664545 };
+ImageCube testImg5 { rgba16f 1 1 };
 
 void main() [[maximally_reconverges]] {
 	const uint globalGroupID      = GLOBAL_GROUP_ID;

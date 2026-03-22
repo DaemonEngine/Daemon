@@ -41,14 +41,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Resources.glsl"
 
-layout ( local_size_x = 64, local_size_y = 1, local_size_z = 1 ) in;
+WorkGroupSize { 64 };
 
-layout ( scalar, push_constant ) uniform Push {
+Push {
 	EntityMsg* entityRingBuffer;
 	LightMsg*  lightRingBuffer;
 	Entity* entities;
 	Light*  lights;
-} push;
+};
 
 void main() {
 	const uint globalGroupID      = GLOBAL_GROUP_ID;
