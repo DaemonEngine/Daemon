@@ -32,7 +32,14 @@ IN(flat) vec4 var_FogSurface;
 
 #ifdef OUTSIDE_FOG
 #define NUM_PLANES 5
-IN(flat) vec4 var_FogPlanes[NUM_PLANES];
+
+/* Not supported on GLSL 1.20:
+IN(flat) vec4 var_FogPlanes[NUM_PLANES]; */
+IN(flat) vec4 var_FogPlane0;
+IN(flat) vec4 var_FogPlane1;
+IN(flat) vec4 var_FogPlane2;
+IN(flat) vec4 var_FogPlane3;
+IN(flat) vec4 var_FogPlane4;
 #endif
 
 uniform sampler2D	u_DepthMap;
@@ -49,11 +56,19 @@ DECLARE_OUTPUT(vec4)
 // Trace against the inner sides of the fog brush
 float FogDistance(vec3 start, vec3 dir)
 {
+	vec4 fogPlanes[NUM_PLANES];
+	fogPlanes[0] = var_FogPlane0;
+	fogPlanes[1] = var_FogPlane1;
+	fogPlanes[2] = var_FogPlane2;
+	fogPlanes[3] = var_FogPlane3;
+	fogPlanes[4] = var_FogPlane4;
+
 	vec4 start4 = vec4(-start, 1.0);
 	float minDist = 1.0e20;
 	for (int i = 0; i < NUM_PLANES; i++)
 	{
-		float dist = dot(start4, var_FogPlanes[i]) / dot(dir, var_FogPlanes[i].xyz) ;
+		float dist = dot(start4, fogPlanes[i]) / dot(dir, fogPlanes[i].xyz) ;
+
 		if (dist >= 0.0)
 		{
 			minDist = min(minDist, dist);

@@ -41,9 +41,21 @@ OUT(smooth) vec3 var_Position;
 OUT(flat) vec4 var_FogSurface;
 
 #ifdef OUTSIDE_FOG
-#define NUM_PLANES 5
-IN vec4 attr_FogPlanes[NUM_PLANES];
-OUT(flat) vec4 var_FogPlanes[NUM_PLANES];
+/* Not supported on GLSL 1.20:
+IN(flat) attr_FogPlanes[NUM_PLANES]; */
+IN vec4 attr_FogPlane0;
+IN vec4 attr_FogPlane1;
+IN vec4 attr_FogPlane2;
+IN vec4 attr_FogPlane3;
+IN vec4 attr_FogPlane4;
+
+/* Not supported on GLSL 1.20:
+OUT(flat) var_FogPlanes[NUM_PLANES]; */
+OUT(flat) vec4 var_FogPlane0;
+OUT(flat) vec4 var_FogPlane1;
+OUT(flat) vec4 var_FogPlane2;
+OUT(flat) vec4 var_FogPlane3;
+OUT(flat) vec4 var_FogPlane4;
 #endif
 
 void main()
@@ -54,9 +66,10 @@ void main()
 	var_FogSurface = attr_FogSurface;
 
 	#ifdef OUTSIDE_FOG
-		for (int i = 0; i < NUM_PLANES; i++)
-		{
-			var_FogPlanes[i] = attr_FogPlanes[i];
-		}
+		var_FogPlane0 = attr_FogPlane0;
+		var_FogPlane1 = attr_FogPlane1;
+		var_FogPlane2 = attr_FogPlane2;
+		var_FogPlane3 = attr_FogPlane3;
+		var_FogPlane4 = attr_FogPlane4;
 	#endif
 }

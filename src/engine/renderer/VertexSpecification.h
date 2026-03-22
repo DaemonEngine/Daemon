@@ -62,7 +62,7 @@ static const char* const attributeNames[] =
 	"attr_Position2",
 	"attr_QTangent2",
 	"attr_FogSurface",
-	"attr_FogPlanes", nullptr, nullptr, nullptr, nullptr,
+	"attr_FogPlane0", "attr_FogPlane1", "attr_FogPlane2", "attr_FogPlane3", "attr_FogPlane4",
 };
 
 enum
