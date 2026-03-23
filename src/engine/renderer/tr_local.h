@@ -1283,7 +1283,6 @@ enum
 	enum {
 		LINEAR_RGBGEN = ( 1 << 0 ),
 		LINEAR_COLORMAP = ( 1 << 1 ),
-		LINEAR_SPECULARMAP = ( 1 << 2 ),
 	};
 
 // *INDENT-ON*
