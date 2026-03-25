@@ -590,4 +590,10 @@ SharedMemory SharedMemory::Create(size_t size)
 }
 #endif
 
+std::string AbiVersion()
+{
+	return std::string(IPC::SYSCALL_ABI_VERSION)
+		+ (IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES ? "+compatbreak" : "");
+}
+
 } // namespace IPC
