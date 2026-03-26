@@ -1035,8 +1035,6 @@ public:
 		return "USE_BSP_SURFACE";
 	}
 
-	bool HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const override;
-
 	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_BSP_SURFACE;
