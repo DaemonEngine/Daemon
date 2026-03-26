@@ -64,7 +64,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TEAMCONFIG_NAME     "teamconfig.cfg"
 
 #define UNNAMED_PLAYER      "UnnamedPlayer"
-#define UNNAMED_SERVER      PRODUCT_NAME " " PRODUCT_VERSION " Server"
+#define UNNAMED_SERVER      "Unnamed " PRODUCT_NAME " Server"
 
 /** file containing our RSA public and private keys */
 #define RSAKEY_FILE        "pubkey"
