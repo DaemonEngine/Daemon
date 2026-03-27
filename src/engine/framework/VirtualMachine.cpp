@@ -88,6 +88,18 @@ static Cvar::Cvar<int> vm_timeout(
 	"Receive timeout in seconds",
 	Cvar::NONE, 2);
 
+#if defined(DAEMON_NACL_RUNTIME_ENABLED)
+static Cvar::Cvar<bool> vm_nacl_available(
+	"vm.nacl.available",
+	"Whether NaCl runtime is available on this platform",
+	Cvar::ROM, true);
+#else
+static Cvar::Cvar<bool> vm_nacl_available(
+	"vm.nacl.available",
+	"Whether NaCl runtime is available on this platform",
+	Cvar::ROM, false);
+#endif
+
 namespace VM {
 
 // https://github.com/Unvanquished/Unvanquished/issues/944#issuecomment-744454772
@@ -497,6 +509,13 @@ void VMBase::Create()
 	std::pair<IPC::Socket, IPC::Socket> pair = IPC::Socket::CreatePair();
 
 	IPC::Socket rootSocket;
+#if !defined(DAEMON_NACL_RUNTIME_ENABLED)
+	if (type == TYPE_NACL || type == TYPE_NACL_LIBPATH) {
+		Sys::Error("NaCl VM is not supported on this platform. "
+		           "Set vm.cgame.type and vm.sgame.type to 3 (native DLL) "
+		           "and use devmap instead of map.");
+	}
+#endif
 	if (type == TYPE_NACL || type == TYPE_NACL_LIBPATH) {
 		std::tie(processHandle, rootSocket) = CreateNaClVM(std::move(pair), name, params.debug.Get(), type == TYPE_NACL, params.debugLoader.Get());
 	} else if (type == TYPE_NATIVE_EXE) {

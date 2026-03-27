@@ -91,6 +91,12 @@ endif()
 
 daemon_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${NACL_ARCH}\"")
 
+# NaCl runtime is only available on architectures that have a NaCl loader.
+set(NACL_RUNTIME_ARCH amd64 i686 armhf)
+if (NACL_ARCH IN_LIST NACL_RUNTIME_ARCH)
+	add_definitions(-DDAEMON_NACL_RUNTIME_ENABLED)
+endif()
+
 option(USE_ARCH_INTRINSICS "Enable custom code using intrinsics functions or asm declarations" ON)
 mark_as_advanced(USE_ARCH_INTRINSICS)
 
@@ -111,6 +117,7 @@ set_arch_intrinsics(${ARCH})
 
 set(amd64_PARENT "i686")
 set(arm64_PARENT "armhf")
+set(ppc64el_PARENT "ppc64")
 
 if (${ARCH}_PARENT)
 	set_arch_intrinsics(${${ARCH}_PARENT})
