@@ -81,6 +81,17 @@ if (LINUX OR FREEBSD)
 		# The nexe is system agnostic so there should be no difference with armel.
 		set(NACL_ARCH "armhf")
 	endif()
+
+	set(BOX64_USAGE ppc64el riscv64)
+	if (ARCH IN_LIST BOX64_USAGE)
+		option(DAEMON_NACL_BOX64_EMULATION "Use Box64 to emulate x86_64 NaCl loader on unsupported platforms" ON)
+		if (DAEMON_NACL_BOX64_EMULATION)
+			# Use Box64 to run x86_64 NaCl loader and amd64 nexe.
+			# Box64 must be installed and available in PATH at runtime.
+			set(NACL_ARCH "amd64")
+			add_definitions(-DDAEMON_NACL_BOX64_EMULATION)
+		endif()
+	endif()
 elseif(APPLE)
 	if ("${ARCH}" STREQUAL arm64)
 		# You can get emulated NaCl going like this:

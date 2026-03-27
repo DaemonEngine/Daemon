@@ -71,13 +71,12 @@ else()
     add_definitions( -DNACL_BUILD_SUBARCH=32 )
   elseif( NACL_ARCH STREQUAL "armhf" )
     add_definitions( -DNACL_BUILD_ARCH=arm )
-  elseif( NACL_ARCH STREQUAL "ppc64el" OR NACL_ARCH STREQUAL "ppc64" )
-    # NaCl does not support PPC, but these defines must be set for native
-    # builds. Use dummy x86 values as PNaCl does for arch-independent builds.
+  else()
+    # NaCl does not support this architecture natively, but these defines must
+    # be set because nacl_config.h is included unconditionally. Use dummy x86
+    # values as PNaCl does for architecture-independent builds.
     add_definitions( -DNACL_BUILD_ARCH=x86 )
     add_definitions( -DNACL_BUILD_SUBARCH=64 )
-  else()
-    message(WARNING "Unknown architecture ${NACL_ARCH}")
   endif()
 endif()
 

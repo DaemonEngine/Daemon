@@ -42,6 +42,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <spawn.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+// POSIX: environ is the process environment, not always declared in headers.
+extern char **environ;
 #ifdef __linux__
 #include <sys/prctl.h>
 #if defined(DAEMON_ARCH_armhf)
@@ -72,6 +74,54 @@ static Cvar::Cvar<bool> workaround_naclSystem_freebsd_disableQualification(
 	"workaround.naclSystem.freebsd.disableQualification",
 	"Disable platform qualification when running Linux NaCl loader on FreeBSD through Linuxulator",
 	Cvar::NONE, true);
+
+#if defined(DAEMON_NACL_BOX64_EMULATION)
+static Cvar::Cvar<bool> workaround_box64_disableQualification(
+	"workaround.box64.disableQualification",
+	"Disable platform qualification when running amd64 NaCl loader under Box64 emulation",
+	Cvar::NONE, true);
+
+static Cvar::Cvar<bool> workaround_box64_disableBootstrap(
+	"workaround.box64.disableBootstrap",
+	"Disable NaCl bootstrap helper when using Box64 emulation",
+	Cvar::NONE, true);
+
+static Cvar::Cvar<std::string> vm_box64_path(
+	"vm.box64.path",
+	"Path to the box64 binary for NaCl emulation (empty = search PATH)",
+	Cvar::NONE, "");
+
+// Resolve box64 binary path by searching PATH if not explicitly set.
+static std::string ResolveBox64Path() {
+	std::string path = vm_box64_path.Get();
+	if (!path.empty()) {
+		return path;
+	}
+
+	const char* envPath = getenv("PATH");
+	if (!envPath) {
+		Sys::Error("Box64 emulation is enabled but PATH is not set and vm.box64.path is empty.");
+	}
+
+	std::string pathStr(envPath);
+	size_t start = 0;
+	while (start < pathStr.size()) {
+		size_t end = pathStr.find(':', start);
+		if (end == std::string::npos) {
+			end = pathStr.size();
+		}
+		std::string candidate = pathStr.substr(start, end - start) + "/box64";
+		if (access(candidate.c_str(), X_OK) == 0) {
+			return candidate;
+		}
+		start = end + 1;
+	}
+
+	Sys::Error("Box64 emulation is enabled but 'box64' was not found in PATH. "
+	           "Install Box64 or set vm.box64.path to the full path of the box64 binary.");
+	return ""; // unreachable
+}
+#endif
 
 static Cvar::Cvar<bool> vm_nacl_qualification(
 	"vm.nacl.qualification",
@@ -128,7 +178,7 @@ static void CheckMinAddressSysctlTooLarge()
 }
 
 // Platform-specific code to load a module
-static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::Socket, IPC::Socket> pair, const char* const* args, bool reserve_mem, FS::File stderrRedirect = FS::File())
+static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::Socket, IPC::Socket> pair, const char* const* args, bool reserve_mem, FS::File stderrRedirect = FS::File(), bool inheritEnvironment = false)
 {
 #ifdef _WIN32
 	// Inherit the socket in the child process
@@ -213,6 +263,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 	if (reserve_mem)
 		VirtualAllocEx(processInfo.hProcess, nullptr, 1 << 30, MEM_RESERVE, PAGE_NOACCESS);
 #endif
+	Q_UNUSED(inheritEnvironment);
 
 	ResumeThread(processInfo.hThread);
 	CloseHandle(processInfo.hThread);
@@ -233,7 +284,13 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 	}
 
 	pid_t pid;
-	int err = posix_spawn(&pid, args[0], &fileActions, nullptr, const_cast<char* const*>(args), nullptr);
+	// By default, the child process gets an empty environment for sandboxing.
+	// When Box64 emulation is used, the child needs to inherit the parent's
+	// environment so Box64 can find its configuration (e.g. ~/.box64rc, HOME)
+	// and honor settings like BOX64_DYNAREC_PERFMAP.
+	char* emptyEnv[] = {nullptr};
+	char** envp = inheritEnvironment ? environ : emptyEnv;
+	int err = posix_spawn(&pid, args[0], &fileActions, nullptr, const_cast<char* const*>(args), envp);
 	posix_spawn_file_actions_destroy(&fileActions);
 	if (err != 0) {
 		Sys::Drop("VM: Failed to spawn process: %s", strerror(err));
@@ -255,6 +312,10 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	char rootSocketRedir[32];
 	std::string module, nacl_loader, irt, bootstrap, modulePath, verbosity;
 	FS::File stderrRedirect;
+#if defined(DAEMON_NACL_BOX64_EMULATION)
+	std::string box64Path;
+	bool usingBox64 = false;
+#endif
 #if !defined(_WIN32) || defined(_WIN64)
 	constexpr bool win32Force64Bit = false;
 #else
@@ -304,6 +365,34 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	}
 
 #if defined(__linux__) || defined(__FreeBSD__)
+#if defined(DAEMON_NACL_BOX64_EMULATION)
+	/* Use Box64 to run the x86_64 NaCl loader on non-x86 architectures.
+	The bootstrap helper uses a double-exec pattern that Box64 cannot handle,
+	so we skip it and prepend "box64" to the nacl_loader command instead. */
+	if (!workaround_box64_disableBootstrap.Get() && vm_nacl_bootstrap.Get()) {
+		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
+
+		if (!FS::RawPath::FileExists(bootstrap)) {
+			Sys::Error("NaCl bootstrap helper not found: %s", bootstrap);
+		}
+
+		args.push_back(bootstrap.c_str());
+		args.push_back(nacl_loader.c_str());
+		args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
+		args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
+	} else {
+		if (workaround_box64_disableBootstrap.Get()) {
+			Log::Notice("Skipping NaCl bootstrap helper for Box64 emulation.");
+		} else {
+			Log::Warn("Not using NaCl bootstrap helper.");
+		}
+		box64Path = ResolveBox64Path();
+		Log::Notice("Using Box64 emulator: %s", box64Path);
+		args.push_back(box64Path.c_str());
+		args.push_back(nacl_loader.c_str());
+		usingBox64 = true;
+	}
+#else
 	if (vm_nacl_bootstrap.Get()) {
 #if defined(DAEMON_ARCH_arm64)
 		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap-armhf");
@@ -323,6 +412,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		Log::Warn("Not using NaCl bootstrap helper.");
 		args.push_back(nacl_loader.c_str());
 	}
+#endif
 #else
 	Q_UNUSED(bootstrap);
 	args.push_back(nacl_loader.c_str());
@@ -381,6 +471,17 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 			enableQualification = false;
 		}
 #endif
+
+#if defined(DAEMON_NACL_BOX64_EMULATION)
+		/* When running the amd64 NaCl loader under Box64, the loader's
+		platform qualification will fail because the CPU is not actually x86_64.
+		Disabling qualification allows the emulated loader to proceed. */
+
+		if (workaround_box64_disableQualification.Get()) {
+			Log::Warn("Disabling NaCL platform qualification for Box64 emulation.");
+			enableQualification = false;
+		}
+#endif
 	}
 	else {
 		Log::Warn("Not using NaCl platform qualification.");
@@ -427,7 +528,11 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		Log::Notice("Using loader args: %s", commandLine.c_str());
 	}
 
-	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect));
+	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect)
+#if defined(DAEMON_NACL_BOX64_EMULATION)
+		, usingBox64
+#endif
+	);
 }
 
 static std::pair<Sys::OSHandle, IPC::Socket> CreateNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug) {
