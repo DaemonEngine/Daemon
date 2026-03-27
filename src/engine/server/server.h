@@ -135,25 +135,25 @@ struct netchan_buffer_t
 struct client_t
 {
 	clientState_t  state;
-	char           userinfo[ MAX_INFO_STRING ]; // name, etc
+	std::string userinfo; // name, etc
 
-	char           reliableCommands[ MAX_RELIABLE_COMMANDS ][ MAX_STRING_CHARS ];
-	int            reliableSequence; // last added reliable message, not necessarily sent or acknowledged yet
-	int            reliableAcknowledge; // last acknowledged reliable message
-	int            reliableSent; // last sent reliable message, not necessarily acknowledged yet
-	int            messageAcknowledge;
+	std::vector<std::string> reliableCommands;
+	uint32_t reliableSequence; // last added reliable message, not necessarily sent or acknowledged yet
+	uint32_t reliableAcknowledge = 0; // last acknowledged reliable message
+	uint32_t previousAcknowledge = 0;
+	int messageAcknowledge;
 
 	int            gamestateMessageNum; // netchan->outgoingSequence of gamestate
 
-	usercmd_t      lastUsercmd;
-	int            lastMessageNum; // for delta compression
-	int            lastClientCommand; // reliable client message sequence
+	usercmd_t lastUsercmd;
+	uint32_t  lastMessageNum;    // for delta compression
+	uint32_t  lastClientCommand; // reliable client message sequence
 	char           lastClientCommandString[ MAX_STRING_CHARS ];
 	sharedEntity_t *gentity; // SV_GentityNum(clientnum)
-	char           name[ MAX_NAME_LENGTH ]; // extracted from userinfo, high bits masked
+	std::string name; // extracted from userinfo, high bits masked
 
 	// downloading
-	char          downloadName[ MAX_OSPATH ]; // if not empty string, we are downloading
+	std::string   downloadName; // if not empty string, we are downloading
 	FS::File*     download; // file being downloaded
 	int           downloadSize; // total bytes (can't use EOF because of paks)
 	int           downloadCount; // bytes sent
@@ -191,7 +191,7 @@ struct client_t
 	//% netchan_buffer_t **netchan_end_queue;
 	netchan_buffer_t *netchan_end_queue;
 
-	char             pubkey[ RSA_STRING_LENGTH ];
+	char pubkey[ RSA_STRING_LENGTH ];
 
 	//bani
 	int downloadnotify;
@@ -339,8 +339,8 @@ void SV_UpdateConfigStrings();
 void SV_GetConfigstring( int index, char *buffer, int bufferSize );
 void SV_SetConfigstringRestrictions( int index, const clientList_t *clientList );
 
-void SV_SetUserinfo( int index, const char *val );
-void SV_GetUserinfo( int index, char *buffer, int bufferSize );
+void SV_SetUserinfo( int index, const std::string& userinfo );
+std::string SV_GetUserinfo( int index );
 void SV_GetPlayerPubkey( int clientNum, char *pubkey, int size );
 
 void SV_CreateBaseline();

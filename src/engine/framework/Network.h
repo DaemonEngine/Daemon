@@ -41,7 +41,17 @@ inline const std::string& OOBHeader()
 template<class... Args>
 void OutOfBandPrint( netsrc_t net_socket, const netadr_t& adr, Str::StringRef format, Args&&... args )
 {
-	std::string message = OOBHeader() + Str::Format( format, std::forward<Args>(args)... );
+	std::string message = Str::Format( format, std::forward<Args>( args )... );
+
+	// This will be read by MSG_ReadString, which expects the string length
+	message.resize( message.size() + 4 );
+	std::move( message.data(), message.data() + message.size() - 4, message.data() + 4 );
+
+	uint32_t* sizeEncode = ( uint32_t* ) message.data();
+	*sizeEncode = message.size() - 4;
+
+	message = OOBHeader() + message;
+
 	NET_SendPacket( net_socket, message.size(), message.c_str(), adr );
 }
 

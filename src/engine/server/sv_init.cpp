@@ -197,20 +197,15 @@ SV_SetUserinfo
 
 ===============
 */
-void SV_SetUserinfo( int index, const char *val )
+void SV_SetUserinfo( int index, const std::string& userinfo )
 {
 	if ( index < 0 || index >= sv_maxClients.Get() )
 	{
 		Sys::Drop( "SV_SetUserinfo: bad index %i", index );
 	}
 
-	if ( !val )
-	{
-		val = "";
-	}
-
-	Q_strncpyz( svs.clients[ index ].userinfo, val, sizeof( svs.clients[ index ].userinfo ) );
-	Q_strncpyz( svs.clients[ index ].name, Info_ValueForKey( val, "name" ), sizeof( svs.clients[ index ].name ) );
+	svs.clients[index].userinfo = userinfo;
+	svs.clients[index].name = InfoStringToMap( userinfo )["name"];
 }
 
 /*
@@ -219,19 +214,14 @@ SV_GetUserinfo
 
 ===============
 */
-void SV_GetUserinfo( int index, char *buffer, int bufferSize )
+std::string SV_GetUserinfo( int index )
 {
-	if ( bufferSize < 1 )
-	{
-		Sys::Drop( "SV_GetUserinfo: bufferSize == %i", bufferSize );
-	}
-
 	if ( index < 0 || index >= sv_maxClients.Get() )
 	{
 		Sys::Drop( "SV_GetUserinfo: bad index %i", index );
 	}
 
-	Q_strncpyz( buffer, svs.clients[ index ].userinfo, bufferSize );
+	return svs.clients[index].userinfo;
 }
 
 /*
@@ -573,9 +563,9 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 
 	// save systeminfo and serverinfo strings
 	cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
-	SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString( CVAR_SYSTEMINFO, true ) );
+	SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString( CVAR_SYSTEMINFO ).c_str() );
 
-	SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO, false ) );
+	SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO ).c_str() );
 	cvar_modifiedFlags &= ~CVAR_SERVERINFO;
 
 	// any media configstring setting now should issue a warning

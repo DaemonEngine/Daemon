@@ -164,6 +164,6 @@ void Cvar_WriteVariables( fileHandle_t f )
 Cvar_InfoString
 =====================
 */
-char* Cvar_InfoString(int flag, bool big) {
-    return Cvar::InfoString(flag, big);
+std::string Cvar_InfoString(int flag) {
+    return Cvar::InfoString(flag);
 }

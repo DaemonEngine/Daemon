@@ -267,11 +267,11 @@ void CL_FillServerCommands(std::vector<std::string>& commands, int start, int en
 
 	if ( end > clc.serverCommandSequence )
 	{
-		Sys::Drop( "CL_FillServerCommand: requested a command not received" );
+		Sys::Drop( "CL_FillServerCommand: requested command not received" );
 	}
 
-	for (int i = start; i <= end; i++) {
-		const char* s = clc.serverCommands[ i & ( MAX_RELIABLE_COMMANDS - 1 ) ];
+	for (int i = start; i < end; i++) {
+		const char* s = clc.serverCommands[i].c_str();
 
 		std::string cmdText = s;
 		if (CL_HandleServerCommand(s, cmdText)) {
@@ -316,7 +316,7 @@ bool CL_GetSnapshot( int snapshotNumber, ipcSnapshot_t *snapshot )
 	snapshot->ps = clSnap->ps;
 	snapshot->b.entities = clSnap->entities;
 
-	CL_FillServerCommands(snapshot->b.serverCommands, clc.lastExecutedServerCommand + 1, clSnap->serverCommandNum);
+	CL_FillServerCommands(snapshot->b.serverCommands, clc.lastExecutedServerCommand, clSnap->serverCommandNum);
 	clc.lastExecutedServerCommand = clSnap->serverCommandNum;
 
 	return true;
@@ -835,7 +835,7 @@ void CL_SetCGameTime()
 	if ( cl.snap.serverTime < cl.oldFrameServerTime )
 	{
 		// Ridah, if this is a localhost, then we are probably loading a savegame
-		if ( !Q_stricmp( cls.servername, "loopback" ) )
+		if ( cls.servername == "loopback" )
 		{
 			// do nothing?
 			CL_FirstSnapshot();
@@ -1057,9 +1057,9 @@ void CGameVM::CGameRocketFrame()
 	cgClientState_t state;
 	state.connectPacketCount = clc.connectPacketCount;
 	state.connState = cls.state;
-	Q_strncpyz( state.servername, cls.servername, sizeof( state.servername ) );
-	Q_strncpyz( state.updateInfoString, cls.updateInfoString, sizeof( state.updateInfoString ) );
-	Q_strncpyz( state.messageString, clc.serverMessage, sizeof( state.messageString ) );
+	state.servername = cls.servername;
+	state.updateInfoString = cls.updateInfoString;
+	state.messageString = clc.serverMessage;
 	state.clientNum = cl.snap.ps.clientNum;
 	this->SendMsg<CGameRocketFrameMsg>(state);
 }
@@ -1479,17 +1479,14 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			break;
 
 		case CG_LAN_SERVERSTATUS:
-			IPC::HandleMsg<LAN::ServerStatusMsg>(channel, std::move(reader), [this] (const std::string& serverAddress, int len, std::string& status, int& res) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				buffer[0] = '\0';
-				res = CL_ServerStatus(serverAddress.c_str(), buffer.get(), len);
-				status.assign(buffer.get());
+			IPC::HandleMsg<LAN::ServerStatusMsg>(channel, std::move(reader), [this] (const std::string& serverAddress, std::string& status, int& res) {
+				res = CL_ServerStatus(serverAddress, status);
 			});
 			break;
 
 		case CG_LAN_RESETSERVERSTATUS:
 			IPC::HandleMsg<LAN::ResetServerStatusMsg>(channel, std::move(reader), [this] {
-				CL_ServerStatus(nullptr, nullptr, 0);
+				CL_ServerStatusReset();
 			});
 			break;
 

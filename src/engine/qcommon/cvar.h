@@ -97,7 +97,7 @@ void Cvar_WriteVariables(fileHandle_t f);
  * returns an info string containing all the cvars that have the given bit set
  * in their flags ( CVAR_USERINFO, CVAR_SERVERINFO, CVAR_SYSTEMINFO, etc )
  */
-char *Cvar_InfoString(int bit, bool big);
+std::string Cvar_InfoString(int bit);
 
 /**
  *  whenever a cvar is modified, its flags will be OR'd into this, so

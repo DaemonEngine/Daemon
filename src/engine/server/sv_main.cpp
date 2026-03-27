@@ -163,30 +163,9 @@ not have future snapshot_t executed before it is executed
 */
 void SV_AddServerCommand( client_t *client, const char *cmd )
 {
-	int index, i;
+	client->reliableCommands.push_back( cmd );
 
 	client->reliableSequence++;
-
-	// if we would be losing an old command that hasn't been acknowledged,
-	// we must drop the connection
-	// we check == instead of >= so a broadcast print added by SV_DropClient()
-	// doesn't cause a recursive drop client
-	if ( client->reliableSequence - client->reliableAcknowledge == MAX_RELIABLE_COMMANDS + 1 )
-	{
-		Log::Debug("===== pending server commands =====");
-
-		for ( i = client->reliableAcknowledge + 1; i <= client->reliableSequence; i++ )
-		{
-			Log::Debug( "cmd %5d: %s", i, client->reliableCommands[ i & ( MAX_RELIABLE_COMMANDS - 1 ) ] );
-		}
-
-		Log::Debug( "cmd %5d: %s", i, cmd );
-		SV_DropClient( client, "Server command overflow" );
-		return;
-	}
-
-	index = client->reliableSequence & ( MAX_RELIABLE_COMMANDS - 1 );
-	Q_strncpyz( client->reliableCommands[ index ], cmd, sizeof( client->reliableCommands[ index ] ) );
 }
 
 /*
@@ -994,12 +973,13 @@ static void SV_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	MSG_BeginReadingOOB( msg );
 	MSG_ReadLong( msg );  // skip the -1 marker
 
-	if ( !Q_strncmp( "connect", ( char * ) &msg->data[ 4 ], 7 ) )
+	if ( !Q_strncmp( "connect", ( char * ) &msg->data[ 8 ], 7 ) )
 	{
-		Huff_Decompress( msg, 12 );
+		Huff_Decompress( msg, 16 );
 	}
 
-	Cmd::Args args(MSG_ReadStringLine( msg ));
+	std::vector<std::string> lines = MSG_ReadStringLines( msg );
+	Cmd::Args args( lines[0] );
 
 	if ( args.Argc() <= 0 )
 	{
@@ -1380,13 +1360,13 @@ void SV_Frame( int msec )
 	// update infostrings if anything has been changed
 	if ( cvar_modifiedFlags & CVAR_SERVERINFO )
 	{
-		SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO, false ) );
+		SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO ).c_str() );
 		cvar_modifiedFlags &= ~CVAR_SERVERINFO;
 	}
 
 	if ( cvar_modifiedFlags & CVAR_SYSTEMINFO )
 	{
-		SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString( CVAR_SYSTEMINFO, true ) );
+		SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString( CVAR_SYSTEMINFO ).c_str() );
 		cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
 	}
 

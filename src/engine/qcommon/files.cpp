@@ -621,18 +621,18 @@ int FS_GetFileListRecursive(const char* path, const char* extension, char* listB
 	return numFiles;
 }
 
-const char* FS_LoadedPaks()
+std::string FS_LoadedPaks()
 {
-	static char info[BIG_INFO_STRING];
-	info[0] = '\0';
+	std::string out;
 	for (const FS::LoadedPakInfo& x: FS::PakPath::GetLoadedPaks()) {
 		if (!x.pathPrefix.empty())
 			continue;
-		if (info[0])
-			Q_strcat(info, sizeof(info), " ");
-		Q_strcat(info, sizeof(info), FS::MakePakName(x.name, x.version, x.realChecksum).c_str());
+		if ( out.size() ) {
+			out += " ";
+		}
+		out += FS::MakePakName(x.name, x.version, x.realChecksum);
 	}
-	return info;
+	return out;
 }
 
 bool FS_LoadPak(const Str::StringRef name)
@@ -747,19 +747,21 @@ void FS_DeletePaksWithBadChecksum() {
 	}
 }
 
-bool FS_ComparePaks(char* neededpaks, int len)
+bool FS_ComparePaks( std::string& neededpaks )
 {
-	*neededpaks = '\0';
 	for (const missingPak_t& x: fs_missingPaks) {
-		Q_strcat(neededpaks, len, "@");
-		Q_strcat(neededpaks, len, FS::MakePakName(x.name, x.version, x.checksum).c_str());
-		Q_strcat(neededpaks, len, "@");
-		std::string pakName = Str::Format("pkg/%s", FS::MakePakName(x.name, x.version));
-		if (FS::HomePath::FileExists(pakName))
-			Q_strcat(neededpaks, len, Str::Format("pkg/%s", FS::MakePakName(x.name, x.version, x.checksum)).c_str());
-		else
-			Q_strcat(neededpaks, len, pakName.c_str());
+		neededpaks += "@";
+		neededpaks += FS::MakePakName( x.name, x.version, x.checksum );
+		neededpaks += "@";
+
+		std::string pakName = Str::Format( "pkg/%s", FS::MakePakName( x.name, x.version ) );
+		if ( FS::HomePath::FileExists( pakName ) ) {
+			neededpaks += Str::Format( "pkg/%s", FS::MakePakName( x.name, x.version, x.checksum ) );
+		} else {
+			neededpaks += pakName;
+		}
 	}
+
 	return !fs_missingPaks.empty();
 }
 #endif // !BUILD_SERVER
