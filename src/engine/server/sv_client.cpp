@@ -368,6 +368,17 @@ void SV_SendClientGameState( client_t *client )
 			MSG_WriteByte( &msg, svc_configstring );
 			MSG_WriteShort( &msg, start );
 			MSG_WriteBigString( &msg, sv.configstrings[ start ] );
+
+			if ( MAX_MSGLEN - msg.cursize < BIG_INFO_STRING ) {
+				// We have too much configstring data to put it all into one msg_t, so split it here
+				MSG_WriteByte( &msg, svc_partial );
+				SV_SendMessageToClient( &msg, client );
+
+				MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) );
+				MSG_WriteLong( &msg, client->lastClientCommand );
+				MSG_WriteByte( &msg, svc_gamestate );
+				MSG_WriteLong( &msg, client->reliableSequence );
+			}
 		}
 	}
 
@@ -388,7 +399,7 @@ void SV_SendClientGameState( client_t *client )
 
 		if ( MAX_MSGLEN - msg.cursize < 128 ) {
 			// We have too many entities to put them all into one msg_t, so split it here
-			MSG_WriteByte( &msg, svc_gamestatePartial );
+			MSG_WriteByte( &msg, svc_partial );
 			SV_SendMessageToClient( &msg, client );
 
 			MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) );
