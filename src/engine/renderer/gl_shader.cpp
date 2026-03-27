@@ -490,9 +490,13 @@ static void AddConst( std::string& str, const std::string& name, float v1, float
 
 static std::string GenVersionDeclaration( const std::vector<addedExtension_t> &addedExtensions ) {
 	// Declare version.
-	std::string str = Str::Format( "#version %d %s\n\n",
+	std::string str = Str::Format( "#version %d %s\n",
 		glConfig.shadingLanguageVersion,
 		glConfig.shadingLanguageVersion >= 150 ? ( glConfig.glCoreProfile ? "core" : "compatibility" ) : "" );
+
+	str += "#line 1000000000\n";
+
+	str += "\n";
 
 	// Add supported GLSL extensions.
 	for ( const auto& addedExtension : addedExtensions ) {
@@ -859,7 +863,10 @@ std::string GLShaderManager::GetDeformShaderName( const int index ) {
 std::string GLShaderManager::BuildDeformShaderText( const std::string& steps ) {
 	std::string shaderText;
 
-	shaderText = steps + "\n";
+	shaderText = "\n" + steps + "\n";
+
+	shaderText += "#line 2000000000\n";
+
 	shaderText += GetShaderText( "deformVertexes_vp.glsl" );
 
 	return shaderText;
@@ -1223,6 +1230,13 @@ std::string GLShaderManager::ProcessInserts( const std::string& shaderText ) con
 
 	while ( std::getline( shaderTextStream, line, '\n' ) ) {
 		++lineCount;
+
+		/* The deform vertex header is prepended to the mainText and is part
+		of the shaderText, so we should reset line numbering after it. */
+		if ( line == "#line 0" ) {
+			lineCount = 0;
+		}
+
 		const std::string::size_type position = line.find( "#insert" );
 		if ( position == std::string::npos || line.find_first_not_of( " \t" ) != position ) {
 			out += line + "\n";
@@ -1353,7 +1367,9 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 		if ( shaderType.enabled ) {
 			Com_sprintf( filename, sizeof( filename ), "%s%s.glsl", shaderType.path.c_str(), shaderType.postfix );
 
-			shaderType.mainText = GetShaderText( filename );
+			/* The deform vertex header is prepended to the mainText,
+			so we should reset line numbering after it. */
+			shaderType.mainText = "#line 0\n" + GetShaderText( filename );
 		}
 	}
 
