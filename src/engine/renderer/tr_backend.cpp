@@ -2347,9 +2347,7 @@ static void RB_RenderDebugUtils()
 		for ( int i = 0; i < backEnd.refdef.numLights; ++i )
 		{
 			const refLight_t &light = lights[ i ];
-			// We can't really visualize directional lights since they don't
-			// have an origin or a radius.
-			if ( light.rlType >= refLightType_t::RL_DIRECTIONAL )
+			if ( light.rlType != refLightType_t::RL_PROJ )
 			{
 				continue;
 			}
@@ -2362,77 +2360,84 @@ static void RB_RenderDebugUtils()
 				Log::Warn( "Light with index %d has no radius", i );
 			}
 
-			auto addArrow = [ & ]( const vec3_t dirInput, const Color::Color &arrowColor )
+			Color::Color color = Color::LtGrey;
+
+			vec3_t dir;
+			VectorCopy( light.projTarget, dir );
+			if ( VectorNormalize( dir ) == 0.0f )
 			{
-				vec3_t dir;
-				VectorCopy( dirInput, dir );
-				if ( VectorNormalize( dir ) == 0.0f )
-				{
-					VectorSet( dir, 0.0f, 0.0f, 1.0f );
-				}
-				// Surface normals point outward from the object. And a light is rendered when the product of its direction and the surface normal is positive.
-				// So the light direction vector has to point away from the source for it to work.
-				// Negate the direction so the skinny end of the tetrahedron points the same direction as the light.
-				VectorNegate( dir, dir );
-
-				vec3_t tip;
-				VectorMA( baseOrigin, light.radius, dir, tip );
-
-				vec3_t tmp;
-				vec3_t tmp2;
-				vec3_t tmp3;
-				PerpendicularVector( tmp, dir );
-				VectorScale( tmp, light.radius * 0.2f, tmp2 );
-				VectorMA( tmp2, light.radius * 0.3f, dir, tmp2 );
-
-				vec4_t tetraVerts[ 4 ];
-				for ( int k = 0; k < 3; k++ )
-				{
-					RotatePointAroundVector( tmp3, dir, tmp2, k * 120.0f );
-					VectorAdd( tmp3, baseOrigin, tmp3 );
-					VectorCopy( tmp3, tetraVerts[ k ] );
-					tetraVerts[ k ][ 3 ] = 1.0f;
-				}
-
-				VectorCopy( baseOrigin, tetraVerts[ 3 ] );
-				tetraVerts[ 3 ][ 3 ] = 1.0f;
-				Tess_AddTetrahedron( tetraVerts, arrowColor );
-
-				VectorCopy( tip, tetraVerts[ 3 ] );
-				tetraVerts[ 3 ][ 3 ] = 1.0f;
-
-				Tess_AddTetrahedron( tetraVerts, arrowColor );
-			};
-
-			Color::Color color;
-			switch ( light.rlType )
-			{
-				case refLightType_t::RL_PROJ:
-					color = Color::LtGrey;
-					addArrow( light.projTarget, color );
-					break;
-				default:
-					color = Color::MdGrey;
-					{
-						static const vec3_t kOmniDirs[ 6 ] = {
-							{ 1.0f,  0.0f,  0.0f },
-							{ -1.0f, 0.0f,  0.0f },
-							{ 0.0f,  1.0f,  0.0f },
-							{ 0.0f,  -1.0f, 0.0f },
-							{ 0.0f,  0.0f,  1.0f },
-							{ 0.0f,  0.0f,  -1.0f}
-						};
-						for ( int dirIndex = 0; dirIndex < 6; ++dirIndex )
-						{
-							addArrow( kOmniDirs[ dirIndex ], color );
-						}
-					}
-					break;
+				VectorSet( dir, 0.0f, 0.0f, 1.0f );
 			}
+			// Surface normals point outward from the object. And a light is rendered when the product of its
+			// direction and the surface normal is positive. So the light direction vector has to point away from
+			// the source for it to work.
+			// Negate the direction so the skinny end of the tetrahedron points the same direction as the light.
+			VectorNegate( dir, dir );
+
+			vec3_t tip;
+			VectorMA( baseOrigin, light.radius, dir, tip );
+
+			vec3_t tmp;
+			vec3_t tmp2;
+			vec3_t tmp3;
+			PerpendicularVector( tmp, dir );
+			VectorScale( tmp, light.radius * 0.2f, tmp2 );
+			VectorMA( tmp2, light.radius * 0.3f, dir, tmp2 );
+
+			vec4_t tetraVerts[ 4 ];
+			for ( int k = 0; k < 3; k++ )
+			{
+				RotatePointAroundVector( tmp3, dir, tmp2, k * 120.0f );
+				VectorAdd( tmp3, baseOrigin, tmp3 );
+				VectorCopy( tmp3, tetraVerts[ k ] );
+				tetraVerts[ k ][ 3 ] = 1.0f;
+			}
+
+			VectorCopy( baseOrigin, tetraVerts[ 3 ] );
+			tetraVerts[ 3 ][ 3 ] = 1.0f;
+			Tess_AddTetrahedron( tetraVerts, color );
+
+			VectorCopy( tip, tetraVerts[ 3 ] );
+			tetraVerts[ 3 ][ 3 ] = 1.0f;
+
+			Tess_AddTetrahedron( tetraVerts, color );
 		}
 
 		Tess_End();
 		GL_CheckErrors();
+
+		const uint32_t savedStateBits = glState.glStateBits;
+		GL_State( GLS_POLYMODE_LINE );
+
+		Tess_Begin( Tess_StageIteratorDebug, nullptr, true, -1, 0 );
+
+		for ( int i = 0; i < backEnd.refdef.numLights; ++i )
+		{
+			const refLight_t &light = lights[ i ];
+			if ( light.rlType != refLightType_t::RL_OMNI )
+			{
+				continue;
+			}
+
+			vec3_t baseOrigin;
+			VectorCopy( light.origin, baseOrigin );
+
+			if ( light.radius <= 0.0f )
+			{
+				Log::Warn( "Light with index %d has no radius", i );
+			}
+
+			vec3_t cubeMins;
+			vec3_t cubeMaxs;
+			const float halfSize = light.radius * 0.5f;
+			VectorSet( cubeMins, -halfSize, -halfSize, -halfSize );
+			VectorSet( cubeMaxs, halfSize, halfSize, halfSize );
+			Tess_AddCube( baseOrigin, cubeMins, cubeMaxs, Color::MdGrey );
+		}
+
+		Tess_End();
+		GL_CheckErrors();
+		GL_State( savedStateBits );
 	}
 
 	if ( r_showBspNodes->integer )
