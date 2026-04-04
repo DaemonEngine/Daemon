@@ -1,3 +1,9 @@
+------------------------------------------------------ Daemon-Vulkan License ---
+Daemon-Vulkan's Vulkan renderer and shader parser (all files in
+src/engine/renderer-vulkan and cmake\DaemonVulkan\VulkanShaderParser.cpp) are
+licensed under the NEW BSD LICENSE. This license is contained in full in the
+file named LICENSE-DAEMON-VULKAN.txt.
+
 ------------------------------------------------------------- Daemon License ---
 Daemon is licensed under the NEW BSD LICENSE. This license is contained in
 full in the file named LICENSE.txt. Please be aware of the exceptions to this
