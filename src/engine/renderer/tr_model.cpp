@@ -442,6 +442,9 @@ int RE_LerpTagET( orientation_t* tag, const trRefEntity_t* ent, const char* tagN
 	float frontLerp = frac;
 	float backLerp  = 1.0f - frac;
 
+	AxisClear( tag->axis );
+	VectorClear( tag->origin );
+
 	if ( model->type == modtype_t::MOD_MD5 || model->type == modtype_t::MOD_IQM )
 	{
 		vec3_t tmp;
@@ -476,8 +479,6 @@ int RE_LerpTagET( orientation_t* tag, const trRefEntity_t* ent, const char* tagN
 
 		if ( !start || !end )
 		{
-			AxisClear( tag->axis );
-			VectorClear( tag->origin );
 			return -1;
 		}
 
