@@ -15,6 +15,8 @@ from collections import defaultdict, deque, namedtuple
 from generator import GeneratorOptions, OutputGenerator, noneStr, write
 from apiconventions import APIConventions
 
+import Globals
+
 def apiNameMatch(str, supported):
     """Return whether a required api name matches a pattern specified for an
     XML <feature> 'api' attribute or <extension> 'supported' attribute.
@@ -1666,6 +1668,8 @@ class Registry:
         - interface - Element for `<version>` or `<extension>`"""
 
         # Loop over all features inside all <require> tags.
+        Globals.currentVersionExtension = interface.get( "name" )
+        
         for features in interface.findall('require'):
             for t in features.findall('type'):
                 self.generateFeature(t.get('name'), 'type', self.typedict, explicit=True)
@@ -1976,6 +1980,8 @@ class Registry:
         self.gen.logMsg('diag', 'PASS 3: GENERATE INTERFACES FOR FEATURES')
         self.gen.beginFile(self.genOpts)
 
+        Globals.init()
+
         for f in (self.genFeatures[name] for name in orderedFeatures):
             self.gen.logMsg('diag', 'PASS 3: Generating interface for',
                             f.name)
@@ -2002,6 +2008,8 @@ class Registry:
         for s in self.syncpipelinedict:
             self.generateSyncPipeline(self.syncpipelinedict[s])
         self.gen.endFile()
+        
+        Globals.GenerateHeaders()
 
     def apiReset(self):
         """Reset type/enum/command dictionaries before generating another API.
