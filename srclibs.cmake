@@ -1,3 +1,10 @@
+set(TOMLC17LIST
+    ${LIB_DIR}/tomlc17/tomlc17.c
+    ${LIB_DIR}/tomlc17/tomlc17.h
+# tomlcpp.hpp requires C++20.
+#    ${LIB_DIR}/tomlc17/tomlcpp.hpp
+)
+
 set(CRUNCHLIST
     ${LIB_DIR}/crunch/inc/crn_decomp.h
     ${LIB_DIR}/crunch/inc/crnlib.h
