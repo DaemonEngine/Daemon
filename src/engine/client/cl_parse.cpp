@@ -409,6 +409,9 @@ void CL_ParseGamestate( msg_t *msg )
 
 		// a gamestate always marks a server command sequence
 		clc.serverCommandSequence = MSG_ReadLong( msg );
+
+		// trash any commands from previous game
+		clc.lastExecutedServerCommand = clc.serverCommandSequence;
 	}
 
 	// parse all the configstrings and baselines
