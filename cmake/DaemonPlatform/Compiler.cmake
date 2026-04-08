@@ -1,5 +1,5 @@
 # Daemon BSD Source Code
-# Copyright (c) 2024, Daemon Developers
+# Copyright (c) 2024-2025, Daemon Developers
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,66 +25,21 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ################################################################################
-# Determine compiler
+# Compiler detection.
 ################################################################################
 
-# FIXME: Force -W#pragma-messages and -Wno-error
-# In case there is -Wno-#pragma-messages or -Werror in CFLAGS/CXXFLAGS
+# When adding a new compiler, look at all the places DAEMON_C_COMPILER
+# and DAEMON_CXX_COMPILER are used.
 
-function(detect_daemon_compiler lang)
+function(daemon_detect_compiler lang)
 	set(C_NAME "C")
 	set(CXX_NAME "C++")
 	set(C_EXT ".c")
 	set(CXX_EXT ".cpp")
 
-	try_compile(BUILD_RESULT
-		"${CMAKE_BINARY_DIR}"
-		"${DAEMON_DIR}/cmake/DaemonCompiler/DaemonCompiler${${lang}_EXT}"
-		CMAKE_FLAGS CMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-		OUTPUT_VARIABLE BUILD_LOG
-	)
-
 	get_filename_component(compiler_basename "${CMAKE_${lang}_COMPILER}" NAME)
 
-	if (NOT BUILD_RESULT)
-		message(WARNING "Failed to build DaemonCompiler${${lang}_EXT}, relying on CMake builtin detection.")
-		set(compiler_name "Unknown")
-	else()
-		set(BUILD_LOG "\n${BUILD_LOG}\n")
-		string(REGEX REPLACE "\n[^\n]*<REPORT<" "\n" BUILD_LOG "${BUILD_LOG}")
-		string(REGEX REPLACE ">REPORT>[^\n]*\n" "\n" BUILD_LOG "${BUILD_LOG}")
-
-		string(REGEX REPLACE ".*\nDAEMON_COMPILER_NAME=([^\n]*)\n.*" "\\1"
-			compiler_name "${BUILD_LOG}")
-
-		foreach(name GCC;Clang;generic;${compiler_name})
-			set(compatibility_regex ".*\nDAEMON_COMPILER_${name}_COMPATIBILITY=([^\n]*)\n.*")
-			if ("${BUILD_LOG}" MATCHES ${compatibility_regex})
-				string(REGEX REPLACE ${compatibility_regex} "\\1"
-				compiler_${name}_compatibility "${BUILD_LOG}")
-			endif()
-
-			set(version_regex ".*\nDAEMON_COMPILER_${name}_VERSION=([^\n]*)\n.*")
-			if ("${BUILD_LOG}" MATCHES ${version_regex})
-				string(REGEX REPLACE ${version_regex} "\\1"
-				compiler_${name}_version "${BUILD_LOG}")
-			endif()
-
-			set(version_string_regex ".*\nDAEMON_COMPILER_${name}_VERSION_STRING=([^\n]*)\n.*")
-			if ("${BUILD_LOG}" MATCHES ${version_string_regex})
-				string(REGEX REPLACE ${version_string_regex} "\\1"
-					compiler_${name}_version_string "${BUILD_LOG}")
-			endif()
-
-			set(DAEMON_${lang}_COMPILER_${name}_VERSION
-				"${compiler_${name}_version}"
-				PARENT_SCOPE)
-
-			set(DAEMON_${lang}_COMPILER_${name}_COMPATIBILITY
-				"${compiler_${name}_compatibility}"
-				PARENT_SCOPE)
-		endforeach()
-	endif()
+	daemon_run_detection("${lang}_" "COMPILER" "Compiler${${lang}_EXT}" "GCC;Clang;generic")
 
 	if (compiler_name STREQUAL "Unknown")
 		if (CMAKE_${lang}_COMPILER_ID)
@@ -126,7 +81,7 @@ function(detect_daemon_compiler lang)
 		endif()
 	endif()
 
-	# Compilers that use underlying Clang version as their own version.
+	# Compilers that use the underlying Clang version as their own version.
 	foreach(name in AppleClang)
 		if (compiler_name STREQUAL "${name}")
 			set(compiler_${name}_version "${compiler_Clang_version}")
@@ -189,7 +144,7 @@ foreach(lang C;CXX)
 		set(DAEMON_${lang}_COMPILER_VERSION "${CMAKE_${lang}_COMPILER_VERSION}")
 		get_filename_component(DAEMON_${lang}_COMPILER_BASENAME "${CMAKE_${lang}_COMPILER}" NAME)
 	else()
-		detect_daemon_compiler(${lang})
+		daemon_detect_compiler(${lang})
 
 		if (DAEMON_${lang}_COMPILER_Clang_COMPATIBILITY)
 			if (NOT DAEMON_${lang}_COMPILER_NAME STREQUAL "Clang")
@@ -233,9 +188,17 @@ foreach(lang C;CXX)
 
 	message(STATUS "Detected ${${lang}_NAME} compiler: ${DAEMON_${lang}_COMPILER_STRING}")
 
+	# Makes possible to do that in C++ code:
+	# > if defined(DAEMON_CXX_COMPILER_Clang)
 	set(compiler_var_name "DAEMON_${lang}_COMPILER_${DAEMON_${lang}_COMPILER_NAME}")
-	set(${compiler_var_name} ON)
-	add_definitions(-D${compiler_var_name}=1)
+	add_definitions(-D${compiler_var_name})
 
-	daemon_add_buildinfo("char*" "DAEMON_${lang}_COMPILER_STRING" "\"${DAEMON_${lang}_COMPILER_STRING}\"")
+	# Makes possible to do that in CMake code:
+	# > if (DAEMON_CXX_COMPILER_Clang)
+	set("${compiler_var_name}" ON)
+
+	if (DAEMON_SOURCE_GENERATOR)
+		# Add printable string to the executable.
+		daemon_add_buildinfo("char*" "DAEMON_${lang}_COMPILER_STRING" "\"${DAEMON_${lang}_COMPILER_STRING}\"")
+	endif()
 endforeach()

@@ -2,7 +2,7 @@ set(FREETYPE_DIR ${DAEMON_DIR}/libs/freetype)
 set(FREETYPE_INCLUDE_DIRS ${FREETYPE_DIR}/include)
 set(FREETYPE_LIBRARIES freetype)
 
-if (NACL)
+if (DAEMON_SYSTEM_NaCl)
 	# Using Freetype's own zlib prevents the need for a zlib submodule when building the nexe cgame.
 	set(FREETYPE_INTERNAL_ZLIB ON)
 else()

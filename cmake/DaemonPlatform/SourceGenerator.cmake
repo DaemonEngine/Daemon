@@ -24,9 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+################################################################################
+# Source generation and file embedding.
+################################################################################
+
 set(DAEMON_SOURCE_GENERATOR "${CMAKE_CURRENT_LIST_FILE}")
 get_filename_component(current_list_dir "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
-set(DAEMON_FILE_EMBEDDER "${current_list_dir}/DaemonFileEmbedder.cmake")
+set(DAEMON_FILE_EMBEDDER "${current_list_dir}/FileEmbedder.cmake")
 
 set(DAEMON_GENERATED_SUBDIR "GeneratedSource")
 set(DAEMON_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/${DAEMON_GENERATED_SUBDIR}")

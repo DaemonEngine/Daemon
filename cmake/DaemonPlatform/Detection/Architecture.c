@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 Daemon BSD Source Code
-Copyright (c) 2022, Daemon Developers
+Copyright (c) 2022-2025, Daemon Developers
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,21 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
+#define REPORT_SLUG "ARCH"
+#include "report.h"
+
 /* The qprocessordetection.h file doesn't detect endianness for some
 platforms including ppc64, but we know how to do it for them. */
 
 #include <stdint.h>
-#include "../../src/common/Endian.h"
-
-/* qprocessordetection.h will print an error if it fails to detect
-endianness and while it is not already set, so the else clause is
-outsourced to that qprocessordetection.h file instead. */
-
-#if defined(Q3_BIG_ENDIAN)
-	#define Q_BYTE_ORDER Q_BIG_ENDIAN
-#elif defined(Q3_LITTLE_ENDIAN)
-	#define Q_BYTE_ORDER Q_LITTLE_ENDIAN
-#endif
 
 /* This source file includes qprocessordetection.h from Qt:
 
@@ -65,12 +57,12 @@ care of platform name variants that are meant to distinguish
 platform variants we cannot support anyway. */
 
 /* PNaCl virtual machines. */
-#if defined(__native_client__)
-	#pragma message("DAEMON_ARCH_nacl")
+#if defined(__pnacl__)
+	#pragma message(REPORT_NAME("pnacl"))
 
 /* Wasm virtual machines, work in progress. */
 #elif defined(Q_PROCESSOR_WASM)
-	#pragma message("DAEMON_ARCH_wasm")
+	#pragma message(REPORT_NAME("wasm"))
 
 /* Devices like:
   - IBM PC compatibles and derivatives,
@@ -78,13 +70,13 @@ platform variants we cannot support anyway. */
   - Steam Deck, Atari VCS consoles… */
 
 #elif defined(Q_PROCESSOR_X86_64)
-	#pragma message("DAEMON_ARCH_amd64")
+	#pragma message(REPORT_NAME("amd64"))
 
 #elif defined(Q_PROCESSOR_X86_32)
 	// Assume at least i686. Detecting older revisions would be unlikely to work here
 	// because the revisions are likely configured by flags, but this file is "compiled"
 	// without most command-line flags.
-	#pragma message("DAEMON_ARCH_i686")
+	#pragma message(REPORT_NAME("i686"))
 
 /* Devices like:
  - Raspberry Pi,
@@ -92,31 +84,36 @@ platform variants we cannot support anyway. */
  - Android phones and tablets… */
 
 #elif defined(Q_PROCESSOR_ARM_64)
-	#pragma message("DAEMON_ARCH_arm64")
+	#pragma message(REPORT_NAME("arm64"))
 
 #elif defined(Q_PROCESSOR_ARM_32) && defined(__ARM_PCS_VFP)
-	#pragma message("DAEMON_ARCH_armhf")
+	#pragma message(REPORT_NAME("armhf"))
 
 #elif defined(Q_PROCESSOR_ARM_32) && !defined(__ARM_PCS_VFP)
-	#pragma message("DAEMON_ARCH_armel")
+	#pragma message(REPORT_NAME("armel"))
 
 /* Devices like:
  - Raptor Computing Systems Talos, Blackbird… */
 
 #elif defined(Q_PROCESSOR_POWER_64) && Q_BYTE_ORDER == Q_BIG_ENDIAN
-	#pragma message("DAEMON_ARCH_ppc64")
+	#pragma message(REPORT_NAME("ppc64"))
 
 #elif defined(Q_PROCESSOR_POWER_64) && Q_BYTE_ORDER == Q_LITTLE_ENDIAN
-	#pragma message("DAEMON_ARCH_ppc64el")
+	#pragma message(REPORT_NAME("ppc64el"))
 
 /* Devices like:
  - SiFive HiFive Unmatched, Horse Creek… */
 
 #elif defined(Q_PROCESSOR_RISCV_64)
-	#pragma message("DAEMON_ARCH_riscv64")
+	#pragma message(REPORT_NAME("riscv64"))
+
+/* Remaining native NaCl architecture. */
+
+#elif defined(Q_PROCESSOR_MIPS_32) && Q_BYTE_ORDER == Q_LITTLE_ENDIAN
+	#pragma message(REPORT_NAME("mipsel"))
 
 #else
-	#pragma message("DAEMON_ARCH_unknown")
+	#pragma message(REPORT_NAME("unknown"))
 #endif
 
 // Make the compilation succeeds if architecture is supported.

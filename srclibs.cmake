@@ -33,19 +33,19 @@ set(NACLLIST_MODULE
     ${LIB_DIR}/nacl/native_client/src/untrusted/nacl/imc_socketpair.c
 )
 
-if (APPLE)
+if (DAEMON_SYSTEM_macOS)
     set(NACLLIST_NATIVE
         ${LIB_DIR}/nacl/native_client/src/shared/imc/nacl_imc_common.cc
         ${LIB_DIR}/nacl/native_client/src/shared/imc/posix/nacl_imc_posix.cc
         ${LIB_DIR}/nacl/native_client/src/shared/imc/osx/nacl_imc.cc
     )
-elseif (LINUX OR FREEBSD)
+elseif (DAEMON_SYSTEM_Unix_COMPATIBILITY)
     set(NACLLIST_NATIVE
         ${LIB_DIR}/nacl/native_client/src/shared/imc/nacl_imc_common.cc
         ${LIB_DIR}/nacl/native_client/src/shared/imc/posix/nacl_imc_posix.cc
         ${LIB_DIR}/nacl/native_client/src/shared/imc/linux/nacl_imc.cc
     )
-elseif (WIN32)
+elseif (DAEMON_SYSTEM_Windows)
     set(NACLLIST_NATIVE
         ${LIB_DIR}/nacl/native_client/src/shared/imc/nacl_imc_common.cc
         ${LIB_DIR}/nacl/native_client/src/shared/imc/win/nacl_imc.cc
@@ -101,7 +101,7 @@ set(PDCURSESLIST
     ${LIB_DIR}/pdcursesmod/pdcurses/window.c
 )
 
-if (WIN32)
+if (DAEMON_SYSTEM_Windows)
 	set(PDCURSESLIST
 		${PDCURSESLIST}
 		${LIB_DIR}/pdcursesmod/wingui/pdcclip.c
@@ -153,7 +153,7 @@ set(TINYGETTEXTLIST
     ${LIB_DIR}/tinygettext/tinygettext.hpp
 )
 
-if (WIN32)
+if (DAEMON_SYSTEM_Windows)
     set(BREAKPAD_COMMON_LIST
         ${LIB_DIR}/breakpad/src/common/windows/guid_string.cc
         ${LIB_DIR}/breakpad/src/common/windows/guid_string.h
@@ -179,7 +179,7 @@ if (WIN32)
         ${LIB_DIR}/breakpad/src/client/windows/handler/exception_handler.cc
         ${LIB_DIR}/breakpad/src/client/windows/handler/exception_handler.h
     )
-elseif (LINUX)
+elseif (DAEMON_SYSTEM_Linux_COMPATIBILITY)
     set(BREAKPAD_LIST
         ${LIB_DIR}/breakpad/src/client/linux/crash_generation/crash_generation_client.cc
         ${LIB_DIR}/breakpad/src/client/linux/crash_generation/crash_generation_server.cc
