@@ -473,10 +473,9 @@ else()
 	endif()
 
 	# The -pthread flag sets some preprocessor defines,
-	# it is also used to link with libpthread on Linux.
-	if (NOT APPLE)
-		try_c_cxx_flag(PTHREAD "-pthread")
-	endif()
+	# it is also used to link with libpthread.
+	try_c_cxx_flag(PTHREAD "-pthread")
+	try_linker_flag(LINKER_PTHREAD "-pthread")
 
 	if (USE_ADDRESS_SANITIZER)
 		set_cxx_flag("-fsanitize=address")
