@@ -1,0 +1,3 @@
+#! /usr/bin/env python3
+from RepositoryVersionString import main
+main()
