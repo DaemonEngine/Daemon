@@ -137,7 +137,8 @@ void CL_ConfigstringModified( Cmd::Args& csCmd )
 /*
 ===================
 CL_HandleServerCommand
-CL_GetServerCommand
+
+Returns true if the command should be passed to the cgame
 ===================
 */
 bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
