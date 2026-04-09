@@ -256,13 +256,6 @@ void CL_FillServerCommands(std::vector<std::string>& commands, int start, int en
 	// if we have irretrievably lost a reliable command, drop the connection
 	if ( start <= clc.serverCommandSequence - MAX_RELIABLE_COMMANDS )
 	{
-		// when a demo record was started after the client got a whole bunch of
-		// reliable commands then the client never got those first reliable commands
-		if ( clc.demoplaying )
-		{
-			return;
-		}
-
 		Sys::Drop( "CL_FillServerCommand: a reliable command was cycled out" );
 	}
 
