@@ -65,7 +65,7 @@ qhandle_t       trap_R_RegisterModel( const char *name );
 qhandle_t       trap_R_RegisterSkin( const char *name );
 qhandle_t       trap_R_RegisterShader( const char *name, int flags );
 void            trap_R_ClearScene();
-int  trap_R_AddRefEntityToScene( const refEntity_t *re );
+void trap_R_AddRefEntityToScene( const refEntity_t *re );
 void trap_R_SyncRefEntities( const std::vector<EntityUpdate>& ents );
 std::vector<LerpTagSync> trap_R_SyncLerpTags( const std::vector<LerpTagUpdate>& lerpTags );
 void            trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts );
