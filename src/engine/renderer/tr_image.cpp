@@ -1818,19 +1818,21 @@ Finds or loads the given image.
 Returns nullptr if it fails, not a default image.
 ==============
 */
-image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
+image_t *R_FindImageFile( const char *imageName0, imageParams_t &imageParams )
 {
-	if ( !imageName )
+	if ( !imageName0 )
 	{
 		return nullptr;
 	}
 
-	unsigned hash = GenerateImageHashValue( imageName );
+	std::string imageName = FS::Path::NormalizeSlashes( imageName0 );
+
+	unsigned hash = GenerateImageHashValue( imageName.c_str() );
 
 	// See if the image is already loaded.
 	for ( image_t *image = r_imageHashTable[ hash ]; image; image = image->next )
 	{
-		if ( !Q_strnicmp( imageName, image->name, sizeof( image->name ) ) )
+		if ( Str::IsIEqual( imageName, image->name ) )
 		{
 			if ( imageParams == image->initialParams || r_allowImageParamMismatch.Get() )
 			{
@@ -1889,7 +1891,7 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 	byte *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
 	pic[ 0 ] = nullptr;
 
-	R_LoadImage( imageName, pic, &width, &height, &numLayers, &numMips, &imageParams.bits );
+	R_LoadImage( imageName.c_str(), pic, &width, &height, &numLayers, &numMips, &imageParams.bits);
 
 	if ( *pic )
 	{
@@ -1909,7 +1911,7 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 		R_ProcessLightmap( *pic, width, height, imageParams.bits );
 	}
 
-	image_t *image = R_CreateImage( imageName, (const byte **)pic, width, height, numMips, imageParams );
+	image_t *image = R_CreateImage( imageName.c_str(), (const byte**)pic, width, height, numMips, imageParams);
 	image->initialParams = initialParams;
 
 	Z_Free( *pic );

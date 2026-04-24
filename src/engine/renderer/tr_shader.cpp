@@ -6237,7 +6237,8 @@ shader_t       *R_FindShader( const char *name, int flags )
 		return tr.defaultShader;
 	}
 
-	COM_StripExtension3( name, strippedName, sizeof( strippedName ) );
+	COM_StripExtension3( FS::Path::NormalizeSlashes( name ).c_str(),
+	                     strippedName, sizeof( strippedName ) );
 
 	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
 
