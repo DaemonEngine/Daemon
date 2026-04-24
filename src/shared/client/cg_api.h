@@ -82,7 +82,6 @@ void            trap_R_ResetClipRegion();
 void            trap_R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader );
 void            trap_R_DrawRotatedPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader, float angle );
 void            trap_R_ModelBounds( clipHandle_t model, vec3_t mins, vec3_t maxs );
-int             trap_R_LerpTag( orientation_t *tag, const refEntity_t* refent, const char *tagName, int startIndex );
 void            trap_R_GetTextureSize( qhandle_t handle, int *x, int *y );
 qhandle_t       trap_R_GenerateTexture( const byte *data, int x, int y );
 void            trap_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverTime );
