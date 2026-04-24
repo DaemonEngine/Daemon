@@ -177,6 +177,11 @@ namespace Path {
 	// Build a path from components
 	std::string Build(Str::StringRef base, Str::StringRef path);
 
+	// Replace \ with /
+	// Remove multiple consecutive slashes
+	// Remove initial slashes
+	std::string NormalizeSlashes(Str::StringRef path);
+
 	// Get the directory portion of a path:
 	// a/b/c => a/b
 	// a/b/ => a
