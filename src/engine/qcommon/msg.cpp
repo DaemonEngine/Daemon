@@ -825,7 +825,7 @@ If force is not set, then nothing at all will be generated if the entity is
 identical, under the assumption that the in-order delta code will catch it.
 ==================
 */
-void MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, bool force )
+void MSG_WriteDeltaEntity( msg_t *msg, const entityState_t *from, const entityState_t *to, bool force )
 {
 	int        i, lc;
 	netField_t *field;
@@ -1232,7 +1232,7 @@ static void WriteStatsGroup(msg_t* msg, const int* from, const int* to)
 	MSG_WriteBits( msg, 1, 1 );  // changed
 	MSG_WriteUShort( msg, statsbits );
 
-	for ( int i = 0; i < MAX_STATS; i++ )
+	for ( int i = 0; i < STATS_GROUP_NUM_STATS; i++ )
 	{
 		if ( statsbits & ( 1 << i ) )
 		{
