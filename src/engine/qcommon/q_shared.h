@@ -1893,12 +1893,13 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
 
 // bit field limits
-#define MAX_STATS              16
-#define MAX_PERSISTANT         16
-#define MAX_MISC               16
 
+#define MAX_PERSISTANT         16
 #define MAX_EVENTS             4 // max events per frame before we drop events
 
+// TODO: remove these 3 which are not engine-relevant
+#define MAX_STATS              16
+#define MAX_MISC               16
 #define PS_PMOVEFRAMECOUNTBITS 6
 
 struct netField_t
