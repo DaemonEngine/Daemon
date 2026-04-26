@@ -66,11 +66,9 @@ struct entityState_t;
 
 void  MSG_WriteBits( msg_t *msg, int value, int bits );
 
-void  MSG_WriteChar( msg_t *sb, int c );
 void  MSG_WriteByte( msg_t *sb, int c );
 void  MSG_WriteShort( msg_t *sb, int c );
 void  MSG_WriteLong( msg_t *sb, int c );
-void  MSG_WriteFloat( msg_t *sb, float f );
 void  MSG_WriteString( msg_t *sb, const char *s );
 void  MSG_WriteBigString( msg_t *sb, const char *s );
 
@@ -83,7 +81,6 @@ int   MSG_ReadBits( msg_t *msg, int bits );
 int   MSG_ReadByte( msg_t *sb );
 int   MSG_ReadShort( msg_t *sb );
 int   MSG_ReadLong( msg_t *sb );
-float MSG_ReadFloat( msg_t *sb );
 char  *MSG_ReadString( msg_t *sb );
 char  *MSG_ReadBigString( msg_t *sb );
 char  *MSG_ReadStringLine( msg_t *sb );

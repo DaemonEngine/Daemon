@@ -301,20 +301,6 @@ int MSG_ReadBits( msg_t *msg, int bits )
 // writing functions
 //
 
-void MSG_WriteChar( msg_t *sb, int c )
-{
-#ifdef PARANOID
-
-	if ( c < -128 || c > 127 )
-	{
-		Sys::Error( "MSG_WriteChar: range error" );
-	}
-
-#endif
-
-	MSG_WriteBits( sb, c, 8 );
-}
-
 void MSG_WriteByte( msg_t *sb, int c )
 {
 #ifdef PARANOID
@@ -356,18 +342,6 @@ void MSG_WriteShort( msg_t *sb, int c )
 void MSG_WriteLong( msg_t *sb, int c )
 {
 	MSG_WriteBits( sb, c, 32 );
-}
-
-void MSG_WriteFloat( msg_t *sb, float f )
-{
-	union
-	{
-		float f;
-		int   l;
-	} dat;
-
-	dat.f = f;
-	MSG_WriteBits( sb, dat.l, 32 );
 }
 
 void MSG_WriteString( msg_t *sb, const char *s )
@@ -468,25 +442,6 @@ int MSG_ReadLong( msg_t *msg )
 	}
 
 	return c;
-}
-
-float MSG_ReadFloat( msg_t *msg )
-{
-	union
-	{
-		byte  b[ 4 ];
-		float f;
-		int   l;
-	} dat;
-
-	dat.l = MSG_ReadBits( msg, 32 );
-
-	if ( msg->readcount > msg->cursize )
-	{
-		dat.f = -1;
-	}
-
-	return dat.f;
 }
 
 char           *MSG_ReadString( msg_t *msg )
@@ -609,31 +564,6 @@ int MSG_ReadDelta( msg_t *msg, int oldV, int bits )
 	if ( MSG_ReadBits( msg, 1 ) )
 	{
 		return MSG_ReadBits( msg, bits );
-	}
-
-	return oldV;
-}
-
-void MSG_WriteDeltaFloat( msg_t *msg, float oldV, float newV )
-{
-	if ( oldV == newV )
-	{
-		MSG_WriteBits( msg, 0, 1 );
-		return;
-	}
-
-	MSG_WriteBits( msg, 1, 1 );
-	MSG_WriteBits( msg, * ( int * ) &newV, 32 );
-}
-
-float MSG_ReadDeltaFloat( msg_t *msg, float oldV )
-{
-	if ( MSG_ReadBits( msg, 1 ) )
-	{
-		float newV;
-
-		* ( int * ) &newV = MSG_ReadBits( msg, 32 );
-		return newV;
 	}
 
 	return oldV;
@@ -964,8 +894,6 @@ void MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, b
 
 	MSG_WriteByte( msg, lc );  // # of changes
 
-//  Log::Notice( "Delta for ent %i: ", to->number );
-
 	for ( i = 0, field = entityStateFields; i < lc; i++, field++ )
 	{
 		fromF = ( int * )( ( byte * ) from + field->offset );
@@ -998,18 +926,12 @@ void MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, b
 					// send as small integer
 					MSG_WriteBits( msg, 0, 1 );
 					MSG_WriteBits( msg, trunc + FLOAT_INT_BIAS, FLOAT_INT_BITS );
-//                  if ( print ) {
-//                      Log::Notice( "%s:%i ", field->name, trunc );
-//                  }
 				}
 				else
 				{
 					// send as full floating point value
 					MSG_WriteBits( msg, 1, 1 );
 					MSG_WriteBits( msg, *toF, 32 );
-//                  if ( print ) {
-//                      Log::Notice( "%s:%f ", field->name, *(float *)toF );
-//                  }
 				}
 			}
 		}
@@ -1024,27 +946,9 @@ void MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, b
 				MSG_WriteBits( msg, 1, 1 );
 				// integer
 				MSG_WriteBits( msg, *toF, field->bits );
-//              if ( print ) {
-//                  Log::Notice( "%s:%i ", field->name, *toF );
-//              }
 			}
 		}
 	}
-
-//  Log::Notice( "" );
-
-	/*
-	        c = msg->cursize - c;
-
-	        if ( print ) {
-	                if ( msg->bit == 0 ) {
-	                        endBit = msg->cursize * 8 - GENTITYNUM_BITS;
-	                } else {
-	                        endBit = ( msg->cursize - 1 ) * 8 + msg->bit - GENTITYNUM_BITS;
-	                }
-	                Log::Notice( " (%i bits)", endBit - startBit  );
-	        }
-	*/
 }
 
 /*
