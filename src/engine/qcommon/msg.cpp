@@ -190,9 +190,6 @@ void MSG_WriteBits( msg_t *msg, int value, int bits )
 	}
 	else
 	{
-		value &= ( 0xffffffff >> ( 32 - bits ) );
-
-		if ( bits & 7 )
 		{
 			int nbits;
 
@@ -207,13 +204,10 @@ void MSG_WriteBits( msg_t *msg, int value, int bits )
 			bits = bits - nbits;
 		}
 
-		if ( bits )
+		for ( i = 0; i < bits; i += 8 )
 		{
-			for ( i = 0; i < bits; i += 8 )
-			{
-				Huff_offsetTransmit( &msgHuff.compressor, ( value & 0xff ), msg->data, &msg->bit );
-				value = ( value >> 8 );
-			}
+			Huff_offsetTransmit( &msgHuff.compressor, ( value & 0xff ), msg->data, &msg->bit );
+			value = ( value >> 8 );
 		}
 
 		msg->cursize = ( msg->bit >> 3 ) + 1;
@@ -359,10 +353,7 @@ void MSG_WriteString( msg_t *sb, const char *s )
 	}
 	else
 	{
-		int  l;
-		char string[ MAX_STRING_CHARS ];
-
-		l = strlen( s );
+		size_t l = strlen( s );
 
 		if ( l >= MAX_STRING_CHARS )
 		{
@@ -371,9 +362,7 @@ void MSG_WriteString( msg_t *sb, const char *s )
 			return;
 		}
 
-		Q_strncpyz( string, s, sizeof( string ) );
-
-		MSG_WriteData( sb, string, l + 1 );
+		MSG_WriteData( sb, s, l + 1 );
 	}
 }
 
@@ -385,10 +374,7 @@ void MSG_WriteBigString( msg_t *sb, const char *s )
 	}
 	else
 	{
-		int  l;
-		char string[ BIG_INFO_STRING ];
-
-		l = strlen( s );
+		size_t l = strlen( s );
 
 		if ( l >= BIG_INFO_STRING )
 		{
@@ -397,9 +383,7 @@ void MSG_WriteBigString( msg_t *sb, const char *s )
 			return;
 		}
 
-		Q_strncpyz( string, s, sizeof( string ) );
-
-		MSG_WriteData( sb, string, l + 1 );
+		MSG_WriteData( sb, s, l + 1 );
 	}
 }
 
