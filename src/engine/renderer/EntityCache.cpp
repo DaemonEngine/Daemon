@@ -264,7 +264,7 @@ void ClearEntityCache() {
 	}
 }
 
-std::vector<LerpTagSync> SyncEntityCacheToCGame( const std::vector<LerpTagUpdate>& lerpTags ) {
+std::vector<LerpTagSync> RE_SyncLerpTags( const std::vector<LerpTagUpdate>& lerpTags ) {
 	std::vector<LerpTagSync> entityOrientations;
 	entityOrientations.reserve( lerpTags.size() );
 
@@ -284,7 +284,7 @@ std::vector<LerpTagSync> SyncEntityCacheToCGame( const std::vector<LerpTagUpdate
 	return entityOrientations;
 }
 
-void SyncEntityCacheFromCGame( const std::vector<EntityUpdate>& ents ) {
+void RE_SyncRefEntities( const std::vector<EntityUpdate>& ents ) {
 	for ( const EntityUpdate& ent : ents ) {
 		bool flip = entities[ent.id].e.active != ent.ent.active;
 
