@@ -1693,8 +1693,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		re.ClearScene = RE_ClearScene;
 		re.AddRefEntityToScene = RE_AddRefEntityToScene;
-		re.SyncRefEntities = SyncEntityCacheFromCGame;
-		re.SyncLerpTags = SyncEntityCacheToCGame;
+		re.SyncRefEntities = RE_SyncRefEntities;
+		re.SyncLerpTags = RE_SyncLerpTags;
 
 		re.AddPolyToScene = RE_AddPolyToSceneET;
 		re.AddPolysToScene = RE_AddPolysToScene;
