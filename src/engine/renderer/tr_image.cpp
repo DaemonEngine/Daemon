@@ -76,11 +76,6 @@ unsigned int GenerateImageHashValue( const char *fname )
 	{
 		letter = Str::ctolower( fname[ i ] );
 
-		if ( letter == '\\' )
-		{
-			letter = '/'; // damn path names
-		}
-
 		hash += ( unsigned )( letter ) * ( i + 119 );
 		i++;
 	}
