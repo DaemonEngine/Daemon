@@ -123,17 +123,7 @@ static unsigned int generateHashValue( const char *fname, const int size )
 
 		if ( letter == '.' )
 		{
-			break; // don't include extension
-		}
-
-		if ( letter == '\\' )
-		{
-			letter = '/'; // damn path names
-		}
-
-		if ( letter == PATH_SEP )
-		{
-			letter = '/'; // damn path names
+			break; // don't include extension. FIXME: could have multiple dots
 		}
 
 		hash += ( unsigned )( letter ) * ( i + 119 );
