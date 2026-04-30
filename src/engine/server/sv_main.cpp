@@ -67,7 +67,7 @@ Cvar::Range<Cvar::Cvar<int>> sv_maxClients("sv_maxclients",
 
 Cvar::Range<Cvar::Cvar<int>> sv_privateClients("sv_privateClients",
     "number of password-protected client slots", Cvar::SERVERINFO, 0, 0, MAX_CLIENTS);
-Cvar::Cvar<std::string> sv_hostname("sv_hostname", "server name for server list", Cvar::SERVERINFO, UNNAMED_SERVER);
+Cvar::Cvar<std::string> sv_hostname("sv_hostname", "server name for server list", Cvar::SERVERINFO, "");
 Cvar::Cvar<std::string> sv_statsURL("sv_statsURL", "URL for server's gameplay statistics", Cvar::SERVERINFO, "");
 Cvar::Cvar<int> sv_reconnectlimit("sv_reconnectlimit", "minimum time (seconds) before client can reconnect", Cvar::NONE, 3);
 Cvar::Cvar<int> sv_padPackets("sv_padPackets", "(debugging) add n NOP bytes to each snapshot packet", Cvar::NONE, 0);
@@ -281,17 +281,17 @@ struct MasterServer
 	netadrtype_t challenge_address_type;
 	Cvar::Modified<Cvar::Cvar<std::string>> addressCvar;
 
-	MasterServer(const char* cvarName, const char* defaultHostname)
-		: addressCvar(cvarName, "address of a master server", Cvar::NONE, defaultHostname )
+	MasterServer(const char* cvarName)
+		: addressCvar(cvarName, "address of a master server", Cvar::NONE, "")
 	{}
 };
 
 MasterServer masterServers[MAX_MASTER_SERVERS] = {
-	{"sv_master1", MASTER1_SERVER_NAME},
-	{"sv_master2", MASTER2_SERVER_NAME},
-	{"sv_master3", MASTER3_SERVER_NAME},
-	{"sv_master4", MASTER4_SERVER_NAME},
-	{"sv_master5", MASTER5_SERVER_NAME},
+	{"sv_master1"},
+	{"sv_master2"},
+	{"sv_master3"},
+	{"sv_master4"},
+	{"sv_master5"},
 };
 } // namespace
 
@@ -359,8 +359,8 @@ but not on every player enter or exit.
 ================
 */
 static const int HEARTBEAT_MSEC = (300 * 1000);
-#define HEARTBEAT_GAME PRODUCT_NAME
-#define HEARTBEAT_DEAD PRODUCT_NAME "-dead"
+#define HEARTBEAT_GAME ENGINE_NAME
+#define HEARTBEAT_DEAD HEARTBEAT_GAME "-dead"
 
 void SV_MasterHeartbeat( const char *hbname )
 {
@@ -595,7 +595,7 @@ static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 		info_map["stats"] = sv_statsURL.Get().c_str();
 	}
 
-	info_map["gamename"] = GAMENAME_STRING;  // Arnout: to be able to filter out Quake servers
+	info_map["gamename"] = GameInfo::getInstance().masterGameName();  // Arnout: to be able to filter out Quake servers
 	info_map["abi"] = IPC::SYSCALL_ABI_VERSION;
 	// Add the engine version. But is that really what we want? Probably the gamelogic version would
 	// be more interesting to players. Oh well, it's what's available for now.
@@ -1289,11 +1289,11 @@ int SV_FrameMsec()
 	int scaledResidual = static_cast<int>( sv.timeResidual / com_timescale->value );
 
 	if ( frameMsec < scaledResidual )
-	{
-		return 0;
-	}
-	else
-	{
+		{
+			return 0;
+		}
+		else
+		{
 		return frameMsec - scaledResidual;
 	}
 }

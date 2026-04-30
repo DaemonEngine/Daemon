@@ -284,7 +284,8 @@ public:
 		Print(
 			"(begin server status)\n"
 			"hostname: %s\n"
-			"version:  %s\n"
+			"engine:   %s\n"
+			"game:     %s\n"
 			"protocol: %d\n"
 			"cpu:      %.0f%%\n"
 			"time:     %s\n"
@@ -293,7 +294,8 @@ public:
 			"num score connection address                port   name\n"
 			"--- ----- ---------- ---------------------- ------ ----",
 			sv_hostname.Get(),
-			Q3_VERSION " on " Q3_ENGINE,
+			ENGINE_NAME_VERSION,
+			PRODUCT_NAME_VERSION,
 			PROTOCOL_VERSION,
 			cpu,
 			time_string,

@@ -461,6 +461,9 @@ endif()
 # These variables are defined:
 # LIBS_BASE, LIBS_ENGINE_BASE LIBS_ENGINE, LIBS_BASECLIENT, LIBS_CLIENT
 
+add_library(srclibs-tomlc17 EXCLUDE_FROM_ALL ${TOMLC17LIST})
+set(LIBS_BASE ${LIBS_BASE} srclibs-tomlc17)
+
 # Native client
 include(DaemonNacl)
 if (NACL)

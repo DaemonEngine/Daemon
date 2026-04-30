@@ -187,13 +187,13 @@ std::string GetSingletonSocketPath()
 	Com_MD5Buffer(homePath.data(), homePath.size(), homePathHash, sizeof(homePathHash));
 	std::string suffix = homePathSuffix + "-" + homePathHash;
 #ifdef _WIN32
-	return "\\\\.\\pipe\\" PRODUCT_NAME + suffix;
+	return std::string("\\\\.\\pipe\\") + GameInfo::getInstance().name() + suffix;
 #else
 	// We use a temporary directory rather that using the homepath because
 	// socket paths are limited to about 100 characters. This also avoids issues
 	// when the homepath is on a network filesystem.
 	return FS::Path::Build(FS::Path::Build(
-		FS::DefaultTempPath(), "." PRODUCT_NAME_LOWER + suffix), SINGLETON_SOCKET_BASENAME);
+		FS::DefaultTempPath(), std::string(".") + GameInfo::getInstance().baseName() + suffix), SINGLETON_SOCKET_BASENAME);
 #endif
 }
 
@@ -724,22 +724,21 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 				"Possible options are:\n"
 				"  -h, -help                print this help and exit\n"
 				"  -v, -version             print version and exit\n"
-				"  -homepath <path>         set the path used for user-specific configuration files and downloaded dpk files\n"
-				"  -libpath <path>          set the path containing additional executables and libraries\n"
-				"  -pakpath <path>          add another path from which dpk files are loaded\n"
-				"  -resetconfig             reset all cvars and keybindings to their default value\n"
+			       "  -homepath <path>         set the path used for user-specific configuration files and downloaded dpk files\n"
+			       "  -libpath <path>          set the path containing additional executables and libraries\n"
+			       "  -pakpath <path>          add another path from which dpk files are loaded\n"
+			       "  -resetconfig             reset all cvars and keybindings to their default value\n"
 				"  -noforward               do not forward commands to an existing existance; instead exit with error\n"
 				"  -forward-only            just forward commands; exit with error if no existing instance\n"
 #ifdef USE_CURSES
-				"  -curses                  activate the curses interface\n"
+			       "  -curses                  activate the curses interface\n"
 #endif
 				"  -nocrashhandler          disable catching SIGSEGV etc. (enable core dumps)\n"
 				"  -set <variable> <value>  set the value of a cvar\n");
-			printf("%s", Application::GetTraits().supportsUri ?
-				"  -connect " URI_SCHEME "<address>[:<port>]>\n"
-				"                           connect to server at startup\n" : "");
-			printf(
-				"  +<command> <args>        execute an ingame command after startup\n"
+			std::string helpUrl = std::string("  -connect ") + GameInfo::getInstance().uriProtocol() + std::string("<address>[:<port>]>\n")
+				+ std::string("                           connect to server at startup\n");
+			printf("%s", Application::GetTraits().supportsUri ? helpUrl.c_str() : "");
+			printf("  +<command> <args>        execute an ingame command after startup\n"
 				"\n"
 				"Order is important, -options must be set before +commands.\n"
 				"Nothing is read and executed after -connect option and the following URI.\n"
@@ -748,7 +747,7 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 			FS::FlushAll();
 			OSExit(0);
 		} else if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-version") || !strcmp(argv[i], "-v")) {
-			printf(PRODUCT_NAME " " PRODUCT_VERSION "\n");
+			printf(ENGINE_NAME_VERSION "\n");
 			FS::FlushAll();
 			OSExit(0);
 		} else if (!strcmp(argv[i], "-set")) {
@@ -836,17 +835,20 @@ static void Init(int argc, char** argv)
 	// Detect MSYS2 terminal. The AttachConsole code makes output not appear
 	const char* msystem = getenv("MSYSTEM");
 	if (!msystem || !Str::IsPrefix("MINGW", msystem)) {
-		// If we were launched from a console, make our output visible on it
-		if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-			(void)freopen("CONOUT$", "w", stdout);
-			(void)freopen("CONOUT$", "w", stderr);
-		}
+	// If we were launched from a console, make our output visible on it
+	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+		(void)freopen("CONOUT$", "w", stdout);
+		(void)freopen("CONOUT$", "w", stderr);
+	}
 	}
 #endif
 
-	// Print a banner and a copy of the command-line arguments
-	Log::Notice("%s %s %s (%s) %s", Q3_VERSION, PLATFORM_STRING, DAEMON_ARCH_STRING, DAEMON_CXX_COMPILER_STRING, __DATE__);
+	Sys::ParseCmdline(argc, argv, cmdlineArgs);
+	GameInfo::getInstance().parse(FS::Path::Build(cmdlineArgs.libPath, GameInfo::fileName));
+	Log::Notice("%s", PRODUCT_NAME_VERSION);
+	Log::Notice("%s %s %s (%s) %s", ENGINE_NAME_VERSION, PLATFORM_STRING, DAEMON_ARCH_STRING, DAEMON_CXX_COMPILER_STRING, ENGINE_DATE);
 
+	// Print a banner and a copy of the command-line arguments
 	std::string argsString = "cmdline:";
 	for (int i = 1; i < argc; i++) {
 		argsString.push_back(' ');
@@ -854,7 +856,9 @@ static void Init(int argc, char** argv)
 	}
 	Log::Notice(argsString);
 
-	Sys::ParseCmdline(argc, argv, cmdlineArgs);
+	if (cmdlineArgs.homePath.empty()) {
+		cmdlineArgs.homePath = FS::DefaultHomePath();
+	}
 
 	if (cmdlineArgs.use_crash_handlers) {
 		Sys::SetupCrashHandler(); // If Breakpad is enabled, this handler will soon be replaced.
@@ -915,11 +919,11 @@ static void Init(int argc, char** argv)
 	if (ConnectSingletonSocket()) {
 		Log::Notice("Existing instance found");
 		if (cmdlineArgs.allowForwardToExistingInstance) {
-			if (!cmdlineArgs.commands.empty()) {
-				Log::Notice("Forwarding commands to existing instance");
-				WriteSingletonSocket(cmdlineArgs.commands);
+		if (!cmdlineArgs.commands.empty()) {
+			Log::Notice("Forwarding commands to existing instance");
+			WriteSingletonSocket(cmdlineArgs.commands);
 			} else {
-				Log::Notice("No commands given, exiting...");
+			Log::Notice("No commands given, exiting...");
 			}
 		}
 #ifdef _WIN32
@@ -946,8 +950,8 @@ static void Init(int argc, char** argv)
 	if (CreateCrashDumpPath() && cmdlineArgs.use_crash_handlers) {
 		// This may fork(), and then exec() *in the parent process*,
 		// so threads must not be created before this point.
-		BreakpadInit();
-	}
+        BreakpadInit();
+    }
 
 	// Start a thread which reads commands from the singleton socket
 	try {

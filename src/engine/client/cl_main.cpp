@@ -983,9 +983,10 @@ void CL_Connect_f()
 	}
 
 	// Skip the URI scheme.
-	if ( !Q_strnicmp( server, URI_SCHEME, URI_SCHEME_LENGTH ) )
+	std::string uri_scheme = Str::Format("%s://", GameInfo::getInstance().uriProtocol());
+	if ( !Q_strnicmp( server, uri_scheme.c_str(), uri_scheme.length() ) )
 	{
-		server += URI_SCHEME_LENGTH;
+		server += uri_scheme.length();
 	}
 
 	// Set and skip the password.

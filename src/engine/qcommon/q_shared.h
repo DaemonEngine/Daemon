@@ -36,6 +36,7 @@ Maryland 20850 USA.
 #define Q_SHARED_H_
 
 #include "common/Defs.h"
+#include "engine/framework/GameInfo.h"
 
 #if defined(BUILD_VM)
 #include "DaemonBuildInfo/Game.h"
@@ -50,21 +51,15 @@ Maryland 20850 USA.
 #define _USE_MATH_DEFINES
 #endif
 
-
 // q_shared.h -- included first by ALL program modules.
 // A user mod should never modify this file
 
-#define ENGINE_NAME             "Daemon Engine"
-#define ENGINE_VERSION          PRODUCT_VERSION
+#define PRODUCT_NAME_VERSION va("%s %s", GameInfo::getInstance().name().c_str(), GameInfo::getInstance().version().c_str())
 
-#define Q3_VERSION              PRODUCT_NAME " " PRODUCT_VERSION
+#define ENGINE_NAME_VERSION ENGINE_NAME " " ENGINE_VERSION
 
-#define Q3_ENGINE               ENGINE_NAME " " ENGINE_VERSION
-#define Q3_ENGINE_DATE          __DATE__
-
-#define CLIENT_WINDOW_TITLE     PRODUCT_NAME
-#define CLIENT_WINDOW_MIN_TITLE PRODUCT_NAME_LOWER
-
+#define CLIENT_WINDOW_TITLE     GameInfo::getInstance().name().c_str()
+#define CLIENT_WINDOW_MIN_TITLE GameInfo::getInstance().name_lower().c_str()
 
 #define Q_UNUSED(x) (void)(x)
 
@@ -347,19 +342,19 @@ extern const quat_t   quatIdentity;
 /* The original Q_rsqrt algorithm is:
 
 float Q_rsqrt( float n )
-{
+	{
 	uint32_t magic = 0x5f3759dful;
 	float a = 0.5f;
 	float b = 3.0f;
 	union { float f; uint32_t u; } o = {n};
 	o.u = magic - ( o.u >> 1 );
 	return a * o.f * ( b - n * o.f * o.f );
-}
+	}
 
 It could be written like this, this is what Quake 3 did:
 
 float Q_rsqrt( float n )
-{
+	{
 	uint32_t magic = 0x5f3759dful;
 	float a = 0.5f;
 	float b = 3.0f;
@@ -371,7 +366,7 @@ float Q_rsqrt( float n )
 	o.f *= c - ( x * o.f * o.f );
 //	o.f *= c - ( x * o.f * o.f );
 	return o.f;
-}
+	}
 
 It was written with a second iteration commented out.
 
@@ -391,7 +386,7 @@ Jan Kadlec computed an ever better magic constant but it requires
 different values for the first iteration: http://rrrola.wz.cz/inv_sqrt.html
 
 float Q_rsqrt( float n )
-{
+	{
 	uint32_t magic = 0x5f1ffff9ul:
 	float a = 0.703952253f;
 	float b = 2.38924456f;
@@ -420,7 +415,7 @@ WARN_UNUSED_RESULT inline float Q_rsqrt_fast( const float n )
 	o *= a * ( b - n * o * o );
 #endif
 	return o;
-}
+	}
 
 WARN_UNUSED_RESULT inline float Q_rsqrt( const float n )
 {
@@ -1817,7 +1812,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 // if it does not want binds to execute. The only thing that really depends on this flag is
 // BUTTON_TALK / BUTTON_ANY. But BUTTON_TALK could simply be determined by the cgame, and
 // BUTTON_ANY does not seem useful at all.
-#define KEYCATCH_CONSOLE    0x0001
+#define KEYCATCH_CONSOLE 0x0001
 #define KEYCATCH_UI_KEY     0x0002
 #define KEYCATCH_UI_MOUSE   0x0004
 

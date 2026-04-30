@@ -1732,15 +1732,18 @@ GLimp_StartDriverAndSetMode
 static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordered )
 {
 	// See the SDL wiki page for details: https://wiki.libsdl.org/SDL3/SDL_SetAppMetadataProperty
-	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_NAME_STRING, PRODUCT_NAME );
-	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_VERSION_STRING, PRODUCT_VERSION );
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_NAME_STRING,
+		GameInfo::getInstance().name().c_str() );
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_VERSION_STRING,
+		GameInfo::getInstance().version().c_str() );
 	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_TYPE_STRING, "game" );
 
 	/* Let X11 and Wayland desktops (Linux, FreeBSD…) associate the game
 	window with the XDG .desktop file, with the proper name and icon.
 	The .desktop file should have PRODUCT_APPID as base name or set the
 	StartupWMClass variable to PRODUCT_APPID. */
-	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_IDENTIFIER_STRING, PRODUCT_APPID );
+	SDL_SetAppMetadataProperty( SDL_PROP_APP_METADATA_IDENTIFIER_STRING,
+		GameInfo::getInstance().appId().c_str() );
 
 	/* Disable DPI scaling.
 	See the SDL wiki page for details: https://wiki.libsdl.org/SDL3/SDL_HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY */

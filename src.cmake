@@ -185,6 +185,8 @@ set(ENGINELIST
     ${ENGINE_DIR}/framework/CrashDump.cpp
     ${ENGINE_DIR}/framework/CvarSystem.cpp
     ${ENGINE_DIR}/framework/CvarSystem.h
+    ${ENGINE_DIR}/framework/GameInfo.h
+    ${ENGINE_DIR}/framework/GameInfo.cpp
     ${ENGINE_DIR}/framework/LogSystem.cpp
     ${ENGINE_DIR}/framework/LogSystem.h
     ${ENGINE_DIR}/framework/OmpSystem.cpp

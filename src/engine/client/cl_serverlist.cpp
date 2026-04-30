@@ -49,7 +49,8 @@ Maryland 20850 USA.
 static Log::Logger serverInfoLog("client.serverinfo", "");
 
 static Cvar::Cvar<std::string> cl_gamename(
-	"cl_gamename", "game name for master server queries", Cvar::TEMPORARY, GAMENAME_FOR_MASTER);
+	"cl_gamename", "game name for master server queries", Cvar::TEMPORARY,
+	GameInfo::getInstance().masterGameName());
 
 static Cvar::Range<Cvar::Cvar<int>> cl_maxPing(
 	"cl_maxPing", "ping timeout for server list", Cvar::NONE, 800, 100, 9999);
@@ -544,7 +545,8 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	// Arnout: if this isn't the correct game, ignore it
 	gameName = Info_ValueForKey( infoString, "gamename" );
 
-	if ( !gameName[ 0 ] || Q_stricmp( gameName, GAMENAME_STRING ) )
+	if ( !gameName[ 0 ]
+		|| Q_stricmp( gameName, GameInfo::getInstance().serverGameName().c_str() ) )
 	{
 		serverInfoLog.Verbose( "Different game info packet: %s", infoString );
 		return;

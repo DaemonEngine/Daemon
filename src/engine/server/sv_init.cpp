@@ -465,8 +465,8 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	else
 	{
 		// check for maxclients change
-		SV_ChangeMaxClients();
-	}
+			SV_ChangeMaxClients();
+		}
 
 	// allocate the snapshot entities
 	svs.snapshotEntities.reset(new entityState_t[svs.numSnapshotEntities]);
