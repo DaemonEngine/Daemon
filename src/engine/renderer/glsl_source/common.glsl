@@ -135,7 +135,6 @@ void ColorModulateColor_lightFactor(
 
 	vec4 unpackedColor = UnpackColor( packedColor );
 
-	unpackedColor.rgb *= lightFactor;
-
 	ModulateColor( colorModulation, unpackedColor, color );
+	color.rgb *= lightFactor;
 }

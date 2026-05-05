@@ -129,6 +129,7 @@ struct Material {
 	int deformIndex;
 	bool tcGenEnvironment;
 	bool tcGen_Lightmap;
+	bool alphaGenPortal;
 	bool hasDepthFade;
 
 	bool bspSurface;

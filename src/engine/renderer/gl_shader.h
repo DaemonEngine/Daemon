@@ -939,6 +939,7 @@ protected:
 	  USE_REFLECTIVE_SPECULAR,
 	  LIGHT_DIRECTIONAL,
 	  USE_DEPTH_FADE,
+	  USE_ALPHAGEN_PORTAL,
 	  USE_PHYSICAL_MAPPING,
 	};
 
@@ -1420,6 +1421,35 @@ public:
 	}
 
 	void SetDepthFade( bool enable )
+	{
+		SetMacro( enable );
+	}
+};
+
+class GLCompileMacro_USE_ALPHAGEN_PORTAL :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_USE_ALPHAGEN_PORTAL( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const override
+	{
+		return "USE_ALPHAGEN_PORTAL";
+	}
+
+	EGLCompileMacro GetType() const override
+	{
+		return EGLCompileMacro::USE_ALPHAGEN_PORTAL;
+	}
+
+	int GetShaderTypes() const override {
+		return ShaderType::FRAGMENT;
+	}
+
+	void SetAlphaGenPortal( bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -2401,7 +2431,7 @@ class u_InversePortalRange :
 {
 public:
 	u_InversePortalRange( GLShader *shader ) :
-		GLUniform1f( shader, "u_InversePortalRange", PUSH )
+		GLUniform1f( shader, "u_InversePortalRange", MATERIAL_OR_PUSH )
 	{
 	}
 
@@ -2939,12 +2969,14 @@ class GLShader_generic :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
+	public u_UnprojectMatrix,
 	public u_ColorModulateColorGen_Float,
 	public u_ColorModulateColorGen_Uint,
 	public u_Color_Float,
 	public u_Color_Uint,
 	public u_Bones,
 	public u_VertexInterpolation,
+	public u_InversePortalRange,
 	public u_DepthScale,
 	public u_ProfilerZero,
 	public u_ProfilerRenderSubGroups,
@@ -2953,6 +2985,7 @@ class GLShader_generic :
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
+	public GLCompileMacro_USE_ALPHAGEN_PORTAL,
 	public GLCompileMacro_USE_DEPTH_FADE
 {
 public:
@@ -2969,8 +3002,10 @@ class GLShader_genericMaterial :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
+	public u_UnprojectMatrix,
 	public u_ColorModulateColorGen_Uint,
 	public u_Color_Uint,
+	public u_InversePortalRange,
 	public u_DepthScale,
 	public u_ShowTris,
 	public u_MaterialColour,
@@ -2979,6 +3014,7 @@ class GLShader_genericMaterial :
 	public GLDeformStage,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
+	public GLCompileMacro_USE_ALPHAGEN_PORTAL,
 	public GLCompileMacro_USE_DEPTH_FADE {
 	public:
 	GLShader_genericMaterial();

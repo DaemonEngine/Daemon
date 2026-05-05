@@ -2446,12 +2446,14 @@ GLShader_generic::GLShader_generic() :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_UnprojectMatrix( this ),
 	u_ColorModulateColorGen_Float( this ),
 	u_ColorModulateColorGen_Uint( this ),
 	u_Color_Float( this ),
 	u_Color_Uint( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
+	u_InversePortalRange( this ),
 	u_DepthScale( this ),
 	u_ProfilerZero( this ),
 	u_ProfilerRenderSubGroups( this ),
@@ -2460,6 +2462,7 @@ GLShader_generic::GLShader_generic() :
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
+	GLCompileMacro_USE_ALPHAGEN_PORTAL( this ),
 	GLCompileMacro_USE_DEPTH_FADE( this )
 {
 }
@@ -2480,8 +2483,10 @@ GLShader_genericMaterial::GLShader_genericMaterial() :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_UnprojectMatrix( this ),
 	u_ColorModulateColorGen_Uint( this ),
 	u_Color_Uint( this ),
+	u_InversePortalRange( this ),
 	u_DepthScale( this ),
 	u_ShowTris( this ),
 	u_MaterialColour( this ),
@@ -2490,6 +2495,7 @@ GLShader_genericMaterial::GLShader_genericMaterial() :
 	GLDeformStage( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
+	GLCompileMacro_USE_ALPHAGEN_PORTAL( this ),
 	GLCompileMacro_USE_DEPTH_FADE( this ) {
 }
 
