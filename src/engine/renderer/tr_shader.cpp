@@ -2938,7 +2938,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			}
 			else if ( !Q_stricmp( token, "portal" ) )
 			{
-				stage->type = stageType_t::ST_PORTALMAP;
 				stage->alphaGen = alphaGen_t::AGEN_PORTAL;
 
 				token = COM_ParseExt2( text, false );
@@ -5441,9 +5440,15 @@ static void FinishStages()
 			case stageType_t::ST_COLORMAP:
 				if ( stage->rgbGen == colorGen_t::CGEN_VERTEX && shader.registerFlags & RSF_BSP )
 				{
-					// vertex colors used as lighting detected. Enable overbright and realtime lights
-					stage->type = stageType_t::ST_DIFFUSEMAP;
+					// Vertex colors used as lighting detected. Enable overbright
+
 					stage->forceVertexLighting = true; // use vertex lighting even if there is a lightmap
+
+					if ( stage->alphaGen != alphaGen_t::AGEN_PORTAL ) // AGEN_PORTAL not supported in lightMapping
+					{
+						// use lightMapping shader to get realtime lights
+						stage->type = stageType_t::ST_DIFFUSEMAP;
+					}
 				}
 
 			default:

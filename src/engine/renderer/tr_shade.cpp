@@ -814,6 +814,7 @@ void ProcessShaderGeneric3D( const shaderStage_t* pStage ) {
 	gl_genericShader->SetDeform( pStage->deformIndex );
 	gl_genericShader->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShader->SetTCGenLightmap( pStage->tcGen_Lightmap );
+	gl_genericShader->SetAlphaGenPortal( pStage->alphaGen == alphaGen_t::AGEN_PORTAL );
 	gl_genericShader->SetDepthFade( pStage->hasDepthFade );
 }
 
@@ -926,7 +927,7 @@ void Render_generic3D( shaderStage_t *pStage )
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
 	const bool styleLightMap = pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP;
-	SetUniform_ColorModulateColorGen( gl_genericShader, rgbGen, alphaGen, styleLightMap );
+	SetUniform_ColorModulateColorGen( gl_genericShader, rgbGen, alphaGen, styleLightMap || pStage->forceVertexLighting );
 
 	// u_Color
 	SetUniform_Color( gl_genericShader, tess.svars.color );
@@ -962,6 +963,18 @@ void Render_generic3D( shaderStage_t *pStage )
 	}
 
 	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+
+	if ( pStage->alphaGen == alphaGen_t::AGEN_PORTAL )
+	{
+		matrix_t unprojectMatrix;
+		MatrixCopy( backEnd.viewParms.projectionMatrix, unprojectMatrix );
+		MatrixInverse( unprojectMatrix );
+		MatrixMultiplyTranslation( unprojectMatrix, -1.0f, -1.0f, -1.0f );
+		MatrixMultiplyScale( unprojectMatrix, 2.0f / windowConfig.vidWidth, 2.0f / windowConfig.vidHeight, 2.0f );
+
+		gl_genericShader->SetUniform_InversePortalRange( 1.0f / tess.surfaceShader->portalRange );
+		gl_genericShader->SetUniform_UnprojectMatrix( unprojectMatrix );
+	}
 
 	if ( hasDepthFade )
 	{
