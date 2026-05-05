@@ -343,11 +343,6 @@ static void GLSL_InitGPUShadersOrError()
 		gl_contrastShader->MarkProgramForBuilding();
 	}
 
-	// portal process effect
-	gl_shaderManager.LoadShader( gl_portalShader );
-
-	gl_portalShader->MarkProgramForBuilding();
-
 	// camera post process effect
 	gl_shaderManager.LoadShader( gl_cameraEffectsShader );
 
@@ -509,7 +504,6 @@ void GLSL_ShutdownGPUShaders()
 	gl_heatHazeShaderMaterial = nullptr;
 	gl_screenShader = nullptr;
 	gl_screenShaderMaterial = nullptr;
-	gl_portalShader = nullptr;
 	gl_contrastShader = nullptr;
 	gl_cameraEffectsShader = nullptr;
 	gl_blurShader = nullptr;
@@ -1405,35 +1399,6 @@ void Render_screen( shaderStage_t *pStage )
 
 	// bind u_CurrentMap
 	gl_screenShader->SetUniform_CurrentMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
-
-	Tess_DrawElements();
-
-	GL_CheckErrors();
-}
-
-/* This doesn't render the portal itself but the texture
-blended to it to fade it with distance. */
-void Render_portal( shaderStage_t *pStage )
-{
-	GLIMP_LOGCOMMENT( "--- Render_portal ---" );
-
-	GL_State( pStage->stateBits );
-
-	// enable shader, set arrays
-	gl_portalShader->BindProgram();
-
-	{
-		GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD );
-		glVertexAttrib4fv( ATTR_INDEX_COLOR, tess.svars.color.ToArray() );
-	}
-
-	gl_portalShader->SetUniform_InversePortalRange( 1 / tess.surfaceShader->portalRange );
-
-	gl_portalShader->SetUniform_ModelViewMatrix( glState.modelViewMatrix[ glState.stackIndex ] );
-	gl_portalShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-	// bind u_CurrentMap
-	gl_portalShader->SetUniform_CurrentMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 
 	Tess_DrawElements();
 

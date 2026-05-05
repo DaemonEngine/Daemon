@@ -2738,10 +2738,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				stage->type = stageType_t::ST_SCREENMAP;
 			}
-			else if ( !Q_stricmp( token, "portalMap" ) )
-			{
-				stage->type = stageType_t::ST_PORTALMAP;
-			}
 			else if ( !Q_stricmp( token, "heathazeMap" ) )
 			{
 				stage->type = stageType_t::ST_HEATHAZEMAP;
@@ -5642,14 +5638,6 @@ static void SetStagesRenderers()
 					&UpdateSurfaceDataScreen, &BindShaderScreen, &ProcessMaterialScreen,
 				};
 				break;
-			case stageType_t::ST_PORTALMAP:
-				/* Comment from the Material code:
-				This is supposedly used for alphagen portal and portal surfaces should never get here. */
-				stageRendererOptions = {
-					&Render_portal, &MarkShaderBuildPortal,
-					&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
-				};
-				break;
 			case stageType_t::ST_HEATHAZEMAP:
 				stageRendererOptions = {
 					&Render_heatHaze, &MarkShaderBuildHeatHaze,
@@ -6587,7 +6575,6 @@ public:
 			{ stageType_t::ST_REFLECTIONMAP, "REFLECTIONMAP" },
 			{ stageType_t::ST_SKYBOXMAP, "SKYBOXMAP" },
 			{ stageType_t::ST_SCREENMAP, "SCREENMAP" },
-			{ stageType_t::ST_PORTALMAP, "PORTALMAP" },
 			{ stageType_t::ST_HEATHAZEMAP, "HEATHAZEMAP" },
 			{ stageType_t::ST_LIQUIDMAP, "LIQUIDMAP" },
 			{ stageType_t::ST_LIGHTMAP, "LIGHTMAP" },

@@ -3268,18 +3268,6 @@ class GLShader_screenMaterial :
 	GLShader_screenMaterial();
 };
 
-class GLShader_portal :
-	public GLShader,
-	public u_CurrentMap,
-	public u_ModelViewMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_InversePortalRange
-{
-public:
-	GLShader_portal();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
-};
-
 class GLShader_contrast :
 	public GLShader,
 	public u_ColorMap {
@@ -3563,7 +3551,6 @@ extern GLShader_heatHaze                        *gl_heatHazeShader;
 extern GLShader_heatHazeMaterial                *gl_heatHazeShaderMaterial;
 extern GLShader_liquid                          *gl_liquidShader;
 extern GLShader_liquidMaterial                  *gl_liquidShaderMaterial;
-extern GLShader_portal                          *gl_portalShader;
 extern GLShader_reflection                      *gl_reflectionShader;
 extern GLShader_reflectionMaterial              *gl_reflectionShaderMaterial;
 extern GLShader_screen                          *gl_screenShader;

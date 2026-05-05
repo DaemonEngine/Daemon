@@ -84,7 +84,6 @@ void MarkShaderBuildLightMapping( const shaderStage_t* pStage );
 void MarkShaderBuildReflection( const shaderStage_t* pStage );
 void MarkShaderBuildSkybox( const shaderStage_t* pStage );
 void MarkShaderBuildScreen( const shaderStage_t* pStage );
-void MarkShaderBuildPortal( const shaderStage_t* pStage );
 void MarkShaderBuildHeatHaze( const shaderStage_t* pStage );
 void MarkShaderBuildLiquid( const shaderStage_t* pStage );
 

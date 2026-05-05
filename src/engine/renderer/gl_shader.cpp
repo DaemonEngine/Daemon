@@ -72,7 +72,6 @@ GLShader_heatHaze                        *gl_heatHazeShader = nullptr;
 GLShader_heatHazeMaterial                *gl_heatHazeShaderMaterial = nullptr;
 GLShader_liquid                          *gl_liquidShader = nullptr;
 GLShader_liquidMaterial                  *gl_liquidShaderMaterial = nullptr;
-GLShader_portal                          *gl_portalShader = nullptr;
 GLShader_reflection                      *gl_reflectionShader = nullptr;
 GLShader_reflectionMaterial              *gl_reflectionShaderMaterial = nullptr;
 GLShader_screen                          *gl_screenShader = nullptr;
@@ -2773,21 +2772,6 @@ GLShader_screenMaterial::GLShader_screenMaterial() :
 		true, "screen", "screen" ),
 	u_CurrentMap( this ),
 	u_ModelViewProjectionMatrix( this ) {
-}
-
-GLShader_portal::GLShader_portal() :
-	GLShader( "portal", ATTR_POSITION,
-		false, "portal", "portal" ),
-	u_CurrentMap( this ),
-	u_ModelViewMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_InversePortalRange( this )
-{
-}
-
-void GLShader_portal::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
 }
 
 GLShader_contrast::GLShader_contrast() :
