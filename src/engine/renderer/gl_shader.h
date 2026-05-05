@@ -2010,45 +2010,6 @@ template<typename Shader> void SetUniform_Color( Shader* shader, const Color::Co
 	}
 }
 
-class u_ColorGlobal_Float :
-	GLUniform4f
-{
-public:
-	u_ColorGlobal_Float( GLShader *shader ) :
-		GLUniform4f( shader, "u_ColorGlobal", LEGACY )
-	{
-	}
-
-	void SetUniform_ColorGlobal_Float( const Color::Color& color )
-	{
-		this->SetValue( color.ToArray() );
-	}
-};
-
-class u_ColorGlobal_Uint :
-	GLUniform1ui {
-	public:
-	u_ColorGlobal_Uint( GLShader* shader ) :
-		GLUniform1ui( shader, "u_ColorGlobal", PUSH ) {
-	}
-
-	void SetUniform_ColorGlobal_Uint( const Color::Color& color ) {
-		this->SetValue( packUnorm4x8( color.ToArray() ) );
-	}
-};
-
-template<typename Shader> void SetUniform_ColorGlobal( Shader* shader, const Color::Color& color )
-{
-	if( glConfig.gpuShader4Available )
-	{
-		shader->SetUniform_ColorGlobal_Uint( color );
-	}
-	else
-	{
-		shader->SetUniform_ColorGlobal_Float( color );
-	}
-}
-
 class u_Frame :
 	GLUniform1ui {
 	public:
