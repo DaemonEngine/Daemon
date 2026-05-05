@@ -671,22 +671,22 @@ static void DrawTris()
 
 	if ( r_showBatches->integer )
 	{
-		SetUniform_Color( gl_genericShader, Color::Color::Indexed( backEnd.pc.c_batches % 8 ) );
+		gl_genericShader->SetUniform_Color( Color::Color::Indexed( backEnd.pc.c_batches % 8 ) );
 	}
 	else if ( glState.currentVBO == tess.vbo )
 	{
-		SetUniform_Color( gl_genericShader, Color::Red );
+		gl_genericShader->SetUniform_Color( Color::Red );
 	}
 	else if ( glState.currentVBO )
 	{
-		SetUniform_Color( gl_genericShader, Color::Blue );
+		gl_genericShader->SetUniform_Color( Color::Blue );
 	}
 	else
 	{
-		SetUniform_Color( gl_genericShader, Color::White );
+		gl_genericShader->SetUniform_Color( Color::White );
 	}
 
-	SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
+	gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
 	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -925,10 +925,10 @@ void Render_generic3D( shaderStage_t *pStage )
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
 	const bool styleLightMap = pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP;
-	SetUniform_ColorModulateColorGen( gl_genericShader, rgbGen, alphaGen, styleLightMap || pStage->forceVertexLighting );
+	gl_genericShader->SetUniform_ColorModulateColorGen( rgbGen, alphaGen, styleLightMap || pStage->forceVertexLighting );
 
 	// u_Color
-	SetUniform_Color( gl_genericShader, tess.svars.color );
+	gl_genericShader->SetUniform_Color( tess.svars.color );
 
 	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
@@ -1110,10 +1110,10 @@ void Render_lightMapping( shaderStage_t *pStage )
 	gl_lightMappingShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// u_ColorModulate
-	SetUniform_ColorModulateColorGen( gl_lightMappingShader, rgbGen, alphaGen, lightMode != lightMode_t::FULLBRIGHT );
+	gl_lightMappingShader->SetUniform_ColorModulateColorGen( rgbGen, alphaGen, lightMode != lightMode_t::FULLBRIGHT );
 
 	// u_Color
-	SetUniform_Color( gl_lightMappingShader, tess.svars.color );
+	gl_lightMappingShader->SetUniform_Color( tess.svars.color );
 
 	// u_AlphaThreshold
 	gl_lightMappingShader->SetUniform_AlphaTest( pStage->stateBits );
@@ -1616,7 +1616,7 @@ void Render_fog( shaderStage_t *stage )
 	gl_fogShader->SetUniform_FogGradient(
 		1.0f / stage->shader->fogParms.depthForOpaque, stage->shader->fogParms.falloffExp );
 	gl_fogShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-	SetUniform_Color( gl_fogShader, stage->shader->fogParms.color );
+	gl_fogShader->SetUniform_Color( stage->shader->fogParms.color );
 
 	switch ( stage->type )
 	{

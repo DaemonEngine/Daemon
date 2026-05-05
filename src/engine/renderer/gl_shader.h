@@ -1998,17 +1998,25 @@ public:
 	}
 };
 
-template<typename Shader> void SetUniform_Color( Shader* shader, const Color::Color& color )
+class u_Color_Dispatch :
+	u_Color_Uint, u_Color_Float
 {
-	if( glConfig.gpuShader4Available )
+public:
+	u_Color_Dispatch( GLShader *shader ) :
+		u_Color_Uint( shader ), u_Color_Float( shader ) {}
+
+	void SetUniform_Color( const Color::Color &color )
 	{
-		shader->SetUniform_Color_Uint( color );
+		if ( glConfig.gpuShader4Available )
+		{
+			SetUniform_Color_Uint( color );
+		}
+		else
+		{
+			SetUniform_Color_Float( color );
+		}
 	}
-	else
-	{
-		shader->SetUniform_Color_Float( color );
-	}
-}
+};
 
 class u_Frame :
 	GLUniform1ui {
@@ -2651,21 +2659,27 @@ class u_ColorModulateColorGen_Uint :
 	}
 };
 
-template<typename Shader> void SetUniform_ColorModulateColorGen(
-		Shader* shader,
-		const colorGen_t colorGen,
-		const alphaGen_t alphaGen,
-		const bool useMapLightFactor = false )
+class u_ColorModulateColorGen_Dispatch :
+	u_ColorModulateColorGen_Uint, u_ColorModulateColorGen_Float
 {
-	if( glConfig.gpuShader4Available )
+public:
+	u_ColorModulateColorGen_Dispatch( GLShader *shader ) :
+		u_ColorModulateColorGen_Uint( shader ), u_ColorModulateColorGen_Float( shader ) {}
+
+	void SetUniform_ColorModulateColorGen(
+		colorGen_t colorGen, alphaGen_t alphaGen, bool useMapLightFactor = false )
 	{
-		shader->SetUniform_ColorModulateColorGen_Uint( colorGen, alphaGen, useMapLightFactor );
+		if ( glConfig.gpuShader4Available )
+		{
+			SetUniform_ColorModulateColorGen_Uint( colorGen, alphaGen, useMapLightFactor );
+		}
+		else
+		{
+			SetUniform_ColorModulateColorGen_Float( colorGen, alphaGen, useMapLightFactor );
+		}
 	}
-	else
-	{
-		shader->SetUniform_ColorModulateColorGen_Float( colorGen, alphaGen, useMapLightFactor );
-	}
-}
+};
+
 
 class u_DeformEnable :
 	GLUniform1f {
@@ -2931,10 +2945,8 @@ class GLShader_generic :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_UnprojectMatrix,
-	public u_ColorModulateColorGen_Float,
-	public u_ColorModulateColorGen_Uint,
-	public u_Color_Float,
-	public u_Color_Uint,
+	public u_ColorModulateColorGen_Dispatch,
+	public u_Color_Dispatch,
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_InversePortalRange,
@@ -2997,10 +3009,8 @@ class GLShader_lightMapping :
 	public u_LightTiles,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
-	public u_ColorModulateColorGen_Float,
-	public u_ColorModulateColorGen_Uint,
-	public u_Color_Float,
-	public u_Color_Uint,
+	public u_ColorModulateColorGen_Dispatch,
+	public u_Color_Dispatch,
 	public u_AlphaThreshold,
 	public u_ViewOrigin,
 	public u_ModelMatrix,
@@ -3162,8 +3172,7 @@ class GLShader_fog :
 	public u_DepthMap,
 	public u_ModelViewProjectionMatrix,
 	public u_UnprojectMatrix,
-	public u_Color_Float,
-	public u_Color_Uint,
+	public u_Color_Dispatch,
 	public u_ViewOrigin,
 	public u_FogGradient,
 	public GLCompileMacro_OUTSIDE_FOG
