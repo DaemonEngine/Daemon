@@ -938,7 +938,6 @@ enum
 	  ST_REFLECTIONMAP, // cubeMap based reflection
 	  ST_SKYBOXMAP,
 	  ST_SCREENMAP, // 2d offscreen or portal rendering
-	  ST_PORTALMAP,
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
 	  ST_FOGMAP_INNER, // a fog seen from inside
@@ -3249,7 +3248,6 @@ void GLimp_LogComment_( std::string comment );
 	void Render_reflection_CB( shaderStage_t *pStage );
 	void Render_skybox( shaderStage_t *pStage );
 	void Render_screen( shaderStage_t *pStage );
-	void Render_portal( shaderStage_t *pStage );
 	void Render_heatHaze( shaderStage_t *pStage );
 	void Render_liquid( shaderStage_t *pStage );
 	void Render_fog( shaderStage_t *pStage );

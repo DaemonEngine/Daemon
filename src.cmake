@@ -139,8 +139,6 @@ set(GLSL_EMBED_LIST
     lightMapping_fp.glsl
     liquid_vp.glsl
     liquid_fp.glsl
-    portal_vp.glsl
-    portal_fp.glsl
     reflection_CB_vp.glsl
     reflection_CB_fp.glsl
     screen_vp.glsl
