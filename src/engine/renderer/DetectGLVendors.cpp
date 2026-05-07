@@ -44,10 +44,10 @@ std::string GetGLHardwareVendorName( glHardwareVendor_t hardwareVendor )
 		"Arm",
 		"AMD/ATI",
 		"Broadcom",
-		"Intel",
-		"Nvidia",
-		"Moore Threads",
 		"Imagination",
+		"Intel",
+		"Moore Threads",
+		"Nvidia",
 		"OutOfRange",
 	};
 
@@ -70,12 +70,12 @@ std::string GetGLDriverVendorName( glDriverVendor_t driverVendor )
 		"Unknown",
 		"Apple",
 		"AMD/ATI",
+		"GL4ES",
+		"Imagination",
 		"Intel",
 		"Mesa",
-		"Nvidia",
 		"Moore Threads",
-		"Imagination",
-		"GL4ES",
+		"Nvidia",
 		"OutOfRange",
 	};
 
