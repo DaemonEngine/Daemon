@@ -58,6 +58,7 @@ enum class glHardwareVendor_t
 	INTEL,
 	MTHREADS,
 	NVIDIA,
+	ZHAOXIN,
 	NUM_HARDWARE_VENDORS,
 };
 
@@ -72,6 +73,7 @@ enum class glDriverVendor_t
 	MESA,
 	MTHREADS,
 	NVIDIA,
+	ZHAOXIN,
 	NUM_DRIVER_VENDORS,
 };
 
