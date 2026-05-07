@@ -1486,7 +1486,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 		if ( ! ( shader.registerFlags & RSF_2D ) )
 		{
 			stage->convertColorFromSRGB = stage->colorspaceBits & LINEAR_RGBGEN ?
-				convertColorFromSRGB_NOP : stage->convertColorFromSRGB;
+				convertColorFromSRGB_NOP : tr.convertColorFromSRGB;
 
 			switch ( type )
 			{
