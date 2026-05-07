@@ -2675,6 +2675,186 @@ static void GLimp_InitExtensions()
 	GL_CheckErrors();
 }
 
+static void GLimp_EnableAvailableFeatures()
+{
+	glConfig.realtimeLighting = r_realtimeLighting.Get();
+
+	if ( glConfig.realtimeLighting )
+	{
+		if ( !glConfig.uniformBufferObjectAvailable ) {
+			Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_uniform_buffer_object is not available." );
+			glConfig.realtimeLighting = false;
+		}
+
+		if ( !glConfig.textureIntegerAvailable ) {
+			Log::Warn( "Tiled dynamic light renderer disabled because GL_EXT_texture_integer is not available." );
+			glConfig.realtimeLighting = false;
+		}
+
+		if ( !glConfig.textureFloatAvailable )
+		{
+			Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_texture_float is not available." );
+			glConfig.realtimeLighting = false;
+		}
+
+		if ( glConfig.max3DTextureSize == 0 )
+		{
+			Log::Warn( "Tiled dynamic light renderer disabled because of missing 3D texture support." );
+			glConfig.realtimeLighting = false;
+		}
+
+		// See below about ALU instructions on ATI R300 and Intel GMA 3.
+		if ( !glConfig.glCoreProfile && glConfig.maxAluInstructions < 128 )
+		{
+			Log::Warn( "Tiled dynamic light rendered disabled because GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB is too small: %d", glConfig.maxAluInstructions );
+			glConfig.realtimeLighting = false;
+		}
+	}
+
+	if ( glConfig.realtimeLighting ) {
+		// Minimum possible is 16384 / 48 = 341
+		glConfig.maxRealtimeLights =
+			std::min<size_t>( MAX_REF_LIGHTS, glConfig.maxUniformBlockSize / sizeof( shaderLight_t ) );
+
+		glConfig.realtimeLightLayers = r_realtimeLightLayers.Get();
+
+		if ( glConfig.realtimeLightLayers > glConfig.max3DTextureSize ) {
+			glConfig.realtimeLightLayers = glConfig.max3DTextureSize;
+			Log::Notice( "r_realtimeLightLayers exceeds maximum 3D texture size, using %i instead.", glConfig.max3DTextureSize );
+		}
+
+		Log::Notice( "Using %i dynamic light layers, %i dynamic lights available per tile, max %d lights",
+			glConfig.realtimeLightLayers, glConfig.realtimeLightLayers * 16, glConfig.maxRealtimeLights );
+	}
+
+	glConfig.colorGrading = r_colorGrading.Get();
+
+	if ( glConfig.colorGrading )
+	{
+		if ( glConfig.max3DTextureSize == 0 )
+		{
+			Log::Warn( "Color grading disabled because of missing 3D texture support." );
+			glConfig.colorGrading = false;
+		}
+	}
+
+	glConfig.deluxeMapping = r_deluxeMapping->integer;
+	glConfig.normalMapping = r_normalMapping->integer;
+	glConfig.specularMapping = r_specularMapping->integer;
+	glConfig.physicalMapping = r_physicalMapping->integer;
+	glConfig.reliefMapping = r_reliefMapping->integer;
+
+	/* ATI R300 and Intel GMA 3 only have 64 ALU instructions, which is not enough for some shader
+	variants. For example the lightMapping shader permutation with macros USE_GRID_LIGHTING and
+	USE_GRID_DELUXE_MAPPING from the medium graphics preset requires 67 ALU.
+	For comparison, ATI R400 and R500 have 512 of them. */
+	if ( !glConfig.glCoreProfile && glConfig.maxAluInstructions < 128 )
+	{
+		static const std::pair<bool*, std::string> aluFeatures[] = {
+			/* Normal mapping, specular mapping and physical mapping does nothing when deluxe mapping
+			is disabled. Hardware that can't do deluxe mapping or normal mapping is not powerful
+			enoough to do relief mapping. */
+			{ &glConfig.deluxeMapping, "Deluxe mapping" },
+			{ &glConfig.normalMapping, "Normal mapping" },
+			{ &glConfig.specularMapping, "Specular mapping" },
+			{ &glConfig.physicalMapping, "Physical mapping" },
+			{ &glConfig.reliefMapping, "Relief mapping" },
+		};
+
+		for ( auto& f : aluFeatures )
+		{
+			if ( *f.first )
+			{
+				Log::Warn( "%s disabled because GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB is too small: %d", f.second, glConfig.maxAluInstructions );
+				*f.first = false;
+			}
+		}
+	}
+
+	// Disable features that require deluxe mapping to be enabled.
+	glConfig.normalMapping = glConfig.deluxeMapping && glConfig.normalMapping;
+	glConfig.specularMapping = glConfig.deluxeMapping && glConfig.specularMapping;
+	glConfig.physicalMapping = glConfig.deluxeMapping && glConfig.physicalMapping;
+
+	glConfig.bloom = r_bloom.Get();
+
+	glConfig.SSAO = r_SSAO.Get() != Util::ordinal( ssaoMode::DISABLED );
+
+	static const std::pair<bool*, std::string> ssaoRequiredExtensions[] = {
+		{ &glConfig.textureGatherAvailable, "ARB_texture_gather" },
+		{ &glConfig.gpuShader4Available, "EXT_gpu_shader4" },
+	};
+
+	for ( auto& e: ssaoRequiredExtensions )
+	{
+		if ( !*e.first )
+		{
+			Log::Warn( "SSAO disabled because %s is not available.", e.second );
+			glConfig.SSAO = false;
+		}
+	}
+
+	/* Motion blur is enabled by cg_motionblur which is a client cvar so we have to build it in all cases,
+	unless unsupported by the hardware which is the only condition when the engine knows it is not used. */
+	glConfig.motionBlur = true;
+
+	// This will be enabled later on by R_BuildCubeMaps()
+	glConfig.reflectionMapping = false;
+
+	/* Intel GMA 3 only has 4 tex indirections, which is not enough for some shaders.
+	For example blurX requires 6, contrast requires 5, motionblur requires 5…
+	For comparison, ATI R300, R400 and R500 have 16 of them. We don't need a finer check as early R300
+	hardware with 16 indirections would better not run that code for performance, so disabling the shader
+	by mistake on an hypothetical lower-end hardware only supporting 8 indirections can't do harm. */
+	if ( !glConfig.glCoreProfile && glConfig.maxTexIndirections < 16 )
+	{
+		static const std::pair<bool*, std::string> indirectFeatures[] = {
+			{ &glConfig.bloom, "Bloom" },
+			{ &glConfig.motionBlur, "Motion blur" },
+		};
+
+		for ( auto& f : indirectFeatures )
+		{
+			if ( *f.first )
+			{
+				Log::Warn( "%s disabled because GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB is too small: %d", f.second, glConfig.maxTexIndirections );
+				*f.first = false;
+			}
+		}
+	}
+
+	if ( std::make_pair( glConfig.glMajor, glConfig.glMinor ) >= std::make_pair( 3, 2 ) ) {
+		glConfig.MSAA = r_MSAA.Get();
+		const int maxSamples = std::min( glConfig.maxColorTextureSamples, glConfig.maxDepthTextureSamples );
+
+		if ( glConfig.MSAA > maxSamples ) {
+			Log::Warn( "MSAA samples %i > %i, setting to %i", r_MSAA.Get(), maxSamples, maxSamples );
+			glConfig.MSAA = maxSamples;
+		}
+	} else if ( r_MSAA.Get() ) {
+		Log::Warn( "MSAA unavailable because GL version is lower than required (%i.%i < %i.%i)", glConfig.glMajor, glConfig.glMinor, 3, 2 );
+	}
+
+	glConfig.FXAA = r_FXAA.Get();
+
+	if ( glConfig.FXAA && glConfig.MSAA )
+	{
+		Log::Notice( "FXAA disabled because MSAA is enabled." );
+		glConfig.FXAA = false;
+	}
+
+	if ( glConfig.FXAA && !glConfig.samplerObjectsAvailable )
+	{
+		Log::Warn( "FXAA disabled because ARB_sampler_objects is not available." );
+		glConfig.FXAA = false;
+	}
+
+	glConfig.usingMaterialSystem = r_materialSystem.Get() && glConfig.materialSystemAvailable;
+	glConfig.usingBindlessTextures = glConfig.usingMaterialSystem ||
+		( r_preferBindlessTextures.Get() && glConfig.bindlessTexturesAvailable );
+	glConfig.usingGeometryCache = glConfig.usingMaterialSystem && glConfig.geometryCacheAvailable;
+}
+
 static const int R_MODE_FALLBACK = 3; // 640 * 480
 
 /* Support code for GLimp_Init */
@@ -2922,6 +3102,8 @@ bool GLimp_Init()
 
 	// initialize extensions
 	GLimp_InitExtensions();
+
+	GLimp_EnableAvailableFeatures();
 
 	// This depends on SDL_INIT_VIDEO, hence having it here
 	ri.IN_Init( window );
