@@ -171,6 +171,10 @@ static Cvar::Cvar<bool> workaround_glDriver_nvidia_v340_disableTextureGather(
 	"workaround.glDriver.nvidia.v340.disableTextureGather",
 	"Disable ARB_texture_gather on Nvidia 340 driver",
 	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_zhaoxin_disableRealtimeLighting(
+	"workaround.glDriver.zhaoxin.disableRealtimeLighting",
+	"Disable realtime lighting on Zhaoxin driver",
+	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glExtension_missingArbFbo_useExtFbo(
 	"workaround.glExtension.missingArbFbo.useExtFbo",
 	"Use EXT_framebuffer_object and EXT_framebuffer_blit when ARB_framebuffer_object is not available",
@@ -2681,6 +2685,12 @@ static void GLimp_EnableAvailableFeatures()
 
 	if ( glConfig.realtimeLighting )
 	{
+		if ( workaround_glDriver_zhaoxin_disableRealtimeLighting.Get() )
+		{
+			Log::Warn("Tiled dynamic light renderer disabled because of buggy Zhaoxin driver.");
+			glConfig.realtimeLighting = false;
+		}
+
 		if ( !glConfig.uniformBufferObjectAvailable ) {
 			Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_uniform_buffer_object is not available." );
 			glConfig.realtimeLighting = false;
@@ -2896,6 +2906,7 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_glDriver_mesa_intel_gma3_stubOcclusionQuery );
 	Cvar::Latch( workaround_glDriver_mesa_v241_disableBindlessTexture );
 	Cvar::Latch( workaround_glDriver_nvidia_v340_disableTextureGather );
+	Cvar::Latch( workaround_glDriver_zhaoxin_disableRealtimeLighting );
 	Cvar::Latch( workaround_glExtension_missingArbFbo_useExtFbo );
 	Cvar::Latch( workaround_glExtension_glsl120_disableShaderDrawParameters );
 	Cvar::Latch( workaround_glExtension_glsl120_disableTextureBarrier );
