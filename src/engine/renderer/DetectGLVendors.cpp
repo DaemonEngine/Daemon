@@ -138,7 +138,7 @@ void DetectGLVendors(
 		{ "nouveau", { glDriverVendor_t::MESA, glHardwareVendor_t::NVIDIA } },
 		// Proprietary Nvidia drivers on all systems like Linux, Windows, and macOS.
 		{ "NVIDIA Corporation", { glDriverVendor_t::NVIDIA, glHardwareVendor_t::NVIDIA } },
-		// Moore Threads drivers on Linux and Windows.
+		// Proprietary Moore Threads drivers on Linux and Windows.
 		{ "Moore Threads", { glDriverVendor_t::MTHREADS, glHardwareVendor_t::MTHREADS } },
 		// Proprietary Zhaoxin driver on Linux.
 		{ "Shanghai Zhaoxin Semiconductor Co., Ltd.", { glDriverVendor_t::ZHAOXIN, glHardwareVendor_t::ZHAOXIN } },
@@ -149,8 +149,8 @@ void DetectGLVendors(
 	auto it = vendorDriverHardware.find( vendorString );
 	if ( it != vendorDriverHardware.end() )
 	{
-		driverVendor = it->second.first;	
-		hardwareVendor = it->second.second;	
+		driverVendor = it->second.first;
+		hardwareVendor = it->second.second;
 		return;
 	}
 
