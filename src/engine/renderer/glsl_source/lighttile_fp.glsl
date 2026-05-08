@@ -52,7 +52,7 @@ layout(std140, binding = BIND_LIGHTS) uniform u_Lights {
 #else
 layout(std140) uniform u_Lights {
 #endif
-	Light lights[MAX_REF_LIGHTS];
+	Light lights[MAX_REALTIME_LIGHTS];
 };
 
 Light GetLight( in uint idx ) {

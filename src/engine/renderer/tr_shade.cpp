@@ -73,6 +73,10 @@ static void EnableAvailableFeatures()
 	}
 
 	if ( glConfig.realtimeLighting ) {
+		// Minimum possible is 16384 / 48 = 341
+		glConfig.maxRealtimeLights =
+			std::min<size_t>( MAX_REF_LIGHTS, glConfig.maxUniformBlockSize / sizeof( shaderLight_t ) );
+
 		glConfig.realtimeLightLayers = r_realtimeLightLayers.Get();
 
 		if ( glConfig.realtimeLightLayers > glConfig.max3DTextureSize ) {
@@ -80,8 +84,8 @@ static void EnableAvailableFeatures()
 			Log::Notice( "r_realtimeLightLayers exceeds maximum 3D texture size, using %i instead.", glConfig.max3DTextureSize );
 		}
 
-		Log::Notice( "Using %i dynamic light layers, %i dynamic lights available per tile", glConfig.realtimeLightLayers,
-			glConfig.realtimeLightLayers * 16 );
+		Log::Notice( "Using %i dynamic light layers, %i dynamic lights available per tile, max %d lights",
+			glConfig.realtimeLightLayers, glConfig.realtimeLightLayers * 16, glConfig.maxRealtimeLights );
 	}
 
 	glConfig.colorGrading = r_colorGrading.Get();

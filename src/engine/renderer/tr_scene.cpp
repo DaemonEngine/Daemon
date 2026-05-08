@@ -336,7 +336,7 @@ void RE_AddDynamicLightToScene( const vec3_t org, float radius, float r, float g
 		return;
 	}
 
-	if ( r_numLights >= MAX_REF_LIGHTS )
+	if ( r_numLights >= glConfig.maxRealtimeLights )
 	{
 		return;
 	}

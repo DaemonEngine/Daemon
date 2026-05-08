@@ -679,7 +679,7 @@ static std::string GenEngineConstants() {
 	AddDefine( str, "r_zNear", r_znear->value );
 
 	AddDefine( str, "M_PI", static_cast< float >( M_PI ) );
-	AddDefine( str, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
+	AddDefine( str, "MAX_REALTIME_LIGHTS", glConfig.maxRealtimeLights );
 	AddDefine( str, "NUM_LIGHT_LAYERS", glConfig.realtimeLightLayers );
 	AddDefine( str, "TILE_SIZE", TILE_SIZE );
 
