@@ -408,7 +408,17 @@ void CL_ParseGamestate( msg_t *msg )
 		CL_ClearState();
 
 		// a gamestate always marks a server command sequence
-		clc.serverCommandSequence = MSG_ReadLong( msg );
+		int commandNum = MSG_ReadLong( msg );
+
+		if ( commandNum < clc.serverCommandSequence )
+		{
+			Sys::Drop( "Gamestate moved serverCommandSequence backward" );
+		}
+
+		clc.serverCommandSequence = commandNum;
+
+		// trash any commands from previous game
+		clc.lastExecutedServerCommand = clc.serverCommandSequence;
 	}
 
 	// parse all the configstrings and baselines
@@ -493,6 +503,13 @@ void CL_ParseCommandString( msg_t *msg )
 	// see if we have already executed stored it off
 	if ( clc.serverCommandSequence >= seq )
 	{
+		return;
+	}
+
+	if ( clc.serverCommandSequence + 1 != seq )
+	{
+		Sys::Drop( "Out-of-sequence server command: expected %d, got %d",
+		           clc.serverCommandSequence + 1, seq );
 		return;
 	}
 

@@ -72,7 +72,11 @@ else()
   elseif( NACL_ARCH STREQUAL "armhf" )
     add_definitions( -DNACL_BUILD_ARCH=arm )
   else()
-    message(WARNING "Unknown architecture ${NACL_ARCH}")
+    # NaCl does not support this architecture natively, but these defines must
+    # be set because nacl_config.h is included unconditionally. Use dummy x86
+    # values as PNaCl does for architecture-independent builds.
+    add_definitions( -DNACL_BUILD_ARCH=x86 )
+    add_definitions( -DNACL_BUILD_SUBARCH=64 )
   endif()
 endif()
 

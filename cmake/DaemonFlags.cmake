@@ -659,6 +659,18 @@ elseif (NOT NACL)
 		set(GCC_GENERIC_ARCH "armv6")
 		# There is no generic tuning option for armv6.
 		unset(GCC_GENERIC_TUNE)
+	elseif (ARCH STREQUAL "ppc64el")
+		# POWER8 minimum (first little-endian POWER).
+		# GCC uses -mcpu instead of -march/-mtune for POWER.
+		unset(GCC_GENERIC_ARCH)
+		unset(GCC_GENERIC_TUNE)
+		set(GCC_GENERIC_CPU "power8")
+	elseif (ARCH STREQUAL "ppc64")
+		# POWER5 minimum (first 64-bit POWER in wide use).
+		# GCC uses -mcpu instead of -march/-mtune for POWER.
+		unset(GCC_GENERIC_ARCH)
+		unset(GCC_GENERIC_TUNE)
+		set(GCC_GENERIC_CPU "power5")
 	else()
 		message(WARNING "Unknown architecture ${ARCH}")
 	endif()
@@ -675,6 +687,11 @@ elseif (NOT NACL)
 
 		if (GCC_GENERIC_TUNE)
 			try_c_cxx_flag_werror(MTUNE "-mtune=${GCC_GENERIC_TUNE}")
+		endif()
+
+		# POWER architectures use -mcpu instead of -march/-mtune.
+		if (GCC_GENERIC_CPU)
+			try_c_cxx_flag_werror(MCPU "-mcpu=${GCC_GENERIC_CPU}")
 		endif()
 	endif()
 

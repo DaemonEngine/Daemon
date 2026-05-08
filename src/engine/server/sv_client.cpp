@@ -354,6 +354,7 @@ void SV_SendClientGameState( client_t *client )
 	// we have to do this cause we send the client->reliableSequence
 	// with a gamestate and it sets the clc.serverCommandSequence at
 	// the client side
+	// TODO(0.57): remove. The client will just throw away old commands on getting a gamestate
 	SV_UpdateServerCommandsToClient( client, &msg );
 
 	// send the gamestate

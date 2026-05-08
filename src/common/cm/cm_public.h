@@ -32,6 +32,9 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
+#ifndef COMMON_CM_CM_PUBLIC_H_
+#define COMMON_CM_CM_PUBLIC_H_
+
 #include "engine/qcommon/q_shared.h"
 
 void         CM_LoadMap(Str::StringRef name);
@@ -79,3 +82,5 @@ int      CM_WriteAreaBits( byte *buffer, int area );
 // cm_marks.c
 int      CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projection,
                            int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
+
+#endif // COMMON_CM_CM_PUBLIC_H_

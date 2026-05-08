@@ -32,6 +32,9 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
+#ifndef COMMON_CM_CM_PATCH_H_
+#define COMMON_CM_CM_PATCH_H_
+
 //#define   CULL_BBOX
 
 /*
@@ -86,3 +89,5 @@ void CM_SetGridWrapWidth( cGrid_t *grid );
 void CM_SubdivideGridColumns( cGrid_t *grid );
 void CM_RemoveDegenerateColumns( cGrid_t *grid );
 void CM_TransposeGrid( cGrid_t *grid );
+
+#endif // COMMON_CM_CM_PATCH_H_

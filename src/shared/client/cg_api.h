@@ -33,8 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SHARED_CLIENT_API_H_
 
 #include "engine/qcommon/q_shared.h"
-#include "engine/RefAPI.h"
 #include "engine/client/cg_api.h"
+#include "engine/renderer/tr_types.h"
 #include "common/KeyIdentification.h"
 #include "shared/CommonProxies.h"
 #include <shared/CommandBufferClient.h>
@@ -65,7 +65,7 @@ qhandle_t       trap_R_RegisterModel( const char *name );
 qhandle_t       trap_R_RegisterSkin( const char *name );
 qhandle_t       trap_R_RegisterShader( const char *name, int flags );
 void            trap_R_ClearScene();
-int  trap_R_AddRefEntityToScene( const refEntity_t *re );
+void trap_R_AddRefEntityToScene( const refEntity_t *re );
 void trap_R_SyncRefEntities( const std::vector<EntityUpdate>& ents );
 std::vector<LerpTagSync> trap_R_SyncLerpTags( const std::vector<LerpTagUpdate>& lerpTags );
 void            trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts );
@@ -82,7 +82,6 @@ void            trap_R_ResetClipRegion();
 void            trap_R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader );
 void            trap_R_DrawRotatedPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader, float angle );
 void            trap_R_ModelBounds( clipHandle_t model, vec3_t mins, vec3_t maxs );
-int             trap_R_LerpTag( orientation_t *tag, const refEntity_t* refent, const char *tagName, int startIndex );
 void            trap_R_GetTextureSize( qhandle_t handle, int *x, int *y );
 qhandle_t       trap_R_GenerateTexture( const byte *data, int x, int y );
 void            trap_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverTime );

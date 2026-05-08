@@ -45,7 +45,7 @@ function(CBSE target definition output)
         COMMAND ${DAEMON_CBSE_PYTHON_PATH} -c "import jinja2, yaml, collections, argparse, sys, os.path, re"
         RESULT_VARIABLE RET)
     if (NOT RET EQUAL 0)
-        message(FATAL_ERROR "Missing dependences for CBSE generation. Please ensure you have python ≥ 2, python-yaml, and python-jinja installed.
+        message(FATAL_ERROR "Missing dependences for CBSE generation. Please ensure you have python with python-yaml and python-jinja installed.
                              Use pip install -r src/utils/cbse/requirements.txt to install")
     endif()
     set(GENERATED_CBSE ${output}/backend/CBSEBackend.cpp

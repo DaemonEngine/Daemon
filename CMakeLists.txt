@@ -689,6 +689,7 @@ if (BUILD_CLIENT OR WIN32)
     endif()
 
     find_package(SDL3 REQUIRED CONFIG)
+    message("Found SDL3 ${SDL3_VERSION}: ${SDL3_DIR}")
 
     if (WIN32)
         set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} SDL3::SDL3)

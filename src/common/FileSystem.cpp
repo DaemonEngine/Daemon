@@ -477,6 +477,27 @@ std::string Build(Str::StringRef base, Str::StringRef path)
 	return out;
 }
 
+std::string NormalizeSlashes(Str::StringRef path)
+{
+	std::string out;
+	out.reserve(path.size());
+	bool lastSlash = true;
+
+	for (char c : path) {
+		if (c == '/' || c == '\\') {
+			if (!lastSlash) {
+				lastSlash = true;
+				out.push_back('/');
+			}
+		} else {
+			out.push_back( c );
+			lastSlash = false;
+		}
+	}
+
+	return out;
+}
+
 std::string DirName(Str::StringRef path)
 {
 	if (path.empty())

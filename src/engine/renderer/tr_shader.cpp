@@ -123,17 +123,7 @@ static unsigned int generateHashValue( const char *fname, const int size )
 
 		if ( letter == '.' )
 		{
-			break; // don't include extension
-		}
-
-		if ( letter == '\\' )
-		{
-			letter = '/'; // damn path names
-		}
-
-		if ( letter == PATH_SEP )
-		{
-			letter = '/'; // damn path names
+			break; // don't include extension. FIXME: could have multiple dots
 		}
 
 		hash += ( unsigned )( letter ) * ( i + 119 );
@@ -6247,7 +6237,8 @@ shader_t       *R_FindShader( const char *name, int flags )
 		return tr.defaultShader;
 	}
 
-	COM_StripExtension3( name, strippedName, sizeof( strippedName ) );
+	COM_StripExtension3( FS::Path::NormalizeSlashes( name ).c_str(),
+	                     strippedName, sizeof( strippedName ) );
 
 	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
 

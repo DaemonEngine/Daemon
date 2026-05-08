@@ -80,8 +80,8 @@ void RE_EndRegistration() { }
 void RE_ClearScene() { }
 void RE_AddRefEntityToScene( const refEntity_t * ) { }
 void RE_SyncRefEntities( const std::vector<EntityUpdate>& ) {}
-std::vector<LerpTagSync> RE_SyncLerpTags( const std::vector<LerpTagUpdate>& ) {
-    return {};
+std::vector<LerpTagSync> RE_SyncLerpTags( const std::vector<LerpTagUpdate>& in ) {
+    return std::vector<LerpTagSync>(in.size());
 }
 void RE_AddPolyToScene( qhandle_t, int, const polyVert_t* ) { }
 void RE_AddPolysToScene( qhandle_t, int, const polyVert_t*, int ) { }
