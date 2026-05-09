@@ -2492,7 +2492,7 @@ static void GLimp_InitExtensions()
 			}
 
 			// AMD proprietary drivers are known to have buggy bindless texture implementation.
-			else if ( glConfig.hardwareVendor == glHardwareVendor_t::ATI )
+			else if ( glConfig.driverVendor == glDriverVendor_t::ATI )
 			{
 				// AMD proprietary driver for macOS does not implement bindless texture.
 				// Other systems like FreeBSD don't have AMD proprietary drivers.
