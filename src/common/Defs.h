@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define PRODUCT_APPID "net.unvanquished.Unvanquished"
 
-#define PRODUCT_VERSION     "0.56.0"
+#define PRODUCT_VERSION     "0.56.2"
 
 /** Default base package */
 #define DEFAULT_BASE_PAK    PRODUCT_NAME_LOWER
