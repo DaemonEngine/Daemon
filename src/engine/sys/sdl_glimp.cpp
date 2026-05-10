@@ -2685,7 +2685,8 @@ static void GLimp_EnableAvailableFeatures()
 
 	if ( glConfig.realtimeLighting )
 	{
-		if ( workaround_glDriver_zhaoxin_disableRealtimeLighting.Get() )
+		if ( workaround_glDriver_zhaoxin_disableRealtimeLighting.Get()
+		     && glConfig.driverVendor == glDriverVendor_t::ZHAOXIN )
 		{
 			Log::Warn("Tiled dynamic light renderer disabled because of buggy Zhaoxin driver.");
 			glConfig.realtimeLighting = false;
