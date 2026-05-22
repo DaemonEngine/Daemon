@@ -149,8 +149,8 @@ byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {
 		.chunkID   = chunkID
 	};
 
-	Q_strncpyz( alloc.source, source.c_str(), 103 );
-	alloc.source[103] = '\0';
+	Q_strncpyz( alloc.source, source.c_str(), AllocationRecord::srcSize );
+	alloc.source[AllocationRecord::srcSize] = '\0';
 
 	*( ( AllocationRecord* ) ( record->chunk.memory + record->offset ) ) = alloc;
 

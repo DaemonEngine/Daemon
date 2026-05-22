@@ -45,6 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct GlobalAllocationRecord {
 	static constexpr uint64 HEADER_MAGIC = 0xACC0500D66666666;
+	static constexpr uint32 srcSize      = 227;
 
 	inline std::string Format() const {
 		if ( guardValue == HEADER_MAGIC ) {
@@ -66,7 +67,7 @@ struct GlobalAllocationRecord {
 
 		refCount.store( other.refCount.load( std::memory_order_relaxed ), std::memory_order_relaxed );
 
-		Q_strncpyz( source, other.source, 100 );
+		Q_strncpyz( source, other.source, srcSize + 1 );
 	}
 
 	uint64              guardValue = HEADER_MAGIC;
@@ -76,7 +77,7 @@ struct GlobalAllocationRecord {
 
 	std::atomic<uint32> refCount;
 
-	char                source[100];
+	char                source[srcSize + 1];
 };
 
 struct GlobalTaskTime {

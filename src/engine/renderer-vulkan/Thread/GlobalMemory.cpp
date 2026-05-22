@@ -139,8 +139,8 @@ byte* GlobalMemory::Alloc( const uint64 size, const uint64 alignment ) {
 		.refCount  = 1
 	};
 
-	Q_strncpyz( alloc.source, source.c_str(), 99 );
-	alloc.source[99] = '\0';
+	Q_strncpyz( alloc.source, source.c_str(), GlobalAllocationRecord::srcSize );
+	alloc.source[GlobalAllocationRecord::srcSize] = '\0';
 
 	*( ( GlobalAllocationRecord* ) ( record->chunk.memory + record->offset ) ) = alloc;
 

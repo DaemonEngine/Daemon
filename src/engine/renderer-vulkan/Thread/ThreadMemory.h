@@ -47,6 +47,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct AllocationRecord {
 	static constexpr uint64 HEADER_MAGIC = 0xACC0500D66666666;
+	static constexpr uint32 srcSize      = 231;
 
 	inline std::string Format() const {
 		if ( guardValue == HEADER_MAGIC ) {
@@ -65,7 +66,7 @@ struct AllocationRecord {
 	uint32 alignment;
 	uint32 chunkID; // LSB->MSB: 0-5 - chunk, 6-26 - area, 27-31 - level, 31 - allocated
 
-	char   source[104];
+	char   source[srcSize + 1];
 };
 
 struct TaskTime {
