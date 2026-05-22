@@ -135,6 +135,7 @@ set( graphicsEngineListH
 
 set( graphicsEngineList
     MsgStream.glsl
+    SparseCopy.glsl
     Tonemap.glsl
     TestV.glsl
     TestF.glsl

@@ -28,26 +28,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef LIGHT_H
-#define LIGHT_H
+#include "Common.glsl"
 
-#include "NumberTypes.h"
+#include "Entity.h"
+#include "Light.h"
 
-struct Light {
-	float  x;
-	float  y;
-	float  z;
-	float  radius;
+#include "Resources.glsl"
 
-	uint8  r;
-	uint8  g;
-	uint8  b;
+layout ( local_size_x = 64, local_size_y = 1, local_size_z = 1 ) in;
 
-	uint8  material;
+layout ( scalar, push_constant ) uniform Push {
+	Entity* entityRingBuffer;
+	Light*  lightRingBuffer;
+	Entity* entities;
+	Light*  lights;
+} push;
 
-	float  strength;
+void main() {
+	const uint globalGroupID      = GLOBAL_GROUP_ID;
+	const uint globalInvocationID = GLOBAL_INVOCATION_ID;
 
-	uint32 shadowMapID;
-};
-
-#endif // LIGHT_H
+	if ( globalInvocationID >= 64 ) {
+		return;
+	}
+}
