@@ -57,9 +57,14 @@ class MemoryChunkSystem :
 	void        InitConfig( const char* configText );
 
 	MemoryChunk Alloc( uint64 size );
-	void        Free( MemoryChunk* memoryChunk );
+	void        Free( const uint8 level, const uint8 area, const uint8 chunk );
+	void        Free( const uint32 id );
 
 	void        SizeToLevel( const uint64 size, uint32* level, uint32* count );
+
+	byte*       GetChunkMemory( const uint8 level, const uint8 area, const uint8 chunk );
+	byte*       GetChunkMemory( const uint32 id );
+	uint32      GetChunkSize( const uint8 level );
 
 	private:
 	Allocator* allocator;

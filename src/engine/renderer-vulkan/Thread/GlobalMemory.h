@@ -73,12 +73,16 @@ class GlobalMemory : public Allocator {
 	std::unordered_map<Task::TaskFunction, GlobalTaskTime> taskTimes;
 	AccessLock                                             taskTimesLock;
 
-	void  Init();
+	void         Init();
 
-	byte* Alloc( const uint64 size, const uint64 alignment );
-	void  Free( byte* memory );
+	byte*        Alloc( const uint64 size, const uint64 alignment );
+	void         Free( byte* memory );
 
 	private:
+	ChunkRecord* IDToChunkRecord( const uint8 level, const uint8 area, const uint8 chunk );
+	ChunkRecord* IDToChunkRecord( const uint32 id );
+
+	uint32       AllocChunk( const uint64 size, const uint64 alignment, const uint8 level );
 };
 
 void InitGlobalMemory();

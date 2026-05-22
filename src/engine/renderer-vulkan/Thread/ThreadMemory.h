@@ -99,20 +99,25 @@ class ThreadMemory : public Allocator {
 
 	GlobalTimer exitTimer;
 
-	~ThreadMemory();
+	             ~ThreadMemory();
 
-	void  Init();
+	void         Init();
 
-	byte* Alloc( const uint64 size, const uint64 alignment ) override;
-	void  Free( byte* memory ) override;
+	byte*        Alloc( const uint64 size, const uint64 alignment ) override;
+	void         Free( byte* memory ) override;
 
-	void  FreeAllChunks();
+	void         FreeAllChunks();
 
-	void  AddTask( Task* task );
-	Task* FetchTask();
+	void         AddTask( Task* task );
+	Task*        FetchTask();
 
 	private:
-	void  PrintChunkInfo( MemoryChunkRecord* memoryChunk );
+	ChunkRecord* IDToChunkRecord( const uint8 level, const uint8 area, const uint8 chunk );
+	ChunkRecord* IDToChunkRecord( const uint32 id );
+
+	uint32       AllocChunk( const uint64 size, const uint64 alignment, const uint8 level );
+
+	void         PrintChunkInfo( ChunkRecord* memoryChunk, const uint8 level, const byte* memory );
 };
 
 extern thread_local ThreadMemory TLM;

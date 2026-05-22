@@ -38,10 +38,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct MemoryChunk {
 	uint8  level;
+	uint8  area;
 	uint8  chunk;
-	uint8  chunkArea;
-	uint32 size;
-	byte*  memory;
+	bool   allocated;
 };
 
 struct MemoryAreaConfig {
@@ -57,16 +56,15 @@ struct MemoryArea {
 	AlignedAtomicUint64* chunkLocks; // 1 - locked
 };
 
-struct MemoryChunkRecord {
-	MemoryChunk chunk;
-	uint64      offset;
-	uint32      allocs;
+struct ChunkRecord {
+	uint32 offset;
+	uint32 allocs;
 };
 
 struct ChunkAllocator {
 	uint64            allocatedChunks;
 	uint64            availableChunks;
-	MemoryChunkRecord chunks[64];
+	ChunkRecord chunks[64];
 	AccessLock        accessLock;
 };
 
@@ -90,7 +88,7 @@ constexpr uint32 chunkAreaOffset  = chunkBits;
 constexpr uint32 chunkLevelOffset = chunkAreaOffset  + chunkAreaBits;
 constexpr uint32 chunkAllocOffset = chunkLevelOffset + chunkLevelBits;
 
-uint32 MemoryChunkToID( const uint8 level, const uint8 area, const uint8 chunk );
-bool   IDToMemoryChunk( const uint32 id, uint8* level, uint8* area, uint8* chunk );
+uint32      MemoryChunkToID( const uint8 level, const uint8 area, const uint8 chunk );
+MemoryChunk IDToMemoryChunk( const uint32 id );
 
 #endif // MEMORY_CHUNK_H

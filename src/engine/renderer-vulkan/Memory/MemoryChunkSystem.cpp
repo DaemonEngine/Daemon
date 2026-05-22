@@ -95,12 +95,13 @@ uint32 MemoryChunkToID( const uint8 level, const uint8 area, const uint8 chunk )
 	return id;
 }
 
-bool   IDToMemoryChunk( const uint32 id, uint8* level, uint8* area, uint8* chunk ) {
-	*chunk = GetBits( id, 0,                chunkBits );
-	*area  = GetBits( id, chunkAreaOffset,  chunkAreaBits );
-	*level = GetBits( id, chunkLevelOffset, chunkLevelBits );
-
-	return   GetBits( id, chunkAllocOffset, 1 );
+MemoryChunk IDToMemoryChunk( const uint32 id ) {
+	return {
+		.level = ( uint8 ) GetBits( id, chunkLevelOffset, chunkLevelBits ),
+		.area  = ( uint8 ) GetBits( id, chunkAreaOffset,  chunkAreaBits ),
+		.chunk = ( uint8 ) GetBits( id, 0,                chunkBits ),
+		.allocated = (bool ) GetBits( id, chunkAllocOffset, 1 )
+	};
 }
 
 void MemoryChunkSystem::InitConfig( const char* configText ) {
@@ -224,18 +225,40 @@ MemoryChunk MemoryChunkSystem::Alloc( uint64 size ) {
 	}
 
 	return {
-		.level     = ( uint8 ) level,
-		.chunk     = chunk,
-		.chunkArea = chunkArea,
-		.size      = ( uint32 ) memoryAreas[level].config.chunkSize,
-		.memory    = memoryAreas[level].memory + ( chunkArea * 64ull + chunk ) * memoryAreas[level].config.chunkSize
+		.level = ( uint8 ) level,
+		.area  = chunkArea,
+		.chunk = chunk
 	};
 }
 
-void MemoryChunkSystem::Free( MemoryChunk* memoryChunk ) {
-	Log::DebugTagT( "Freeing chunk %u[%u:%u]", memoryChunk->level, memoryChunk->chunkArea, memoryChunk->chunk );
+static std::string FormatChunk( const MemoryChunk& chunk ) {
+	return Str::Format( "level: %u area: %u chunk: %u", chunk.level, chunk.area, chunk.chunk );
+}
 
-	memoryAreas[memoryChunk->level].chunkLocks[memoryChunk->chunkArea].value -= 1ull << memoryChunk->chunk;
+void MemoryChunkSystem::Free( const uint8 level, const uint8 area, const uint8 chunk ) {
+	Log::DebugTagT( "Freeing chunk %u[%u:%u]", level, area, chunk );
+
+	uint64 expectedLocks;
+	uint64 desiredLocks;
+
+	std::atomic<uint64>& chunkLock = memoryAreas[level].chunkLocks[area].value;
+
+	do {
+		expectedLocks = chunkLock.load( std::memory_order_relaxed );
+		desiredLocks  = UnSetBit( expectedLocks, chunk );
+	} while (
+		!chunkLock.compare_exchange_strong( expectedLocks, desiredLocks, std::memory_order_relaxed )
+	);
+}
+
+void MemoryChunkSystem::Free( const uint32 id ) {
+	MemoryChunk chunk = IDToMemoryChunk( id );
+
+	if ( !chunk.allocated ) {
+		Log::WarnTagT( "Tried to free unallocated chunk: %s", FormatChunk( chunk ) );
+	}
+
+	Free( chunk.level, chunk.area, chunk.chunk );
 }
 
 void MemoryChunkSystem::SizeToLevel( const uint64 size, uint32* level, uint32* count ) {
@@ -243,6 +266,7 @@ void MemoryChunkSystem::SizeToLevel( const uint64 size, uint32* level, uint32* c
 		if ( memoryAreas[i].config.chunkSize >= size ) {
 			*level = i;
 			*count = 1;
+
 			return;
 		}
 
@@ -255,6 +279,24 @@ void MemoryChunkSystem::SizeToLevel( const uint64 size, uint32* level, uint32* c
 	}
 
 	Err( "Couldn't find memory area with large enough chunkSize, requested: %u bytes", size );
+}
+
+byte* MemoryChunkSystem::GetChunkMemory( const uint8 level, const uint8 area, const uint8 chunk ) {
+	return memoryAreas[level].memory + ( area * 64ull + chunk ) * memoryAreas[level].config.chunkSize;
+}
+
+byte* MemoryChunkSystem::GetChunkMemory( const uint32 id ) {
+	MemoryChunk chunk = IDToMemoryChunk( id );
+
+	if ( !chunk.allocated ) {
+		Log::WarnTagT( "Tried to get memory for unallocated chunk: %s", FormatChunk( chunk ) );
+	}
+
+	return GetChunkMemory( chunk.level, chunk.area, chunk.chunk );
+}
+
+uint32 MemoryChunkSystem::GetChunkSize( const uint8 level ) {
+	return memoryAreas[level].config.chunkSize;
 }
 
 bool MemoryChunkSystem::LockArea( const uint32 level, uint8* chunkArea, uint8* chunk ) {
@@ -273,16 +315,18 @@ bool MemoryChunkSystem::LockArea( const uint32 level, uint8* chunkArea, uint8* c
 		while ( true ) {
 			if ( i == memoryArea.config.chunkAreas ) {
 				std::this_thread::yield();
+
 				return false;
 				/* i = 0;
 				continue; */
 			}
 
 			loopCount++;
-			expectedLocks = memoryArea.chunkLocks[i].value.load();
+			expectedLocks = memoryArea.chunkLocks[i].value.load( std::memory_order_relaxed );
 
 			if ( expectedLocks == UINT64_MAX ) {
 				i++;
+
 				continue;
 			}
 
@@ -292,6 +336,7 @@ bool MemoryChunkSystem::LockArea( const uint32 level, uint8* chunkArea, uint8* c
 
 			if ( i * 64 + foundChunk >= memoryArea.config.chunks ) {
 				Log::DebugTagT( "Failed: chunk %u:%u out of range", i, foundChunk );
+
 				return false;
 			}
 

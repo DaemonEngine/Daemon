@@ -73,63 +73,47 @@ void GlobalAllocationRecord::operator=( const GlobalAllocationRecord& other ) {
 	Q_strncpyz( source, other.source, srcSize + 1 );
 }
 
-static MemoryChunkRecord* AllocChunk( const uint64 size, const uint64 alignment, const uint8 level,
-                                      DynamicArray<ChunkAllocator>& chunkAllocators,
-                                      uint32* chunkID ) {
-	MemoryChunkRecord* record = nullptr;
+ChunkRecord* GlobalMemory::IDToChunkRecord( const uint8 level, const uint8 area, const uint8 chunk ) {
+	return &chunkAllocators[level][area].chunks[chunk];
+}
 
-	for ( uint32 i = 0; i < chunkAllocators.size && !record; i++ ) {
-		ChunkAllocator& chunkAllocator = chunkAllocators[i];
+ChunkRecord* GlobalMemory::IDToChunkRecord( const uint32 id ) {
+	MemoryChunk chunk = IDToMemoryChunk( id );
 
-		if ( !chunkAllocator.accessLock.LockWrite() ) {
-			continue;
-		}
+	return &chunkAllocators[chunk.level][chunk.area].chunks[chunk.chunk];
+}
 
-		uint64&         chunkArea      = chunkAllocator.availableChunks;
-		uint64          area           = chunkArea;
+uint32 GlobalMemory::AllocChunk( const uint64 size, const uint64 alignment, const uint8 level ) {
+	for ( ChunkAllocator& chunkAllocator : chunkAllocators[level] ) {
+		uint64& chunkArea = chunkAllocator.availableChunks;
+		uint64  area      = chunkArea;
 
 		while ( area ) {
-			uint32 chunk = FindLSB( area );
-			record       = &chunkAllocator.chunks[chunk];
+			const uint32 chunk     = FindLSB( area );
+			ChunkRecord* record    = IDToChunkRecord( level, &chunkAllocator - chunkAllocators[level].memory, chunk );
 
-			if ( record->chunk.size >= record->offset + size ) {
-				if ( record->offset + size == record->chunk.size ) {
+			const uint32 chunkSize = memoryChunkSystem.GetChunkSize( level );
+
+			if ( record->offset + size <= chunkSize ) {
+				if ( chunkSize - record->offset - size < 64 ) {
 					UnSetBit( &chunkArea, chunk );
 				}
 
-				*chunkID = MemoryChunkToID( level, i, chunk );
-
-				break;
-			} else {
-				record = nullptr;
+				return MemoryChunkToID( level, &chunkAllocator - chunkAllocators[level].memory, chunk );
 			}
 
 			UnSetBit( &area, chunk );
 		}
-
-		chunkAllocator.accessLock.UnlockWrite();
 	}
 
-	if ( !record ) {
-		MemoryChunk     chunk              = memoryChunkSystem.Alloc( size );
+	MemoryChunk     chunk          = memoryChunkSystem.Alloc( size );
 
-		ChunkAllocator& chunkAllocator     = chunkAllocators[chunk.chunkArea];
+	ChunkAllocator& chunkAllocator = chunkAllocators[level][chunk.area];
 
-		chunkAllocator.accessLock.LockWrite();
+	SetBit( &chunkAllocator.availableChunks, chunk.chunk );
+	SetBit( &chunkAllocator.allocatedChunks, chunk.chunk );
 
-		SetBit( &chunkAllocator.availableChunks, chunk.chunk );
-		chunkAllocator.chunks[chunk.chunk] = { .chunk = chunk };
-
-		SetBit( &chunkAllocator.allocatedChunks, chunk.chunk );
-
-		record = &chunkAllocator.chunks[chunk.chunk];
-
-		*chunkID = MemoryChunkToID( level, chunk.chunkArea, chunk.chunk );
-
-		chunkAllocator.accessLock.UnlockWrite();
-	}
-
-	return record;
+	return MemoryChunkToID( level, chunk.area, chunk.chunk );
 }
 
 byte* GlobalMemory::Alloc( const uint64 size, const uint64 alignment ) {
@@ -146,8 +130,7 @@ byte* GlobalMemory::Alloc( const uint64 size, const uint64 alignment ) {
 
 	memoryChunkSystem.SizeToLevel( size, &level, &count );
 
-	uint32             chunkID;
-	MemoryChunkRecord* record = AllocChunk( paddedSize, alignment, level, chunkAllocators[level], &chunkID );
+	uint32      chunkID = AllocChunk( paddedSize, alignment, level );
 
 	std::string source = FormatSrc( std::stacktrace::current(), true, true );
 
@@ -160,14 +143,15 @@ byte* GlobalMemory::Alloc( const uint64 size, const uint64 alignment ) {
 
 	Q_strncpyz( alloc.source, source.c_str(), GlobalAllocationRecord::srcSize );
 	alloc.source[GlobalAllocationRecord::srcSize] = '\0';
+	
+	ChunkRecord*                 record = IDToChunkRecord( chunkID );
+	byte*                        memory = memoryChunkSystem.GetChunkMemory( chunkID ) + record->offset;
+	*( GlobalAllocationRecord* ) memory = alloc;
 
-	*( ( GlobalAllocationRecord* ) ( record->chunk.memory + record->offset ) ) = alloc;
-
-	byte* ret         = record->chunk.memory + record->offset + sizeof( GlobalAllocationRecord );
-	record->offset   += paddedSize;
+	record->offset += paddedSize;
 	record->allocs++;
 
-	return ret;
+	return memory + sizeof( GlobalAllocationRecord );
 }
 
 void GlobalMemory::Free( byte* memory ) {
@@ -185,14 +169,10 @@ void GlobalMemory::Free( byte* memory ) {
 
 	UnSetBit( &record->chunkID, chunkAllocOffset );
 
-	uint8 level;
-	uint8 area;
-	uint8 chunk;
+	MemoryChunk chunk = IDToMemoryChunk( record->chunkID );
 
-	IDToMemoryChunk( record->chunkID, &level, &area, &chunk );
-
-	ChunkAllocator&    chunkAllocator = chunkAllocators[level][area];
-	MemoryChunkRecord& chunkRecord    = chunkAllocator.chunks[chunk];
+	ChunkAllocator&    chunkAllocator = chunkAllocators[chunk.level][chunk.area];
+	ChunkRecord& chunkRecord    = chunkAllocator.chunks[chunk.chunk];
 
 	chunkRecord.allocs--;
 
@@ -200,7 +180,7 @@ void GlobalMemory::Free( byte* memory ) {
 		chunkRecord.offset = 0;
 	}
 
-	SetBit( &chunkAllocator.availableChunks, chunk );
+	SetBit( &chunkAllocator.availableChunks, chunk.chunk );
 }
 
 void InitGlobalMemory() {
