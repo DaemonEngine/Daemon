@@ -124,7 +124,8 @@ void Thread::Run() {
 			task->complete.Signal();
 			task->active = false;
 			taskList.FinishTask( task );
-			task->forwardTaskLock.LockWrite();
+
+			while( !task->forwardTaskLock.LockWrite() );
 
 			const uint32 forwardTasks = task->forwardTaskCounter.load( std::memory_order_relaxed );
 
