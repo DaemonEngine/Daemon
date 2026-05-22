@@ -33,7 +33,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NumberTypes.h"
 
-struct Entity {
+struct EntityMsg {
+	uint32 id;
+
 	uint32 geometryID;
 
 	uint16 albedoMap;

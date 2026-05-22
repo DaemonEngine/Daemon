@@ -28,27 +28,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "Common.glsl"
+#include "NumberTypes.h"
 
-#include "Entity.h"
-#include "Light.h"
+struct Entity {
+	uint32 geometryID;
 
-#include "Resources.glsl"
+	uint16 albedoMap;
+	uint16 normalMap;
+	uint16 heightMap;
+	uint16 materialMap;
+	uint16 glowMap;
 
-layout ( local_size_x = 64, local_size_y = 1, local_size_z = 1 ) in;
+	uint8  albedoSampler;
+	uint8  normalSampler;
+	uint8  heightSampler;
+	uint8  materialSampler;
+	uint8  glowSampler;
 
-layout ( scalar, push_constant ) uniform Push {
-	EntityMsg* entityRingBuffer;
-	LightMsg*  lightRingBuffer;
-	Entity* entities;
-	Light*  lights;
-} push;
+	uint32 colour;
 
-void main() {
-	const uint globalGroupID      = GLOBAL_GROUP_ID;
-	const uint globalInvocationID = GLOBAL_INVOCATION_ID;
+	uint64 material;
 
-	if ( globalInvocationID >= 64 ) {
-		return;
-	}
-}
+	uint32 time;
+};
