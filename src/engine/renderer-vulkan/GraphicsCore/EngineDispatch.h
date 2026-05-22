@@ -28,23 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef ENGINE_DISPATCH_H
+#define ENGINE_DISPATCH_H
 
-#include <string>
+#include "../Math/NumberTypes.h"
 
-#include "Math/NumberTypes.h"
+void EngineDispatch();
 
-struct Version {
-	uint32 major;
-	uint32 minor;
-	uint32 patch;
-
-	std::string FormatVersion() const;
-};
-
-std::strong_ordering operator<=>( const Version& lhs, const Version& rhs );
-
-constexpr Version DAEMON_VULKAN_VERSION { 0, 15, 1 };
-
-#endif // VERSION_H
+#endif // ENGINE_DISPATCH_H

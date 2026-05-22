@@ -28,78 +28,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "engine/qcommon/qcommon.h"
-
-#include "../Shared/Timer.h"
-
-#include "../Error.h"
+#include "../Memory/DynamicArray.h"
 
 #include "../Thread/TaskList.h"
-#include "../Sync/Fence.h"
 
-#include "GraphicsCoreStore.h"
-#include "Instance.h"
+#include "Decls.h"
 
-#include "PhysicalDevice.h"
-
-#include "EngineConfig.h"
-
-#include "Memory/DescriptorSet.h"
-#include "Memory/EngineAllocator.h"
-#include "ResourceSystem.h"
-
-#include "Init.h"
+#include "ExecutionGraph/ExecutionGraph.h"
+#include "Queue.h"
 
 #include "EngineDispatch.h"
 
-#include "SwapChain.h"
-#include "Vulkan.h"
+void EngineDispatch() {
+	static ExecutionGraph graphicsEG;
 
-#include "Memory/CoreThreadMemory.h"
-void InitGraphicsEngine() {
-	instance.Init( "Daemon-vulkan", CLIENT_WINDOW_TITLE );
+	std::string testSrc =
+		"external\n"
+		"buffer testBuffer 3 65536 0\n"
+		"push { engineToCore coreToEngine }\n"
+		"MsgStream msg1 1 {}\n"
+		"MsgStream msg2 2 { msg1 }\n"
+		"present\n";
 
-	std::string foundQueues = "Found queues: graphics (present: true)";
-
-	uint32 presentSupported;
-	vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, graphicsQueue.id, mainSwapChain.surface, &presentSupported );
-
-	if ( !presentSupported ) {
-		Err( "Graphics queue doesn't support present" );
-		return;
-	}
-
-	if ( computeQueue.unique ) {
-		foundQueues += Str::Format( ", async compute (present: %s)", ( bool ) presentSupported );
-	}
-
-	if ( transferQueue.unique ) {
-		foundQueues += Str::Format( ", async transfer" );
-	}
-
-	if ( sparseQueue.unique ) {
-		foundQueues += Str::Format( ", async sparse binding" );
-	}
-
-	Log::Notice( foundQueues );
-
-	AllocDescriptors( engineConfig.maxImages, engineConfig.maxStorageImages );
-
-	engineAllocator.Init();
-
-	InitCmdPools();
-
-	Task initExecCmdTask { &InitExecCmdPools };
-	Task initCmdTask     { &InitCmdPools };
-
-	taskList.AddTasks( { initExecCmdTask.ThreadMaskAllOthers() }, { initCmdTask.ThreadMaskAllOthers() } );
-
-	initExecCmdTask.Wait();
-
-	InitExecCmdPools();
-
-	resourceSystem.Init( 0 );
+	DynamicArray<ExecutionGraphNode> nodes = ParseExecutionGraph( testSrc );
+	graphicsEG.Build( GRAPHICS, 0, nodes );
+	graphicsEG.Exec();
 
 	Task t { &EngineDispatch };
-	taskList.AddTask( t );
+	taskList.AddTask( t.Delay( 1_us ) );
 }
