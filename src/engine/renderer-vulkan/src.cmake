@@ -12,6 +12,16 @@ set( memoryList
     ${ENGINE_DIR}/renderer-vulkan/Memory/IteratorSeq.h
 )
 
+set( syncList
+    ${ENGINE_DIR}/renderer-vulkan/Sync/AccessLock.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Sync/AccessLock.h
+    ${ENGINE_DIR}/renderer-vulkan/Sync/AlignedAtomic.h
+    ${ENGINE_DIR}/renderer-vulkan/Sync/Fence.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Sync/Fence.h
+    ${ENGINE_DIR}/renderer-vulkan/Sync/SyncPoint.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Sync/SyncPoint.h
+)
+
 set( sysList
     ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.cpp
     ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.h
@@ -22,6 +32,7 @@ set( sysList
 set( RENDERERLIST
     ${mathList}
     ${memoryList}
+    ${syncList}
     ${sysList}
     ${ENGINE_DIR}/renderer-vulkan/DispatchRawData.cpp
     ${ENGINE_DIR}/renderer-vulkan/DispatchRawData.h
