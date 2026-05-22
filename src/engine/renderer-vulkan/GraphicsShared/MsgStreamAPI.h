@@ -42,4 +42,20 @@ constexpr uint32 CORE_ALLOC_BUFFER          = 1;
 constexpr uint32 CORE_ALLOC_IMAGE           = 2;
 constexpr uint32 CORE_UPDATE_DESCRIPTOR     = 3;
 
+#ifndef __cplusplus
+	constexpr uint32 ABGR_2_10 = 0;
+
+	constexpr uint32 RGBA8     = 1;
+	constexpr uint32 RGBA8I    = 2;
+	constexpr uint32 RGBA16    = 3;
+	constexpr uint32 RGBA16I   = 4;
+	constexpr uint32 RGBA16F   = 5;
+	constexpr uint32 R32F      = 6;
+	constexpr uint32 RGBA32I   = 7;
+	constexpr uint32 RGBA32F   = 8;
+
+	constexpr uint32 D16       = 10;
+	constexpr uint32 D32F      = 11;
+#endif
+
 #endif // MSG_STREAM_API_H

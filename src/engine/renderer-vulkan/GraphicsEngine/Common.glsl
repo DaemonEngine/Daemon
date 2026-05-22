@@ -170,3 +170,5 @@ const uint32 MAX_BORDER_COLOURS       = 3;
 #define Sampler2( tex, anisotropy, shadowMap, reductionMode )\
 	sampler2D( tex,\
 		samplers[1 | bitfieldInsert( 0, anisotropy, 1, 1 ) | bitfieldInsert( 0, shadowMap, 2, 1 ) | bitfieldInsert( 0, reductionMode, 3, 2 )] )
+		
+layout ( set = 0, binding = BIND_STORAGE_IMAGES ) uniform image2D images[];
