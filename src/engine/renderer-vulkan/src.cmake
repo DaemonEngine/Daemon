@@ -7,4 +7,6 @@ set( RENDERERLIST
     ${mathList}
     ${ENGINE_DIR}/renderer-vulkan/DispatchRawData.cpp
     ${ENGINE_DIR}/renderer-vulkan/DispatchRawData.h
+    ${ENGINE_DIR}/renderer-vulkan/Shared/Timer.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Shared/Timer.h
 )
