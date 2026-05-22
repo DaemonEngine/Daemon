@@ -37,10 +37,11 @@ constexpr uint32 ENGINE_NOP                       = 0;
 constexpr uint32 ENGINE_INIT                      = 1;
 constexpr uint32 ENGINE_GRAPHICS_SETTINGS_CHANGED = 2;
 
-constexpr uint32 CORE_NOP                   = 0;
-constexpr uint32 CORE_ALLOC_BUFFER          = 1;
-constexpr uint32 CORE_ALLOC_IMAGE           = 2;
-constexpr uint32 CORE_UPDATE_DESCRIPTOR     = 3;
+constexpr uint32 CORE_NOP               = 0;
+constexpr uint32 CORE_ALLOC_BUFFER      = 1;
+constexpr uint32 CORE_ALLOC_IMAGE       = 2;
+constexpr uint32 CORE_PUSH_BUFFER       = 3;
+constexpr uint32 CORE_UPDATE_DESCRIPTOR = 4;
 
 #ifndef __cplusplus
 	constexpr uint32 ABGR_2_10 = 0;
