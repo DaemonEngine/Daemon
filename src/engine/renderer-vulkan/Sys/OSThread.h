@@ -28,23 +28,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef OS_THREAD_H
+#define OS_THREAD_H
 
-#include <string>
+#include "common/Common.h"
 
-#include "Math/NumberTypes.h"
+#include "../Math/NumberTypes.h"
 
-struct Version {
-	uint32 major;
-	uint32 minor;
-	uint32 patch;
+#ifdef __linux__
+	#include <sys/types.h>
+#endif
 
-	std::string FormatVersion() const;
+struct OSThread {
+	#ifdef _MSC_VER
+		void* id;
+	#elif __linux__
+		pid_t id;
+	#else
+		int   id;
+	#endif
+
+	uint32 core;
+
+	void   Init();
+	void   SetAffinity( const uint32 core );
 };
 
-std::strong_ordering operator<=>( const Version& lhs, const Version& rhs );
-
-constexpr Version DAEMON_VULKAN_VERSION { 0, 18, 0 };
-
-#endif // VERSION_H
+#endif // OS_THREAD_H

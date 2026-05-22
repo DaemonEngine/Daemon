@@ -63,6 +63,9 @@ void Thread::Run() {
 
 	TLM.id = id;
 
+	osThreadID.Init();
+	osThreadID.SetAffinity( id );
+
 	total.Start();
 
 	bool fetched = false;

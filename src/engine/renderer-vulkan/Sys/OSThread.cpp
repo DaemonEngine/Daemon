@@ -28,23 +28,61 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifdef _MSC_VER
+	#include <windows.h>
+	#include <powerbase.h>
+#elif __linux__
+	#include <error.h>
+	#include <sched.h>
+	#include <string.h>
+	#include <unistd.h>
+#endif
 
-#include <string>
+#include "common/Common.h"
 
-#include "Math/NumberTypes.h"
+#include "../Math/Bit.h"
+#include "../Shared/Timer.h"
+#include "CPUInfo.h"
+#include "../Thread/ThreadCommon.h"
 
-struct Version {
-	uint32 major;
-	uint32 minor;
-	uint32 patch;
+#include "../Memory/DynamicArray.h"
 
-	std::string FormatVersion() const;
-};
+#include "OSThread.h"
 
-std::strong_ordering operator<=>( const Version& lhs, const Version& rhs );
+void OSThread::Init() {
+	#ifdef _MSC_VER
+		id = GetCurrentThread();
+	#elif __linux__
+		id = gettid();
+	#else
+		id = 0;
+	#endif
+}
 
-constexpr Version DAEMON_VULKAN_VERSION { 0, 18, 0 };
+void OSThread::SetAffinity( const uint32 newCore ) {
+	core = newCore;
 
-#endif // VERSION_H
+	#ifdef _MSC_VER
+		GROUP_AFFINITY cpu {
+			.Mask  = SetBit( 0ull, core & 63 ),
+			.Group = ( uint16 ) ( core >> 6 )
+		};
+
+		uint32 ret = SetThreadGroupAffinity( id, &cpu, nullptr );
+
+		if ( !ret ) {
+			Log::Warn( "SetThreadGroupAffinity error: %i", GetLastError() );
+		}
+	#elif __linux__
+		cpu_set_t cpu;
+
+		CPU_ZERO( &cpu );
+		CPU_SET( core, &cpu );
+
+		int ret = sched_setaffinity( id, sizeof( cpu_set_t ), &cpu );
+
+		if ( ret == -1 ) {
+			Log::Warn( "sched_setaffinity error: %s", strerror( errno ) );
+		}
+	#endif
+}

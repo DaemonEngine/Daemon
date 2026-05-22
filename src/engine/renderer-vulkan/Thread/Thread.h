@@ -35,10 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
-#include "Task.h"
-
 #include "../Shared/Timer.h"
 #include "../SrcDebug/Tag.h"
+#include "../Sys/OSThread.h"
+
+#include "Task.h"
 
 struct TaskTime;
 
@@ -58,6 +59,8 @@ class Thread :
 	std::thread osThread;
 
 	uint32      id;
+	OSThread    osThreadID;
+
 	uint64      runTime;
 
 	Task*       task;
