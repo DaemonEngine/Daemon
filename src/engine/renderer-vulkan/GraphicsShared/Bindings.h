@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NumberTypes.h"
 
 constexpr uint32 BIND_STORAGE_IMAGES = 0;
-constexpr uint32 BIND_IMAGES = 1;
+constexpr uint32 BIND_SAMPLERS       = 1;
+constexpr uint32 BIND_IMAGES         = 2;
 
 #endif // BINDINGS_H
