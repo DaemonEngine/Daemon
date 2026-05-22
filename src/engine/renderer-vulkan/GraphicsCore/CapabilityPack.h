@@ -72,6 +72,7 @@ namespace CapabilityPackType {
 constexpr Array instanceExtensions {
 	"VK_KHR_get_physical_device_properties2",
 	"VK_KHR_get_surface_capabilities2",
+	"VK_EXT_debug_utils",
 	"VK_EXT_surface_maintenance1"
 };
 

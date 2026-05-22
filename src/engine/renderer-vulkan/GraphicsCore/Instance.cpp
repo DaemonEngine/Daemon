@@ -41,13 +41,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Vulkan.h"
 
+#include "GraphicsCoreStore.h"
+
 #include "CapabilityPack.h"
+#include "DebugMsg.h"
 #include "PhysicalDevice.h"
 #include "SwapChain.h"
 
 #include "Queue.h"
-
-#include "GraphicsCoreStore.h"
 
 #include "Instance.h"
 
@@ -95,6 +96,8 @@ void Instance::Init( const char* engineName, const char* appName ) {
 	Q_UNUSED( res );
 
 	VulkanLoadInstanceFunctions( instance );
+
+	InitDebugMsg();
 
 	uint32 deviceCount;
 	vkEnumeratePhysicalDevices( instance, &deviceCount, nullptr );
