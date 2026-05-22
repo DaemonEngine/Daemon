@@ -250,7 +250,7 @@ Buffer BuildBufferNode( BufferNode* node ) {
 }
 
 Buffer extraBuffers[2];
-DynamicArray<Buffer> buffers;
+DynamicArray<Buffer> buffers { &SM };
 
 static void ExecPushConstNode( PushConstNode* node, VkCommandBuffer cmd, VkPipelineLayout pipelineLayout ) {
 	uint64 data[8];

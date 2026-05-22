@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "engine/framework/CvarSystem.h"
 #include "engine/framework/System.h"
 
+#include "Thread/GlobalMemory.h"
 #include "Thread/ThreadMemory.h"
 #include "Thread/TaskList.h"
 #include "Memory/MemoryChunkSystem.h"
@@ -55,10 +56,12 @@ void Init( WindowConfig* windowConfig ) {
 	taskList.Init();
 
 	std::string cfg = r_vkMemoryChunkConfig.Get();
+
 	Task initMemTask { &InitMemoryChunkSystemConfig, cfg };
+	Task initSMTask  { &InitGlobalMemory };
 
 	Task initTLMTask { &InitTLM };
-	taskList.AddTasks( { initTLMTask.ThreadMaskAll(), initMemTask } );
+	taskList.AddTasks( { initSMTask, initMemTask }, { initTLMTask.ThreadMaskAll(), initMemTask } );
 
 	mainSurface.Init();
 

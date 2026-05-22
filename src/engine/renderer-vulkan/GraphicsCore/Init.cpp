@@ -100,6 +100,6 @@ void InitGraphicsEngine() {
 
 	resourceSystem.Init( 0 );
 
-	Task t { &EngineDispatch };
-	taskList.AddTask( t );
+	Task engineDispatchStart { &EngineDispatch };
+	taskList.AddTask( engineDispatchStart );
 }
