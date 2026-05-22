@@ -147,7 +147,8 @@ byte* GlobalMemory::Alloc( const uint64 size, const uint64 alignment ) {
 	GlobalAllocationRecord alloc {
 		.size      = paddedSize - sizeof( GlobalAllocationRecord ),
 		.alignment = ( uint32 ) alignment,
-		.chunkID   = chunkID
+		.chunkID   = chunkID,
+		.refCount  = 1
 	};
 
 	Q_strncpyz( alloc.source, source.c_str(), 99 );
