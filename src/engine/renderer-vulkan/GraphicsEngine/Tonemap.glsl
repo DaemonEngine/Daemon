@@ -28,15 +28,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef CORE_DATA_H
-#define CORE_DATA_H
+#include "Common.glsl"
 
-#include "NumberTypes.h"
+#include "CoreData.h"
 
-struct CoreData {
-	uint32 currentSwapChainImage;
-	uint32 width;
-	uint32 height;
-};
+#include "Resources.glsl"
 
-#endif // CORE_DATA_H
+layout ( local_size_x = 8, local_size_y = 8, local_size_z = 1 ) in;
+
+layout ( scalar, push_constant ) uniform Push {
+	CoreDataBuffer coreData;
+} push;
+
+void main() {
+	const uint globalGroupID      = GLOBAL_GROUP_ID;
+	const uint globalInvocationID = GLOBAL_INVOCATION_ID;
+
+	if ( gl_GlobalInvocationID.x >= push.coreData.coreData[0].width || gl_GlobalInvocationID.y >= push.coreData.coreData[0].height ) {
+		return;
+	}
+
+	imageStore( images[push.coreData.coreData[0].currentSwapChainImage], ivec2( gl_GlobalInvocationID.xy ), vec4( 0, 1, 0, 1 ) );
+}

@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
+void EngineDispatchInit();
+
 void EngineDispatch();
 
 #endif // ENGINE_DISPATCH_H

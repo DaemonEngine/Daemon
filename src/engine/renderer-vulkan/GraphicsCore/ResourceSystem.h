@@ -52,6 +52,8 @@ struct ResourceSystem {
 	std::unordered_map<std::string, Image> images;
 	std::unordered_map<uint32, Buffer>     buffers;
 
+	Buffer     coreDataBuffer;
+
 	void   Init( uint64 newDedicatedMemorySize );
 
 	Buffer AllocBuffer( const uint64 size, const Buffer::Usage usage = ( Buffer::Usage ) 0 );

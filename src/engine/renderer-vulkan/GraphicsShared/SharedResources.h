@@ -28,15 +28,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef CORE_DATA_H
-#define CORE_DATA_H
+#ifndef SHARED_RESOURCES_H
+#define SHARED_RESOURCES_H
 
 #include "NumberTypes.h"
 
-struct CoreData {
-	uint32 currentSwapChainImage;
-	uint32 width;
-	uint32 height;
-};
+const uint32 depthImage              = 0; // 0-15 for mipmaps
+const uint32 visBufferMaterialsImage = 16;
+const uint32 shadowMapImage          = 17;
 
-#endif // CORE_DATA_H
+const uint32 imageOffset             = 18;
+
+#endif // SHARED_RESOURCES_H

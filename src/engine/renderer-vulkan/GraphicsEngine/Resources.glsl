@@ -28,15 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef CORE_DATA_H
-#define CORE_DATA_H
+#include "CoreData.h"
 
-#include "NumberTypes.h"
-
-struct CoreData {
-	uint32 currentSwapChainImage;
-	uint32 width;
-	uint32 height;
+BufferRS restrict CoreDataBuffer {
+	CoreData coreData[2];
 };
-
-#endif // CORE_DATA_H
