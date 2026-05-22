@@ -98,11 +98,7 @@ class TaskList :
 	static constexpr uint16 TASK_SHIFT_TRACKED_DEPENDENCY = 2;
 	static constexpr uint16 TASK_SHIFT_UPDATED_DEPENDENCY = 3;
 
-	AccessLock          threadCountLock;
 	std::atomic<uint32> currentMaxThreads = 0;
-
-	std::atomic<uint32> threadExecutionNodes[MAX_THREADS];
-
 	FenceMain           exitFence;
 
 	TaskList();
@@ -136,6 +132,10 @@ class TaskList :
 	void  AdjustThreadCount( const uint32 newMaxThreads );
 
 	private:
+	AccessLock          threadCountLock;
+
+	std::atomic<uint64> threadExecutionNodes[MAX_THREADS];
+
 	struct ThreadExecutionNode {
 		uint8 nextThreadExecutionNode;
 	};

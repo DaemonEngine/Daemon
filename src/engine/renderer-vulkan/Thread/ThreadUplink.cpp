@@ -52,9 +52,6 @@ void ThreadUplink::ExecuteCommands() {
 		switch ( commands[current] ) {
 			case CMD_NONE:
 				return;
-			case CMD_SYNC_THREAD_COUNT:
-				TLM.currentMaxThreads = taskList.currentMaxThreads.load( std::memory_order_relaxed );
-				break;
 			case CMD_ERROR:
 				Sys::Error( error );
 			default:
