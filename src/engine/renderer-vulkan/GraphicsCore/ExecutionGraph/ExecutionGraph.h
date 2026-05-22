@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../Memory/BitStream.h"
 
+#include "../../Thread/GlobalMemory.h"
+
 #include "../../Sync/AccessLock.h"
 
 #include "../Decls.h"
@@ -75,7 +77,7 @@ enum ResourceType : uint32 {
 struct ExecutionGraphNode {
 	uint8  type;
 	uint8  id;
-	uint8  data[23];
+	uint8  data[22];
 };
 
 struct ExecutionNode {
@@ -238,11 +240,14 @@ class ExecutionGraph {
 	VkSemaphore                      acquireSemaphore = nullptr;
 	PresentNode                      presentNode        { .active = false };
 
-	DynamicArray<ExecutionGraphNode> processedNodes     {};
+	DynamicArray<ExecutionGraphNode> processedNodes     { &SM };
 
 	std::atomic<uint64>              cmdID            = 0;
 
 	private:
+	AccessLock lastExecLock;
+	uint64     lastExecutionPhase;
+
 	uint32 BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const uint32 swapchainImage, bool* hasPresentNode );
 };
 

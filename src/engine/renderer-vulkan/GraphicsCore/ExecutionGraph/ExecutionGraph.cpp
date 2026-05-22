@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../../Memory/DynamicArray.h"
 
+#include "../../Thread/TaskList.h"
 #include "../../Thread/ThreadMemory.h"
 
 #include "../../Sys/MemoryInfo.h"
@@ -134,19 +135,9 @@ static VkCommandPool GetCmdPoolByType( const QueueType type ) {
 	}
 }
 
-void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, DynamicArray<ExecutionGraphNode>& nodes ) {
-	if ( !buffers.size ) {
-		buffers.Resize( 32 );
-		buffers.Zero();
-	}
-
-	processedNodes.Resize( nodes.size );
-	processedNodes.Zero();
-
-	type                = newType;
-
-	uint64 state        = cmdBufferStates[TLM.id].value.load( std::memory_order_relaxed );
-	uint32 bufID        = FindZeroBitFast( state );
+uint32 ExecutionGraph::BuildCmd( DynamicArray<ExecutionGraphNode>& nodes, const uint32 swapchainImage, bool* hasPresentNode ) {
+	uint64 state = cmdBufferStates[TLM.id];
+	uint32 bufID = FindZeroBitFast( state );
 
 	if ( !BitSet( cmdBufferAllocState, bufID ) ) {
 		VkCommandBufferAllocateInfo cmdInfo {
@@ -441,6 +432,22 @@ void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, Dyna
 	return bufID;
 }
 
+struct CmdBufferResetParms {
+	QueueType type;
+	uint64    executionPhase;
+	uint32    bufferID;
+};
+
+void ResetCmdBuffer( CmdBufferResetParms* parms ) {
+	VkCommandBuffer cmd = cmdBuffers[TLM.id][parms->bufferID];
+
+	GetQueueByType( parms->type ).executionPhase.Wait( parms->executionPhase );
+
+	vkResetCommandBuffer( cmd, 0 );
+
+	UnSetBit( &cmdBufferStates[TLM.id], parms->bufferID );
+}
+
 void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, DynamicArray<ExecutionGraphNode>& nodes ) {
 	if ( !buffers.size ) {
 		buffers.Resize( 32 );
@@ -482,16 +489,33 @@ void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, Dyna
 					UnSetBit( &swapchainCmdBuffers[TLM.id], buf );
 				}
 			}
+
 			break;
 		}
 	} while ( !cmdID.compare_exchange_strong( expected, combinedGenID ) );
+
+	if ( combinedGenID > expected && expected > 0 ) {
+		lastExecLock.LockWrite();
+
+		Task cmdBufferResetTask {
+			&ResetCmdBuffer,
+			CmdBufferResetParms { .type = type, .executionPhase = lastExecutionPhase, .bufferID = ( uint32 ) GetBits( expected, 0, cmdBits ) }
+		};
+
+		const uint32 cmdPoolID = GetBits( expected, cmdBits, cmdPoolBits );
+
+		taskList.AddTask( cmdBufferResetTask.ThreadMask( SetBit( 0u, cmdPoolID ) ) );
+
+		lastExecLock.UnlockWrite();
+	}
 }
 
 uint64 ExecutionGraph::Exec() {
+	lastExecLock.LockWrite();
+
 	const uint64 cmd       = cmdID.load( std::memory_order_relaxed );
 
 	const uint32 cmdPoolID = GetBits( cmd, cmdBits, cmdPoolBits );
-
 	uint32       bufID     = GetBits( cmd, 0, cmdBits );
 
 	uint32       image     = ExecExternalNode( &acquireNode, acquireSemaphore );
@@ -506,35 +530,22 @@ uint64 ExecutionGraph::Exec() {
 		}
 	}
 
-	VkCommandBufferSubmitInfo cmdInfo {
-		.commandBuffer = cmdBuffers[cmdPoolID][bufID]
-	};
-
-	VkSubmitInfo2 submitInfo {
-		.commandBufferInfoCount = 1,
-		.pCommandBufferInfos    = &cmdInfo
-	};
-
 	Queue& queue = GetQueueByType( type );
 
 	uint64 out;
 
 	if ( presentNode.active ) {
-		out = queue.SubmitForPresent( cmdInfo.commandBuffer, mainSwapChain.presentSemaphores[image] );
+		out = queue.SubmitForPresent( cmdBuffers[cmdPoolID][bufID], mainSwapChain.presentSemaphores[image] );
 		ExecPresentNode( queue, &presentNode, mainSwapChain.presentSemaphores[image], image );
 	} else {
-		out = queue.Submit( cmdInfo.commandBuffer );
+		out = queue.Submit( cmdBuffers[cmdPoolID][bufID] );
 	}
 
+	lastExecutionPhase = out;
+
+	lastExecLock.UnlockWrite();
+
 	return out;
-}
-
-void ResetCmdBuffer( const uint32 bufID ) {
-	VkCommandBuffer cmd = cmdBuffers[TLM.id][bufID];
-
-	vkResetCommandBuffer( cmd, 0 );
-
-	UnSetBit( &cmdBufferStates[TLM.id], bufID );
 }
 
 void ParseNodeDeps( const char** text, std::unordered_map<std::string, uint32>& nodes, uint32* nodeDeps, uint32* nodeDepsTypes ) {
