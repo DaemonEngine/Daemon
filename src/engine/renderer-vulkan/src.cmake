@@ -25,6 +25,8 @@ set( RENDERERLIST
     ${sysList}
     ${ENGINE_DIR}/renderer-vulkan/DispatchRawData.cpp
     ${ENGINE_DIR}/renderer-vulkan/DispatchRawData.h
+    ${ENGINE_DIR}/renderer-vulkan/Error.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Error.h
     ${ENGINE_DIR}/renderer-vulkan/Shared/Timer.cpp
     ${ENGINE_DIR}/renderer-vulkan/Shared/Timer.h
 )
