@@ -84,6 +84,25 @@ MemoryChunkSystem::~MemoryChunkSystem() {
 	}
 }
 
+uint32 MemoryChunkToID( const uint8 level, const uint8 area, const uint8 chunk ) {
+	uint32 id;
+
+	SetBits( &id, chunk, 0,                chunkBits );
+	SetBits( &id, area,  chunkAreaOffset,  chunkAreaBits );
+	SetBits( &id, level, chunkLevelOffset, chunkLevelBits );
+	SetBits( &id,        chunkAllocOffset, 1 );
+
+	return id;
+}
+
+bool   IDToMemoryChunk( const uint32 id, uint8* level, uint8* area, uint8* chunk ) {
+	*chunk = GetBits( id, 0,                chunkBits );
+	*area  = GetBits( id, chunkAreaOffset,  chunkAreaBits );
+	*level = GetBits( id, chunkLevelOffset, chunkLevelBits );
+
+	return   GetBits( id, chunkAllocOffset, 1 );
+}
+
 void MemoryChunkSystem::InitConfig( const char* configText ) {
 	const char** text = &configText;
 

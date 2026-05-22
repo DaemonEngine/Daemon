@@ -82,4 +82,15 @@ constexpr uint64 memoryChunkConfigRequired[][2] {
 
 constexpr const char* defaultMemoryChunkConfig = "16:640 1024:640 65536:16";
 
+constexpr uint32 chunkBits        = 6;
+constexpr uint32 chunkAreaBits    = 21;
+constexpr uint32 chunkLevelBits   = 4;
+
+constexpr uint32 chunkAreaOffset  = chunkBits;
+constexpr uint32 chunkLevelOffset = chunkAreaOffset  + chunkAreaBits;
+constexpr uint32 chunkAllocOffset = chunkLevelOffset + chunkLevelBits;
+
+uint32 MemoryChunkToID( const uint8 level, const uint8 area, const uint8 chunk );
+bool   IDToMemoryChunk( const uint32 id, uint8* level, uint8* area, uint8* chunk );
+
 #endif // MEMORY_CHUNK_H

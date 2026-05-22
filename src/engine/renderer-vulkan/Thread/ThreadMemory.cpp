@@ -71,12 +71,10 @@ void ThreadMemory::Init() {
 	initialised = true;
 }
 
-static MemoryChunkRecord* AllocChunk( const uint64 size, const uint64 alignment,
+static MemoryChunkRecord* AllocChunk( const uint64 size, const uint64 alignment, const uint8 level,
                                       DynamicArray<ChunkAllocator>& chunkAllocators,
                                       uint32* chunkID ) {
 	MemoryChunkRecord* record = nullptr;
-
-	SetBit( chunkID, 31 );
 
 	for ( uint32 i = 0; i < chunkAllocators.size && !record; i++ ) {
 		ChunkAllocator& chunkAllocator = chunkAllocators[i];
@@ -93,8 +91,7 @@ static MemoryChunkRecord* AllocChunk( const uint64 size, const uint64 alignment,
 					UnSetBit( &chunkArea, chunk );
 				}
 
-				SetBits( chunkID, i,     6, 21 );
-				SetBits( chunkID, chunk, 0, 6 );
+				*chunkID = MemoryChunkToID( level, i, chunk );
 
 				break;
 			} else {
@@ -117,11 +114,22 @@ static MemoryChunkRecord* AllocChunk( const uint64 size, const uint64 alignment,
 
 		record = &chunkAllocator.chunks[chunk.chunk];
 
-		SetBits( chunkID, chunk.chunkArea, 6, 21 );
-		SetBits( chunkID, chunk.chunk,     0, 6 );
+		*chunkID = MemoryChunkToID( level, chunk.chunkArea, chunk.chunk );
 	}
 
 	return record;
+}
+
+std::string AllocationRecord::Format() const {
+	if ( guardValue == HEADER_MAGIC ) {
+		return Str::Format( "guard value: %u, size: %u, alignment: %u, chunkID: %u, source: %s",
+			guardValue, size, alignment, chunkID,
+			source );
+	}
+
+	return Str::Format( "guard value: %u (corrupted, should be: %u), size: %u, alignment: %u, chunkID: %u, source: %s",
+		guardValue, HEADER_MAGIC, size, alignment, chunkID,
+		source );
 }
 
 byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {
@@ -138,8 +146,8 @@ byte* ThreadMemory::Alloc( const uint64 size, const uint64 alignment ) {
 
 	memoryChunkSystem.SizeToLevel( size, &level, &count );
 
-	uint32             chunkID = SetBits( ( uint32 ) 0, level, 27, 4 );
-	MemoryChunkRecord* record  = AllocChunk( paddedSize, alignment, chunkAllocators[level], &chunkID );
+	uint32             chunkID;
+	MemoryChunkRecord* record = AllocChunk( paddedSize, alignment, level, chunkAllocators[level], &chunkID );
 
 	std::string source = FormatSrc( std::stacktrace::current(), true, true );
 
@@ -168,13 +176,15 @@ void ThreadMemory::Free( byte* memory ) {
 		Err( "Memory chunk corrupted: %s", record->Format() );
 	}
 
-	UnSetBit( &record->chunkID, 31 );
+	UnSetBit( &record->chunkID, chunkAllocOffset );
 
-	uint32             area           = GetBits( record->chunkID, 6, 21 );
-	ChunkAllocator&    chunkAllocator = chunkAllocators[GetBits( record->chunkID, 27, 4 )][area];
+	uint8 level;
+	uint8 area;
+	uint8 chunk;
 
-	uint32             chunk          = GetBits( record->chunkID, 0, 6 );
+	IDToMemoryChunk( record->chunkID, &level, &area, &chunk );
 
+	ChunkAllocator&    chunkAllocator = chunkAllocators[level][area];
 	MemoryChunkRecord& chunkRecord    = chunkAllocator.chunks[chunk];
 
 	chunkRecord.allocs--;
@@ -219,7 +229,7 @@ void ThreadMemory::PrintChunkInfo( MemoryChunkRecord* memoryChunk ) {
 	uint32            allocs = 0;
 
 	while ( allocs < memoryChunk->allocs ) {
-		if ( !BitSet( record->chunkID, 31 ) ) {
+		if ( !BitSet( record->chunkID, chunkAllocOffset ) ) {
 			Log::NoticeTagT( record->Format() );
 			allocs++;
 		}

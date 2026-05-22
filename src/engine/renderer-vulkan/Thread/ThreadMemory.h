@@ -49,22 +49,12 @@ struct AllocationRecord {
 	static constexpr uint64 HEADER_MAGIC = 0xACC0500D66666666;
 	static constexpr uint32 srcSize      = 231;
 
-	inline std::string Format() const {
-		if ( guardValue == HEADER_MAGIC ) {
-			return Str::Format( "guard value: %u, size: %u, alignment: %u, chunkID: %u, source: %s",
-				guardValue, size, alignment, chunkID,
-				source );
-		}
-		
-		return Str::Format( "guard value: %u (corrupted, should be: %u), size: %u, alignment: %u, chunkID: %u, source: %s",
-			guardValue, HEADER_MAGIC, size, alignment, chunkID,
-			source );
-	}
+	std::string Format() const;
 
 	uint64 guardValue = HEADER_MAGIC;
 	uint64 size;
 	uint32 alignment;
-	uint32 chunkID; // LSB->MSB: 0-5 - chunk, 6-26 - area, 27-31 - level, 31 - allocated
+	uint32 chunkID;
 
 	char   source[srcSize + 1];
 };

@@ -47,28 +47,9 @@ struct GlobalAllocationRecord {
 	static constexpr uint64 HEADER_MAGIC = 0xACC0500D66666666;
 	static constexpr uint32 srcSize      = 227;
 
-	inline std::string Format() const {
-		if ( guardValue == HEADER_MAGIC ) {
-			return Str::Format( "guard value: %u, size: %u, alignment: %u, chunkID: %u, source: %s",
-				guardValue, size, alignment, chunkID,
-				source );
-		}
-		
-		return Str::Format( "guard value: %u (corrupted, should be: %u), size: %u, alignment: %u, chunkID: %u, source: %s",
-			guardValue, HEADER_MAGIC, size, alignment, chunkID,
-			source );
-	}
+	std::string Format() const;
 
-	void operator=( const GlobalAllocationRecord& other ) {
-		guardValue = other.guardValue;
-		size       = other.size;
-		alignment  = other.alignment;
-		chunkID    = other.chunkID;
-
-		refCount.store( other.refCount.load( std::memory_order_relaxed ), std::memory_order_relaxed );
-
-		Q_strncpyz( source, other.source, srcSize + 1 );
-	}
+	void operator=( const GlobalAllocationRecord& other );
 
 	uint64              guardValue = HEADER_MAGIC;
 	uint64              size;
