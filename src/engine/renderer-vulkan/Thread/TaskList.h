@@ -47,25 +47,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using TaskInit = std::initializer_list<TaskProxy>;
 #define AddTasks( ... ) AddTasksExt( { __VA_ARGS__ } )
 
-template<typename T>
-concept IsTask = requires ( T value ) {
-	{ std::is_convertible<T, Task>::value || std::is_convertible<T, TaskProxy>::value };
-};
-
 // Use this for task dependencies because it allows natvis visualisation
-template<IsTask T>
 struct TaskInitList {
-	const T* start;
-	const T* end;
+	const TaskProxy* start;
+	const TaskProxy* end;
 
 	TaskInitList() :
 		start( nullptr ),
 		end( nullptr ) {
 	}
 
-	TaskInitList( const T* newStart, const T* newEnd ) :
+	TaskInitList( const TaskProxy* newStart, const TaskProxy* newEnd ) :
 		start( newStart ),
 		end( newEnd ) {
+	}
+
+	TaskInitList( std::initializer_list<TaskProxy> list ) :
+		start( list.begin() ),
+		end( list.end() ) {
 	}
 };
 
@@ -114,19 +113,11 @@ class TaskList :
 	void  Shutdown();
 	void  FinishShutdown();
 
-	bool  AddedToTaskList( const uint8 id );
-	bool  AddedToTaskMemory( const uint16 bufferID );
-	bool  HasUntrackedDeps( const uint8 id );
-	bool  IsTrackedDependency( const uint8 id );
-	bool  IsUpdatedDependency( const uint8 id );
-	uint8 GetForwardCounterFast( const uint8 id );
-	void  IncrementForwardCounterFast( uint8* id );
-
 	byte* AllocTaskData( const uint16 dataSize, uint64* offset );
 	byte* GetTaskData( const uint64 offset );
 
 	void  AddTask( Task& task, std::initializer_list<TaskProxy> dependencies = {} );
-	void  AddTasksExt( std::initializer_list<TaskInit> dependencies );
+	void  AddTasksExt( std::initializer_list<TaskInitList> dependencies );
 	Task* FetchTask();
 
 	void  TaskWait( Task& task );
@@ -161,22 +152,25 @@ class TaskList :
 	std::atomic<uint32>          executingThreads = 1;
 	std::atomic<bool>            exiting          = false;
 
+	bool  AddedToTaskList( const uint8 id );
+	bool  AddedToTaskMemory( const uint16 bufferID );
+	bool  HasUntrackedDeps( const uint8 id );
+	bool  IsTrackedDependency( const uint8 id );
+	bool  IsUpdatedDependency( const uint8 id );
+	uint8 GetForwardCounterFast( const uint8 id );
+	void  IncrementForwardCounterFast( uint8* id );
+
 	void  AddToThreadQueueExt( Task& task );
 	void  AddToThreadQueue( Task& task );
 
 	Task* GetTaskMemory( Task& task );
 
-	template<IsTask T>
-	void  ResolveDependencies( Task& task, TaskInitList<T>& dependencies );
+	void  ResolveDependencies( Task& task, TaskInitList& dependencies );
 
-	template<IsTask T>
-	void  AddTaskExt( Task& task, TaskInitList<T>&& dependencies );
+	void  AddTaskExt( Task& task, TaskInitList&& dependencies = {} );
 
-	template<IsTask T>
-	void  MarkDependencies( Task& task, TaskInitList<T>&& dependencies );
-
-	template<IsTask T>
-	void  UnMarkDependencies( TaskInitList<T>&& dependencies );
+	void  MarkDependencies( Task& task, TaskInitList&& dependencies );
+	void  UnMarkDependencies( TaskInitList&& dependencies );
 };
 
 extern TaskList taskList;

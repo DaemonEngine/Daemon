@@ -206,21 +206,20 @@ void TaskList::FinishDependency( const uint16 bufferID ) {
 	}
 }
 
-template<IsTask T>
-void TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) {
-	for ( const T* dep = dependencies.start; dep < dependencies.end; dep++ ) {
-		if ( !AddedToTaskMemory( ( *dep )->bufferID ) ) {
+void TaskList::ResolveDependencies( Task& task, TaskInitList& dependencies ) {
+	for ( const TaskProxy* dep = dependencies.start; dep < dependencies.end; dep++ ) {
+		if ( !AddedToTaskMemory( dep->task.bufferID ) ) {
 			Sys::Drop( "Tried to add task with an unallocated dependency" );
 		}
 
-		if ( IsTrackedDependency( ( *dep )->id ) ) {
+		if ( IsTrackedDependency( dep->task.id ) ) {
 			continue;
 		}
 
-		Task& dependency  = tasks[( *dep )->bufferID];
+		Task& dependency  = tasks[dep->task.bufferID];
 
 		// The dependency has already been executed, but the ringbuffer wrapped around
-		if ( dependency.gen > ( *dep )->gen ) {
+		if ( dependency.gen > dep->task.gen ) {
 			continue;
 		}
 
@@ -363,8 +362,7 @@ Task* TaskList::GetTaskMemory( Task& task ) {
 	return taskMemory;
 }
 
-template<IsTask T>
-void TaskList::AddTaskExt( Task& task, TaskInitList<T>&& dependencies ) {
+void TaskList::AddTaskExt( Task& task, TaskInitList&& dependencies ) {
 	if ( exiting.load( std::memory_order_relaxed ) && !task.IsShutdownTask() ) {
 		return;
 	}
@@ -401,8 +399,7 @@ void TaskList::AddTaskExt( Task& task, TaskInitList<T>&& dependencies ) {
 	TLM.addTimer.Stop();
 }
 
-template<IsTask T>
-void TaskList::MarkDependencies( Task& task, TaskInitList<T>&& dependencies ) {
+void TaskList::MarkDependencies( Task& task, TaskInitList&& dependencies ) {
 	Task* mainTask          = GetTaskMemory( task );
 	uint8 dependencyCounter = 0;
 
@@ -410,8 +407,13 @@ void TaskList::MarkDependencies( Task& task, TaskInitList<T>&& dependencies ) {
 		return;
 	}
 
-	for ( const T* dep = dependencies.start; dep < dependencies.end; dep++ ) {
-		if ( AddedToTaskList( ( *dep )->id ) ) {
+	if ( !dependencies.start ) {
+		mainTask->dependencyCounter.store( 0, std::memory_order_relaxed );
+		return;
+	}
+
+	for ( const TaskProxy* dep = dependencies.start; dep < dependencies.end; dep++ ) {
+		if ( AddedToTaskList( dep->task.id ) ) {
 			continue;
 		}
 
@@ -419,7 +421,7 @@ void TaskList::MarkDependencies( Task& task, TaskInitList<T>&& dependencies ) {
 
 		taskMemory->forwardTasks[GetForwardCounterFast( taskMemory->id )] = mainTask->bufferID;
 		IncrementForwardCounterFast( &taskMemory->id );
-		SetBit( &( *dep )->id, TASK_SHIFT_TRACKED_DEPENDENCY );
+		SetBit( &dep->task.id, TASK_SHIFT_TRACKED_DEPENDENCY );
 
 		dependencyCounter++;
 	}
@@ -435,9 +437,8 @@ void TaskList::MarkDependencies( Task& task, TaskInitList<T>&& dependencies ) {
 	SetBit( &task.id, TASK_SHIFT_UPDATED_DEPENDENCY );
 }
 
-template<IsTask T>
-void TaskList::UnMarkDependencies( TaskInitList<T>&& dependencies ) {
-	for ( const T* dep = dependencies.start; dep < dependencies.end; dep++ ) {
+void TaskList::UnMarkDependencies( TaskInitList&& dependencies ) {
+	for ( const TaskProxy* dep = dependencies.start; dep < dependencies.end; dep++ ) {
 		UnSetBit( &( *dep )->id, TASK_SHIFT_TRACKED_DEPENDENCY );
 		UnSetBit( &( *dep )->id, TASK_SHIFT_UPDATED_DEPENDENCY );
 	}
@@ -454,16 +455,16 @@ void TaskList::AddTask( Task& task, std::initializer_list<TaskProxy> dependencie
 	}
 
 	for ( const TaskProxy& dep : dependencies ) {
-		AddTaskExt( dep.task, TaskInitList<Task> {} );
+		AddTaskExt( dep.task );
 	}
 
-	UnMarkDependencies( TaskInitList{ dependencies.begin(), dependencies.end() } );
+	UnMarkDependencies( TaskInitList { dependencies.begin(), dependencies.end() } );
 }
 
-void TaskList::AddTasksExt( std::initializer_list<TaskInit> dependencies ) {
+void TaskList::AddTasksExt( std::initializer_list<TaskInitList> dependencies ) {
 	// TODO: Currently this is an O( 4 * n ) loop. The tasks form a DAG, which we can instead flatten in O( n ), then loop in O( n )
-	for ( const TaskInit& taskInit : dependencies ) {
-		MarkDependencies( taskInit.begin()[0].task, TaskInitList { &taskInit.begin()[1], taskInit.end() } );
+	for ( const TaskInitList& taskInit : dependencies ) {
+		MarkDependencies( taskInit.start->task, { taskInit.start + 1, taskInit.end } );
 	}
 
 	/* Tracked dependencies are those that we allocated in the AtomicRingBuffer during this function call.
@@ -472,8 +473,8 @@ void TaskList::AddTasksExt( std::initializer_list<TaskInit> dependencies ) {
 	Otherwise we could end up updating it after other threads have already finished all of the dependencies.
 	Flattening the DAG would get rid of the need to do this because we'd just add tasks starting from the end of the graph */
 
-	for ( const TaskInit& taskInit : dependencies ) {
-		for ( const TaskProxy* task = &taskInit.begin()[1]; task < taskInit.end(); task++ ) {
+	for ( const TaskInitList& taskInit : dependencies ) {
+		for ( const TaskProxy* task = taskInit.start + 1; task < taskInit.end; task++ ) {
 			if ( IsTrackedDependency( task->task.id ) ) {
 				Task* taskMemory = GetTaskMemory( task->task );
 				taskMemory->forwardTaskCounter.store( GetForwardCounterFast( taskMemory->id ), std::memory_order_relaxed );
@@ -481,8 +482,8 @@ void TaskList::AddTasksExt( std::initializer_list<TaskInit> dependencies ) {
 		}
 	}
 
-	for ( const TaskInit& taskInit : dependencies ) {
-		for ( const TaskProxy* task = &taskInit.begin()[1]; task < taskInit.end(); task++ ) {
+	for ( const TaskInitList& taskInit : dependencies ) {
+		for ( const TaskProxy* task = taskInit.start + 1; task < taskInit.end; task++ ) {
 			if ( !IsUpdatedDependency( task->task.id ) && !AddedToTaskList( task->task.id ) ) {
 				GetTaskMemory( task->task )->dependencyCounter.store( 0, std::memory_order_relaxed );
 			}
@@ -491,15 +492,15 @@ void TaskList::AddTasksExt( std::initializer_list<TaskInit> dependencies ) {
 			if ( time < task->task.time && task->task.time - time > eventQueue.minGranularity ) {
 				eventQueue.AddTask( task->task );
 			} else {
-				AddTaskExt( task->task, TaskInitList<Task> {} );
+				AddTaskExt( task->task );
 			}
 		}
 
-		AddTaskExt( taskInit.begin()[0].task, TaskInitList{ &taskInit.begin()[1], taskInit.end() } );
+		AddTaskExt( taskInit.start->task, { taskInit.start + 1, taskInit.end } );
 	}
 
-	for ( const TaskInit& taskInit : dependencies ) {
-		UnMarkDependencies( TaskInitList{ &taskInit.begin()[1], taskInit.end() } );
+	for ( const TaskInitList& taskInit : dependencies ) {
+		UnMarkDependencies( { taskInit.start + 1, taskInit.end } );
 	}
 }
 
