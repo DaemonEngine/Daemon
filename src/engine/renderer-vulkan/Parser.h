@@ -28,23 +28,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef VERSION_H
-#define VERSION_H
-
-#include <string>
+#ifndef PARSER_H
+#define PARSER_H
 
 #include "Math/NumberTypes.h"
 
-struct Version {
-	uint32 major;
-	uint32 minor;
-	uint32 patch;
+struct StringView {
+	const char* memory;
+	uint32      size;
 
-	std::string FormatVersion() const;
+	StringView& operator++();
+	StringView  operator++( int );
+
+	StringView& operator+=( const uint32 offset );
 };
 
-std::strong_ordering operator<=>( const Version& lhs, const Version& rhs );
+bool operator==( const StringView& lhs, const char* rhs );
 
-constexpr Version DAEMON_VULKAN_VERSION { 0, 16, 2 };
+StringView Parse( StringView& data, std::string* outStr = nullptr, const char* allowedSymbols = "_/\\$~-@.#" );
 
-#endif // VERSION_H
+#endif // PARSER_H
