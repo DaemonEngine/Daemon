@@ -1,0 +1,185 @@
+/*
+=============================================================================
+Daemon-Vulkan BSD Source Code
+Copyright (c) 2025-2026 Reaper
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of the Reaper nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS AS IS AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL REAPER BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+=============================================================================
+*/
+
+#include <unordered_set>
+
+#include "../Memory/DynamicArray.h"
+
+#include "GraphicsCoreCVars.h"
+
+#include "FeaturesConfig.h"
+#include "FeaturesConfigMap.h"
+
+#include "CapabilityPack.h"
+
+static std::unordered_set<std::string> ParseDisabledOptionalFeatures( std::string features ) {
+	const char*  start = features.c_str();
+	const char** text  = &start;
+
+	std::unordered_set<std::string> out;
+
+	while ( true ) {
+		const char* token = COM_ParseExt2( text, false );
+		if ( !token || *token == '\0' ) {
+			break;
+		}
+
+		out.insert( token );
+	}
+
+	return out;
+}
+
+void SetConfigFeatures( const IteratorSeq<const char* const> featuresStart, const IteratorSeq<const char* const> featuresEnd, const bool optional,
+	const std::unordered_set<std::string> disabledOptionalFeatures,
+	const FeaturesConfig& cfg, FeaturesConfig* cfgOut, std::unordered_set<const char*>& extensions ) {
+	for ( IteratorSeq<const char* const> feature = featuresStart; feature < featuresEnd; feature++ ) {
+		const FeatureData& featureData = featuresConfigMap[*feature];
+
+		bool* cfgFeature    = ( bool* ) ( ( ( uint8* ) &cfg    ) + featureData.offset );
+		bool* cfgOutFeature = ( bool* ) ( ( ( uint8* )  cfgOut ) + featureData.offset );
+
+		if ( optional && !*cfgFeature ) {
+			continue;
+		}
+
+		*cfgOutFeature = true;
+
+		if ( featureData.version > Version { 1, 4, 0 }
+			&& std::find_if( disabledOptionalFeatures.begin(), disabledOptionalFeatures.end(),
+				[&]( const std::string& disabledoptionalFeature ) {
+					return !Q_stricmp( *feature, disabledoptionalFeature.c_str() );
+				}
+			) == disabledOptionalFeatures.end()
+			&& std::find_if( extensions.begin(), extensions.end(),
+				[&]( const char* ext ) {
+					return !Q_stricmp( featureData.extension, ext );
+				}
+			) == extensions.end() ) {
+			extensions.insert( featureData.extension );
+		}
+	}
+}
+
+static uint32 GetSupportedFeatures( const IteratorSeq<const char* const> featuresStart, const IteratorSeq<const char* const> featuresEnd,
+	const FeaturesConfig& cfg, DynamicArray<const char*>* out ) {
+	uint32 unsupportedFeatureCount = 0;
+
+	for ( IteratorSeq<const char* const> feature = featuresStart; feature < featuresEnd; feature++ ) {
+		const FeatureData& featureData = featuresConfigMap[*feature];
+
+		bool* cfgFeature = ( bool* ) ( ( ( uint8* ) &cfg ) + featureData.offset );
+
+		if ( *cfgFeature ) {
+			continue;
+		}
+
+		unsupportedFeatureCount++;
+		out->Push( *feature );
+	}
+
+	return unsupportedFeatureCount;
+}
+
+CapabilityPackType::Type GetHighestSuppportedCapabilityPack( const EngineConfig& config, const FeaturesConfig& cfg,
+	bool* supportedVersion, DynamicArray<const char*>* unsupportedFeatures ) {
+	if ( config.version.major < 1 || config.version.minor < 4 ) {
+		*supportedVersion = false;
+		return CapabilityPackType::NONE;
+	}
+
+	*supportedVersion = true;
+
+	unsupportedFeatures->Clear();
+	if ( GetSupportedFeatures( featuresMinimal.begin(),      featuresMinimal.end(),      cfg, unsupportedFeatures ) ) {
+		return CapabilityPackType::NONE;
+	}
+
+	unsupportedFeatures->Clear();
+	if ( GetSupportedFeatures( featuresRecommended.begin(),  featuresRecommended.end(),  cfg, unsupportedFeatures ) ) {
+		return CapabilityPackType::MINIMAL;
+	}
+
+	unsupportedFeatures->Clear();
+	if ( GetSupportedFeatures( featuresExperimental.begin(), featuresExperimental.end(), cfg, unsupportedFeatures ) ) {
+		return CapabilityPackType::RECOMMENDED;
+	}
+
+	return CapabilityPackType::EXPERIMENTAL;
+}
+
+void AddRequiredExtensions( const IteratorSeq<const char* const> extensionsStart, const IteratorSeq<const char* const> extensionsEnd,
+	std::unordered_set<const char*>& extensions ) {
+	for ( IteratorSeq<const char* const> extension = extensionsStart; extension < extensionsEnd; extension++ ) {
+		if ( std::find_if( extensions.begin(), extensions.end(),
+				[&]( const char* ext ) {
+					return !Q_stricmp( *extension, ext );
+				}
+			) == extensions.end() ) {
+			extensions.insert( *extension );
+		}
+	}
+}
+
+DynamicArray<const char*> GetCapabilityPackFeatures( const CapabilityPackType::Type type, const FeaturesConfig& cfg, FeaturesConfig* cfgOut ) {
+	std::unordered_set<const char*> extensionsSet;
+
+	memset( cfgOut, 0, sizeof( FeaturesConfig ) );
+
+	std::unordered_set<std::string> disabledOptionalFeatures = ParseDisabledOptionalFeatures( r_vkDisabledOptionalFeatures.Get() );
+
+	switch ( type ) {
+		case CapabilityPackType::EXPERIMENTAL:
+			SetConfigFeatures( featuresExperimental.begin(), featuresExperimental.end(), false, {}, cfg, cfgOut, extensionsSet );
+			AddRequiredExtensions( extensionsMinimal.begin(), extensionsMinimal.end(), extensionsSet );
+		case CapabilityPackType::RECOMMENDED:
+			SetConfigFeatures( featuresRecommended.begin(),  featuresRecommended.end(),  false, {}, cfg, cfgOut, extensionsSet );
+			AddRequiredExtensions( extensionsMinimal.begin(), extensionsMinimal.end(), extensionsSet );
+		case CapabilityPackType::MINIMAL:
+			SetConfigFeatures( featuresMinimal.begin(),      featuresMinimal.end(),      false, {}, cfg, cfgOut, extensionsSet );
+			AddRequiredExtensions( extensionsMinimal.begin(), extensionsMinimal.end(), extensionsSet );
+			break;
+		case CapabilityPackType::NONE:
+		default:
+			break;
+	}
+
+	SetConfigFeatures( featuresOptional.begin(), featuresOptional.end(), true, disabledOptionalFeatures, cfg, cfgOut, extensionsSet );
+
+	DynamicArray<const char*> extensions;
+	extensions.Resize( extensionsSet.size() );
+	extensions.Init();
+
+	for ( const char* extension : extensionsSet ) {
+		extensions.Push( extension );
+	}
+
+	return extensions;
+}

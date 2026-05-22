@@ -1,0 +1,207 @@
+/*
+=============================================================================
+Daemon-Vulkan BSD Source Code
+Copyright (c) 2025-2026 Reaper
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of the Reaper nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS AS IS AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL REAPER BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+=============================================================================
+*/
+
+#include "Vulkan.h"
+
+#include "../Math/NumberTypes.h"
+#include "../Memory/Array.h"
+#include "../Memory/DynamicArray.h"
+#include "../Error.h"
+
+#include "GraphicsCoreCVars.h"
+
+#include "EngineConfig.h"
+#include "FeaturesConfig.h"
+#include "Queue.h"
+#include "CapabilityPack.h"
+
+#include "GraphicsCoreStore.h"
+
+#include "PhysicalDevice.h"
+
+static void PrintDeviceInfo( const EngineConfig& config ) {
+	static const char* deviceTypes[] = {
+		"Discrete",
+		"Integrated",
+		"Virtual",
+		"CPU"
+	};
+
+	Log::Notice( "%s, type: %s, driver name: %s, driver info: %s, maximum supported capability pack: %s, Vulkan: %u.%u.%u",
+		config.deviceName, deviceTypes[config.deviceType], config.driverName, config.driverInfo,
+		CapabilityPackType::typeStrings[config.capabilityPack],
+		config.version.major, config.version.minor, config.version.patch );
+}
+
+bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, EngineConfig* config, VkPhysicalDevice* deviceOut ) {
+	if ( !devices.size ) {
+		Err( "No Vulkan devices found" );
+
+		return false;
+	}
+
+	Log::Notice( "Found Vulkan devices:" );
+
+	const VkPhysicalDevice*   bestDevice = devices.memory;
+
+	bool                      supportedVersion;
+	DynamicArray<const char*> unsupportedFeatures;
+
+	EngineConfig              bestCFG      {};
+
+	for ( const VkPhysicalDevice& device : devices ) {
+		EngineConfig cfg   = GetEngineConfigForDevice( device );
+		cfg.capabilityPack = GetHighestSuppportedCapabilityPack( cfg, GetPhysicalDeviceFeatures( device, cfg ),
+			&supportedVersion, &unsupportedFeatures );
+
+		PrintDeviceInfo( cfg );
+
+		if ( cfg.capabilityPack == CapabilityPackType::NONE ) {
+			Log::Notice( "%s doesn't support the minimal capability pack%s", cfg.deviceName,
+				supportedVersion ? Str::Format( " (version %u.%u.%u < %u.%u.%u)",
+				                   cfg.version.major, cfg.version.minor, cfg.version.subminor, 1, 4, 0 )
+				                 : "" );
+			if ( unsupportedFeatures.size ) {
+				std::string features = "Unsupported features: ";
+
+				for ( const char* unsupportedFeature : unsupportedFeatures ) {
+					features += unsupportedFeature;
+				}
+
+				Log::Notice( features );
+			}
+
+			continue;
+		}
+
+		if ( !bestCFG.capabilityPack ) {
+			bestDevice = &device;
+			bestCFG    = cfg;
+
+			continue;
+		}
+
+		if ( cfg.deviceType < bestCFG.deviceType ) {
+			bestDevice = &device;
+			bestCFG    = cfg;
+
+			Log::Notice( "Selecting %s because it has a better GPU type", cfg.deviceName );
+
+			continue;
+		}
+
+		if ( cfg.capabilityPack > bestCFG.capabilityPack ) {
+			bestDevice = &device;
+			bestCFG    = cfg;
+
+			Log::Notice( "Selecting %s because it supports a higher capability pack", cfg.deviceName );
+
+			continue;
+		}
+	}
+
+	if ( !bestCFG.capabilityPack ) {
+		Err( "No suitable Vulkan devices found" );
+
+		return false;
+	}
+
+	if ( r_vkDevice.Get() != -1 ) {
+		if ( r_vkDevice.Get() < devices.size ) {
+			const VkPhysicalDevice& device = devices[r_vkDevice.Get()];
+			EngineConfig            cfg    = GetEngineConfigForDevice( device );
+			cfg.capabilityPack             = GetHighestSuppportedCapabilityPack( cfg, GetPhysicalDeviceFeatures( device, cfg ),
+				&supportedVersion, &unsupportedFeatures );
+
+			if ( cfg.capabilityPack == CapabilityPackType::NONE ) {
+				Log::Warn( "Ignoring r_vkDevice because the selected device doesn't support the minimal capability pack" );
+			} else {
+				bestCFG    = cfg;
+				bestDevice = &device;
+
+				Log::Notice( "Selecting %s because device was overridden with r_vkDevice = %i", bestCFG.deviceName, r_vkDevice.Get() );
+			}
+		} else {
+			Log::Warn( "r_vkDevice out of range, using default instead" );
+		}
+	} else {
+		Log::Notice( "Selecting %s", bestCFG.deviceName );
+	}
+
+	if ( bestCFG.capabilityPack == CapabilityPackType::NONE ) {
+		Err( "No available Vulkan devices support the minimal capability pack" );
+
+		return false;
+	}
+
+	*config    =  bestCFG;
+
+	*deviceOut = *bestDevice;
+
+	return true;
+}
+
+void CreateDevice( EngineConfig& config, VkDevice* device ) {
+	VkDeviceQueueCreateInfo queueInfos[4] {};
+
+	const Queue* queues[4]     { graphicsQueue, computeQueue, transferQueue, sparseQueue };
+
+	float        priorities[2] { 1.0f, 1.0f };
+
+	uint32 count = 0;
+	for ( uint32 i = 0; i < 4; i++ ) {
+		const Queue* queue = queues[i];
+
+		if ( !queue->unique ) {
+			continue;
+		}
+
+		queueInfos[i] = {
+			.queueFamilyIndex = queue->id,
+			.queueCount       = ( queue == &transferQueue && queue->unique && queue->queueCount > 1 ) ? 2u : 1u,
+			.pQueuePriorities = priorities
+		};
+
+		count++;
+	}
+
+	FeaturesConfig            cfg = GetPhysicalDeviceFeatures( physicalDevice, config );
+	DynamicArray<const char*> ext = GetCapabilityPackFeatures( ( CapabilityPackType::Type ) config.capabilityPack, cfg, &featuresConfig );
+
+	VkDeviceCreateInfo info {
+		.queueCreateInfoCount    = count,
+		.pQueueCreateInfos       = queueInfos,
+		.enabledExtensionCount   = ( uint32 ) ext.size,
+		.ppEnabledExtensionNames = ext.memory
+	};
+
+	VkResult res = ( VkResult ) CreateDevice( info, nullptr, config, featuresConfig, device );
+	Q_UNUSED( res );
+}

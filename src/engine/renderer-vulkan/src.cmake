@@ -69,6 +69,97 @@ set( utilsList
     ${ENGINE_DIR}/renderer-vulkan/SrcDebug/Tag.h
 )
 
+# Graphics Core
+set( graphicsCoreMemory
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Memory/CoreThreadMemory.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Memory/CoreThreadMemory.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Memory/DescriptorSet.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Memory/DescriptorSet.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Memory/EngineAllocator.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Memory/EngineAllocator.h
+)
+
+set( graphicsCoreList
+    ${graphicsCoreMemory}
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ExecutionGraph/ExecCmd.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ExecutionGraph/ExecCmd.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ExecutionGraph/ExecutionGraph.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ExecutionGraph/ExecutionGraph.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Decls.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/CapabilityPack.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineConfig.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/EngineConfig.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/FeaturesConfig.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/FeaturesConfig.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/FeaturesConfigMap.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/FeaturesConfigMap.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreCVars.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreCVars.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreStore.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsCoreStore.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsResource.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/GraphicsResource.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Image.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Image.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Init.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Init.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Instance.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Instance.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/PhysicalDevice.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/PhysicalDevice.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Queue.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Queue.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ResourceSystem.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ResourceSystem.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ResultCheck.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/ResultCheck.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Semaphore.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Semaphore.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/SwapChain.cpp
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/SwapChain.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsCore/Vulkan.h
+)
+
+# Graphics Engine
+set( graphicsEngineListH
+    Common.glsl
+)
+
+set( graphicsEngineList
+    MsgStream.glsl
+    TestV.glsl
+    TestF.glsl
+)
+
+set( graphicsEngineIDEList ${graphicsEngineList} )
+list( APPEND graphicsEngineIDEList ${graphicsEngineListH} )
+list( TRANSFORM graphicsEngineIDEList PREPEND ${ENGINE_DIR}/renderer-vulkan/GraphicsEngine/ )
+
+# Graphics Shared
+set( graphicsSharedList
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/Bindings.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/MemoryPool.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/MsgStreamAPI.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/NumberTypes.h
+    ${ENGINE_DIR}/renderer-vulkan/GraphicsShared/PushLayout.h
+)
+
+# Vulkan Loader
+set( vulkanLoaderList
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/Vulkan.cpp
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/VulkanLoadFunctions.cpp
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/VulkanLoadFunctions.h
+    ${ENGINE_DIR}/renderer-vulkan/VulkanLoader/Vulkan.h
+)
+
+set( graphicsList
+    ${graphicsCoreList}
+    ${graphicsEngineIDEList}
+    ${graphicsSharedList}
+    ${vulkanLoaderList}
+)
+
 set( RENDERERLIST
     ${mathList}
     ${memoryList}
@@ -76,12 +167,18 @@ set( RENDERERLIST
     ${sysList}
     ${threadList}
     ${utilsList}
+    ${graphicsList}
+    ${ENGINE_DIR}/renderer-vulkan/Surface/Surface.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Surface/Surface.h
     ${ENGINE_DIR}/renderer-vulkan/DispatchRawData.cpp
     ${ENGINE_DIR}/renderer-vulkan/DispatchRawData.h
     ${ENGINE_DIR}/renderer-vulkan/Error.cpp
     ${ENGINE_DIR}/renderer-vulkan/Error.h
+    ${ENGINE_DIR}/renderer-vulkan/Init.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Init.h
     ${ENGINE_DIR}/renderer-vulkan/MiscCVarStore.cpp
     ${ENGINE_DIR}/renderer-vulkan/MiscCVarStore.h
+    ${ENGINE_DIR}/renderer-vulkan/RefAPI.cpp
     ${ENGINE_DIR}/renderer-vulkan/Version.cpp
     ${ENGINE_DIR}/renderer-vulkan/Version.h
     ${ENGINE_DIR}/renderer-vulkan/Shared/Timer.cpp

@@ -1,0 +1,115 @@
+/*
+=============================================================================
+Daemon-Vulkan BSD Source Code
+Copyright (c) 2025-2026 Reaper
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of the Reaper nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS AS IS AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL REAPER BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+=============================================================================
+*/
+
+#include "../../Math/Bit.h"
+
+#include "../Vulkan.h"
+
+#include "../Queue.h"
+
+#include "CoreThreadMemory.h"
+
+void InitCmdPools() {
+	struct QueuePool {
+		Queue*         queue;
+		VkCommandPool* cmdPool;
+	};
+
+	QueuePool queues[] {
+		{ &graphicsQueue, &GMEM.graphicsCmdPool },
+		{ &computeQueue,  &GMEM.computeCmdPool  },
+		{ &transferQueue, &GMEM.transferCmdPool },
+		{ &sparseQueue,   &GMEM.sparseCmdPool   }
+	};
+
+	for ( QueuePool& queuePool : queues ) {
+		if ( queuePool.queue->unique ) {
+			VkCommandPoolCreateInfo cmdPoolInfo {
+				.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+				.queueFamilyIndex = queuePool.queue->id
+			};
+
+			vkCreateCommandPool( device, &cmdPoolInfo, nullptr, queuePool.cmdPool );
+		}
+	}
+}
+
+void InitExecCmdPools() {
+	struct QueueCmdPool {
+		Queue*       queue;
+		ExecCmdPool* cmdPool;
+	};
+
+	QueueCmdPool execCmdQueues[] {
+		{ &graphicsQueue, &GMEM.execGraphicsCmd, },
+		{ &computeQueue,  &GMEM.execComputeCmd,  },
+		{ &transferQueue, &GMEM.execTransferCmd, },
+		{ &sparseQueue,   &GMEM.execSparseCmd,   }
+	};
+
+	for ( QueueCmdPool& queuePool : execCmdQueues ) {
+		if ( queuePool.queue->unique ) {
+			VkCommandPoolCreateInfo cmdPoolInfo {
+				.flags              = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+				.queueFamilyIndex   = queuePool.queue->id
+			};
+
+			vkCreateCommandPool( device, &cmdPoolInfo, nullptr, &queuePool.cmdPool->cmdPool );
+
+			VkCommandBufferAllocateInfo cmdInfo {
+				.commandPool        = queuePool.cmdPool->cmdPool,
+				.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				.commandBufferCount = maxExecCmdBuffers
+			};
+
+			vkAllocateCommandBuffers( device, &cmdInfo, queuePool.cmdPool->cmds );
+		}
+	}
+}
+
+void FreeCmdPools() {
+	vkDestroyCommandPool( device, GMEM.graphicsCmdPool, nullptr );
+	vkDestroyCommandPool( device, GMEM.computeCmdPool,  nullptr );
+	vkDestroyCommandPool( device, GMEM.transferCmdPool, nullptr );
+	vkDestroyCommandPool( device, GMEM.sparseCmdPool,   nullptr );
+
+	vkDestroyCommandPool( device, GMEM.execGraphicsCmd.cmdPool, nullptr );
+	vkDestroyCommandPool( device, GMEM.execComputeCmd.cmdPool,  nullptr );
+	vkDestroyCommandPool( device, GMEM.execTransferCmd.cmdPool, nullptr );
+	vkDestroyCommandPool( device, GMEM.execSparseCmd.cmdPool,   nullptr );
+}
+
+AlignedAtomicUint64 cmdBufferStates[MAX_THREADS];
+thread_local uint64 cmdBufferAllocState;
+
+VkCommandBuffer     cmdBuffers[MAX_THREADS][maxThreadCmdBuffers];
+VkFence             cmdBufferFences[MAX_THREADS][maxThreadCmdBuffers];
+
+thread_local GraphicsCoreMemory GMEM;
