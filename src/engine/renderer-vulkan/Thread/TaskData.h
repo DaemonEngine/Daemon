@@ -33,6 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
-byte* AllocTaskData( const uint16 dataSize );
+byte* AllocTaskData( const uint16 dataSize, uint64* offset );
 
 #endif // TASK_DATA_H

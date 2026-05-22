@@ -32,10 +32,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TASK_H
 
 #include <atomic>
+#include <type_traits>
 
 #include "../Math/NumberTypes.h"
 #include "../Math/Bit.h"
 
+#include "../Memory/Array.h"
+#include "../Memory/Memory.h"
 #include "../Sys/MemoryInfo.h"
 #include "../Sync/Fence.h"
 #include "../Sync/AccessLock.h"
@@ -57,44 +60,114 @@ struct IsPointer_<T*> {
 template<typename T>
 constexpr bool IsPointer = IsPointer_<T>::out; */
 
+using DestructorFunction = void( * )( const void* );
+
+template<typename T>
+constexpr DestructorFunction GetDestructor() {
+	if constexpr ( std::is_trivially_destructible_v<T> ) {
+		return nullptr;
+	}
+
+	return ( DestructorFunction )[]( const void* memory ) {
+		static_cast<const T*>( memory )->~T();
+	};
+}
+
+template<typename T>
+bool HasDestructor() {
+	return GetDestructor<T>() != nullptr;
+}
+
+struct Arg {
+	uint8  id;
+	bool   hasDestructor;
+	uint16 size;
+
+	Arg() :
+		id( 0 ),
+		hasDestructor( false ),
+		size( 0 ) {
+	}
+
+	Arg( const Arg& other ) :
+		id( other.id ),
+		hasDestructor( other.hasDestructor ),
+		size( other.size ) {
+	}
+
+	Arg( const uint16 newID, const bool newHasDestructor, const uint16 newSize ) :
+		id( newID ),
+		hasDestructor( newHasDestructor ),
+		size( newSize ) {
+	}
+};
+
+using TaskFunction  = void( * )( void* );
+using TaskFunction2 = void( * )( void*, void* );
+using TaskFunction3 = void( * )( void*, void*, void* );
+using TaskFunction4 = void( * )( void*, void*, void*, void* );
+using TaskFunction5 = void( * )( void*, void*, void*, void*, void* );
+using TaskFunction6 = void( * )( void*, void*, void*, void*, void*, void* );
+using TaskFunction7 = void( * )( void*, void*, void*, void*, void*, void*, void* );
+using TaskFunction8 = void( * )( void*, void*, void*, void*, void*, void*, void*, void* );
+
+#define argsMsg "Tasks must have the same amount of args as the underlying function;" \
+	" each function arg must be a pointer to the corresponding task arg type"
+
+#define argSizeMsg "Task arg size must not exceed Task::maxArgSize"
+//char[] = "ALongTaskNameToBeSure?";
+
 struct Task {
-	using TaskFunction = void( * )( void* );
+	static constexpr uint32 maxArgCount      = 8;
+	static constexpr uint32 maxArgSize       = 3072;
+	static constexpr uint32 maxTotalArgSize  = maxArgCount * maxArgSize;
 
 	TaskFunction       Execute;
-	void*              data;
 
-	FenceMain           complete;
+	uint16             dataOffsets[8]           { 0 };
+	// 40 bits for task data so it supports up to ~207 days with 1024 tasks with 64 byte args per frame on average @ 60 FPS
+	uint32             dataOffset             = 0;
+	uint8              dataOffset2            = 0;
 
-	uint8               flags                 = 0;
-	bool                active                = false;
+	uint8              flags                  = 0;
 
-	static constexpr uint32 UNALLOCATED       = UINT16_MAX;
+	static constexpr uint16 UNALLOCATED       = UINT16_MAX;
 	uint16             bufferID               = UNALLOCATED; // Task RingBuffer id
-
-	uint32             eventMask              = 0;
 	uint32             gen                    = 0;
 
-	std::atomic<uint8> dependencyCounter      = 1;
-	std::atomic<uint8> forwardTaskCounter     = 0;
-	std::atomic<uint8> threadCount            = 0;
-	uint8              id                     = 0; // 4 bits - task memory/dependency tracking in TaskList
-
-	AccessLock         forwardTaskLock;
-	uint32             forwardTaskCounterFast = 0;
+	uint32             argsMap                = 0; // Bits 0-7: destructor map, 8-31: arg id -> dataOffsets remap
 
 	uint64             time                   = 0;
 	uint64             threadMask             = 0;
 
-	uint16             dataSize               = 0;
+	AccessLock         forwardTaskLock;
+	uint8              id                     = 0; // Task memory/dependency tracking in TaskList
+	std::atomic<uint8> dependencyCounter      = 1; // Starts at 1 so it wouldn't start executing before being resolved in AddTask[s]
+	std::atomic<uint8> forwardTaskCounter     = 0;
 
-	static constexpr uint32 MAX_FORWARD_TASKS = 14;
-	uint16 forwardTasks[MAX_FORWARD_TASKS]      { 0 };
+	FenceBool          complete;
+	std::atomic<uint8> threadCount            = 0;
 
-	byte reserved[18];
+	uint16             srcLine                = 0;
 
-	Task();
+	static constexpr uint32 maxForwardTasks   = 8;
+	uint16 forwardTasks[maxForwardTasks]        { 0 };
 
-	// We have to use templates here because clang fails to cast function pointers to void*
+	static constexpr uint32 maxSrcSize  = 24;
+	static constexpr uint32 maxNameSize = 24;
+
+	char               src[maxSrcSize];
+	char               name[maxNameSize];
+
+	                Task();
+	                Task( const Task& other );
+
+	const     Task& operator*();
+	const     Task* operator->() const;
+	constexpr Task& GetTask();
+
+	void            operator=( const Task& other );
+
 	template<typename FuncType>
 	Task( FuncType func ) :
 		Execute( ( TaskFunction ) func ) {
@@ -105,62 +178,181 @@ struct Task {
 	Task( FuncType func, const DataType& newData ) :
 		Execute( ( TaskFunction ) func ) {
 
-		SetValid( true );
+		static_assert( std::is_same_v<FuncType, void( * )( DataType* )>, argsMsg );
+		static_assert( sizeof( DataType ) <= maxArgSize, argSizeMsg );
 
-		dataSize                = sizeof( newData );
-		data                    = AllocTaskData( dataSize );
-		*( ( DataType* ) data ) = newData;
+		Arg args[] {
+			Arg {
+				0,
+				HasDestructor<DataType>(),
+				sizeof( DataType )
+			}
+		};
+
+		CopyArgs( InitMemory( args, args + 1 ), newData );
 	}
 
-	void operator=( const Task& other );
+	template<typename FuncType, typename DataType, typename DataType2>
+	Task( FuncType func, const DataType& newData, const DataType2& newData2 ) :
+		Execute( ( TaskFunction ) func ) {
 
-	Task( const Task& other );
+		static_assert( std::is_same_v<FuncType, void( * )( DataType*, DataType2* )>, argsMsg );
+		static_assert( sizeof( DataType )  <= maxArgSize, argSizeMsg );
+		static_assert( sizeof( DataType2 ) <= maxArgSize, argSizeMsg );
 
-	Task& Delay( const uint64 delay );
+		Arg args[] {
+			Arg {
+				0,
+				HasDestructor<DataType>(),
+				sizeof( DataType )
+			},
+			Arg {
+				1,
+				HasDestructor<DataType2>(),
+				sizeof( DataType2 )
+			}
+		};
 
-	Task& ThreadMask( const uint64 newThreadMask );
-	Task& ThreadMaskAll();
-	Task& ThreadMaskAllOthers();
-	Task& ThreadMaskCurrent();
-
-	void  Wait();
-
-	bool  IsValid();
-	bool  IsShutdownTask();
-
-	const Task& operator*() {
-		return *this;
+		CopyArgs( InitMemory( args, args + 2 ), newData, newData2 );
 	}
 
-	const Task* operator->() const {
-		return this;
+	template<typename FuncType, typename DataType, typename DataType2, typename DataType3>
+	Task( FuncType func, const DataType& newData, const DataType2& newData2, const DataType3& newData3 ) :
+		Execute( ( TaskFunction ) func ) {
+
+		static_assert( std::is_same_v<FuncType, void( * )( DataType*, DataType2*, DataType3* )>, argsMsg );
+		static_assert( sizeof( DataType )  <= maxArgSize, argSizeMsg );
+		static_assert( sizeof( DataType2 ) <= maxArgSize, argSizeMsg );
+		static_assert( sizeof( DataType3 ) <= maxArgSize, argSizeMsg );
+
+		Arg args[] {
+			Arg {
+				0,
+				HasDestructor<DataType>(),
+				sizeof( DataType )
+			},
+			Arg {
+				1,
+				HasDestructor<DataType2>(),
+				sizeof( DataType2 )
+			},
+			Arg {
+				2,
+				HasDestructor<DataType3>(),
+				sizeof( DataType3 )
+			}
+		};
+
+		CopyArgs( InitMemory( args, args + 3 ), newData, newData2, newData3 );
 	}
 
-	constexpr Task& GetTask() {
-		return *this;
+	template<typename FuncType, typename DataType, typename DataType2, typename DataType3, typename DataType4>
+	Task( FuncType func, const DataType& newData, const DataType2& newData2, const DataType3& newData3, const DataType4& newData4 ) :
+		Execute( ( TaskFunction ) func ) {
+
+		static_assert( std::is_same_v<FuncType, void( * )( DataType*, DataType2*, DataType3*, DataType4* )>, argsMsg );
+		static_assert( sizeof( DataType )  <= maxArgSize, argSizeMsg );
+		static_assert( sizeof( DataType2 ) <= maxArgSize, argSizeMsg );
+		static_assert( sizeof( DataType3 ) <= maxArgSize, argSizeMsg );
+		static_assert( sizeof( DataType4 ) <= maxArgSize, argSizeMsg );
+
+		Arg args[] {
+			Arg {
+				0,
+				HasDestructor<DataType>(),
+				sizeof( DataType )
+			},
+			Arg {
+				1,
+				HasDestructor<DataType2>(),
+				sizeof( DataType2 )
+			},
+			Arg {
+				2,
+				HasDestructor<DataType3>(),
+				sizeof( DataType3 )
+			},
+			Arg {
+				3,
+				HasDestructor<DataType4>(),
+				sizeof( DataType4 )
+			}
+		};
+
+		CopyArgs( InitMemory( args, args + 4 ), newData, newData2, newData3, newData4 );
 	}
+
+	Task&  Delay( const uint64 delay );
+
+	Task&  ThreadMask( const uint64 newThreadMask );
+	Task&  ThreadMaskAll();
+	Task&  ThreadMaskAllOthers();
+	Task&  ThreadMaskCurrent();
+
+	void   Wait();
+
+	void   ExecuteDestructors();
+
+	bool   IsValid();
+	bool   IsShutdownTask();
+	bool   IsActive();
+	uint8  GetArgCount();
+
+	uint64 GetDataOffset();
+
+	void   SetActive( const bool active );
+
+	byte*  GetArgMemory( const uint32 arg );
 
 	private:
-	static constexpr uint32 validOffset    = 0;
-	static constexpr uint32 shutdownOffset = 1;
+	static constexpr uint32 validOffset     = 0;
+	static constexpr uint32 activeOffset    = 1;
+	static constexpr uint32 shutdownOffset  = 2;
+	static constexpr uint32 argCountOffset  = 3;
 
-	void  SetValid( const bool valid );
+	static constexpr uint32 argMapArgOffset = 8;
+	static constexpr uint32 argMapMask      = 255;
+	static constexpr uint32 argMapArgSize   = 3;
+
+	uint32 SetArgsMap( Arg* start, Arg* end );
+	uint32 RemapArg( const uint32 arg );
+
+	byte*  InitMemory( Arg* start, Arg* end );
+
+	void   SetValid( const bool valid );
+
+	template<class ... T>
+	void   CopyArgs( byte* memory, const T& ... args ) {
+		( [&] {
+			DestructorFunction destructor = GetDestructor<T>();
+
+			if ( destructor ) {
+				memory = CopyAligned( memory, destructor );
+			}
+		  }(), ...
+		);
+
+		uint32 i = 0;
+
+		( [&] {
+			CopyAligned( memory + dataOffsets[RemapArg( i )], args );
+
+			dataOffsets[RemapArg( i )] += CountBits( argsMap & argMapMask ) * sizeof( DestructorFunction );
+			i++;
+		  }(), ...
+		);
+	}
 };
 
 struct TaskProxy {
 	Task& task;
 
-	TaskProxy( Task& newTask ) :
-		task( newTask ) {
-	}
-
-	Task* operator->() const {
-		return &task;
-	}
+	                TaskProxy( Task& newTask );
+	Task*           operator->() const;
 
 	constexpr Task& GetTask() const {
 		return task;
-	}
+	};
 };
 
 #endif // TASK_H

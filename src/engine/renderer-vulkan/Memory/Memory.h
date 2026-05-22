@@ -35,11 +35,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
-MALLOC_LIKE void* AllocAligned( const uint64 size, const uint64 alignment );
-void              FreeAligned( void* memory );
+template<typename T>
+byte* CopyAligned( byte* memory, const T& value ) {
+	const uint64 alignment = alignof( T );
 
-inline void* Alloc64( const uint64 size ) {
-	return AllocAligned( size, 64 );
+	memory                 = ( byte* ) PAD( ( uint64 ) memory, alignment );
+	*( ( T* ) memory )     = value;
+
+	return memory + sizeof( T );
 }
 
 #endif // MEMORY_H

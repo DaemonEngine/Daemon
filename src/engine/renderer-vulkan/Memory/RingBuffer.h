@@ -194,12 +194,12 @@ class AtomicRingBuffer :
 			element &= mask;
 		} else {
 			element &= mask;
-			while ( memory[element].active ) {
+			while ( memory[element].IsActive() ) {
 				std::this_thread::yield();
 
 			}
 
-			memory[element].active = true;
+			memory[element].SetActive( true );
 		}
 
 		return &memory[element];

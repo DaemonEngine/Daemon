@@ -70,7 +70,7 @@ class GlobalMemory : public Allocator {
 	public:
 	DynamicArray<ChunkAllocator> chunkAllocators[MAX_MEMORY_AREAS] { { &sysAllocator }, { &sysAllocator }, { &sysAllocator } };
 
-	std::unordered_map<Task::TaskFunction, GlobalTaskTime> taskTimes;
+	std::unordered_map<TaskFunction, GlobalTaskTime> taskTimes;
 	AccessLock                                             taskTimesLock;
 
 	void         Init();

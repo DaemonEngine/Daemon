@@ -79,7 +79,7 @@ class ThreadMemory : public Allocator {
 
 	uint32      currentMaxThreads = 0;
 
-	std::unordered_map<Task::TaskFunction, TaskTime> taskTimes;
+	std::unordered_map<TaskFunction, TaskTime> taskTimes;
 	uint64      unknownTaskCount  = 0;
 	
 	Task*       tasks[maxInternalTasks];

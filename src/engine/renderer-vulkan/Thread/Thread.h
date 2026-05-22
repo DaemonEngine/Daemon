@@ -91,7 +91,7 @@ class Thread :
 
 	uint64      exitTime;
 
-	std::unordered_map<Task::TaskFunction, TaskTime> taskTimes;
+	std::unordered_map<TaskFunction, TaskTime> taskTimes;
 };
 
 #endif // THREAD_H

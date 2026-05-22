@@ -73,8 +73,6 @@ void Thread::Run() {
 			continue;
 		}
 
-		ASSERT_EQ( task, nullptr );
-
 		eventQueue.Rotate();
 
 		task = TLM.FetchTask();
@@ -114,7 +112,30 @@ void Thread::Run() {
 
 		Timer t;
 		executing.Start();
-		task->Execute( task->data );
+
+		switch ( task->GetArgCount() ) {
+			case 4:
+				( ( TaskFunction4 ) task->Execute )( task->GetArgMemory( 0 ), task->GetArgMemory( 1 ), task->GetArgMemory( 2 ),
+					task->GetArgMemory( 3 ) );
+				break;
+
+			case 3:
+				( ( TaskFunction3 ) task->Execute )( task->GetArgMemory( 0 ), task->GetArgMemory( 1 ), task->GetArgMemory( 2 ) );
+				break;
+
+			case 2:
+				( ( TaskFunction2 ) task->Execute )( task->GetArgMemory( 0 ), task->GetArgMemory( 1 ) );
+				break;
+
+			case 1:
+				task->Execute( task->GetArgMemory( 0 ) );
+				break;
+
+			case 0:
+				task->Execute( nullptr );
+				break;
+		}
+
 		executing.Stop();
 
 		dependencyTimer.Start();
@@ -122,16 +143,19 @@ void Thread::Run() {
 		if ( !task->threadMask || !UnSetBit( task->threadMask, TLM.id )
 			|| task->threadCount.fetch_sub( 1, std::memory_order_relaxed ) == 1 ) {
 			task->complete.Signal();
-			task->active = false;
+			task->ExecuteDestructors();
+
 			taskList.FinishTask( task );
 
 			while( !task->forwardTaskLock.LockWrite() );
 
-			const uint32 forwardTasks = task->forwardTaskCounter.load( std::memory_order_relaxed );
+			const uint8 forwardTasks = task->forwardTaskCounter.load( std::memory_order_relaxed );
 
-			for ( uint32 i = 0; i < forwardTasks; i++ ) {
+			for ( uint8 i = 0; i < forwardTasks; i++ ) {
 				taskList.FinishDependency( task->forwardTasks[i] );
 			}
+
+			task->SetActive( false );
 		}
 
 		dependencyTimer.Stop();
@@ -208,7 +232,7 @@ void Thread::Exit() {
 		FormatTime( addQueueWait, ms ),
 		FormatTime( taskAdd, ms ), FormatTime( taskSync, ms ) );
 
-	for ( const std::pair<Task::TaskFunction, TaskTime>& taskTime : taskTimes ) {
+	for ( const std::pair<TaskFunction, TaskTime>& taskTime : taskTimes ) {
 		Log::NoticeTag( "task: avg: %s, count: %u, time: %u",
 			FormatTime( taskTime.second.time / maxCoreFrequencyScale / std::max( 1ull, taskTime.second.count ), us ),
 			taskTime.second.count, FormatTime( taskTime.second.time / maxCoreFrequencyScale, us ) );

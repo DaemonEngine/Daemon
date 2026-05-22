@@ -28,33 +28,5 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "../SrcDebug/Tag.h"
-#include "../Error.h"
-
 #include "Memory.h"
 
-MALLOC_LIKE void* AllocAligned( const uint64 size, const uint64 alignment ) {
-	if ( !size ) {
-		return nullptr;
-	}
-
-	ASSERT_EQ( ( alignment & ( alignment - 1 ) ), 0 );
-
-	const uint64 paddedSize = ( size + alignment - 1 ) & ~( alignment - 1 );
-
-	void* ret = Com_Allocate_Aligned( alignment, paddedSize );
-	if ( !ret ) {
-		Err( "AllocAligned: failed: memory allocation returned nullptr (size: %u, alignment: %u)",
-			paddedSize, alignment );
-	}
-
-	return ret;
-}
-
-void FreeAligned( void* memory ) {
-	if ( !memory ) {
-		Log::WarnTag( "Freeing nullptr" );
-	}
-
-	Com_Free_Aligned( memory );
-}

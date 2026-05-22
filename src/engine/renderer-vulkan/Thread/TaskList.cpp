@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GlobalMemory.h"
 #include "ThreadUplink.h"
 #include "EventQueue.h"
+#include "TaskData.h"
 
 #include "TaskList.h"
 
@@ -140,33 +141,49 @@ void TaskList::FinishShutdown() {
 	Log::NoticeTag( debugOut );
 }
 
-bool TaskList::AddedToTaskList( const uint16 id ) {
+bool  TaskList::AddedToTaskList( const uint8 id ) {
 	return BitSet( id, TASK_SHIFT_ADDED );
 }
 
-bool TaskList::AddedToTaskMemory( const uint16 bufferID ) {
+bool  TaskList::AddedToTaskMemory( const uint16 bufferID ) {
 	return bufferID != Task::UNALLOCATED;
 }
 
-bool TaskList::HasUntrackedDeps( const uint16 id ) {
+bool  TaskList::HasUntrackedDeps( const uint8 id ) {
 	return BitSet( id, TASK_SHIFT_HAS_UNTRACKED_DEPS );
 }
 
-bool TaskList::IsTrackedDependency( const uint16 id ) {
+bool  TaskList::IsTrackedDependency( const uint8 id ) {
 	return BitSet( id, TASK_SHIFT_TRACKED_DEPENDENCY );
 }
 
-bool TaskList::IsUpdatedDependency( const uint16 id ) {
+bool  TaskList::IsUpdatedDependency( const uint8 id ) {
 	return BitSet( id, TASK_SHIFT_UPDATED_DEPENDENCY );
 }
 
-byte* TaskList::AllocTaskData( const uint16 dataSize ) {
-	return tasksData.GetNextElementMemory( dataSize );
+uint8 TaskList::GetForwardCounterFast( const uint8 id ) {
+	return GetBits( id, TASK_SHIFT_FORWARD_COUNTER, 4 );
+}
+
+void  TaskList::IncrementForwardCounterFast( uint8* id ) {
+	SetBits( id, GetForwardCounterFast( *id ) + 1, TASK_SHIFT_FORWARD_COUNTER, 4 );
+}
+
+byte* TaskList::AllocTaskData( const uint16 dataSize, uint64* offset ) {
+	*offset   = tasksData.GetNextElement( PAD( dataSize, CACHE_LINE_SIZE ) );
+	byte* out = tasksData.memory + ( *offset & tasksData.mask );
+	*offset >>= cacheLineBits;
+
+	return out;
+}
+
+byte* TaskList::GetTaskData( const uint64 offset ) {
+	return tasksData.memory + ( ( offset << cacheLineBits ) & tasksData.mask );
 }
 
 void TaskList::FinishTask( Task* task ) {
-	if ( task->dataSize ) {
-		tasksData.UpdateCurrentElement( ( byte* ) task->data - tasksData.memory );
+	if ( task->GetArgCount() ) {
+		tasksData.UpdateCurrentElement( task->GetDataOffset() );
 	}
 }
 
@@ -215,7 +232,7 @@ void TaskList::ResolveDependencies( Task& task, TaskInitList<T>& dependencies ) 
 		}
 
 		uint32 id = dependency.forwardTaskCounter.fetch_add( 1, std::memory_order_relaxed );
-		ASSERT_LE( id, Task::MAX_FORWARD_TASKS );
+		ASSERT_LE( id, Task::maxForwardTasks );
 		dependency.forwardTasks[id] = task.bufferID;
 		task.dependencyCounter.fetch_add( 1, std::memory_order_relaxed );
 
@@ -257,7 +274,7 @@ void TaskList::AddToThreadQueueExt( Task& task ) {
 	if ( task.threadMask ) {
 		uint32 threadMask = task.threadMask;
 
-		taskCount.fetch_add( CountBits( threadMask ), std::memory_order_relaxed);
+		taskCount.fetch_add( CountBits( threadMask ), std::memory_order_relaxed );
 
 		while ( threadMask ) {
 			const uint32 threadID = FindLSB( threadMask );
@@ -337,7 +354,7 @@ Task* TaskList::GetTaskMemory( Task& task ) {
 
 	Task* taskMemory     = tasks.GetNextElementMemory();
 
-	task.active          = true;
+	task.SetActive( true );
 	task.gen             = taskMemory->gen + 1;
 	task.bufferID        = taskMemory - tasks.memory;
 
@@ -347,7 +364,7 @@ Task* TaskList::GetTaskMemory( Task& task ) {
 }
 
 template<IsTask T>
-void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
+void TaskList::AddTaskExt( Task& task, TaskInitList<T>&& dependencies ) {
 	if ( exiting.load( std::memory_order_relaxed ) && !task.IsShutdownTask() ) {
 		return;
 	}
@@ -356,12 +373,13 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 		return;
 	}
 
+	if ( AddedToTaskList( task.id ) ) {
+		return;
+	}
+
 	TLM.addTimer.Start();
 
 	Task* taskMemory = GetTaskMemory( task );
-
-	SetBit( &task.id, TASK_SHIFT_ADDED );
-
 	taskMemory->id   = task.id;
 
 	if ( HasUntrackedDeps( task.id ) ) {
@@ -371,11 +389,13 @@ void TaskList::AddTask( Task& task, TaskInitList<T>&& dependencies ) {
 
 		if ( !counter ) {
 			AddToThreadQueue( *taskMemory );
+			SetBit( &task.id, TASK_SHIFT_ADDED );
 		} else {
 			taskWithDependenciesCount.fetch_add( 1, std::memory_order_relaxed );
 		}
-	} else if ( dependencies.start == dependencies.end ) {
+	} else if ( !taskMemory->dependencyCounter ) {
 		AddToThreadQueue( *taskMemory );
+		SetBit( &task.id, TASK_SHIFT_ADDED );
 	}
 
 	TLM.addTimer.Stop();
@@ -386,26 +406,33 @@ void TaskList::MarkDependencies( Task& task, TaskInitList<T>&& dependencies ) {
 	Task* mainTask          = GetTaskMemory( task );
 	uint8 dependencyCounter = 0;
 
+	if ( IsUpdatedDependency( mainTask->id ) ) {
+		return;
+	}
+
 	for ( const T* dep = dependencies.start; dep < dependencies.end; dep++ ) {
-		if ( !AddedToTaskList( ( *dep )->id ) ) {
-			Task* taskMemory = GetTaskMemory( ( *dep ).GetTask() );
-
-			taskMemory->forwardTasks[taskMemory->forwardTaskCounterFast] = mainTask->bufferID;
-			taskMemory->forwardTaskCounterFast++;
-
-			SetBit( &( *dep )->id, TASK_SHIFT_TRACKED_DEPENDENCY );
-
-			dependencyCounter++;
+		if ( AddedToTaskList( ( *dep )->id ) ) {
+			continue;
 		}
+
+		Task* taskMemory = GetTaskMemory( ( *dep ).GetTask() );
+
+		taskMemory->forwardTasks[GetForwardCounterFast( taskMemory->id )] = mainTask->bufferID;
+		IncrementForwardCounterFast( &taskMemory->id );
+		SetBit( &( *dep )->id, TASK_SHIFT_TRACKED_DEPENDENCY );
+
+		dependencyCounter++;
 	}
 
 	if ( dependencyCounter != ( dependencies.end - dependencies.start ) ) {
 		SetBit( &task.id, TASK_SHIFT_HAS_UNTRACKED_DEPS );
 
-		mainTask->dependencyCounter += dependencyCounter;
+		mainTask->dependencyCounter.fetch_add( dependencyCounter,     std::memory_order_relaxed );
 	} else {
-		mainTask->dependencyCounter += dependencyCounter - 1;
+		mainTask->dependencyCounter.fetch_add( dependencyCounter - 1, std::memory_order_relaxed );
 	}
+
+	SetBit( &task.id, TASK_SHIFT_UPDATED_DEPENDENCY );
 }
 
 template<IsTask T>
@@ -423,7 +450,11 @@ void TaskList::AddTask( Task& task, std::initializer_list<TaskProxy> dependencie
 	if ( time < task.time && task.time - time > eventQueue.minGranularity ) {
 		eventQueue.AddTask( task );
 	} else {
-		AddTask( task, TaskInitList { dependencies.begin(), dependencies.end() } );
+		AddTaskExt( task, TaskInitList { dependencies.begin(), dependencies.end() } );
+	}
+
+	for ( const TaskProxy& dep : dependencies ) {
+		AddTaskExt( dep.task, TaskInitList<Task> {} );
 	}
 
 	UnMarkDependencies( TaskInitList{ dependencies.begin(), dependencies.end() } );
@@ -437,28 +468,34 @@ void TaskList::AddTasksExt( std::initializer_list<TaskInit> dependencies ) {
 
 	/* Tracked dependencies are those that we allocated in the AtomicRingBuffer during this function call.
 	This allows us to skip a bunch of atomics, but we have to update the forwardTaskCounters
-	*before* we add any of the tasks to the task ring.
+	*before* we add any of the tasks to the task queues.
 	Otherwise we could end up updating it after other threads have already finished all of the dependencies.
 	Flattening the DAG would get rid of the need to do this because we'd just add tasks starting from the end of the graph */
+
 	for ( const TaskInit& taskInit : dependencies ) {
 		for ( const TaskProxy* task = &taskInit.begin()[1]; task < taskInit.end(); task++ ) {
-			if ( IsTrackedDependency( task->task.id ) && !IsUpdatedDependency( task->task.id ) ) {
-				Task* taskMemory               = GetTaskMemory( task->task );
-				taskMemory->forwardTaskCounter = taskMemory->forwardTaskCounterFast;
-
-				SetBit( &task->task.id, TASK_SHIFT_UPDATED_DEPENDENCY );
+			if ( IsTrackedDependency( task->task.id ) ) {
+				Task* taskMemory = GetTaskMemory( task->task );
+				taskMemory->forwardTaskCounter.store( GetForwardCounterFast( taskMemory->id ), std::memory_order_relaxed );
 			}
 		}
 	}
 
 	for ( const TaskInit& taskInit : dependencies ) {
 		for ( const TaskProxy* task = &taskInit.begin()[1]; task < taskInit.end(); task++ ) {
-			if ( !AddedToTaskList( task->task.id ) ) {
-				AddTask( task->task );
+			if ( !IsUpdatedDependency( task->task.id ) && !AddedToTaskList( task->task.id ) ) {
+				GetTaskMemory( task->task )->dependencyCounter.store( 0, std::memory_order_relaxed );
+			}
+
+			uint64 time = TimeNs();
+			if ( time < task->task.time && task->task.time - time > eventQueue.minGranularity ) {
+				eventQueue.AddTask( task->task );
+			} else {
+				AddTaskExt( task->task, TaskInitList<Task> {} );
 			}
 		}
 
-		AddTask( taskInit.begin()[0].task, TaskInitList{ &taskInit.begin()[1], taskInit.end() } );
+		AddTaskExt( taskInit.begin()[0].task, TaskInitList{ &taskInit.begin()[1], taskInit.end() } );
 	}
 
 	for ( const TaskInit& taskInit : dependencies ) {
@@ -471,10 +508,6 @@ Task* TaskList::FetchTask() {
 	uint8        current     = threadQueue.current;
 	uint16       id          = threadQueue.tasks[current];
 
-	ThreadQueue& threadQueue   = threadQueues[TLM.id];
-	uint8  current             = threadQueue.current;
-	uint16 id                  = threadQueue.tasks[current];
-	
 	if ( id == ThreadQueue::TASK_NONE ) {
 		return nullptr;
 	}
@@ -529,4 +562,8 @@ bool TaskList::ThreadFinished( const bool hadTask ) {
 	}
 
 	return false;
+}
+
+byte* AllocTaskData( const uint16 dataSize, uint64* offset ) {
+	return taskList.AllocTaskData( dataSize, offset );
 }

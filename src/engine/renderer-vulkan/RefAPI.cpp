@@ -174,7 +174,7 @@ namespace TempAPI {
 		);
 
 		static int cnt = 30;
-		Task task20{ &TestRecursive, &cnt };
+		Task task20{ &TestRecursive, cnt };
 		taskList.AddTask( task20 );
 
 		return true;

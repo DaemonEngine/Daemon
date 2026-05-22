@@ -58,6 +58,11 @@ struct TaskInitList {
 	const T* start;
 	const T* end;
 
+	TaskInitList() :
+		start( nullptr ),
+		end( nullptr ) {
+	}
+
 	TaskInitList( const T* newStart, const T* newEnd ) :
 		start( newStart ),
 		end( newEnd ) {
@@ -97,6 +102,7 @@ class TaskList :
 	static constexpr uint16 TASK_SHIFT_HAS_UNTRACKED_DEPS = 1;
 	static constexpr uint16 TASK_SHIFT_TRACKED_DEPENDENCY = 2;
 	static constexpr uint16 TASK_SHIFT_UPDATED_DEPENDENCY = 3;
+	static constexpr uint16 TASK_SHIFT_FORWARD_COUNTER    = 4;
 
 	std::atomic<uint32> currentMaxThreads = 0;
 	FenceMain           exitFence;
@@ -108,13 +114,16 @@ class TaskList :
 	void  Shutdown();
 	void  FinishShutdown();
 
-	bool  AddedToTaskList( const uint16 id );
+	bool  AddedToTaskList( const uint8 id );
 	bool  AddedToTaskMemory( const uint16 bufferID );
-	bool  HasUntrackedDeps( const uint16 id );
-	bool  IsTrackedDependency( const uint16 id );
-	bool  IsUpdatedDependency( const uint16 id );
+	bool  HasUntrackedDeps( const uint8 id );
+	bool  IsTrackedDependency( const uint8 id );
+	bool  IsUpdatedDependency( const uint8 id );
+	uint8 GetForwardCounterFast( const uint8 id );
+	void  IncrementForwardCounterFast( uint8* id );
 
-	byte* AllocTaskData( const uint16 dataSize );
+	byte* AllocTaskData( const uint16 dataSize, uint64* offset );
+	byte* GetTaskData( const uint64 offset );
 
 	void  AddTask( Task& task, std::initializer_list<TaskProxy> dependencies = {} );
 	void  AddTasksExt( std::initializer_list<TaskInit> dependencies );
@@ -132,13 +141,13 @@ class TaskList :
 	void  AdjustThreadCount( const uint32 newMaxThreads );
 
 	private:
-	AccessLock          threadCountLock;
-
-	std::atomic<uint64> threadExecutionNodes[MAX_THREADS];
-
 	struct ThreadExecutionNode {
 		uint8 nextThreadExecutionNode;
 	};
+
+	AccessLock                   threadCountLock;
+
+	std::atomic<uint64>          threadExecutionNodes[MAX_THREADS];
 
 	AtomicRingBuffer<Task>       tasks     { "GlobalTaskMemory",     &sysAllocator };
 	AtomicRingBuffer<byte, true> tasksData { "GlobalTaskDataMemory", &sysAllocator };
@@ -161,7 +170,7 @@ class TaskList :
 	void  ResolveDependencies( Task& task, TaskInitList<T>& dependencies );
 
 	template<IsTask T>
-	void  AddTask( Task& task, TaskInitList<T>&& dependencies = {} );
+	void  AddTaskExt( Task& task, TaskInitList<T>&& dependencies );
 
 	template<IsTask T>
 	void  MarkDependencies( Task& task, TaskInitList<T>&& dependencies );
