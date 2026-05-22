@@ -33,3 +33,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CPUInfo.h"
 
 uint32 CPU_CORES = std::thread::hardware_concurrency();
+
+#ifdef _MSC_VER
+	#include <windows.h>
+
+	static uint64 GetClockPrecision() {
+		LARGE_INTEGER res;
+		QueryPerformanceFrequency( &res );
+
+		return 1000000000.0 / res.QuadPart;
+	}
+#else
+	#include <time.h>
+	
+	static uint64 GetClockPrecision() {
+		timespec ts;
+		clock_getres( CLOCK_MONOTONIC_RAW, &ts );
+
+		return ts.tv_nsec;
+	}
+#endif
+
+uint64 CLOCK_PRECISION = GetClockPrecision();

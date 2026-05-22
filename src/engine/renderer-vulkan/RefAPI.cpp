@@ -105,7 +105,7 @@ namespace TempAPI {
 
 		if ( printCount >= 1024 && !printed ) {
 			t.Stop();
-			Log::WarnTag( "%s", Timer::FormatTime( t.Time() ) );
+			Log::WarnTag( "%s", t.FormatTime() );
 			printed = true;
 		}
 	}

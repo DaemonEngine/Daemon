@@ -199,23 +199,23 @@ void Thread::Exit() {
 
 	Log::NoticeTag( "id: %u: total: %s, actual: %s, exit: %s,"
 		" fetching (task/idle): %s/%s, executing: %s, dependency: %s, idle: %s",
-		id, total.FormatTime( Timer::ms ), actual.FormatTime( Timer::ms ), Timer::FormatTime( exitTime, Timer::ms ),
-		Timer::FormatTime( fetchTask, Timer::ms ), Timer::FormatTime( fetchIdle, Timer::ms ),
-		executing.FormatTime( Timer::ms ), dependencyTimer.FormatTime( Timer::ms ),
-		idle.FormatTime( Timer::ms ) );
+		id, total.FormatTime( ms ), actual.FormatTime( ms ), FormatTime( exitTime, ms ),
+		FormatTime( fetchTask, ms ), FormatTime( fetchIdle, ms ),
+		executing.FormatTime( ms ), dependencyTimer.FormatTime( ms ),
+		idle.FormatTime( ms ) );
 
 	Log::NoticeTag( "id: %u, fetchIdleTimer: %s, taskFetch (none/actual): %u/%u",
-		id, fetchIdleTimer.FormatTime( Timer::ms ),
+		id, fetchIdleTimer.FormatTime( ms ),
 		taskFetchNone, taskFetchActual );
 
 	Log::NoticeTag( "id: %u: fetch: queueLock: %s, outer: %s, add: %s, addQueueWait: %s, sync: %s", id,
-		Timer::FormatTime( fetchQueueLock, Timer::ms ), Timer::FormatTime( fetchOuter, Timer::ms ),
-		Timer::FormatTime( addQueueWait, Timer::ms ),
-		Timer::FormatTime( taskAdd, Timer::ms ), Timer::FormatTime( taskSync, Timer::ms ) );
+		FormatTime( fetchQueueLock, ms ), FormatTime( fetchOuter, ms ),
+		FormatTime( addQueueWait, ms ),
+		FormatTime( taskAdd, ms ), FormatTime( taskSync, ms ) );
 
 	for ( const std::pair<Task::TaskFunction, TaskTime>& taskTime : taskTimes ) {
 		Log::NoticeTag( "task: avg: %s, count: %u, time: %u",
-			Timer::FormatTime( taskTime.second.time / std::max( 1ull, taskTime.second.count ), Timer::us ),
-			taskTime.second.count, Timer::FormatTime( taskTime.second.time, Timer::us ) );
+			FormatTime( taskTime.second.time / std::max( 1ull, taskTime.second.count ), us ),
+			taskTime.second.count, FormatTime( taskTime.second.time, us ) );
 	}
 }

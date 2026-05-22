@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Math/NumberTypes.h"
 
-extern uint32_t CPU_CORES;
+extern uint32 CPU_CORES;
+extern uint64 CLOCK_PRECISION;
 
 #endif // CPU_INFO_H

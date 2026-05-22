@@ -28,11 +28,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include <chrono>
-
-#include "common/Common.h"
-
 #include "Timer.h"
+
+#ifdef _MSC_VER
+	#include <windows.h>
+
+	#include "../Sys/CPUInfo.h"
+
+	uint64 TimeNs() {
+		LARGE_INTEGER time;
+		QueryPerformanceCounter( &time );
+
+		return time.QuadPart * CLOCK_PRECISION;
+	}
+#else
+	#include <time.h>
+
+	uint64 TimeNs() {
+		timespec ts;
+		clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
+
+		return ts.tv_nsec;
+	}
+#endif
 
 uint64 NsToMs( const uint64 time ) {
 	return time / 1000;
@@ -78,10 +96,6 @@ uint64 operator""_h(  const uint64Ext time ) {
 	return time * 60 * 60 * 1000000000;
 }
 
-uint64 TimeNs() {
-	return std::chrono::duration_cast< std::chrono::nanoseconds >( Sys::SteadyClock::now().time_since_epoch() ).count();
-}
-
 Timer::Timer( uint64* newTimeVar ) :
 	timeVar( newTimeVar ) {
 	Start();
@@ -101,7 +115,7 @@ Timer::~Timer() {
 	}
 }
 
-std::string Timer::FormatTime( uint64 time, const TimeUnit maxTimeUnit ) {
+std::string FormatTime( uint64 time, const TimeUnit maxTimeUnit ) {
 	const char* suf[] = { "ns", "us", "ms", "s" };
 
 	int s = 0;
@@ -114,7 +128,7 @@ std::string Timer::FormatTime( uint64 time, const TimeUnit maxTimeUnit ) {
 }
 
 std::string Timer::FormatTime( const TimeUnit maxTimeUnit ) {
-	return FormatTime( Time(), maxTimeUnit );
+	return ::FormatTime( Time(), maxTimeUnit );
 }
 
 uint64 Timer::Time() const {
@@ -130,7 +144,7 @@ void Timer::Start() {
 		return;
 	}
 
-	time = TimeNs();
+	time    = TimeNs();
 	running = true;
 }
 
@@ -140,7 +154,7 @@ void Timer::Stop() {
 	}
 
 	runTime += TimeNs() - time;
-	running = false;
+	running  = false;
 }
 
 void Timer::Clear() {
@@ -151,6 +165,7 @@ void Timer::Clear() {
 uint64 Timer::Restart() {
 	Stop();
 	const uint64 diff = runTime;
+	Clear();
 	Start();
 
 	return diff;

@@ -352,7 +352,7 @@ bool MemoryChunkSystem::LockArea( const uint32 level, uint8* chunkArea, uint8* c
 	);
 
 	Log::DebugTagT( "Locked area %u[%u:%u] in %s, loop: %u",
-		level, area, foundChunk, Timer::FormatTime( t.Time() ),
+		level, area, foundChunk, t.FormatTime(),
 		loopCount );
 
 	*chunkArea = area;

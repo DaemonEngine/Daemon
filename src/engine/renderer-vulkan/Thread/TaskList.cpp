@@ -126,8 +126,8 @@ void TaskList::FinishShutdown() {
 	}
 
 	Log::NoticeTag( "\nmain: add: %s, addQueueWait: %s, sync: %s, unknownTaskCount: %u",
-		TLM.addTimer.FormatTime( Timer::ms ), TLM.addQueueWaitTimer.FormatTime( Timer::ms ),
-		TLM.syncTimer.FormatTime( Timer::ms ),
+		TLM.addTimer.FormatTime( ms ), TLM.addQueueWaitTimer.FormatTime( ms ),
+		TLM.syncTimer.FormatTime( ms ),
 		TLM.unknownTaskCount );
 
 	std::string debugOut;

@@ -54,29 +54,29 @@ uint64 operator ""_s(  const uint64Ext time );
 uint64 operator ""_m(  const uint64Ext time );
 uint64 operator ""_h(  const uint64Ext time );
 
-uint64 TimeNs();
+enum TimeUnit {
+	ns,
+	us,
+	ms,
+	s
+};
+
+uint64      TimeNs();
+std::string FormatTime( uint64 time, const TimeUnit maxTimeUnit = s );
 
 class Timer {
 	public:
-	enum TimeUnit {
-		ns,
-		us,
-		ms,
-		s
-	};
-
 	Timer( uint64* newTimeVar );
 	Timer( const bool start = true, uint64* newTimeVar = nullptr );
 	~Timer();
 
-	static std::string FormatTime( uint64 time, const TimeUnit maxTimeUnit = s );
 	std::string FormatTime( const TimeUnit maxTimeUnit = s );
 
-	uint64 Time() const;
-	void   Start();
-	void   Stop();
-	void   Clear();
-	uint64 Restart();
+	uint64      Time() const;
+	void        Start();
+	void        Stop();
+	void        Clear();
+	uint64      Restart();
 
 	private:
 	uint64* timeVar;
