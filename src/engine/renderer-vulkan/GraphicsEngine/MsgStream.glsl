@@ -95,9 +95,6 @@ void main() {
 		msgCount++;
 	}
 
-	push.msgStreamWrite.msgStream[globalInvocationID] = msgOut;
-	//imageStore( testImg4, ivec2( 5, 7 ), vec4( 0 ) );
-
 	const uint totalMsgs = subgroupAdd( msgCount );
 
 	if ( subgroupElect() ) {
