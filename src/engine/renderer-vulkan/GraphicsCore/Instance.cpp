@@ -140,6 +140,12 @@ void Instance::Init( const char* engineName, const char* appName ) {
 
 	VulkanLoadDeviceFunctions( device );
 
+	DebugLabel( instance,       "instance" );
+
+	DebugLabel( physicalDevice, "physicalDevice" );
+
+	DebugLabel( device,         "device" );
+
 	InitQueues();
 
 	InitFormatConfigs();

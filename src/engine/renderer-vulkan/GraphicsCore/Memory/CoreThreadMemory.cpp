@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Vulkan.h"
 
+#include "../DebugMsg.h"
 #include "../Queue.h"
 
 #include "CoreThreadMemory.h"
@@ -40,13 +41,14 @@ void InitCmdPools() {
 	struct QueuePool {
 		Queue*         queue;
 		VkCommandPool* cmdPool;
+		const char*    name;
 	};
 
 	QueuePool queues[] {
-		{ graphicsQueue, &GMEM.graphicsCmdPool },
-		{ computeQueue,  &GMEM.computeCmdPool  },
-		{ transferQueue, &GMEM.transferCmdPool },
-		{ sparseQueue,   &GMEM.sparseCmdPool   }
+		{ graphicsQueue, &GMEM.graphicsCmdPool, "graphics" },
+		{ computeQueue,  &GMEM.computeCmdPool,  "compute"  },
+		{ transferQueue, &GMEM.transferCmdPool, "transfer" },
+		{ sparseQueue,   &GMEM.sparseCmdPool,   "sparse"   }
 	};
 
 	for ( QueuePool& queuePool : queues ) {
@@ -57,6 +59,8 @@ void InitCmdPools() {
 			};
 
 			vkCreateCommandPool( device, &cmdPoolInfo, nullptr, queuePool.cmdPool );
+
+			DebugLabel( *queuePool.cmdPool, queuePool.name );
 		}
 	}
 }
@@ -65,13 +69,14 @@ void InitExecCmdPools() {
 	struct QueueCmdPool {
 		Queue*       queue;
 		ExecCmdPool* cmdPool;
+		const char*  name;
 	};
 
 	QueueCmdPool execCmdQueues[] {
-		{ graphicsQueue, &GMEM.execGraphicsCmd, },
-		{ computeQueue,  &GMEM.execComputeCmd,  },
-		{ transferQueue, &GMEM.execTransferCmd, },
-		{ sparseQueue,   &GMEM.execSparseCmd,   }
+		{ graphicsQueue, &GMEM.execGraphicsCmd, "graphics" },
+		{ computeQueue,  &GMEM.execComputeCmd,  "compute"  },
+		{ transferQueue, &GMEM.execTransferCmd, "transfer" },
+		{ sparseQueue,   &GMEM.execSparseCmd,   "sparse"   }
 	};
 
 	for ( QueueCmdPool& queuePool : execCmdQueues ) {
@@ -83,6 +88,8 @@ void InitExecCmdPools() {
 
 			vkCreateCommandPool( device, &cmdPoolInfo, nullptr, &queuePool.cmdPool->cmdPool );
 
+			DebugLabel( queuePool.cmdPool->cmdPool, queuePool.name );
+
 			VkCommandBufferAllocateInfo cmdInfo {
 				.commandPool        = queuePool.cmdPool->cmdPool,
 				.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
@@ -90,6 +97,10 @@ void InitExecCmdPools() {
 			};
 
 			vkAllocateCommandBuffers( device, &cmdInfo, queuePool.cmdPool->cmds );
+
+			for ( VkCommandBuffer cmd : queuePool.cmdPool->cmds ) {
+				DebugLabel( cmd, Str::Format( "%s%u", queuePool.name, &cmd - queuePool.cmdPool->cmds ).c_str() );
+			}
 		}
 	}
 }
