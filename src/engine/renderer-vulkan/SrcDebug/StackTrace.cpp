@@ -28,23 +28,63 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef VERSION_H
-#define VERSION_H
+#include "StackTrace.h"
 
-#include <string>
+#if defined( CPP_STACKTRACE )
+	#include "../Parser.h"
 
-#include "Math/NumberTypes.h"
+	std::string FormatSrc( const std::stacktrace& stackTrace, const bool skipCurrent, const bool compact ) {
+		bool        skipped    = !skipCurrent;
+		bool        addLineEnd = false;
 
-struct Version {
-	uint32 major;
-	uint32 minor;
-	uint32 patch;
+		std::string out;
 
-	std::string FormatVersion() const;
-};
+		for ( const std::stacktrace_entry& entry : stackTrace ) {
+			if ( !skipped ) {
+				skipped = true;
 
-std::strong_ordering operator<=>( const Version& lhs, const Version& rhs );
+				continue;
+			}
 
-constexpr Version DAEMON_VULKAN_VERSION { 0, 17, 0 };
+			const std::string src = entry.source_file();
 
-#endif // VERSION_H
+			if ( !src.size() ) {
+				out += addLineEnd ? "\n.." : "..";
+
+				continue;
+			}
+
+			if ( compact ) {
+				StringView  v { src.c_str(), src.size() };
+				StringView  o;
+				std::string name;
+
+				do {
+					std::string outStr;
+					o = Parse( v, &outStr, "" );
+
+					if ( o == "." ) {
+						break;
+					}
+
+					name = outStr;
+				} while ( v.size );
+
+				std::string extension;
+				Parse( v, &extension );
+
+				out += Str::Format( addLineEnd ? "\n%s.%s:%u" : "%s.%s:%u", name, extension, entry.source_line() );
+			} else {
+				out += Str::Format( addLineEnd ? "\n%s:%u: %s" : "%s:%u: %s", entry.source_file(), entry.source_line(), entry.description() );
+			}
+
+			addLineEnd = true;
+		}
+
+		return out;
+	}
+#else
+	std::string FormatSrc( const std::stacktrace& stackTrace, const bool skipCurrent, const bool compact ) {
+		return "unavailable";
+	}
+#endif

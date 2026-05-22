@@ -65,6 +65,8 @@ set( threadList
 )
 
 set( utilsList
+    ${ENGINE_DIR}/renderer-vulkan/SrcDebug/StackTrace.cpp
+    ${ENGINE_DIR}/renderer-vulkan/SrcDebug/StackTrace.h
     ${ENGINE_DIR}/renderer-vulkan/SrcDebug/Tag.cpp
     ${ENGINE_DIR}/renderer-vulkan/SrcDebug/Tag.h
 )

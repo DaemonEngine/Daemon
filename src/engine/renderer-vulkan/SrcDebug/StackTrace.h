@@ -28,23 +28,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef DEBUG_STACKTRACE_H
+#define DEBUG_STACKTRACE_H
 
-#include <string>
+#include "common/CPPStandard.h"
 
-#include "Math/NumberTypes.h"
+#if defined( CPP_STACKTRACE )
+	#include <stacktrace>
 
-struct Version {
-	uint32 major;
-	uint32 minor;
-	uint32 patch;
+	std::string FormatSrc( const std::stacktrace& stackTrace, const bool skipCurrent, const bool compact );
+#else
+	std::string FormatSrc( const std::stacktrace& stackTrace, const bool skipCurrent, const bool compact );
+#endif
 
-	std::string FormatVersion() const;
-};
-
-std::strong_ordering operator<=>( const Version& lhs, const Version& rhs );
-
-constexpr Version DAEMON_VULKAN_VERSION { 0, 17, 0 };
-
-#endif // VERSION_H
+#endif // DEBUG_STACKTRACE_H

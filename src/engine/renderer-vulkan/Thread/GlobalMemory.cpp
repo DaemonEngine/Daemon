@@ -28,8 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "common/StackTrace.h"
-
+#include "../SrcDebug/StackTrace.h"
 #include "../SrcDebug/Tag.h"
 #include "../Error.h"
 
@@ -131,18 +130,7 @@ byte* GlobalMemory::Alloc( const uint64 size, const uint64 alignment ) {
 	uint32             chunkID = SetBits( ( uint32 ) 0, level, 27, 4 );
 	MemoryChunkRecord* record  = AllocChunk( paddedSize, alignment, chunkAllocators[level], &chunkID );
 
-	#ifdef _MSC_VER
-		static constexpr const char* pathStrip = "engine\\renderer-vulkan\\";
-	#else
-		static constexpr const char* pathStrip = "engine/renderer-vulkan/";
-	#endif
-
-	std::string source = FormatStackTrace( std::stacktrace::current(), true, true );
-
-	uint32_t pos = 0;
-	while ( ( pos = source.find( pathStrip, pos ) ) < source.size() ) {
-		source = source.erase( pos, strlen( pathStrip ) );
-	}
+	std::string source = FormatSrc( std::stacktrace::current(), true, true );
 
 	GlobalAllocationRecord alloc {
 		.size      = paddedSize - sizeof( GlobalAllocationRecord ),
