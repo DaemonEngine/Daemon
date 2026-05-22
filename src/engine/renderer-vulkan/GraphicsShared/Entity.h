@@ -28,11 +28,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "Entity.h"
-#include "Light.h"
+#ifndef ENTITY_H
+#define ENTITY_H
 
-const uint entitiesSize = uint( sizeof( Entity ) );
-const uint lightsSize   = uint( sizeof( Light ) );
+#include "NumberTypes.h"
 
-Buffer entities { entitiesSize };
-Buffer lights   { lightsSize };
+struct Entity {
+	uint32 geometryID;
+
+	uint16 albedoMap;
+	uint16 normalMap;
+	uint16 heightMap;
+	uint16 materialMap;
+	uint16 glowMap;
+
+	uint8  albedoSampler;
+	uint8  normalSampler;
+	uint8  heightSampler;
+	uint8  materialSampler;
+	uint8  glowSampler;
+
+	uint32 colour;
+
+	uint64 material;
+
+	uint32 time;
+};
+
+#endif // ENTITY_H

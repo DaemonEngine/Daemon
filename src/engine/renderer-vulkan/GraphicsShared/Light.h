@@ -28,11 +28,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "Entity.h"
-#include "Light.h"
+#ifndef LIGHT_H
+#define LIGHT_H
 
-const uint entitiesSize = uint( sizeof( Entity ) );
-const uint lightsSize   = uint( sizeof( Light ) );
+#include "NumberTypes.h"
 
-Buffer entities { entitiesSize };
-Buffer lights   { lightsSize };
+struct Light {
+	float x;
+	float y;
+	float z;
+	float radius;
+};
+
+#endif // LIGHT_H
