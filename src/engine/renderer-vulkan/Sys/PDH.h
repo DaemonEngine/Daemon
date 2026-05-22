@@ -28,23 +28,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef PDH_H
+#define PDH_H
 
-#include <string>
+#ifdef _MSC_VER
+	#include <windows.h>
+	#include <Pdh.h>
 
-#include "Math/NumberTypes.h"
+	using  PdhOpenQueryAPtr               = PDH_STATUS ( * )( LPCSTR szDataSource, DWORD_PTR dwUserData, PDH_HQUERY* phQuery );
+	using  PdhCloseQueryPtr               = PDH_STATUS ( * )( _Inout_ PDH_HQUERY hQuery );
+	using  PdhAddCounterAPtr              = PDH_STATUS ( * )( _In_ PDH_HQUERY hQuery, _In_ LPCSTR szFullCounterPath, _In_ DWORD_PTR dwUserData,
+		_Out_ PDH_HCOUNTER* phCounter );
+	using  PdhCollectQueryDataPtr         = PDH_STATUS ( * )( _Inout_ PDH_HQUERY hQuery );
+	using  PdhGetFormattedCounterValuePtr = PDH_STATUS ( * )( _In_ PDH_HCOUNTER hCounter, _In_ DWORD dwFormat, _Out_opt_ LPDWORD lpdwType,
+		_Out_ PPDH_FMT_COUNTERVALUE pValue );
 
-struct Version {
-	uint32 major;
-	uint32 minor;
-	uint32 patch;
+	extern bool                           pdhAvailable;
 
-	std::string FormatVersion() const;
-};
+	extern PdhOpenQueryAPtr               PdhOpenQueryAf;
+	extern PdhCloseQueryPtr               PdhCloseQueryf;
+	extern PdhAddCounterAPtr              PdhAddCounterAf;
+	extern PdhCollectQueryDataPtr         PdhCollectQueryDataf;
+	extern PdhGetFormattedCounterValuePtr PdhGetFormattedCounterValuef;
 
-std::strong_ordering operator<=>( const Version& lhs, const Version& rhs );
+	void LoadPDHFunctions();
+#endif
 
-constexpr Version DAEMON_VULKAN_VERSION { 0, 19, 0 };
-
-#endif // VERSION_H
+#endif // PDH_H

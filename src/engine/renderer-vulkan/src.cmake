@@ -40,6 +40,12 @@ set( sysList
     ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.h
     ${ENGINE_DIR}/renderer-vulkan/Sys/MemoryInfo.cpp
     ${ENGINE_DIR}/renderer-vulkan/Sys/MemoryInfo.h
+    ${ENGINE_DIR}/renderer-vulkan/Sys/OSLoad.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Sys/OSLoad.h
+    ${ENGINE_DIR}/renderer-vulkan/Sys/OSThread.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Sys/OSThread.h
+    ${ENGINE_DIR}/renderer-vulkan/Sys/PDH.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Sys/PDH.h
 )
 
 set( threadList

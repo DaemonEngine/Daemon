@@ -28,23 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef VERSION_H
-#define VERSION_H
+#include "PDH.h"
 
-#include <string>
-
-#include "Math/NumberTypes.h"
-
-struct Version {
-	uint32 major;
-	uint32 minor;
-	uint32 patch;
-
-	std::string FormatVersion() const;
-};
-
-std::strong_ordering operator<=>( const Version& lhs, const Version& rhs );
-
-constexpr Version DAEMON_VULKAN_VERSION { 0, 19, 0 };
-
-#endif // VERSION_H
+void OSLoad() {
+	#ifdef _MSC_VER
+		LoadPDHFunctions();
+	#endif
+}

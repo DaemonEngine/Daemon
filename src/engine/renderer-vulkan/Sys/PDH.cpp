@@ -28,23 +28,47 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifdef _MSC_VER
+	#include "PDH.h"
 
-#include <string>
+	bool                           pdhAvailable;
 
-#include "Math/NumberTypes.h"
+	PdhOpenQueryAPtr               PdhOpenQueryAf;
+	PdhCloseQueryPtr               PdhCloseQueryf;
+	PdhAddCounterAPtr              PdhAddCounterAf;
+	PdhCollectQueryDataPtr         PdhCollectQueryDataf;
+	PdhGetFormattedCounterValuePtr PdhGetFormattedCounterValuef;
 
-struct Version {
-	uint32 major;
-	uint32 minor;
-	uint32 patch;
+	#define CheckFunction( func )\
+		if ( !func ) {\
+			Log::Warn( "Failed to load %s from pdh.dll, some functionality might be limited or unavailable", ##func );\
+			pdhAvailable = false;\
+			\
+			return;\
+		}
 
-	std::string FormatVersion() const;
-};
+	void LoadPDHFunctions() {
+		static HMODULE libPDH = LoadLibrary( "pdh.dll" );
 
-std::strong_ordering operator<=>( const Version& lhs, const Version& rhs );
+		if ( !libPDH ) {
+			Log::Warn( "Failed to load pdh.dll, some functionality might be limited or unavailable" );
+			pdhAvailable = false;
 
-constexpr Version DAEMON_VULKAN_VERSION { 0, 19, 0 };
+			return;
+		}
 
-#endif // VERSION_H
+		PdhOpenQueryAf               = ( PdhOpenQueryAPtr )               GetProcAddress( libPDH, "PdhOpenQueryA" );
+		PdhCloseQueryf               = ( PdhCloseQueryPtr )               GetProcAddress( libPDH, "PdhCloseQuery" );
+		PdhAddCounterAf              = ( PdhAddCounterAPtr )              GetProcAddress( libPDH, "PdhAddCounterA" );
+		PdhCollectQueryDataf         = ( PdhCollectQueryDataPtr )         GetProcAddress( libPDH, "PdhCollectQueryData" );
+		PdhGetFormattedCounterValuef = ( PdhGetFormattedCounterValuePtr ) GetProcAddress( libPDH, "PdhGetFormattedCounterValue" );
+
+		CheckFunction( PdhOpenQueryAf );
+		CheckFunction( PdhCloseQueryf );
+		CheckFunction( PdhAddCounterAf );
+		CheckFunction( PdhCollectQueryDataf );
+		CheckFunction( PdhGetFormattedCounterValuef );
+
+		pdhAvailable = true;
+	}
+#endif

@@ -56,10 +56,11 @@ class Thread :
 	private:
 	friend class TaskList;
 
-	std::thread osThread;
+	std::thread baseThread;
 
 	uint32      id;
-	OSThread    osThreadID;
+	OSThread    osThread;
+	double      maxCoreFrequencyScale = 1.0;
 
 	uint64      runTime;
 

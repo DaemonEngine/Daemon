@@ -28,23 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef OS_LOAD_h
+#define OS_LOAD_h
 
-#include <string>
+void OSLoad();
 
-#include "Math/NumberTypes.h"
-
-struct Version {
-	uint32 major;
-	uint32 minor;
-	uint32 patch;
-
-	std::string FormatVersion() const;
-};
-
-std::strong_ordering operator<=>( const Version& lhs, const Version& rhs );
-
-constexpr Version DAEMON_VULKAN_VERSION { 0, 19, 0 };
-
-#endif // VERSION_H
+#endif // OS_LOAD_h

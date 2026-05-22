@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "engine/framework/CvarSystem.h"
 #include "engine/framework/System.h"
 
+#include "Sys/OSLoad.h"
+
 #include "Thread/GlobalMemory.h"
 #include "Thread/ThreadMemory.h"
 #include "Thread/TaskList.h"
@@ -52,6 +54,8 @@ static void InitTLM() {
 }
 
 void Init( WindowConfig* windowConfig ) {
+	OSLoad();
+
 	sysAllocator.Init();
 	taskList.Init();
 

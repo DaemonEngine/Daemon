@@ -41,7 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct OSThread {
 	#ifdef _MSC_VER
-		void* id;
+		void*  id;
+		uint32 baseMaxFrequency; // Doesn't include Turbo Boost etc.
 	#elif __linux__
 		pid_t id;
 	#else
@@ -52,6 +53,7 @@ struct OSThread {
 
 	void   Init();
 	void   SetAffinity( const uint32 core );
+	double GetMaxFrequencyScale();
 };
 
 #endif // OS_THREAD_H

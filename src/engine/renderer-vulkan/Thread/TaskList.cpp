@@ -287,20 +287,22 @@ void TaskList::AddToThreadQueueExt( Task& task ) {
 	or a task was already added to the latest idle thread
 	threadExecutionNodes is kept sorted in a non-decreasing order when tasks are added */
 	for ( uint8 node = 0; node < TLM.currentMaxThreads; node++ ) {
-		uint32 baseThreadTime = threadExecutionNodes[node].fetch_add( projectedTime, std::memory_order_relaxed );
+		const uint64 scaledProjectedTime = projectedTime / threads[node].maxCoreFrequencyScale;
+
+		uint32 baseThreadTime = threadExecutionNodes[node].fetch_add( scaledProjectedTime, std::memory_order_relaxed );
 		uint32 nextNodeTime   = node == TLM.currentMaxThreads - 1 ?
 		                                UINT32_MAX
 		                              : threadExecutionNodes[node + 1].load( std::memory_order_relaxed );
 
 		if ( node == TLM.currentMaxThreads - 1
-			|| baseThreadTime + projectedTime <= nextNodeTime ) {
+			|| baseThreadTime + scaledProjectedTime <= nextNodeTime ) {
 			threadQueues[node].AddTask( node, task.bufferID );
 			return;
 		}
 
 		// We overflowed the current node, so move to the next one
-		if ( baseThreadTime + projectedTime > nextNodeTime ) {
-			threadExecutionNodes[node].fetch_sub( projectedTime, std::memory_order_relaxed );
+		if ( baseThreadTime + scaledProjectedTime > nextNodeTime ) {
+			threadExecutionNodes[node].fetch_sub( scaledProjectedTime, std::memory_order_relaxed );
 			continue;
 		}
 
@@ -309,7 +311,7 @@ void TaskList::AddToThreadQueueExt( Task& task ) {
 		do {
 			baseThreadTime = threadExecutionNodes[node    ].load( std::memory_order_relaxed );
 			nextNodeTime   = threadExecutionNodes[node + 1].load( std::memory_order_relaxed );
-		} while ( baseThreadTime - projectedTime > nextNodeTime );
+		} while ( baseThreadTime - scaledProjectedTime > nextNodeTime );
 
 		if ( baseThreadTime <= nextNodeTime ) {
 			threadQueues[node].AddTask( node, task.bufferID );
@@ -317,7 +319,7 @@ void TaskList::AddToThreadQueueExt( Task& task ) {
 		}
 
 		// We still overflowed
-		threadExecutionNodes[node].fetch_sub( projectedTime, std::memory_order_relaxed );
+		threadExecutionNodes[node].fetch_sub( scaledProjectedTime, std::memory_order_relaxed );
 	}
 }
 

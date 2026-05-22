@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include <iostream>
 #include <unordered_map>
 
 #include "ThreadMemory.h"
@@ -45,26 +44,24 @@ Thread::~Thread() {
 }
 
 void Thread::Start( const uint32 newID ) {
-	id       = newID;
+	id         = newID;
 
-	runTime  = 0;
-	osThread = std::thread( &Thread::Run, this );
+	runTime    = 0;
+	baseThread = std::thread( &Thread::Run, this );
 
 	Log::DebugTag( "id: %u", id );
 }
 
 void Thread::Run() {
-	Timer runTimeTimer;
-	static const uint64_t RUNTIME_GATHER_PERIOD = 1000000000;
-
 	total.Clear();
 	idle.Clear();
 	executing.Clear();
 
 	TLM.id = id;
 
-	osThreadID.Init();
-	osThreadID.SetAffinity( id );
+	osThread.Init();
+	osThread.SetAffinity( id );
+	maxCoreFrequencyScale = osThread.GetMaxFrequencyScale();
 
 	total.Start();
 
@@ -75,12 +72,6 @@ void Thread::Run() {
 			std::this_thread::yield();
 			continue;
 		}
-
-		if ( runTimeTimer.Time() >= RUNTIME_GATHER_PERIOD ) {
-			runTimeTimer.Restart();
-		}
-
-		runTime = runTimeTimer.Time();
 
 		ASSERT_EQ( task, nullptr );
 
@@ -144,18 +135,18 @@ void Thread::Run() {
 
 		dependencyTimer.Stop();
 
-		t.Stop();
+		const uint64 taskExecTime = t.Time() * maxCoreFrequencyScale;
 
 		TaskTime& taskTime = TLM.taskTimes[task->Execute];
 		taskTime.count++;
-		taskTime.time += t.Time();
+		taskTime.time += taskExecTime;
 
 		if ( !taskTime.syncedWithSM ) {
 			while( !SM.taskTimesLock.LockWrite() );
 
 			GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
 			SMTaskTime.count           = 1;
-			SMTaskTime.time            = t.Time();
+			SMTaskTime.time            = taskExecTime;
 			taskTime.syncedWithSM      = true;
 
 			SM.taskTimesLock.UnlockWrite();
@@ -164,7 +155,7 @@ void Thread::Run() {
 
 			GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
 			SMTaskTime.count.fetch_add( 1, std::memory_order_relaxed );
-			SMTaskTime.time.fetch_add( t.Time(), std::memory_order_relaxed );
+			SMTaskTime.time.fetch_add( taskExecTime, std::memory_order_relaxed );
 
 			SM.taskTimesLock.Unlock();
 		}
@@ -196,7 +187,7 @@ void Thread::Run() {
 void Thread::Exit() {
 	exiting = true;
 
-	osThread.join();
+	baseThread.join();
 
 	Log::NoticeTag( "\nid: %u", id );
 
@@ -204,7 +195,7 @@ void Thread::Exit() {
 		" fetching (task/idle): %s/%s, executing: %s, dependency: %s, idle: %s",
 		id, total.FormatTime( ms ), actual.FormatTime( ms ), FormatTime( exitTime, ms ),
 		FormatTime( fetchTask, ms ), FormatTime( fetchIdle, ms ),
-		executing.FormatTime( ms ), dependencyTimer.FormatTime( ms ),
+		FormatTime( executing.Time(), ms ), dependencyTimer.FormatTime( ms ),
 		idle.FormatTime( ms ) );
 
 	Log::NoticeTag( "id: %u, fetchIdleTimer: %s, taskFetch (none/actual): %u/%u",
@@ -218,7 +209,7 @@ void Thread::Exit() {
 
 	for ( const std::pair<Task::TaskFunction, TaskTime>& taskTime : taskTimes ) {
 		Log::NoticeTag( "task: avg: %s, count: %u, time: %u",
-			FormatTime( taskTime.second.time / std::max( 1ull, taskTime.second.count ), us ),
-			taskTime.second.count, FormatTime( taskTime.second.time, us ) );
+			FormatTime( taskTime.second.time / maxCoreFrequencyScale / std::max( 1ull, taskTime.second.count ), us ),
+			taskTime.second.count, FormatTime( taskTime.second.time / maxCoreFrequencyScale, us ) );
 	}
 }
