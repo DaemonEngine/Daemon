@@ -135,6 +135,7 @@ static VkCommandPool GetCmdPoolByType( const QueueType type ) {
 		case COMPUTE:
 			return GMEM.computeCmdPool;
 		case TRANSFER:
+		case TRANSFER_DL:
 			return GMEM.transferCmdPool;
 		case SPARSE:
 			return GMEM.sparseCmdPool;

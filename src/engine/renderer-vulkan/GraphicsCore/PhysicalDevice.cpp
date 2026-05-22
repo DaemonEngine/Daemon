@@ -185,7 +185,7 @@ void CreateDevice( EngineConfig& config, VkDevice* device ) {
 
 		queueInfos[i] = {
 			.queueFamilyIndex = queue->id,
-			.queueCount       = ( queue == &transferQueue && queue->unique && queue->queueCount > 1 ) ? 2u : 1u,
+			.queueCount       = ( queue == transferQueue && queue->unique && queue->queueCount > 1 ) ? 2u : 1u,
 			.pQueuePriorities = priorities
 		};
 
