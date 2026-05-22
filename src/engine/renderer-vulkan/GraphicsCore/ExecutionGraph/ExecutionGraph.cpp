@@ -665,7 +665,6 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 			nodesToSPIRV[token] = id;
 
 			uint32 nodeDeps;
-			uint32 nodeDepsTypes;
 
 			switch ( spirv.type ) {
 				case SPIRV_COMPUTE:
@@ -834,7 +833,6 @@ DynamicArray<ExecutionGraphNode> ParseExecutionGraph( std::string& src ) {
 
 		if ( o == "present" ) {
 			uint32 nodeDeps;
-			uint32 nodeDepsTypes;
 
 			ParseNodeDeps( v, nodesToSPIRV, &nodeDeps );
 
