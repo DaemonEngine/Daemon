@@ -540,22 +540,21 @@ int FS_GetFileList(const char* path, const char* extension, char* listBuf, int b
 	int numFiles = 0;
 	bool dirsOnly = extension && !strcmp(extension, "/");
 
-	try {
-		for (const std::string& x: FS::PakPath::ListFiles(path)) {
-			if (extension && !Str::IsSuffix(extension, x))
-				continue;
-			if (dirsOnly != (x.back() == '/'))
-				continue;
-			int length = x.size() + (x.back() != '/');
-			if (bufSize < length)
-				return numFiles;
-			memcpy(listBuf, x.c_str(), length);
-			listBuf[length - 1] = '\0';
-			listBuf += length;
-			bufSize -= length;
-			numFiles++;
-		}
-	} catch (std::system_error&) {}
+	for (const std::string& x: FS::PakPath::ListFiles(path)) {
+		if (extension && !Str::IsSuffix(extension, x))
+			continue;
+		if (dirsOnly != (x.back() == '/'))
+			continue;
+		int length = x.size() + (x.back() != '/');
+		if (bufSize < length)
+			return numFiles;
+		memcpy(listBuf, x.c_str(), length);
+		listBuf[length - 1] = '\0';
+		listBuf += length;
+		bufSize -= length;
+		numFiles++;
+	}
+
 	try {
 		for (const std::string& x: FS::HomePath::ListFiles(FS::Path::Build("game", path))) {
 			if (extension && !Str::IsSuffix(extension, x))
