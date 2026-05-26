@@ -206,9 +206,6 @@ struct refimport_t {
 	// a -1 return means the file does not exist
 	// nullptr can be passed for buf to just determine existence
 	int ( *FS_ReadFile )( const char* name, void** buf );
-	void ( *FS_FreeFile )( void* buf );
-	char** ( *FS_ListFiles )( const char* name, const char* extension, int* numfilesfound );
-	void ( *FS_FreeFileList )( char** filelist );
 	void ( *FS_WriteFile )( const char* qpath, const void* buffer, int size );
 	int ( *FS_Seek )( fileHandle_t f, long offset, fsOrigin_t origin );
 	int ( *FS_FTell )( fileHandle_t f );
