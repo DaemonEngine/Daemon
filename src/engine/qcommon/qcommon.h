@@ -342,13 +342,9 @@ issues.
 ==============================================================
 */
 
-char **FS_ListFiles( const char *directory, const char *extension, int *numfiles );
-
 // directory should not have either a leading or trailing /
 // if extension is "/", only subdirectories will be returned
 // the returned files will not include any directories or /
-
-void         FS_FreeFileList( char **list );
 
 int          FS_GetFileList( const char *path, const char *extension, char *listbuf, int bufsize );
 int          FS_GetFileListRecursive( const char* path, const char* extension, char* listBuf, int bufSize );
@@ -393,10 +389,6 @@ int  FS_ReadFile( const char *qpath, void **buffer );
 void FS_ForceFlush( fileHandle_t f );
 
 // forces flush on files we're writing to.
-
-void FS_FreeFile( void *buffer );
-
-// frees the memory returned by FS_ReadFile
 
 void FS_WriteFile( const char *qpath, const void *buffer, int size );
 

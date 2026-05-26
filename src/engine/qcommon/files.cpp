@@ -479,58 +479,6 @@ int FS_ReadFile(const char* path, void** buffer)
 	return length;
 }
 
-void FS_FreeFile(void* buffer)
-{
-	char* buf = static_cast<char*>(buffer);
-	delete[] buf;
-}
-
-char** FS_ListFiles(const char* directory, const char* extension, int* numFiles)
-{
-	std::vector<char*> files;
-	bool dirsOnly = extension && !strcmp(extension, "/");
-
-	try {
-		for (const std::string& x: FS::PakPath::ListFiles(directory)) {
-			if (extension && !Str::IsSuffix(extension, x))
-				continue;
-			if (dirsOnly != (x.back() == '/'))
-				continue;
-			char* s = new char[x.size() + 1];
-			memcpy(s, x.data(), x.size());
-			s[x.size() - (x.back() == '/')] = '\0';
-			files.push_back(s);
-		}
-	} catch (std::system_error&) {}
-	try {
-		for (const std::string& x: FS::HomePath::ListFiles(directory)) {
-			if (extension && !Str::IsSuffix(extension, x))
-				continue;
-			if (dirsOnly != (x.back() == '/'))
-				continue;
-			char* s = new char[x.size() + 1];
-			memcpy(s, x.data(), x.size());
-			s[x.size() - (x.back() == '/')] = '\0';
-			files.push_back(s);
-		}
-	} catch (std::system_error&) {}
-
-	*numFiles = files.size();
-	char** list = new char*[files.size() + 1];
-	std::copy(files.begin(), files.end(), list);
-	list[files.size()] = nullptr;
-	return list;
-}
-
-void FS_FreeFileList(char** list)
-{
-	if (!list)
-		return;
-	for (char** i = list; *i; i++)
-		delete[] *i;
-	delete[] list;
-}
-
 int FS_GetFileList(const char* path, const char* extension, char* listBuf, int bufSize)
 {
 	// Mods are not yet supported in the new filesystem
