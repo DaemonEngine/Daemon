@@ -223,7 +223,7 @@ void CL_ParseSnapshot( msg_t *msg )
 		}
 		else
 		{
-			if ( cl_autorecord->integer )
+			if ( cl_autorecord.Get() )
 			{
 				CL_Record("");
 			}
@@ -355,7 +355,7 @@ void CL_SystemInfoChanged()
 	if (!com_sv_running.Get()) {
 		FS::PakPath::ClearPaks();
 		if (!FS_LoadServerPaks(Info_ValueForKey(systemInfo, "sv_paks"), clc.demoplaying)) {
-			if (!cl_allowDownload->integer) {
+			if (!cl_allowDownload.Get()) {
 				Sys::Drop("Client is missing paks but downloads are disabled");
 			} else if (clc.demoplaying) {
 				Sys::Drop("Client is missing paks needed by the demo");

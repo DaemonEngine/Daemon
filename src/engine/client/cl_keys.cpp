@@ -341,7 +341,7 @@ static void Console_Key( Keyboard::Key key )
 		if (cls.state != connstate_t::CA_ACTIVE) {
 			g_consoleField.RunCommand();
 		} else {
-			g_consoleField.RunCommand(cl_consoleCommand->string);
+			g_consoleField.RunCommand(cl_consoleCommand.Get());
 		}
 
 		if (cls.state == connstate_t::CA_DISCONNECTED) {
