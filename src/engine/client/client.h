@@ -411,8 +411,6 @@ extern Cvar::Cvar<bool> cl_autorecord;
 
 extern Cvar::Cvar<bool> cl_allowDownload;
 
-extern cvar_t *cl_altTab;
-
 // -NERVE - SMF
 
 extern Cvar::Cvar<std::string> cl_consoleFont;
