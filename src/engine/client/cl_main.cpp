@@ -132,8 +132,6 @@ Cvar::Cvar<std::string> cl_consoleCommand("cl_consoleCommand", "command prepende
 struct rsa_public_key  public_key;
 struct rsa_private_key private_key;
 
-cvar_t             *cl_altTab;
-
 // XreaL BEGIN
 Cvar::Cvar<bool> cl_aviMotionJpeg("cl_aviMotionJpeg", "use JPEG instead of bitmap for demo video recording", Cvar::NONE, true);
 // XreaL END
@@ -2312,8 +2310,6 @@ void CL_Init()
 	cl_packetdup = Cvar_Get( "cl_packetdup", "1", 0 );
 
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
-
-	cl_altTab = Cvar_Get( "cl_altTab", "1", 0 );
 
 	// userinfo
 	cl_rate = Cvar_Get( "rate", XSTRING(NETWORK_DEFAULT_RATE), CVAR_USERINFO | CVAR_ARCHIVE);
