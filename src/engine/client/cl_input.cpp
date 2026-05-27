@@ -942,7 +942,7 @@ void CL_WritePacket()
 		}
 
 		// begin a client move command
-		if ( cl_nodelta->integer || !cl.snap.valid || clc.demowaiting || clc.serverMessageSequence != cl.snap.messageNum )
+		if ( cl_nodelta.Get() || !cl.snap.valid || clc.demowaiting || clc.serverMessageSequence != cl.snap.messageNum )
 		{
 			MSG_WriteByte( &buf, clc_moveNoDelta );
 		}
@@ -1273,8 +1273,6 @@ void CL_InitInput()
 	}
 
 	Cmd_AddCommand( "keyup", IN_KeysUp_f );
-
-	cl_nodelta = Cvar_Get( "cl_nodelta", "0", 0 );
 }
 
 /*

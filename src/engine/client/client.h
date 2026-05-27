@@ -368,13 +368,13 @@ extern struct rsa_private_key private_key;
 //
 // cvars
 //
-extern cvar_t *cl_nodelta;
+extern Cvar::Cvar<bool> cl_nodelta;
 extern cvar_t *cl_noprint;
 extern cvar_t *cl_maxpackets;
 extern cvar_t *cl_packetdup;
 extern cvar_t *cl_shownet;
 extern cvar_t *cl_showSend;
-extern cvar_t *cl_timeNudge;
+extern Cvar::Range<Cvar::Cvar<int>> cl_timeNudge;
 extern cvar_t *cl_showTimeDelta;
 
 extern Cvar::Cvar<float> cl_yawspeed;
@@ -406,31 +406,31 @@ extern Cvar::Range<Cvar::Cvar<int>> j_up_axis;
 
 extern Cvar::Cvar<bool> cvar_demo_timedemo;
 
-extern cvar_t *cl_activeAction;
-extern cvar_t *cl_autorecord;
+extern Cvar::Cvar<std::string> cl_activeAction;
+extern Cvar::Cvar<bool> cl_autorecord;
 
-extern cvar_t *cl_allowDownload;
+extern Cvar::Cvar<bool> cl_allowDownload;
 
 extern cvar_t *cl_altTab;
 
 // -NERVE - SMF
 
-extern cvar_t *cl_consoleFont;
+extern Cvar::Cvar<std::string> cl_consoleFont;
 extern cvar_t *cl_consoleFontSize;
 extern cvar_t *cl_consoleFontScaling;
 extern cvar_t *cl_consoleFontKerning;
-extern cvar_t *cl_consoleCommand;
+extern Cvar::Cvar<std::string> cl_consoleCommand;
 
 extern Cvar::Range<Cvar::Cvar<int>> con_scrollLock;
 
 // XreaL BEGIN
 extern cvar_t *cl_aviFrameRate;
-extern cvar_t *cl_aviMotionJpeg;
+extern Cvar::Cvar<bool> cl_aviMotionJpeg;
 // XreaL END
 
 #if defined(USE_MUMBLE)
-extern cvar_t *cl_useMumble;
-extern cvar_t *cl_mumbleScale;
+extern Cvar::Range<Cvar::Cvar<int>> cl_useMumble;
+extern Cvar::Cvar<float> cl_mumbleScale;
 #endif
 
 //=================================================

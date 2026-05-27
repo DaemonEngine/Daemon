@@ -215,13 +215,13 @@ void CL_InitDownloads()
 	clc.bWWWDlAborting = false;
 	CL_ClearStaticDownload();
 
-	if ( cl_allowDownload->integer )
+	if ( cl_allowDownload.Get() )
 		FS_DeletePaksWithBadChecksum();
 
 	// reset the redirect checksum tracking
 	clc.redirectedList[ 0 ] = '\0';
 
-	if ( cl_allowDownload->integer && FS_ComparePaks( clc.downloadList, sizeof( clc.downloadList ) ) )
+	if ( cl_allowDownload.Get() && FS_ComparePaks( clc.downloadList, sizeof( clc.downloadList ) ) )
 	{
 		downloadLogger.Debug("Need paks: '%s'", clc.downloadList);
 

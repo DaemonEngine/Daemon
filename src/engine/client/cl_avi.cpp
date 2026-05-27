@@ -358,7 +358,7 @@ bool CL_OpenAVIForWriting( const char *fileName )
 	afd.width = cls.windowConfig.vidWidth;
 	afd.height = cls.windowConfig.vidHeight;
 
-	if ( cl_aviMotionJpeg->integer )
+	if ( cl_aviMotionJpeg.Get() )
 	{
 		afd.motionJpeg = true;
 	}

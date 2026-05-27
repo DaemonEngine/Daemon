@@ -60,18 +60,18 @@ Maryland 20850 USA.
 #endif
 
 #if defined(USE_MUMBLE)
-cvar_t *cl_useMumble;
-cvar_t *cl_mumbleScale;
+Cvar::Range<Cvar::Cvar<int>> cl_useMumble("cl_useMumble", "enable Mumble integration (2 = debug)", Cvar::NONE, 0, 0, 2);
+Cvar::Cvar<float> cl_mumbleScale("cl_mumbleScale", "multiplier of world coordinates passed to Mumble", Cvar::NONE, 0.0254);
 #endif
 
-cvar_t *cl_nodelta;
+Cvar::Cvar<bool> cl_nodelta("cl_nodelta", "disable network snapshot delta compression", Cvar::NONE, false);
 
 cvar_t *cl_noprint;
 
-cvar_t *cl_timeout;
+Cvar::Cvar<float> cl_timeout("cl_timeout", "disconnect after this many seconds without server packets", Cvar::NONE, 200);
 cvar_t *cl_maxpackets;
 cvar_t *cl_packetdup;
-cvar_t *cl_timeNudge;
+Cvar::Range<Cvar::Cvar<int>> cl_timeNudge("cl_timeNudge", "ms to extrapolate/interpolate ahead/behind latest snapshots (negative means extrapolate ahead)", Cvar::NONE, 0, -30, 30);
 cvar_t *cl_showTimeDelta;
 
 cvar_t *cl_shownet = nullptr; // NERVE - SMF - This is referenced in msg.c and we need to make sure it is nullptr
@@ -116,17 +116,18 @@ Cvar::Range<Cvar::Cvar<int>> j_forward_axis("j_forward_axis", "joystick forward 
 Cvar::Range<Cvar::Cvar<int>> j_side_axis("j_side_axis", "joystick side (strafe) axis number", Cvar::NONE, 0, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
 Cvar::Range<Cvar::Cvar<int>> j_up_axis("j_up_axis", "joystick up axis number", Cvar::NONE, 2, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
 
-cvar_t *cl_activeAction;
+Cvar::Cvar<std::string> cl_activeAction("activeAction", "one-time command executed upon entering game", Cvar::TEMPORARY, "");
 
-cvar_t *cl_autorecord;
+Cvar::Cvar<bool> cl_autorecord("cl_autorecord", "record a demo of every game", Cvar::NONE, false);
 
-cvar_t *cl_allowDownload;
+Cvar::Cvar<bool> cl_allowDownload("cl_allowDownload", "auto-download paks required by the server", Cvar::NONE, true);
 
-cvar_t                 *cl_consoleFont;
+Cvar::Cvar<std::string> cl_consoleFont("cl_consoleFont", "path (in homepath) for console typeface", Cvar::NONE, "");
 cvar_t                 *cl_consoleFontSize;
 cvar_t                 *cl_consoleFontScaling;
 cvar_t                 *cl_consoleFontKerning;
-cvar_t                 *cl_consoleCommand; //see also com_consoleCommand for terminal consoles
+//see also com_consoleCommand for terminal consoles
+Cvar::Cvar<std::string> cl_consoleCommand("cl_consoleCommand", "command prepended to console lines, when in game", Cvar::NONE, "say");
 
 struct rsa_public_key  public_key;
 struct rsa_private_key private_key;
@@ -134,7 +135,7 @@ struct rsa_private_key private_key;
 cvar_t             *cl_altTab;
 
 // XreaL BEGIN
-cvar_t             *cl_aviMotionJpeg;
+Cvar::Cvar<bool> cl_aviMotionJpeg("cl_aviMotionJpeg", "use JPEG instead of bitmap for demo video recording", Cvar::NONE, true);
 // XreaL END
 
 cvar_t             *cl_rate;
@@ -153,10 +154,10 @@ void        CL_CheckForResend();
 static void CL_UpdateMumble()
 {
 	vec3_t pos, forward, up;
-	float  scale = cl_mumbleScale->value;
+	float  scale = cl_mumbleScale.Get();
 	float  tmp;
 
-	if ( !cl_useMumble->integer )
+	if ( !cl_useMumble.Get() )
 	{
 		return;
 	}
@@ -176,7 +177,7 @@ static void CL_UpdateMumble()
 	up[ 1 ] = up[ 2 ];
 	up[ 2 ] = tmp;
 
-	if ( cl_useMumble->integer > 1 )
+	if ( cl_useMumble.Get() > 1 )
 	{
 		fprintf( stderr, "%f %f %f, %f %f %f, %f %f %f\n",
 		         pos[ 0 ], pos[ 1 ], pos[ 2 ],
@@ -789,7 +790,7 @@ void CL_Disconnect( bool showMainMenu )
 	CL_SendDisconnect();
 
 #if defined(USE_MUMBLE)
-	if ( cl_useMumble->integer && mumble_islinked() )
+	if ( cl_useMumble.Get() && mumble_islinked() )
 	{
 		Log::Notice("Mumble: Unlinking from Mumble application" );
 		mumble_unlink();
@@ -1962,7 +1963,7 @@ void CL_CheckTimeout()
 	//
 	// check timeout
 	//
-	if ( cls.state >= connstate_t::CA_CONNECTED && cls.realtime - clc.lastPacketTime > cl_timeout->value * 1000 )
+	if ( cls.state >= connstate_t::CA_CONNECTED && cls.realtime - clc.lastPacketTime > cl_timeout.Get() * 1000 )
 	{
 		if ( ++cl.timeoutcount > 5 )
 		{
@@ -2099,7 +2100,7 @@ bool CL_InitRenderer()
 		return false;
 	}
 
-	cl_consoleFont = Cvar_Get( "cl_consoleFont", "",  CVAR_LATCH );
+	Cvar::Latch(cl_consoleFont);
 	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
 	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
 
@@ -2116,13 +2117,13 @@ bool CL_InitRenderer()
 		fontSize = cl_consoleFontSize->integer * fontScale / 12;
 	}
 
-	if ( cl_consoleFont->string[ 0 ] )
+	if ( !cl_consoleFont.Get().empty() )
 	{
-		cls.consoleFont = re.RegisterFont( cl_consoleFont->string, fontSize );
+		cls.consoleFont = re.RegisterFont( cl_consoleFont.Get().c_str(), fontSize );
 		if ( cls.consoleFont == nullptr )
 		{
 			Log::Warn( "Couldn't load font file '%s', falling back to default console font",
-			            cl_consoleFont->string );
+			            cl_consoleFont.Get() );
 		}
 	}
 
@@ -2301,29 +2302,16 @@ void CL_Init()
 	//
 	cl_noprint = Cvar_Get( "cl_noprint", "0", 0 );
 
-	cl_timeout = Cvar_Get( "cl_timeout", "200", 0 );
-
-	cl_timeNudge = Cvar_Get( "cl_timeNudge", "0", CVAR_TEMP );
 	cl_shownet = Cvar_Get( "cl_shownet", "0", CVAR_TEMP );
 	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
-	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP );
-	cl_autorecord = Cvar_Get( "cl_autorecord", "0", CVAR_TEMP );
 
 	cl_aviFrameRate = Cvar_Get( "cl_aviFrameRate", "25", 0 );
-
-	// XreaL BEGIN
-	cl_aviMotionJpeg = Cvar_Get( "cl_aviMotionJpeg", "1", 0 );
-	// XreaL END
 
 	cl_maxpackets = Cvar_Get( "cl_maxpackets", "125", 0 );
 	cl_packetdup = Cvar_Get( "cl_packetdup", "1", 0 );
 
-	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", 0 );
-
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
-
-	cl_consoleCommand = Cvar_Get( "cl_consoleCommand", "say", 0 );
 
 	cl_altTab = Cvar_Get( "cl_altTab", "1", 0 );
 
@@ -2331,8 +2319,7 @@ void CL_Init()
 	cl_rate = Cvar_Get( "rate", XSTRING(NETWORK_DEFAULT_RATE), CVAR_USERINFO | CVAR_ARCHIVE);
 
 #if defined(USE_MUMBLE)
-	cl_useMumble = Cvar_Get( "cl_useMumble", "0",  CVAR_LATCH );
-	cl_mumbleScale = Cvar_Get( "cl_mumbleScale", "0.0254", 0 );
+	Cvar::Latch(cl_useMumble);
 #endif
 
 	//

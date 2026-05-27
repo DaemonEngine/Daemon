@@ -761,14 +761,14 @@ void CL_FirstSnapshot()
 	// execute the contents of activeAction now
 	// this is to allow scripting a timedemo to start right
 	// after loading
-	if ( cl_activeAction->string[ 0 ] )
+	if ( !cl_activeAction.Get().empty() )
 	{
-		Cmd::BufferCommandText(cl_activeAction->string);
-		Cvar_Set( "activeAction", "" );
+		Cmd::BufferCommandText( cl_activeAction.Get() );
+		cl_activeAction.Set( "" );
 	}
 
 #if defined(USE_MUMBLE)
-	if ( ( cl_useMumble->integer ) && !mumble_islinked() )
+	if ( ( cl_useMumble.Get() ) && !mumble_islinked() )
 	{
 		int ret = mumble_link( CLIENT_WINDOW_TITLE );
 		Log::Notice(ret == 0 ? "Mumble: Linking to Mumble application okay" : "Mumble: Linking to Mumble application failed" );
@@ -845,7 +845,7 @@ void CL_SetCGameTime()
 	// cl_timeNudge is a user adjustable cvar that allows more
 	// or less latency to be added in the interest of better
 	// smoothness or better responsiveness.
-	int tn = Math::Clamp( cl_timeNudge->integer, -30, 30 );
+	int tn = cl_timeNudge.Get();
 
 	cl.serverTime = cls.realtime + cl.serverTimeDelta - tn;
 
