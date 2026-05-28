@@ -369,7 +369,6 @@ extern struct rsa_private_key private_key;
 // cvars
 //
 extern Cvar::Cvar<bool> cl_nodelta;
-extern cvar_t *cl_noprint;
 extern cvar_t *cl_maxpackets;
 extern cvar_t *cl_packetdup;
 extern cvar_t *cl_shownet;
