@@ -66,8 +66,6 @@ Cvar::Cvar<float> cl_mumbleScale("cl_mumbleScale", "multiplier of world coordina
 
 Cvar::Cvar<bool> cl_nodelta("cl_nodelta", "disable network snapshot delta compression", Cvar::NONE, false);
 
-cvar_t *cl_noprint;
-
 Cvar::Cvar<float> cl_timeout("cl_timeout", "disconnect after this many seconds without server packets", Cvar::NONE, 200);
 cvar_t *cl_maxpackets;
 cvar_t *cl_packetdup;
@@ -2298,8 +2296,6 @@ void CL_Init()
 	//
 	// register our variables
 	//
-	cl_noprint = Cvar_Get( "cl_noprint", "0", 0 );
-
 	cl_shownet = Cvar_Get( "cl_shownet", "0", CVAR_TEMP );
 	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
