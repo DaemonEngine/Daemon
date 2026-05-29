@@ -369,8 +369,8 @@ extern struct rsa_private_key private_key;
 // cvars
 //
 extern Cvar::Cvar<bool> cl_nodelta;
-extern cvar_t *cl_maxpackets;
-extern cvar_t *cl_packetdup;
+extern Cvar::Range<Cvar::Cvar<int>> cl_maxpackets;
+extern Cvar::Range<Cvar::Cvar<int>> cl_packetdup;
 extern cvar_t *cl_shownet;
 extern cvar_t *cl_showSend;
 extern Cvar::Range<Cvar::Cvar<int>> cl_timeNudge;
@@ -413,15 +413,15 @@ extern Cvar::Cvar<bool> cl_allowDownload;
 // -NERVE - SMF
 
 extern Cvar::Cvar<std::string> cl_consoleFont;
-extern cvar_t *cl_consoleFontSize;
-extern cvar_t *cl_consoleFontScaling;
-extern cvar_t *cl_consoleFontKerning;
+extern Cvar::Cvar<int> cl_consoleFontSize;
+extern Cvar::Cvar<bool> cl_consoleFontScaling;
+extern Cvar::Cvar<float> cl_consoleFontKerning;
 extern Cvar::Cvar<std::string> cl_consoleCommand;
 
 extern Cvar::Range<Cvar::Cvar<int>> con_scrollLock;
 
 // XreaL BEGIN
-extern cvar_t *cl_aviFrameRate;
+extern Cvar::Cvar<int> cl_aviFrameRate;
 extern Cvar::Cvar<bool> cl_aviMotionJpeg;
 // XreaL END
 
