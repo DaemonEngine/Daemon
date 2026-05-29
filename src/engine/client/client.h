@@ -667,7 +667,7 @@ bool CL_OpenAVIForWriting( const char *filename );
 void     CL_TakeVideoFrame();
 void     CL_WriteAVIVideoFrame( const byte *imageBuffer, int size );
 bool CL_CloseAVI();
-bool CL_VideoRecording();
+int CL_VideoRecording();
 
 // XreaL END
 
