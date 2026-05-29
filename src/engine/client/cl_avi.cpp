@@ -334,7 +334,7 @@ bool CL_OpenAVIForWriting( const char *fileName )
 	afd = {};
 
 	// Don't start if a framerate has not been chosen
-	if ( cl_aviFrameRate->integer <= 0 )
+	if ( cl_aviFrameRate.Get() <= 0 )
 	{
 		Log::Warn("cl_aviFrameRate must be ≥ 1" );
 		return false;
@@ -353,7 +353,7 @@ bool CL_OpenAVIForWriting( const char *fileName )
 
 	Q_strncpyz( afd.fileName, fileName, MAX_QPATH );
 
-	afd.frameRate = cl_aviFrameRate->integer;
+	afd.frameRate = cl_aviFrameRate.Get();
 	afd.framePeriod = ( int )( 1000000.0f / afd.frameRate );
 	afd.width = cls.windowConfig.vidWidth;
 	afd.height = cls.windowConfig.vidHeight;

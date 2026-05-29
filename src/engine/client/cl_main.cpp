@@ -67,8 +67,8 @@ Cvar::Cvar<float> cl_mumbleScale("cl_mumbleScale", "multiplier of world coordina
 Cvar::Cvar<bool> cl_nodelta("cl_nodelta", "disable network snapshot delta compression", Cvar::NONE, false);
 
 Cvar::Cvar<float> cl_timeout("cl_timeout", "disconnect after this many seconds without server packets", Cvar::NONE, 200);
-cvar_t *cl_maxpackets;
-cvar_t *cl_packetdup;
+Cvar::Range<Cvar::Cvar<int>> cl_maxpackets("cl_maxpackets", "client->server max packets per second", Cvar::NONE, 125, 15, 125);
+Cvar::Range<Cvar::Cvar<int>> cl_packetdup("cl_packetdup", "send N extra copies of each usercmd_t", Cvar::NONE, 1, 0, 5);
 Cvar::Range<Cvar::Cvar<int>> cl_timeNudge("cl_timeNudge", "ms to extrapolate/interpolate ahead/behind latest snapshots (negative means extrapolate ahead)", Cvar::NONE, 0, -30, 30);
 cvar_t *cl_showTimeDelta;
 
@@ -89,7 +89,7 @@ Cvar::Cvar<std::string> cvar_demo_status_filename(
     ""
 );
 
-cvar_t *cl_aviFrameRate;
+Cvar::Cvar<int> cl_aviFrameRate("cl_aviFrameRate", "demo video framerate", Cvar::NONE, 25);
 
 Cvar::Cvar<bool> cl_freelook("cl_freelook", "vertical mouse movement always controls pitch", Cvar::NONE, true);
 
@@ -121,9 +121,9 @@ Cvar::Cvar<bool> cl_autorecord("cl_autorecord", "record a demo of every game", C
 Cvar::Cvar<bool> cl_allowDownload("cl_allowDownload", "auto-download paks required by the server", Cvar::NONE, true);
 
 Cvar::Cvar<std::string> cl_consoleFont("cl_consoleFont", "path (in homepath) for console typeface", Cvar::NONE, "");
-cvar_t                 *cl_consoleFontSize;
-cvar_t                 *cl_consoleFontScaling;
-cvar_t                 *cl_consoleFontKerning;
+Cvar::Cvar<int> cl_consoleFontSize("cl_consoleFontSize", "console font point size", Cvar::NONE, 16);
+Cvar::Cvar<bool> cl_consoleFontScaling("cl_consoleFontScaling", "rescale console font size by ratio of display size to 1080p", Cvar::NONE, true);
+Cvar::Cvar<float> cl_consoleFontKerning("cl_consoleFontKerning", "px of horizontal padding on console glyphs", Cvar::NONE, 0);
 //see also com_consoleCommand for terminal consoles
 Cvar::Cvar<std::string> cl_consoleCommand("cl_consoleCommand", "command prepended to console lines, when in game", Cvar::NONE, "say");
 
@@ -2098,20 +2098,20 @@ bool CL_InitRenderer()
 	}
 
 	Cvar::Latch(cl_consoleFont);
-	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
-	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
+	Cvar::Latch(cl_consoleFontSize);
+	Cvar::Latch(cl_consoleFontScaling);
 
 	// Register console font specified by cl_consoleFont. Empty string means use the embbed Unifont
 
-	int fontSize = cl_consoleFontSize->integer;
+	int fontSize = cl_consoleFontSize.Get();
 
-	if ( cl_consoleFontScaling->integer )
+	if ( cl_consoleFontScaling.Get() )
 	{
 		// This gets 12px on 1920×1080 screen, which is libRocket default for 1em
 		int fontScale = std::min(cls.windowConfig.vidWidth, cls.windowConfig.vidHeight) / 90;
 
 		// fontScale / 12px gets 1px on 1920×1080 screen
-		fontSize = cl_consoleFontSize->integer * fontScale / 12;
+		fontSize = cl_consoleFontSize.Get() * fontScale / 12;
 	}
 
 	if ( !cl_consoleFont.Get().empty() )
@@ -2300,13 +2300,6 @@ void CL_Init()
 	cl_shownet = Cvar_Get( "cl_shownet", "0", CVAR_TEMP );
 	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
-
-	cl_aviFrameRate = Cvar_Get( "cl_aviFrameRate", "25", 0 );
-
-	cl_maxpackets = Cvar_Get( "cl_maxpackets", "125", 0 );
-	cl_packetdup = Cvar_Get( "cl_packetdup", "1", 0 );
-
-	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
 
 	// userinfo
 	cl_rate = Cvar_Get( "rate", XSTRING(NETWORK_DEFAULT_RATE), CVAR_USERINFO | CVAR_ARCHIVE);
