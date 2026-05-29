@@ -217,7 +217,7 @@ struct refimport_t {
 	int ( *FS_FOpenFileRead )( const char* qpath, fileHandle_t* file );
 
 	// XreaL BEGIN
-	bool( *CL_VideoRecording )( );
+	int ( *CL_VideoRecording )( );
 	void ( *CL_WriteAVIVideoFrame )( const byte* buffer, int size );
 	// XreaL END
 

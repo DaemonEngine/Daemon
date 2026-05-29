@@ -612,7 +612,7 @@ bool CL_CloseAVI()
 CL_VideoRecording
 ===============
 */
-bool CL_VideoRecording()
+int CL_VideoRecording()
 {
-	return afd.fileOpen;
+	return afd.fileOpen ? afd.frameRate : 0;
 }
