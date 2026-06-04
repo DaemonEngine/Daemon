@@ -28,10 +28,10 @@
 # System detection.
 ################################################################################
 
-# When adding a new system, look at all the places DAEMON_HOST_SYSTEM
-# and DAEMON_SYSTEM are used.
+# When adding a new system, look at all the places ${YOKAI_CMAKE_SLUG}_HOST_SYSTEM
+# and ${YOKAI_CMAKE_SLUG}_SYSTEM are used.
 
-function(daemon_detect_host_system)
+function(yokai_detect_host_system)
 	set(system_name "Unknown")
 
 	foreach(name Linux;FreeBSD;Android;Windows)
@@ -63,67 +63,67 @@ function(daemon_detect_host_system)
 		detect_cmake_host_system("system_name")
 	endif()
 
-	set(DAEMON_HOST_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
+	set(${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
 endfunction()
 
-function(daemon_detect_system)
-	daemon_run_detection("" "SYSTEM" "System.c" "Linux")
+function(yokai_detect_system)
+	yokai_run_detection("" "SYSTEM" "System.c" "Linux")
 
 	if (system_name STREQUAL "Unknown")
 		detect_cmake_host_system("system_name")
 	endif()
 
-	set(DAEMON_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
+	set(${YOKAI_CMAKE_SLUG}_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
 endfunction()
 
-daemon_detect_host_system()
-daemon_detect_system()
+yokai_detect_host_system()
+yokai_detect_system()
 
-if ("${DAEMON_HOST_SYSTEM_NAME}" STREQUAL "Unknown")
+if ("${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}" STREQUAL "Unknown")
 	message(WARNING "Unknown host system")
 endif()
 
-if ("${DAEMON_SYSTEM_NAME}" STREQUAL "Unknown")
+if ("${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}" STREQUAL "Unknown")
 	message(WARNING "Unknown target system")
 endif()
 
-if ("${DAEMON_HOST_SYSTEM_NAME}" STREQUAL "Unknown" AND NOT "${DAEMON_SYSTEM_NAME}" STREQUAL "Unknown")
-	message(WARNING "Assuming the host system is the same as the target: ${DAEMON_SYSTEM_NAME}")
-	set(DAEMON_HOST_SYSTEM_NAME "${DAEMON_SYSTEM_NAME}")
+if ("${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}" STREQUAL "Unknown" AND NOT "${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}" STREQUAL "Unknown")
+	message(WARNING "Assuming the host system is the same as the target: ${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}")
+	set(${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME "${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}")
 endif()
 
-if ("${DAEMON_SYSTEM_NAME}" STREQUAL "Unknown" AND NOT "${DAEMON_HOST_SYSTEM_NAME}" STREQUAL "Unknown")
-	message(WARNING "Assuming the target system is the same as the host: ${DAEMON_SYSTEM_NAME}")
-	set(DAEMON_SYSTEM_NAME "${DAEMON_HOST_SYSTEM_NAME}")
+if ("${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}" STREQUAL "Unknown" AND NOT "${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}" STREQUAL "Unknown")
+	message(WARNING "Assuming the target system is the same as the host: ${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}")
+	set(${YOKAI_CMAKE_SLUG}_SYSTEM_NAME "${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}")
 endif()
 
-message(STATUS "Detected host system: ${DAEMON_HOST_SYSTEM_NAME}")
-message(STATUS "Detected target system: ${DAEMON_SYSTEM_NAME}")
+message(STATUS "Detected host system: ${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}")
+message(STATUS "Detected target system: ${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}")
 
-if (NOT "${DAEMON_HOST_SYSTEM_NAME}" STREQUAL "${DAEMON_SYSTEM_NAME}")
+if (NOT "${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}" STREQUAL "${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}")
 	message(STATUS "Detected cross-compilation")
 endif()
 
 # Makes possible to do that in CMake code:
-# > if (DAEMON_HOST_SYSTEM_Linux)
-# > if (DAEMON_SYSTEM_Windows)
-set("DAEMON_HOST_SYSTEM_${DAEMON_HOST_SYSTEM_NAME}" ON)
-set("DAEMON_SYSTEM_${DAEMON_SYSTEM_NAME}" ON)
+# > if (${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_Linux)
+# > if (${YOKAI_CMAKE_SLUG}_SYSTEM_Windows)
+set("${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}" ON)
+set("${YOKAI_CMAKE_SLUG}_SYSTEM_${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}" ON)
 
 # This is for systems behaving similarly to a Linux Desktop,
 # implementing standards like FHS, XDG, GLVND…
 # It makes possible to do that in CMake code:
-# > if (DAEMON_HOST_SYSTEM_XDG_COMPATIBILITY)
-# > if (DAEMON_SYSTEM_XDG_COMPATIBILITY)
+# > if (${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_XDG_COMPATIBILITY)
+# > if (${YOKAI_CMAKE_SLUG}_SYSTEM_XDG_COMPATIBILITY)
 foreach(name Linux;FreeBSD)
 	foreach(slug HOST_SYSTEM;SYSTEM)
-		if (DAEMON_${slug}_${name})
-			set(DAEMON_${slug}_XDG_COMPATIBILITY ON)
+		if (${YOKAI_CMAKE_SLUG}_${slug}_${name})
+			set(${YOKAI_CMAKE_SLUG}_${slug}_XDG_COMPATIBILITY ON)
 		endif()
 	endforeach()
 endforeach()
 
-if (DAEMON_SOURCE_GENERATOR)
+if (${YOKAI_CMAKE_SLUG}_SOURCE_GENERATOR)
 	# Add printable string to the executable.
-	daemon_add_buildinfo("char*" "DAEMON_SYSTEM_STRING" "\"${DAEMON_SYSTEM_NAME}\"")
+	yokai_add_buildinfo("char*" "${YOKAI_C_SLUG}_SYSTEM_STRING" "\"${${YOKAI_C_SLUG}_SYSTEM_NAME}\"")
 endif()

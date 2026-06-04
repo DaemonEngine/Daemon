@@ -28,23 +28,23 @@
 # Architecture detection.
 ################################################################################
 
-# When adding a new architecture, look at all the places DAEMON_ARCH is used.
+# When adding a new architecture, look at all the places ${YOKAI_CMAKE_SLUG}_ARCH is used.
 
 option(USE_ARCH_INTRINSICS "Enable custom code using intrinsics functions or asm declarations" ON)
 mark_as_advanced(USE_ARCH_INTRINSICS)
 
-function(daemon_detect_arch)
-	daemon_run_detection("" "ARCH" "Architecture.c" "")
+function(yokai_detect_arch)
+	yokai_run_detection("" "ARCH" "Architecture.c" "")
 
-	set(DAEMON_ARCH_NAME "${arch_name}" PARENT_SCOPE)
+	set(${YOKAI_CMAKE_SLUG}_ARCH_NAME "${arch_name}" PARENT_SCOPE)
 
 	message(STATUS "Detected target architecture: ${arch_name}")
 
-	add_definitions(-DDAEMON_ARCH_${arch_name})
+	add_definitions(-D${YOKAI_C_PREFIX}_ARCH_${arch_name})
 
 	set(nacl_arch "${arch_name}")
 
-	if (DAEMON_SYSTEM_Linux_COMPATIBILITY OR DAEMON_SYSTEM_XDG_COMPATIBILITY)
+	if (${YOKAI_CMAKE_SLUG}_SYSTEM_Linux_COMPATIBILITY OR ${YOKAI_CMAKE_SLUG}_SYSTEM_XDG_COMPATIBILITY)
 		set(armhf_usage "arm64;armel")
 		if ("${arch_name}" IN_LIST armhf_usage)
 		# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
@@ -53,17 +53,17 @@ function(daemon_detect_arch)
 
 		set(box64_usage ppc64el riscv64)
 		if ("${arch_name}" IN_LIST box64_usage)
-			option(DAEMON_NACL_BOX64_EMULATION "Use Box64 to emulate x86_64 NaCl loader on unsupported platforms" ON)
-			if (DAEMON_NACL_BOX64_EMULATION)
+			option(${YOKAI_CMAKE_SLUG}_NACL_BOX64_EMULATION "Use Box64 to emulate x86_64 NaCl loader on unsupported platforms" ON)
+			if (${YOKAI_CMAKE_SLUG}_NACL_BOX64_EMULATION)
 				# Use Box64 to run x86_64 NaCl loader and amd64 nexe.
 				# Box64 must be installed and available in PATH at runtime.
 				set(nacl_arch "amd64")
-				add_definitions(-DDAEMON_NACL_BOX64_EMULATION)
+				add_definitions(-D${YOKAI_C_PREFIX}_NACL_BOX64_EMULATION)
 			endif()
 		endif()
 	endif()
 
-	elseif (DAEMON_SYSTEM_macOS)
+	elseif (${YOKAI_CMAKE_SLUG}_SYSTEM_macOS)
 		if ("${arch_name}" STREQUAL "arm64")
 			# You can get emulated NaCl going like this:
 			# cp external_deps/macos-amd64-default_10/{nacl_loader,irt_core-amd64.nexe} build/
@@ -71,58 +71,58 @@ function(daemon_detect_arch)
 		endif()
 	endif()
 
-	# The DAEMON_NACL_ARCH_NAME variable contributes to the nexe file name.
-	set(DAEMON_NACL_ARCH_NAME "${nacl_arch}" PARENT_SCOPE)
+	# The ${YOKAI_CMAKE_SLUG}_NACL_ARCH_NAME variable contributes to the nexe file name.
+	set(${YOKAI_CMAKE_SLUG}_NACL_ARCH_NAME "${nacl_arch}" PARENT_SCOPE)
 
 	# NaCl runtime is only available on architectures that have a NaCl loader.
 	set(nacl_runtime_arch amd64 i686 armhf)
 	if ("${nacl_arch}" IN_LIST nacl_runtime_arch)
-		add_definitions(-DDAEMON_NACL_RUNTIME_ENABLED)
+		add_definitions(-D${YOKAI_CMAKE_SLUG}_NACL_RUNTIME_ENABLED)
 	endif()
 endfunction()
 
-function(daemon_set_arch_intrinsics name)
+function(yokai_set_arch_intrinsics name)
 	message(STATUS "Enabling ${name} architecture intrinsics")
-	add_definitions(-DDAEMON_USE_ARCH_INTRINSICS_${name})
+	add_definitions(-D${YOKAI_C_PREFIX}_USE_ARCH_INTRINSICS_${name})
 endfunction()
 
 option(USE_ARCH_INTRINSICS "Enable custom code using intrinsics functions or asm declarations" ON)
 mark_as_advanced(USE_ARCH_INTRINSICS)
 
-function(daemon_set_intrinsics)
+function(yokai_set_intrinsics)
 	if (USE_ARCH_INTRINSICS)
 		# Makes possible to do that in C++ code:
-		# > if defined(DAEMON_USE_ARCH_INTRINSICS)
-		add_definitions(-DDAEMON_USE_ARCH_INTRINSICS)
+		# > if defined(${YOKAI_CMAKE_SLUG}_USE_ARCH_INTRINSICS)
+		add_definitions(-D${YOKAI_C_PREFIX}_USE_ARCH_INTRINSICS)
 
 		# Makes possible to do that in C++ code:
-		# > if defined(DAEMON_USE_ARCH_INTRINSICS_amd64)
-		# > if defined(DAEMON_USE_ARCH_INTRINSICS_i686)
-		daemon_set_arch_intrinsics("${DAEMON_ARCH_NAME}")
+		# > if defined(${YOKAI_CMAKE_SLUG}_USE_ARCH_INTRINSICS_amd64)
+		# > if defined(${YOKAI_CMAKE_SLUG}_USE_ARCH_INTRINSICS_i686)
+		yokai_set_arch_intrinsics("${${YOKAI_CMAKE_SLUG}_ARCH_NAME}")
 
 		set(amd64_PARENT "i686")
 		set(arm64_PARENT "armhf")
 		set(ppc64el_PARENT "ppc64")
 
-		if ("${DAEMON_ARCH_NAME}_PARENT")
-			daemon_set_arch_intrinsics("${${DAEMON_ARCH_NAME}_PARENT}")
+		if ("${${YOKAI_CMAKE_SLUG}_ARCH_NAME}_PARENT")
+			yokai_set_arch_intrinsics("${${${YOKAI_CMAKE_SLUG}_ARCH_NAME}_PARENT}")
 		endif()
 	else()
-		message(STATUS "Disabling ${DAEMON_ARCH_NAME} architecture intrinsics")
+		message(STATUS "Disabling ${${YOKAI_CMAKE_SLUG}_ARCH_NAME} architecture intrinsics")
 	endif()
 endfunction()
 
-daemon_detect_arch()
-daemon_set_intrinsics()
+yokai_detect_arch()
+yokai_set_intrinsics()
 
 # Makes possible to do that in CMake code:
-# > if (DAEMON_ARCH_arm64)
-# > if (DAEMON_NACL_ARCH_armhf)
-set("DAEMON_ARCH_${DAEMON_ARCH_NAME}" ON)
-set("DAEMON_NACL_ARCH_${DAEMON_NACL_ARCH_NAME}" ON)
+# > if (${YOKAI_CMAKE_SLUG}_ARCH_arm64)
+# > if (${YOKAI_CMAKE_SLUG}_NACL_ARCH_armhf)
+set("${YOKAI_CMAKE_SLUG}_ARCH_${${YOKAI_CMAKE_SLUG}_ARCH_NAME}" ON)
+set("${YOKAI_CMAKE_SLUG}_NACL_ARCH_${${YOKAI_CMAKE_SLUG}_NACL_ARCH_NAME}" ON)
 
-if (DAEMON_SOURCE_GENERATOR)
+if (${YOKAI_CMAKE_SLUG}_SOURCE_GENERATOR)
 	# Add printable strings to the executable.
-	daemon_add_buildinfo("char*" "DAEMON_ARCH_STRING" "\"${DAEMON_ARCH_NAME}\"")
-	daemon_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${DAEMON_NACL_ARCH_NAME}\"")
+	yokai_add_buildinfo("char*" "${YOKAI_C_SLUG}_ARCH_STRING" "\"${${YOKAI_CMAKE_SLUG}_ARCH_NAME}\"")
+	yokai_add_buildinfo("char*" "${YOKAI_C_SLUG}_NACL_ARCH_STRING" "\"${${YOKAI_CMAKE_SLUG}_NACL_ARCH_NAME}\"")
 endif()

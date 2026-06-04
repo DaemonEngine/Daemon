@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define XSTRING(s) STRING(s)
 
 #define REPORT(key, value) \
-	"<REPORT<DAEMON_" REPORT_SLUG "_" key "=" value ">REPORT>"
+	"<REPORT<YOKAI_" REPORT_SLUG "_" key "=" value ">REPORT>"
 #define REPORT_VERSION_3(name, major, minor, patch) \
 	REPORT(name "_VERSION", XSTRING(major) "." XSTRING(minor) "." XSTRING(patch))
 #define REPORT_VERSION_2(name, major, minor) \

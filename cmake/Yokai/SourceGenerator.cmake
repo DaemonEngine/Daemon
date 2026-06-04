@@ -1,5 +1,5 @@
-# Daemon BSD Source Code
-# Copyright (c) 2025, Daemon Developers
+# ${YOKAI_FILE_SLUG} BSD Source Code
+# Copyright (c) 2025, ${YOKAI_FILE_SLUG} Developers
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,71 +28,73 @@
 # Source generation and file embedding.
 ################################################################################
 
-set(DAEMON_SOURCE_GENERATOR "${CMAKE_CURRENT_LIST_FILE}")
+include("${CMAKE_CURRENT_LIST_DIR}/Variable.cmake")
+
+set(${YOKAI_CMAKE_SLUG}_SOURCE_GENERATOR "${CMAKE_CURRENT_LIST_FILE}")
 get_filename_component(current_list_dir "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
-set(DAEMON_FILE_EMBEDDER "${current_list_dir}/FileEmbedder.cmake")
+set(${YOKAI_CMAKE_SLUG}_FILE_EMBEDDER "${current_list_dir}/FileEmbedder.cmake")
 
-set(DAEMON_GENERATED_SUBDIR "GeneratedSource")
-set(DAEMON_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/${DAEMON_GENERATED_SUBDIR}")
+set(${YOKAI_CMAKE_SLUG}_GENERATED_SUBDIR "GeneratedSource")
+set(${YOKAI_CMAKE_SLUG}_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/${${YOKAI_CMAKE_SLUG}_GENERATED_SUBDIR}")
 
-set(DAEMON_BUILDINFO_SUBDIR "DaemonBuildInfo")
-set(DAEMON_EMBEDDED_SUBDIR "DaemonEmbeddedFiles")
+set(${YOKAI_CMAKE_SLUG}_BUILDINFO_SUBDIR "${YOKAI_FILE_SLUG}BuildInfo")
+set(${YOKAI_CMAKE_SLUG}_EMBEDDED_SUBDIR "${YOKAI_FILE_SLUG}EmbeddedFiles")
 
-set(DAEMON_BUILDINFO_DIR "${DAEMON_GENERATED_DIR}/${DAEMON_BUILDINFO_SUBDIR}")
-set(DAEMON_EMBEDDED_DIR "${DAEMON_GENERATED_DIR}/${DAEMON_EMBEDDED_SUBDIR}")
+set(${YOKAI_CMAKE_SLUG}_BUILDINFO_DIR "${${YOKAI_CMAKE_SLUG}_GENERATED_DIR}/${${YOKAI_CMAKE_SLUG}_BUILDINFO_SUBDIR}")
+set(${YOKAI_CMAKE_SLUG}_EMBEDDED_DIR "${${YOKAI_CMAKE_SLUG}_GENERATED_DIR}/${${YOKAI_CMAKE_SLUG}_EMBEDDED_SUBDIR}")
 
-file(MAKE_DIRECTORY "${DAEMON_GENERATED_DIR}")
-include_directories("${DAEMON_GENERATED_DIR}")
+file(MAKE_DIRECTORY "${${YOKAI_CMAKE_SLUG}_GENERATED_DIR}")
+include_directories("${${YOKAI_CMAKE_SLUG}_GENERATED_DIR}")
 
-file(MAKE_DIRECTORY "${DAEMON_BUILDINFO_DIR}")
-file(MAKE_DIRECTORY "${DAEMON_EMBEDDED_DIR}")
+file(MAKE_DIRECTORY "${${YOKAI_CMAKE_SLUG}_BUILDINFO_DIR}")
+file(MAKE_DIRECTORY "${${YOKAI_CMAKE_SLUG}_EMBEDDED_DIR}")
 
-set(DAEMON_GENERATED_HEADER "// Automatically generated, do not modify!\n")
-set(DAEMON_GENERATED_CPP_EXT ".cpp")
-set(DAEMON_GENERATED_H_EXT ".h")
+set(${YOKAI_CMAKE_SLUG}_GENERATED_HEADER "// Automatically generated, do not modify!\n")
+set(${YOKAI_CMAKE_SLUG}_GENERATED_CPP_EXT ".cpp")
+set(${YOKAI_CMAKE_SLUG}_GENERATED_H_EXT ".h")
 
 set(BUILDINFOLIST)
 
 foreach(kind CPP H)
-	set(DAEMON_BUILDINFO_${kind}_TEXT "${DAEMON_GENERATED_HEADER}")
+	set(${YOKAI_CMAKE_SLUG}_BUILDINFO_${kind}_TEXT "${${YOKAI_CMAKE_SLUG}_GENERATED_HEADER}")
 endforeach()
 
-macro(daemon_add_buildinfo type name value)
-	string(APPEND DAEMON_BUILDINFO_CPP_TEXT "const ${type} ${name}=${value};\n")
-	string(APPEND DAEMON_BUILDINFO_H_TEXT "extern const ${type} ${name};\n")
+macro(yokai_add_buildinfo type name value)
+	string(APPEND ${YOKAI_CMAKE_SLUG}_BUILDINFO_CPP_TEXT "const ${type} ${name}=${value};\n")
+	string(APPEND ${YOKAI_CMAKE_SLUG}_BUILDINFO_H_TEXT "extern const ${type} ${name};\n")
 endmacro()
 
-macro(daemon_write_buildinfo name)
+macro(yokai_write_buildinfo name)
 	foreach(kind CPP H)
-		set(buildinfo_file_path "${DAEMON_BUILDINFO_DIR}/${name}${DAEMON_GENERATED_${kind}_EXT}")
+		set(buildinfo_file_path "${${YOKAI_CMAKE_SLUG}_BUILDINFO_DIR}/${name}${${YOKAI_CMAKE_SLUG}_GENERATED_${kind}_EXT}")
 
-		file(GENERATE OUTPUT "${buildinfo_file_path}" CONTENT "${DAEMON_BUILDINFO_${kind}_TEXT}")
+		file(GENERATE OUTPUT "${buildinfo_file_path}" CONTENT "${${YOKAI_CMAKE_SLUG}_BUILDINFO_${kind}_TEXT}")
 		list(APPEND BUILDINFOLIST "${buildinfo_file_path}")
 	endforeach()
 endmacro()
 
-macro(daemon_embed_files basename dir list format targetname)
-	set(embed_subdir "${DAEMON_EMBEDDED_SUBDIR}/${basename}")
-	set(embed_dir "${DAEMON_GENERATED_DIR}/${embed_subdir}")
+macro(yokai_embed_files basename dir list format targetname)
+	set(embed_subdir "${${YOKAI_CMAKE_SLUG}_EMBEDDED_SUBDIR}/${basename}")
+	set(embed_dir "${${YOKAI_CMAKE_SLUG}_GENERATED_DIR}/${embed_subdir}")
 
 	file(MAKE_DIRECTORY "${embed_dir}")
 
 	foreach(kind CPP H)
-		set(embed_${kind}_basename "${basename}${DAEMON_GENERATED_${kind}_EXT}")
-		set(embed_${kind}_src_file "${DAEMON_EMBEDDED_DIR}/${embed_${kind}_basename}")
-		set(embed_${kind}_file "${DAEMON_EMBEDDED_SUBDIR}/${embed_${kind}_basename}")
-		set(embed_${kind}_text "${DAEMON_GENERATED_HEADER}")
-		set_property(SOURCE "${embed_${kind}_src_file}" APPEND PROPERTY OBJECT_DEPENDS "${DAEMON_SOURCE_GENERATOR}")
+		set(embed_${kind}_basename "${basename}${${YOKAI_CMAKE_SLUG}_GENERATED_${kind}_EXT}")
+		set(embed_${kind}_src_file "${${YOKAI_CMAKE_SLUG}_EMBEDDED_DIR}/${embed_${kind}_basename}")
+		set(embed_${kind}_file "${${YOKAI_CMAKE_SLUG}_EMBEDDED_SUBDIR}/${embed_${kind}_basename}")
+		set(embed_${kind}_text "${${YOKAI_CMAKE_SLUG}_GENERATED_HEADER}")
+		set_property(SOURCE "${embed_${kind}_src_file}" APPEND PROPERTY OBJECT_DEPENDS "${${YOKAI_CMAKE_SLUG}_SOURCE_GENERATOR}")
 		set_property(TARGET "${targetname}" APPEND PROPERTY SOURCES "${embed_${kind}_src_file}")
 	endforeach()
 
-	if (NOT DAEMON_EMBEDDED_FILES_HEADER)
-		set(DAEMON_EMBEDDED_FILES_HEADER "${DAEMON_EMBEDDED_SUBDIR}/DaemonEmbeddedFiles.h")
+	if (NOT ${YOKAI_CMAKE_SLUG}_EMBEDDED_FILES_HEADER)
+		set(${YOKAI_CMAKE_SLUG}_EMBEDDED_FILES_HEADER "${${YOKAI_CMAKE_SLUG}_EMBEDDED_SUBDIR}/${YOKAI_FILE_SLUG}EmbeddedFiles.h")
 
 		string(APPEND embed_header_text
 			"// Automatically generated, do not modify!\n"
-			"#ifndef DAEMON_EMBEDDED_FILES_H_\n"
-			"#define DAEMON_EMBEDDED_FILES_H_\n"
+			"#ifndef ${YOKAI_CMAKE_SLUG}_EMBEDDED_FILES_H_\n"
+			"#define ${YOKAI_CMAKE_SLUG}_EMBEDDED_FILES_H_\n"
 			"#include <cstddef>\n"
 			"#include <unordered_map>\n"
 			"#include <string>\n"
@@ -104,10 +106,10 @@ macro(daemon_embed_files basename dir list format targetname)
 			"};\n"
 			"\n"
 			"using embeddedFileMap_t = std::unordered_map<std::string, const embeddedFileMapEntry_t>;\n"
-			"#endif // DAEMON_EMBEDDED_FILES_H_\n"
+			"#endif // ${YOKAI_CMAKE_SLUG}_EMBEDDED_FILES_H_\n"
 		)
 
-		set(embed_header_file "${DAEMON_GENERATED_DIR}/${DAEMON_EMBEDDED_FILES_HEADER}")
+		set(embed_header_file "${${YOKAI_CMAKE_SLUG}_GENERATED_DIR}/${${YOKAI_CMAKE_SLUG}_EMBEDDED_FILES_HEADER}")
 		file(GENERATE OUTPUT "${embed_header_file}" CONTENT "${embed_header_text}")
 	endif()
 
@@ -118,7 +120,7 @@ macro(daemon_embed_files basename dir list format targetname)
 	)
 
 	string(APPEND embed_H_text
-		"#include \"${DAEMON_EMBEDDED_FILES_HEADER}\"\n"
+		"#include \"${${YOKAI_CMAKE_SLUG}_EMBEDDED_FILES_HEADER}\"\n"
 		"\n"
 		"namespace ${basename} {\n"
 	)
@@ -129,7 +131,7 @@ macro(daemon_embed_files basename dir list format targetname)
 		string(REGEX REPLACE "[^A-Za-z0-9]" "_" filename_symbol "${filename}")
 
 		set(inpath "${dir}/${filename}")
-		set(outpath "${embed_dir}/${filename_symbol}${DAEMON_GENERATED_H_EXT}")
+		set(outpath "${embed_dir}/${filename_symbol}${${YOKAI_CMAKE_SLUG}_GENERATED_H_EXT}")
 
 		add_custom_command(
 			OUTPUT "${outpath}"
@@ -138,11 +140,11 @@ macro(daemon_embed_files basename dir list format targetname)
 				"-DOUTPUT_FILE=${outpath}"
 				"-DFILE_FORMAT=${format}"
 				"-DVARIABLE_NAME=${filename_symbol}"
-				-P "${DAEMON_FILE_EMBEDDER}"
+				-P "${${YOKAI_CMAKE_SLUG}_FILE_EMBEDDER}"
 			MAIN_DEPENDENCY ${inpath}
 			DEPENDS
-				"${DAEMON_FILE_EMBEDDER}"
-				"${DAEMON_SOURCE_GENERATOR}"
+				"${${YOKAI_CMAKE_SLUG}_FILE_EMBEDDER}"
+				"${${YOKAI_CMAKE_SLUG}_SOURCE_GENERATOR}"
 		)
 
 		set_property(TARGET "${targetname}" APPEND PROPERTY SOURCES "${outpath}")
@@ -174,7 +176,7 @@ macro(daemon_embed_files basename dir list format targetname)
 	)
 
 	foreach(kind CPP H)
-		set(embed_file "${DAEMON_GENERATED_DIR}/${embed_${kind}_file}")
+		set(embed_file "${${YOKAI_CMAKE_SLUG}_GENERATED_DIR}/${embed_${kind}_file}")
 		file(GENERATE OUTPUT "${embed_file}" CONTENT "${embed_${kind}_text}")
 	endforeach()
 endmacro()
