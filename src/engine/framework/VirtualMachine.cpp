@@ -46,7 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern char **environ;
 #ifdef __linux__
 #include <sys/prctl.h>
-#if defined(DAEMON_ARCH_armhf)
+#if defined(YOKAI_ARCH_armhf)
 #include <sys/utsname.h>
 #endif
 #endif
@@ -138,7 +138,7 @@ static Cvar::Cvar<int> vm_timeout(
 	"Receive timeout in seconds",
 	Cvar::NONE, 2);
 
-#if defined(DAEMON_NACL_RUNTIME_ENABLED)
+#if defined(YOKAI_NACL_RUNTIME_ENABLED)
 static Cvar::Cvar<bool> vm_nacl_available(
 	"vm.nacl.available",
 	"Whether NaCl runtime is available on this platform",
@@ -329,7 +329,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	// Extract the nexe from the pak so that nacl_loader can load it
 	module = win32Force64Bit
 		? name + "-amd64.nexe"
-		: Str::Format("%s-%s.nexe", name, DAEMON_NACL_ARCH_STRING);
+		: Str::Format("%s-%s.nexe", name, YOKAI_NACL_ARCH_STRING);
 	if (extract) {
 		try {
 			FS::File out = FS::HomePath::OpenWrite(module);
@@ -349,7 +349,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	Q_snprintf(rootSocketRedir, sizeof(rootSocketRedir), "%d:%d", ROOT_SOCKET_FD, (int)(intptr_t)pair.second.GetHandle());
 	irt = FS::Path::Build(naclPath, win32Force64Bit
 		? "irt_core-amd64.nexe"
-		: Str::Format("irt_core-%s.nexe", DAEMON_NACL_ARCH_STRING));
+		: Str::Format("irt_core-%s.nexe", YOKAI_NACL_ARCH_STRING));
 	nacl_loader = FS::Path::Build(naclPath, win32Force64Bit ? "nacl_loader-amd64" EXE_EXT : "nacl_loader" EXE_EXT);
 
 	if (!FS::RawPath::FileExists(modulePath)) {
@@ -394,7 +394,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	}
 #else
 	if (vm_nacl_bootstrap.Get()) {
-#if defined(DAEMON_ARCH_arm64)
+#if defined(YOKAI_ARCH_arm64)
 		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap-armhf");
 #else
 		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
@@ -421,11 +421,11 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	bool enableQualification = vm_nacl_qualification.Get();
 
 	if (enableQualification) {
-#if defined(__linux__) && (defined(DAEMON_ARCH_arm64) || defined(DAEMON_ARCH_armhf))
+#if defined(__linux__) && (defined(YOKAI_ARCH_arm64) || defined(YOKAI_ARCH_armhf))
 		if (workaround_naclArchitecture_arm64_disableQualification.Get()) {
-#if defined(DAEMON_ARCH_arm64)
+#if defined(YOKAI_ARCH_arm64)
 			bool onArm64 = true;
-#elif defined(DAEMON_ARCH_armhf)
+#elif defined(YOKAI_ARCH_armhf)
 			bool onArm64 = false;
 
 			struct utsname buf;
@@ -614,7 +614,7 @@ void VMBase::Create()
 	std::pair<IPC::Socket, IPC::Socket> pair = IPC::Socket::CreatePair();
 
 	IPC::Socket rootSocket;
-#if !defined(DAEMON_NACL_RUNTIME_ENABLED)
+#if !defined(YOKAI_NACL_RUNTIME_ENABLED)
 	if (type == TYPE_NACL || type == TYPE_NACL_LIBPATH) {
 		Sys::Error("NaCl VM is not supported on this platform. "
 		           "Set vm.cgame.type and vm.sgame.type to 3 (native DLL) "

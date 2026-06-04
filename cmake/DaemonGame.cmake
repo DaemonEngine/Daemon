@@ -40,7 +40,7 @@ option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for b
 
 include(ExternalProject)
 
-include(DaemonYokai)
+include(Yokai/All)
 
 # Do not report unused native compiler if native vms are not built.
 # If only NACL vms are built, this will be reported in chainloaded build.
@@ -71,7 +71,7 @@ include(CMakeParseArguments)
 # The NaCl SDK only runs on amd64 or i686.
 if (NOT FORK EQUAL 2)
 	if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
-	AND (DAEMON_ARCH_amd64 OR DAEMON_ARCH_i686))
+	AND (YOKAI_ARCH_amd64 OR YOKAI_ARCH_i686))
 		# can be loaded by daemon with vm.[sc]game.type 0 or 1
 		option(BUILD_GAME_NACL "Build the NaCl \"pexe\" and \"nexe\" gamelogic modules for enabled architecture targets, required to host mods." OFF)
 
@@ -82,7 +82,7 @@ if (NOT FORK EQUAL 2)
 		if (BUILD_GAME_NACL_TARGETS STREQUAL "all")
 			set(NACL_TARGETS "${NACL_ALL_TARGETS}")
 		elseif (BUILD_GAME_NACL_TARGETS STREQUAL "native")
-			set(NACL_TARGETS "${DAEMON_ARCH_NAME}")
+			set(NACL_TARGETS "${YOKAI_ARCH_NAME}")
 		elseif (BUILD_GAME_NACL_TARGETS STREQUAL "none")
 			set(NACL_TARGETS "")
 		else()
@@ -107,7 +107,7 @@ if (NOT FORK EQUAL 2)
 	endif()
 endif()
 
-yokai_write_buildinfo("Game")
+yokai_write_buildinfo("DaemonGame")
 
 function(buildGameModule module_slug)
 	set(module_target "${GAMEMODULE_NAME}-${module_slug}")

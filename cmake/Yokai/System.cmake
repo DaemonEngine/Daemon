@@ -28,8 +28,8 @@
 # System detection.
 ################################################################################
 
-# When adding a new system, look at all the places ${YOKAI_CMAKE_SLUG}_HOST_SYSTEM
-# and ${YOKAI_CMAKE_SLUG}_SYSTEM are used.
+# When adding a new system, look at all the places YOKAI_HOST_SYSTEM
+# and YOKAI_SYSTEM are used.
 
 function(yokai_detect_host_system)
 	set(system_name "Unknown")
@@ -63,7 +63,7 @@ function(yokai_detect_host_system)
 		detect_cmake_host_system("system_name")
 	endif()
 
-	set(${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
+	set(YOKAI_HOST_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
 endfunction()
 
 function(yokai_detect_system)
@@ -73,42 +73,42 @@ function(yokai_detect_system)
 		detect_cmake_host_system("system_name")
 	endif()
 
-	set(${YOKAI_CMAKE_SLUG}_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
+	set(YOKAI_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
 endfunction()
 
 yokai_detect_host_system()
 yokai_detect_system()
 
-if ("${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}" STREQUAL "Unknown")
+if ("${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "Unknown")
 	message(WARNING "Unknown host system")
 endif()
 
-if ("${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}" STREQUAL "Unknown")
+if ("${YOKAI_SYSTEM_NAME}" STREQUAL "Unknown")
 	message(WARNING "Unknown target system")
 endif()
 
-if ("${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}" STREQUAL "Unknown" AND NOT "${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}" STREQUAL "Unknown")
-	message(WARNING "Assuming the host system is the same as the target: ${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}")
-	set(${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME "${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}")
+if ("${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "Unknown" AND NOT "${YOKAI_SYSTEM_NAME}" STREQUAL "Unknown")
+	message(WARNING "Assuming the host system is the same as the target: ${YOKAI_SYSTEM_NAME}")
+	set(YOKAI_HOST_SYSTEM_NAME "${YOKAI_SYSTEM_NAME}")
 endif()
 
-if ("${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}" STREQUAL "Unknown" AND NOT "${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}" STREQUAL "Unknown")
-	message(WARNING "Assuming the target system is the same as the host: ${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}")
-	set(${YOKAI_CMAKE_SLUG}_SYSTEM_NAME "${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}")
+if ("${YOKAI_SYSTEM_NAME}" STREQUAL "Unknown" AND NOT "${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "Unknown")
+	message(WARNING "Assuming the target system is the same as the host: ${YOKAI_SYSTEM_NAME}")
+	set(YOKAI_SYSTEM_NAME "${YOKAI_HOST_SYSTEM_NAME}")
 endif()
 
-message(STATUS "Detected host system: ${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}")
-message(STATUS "Detected target system: ${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}")
+message(STATUS "Detected host system: ${YOKAI_HOST_SYSTEM_NAME}")
+message(STATUS "Detected target system: ${YOKAI_SYSTEM_NAME}")
 
-if (NOT "${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}" STREQUAL "${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}")
+if (NOT "${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "${YOKAI_SYSTEM_NAME}")
 	message(STATUS "Detected cross-compilation")
 endif()
 
 # Makes possible to do that in CMake code:
-# > if (${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_Linux)
-# > if (${YOKAI_CMAKE_SLUG}_SYSTEM_Windows)
-set("${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_${${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_NAME}" ON)
-set("${YOKAI_CMAKE_SLUG}_SYSTEM_${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}" ON)
+# > if (YOKAI_HOST_SYSTEM_Linux)
+# > if (YOKAI_SYSTEM_Windows)
+set("YOKAI_HOST_SYSTEM_${YOKAI_HOST_SYSTEM_NAME}" ON)
+set("YOKAI_SYSTEM_${YOKAI_SYSTEM_NAME}" ON)
 
 # This is for systems behaving similarly to a Linux Desktop,
 # implementing standards like FHS, XDG, GLVND…
@@ -117,13 +117,13 @@ set("${YOKAI_CMAKE_SLUG}_SYSTEM_${${YOKAI_CMAKE_SLUG}_SYSTEM_NAME}" ON)
 # > if (${YOKAI_CMAKE_SLUG}_SYSTEM_XDG_COMPATIBILITY)
 foreach(name Linux;FreeBSD)
 	foreach(slug HOST_SYSTEM;SYSTEM)
-		if (${YOKAI_CMAKE_SLUG}_${slug}_${name})
-			set(${YOKAI_CMAKE_SLUG}_${slug}_XDG_COMPATIBILITY ON)
+		if (YOKAI_${slug}_${name})
+			set(YOKAI_${slug}_XDG_COMPATIBILITY ON)
 		endif()
 	endforeach()
 endforeach()
 
-if (${YOKAI_CMAKE_SLUG}_SOURCE_GENERATOR)
+if (YOKAI_SOURCE_GENERATOR)
 	# Add printable string to the executable.
-	yokai_add_buildinfo("char*" "${YOKAI_C_SLUG}_SYSTEM_STRING" "\"${${YOKAI_C_SLUG}_SYSTEM_NAME}\"")
+	yokai_add_buildinfo("char*" "YOKAI_SYSTEM_STRING" "\"${YOKAI_SYSTEM_NAME}\"")
 endif()

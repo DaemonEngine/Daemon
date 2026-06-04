@@ -28,8 +28,8 @@
 # Compiler detection.
 ################################################################################
 
-# When adding a new compiler, look at all the places ${YOKAI_CMAKE_SLUG}_C_COMPILER
-# and ${YOKAI_CMAKE_SLUG}_CXX_COMPILER are used.
+# When adding a new compiler, look at all the places YOKAI_C_COMPILER
+# and YOKAI_CXX_COMPILER are used.
 
 function(yokai_detect_compiler lang)
 	set(C_NAME "C")
@@ -126,9 +126,9 @@ function(yokai_detect_compiler lang)
 		message(WARNING "Unknown ${${lang}_NAME} compiler version")
 	endif()
 
-	set(${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_BASENAME "${compiler_basename}" PARENT_SCOPE)
-	set(${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_NAME "${compiler_name}" PARENT_SCOPE)
-	set(${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_VERSION "${compiler_version}" PARENT_SCOPE)
+	set(YOKAI_${lang}_COMPILER_BASENAME "${compiler_basename}" PARENT_SCOPE)
+	set(YOKAI_${lang}_COMPILER_NAME "${compiler_name}" PARENT_SCOPE)
+	set(YOKAI_${lang}_COMPILER_VERSION "${compiler_version}" PARENT_SCOPE)
 endfunction()
 
 message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
@@ -140,20 +140,20 @@ foreach(lang C;CXX)
 	if (MSVC)
 		# Let CMake do the job, it does it very well,
 		# and there is probably no variant to take care about.
-		set(${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_MSVC_COMPATIBILITY ON)
-		set(${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_NAME "${CMAKE_${lang}_COMPILER_ID}")
-		set(${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_VERSION "${CMAKE_${lang}_COMPILER_VERSION}")
-		get_filename_component(${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_BASENAME "${CMAKE_${lang}_COMPILER}" NAME)
+		set(YOKAI_${lang}_COMPILER_MSVC_COMPATIBILITY ON)
+		set(YOKAI_${lang}_COMPILER_NAME "${CMAKE_${lang}_COMPILER_ID}")
+		set(YOKAI_${lang}_COMPILER_VERSION "${CMAKE_${lang}_COMPILER_VERSION}")
+		get_filename_component(YOKAI_${lang}_COMPILER_BASENAME "${CMAKE_${lang}_COMPILER}" NAME)
 	else()
 		yokai_detect_compiler(${lang})
 
-		if (${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_Clang_COMPATIBILITY)
-			if (NOT ${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_NAME STREQUAL "Clang")
-				set(${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_EXTENDED_VERSION
-					"${${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_VERSION}/Clang_${${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_Clang_VERSION}")
+		if (YOKAI_${lang}_COMPILER_Clang_COMPATIBILITY)
+			if (NOT YOKAI_${lang}_COMPILER_NAME STREQUAL "Clang")
+				set(YOKAI_${lang}_COMPILER_EXTENDED_VERSION
+					"${YOKAI_${lang}_COMPILER_VERSION}/Clang_${YOKAI_${lang}_COMPILER_Clang_VERSION}")
 			endif()
-		elseif (${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_GCC_COMPATIBILITY)
-			if (NOT ${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_NAME STREQUAL "GCC")
+		elseif (YOKAI_${lang}_COMPILER_GCC_COMPATIBILITY)
+			if (NOT YOKAI_${lang}_COMPILER_NAME STREQUAL "GCC")
 				# Almost all compilers on Earth pretend to be GCC compatible.
 				# So we first have to check it's really a GCC variant.
 				# Parse “<compiler> -v”
@@ -168,38 +168,38 @@ foreach(lang C;CXX)
 					# the version of the GCC variant, not the version of the upstream
 					# GCC we are looking for.
 					if ("${CUSTOM_${lang}_GCC_OUTPUT}" MATCHES "\ngcc version ")
-						set(${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_EXTENDED_VERSION
-							"${${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_VERSION}/GCC_${${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_GCC_VERSION}")
+						set(YOKAI_${lang}_COMPILER_EXTENDED_VERSION
+							"${YOKAI_${lang}_COMPILER_VERSION}/GCC_${YOKAI_${lang}_COMPILER_GCC_VERSION}")
 					endif()
 				endif()
 			endif()
 		endif()
 	endif()
 
-	if (NOT ${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_EXTENDED_VERSION)
-		set(${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_EXTENDED_VERSION "${${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_VERSION}")
+	if (NOT YOKAI_${lang}_COMPILER_EXTENDED_VERSION)
+		set(YOKAI_${lang}_COMPILER_EXTENDED_VERSION "${YOKAI_${lang}_COMPILER_VERSION}")
 	endif()
 
-	set(${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_STRING
-		"${${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_NAME}_${${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_EXTENDED_VERSION}:${${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_BASENAME}")
+	set(YOKAI_${lang}_COMPILER_STRING
+		"${YOKAI_${lang}_COMPILER_NAME}_${YOKAI_${lang}_COMPILER_EXTENDED_VERSION}:${YOKAI_${lang}_COMPILER_BASENAME}")
 
 	if (CMAKE_CXX_COMPILER_ARG1)
-		set(${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_STRING "${${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_STRING}:${CMAKE_CXX_COMPILER_ARG1}")
+		set(YOKAI_${lang}_COMPILER_STRING "${YOKAI_${lang}_COMPILER_STRING}:${CMAKE_CXX_COMPILER_ARG1}")
 	endif()
 
-	message(STATUS "Detected ${${lang}_NAME} compiler: ${${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_STRING}")
+	message(STATUS "Detected ${${lang}_NAME} compiler: ${YOKAI_${lang}_COMPILER_STRING}")
 
 	# Makes possible to do that in C++ code:
-	# > if defined(${YOKAI_CMAKE_SLUG}_CXX_COMPILER_Clang)
-	set(compiler_var_name "${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_${${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_NAME}")
+	# > if defined(YOKAI_CXX_COMPILER_Clang)
+	set(compiler_var_name "YOKAI_${lang}_COMPILER_${YOKAI_${lang}_COMPILER_NAME}")
 	add_definitions(-D${compiler_var_name})
 
 	# Makes possible to do that in CMake code:
-	# > if (${YOKAI_CMAKE_SLUG}_CXX_COMPILER_Clang)
+	# > if (YOKAI_CXX_COMPILER_Clang)
 	set("${compiler_var_name}" ON)
 
-	if (${YOKAI_CMAKE_SLUG}_SOURCE_GENERATOR)
+	if (YOKAI_SOURCE_GENERATOR)
 		# Add printable string to the executable.
-		yokai_add_buildinfo("char*" "${YOKAI_C_SLUG}_${lang}_COMPILER_STRING" "\"${${YOKAI_CMAKE_SLUG}_${lang}_COMPILER_STRING}\"")
+		yokai_add_buildinfo("char*" "YOKAI_${lang}_COMPILER_STRING" "\"${YOKAI_${lang}_COMPILER_STRING}\"")
 	endif()
 endforeach()

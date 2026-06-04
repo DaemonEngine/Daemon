@@ -41,8 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error "Platform not supported"
 #endif
 
-// TODO: Remove once the game code is ported to DAEMON_SYSTEM_STRING.
-#define PLATFORM_STRING DAEMON_SYSTEM_STRING
+// TODO: Remove once the game code is ported to YOKAI_SYSTEM_STRING.
+#define PLATFORM_STRING YOKAI_SYSTEM_STRING
 
 #if defined(__native_client__)
 #elif defined(_WIN32)
@@ -55,19 +55,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PATH_SEP '/'
 #endif
 
-#if defined(DAEMON_ARCH_i686)
+#if defined(YOKAI_ARCH_i686)
 #undef __i386__
 #define __i386__ 1
-#elif defined(DAEMON_ARCH_amd64)
+#elif defined(YOKAI_ARCH_amd64)
 #undef __x86_64__
 #define __x86_64__ 1
 #endif
 
-/* The definition name syntax is: DAEMON_USE_ARCH_INTRINSICS_<architecture>[_extension]
+/* The definition name syntax is: YOKAI_USE_ARCH_INTRINSICS_<architecture>[_extension]
 
 Examples:
 
-- DAEMON_USE_ARCH_INTRINSICS_i686: i686 specific code, including asm code.
+- YOKAI_USE_ARCH_INTRINSICS_i686: i686 specific code, including asm code.
 - DAEMON_USE_ARCH_INTRINSICS_i686_sse: i686 SSE specific code.
 - DAEMON_USE_ARCH_INTRINSICS_i686_sse2: i686 SSE2 specific code.
 
@@ -78,7 +78,7 @@ i686 with SSE and amd64.
 
 The definitions for the architecture itself are automatically set by CMake. */
 
-#if defined(DAEMON_USE_ARCH_INTRINSICS)
+#if defined(YOKAI_USE_ARCH_INTRINSICS)
 	// Set architecture extensions definitions.
 
 	#if defined(_MSC_VER)

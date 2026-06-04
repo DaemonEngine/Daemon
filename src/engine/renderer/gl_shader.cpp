@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <common/FileSystem.h>
 #include "gl_shader.h"
 #include "Material.h"
-#include "DaemonEmbeddedFiles/EngineShaders.h"
+#include "YokaiEmbeddedFiles/DaemonEngineShaders.h"
 
 // We currently write GLBinaryHeader to a file and memcpy all over it.
 // Make sure it's a pod, so we don't put a std::string in it or something
@@ -90,8 +90,8 @@ namespace // Implementation details
 
 	const char* GetInternalShader(Str::StringRef filename)
 	{
-		auto it = EngineShaders::FileMap.find(filename);
-		if (it != EngineShaders::FileMap.end())
+		auto it = DaemonEngineShaders::FileMap.find(filename);
+		if (it != DaemonEngineShaders::FileMap.end())
 			return it->second.data;
 		return nullptr;
 	}
