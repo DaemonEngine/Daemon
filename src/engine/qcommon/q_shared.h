@@ -38,9 +38,9 @@ Maryland 20850 USA.
 #include "common/Defs.h"
 
 #if defined(BUILD_VM)
-#include "DaemonBuildInfo/Game.h"
+#include "YokaiBuildInfo/DaemonGame.h"
 #else
-#include "DaemonBuildInfo/Engine.h"
+#include "YokaiBuildInfo/DaemonEngine.h"
 #endif
 
 // math.h/cmath uses _USE_MATH_DEFINES to decide if to define M_PI etc or not.

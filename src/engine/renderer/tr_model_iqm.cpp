@@ -37,7 +37,7 @@ Maryland 20850 USA.
 
 /* Flags -O2, -O3 and -0s produce SIGBUS in R_LoadIQModel() on armhf,
 see https://github.com/DaemonEngine/Daemon/issues/736 */
-#if defined(DAEMON_ARCH_armhf) && !defined(DAEMON_BUILD_Debug) && __GNUC__
+#if defined(YOKAI_ARCH_armhf) && !defined(DAEMON_BUILD_Debug) && __GNUC__
 	#pragma GCC optimize("O1")
 #endif
 

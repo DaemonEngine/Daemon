@@ -28,8 +28,6 @@
 # System, architecture and compiler detection.
 ################################################################################
 
-include("${CMAKE_CURRENT_LIST_DIR}/Variable.cmake")
-
 # Make sure to always call this macro from within a function, not in the global scope.
 # As a macro it produces a lot of variables in the parent scope but it is meant to
 # only be called by functions so they should never pollute the global scope.
@@ -76,7 +74,7 @@ macro(yokai_run_detection slug_prefix report_slug file_name compat_list)
 				string(REGEX REPLACE ${COMPATIBILITY_REGEX} "\\1"
 				${local_slug}_${name}_compatibility "${build_log}")
 
-				set("${YOKAI_CMAKE_SLUG}_${slug_prefix}${report_slug}_${name}_COMPATIBILITY"
+				set("YOKAI_${slug_prefix}${report_slug}_${name}_COMPATIBILITY"
 					"${${local_slug}_${name}_compatibility}"
 					PARENT_SCOPE)
 			endif()
@@ -86,7 +84,7 @@ macro(yokai_run_detection slug_prefix report_slug file_name compat_list)
 				string(REGEX REPLACE ${VERSION_REGEX} "\\1"
 				${local_slug}_${name}_version "${build_log}")
 
-				set("${YOKAI_CMAKE_SLUG}_${slug_prefix}${report_slug}_${name}_VERSION"
+				set("YOKAI_${slug_prefix}${report_slug}_${name}_VERSION"
 					"${${local_slug}_${name}_version}"
 					PARENT_SCOPE)
 			endif()
