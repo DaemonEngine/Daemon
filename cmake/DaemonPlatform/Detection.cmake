@@ -24,6 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+################################################################################
+# System, architecture and compiler detection.
+################################################################################
+
 # Make sure to always call this macro from within a function, not in the global scope.
 # As a macro it produces a lot of variables in the parent scope but it is meant to
 # only be called by functions so they should never pollute the global scope.
