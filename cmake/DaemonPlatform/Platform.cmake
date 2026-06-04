@@ -29,7 +29,7 @@
 # projects.
 ################################################################################
 
-# Source generation.
+# Source generation and file embedding.
 include("${CMAKE_CURRENT_LIST_DIR}/SourceGenerator.cmake")
 
 # System, architecture and compiler detection.
