@@ -75,7 +75,7 @@ if (Daemon_OUT)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Daemon_OUT})
 endif()
 
-include(DaemonPlatform/Platform)
+include(DaemonYokai)
 
 ################################################################################
 # Configuration options
@@ -587,7 +587,7 @@ else()
             message(STATUS "Found OpenGL ABI: ${OpenGL_selected_ABI}")
             message(STATUS "Found OpenGL library: ${OpenGL_selected_LIBRARY}")
 
-            daemon_add_buildinfo("char*" "DAEMON_OPENGL_ABI_STRING" "\"${OpenGL_selected_ABI}\"")
+            yokai_add_buildinfo("char*" "DAEMON_OPENGL_ABI_STRING" "\"${OpenGL_selected_ABI}\"")
             add_definitions("-DDAEMON_OPENGL_ABI_${OpenGL_selected_ABI}")
             add_definitions("-DDAEMON_OPENGL_ABI")
         endif()
@@ -639,7 +639,7 @@ endif()
 
 if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     if (NACL_RUNTIME_PATH)
-        daemon_add_buildinfo("char*" "DAEMON_NACL_RUNTIME_PATH_STRING" "\"${NACL_RUNTIME_PATH}\"")
+        yokai_add_buildinfo("char*" "DAEMON_NACL_RUNTIME_PATH_STRING" "\"${NACL_RUNTIME_PATH}\"")
         add_definitions("-DDAEMON_NACL_RUNTIME_PATH")
     endif()
 
@@ -877,7 +877,7 @@ function(AddApplication)
     ADD_PRECOMPILED_HEADER(${A_Target}-objects)
 endfunction()
 
-daemon_write_buildinfo("Engine")
+yokai_write_buildinfo("Engine")
 
 if (NOT DAEMON_SYSTEM_NaCl)
     add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${BUILDINFOLIST} ${COMMONLIST} ${ENGINELIST})
@@ -930,9 +930,9 @@ if (BUILD_CLIENT)
     )
 
     # Generate GLSL include files.
-    daemon_embed_files("EngineShaders" "${GLSL_EMBED_DIR}" "${GLSL_EMBED_LIST}" "TEXT" "client-objects")
+    yokai_embed_files("EngineShaders" "${GLSL_EMBED_DIR}" "${GLSL_EMBED_LIST}" "TEXT" "client-objects")
 
-    daemon_embed_files(ConsoleFont "${CMAKE_CURRENT_SOURCE_DIR}/libs/unifont" unifont.otf BINARY client-objects)
+    yokai_embed_files(ConsoleFont "${CMAKE_CURRENT_SOURCE_DIR}/libs/unifont" unifont.otf BINARY client-objects)
 endif()
 
 if (BUILD_SERVER)

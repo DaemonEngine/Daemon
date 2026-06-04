@@ -39,7 +39,8 @@ option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for 
 option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
 
 include(ExternalProject)
-include(DaemonPlatform/Platform)
+
+include(DaemonYokai)
 
 # Do not report unused native compiler if native vms are not built.
 # If only NACL vms are built, this will be reported in chainloaded build.
@@ -106,7 +107,7 @@ if (NOT FORK EQUAL 2)
 	endif()
 endif()
 
-daemon_write_buildinfo("Game")
+yokai_write_buildinfo("Game")
 
 function(buildGameModule module_slug)
 	set(module_target "${GAMEMODULE_NAME}-${module_slug}")
