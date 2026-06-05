@@ -28,7 +28,8 @@ include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 include(DaemonBuildTypeGeneratorExpression)
 
-add_definitions(-DDAEMON_BUILD_${CMAKE_BUILD_TYPE})
+string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
+add_definitions(-DDAEMON_BUILD_${CMAKE_BUILD_TYPE_UPPER})
 
 option(USE_COMPILER_INTRINSICS "Enable usage of compiler intrinsics" ON)
 mark_as_advanced(USE_COMPILER_INTRINSICS)
