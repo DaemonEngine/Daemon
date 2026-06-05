@@ -65,12 +65,12 @@ option(STRIP_SOURCE_PATHS "Strip source paths in debug symbols" ${DEFAULT_STRIP_
 
 # Required for <stacktrace> on Clang/GCC
 if(USE_CPP23)
-    if (YOKAI_CXX_COMPILER_Clang_COMPATIBILITY OR YOKAI_CXX_COMPILER_GCC_COMPATIBILITY)
-		if ((YOKAI_CXX_COMPILER_Clang_VERSION VERSION_GREATER_EQUAL 19.1.0) OR (YOKAI_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 13.3))
+    if (YOKAI_CXX_COMPILER_CLANG_COMPATIBILITY OR YOKAI_CXX_COMPILER_GCC_COMPATIBILITY)
+		if ((YOKAI_CXX_COMPILER_CLANG_VERSION VERSION_GREATER_EQUAL 19.1.0) OR (YOKAI_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 13.3))
 			set(CPP23SupportLibraryTryExp TRUE)
 		endif()
 
-		if ((YOKAI_CXX_COMPILER_Clang_VERSION VERSION_GREATER_EQUAL 17.0.1) OR (YOKAI_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 12.1))
+		if ((YOKAI_CXX_COMPILER_CLANG_VERSION VERSION_GREATER_EQUAL 17.0.1) OR (YOKAI_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 12.1))
 			set(CPP23SupportLibraryTryBacktrace TRUE)
 		endif()
 
@@ -382,7 +382,7 @@ else()
 		endif()
 	endif()
 
-	if (YOKAI_SYSTEM_NaCl AND USE_NACL_SAIGO AND YOKAI_NACL_ARCH_armhf)
+	if (YOKAI_SYSTEM_NACL AND USE_NACL_SAIGO AND YOKAI_NACL_ARCH_ARMHF)
 		# Saigo produces broken arm builds when optimizing them.
 		# See: https://github.com/Unvanquished/Unvanquished/issues/3297
 		# When setting this clang-specific option, we don't have to care
@@ -431,7 +431,7 @@ else()
 		try_flag(WARNINGS "-Werror")
 	endif()
 
-	if (YOKAI_SYSTEM_NaCl AND NOT USE_NACL_SAIGO)
+	if (YOKAI_SYSTEM_NACL AND NOT USE_NACL_SAIGO)
 		# PNaCl only supports libc++ as standard library.
 		set_c_cxx_flag("-stdlib=libc++")
 		set_c_cxx_flag("--pnacl-allow-exceptions")
@@ -443,12 +443,12 @@ else()
 	try_cxx_flag(FNO_GNU_UNIQUE "-fno-gnu-unique")
 
 	# Use MSVC-compatible bitfield layout
-	if (YOKAI_SYSTEM_Windows)
+	if (YOKAI_SYSTEM_WINDOWS)
 		set_c_cxx_flag("-mms-bitfields")
 	endif()
 
 	# Linker flags
-	if (NOT YOKAI_SYSTEM_macOS)
+	if (NOT YOKAI_SYSTEM_MACOS)
 		try_linker_flag(LINKER_O1 "-Wl,-O1")
 		try_linker_flag(LINKER_SORT_COMMON "-Wl,--sort-common")
 		try_linker_flag(LINKER_AS_NEEDED "-Wl,--as-needed")
@@ -461,7 +461,7 @@ else()
 		try_linker_flag(LINKER_Z_NOW "-Wl,-z,now")
 	endif()
 
-	if (YOKAI_SYSTEM_Windows)
+	if (YOKAI_SYSTEM_WINDOWS)
 		try_linker_flag(LINKER_DYNAMICBASE "-Wl,--dynamicbase")
 		try_linker_flag(LINKER_NXCOMPAT "-Wl,--nxcompat")
 		try_linker_flag(LINKER_LARGE_ADDRESS_AWARE "-Wl,--large-address-aware")
@@ -474,7 +474,7 @@ else()
 
 	# The -pthread flag sets some preprocessor defines,
 	# it is also used to link with libpthread on Linux.
-	if (NOT YOKAI_SYSTEM_macOS)
+	if (NOT YOKAI_SYSTEM_MACOS)
 		try_c_cxx_flag(PTHREAD "-pthread")
 	endif()
 
@@ -507,7 +507,7 @@ else()
 
 	if (USE_HARDENING)
 		# PNaCl accepts the flags but does not define __stack_chk_guard and __stack_chk_fail.
-		if (NOT YOKAI_SYSTEM_NaCl)
+		if (NOT YOKAI_SYSTEM_NACL)
 			try_c_cxx_flag(FSTACK_PROTECTOR_STRONG "-fstack-protector-strong")
 
 			if (NOT FLAG_FSTACK_PROTECTOR_STRONG)
@@ -518,21 +518,21 @@ else()
 		try_c_cxx_flag(FNO_STRICT_OVERFLOW "-fno-strict-overflow")
 		try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
 
-		if (NOT YOKAI_SYSTEM_NaCl)
+		if (NOT YOKAI_SYSTEM_NACL)
 			# The -pie flag requires -fPIC:
 			# > ld: error: relocation R_X86_64_64 cannot be used against local symbol; recompile with -fPIC
 			# This flag isn't used on macOS:
 			# > clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
-			if (FLAG_FPIC AND NOT YOKAI_SYSTEM_macOS)
+			if (FLAG_FPIC AND NOT YOKAI_SYSTEM_MACOS)
 				try_exe_linker_flag(LINKER_PIE "-pie")
 			endif()
 		endif()
 
 		if ("${FLAG_LINKER_PIE}" AND MINGW)
 			# https://github.com/msys2/MINGW-packages/issues/4100
-			if (YOKAI_ARCH_i686)
+			if (YOKAI_ARCH_I686)
 				set_linker_flag("-Wl,-e,_mainCRTStartup")
-			elseif(YOKAI_ARCH_amd64)
+			elseif(YOKAI_ARCH_AMD64)
 				set_linker_flag("-Wl,-e,mainCRTStartup")
 			else()
 				message(FATAL_ERROR "Unsupported architecture ${YOKAI_ARCH_NAME}")
@@ -546,7 +546,7 @@ else()
 	# PNaCl accepts the flag but does nothing with it, underlying clang doesn't support it.
 	# Saigo NaCl compiler doesn't support LTO, the flag is accepted but linking fails
 	# with “unable to pass LLVM bit-code files to linker” error.
-	if (USE_LTO AND NOT YOKAI_SYSTEM_NaCl)
+	if (USE_LTO AND NOT YOKAI_SYSTEM_NACL)
 		try_c_cxx_flag(LTO_AUTO "-flto=auto")
 
 		if (NOT FLAG_LTO_AUTO)
@@ -605,14 +605,14 @@ option(USE_CPU_RECOMMENDED_FEATURES "Use some common hardware features like SSE2
 
 # Target options.
 if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
-    if (YOKAI_ARCH_i686)
+    if (YOKAI_ARCH_I686)
         if (USE_CPU_RECOMMENDED_FEATURES)
             set_c_cxx_flag("/arch:SSE2") # This is the default
         else()
             set_c_cxx_flag("/arch:IA32") # minimum
         endif()
     endif()
-elseif (NOT YOKAI_SYSTEM_NaCl)
+elseif (NOT YOKAI_SYSTEM_NACL)
 	# Among the required hardware features, the NX bit (No eXecute bit)
 	# feature may be required for NativeClient to work. Some early
 	# Intel EM64T processors are known to not implement the NX bit.
@@ -625,25 +625,25 @@ elseif (NOT YOKAI_SYSTEM_NaCl)
 	# Running a server with a native executable game is also a valid usage
 	# not requiring the NX bit.
 
-	if (YOKAI_ARCH_amd64)
+	if (YOKAI_ARCH_AMD64)
 		# K8 or EM64T minimum: AMD Athlon 64 ClawHammer, Intel Xeon Nocona, Intel Pentium 4 model F (Prescott revision EO), VIA Nano.
 		if (YOKAI_CXX_COMPILER_ICC)
 			set(GCC_GENERIC_ARCH "pentium4")
-		elseif (YOKAI_CXX_COMPILER_Zig)
+		elseif (YOKAI_CXX_COMPILER_ZIG)
 			set(GCC_GENERIC_ARCH "x86_64")
 		else()
 			set(GCC_GENERIC_ARCH "x86-64")
 		endif()
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (YOKAI_ARCH_i686)
+	elseif (YOKAI_ARCH_I686)
 		# P6 or K6 minimum: Intel Pentium Pro, AMD K6, Via Cyrix III, Via C3.
 		set(GCC_GENERIC_ARCH "i686")
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (YOKAI_ARCH_arm64)
+	elseif (YOKAI_ARCH_ARM64)
 		# Armv8-A minimum: Cortex-A50.
 		set(GCC_GENERIC_ARCH "armv8-a")
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (YOKAI_ARCH_armhf)
+	elseif (YOKAI_ARCH_ARMHF)
 		# Armv7-A minimum with VFPv3 and optional NEONv1: Cortex-A5.
 		# Hard float ABI (mainstream 32-bit ARM Linux distributions).
 		# An FPU should be explicitly set on recent compilers or this
@@ -652,7 +652,7 @@ elseif (NOT YOKAI_SYSTEM_NaCl)
 		#   lacks an FPU
 		set(GCC_GENERIC_ARCH "armv7-a+fp")
 		set(GCC_GENERIC_TUNE "generic-armv7-a")
-	elseif (YOKAI_ARCH_armel)
+	elseif (YOKAI_ARCH_ARMEL)
 		# Armv6 minimum with optional VFP: ARM11.
 		# Soft float ABI (previous mainstream 32-bit ARM Linux
 		# distributions, mainstream 32-bit ARM Android distributions).
@@ -696,18 +696,18 @@ elseif (NOT YOKAI_SYSTEM_NaCl)
 	endif()
 
 	if (USE_CPU_RECOMMENDED_FEATURES)
-		if (YOKAI_ARCH_amd64)
+		if (YOKAI_ARCH_AMD64)
 			# CMPXCHG16B minimum (x86-64-v2): AMD64 revision F.
 			try_c_cxx_flag_werror(MCX16 "-mcx16")
-		elseif (YOKAI_ARCH_i686)
+		elseif (YOKAI_ARCH_I686)
 			# SSE2 minimum: Intel Pentium 4 (Prescott),
 			# Intel Pentium M (Banias), AMD K8, Via C7.
 			try_c_cxx_flag_werror(MSSE2 "-msse2")
 			try_c_cxx_flag_werror(MFPMATH_SSE "-mfpmath=sse")
-		elseif (YOKAI_ARCH_armhf)
+		elseif (YOKAI_ARCH_ARMHF)
 			# NEONv1 minimum.
 			try_c_cxx_flag_werror(MFPU_NEON "-mfpu=neon")
-		elseif (YOKAI_ARCH_armel)
+		elseif (YOKAI_ARCH_ARMEL)
 			# VFP minimum, hard float with soft float ABI.
 			try_c_cxx_flag_werror(MFPU_VFP "-mfpu=vfp")
 			try_c_cxx_flag_werror(MFLOAT_ABI_SOFTFP "-mfloat-abi=softfp")
@@ -716,7 +716,7 @@ elseif (NOT YOKAI_SYSTEM_NaCl)
 endif()
 
 # Windows-specific definitions
-if (YOKAI_SYSTEM_Windows)
+if (YOKAI_SYSTEM_WINDOWS)
     add_definitions(
         -DWINVER=0x501  # Minimum Windows version: XP
         -DWIN32         # Define WIN32 for compatibility (compiler defines _WIN32)
@@ -731,7 +731,7 @@ if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
 endif()
 
 # Mac-specific definitions
-if (YOKAI_SYSTEM_macOS)
+if (YOKAI_SYSTEM_MACOS)
     add_definitions(-DMACOS_X)
     set(CMAKE_INSTALL_RPATH "@executable_path")
     set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)

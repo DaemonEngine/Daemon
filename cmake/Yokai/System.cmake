@@ -64,6 +64,7 @@ function(yokai_detect_host_system)
 	endif()
 
 	set(YOKAI_HOST_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
+	set(YOKAI_HOST_SYSTEM_NAME_UPPER "${system_name_upper}" PARENT_SCOPE)
 endfunction()
 
 function(yokai_detect_system)
@@ -74,6 +75,7 @@ function(yokai_detect_system)
 	endif()
 
 	set(YOKAI_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
+	set(YOKAI_SYSTEM_NAME_UPPER "${system_name_upper}" PARENT_SCOPE)
 endfunction()
 
 yokai_detect_host_system()
@@ -105,17 +107,17 @@ if (NOT "${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "${YOKAI_SYSTEM_NAME}")
 endif()
 
 # Makes possible to do that in CMake code:
-# > if (YOKAI_HOST_SYSTEM_Linux)
-# > if (YOKAI_SYSTEM_Windows)
-set("YOKAI_HOST_SYSTEM_${YOKAI_HOST_SYSTEM_NAME}" ON)
-set("YOKAI_SYSTEM_${YOKAI_SYSTEM_NAME}" ON)
+# > if (YOKAI_HOST_SYSTEM_LINUX)
+# > if (YOKAI_SYSTEM_WINDOWS)
+set("YOKAI_HOST_SYSTEM_${YOKAI_HOST_SYSTEM_NAME_UPPER}" ON)
+set("YOKAI_SYSTEM_${YOKAI_SYSTEM_NAME_UPPER}" ON)
 
 # This is for systems behaving similarly to a Linux Desktop,
 # implementing standards like FHS, XDG, GLVND…
-# It makes possible to do that in CMake code:
-# > if (${YOKAI_CMAKE_SLUG}_HOST_SYSTEM_XDG_COMPATIBILITY)
-# > if (${YOKAI_CMAKE_SLUG}_SYSTEM_XDG_COMPATIBILITY)
-foreach(name Linux;FreeBSD)
+# Makes possible to do that in CMake code:
+# > if (YOKAI_HOST_SYSTEM_XDG_COMPATIBILITY)
+# > if (YOKAI_SYSTEM_XDG_COMPATIBILITY)
+foreach(name LINUX;FREEBSD)
 	foreach(slug HOST_SYSTEM;SYSTEM)
 		if (YOKAI_${slug}_${name})
 			set(YOKAI_${slug}_XDG_COMPATIBILITY ON)

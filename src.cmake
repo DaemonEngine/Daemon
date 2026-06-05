@@ -211,7 +211,7 @@ set(OMPLIST
     ${ENGINE_DIR}/framework/OmpSystem.h
 )
 
-if (YOKAI_SYSTEM_Windows)
+if (YOKAI_SYSTEM_WINDOWS)
     set(ENGINELIST ${ENGINELIST}
         ${ENGINE_DIR}/sys/con_passive.cpp
     )
@@ -301,7 +301,7 @@ set(CLIENTLIST
     ${RENDERERLIST}
 )
 
-if (YOKAI_SYSTEM_macOS)
+if (YOKAI_SYSTEM_MACOS)
     set(CLIENTLIST ${CLIENTLIST} ${ENGINE_DIR}/sys/DisableAccentMenu.m)
 endif()
 

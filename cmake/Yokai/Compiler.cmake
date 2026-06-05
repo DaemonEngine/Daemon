@@ -128,6 +128,7 @@ function(yokai_detect_compiler lang)
 
 	set(YOKAI_${lang}_COMPILER_BASENAME "${compiler_basename}" PARENT_SCOPE)
 	set(YOKAI_${lang}_COMPILER_NAME "${compiler_name}" PARENT_SCOPE)
+	set(YOKAI_${lang}_COMPILER_NAME_UPPER "${compiler_name_upper}" PARENT_SCOPE)
 	set(YOKAI_${lang}_COMPILER_VERSION "${compiler_version}" PARENT_SCOPE)
 endfunction()
 
@@ -137,14 +138,15 @@ foreach(lang C;CXX)
 	set(C_NAME "C")
 	set(CXX_NAME "C++")
 
- 	if (MSVC)
- 		set(YOKAI_${lang}_COMPILER_MSVC_COMPATIBILITY ON)
+	if (MSVC)
+		set(YOKAI_${lang}_COMPILER_MSVC_COMPATIBILITY ON)
 	endif()
 
 	# When MSVC is ON, ${CMAKE_${lang}_COMPILER_ID} can be either MSVC
 	# or Clang (clang-cl), Only MSVC is true MSVC.
 	if (MSVC AND "${CMAKE_${lang}_COMPILER_ID}" STREQUAL "MSVC")
 		set(YOKAI_${lang}_COMPILER_NAME "MSVC")
+		set(YOKAI_${lang}_COMPILER_NAME_UPPER "MSVC")
 
 		# Let CMake do the job, it does it well,
 		set(YOKAI_${lang}_COMPILER_VERSION "${CMAKE_${lang}_COMPILER_VERSION}")
@@ -153,10 +155,10 @@ foreach(lang C;CXX)
 	else()
 		yokai_detect_compiler(${lang})
 
-		if (YOKAI_${lang}_COMPILER_Clang_COMPATIBILITY)
+		if (YOKAI_${lang}_COMPILER_CLANG_COMPATIBILITY)
 			if (NOT YOKAI_${lang}_COMPILER_NAME STREQUAL "Clang")
 				set(YOKAI_${lang}_COMPILER_EXTENDED_VERSION
-					"${YOKAI_${lang}_COMPILER_VERSION}/Clang_${YOKAI_${lang}_COMPILER_Clang_VERSION}")
+					"${YOKAI_${lang}_COMPILER_VERSION}/Clang_${YOKAI_${lang}_COMPILER_CLANG_VERSION}")
 			endif()
 		elseif (YOKAI_${lang}_COMPILER_GCC_COMPATIBILITY)
 			if (NOT YOKAI_${lang}_COMPILER_NAME STREQUAL "GCC")
@@ -196,12 +198,12 @@ foreach(lang C;CXX)
 	message(STATUS "Detected ${${lang}_NAME} compiler: ${YOKAI_${lang}_COMPILER_STRING}")
 
 	# Makes possible to do that in C++ code:
-	# > if defined(YOKAI_CXX_COMPILER_Clang)
-	set(compiler_var_name "YOKAI_${lang}_COMPILER_${YOKAI_${lang}_COMPILER_NAME}")
+	# > if defined(YOKAI_CXX_COMPILER_CLANG)
+	set(compiler_var_name "YOKAI_${lang}_COMPILER_${YOKAI_${lang}_COMPILER_NAME_UPPER}")
 	add_definitions(-D${compiler_var_name})
 
 	# Makes possible to do that in CMake code:
-	# > if (YOKAI_CXX_COMPILER_Clang)
+	# > if (YOKAI_CXX_COMPILER_CLANG)
 	set("${compiler_var_name}" ON)
 
 	if (YOKAI_SOURCE_GENERATOR)

@@ -69,12 +69,14 @@ macro(yokai_run_detection slug_prefix report_slug file_name compat_list)
 			${local_slug}_name "${build_log}")
 
 		foreach(name ${compat_list};${${local_slug}_name})
+			string(TOUPPER "${name}" name_upper)
+
 			set(COMPATIBILITY_REGEX ".*\nYOKAI_${report_slug}_${name}_COMPATIBILITY=([^\n]*)\n.*")
 			if ("${build_log}" MATCHES ${COMPATIBILITY_REGEX})
 				string(REGEX REPLACE ${COMPATIBILITY_REGEX} "\\1"
 				${local_slug}_${name}_compatibility "${build_log}")
 
-				set("YOKAI_${slug_prefix}${report_slug}_${name}_COMPATIBILITY"
+				set("YOKAI_${slug_prefix}${report_slug}_${name_upper}_COMPATIBILITY"
 					"${${local_slug}_${name}_compatibility}"
 					PARENT_SCOPE)
 			endif()
@@ -84,7 +86,7 @@ macro(yokai_run_detection slug_prefix report_slug file_name compat_list)
 				string(REGEX REPLACE ${VERSION_REGEX} "\\1"
 				${local_slug}_${name}_version "${build_log}")
 
-				set("YOKAI_${slug_prefix}${report_slug}_${name}_VERSION"
+				set("YOKAI_${slug_prefix}${report_slug}_${name_upper}_VERSION"
 					"${${local_slug}_${name}_version}"
 					PARENT_SCOPE)
 			endif()
@@ -96,6 +98,8 @@ macro(yokai_run_detection slug_prefix report_slug file_name compat_list)
 			endif()
 		endforeach()
 	endif()
+
+	string(TOUPPER "${${local_slug}_name}" ${local_slug}_name_upper)
 endmacro()
 
 # Target detection.
