@@ -75,6 +75,7 @@ if (Daemon_OUT)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Daemon_OUT})
 endif()
 
+set(YOKAI_NACL_HOST ON)
 include(Yokai/All)
 
 ################################################################################
