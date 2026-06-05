@@ -743,7 +743,7 @@ void SetPlaneSignbits( cplane_t *out )
 
 int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 {
-#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+#if defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE)
 	auto mins = sseLoadVec3( emins );
 	auto maxs = sseLoadVec3( emaxs );
 	auto normal = sseLoadVec3( p->normal );
@@ -1700,7 +1700,7 @@ void MatrixSetupShear( matrix_t m, vec_t x, vec_t y )
 
 void MatrixMultiply( const matrix_t a, const matrix_t b, matrix_t out )
 {
-#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+#if defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE)
 	//#error MatrixMultiply
 	int    i;
 	__m128 _t0, _t1, _t2, _t3, _t4, _t5, _t6, _t7;
@@ -3194,7 +3194,7 @@ void QuatTransformVectorInverse( const quat_t q, const vec3_t in, vec3_t out )
 }
 
 // The SSE variants are inline functions in q_shared.h file.
-#if !defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+#if !defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE)
 // create an identity transform
 void TransInit( transform_t *t )
 {

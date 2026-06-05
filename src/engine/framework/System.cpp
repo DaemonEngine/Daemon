@@ -56,11 +56,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(DAEMON_USE_FLOAT_EXCEPTIONS)
 	#if defined(__USE_GNU) || defined(__FreeBSD__) || defined(_WIN32)
-		#if defined(YOKAI_ARCH_amd64) || defined(YOKAI_ARCH_i686)
+		#if defined(YOKAI_ARCH_AMD64) || defined(YOKAI_ARCH_I686)
 			#define DAEMON_USE_FLOAT_EXCEPTIONS_AVAILABLE
 		#endif
 	#elif defined (__APPLE__)
-		#if defined(YOKAI_ARCH_amd64) || defined(YOKAI_ARCH_arm64)
+		#if defined(YOKAI_ARCH_AMD64) || defined(YOKAI_ARCH_ARM64)
 			#define DAEMON_USE_FLOAT_EXCEPTIONS_AVAILABLE
 		#endif
 	#endif
@@ -390,17 +390,17 @@ static void CloseSingletonSocket()
 static void SetFloatingPointExceptions()
 {
 #if defined(DAEMON_USE_FLOAT_EXCEPTIONS_AVAILABLE)
-	#if defined(YOKAI_ARCH_amd64) || defined(YOKAI_ARCH_i686)
+	#if defined(YOKAI_ARCH_AMD64) || defined(YOKAI_ARCH_I686)
 		#if defined(__USE_GNU) || defined(__FreeBSD__) || defined(__APPLE__)
 			int exceptions = 0;
 		#elif defined(_WIN32)
 			unsigned int exceptions = 0;
 		#endif
 
-		#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+		#if defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE)
 			int mxcsr_exceptions = 0;
 		#endif
-	#elif defined(YOKAI_ARCH_arm64)
+	#elif defined(YOKAI_ARCH_ARM64)
 		#if defined(__APPLE__)
 			unsigned long long fpcr_exceptions = 0;
 		#endif
@@ -409,17 +409,17 @@ static void SetFloatingPointExceptions()
 	// Operations with NaN.
 	if (common_floatExceptions_invalid.Get())
 	{
-		#if defined(YOKAI_ARCH_amd64) || defined(YOKAI_ARCH_i686)
+		#if defined(YOKAI_ARCH_AMD64) || defined(YOKAI_ARCH_I686)
 			#if defined(__USE_GNU) || defined(__FreeBSD__) || defined(__APPLE__)
 				exceptions |= FE_INVALID;
 			#elif defined(_WIN32)
 				exceptions |= _EM_INVALID;
 			#endif
 
-			#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+			#if defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE)
 				mxcsr_exceptions |= _MM_MASK_INVALID;
 			#endif
-		#elif defined(YOKAI_ARCH_arm64)
+		#elif defined(YOKAI_ARCH_ARM64)
 			#if defined(__APPLE__)
 				fpcr_exceptions |= __fpcr_trap_invalid;
 			#endif
@@ -429,17 +429,17 @@ static void SetFloatingPointExceptions()
 	// Division by zero.
 	if (common_floatExceptions_divByZero.Get())
 	{
-		#if defined(YOKAI_ARCH_amd64) || defined(YOKAI_ARCH_i686)
+		#if defined(YOKAI_ARCH_AMD64) || defined(YOKAI_ARCH_I686)
 			#if defined(__USE_GNU) || defined(__FreeBSD__) || defined(__APPLE__)
 				exceptions |= FE_DIVBYZERO;
 			#elif defined(_WIN32)
 				exceptions |= _EM_ZERODIVIDE;
 			#endif
 
-			#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+			#if defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE)
 				mxcsr_exceptions |= _MM_MASK_DIV_ZERO;
 			#endif
-		#elif defined(YOKAI_ARCH_arm64)
+		#elif defined(YOKAI_ARCH_ARM64)
 			#if defined(__APPLE__)
 				fpcr_exceptions |= __fpcr_trap_divbyzero;
 			#endif
@@ -449,24 +449,24 @@ static void SetFloatingPointExceptions()
 	// Operations producing an overflow.
 	if (common_floatExceptions_overflow.Get())
 	{
-		#if defined(YOKAI_ARCH_amd64) || defined(YOKAI_ARCH_i686)
+		#if defined(YOKAI_ARCH_AMD64) || defined(YOKAI_ARCH_I686)
 			#if defined(__USE_GNU) || defined(__FreeBSD__) || defined(__APPLE__)
 				exceptions |= FE_OVERFLOW;
 			#elif defined(_WIN32)
 				exceptions |= _EM_OVERFLOW;
 			#endif
 
-			#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+			#if defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE)
 				mxcsr_exceptions |= _MM_MASK_OVERFLOW;
 			#endif
-		#elif defined(YOKAI_ARCH_arm64)
+		#elif defined(YOKAI_ARCH_ARM64)
 			#if defined(__APPLE__)
 				fpcr_exceptions |= __fpcr_trap_overflow;
 			#endif
 		#endif
 	}
 
-	#if defined(YOKAI_ARCH_amd64) || defined(YOKAI_ARCH_i686)
+	#if defined(YOKAI_ARCH_AMD64) || defined(YOKAI_ARCH_I686)
 		#if defined(__USE_GNU) || defined(__FreeBSD__)
 			// https://www.gnu.org/savannah-checkouts/gnu/libc/manual/html_node/Control-Functions.html
 			feenableexcept(exceptions);
@@ -483,10 +483,10 @@ static void SetFloatingPointExceptions()
 		fenv_t env;
 		fegetenv( &env );
 
-		#if defined(YOKAI_ARCH_amd64)
+		#if defined(YOKAI_ARCH_AMD64)
 			env.__control &= ~exceptions;
 			env.__mxcsr &= ~mxcsr_exceptions;
-		#elif defined(YOKAI_ARCH_arm64)
+		#elif defined(YOKAI_ARCH_ARM64)
 			env.__fpcr |= fpcr_exceptions;
 		#endif
 
@@ -497,7 +497,7 @@ static void SetFloatingPointExceptions()
 	#endif
 
 	// Superfluous on some systems, but always safe to do.
-	#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+	#if defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE)
 		_MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~mxcsr_exceptions);
 	#endif
 #endif

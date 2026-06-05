@@ -37,15 +37,16 @@ function(yokai_detect_arch)
 	yokai_run_detection("" "ARCH" "Architecture.c" "")
 
 	set(YOKAI_ARCH_NAME "${arch_name}" PARENT_SCOPE)
+	set(YOKAI_ARCH_NAME_UPPER "${arch_name_upper}" PARENT_SCOPE)
 
 	message(STATUS "Detected target architecture: ${arch_name}")
 
-	add_definitions(-DYOKAI_ARCH_${arch_name})
+	add_definitions(-DYOKAI_ARCH_${arch_name_upper})
 
 	if (YOKAI_NACL_HOST)
 		set(nacl_arch "${arch_name}")
 
-		if (YOKAI_SYSTEM_Linux_COMPATIBILITY OR YOKAI_SYSTEM_XDG_COMPATIBILITY)
+		if (YOKAI_SYSTEM_LINUX_COMPATIBILITY OR YOKAI_SYSTEM_XDG_COMPATIBILITY)
 			set(armhf_usage "arm64;armel")
 			if ("${arch_name}" IN_LIST armhf_usage)
 			# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
@@ -64,7 +65,7 @@ function(yokai_detect_arch)
 			endif()
 		endif()
 
-		elseif (YOKAI_SYSTEM_macOS)
+		elseif (YOKAI_SYSTEM_MACOS)
 			if ("${arch_name}" STREQUAL "arm64")
 				# You can get emulated NaCl going like this:
 				# cp external_deps/macos-amd64-default_10/{nacl_loader,irt_core-amd64.nexe} build/
@@ -72,8 +73,11 @@ function(yokai_detect_arch)
 			endif()
 		endif()
 
+		string(TOUPPER "${nacl_arch_name}" nacl_arch_name_upper)
+
 		# The YOKAI_NACL_ARCH_NAME variable contributes to the nexe file name.
 		set(YOKAI_NACL_ARCH_NAME "${nacl_arch}" PARENT_SCOPE)
+		set(YOKAI_NACL_ARCH_NAME_UPPER "${nacl_arch_upper}" PARENT_SCOPE)
 
 		# NaCl runtime is only available on architectures that have a NaCl loader.
 		set(nacl_runtime_arch amd64 i686 armhf)
@@ -85,7 +89,8 @@ endfunction()
 
 function(yokai_set_arch_intrinsics name)
 	message(STATUS "Enabling ${name} architecture intrinsics")
-	add_definitions(-DYOKAI_USE_ARCH_INTRINSICS_${name})
+	string(TOUPPER "${name}" name_upper)
+	add_definitions(-DYOKAI_USE_ARCH_INTRINSICS_${name_upper})
 endfunction()
 
 option(USE_ARCH_INTRINSICS "Enable custom code using intrinsics functions or asm declarations" ON)
@@ -98,8 +103,8 @@ function(yokai_set_intrinsics)
 		add_definitions(-DYOKAI_USE_ARCH_INTRINSICS)
 
 		# Makes possible to do that in C++ code:
-		# > if defined(YOKAI_USE_ARCH_INTRINSICS_amd64)
-		# > if defined(YOKAI_USE_ARCH_INTRINSICS_i686)
+		# > if defined(YOKAI_USE_ARCH_INTRINSICS_AMD64)
+		# > if defined(YOKAI_USE_ARCH_INTRINSICS_I686)
 		yokai_set_arch_intrinsics("${YOKAI_ARCH_NAME}")
 
 		set(amd64_PARENT "i686")
@@ -118,12 +123,12 @@ yokai_detect_arch()
 yokai_set_intrinsics()
 
 # Makes possible to do that in CMake code:
-# > if (YOKAI_ARCH_arm64)
-# > if (YOKAI_NACL_ARCH_armhf)
-set("YOKAI_ARCH_${YOKAI_ARCH_NAME}" ON)
+# > if (YOKAI_ARCH_ARM64)
+# > if (YOKAI_NACL_ARCH_ARMHF)
+set("YOKAI_ARCH_${YOKAI_ARCH_NAME_UPPER}" ON)
 
 if (YOKAI_NACL_HOST)
-	set("YOKAI_NACL_ARCH_${YOKAI_NACL_ARCH_NAME}" ON)
+	set("YOKAI_NACL_ARCH_${YOKAI_NACL_ARCH_NAME_UPPER}" ON)
 endif()
 
 if (YOKAI_SOURCE_GENERATOR)

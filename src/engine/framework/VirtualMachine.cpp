@@ -46,7 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern char **environ;
 #ifdef __linux__
 #include <sys/prctl.h>
-#if defined(YOKAI_ARCH_armhf)
+#if defined(YOKAI_ARCH_ARMHF)
 #include <sys/utsname.h>
 #endif
 #endif
@@ -394,7 +394,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	}
 #else
 	if (vm_nacl_bootstrap.Get()) {
-#if defined(YOKAI_ARCH_arm64)
+#if defined(YOKAI_ARCH_ARM64)
 		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap-armhf");
 #else
 		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
@@ -421,11 +421,11 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	bool enableQualification = vm_nacl_qualification.Get();
 
 	if (enableQualification) {
-#if defined(__linux__) && (defined(YOKAI_ARCH_arm64) || defined(YOKAI_ARCH_armhf))
+#if defined(__linux__) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
 		if (workaround_naclArchitecture_arm64_disableQualification.Get()) {
-#if defined(YOKAI_ARCH_arm64)
+#if defined(YOKAI_ARCH_ARM64)
 			bool onArm64 = true;
-#elif defined(YOKAI_ARCH_armhf)
+#elif defined(YOKAI_ARCH_ARMHF)
 			bool onArm64 = false;
 
 			struct utsname buf;

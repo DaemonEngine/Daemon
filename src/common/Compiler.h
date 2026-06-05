@@ -147,7 +147,7 @@ inline int CountTrailingZeroes(unsigned long long x)
 #endif
 
 // Raise an exception and break in the debugger
-#if defined(YOKAI_ARCH_i686) || defined(YOKAI_ARCH_amd64)
+#if defined(YOKAI_ARCH_I686) || defined(YOKAI_ARCH_AMD64)
 	// Always run this asm code even if YOKAI_USE_ARCH_INTRINSICS is not defined.
 	#define BREAKPOINT() __asm__ __volatile__("int $3\n\t")
 #endif
