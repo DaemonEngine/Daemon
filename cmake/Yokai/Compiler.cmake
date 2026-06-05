@@ -137,12 +137,18 @@ foreach(lang C;CXX)
 	set(C_NAME "C")
 	set(CXX_NAME "C++")
 
-	if (MSVC)
-		# Let CMake do the job, it does it very well,
-		# and there is probably no variant to take care about.
-		set(YOKAI_${lang}_COMPILER_MSVC_COMPATIBILITY ON)
-		set(YOKAI_${lang}_COMPILER_NAME "${CMAKE_${lang}_COMPILER_ID}")
+ 	if (MSVC)
+ 		set(YOKAI_${lang}_COMPILER_MSVC_COMPATIBILITY ON)
+	endif()
+
+	# When MSVC is ON, ${CMAKE_${lang}_COMPILER_ID} can be either MSVC
+	# or Clang (clang-cl), Only MSVC is true MSVC.
+	if (MSVC AND "${CMAKE_${lang}_COMPILER_ID}" STREQUAL "MSVC")
+		set(YOKAI_${lang}_COMPILER_NAME "MSVC")
+
+		# Let CMake do the job, it does it well,
 		set(YOKAI_${lang}_COMPILER_VERSION "${CMAKE_${lang}_COMPILER_VERSION}")
+
 		get_filename_component(YOKAI_${lang}_COMPILER_BASENAME "${CMAKE_${lang}_COMPILER}" NAME)
 	else()
 		yokai_detect_compiler(${lang})
