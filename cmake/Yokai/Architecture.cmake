@@ -34,7 +34,7 @@ option(USE_ARCH_INTRINSICS "Enable custom code using intrinsics functions or asm
 mark_as_advanced(USE_ARCH_INTRINSICS)
 
 function(yokai_detect_arch)
-	yokai_run_detection("TARGET_" "ARCH" "Architecture.c" "")
+	yokai_run_detection("TARGET" "ARCH" "Architecture.c" "")
 
 	set(YOKAI_TARGET_ARCH_NAME "${arch_name}" PARENT_SCOPE)
 	set(YOKAI_TARGET_ARCH_NAME_UPPER "${arch_name_upper}" PARENT_SCOPE)
