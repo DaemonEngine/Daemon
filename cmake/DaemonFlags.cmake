@@ -531,12 +531,12 @@ else()
 
 		if ("${FLAG_LINKER_PIE}" AND MINGW)
 			# https://github.com/msys2/MINGW-packages/issues/4100
-			if (YOKAI_ARCH_I686)
+			if (YOKAI_TARGET_ARCH_I686)
 				set_linker_flag("-Wl,-e,_mainCRTStartup")
-			elseif(YOKAI_ARCH_AMD64)
+			elseif(YOKAI_TARGET_ARCH_AMD64)
 				set_linker_flag("-Wl,-e,mainCRTStartup")
 			else()
-				message(FATAL_ERROR "Unsupported architecture ${YOKAI_ARCH_NAME}")
+				message(FATAL_ERROR "Unsupported architecture ${YOKAI_TARGET_ARCH_NAME}")
 			endif()
 		endif()
 	endif()
@@ -606,7 +606,7 @@ option(USE_CPU_RECOMMENDED_FEATURES "Use some common hardware features like SSE2
 
 # Target options.
 if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
-    if (YOKAI_ARCH_I686)
+    if (YOKAI_TARGET_ARCH_I686)
         if (USE_CPU_RECOMMENDED_FEATURES)
             set_c_cxx_flag("/arch:SSE2") # This is the default
         else()
@@ -626,7 +626,7 @@ elseif (NOT YOKAI_TARGET_SYSTEM_NACL)
 	# Running a server with a native executable game is also a valid usage
 	# not requiring the NX bit.
 
-	if (YOKAI_ARCH_AMD64)
+	if (YOKAI_TARGET_ARCH_AMD64)
 		# K8 or EM64T minimum: AMD Athlon 64 ClawHammer, Intel Xeon Nocona, Intel Pentium 4 model F (Prescott revision EO), VIA Nano.
 		if (YOKAI_CXX_COMPILER_ICC)
 			set(GCC_GENERIC_ARCH "pentium4")
@@ -636,15 +636,15 @@ elseif (NOT YOKAI_TARGET_SYSTEM_NACL)
 			set(GCC_GENERIC_ARCH "x86-64")
 		endif()
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (YOKAI_ARCH_I686)
+	elseif (YOKAI_TARGET_ARCH_I686)
 		# P6 or K6 minimum: Intel Pentium Pro, AMD K6, Via Cyrix III, Via C3.
 		set(GCC_GENERIC_ARCH "i686")
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (YOKAI_ARCH_ARM64)
+	elseif (YOKAI_TARGET_ARCH_ARM64)
 		# Armv8-A minimum: Cortex-A50.
 		set(GCC_GENERIC_ARCH "armv8-a")
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (YOKAI_ARCH_ARMHF)
+	elseif (YOKAI_TARGET_ARCH_ARMHF)
 		# Armv7-A minimum with VFPv3 and optional NEONv1: Cortex-A5.
 		# Hard float ABI (mainstream 32-bit ARM Linux distributions).
 		# An FPU should be explicitly set on recent compilers or this
@@ -653,7 +653,7 @@ elseif (NOT YOKAI_TARGET_SYSTEM_NACL)
 		#   lacks an FPU
 		set(GCC_GENERIC_ARCH "armv7-a+fp")
 		set(GCC_GENERIC_TUNE "generic-armv7-a")
-	elseif (YOKAI_ARCH_ARMEL)
+	elseif (YOKAI_TARGET_ARCH_ARMEL)
 		# Armv6 minimum with optional VFP: ARM11.
 		# Soft float ABI (previous mainstream 32-bit ARM Linux
 		# distributions, mainstream 32-bit ARM Android distributions).
@@ -673,7 +673,7 @@ elseif (NOT YOKAI_TARGET_SYSTEM_NACL)
 		unset(GCC_GENERIC_TUNE)
 		set(GCC_GENERIC_CPU "power5")
 	else()
-		message(WARNING "Unknown architecture ${YOKAI_ARCH_NAME}")
+		message(WARNING "Unknown architecture ${YOKAI_TARGET_ARCH_NAME}")
 	endif()
 
 	if ("${YOKAI_CXX_COMPILER_NAME}" STREQUAL "Zig")
@@ -697,18 +697,18 @@ elseif (NOT YOKAI_TARGET_SYSTEM_NACL)
 	endif()
 
 	if (USE_CPU_RECOMMENDED_FEATURES)
-		if (YOKAI_ARCH_AMD64)
+		if (YOKAI_TARGET_ARCH_AMD64)
 			# CMPXCHG16B minimum (x86-64-v2): AMD64 revision F.
 			try_c_cxx_flag_werror(MCX16 "-mcx16")
-		elseif (YOKAI_ARCH_I686)
+		elseif (YOKAI_TARGET_ARCH_I686)
 			# SSE2 minimum: Intel Pentium 4 (Prescott),
 			# Intel Pentium M (Banias), AMD K8, Via C7.
 			try_c_cxx_flag_werror(MSSE2 "-msse2")
 			try_c_cxx_flag_werror(MFPMATH_SSE "-mfpmath=sse")
-		elseif (YOKAI_ARCH_ARMHF)
+		elseif (YOKAI_TARGET_ARCH_ARMHF)
 			# NEONv1 minimum.
 			try_c_cxx_flag_werror(MFPU_NEON "-mfpu=neon")
-		elseif (YOKAI_ARCH_ARMEL)
+		elseif (YOKAI_TARGET_ARCH_ARMEL)
 			# VFP minimum, hard float with soft float ABI.
 			try_c_cxx_flag_werror(MFPU_VFP "-mfpu=vfp")
 			try_c_cxx_flag_werror(MFLOAT_ABI_SOFTFP "-mfloat-abi=softfp")

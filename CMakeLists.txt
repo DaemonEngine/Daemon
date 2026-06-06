@@ -205,7 +205,7 @@ if (USE_EXTERNAL_DEPS AND NOT YOKAI_TARGET_SYSTEM_NACL)
 
     set(DEPS_EXT ".tar.xz")
 
-    set(DEPS_ARCH "${YOKAI_ARCH_NAME}")
+    set(DEPS_ARCH "${YOKAI_TARGET_ARCH_NAME}")
 
     if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
         set(DEPS_COMPILER msvc)
@@ -222,7 +222,7 @@ if (USE_EXTERNAL_DEPS AND NOT YOKAI_TARGET_SYSTEM_NACL)
         set(DEPS_SYSTEM macos)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64)
 
-        if (YOKAI_ARCH_ARM64)
+        if (YOKAI_TARGET_ARCH_ARM64)
             set(DEPS_ARCH amd64)
 
             set_deps_dir()
@@ -682,10 +682,10 @@ if (BUILD_CLIENT OR YOKAI_TARGET_SYSTEM_WINDOWS)
     set(sdlvar_amd64 SDL_CPU_X64)
     set(sdlvar_armhf SDL_CPU_ARM32)
     set(sdlvar_arm64 SDL_CPU_ARM64)
-    if (sdlvar_${YOKAI_ARCH_NAME})
-        set(${sdlvar_${YOKAI_ARCH_NAME}} 1)
+    if (sdlvar_${YOKAI_TARGET_ARCH_NAME})
+        set(${sdlvar_${YOKAI_TARGET_ARCH_NAME}} 1)
     else()
-        message("Developer TODO: translate architecture ${YOKAI_ARCH_NAME} for SDL")
+        message("Developer TODO: translate architecture ${YOKAI_TARGET_ARCH_NAME} for SDL")
     endif()
 
     find_package(SDL3 REQUIRED CONFIG)
@@ -985,7 +985,7 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
 
     # Linux uses a bootstrap program to reserve address space
     if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY)
-        if (YOKAI_ARCH_ARM64)
+        if (YOKAI_TARGET_ARCH_ARM64)
             add_executable(nacl_helper_bootstrap-armhf tools/nacl_helper_bootstrap-armhf/nacl_helper_bootstrap-armhf.cpp)
             add_dependencies(runtime_deps nacl_helper_bootstrap-armhf)
 
@@ -1009,7 +1009,7 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     endif()
 
     # Win32 requires nacl_loader_amd64.exe in order to run on Win64
-    if (YOKAI_TARGET_SYSTEM_WINDOWS AND YOKAI_ARCH_I686)
+    if (YOKAI_TARGET_SYSTEM_WINDOWS AND YOKAI_TARGET_ARCH_I686)
         add_custom_command(TARGET runtime_deps PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 ${DEPS_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}

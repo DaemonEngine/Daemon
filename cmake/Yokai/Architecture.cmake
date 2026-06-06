@@ -28,16 +28,16 @@
 # Architecture detection.
 ################################################################################
 
-# When adding a new architecture, look at all the places YOKAI_ARCH is used.
+# When adding a new architecture, look at all the places YOKAI_TARGET_ARCH is used.
 
 option(USE_ARCH_INTRINSICS "Enable custom code using intrinsics functions or asm declarations" ON)
 mark_as_advanced(USE_ARCH_INTRINSICS)
 
 function(yokai_detect_arch)
-	yokai_run_detection("" "ARCH" "Architecture.c" "")
+	yokai_run_detection("TARGET_" "ARCH" "Architecture.c" "")
 
-	set(YOKAI_ARCH_NAME "${arch_name}" PARENT_SCOPE)
-	set(YOKAI_ARCH_NAME_UPPER "${arch_name_upper}" PARENT_SCOPE)
+	set(YOKAI_TARGET_ARCH_NAME "${arch_name}" PARENT_SCOPE)
+	set(YOKAI_TARGET_ARCH_NAME_UPPER "${arch_name_upper}" PARENT_SCOPE)
 
 	message(STATUS "Detected target architecture: ${arch_name}")
 
@@ -105,17 +105,17 @@ function(yokai_set_intrinsics)
 		# Makes possible to do that in C++ code:
 		# > if defined(YOKAI_USE_ARCH_INTRINSICS_AMD64)
 		# > if defined(YOKAI_USE_ARCH_INTRINSICS_I686)
-		yokai_set_arch_intrinsics("${YOKAI_ARCH_NAME}")
+		yokai_set_arch_intrinsics("${YOKAI_TARGET_ARCH_NAME}")
 
 		set(amd64_PARENT "i686")
 		set(arm64_PARENT "armhf")
 		set(ppc64el_PARENT "ppc64")
 
-		if ("${YOKAI_ARCH_NAME}_PARENT")
-			yokai_set_arch_intrinsics("${${YOKAI_ARCH_NAME}_PARENT}")
+		if ("${YOKAI_TARGET_ARCH_NAME}_PARENT")
+			yokai_set_arch_intrinsics("${${YOKAI_TARGET_ARCH_NAME}_PARENT}")
 		endif()
 	else()
-		message(STATUS "Disabling ${YOKAI_ARCH_NAME} architecture intrinsics")
+		message(STATUS "Disabling ${YOKAI_TARGET_ARCH_NAME} architecture intrinsics")
 	endif()
 endfunction()
 
@@ -123,9 +123,9 @@ yokai_detect_arch()
 yokai_set_intrinsics()
 
 # Makes possible to do that in CMake code:
-# > if (YOKAI_ARCH_ARM64)
+# > if (YOKAI_TARGET_ARCH_ARM64)
 # > if (YOKAI_NACL_ARCH_ARMHF)
-set("YOKAI_ARCH_${YOKAI_ARCH_NAME_UPPER}" ON)
+set("YOKAI_TARGET_ARCH_${YOKAI_TARGET_ARCH_NAME_UPPER}" ON)
 
 if (YOKAI_NACL_HOST)
 	set("YOKAI_NACL_ARCH_${YOKAI_NACL_ARCH_NAME_UPPER}" ON)
@@ -133,7 +133,7 @@ endif()
 
 if (YOKAI_SOURCE_GENERATOR)
 	# Add printable strings to the executable.
-	yokai_add_buildinfo("char*" "YOKAI_ARCH_STRING" "\"${YOKAI_ARCH_NAME}\"")
+	yokai_add_buildinfo("char*" "YOKAI_ARCH_STRING" "\"${YOKAI_TARGET_ARCH_NAME}\"")
 
 	if (YOKAI_NACL_HOST)
 		yokai_add_buildinfo("char*" "YOKAI_NACL_ARCH_STRING" "\"${YOKAI_NACL_ARCH_NAME}\"")
