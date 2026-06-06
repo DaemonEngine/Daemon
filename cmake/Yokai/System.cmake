@@ -29,7 +29,7 @@
 ################################################################################
 
 # When adding a new system, look at all the places YOKAI_HOST_SYSTEM
-# and YOKAI_SYSTEM are used.
+# and YOKAI_TARGET_SYSTEM are used.
 
 function(yokai_detect_host_system)
 	set(system_name "Unknown")
@@ -68,14 +68,14 @@ function(yokai_detect_host_system)
 endfunction()
 
 function(yokai_detect_system)
-	yokai_run_detection("" "SYSTEM" "System.c" "Linux")
+	yokai_run_detection("TARGET_" "SYSTEM" "System.c" "Linux")
 
 	if (system_name STREQUAL "Unknown")
 		detect_cmake_host_system("system_name")
 	endif()
 
-	set(YOKAI_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
-	set(YOKAI_SYSTEM_NAME_UPPER "${system_name_upper}" PARENT_SCOPE)
+	set(YOKAI_TARGET_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
+	set(YOKAI_TARGET_SYSTEM_NAME_UPPER "${system_name_upper}" PARENT_SCOPE)
 endfunction()
 
 yokai_detect_host_system()
@@ -85,40 +85,40 @@ if ("${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "Unknown")
 	message(WARNING "Unknown host system")
 endif()
 
-if ("${YOKAI_SYSTEM_NAME}" STREQUAL "Unknown")
+if ("${YOKAI_TARGET_SYSTEM_NAME}" STREQUAL "Unknown")
 	message(WARNING "Unknown target system")
 endif()
 
-if ("${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "Unknown" AND NOT "${YOKAI_SYSTEM_NAME}" STREQUAL "Unknown")
-	message(WARNING "Assuming the host system is the same as the target: ${YOKAI_SYSTEM_NAME}")
-	set(YOKAI_HOST_SYSTEM_NAME "${YOKAI_SYSTEM_NAME}")
+if ("${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "Unknown" AND NOT "${YOKAI_TARGET_SYSTEM_NAME}" STREQUAL "Unknown")
+	message(WARNING "Assuming the host system is the same as the target: ${YOKAI_TARGET_SYSTEM_NAME}")
+	set(YOKAI_HOST_SYSTEM_NAME "${YOKAI_TARGET_SYSTEM_NAME}")
 endif()
 
-if ("${YOKAI_SYSTEM_NAME}" STREQUAL "Unknown" AND NOT "${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "Unknown")
-	message(WARNING "Assuming the target system is the same as the host: ${YOKAI_SYSTEM_NAME}")
-	set(YOKAI_SYSTEM_NAME "${YOKAI_HOST_SYSTEM_NAME}")
+if ("${YOKAI_TARGET_SYSTEM_NAME}" STREQUAL "Unknown" AND NOT "${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "Unknown")
+	message(WARNING "Assuming the target system is the same as the host: ${YOKAI_TARGET_SYSTEM_NAME}")
+	set(YOKAI_TARGET_SYSTEM_NAME "${YOKAI_HOST_SYSTEM_NAME}")
 endif()
 
 message(STATUS "Detected host system: ${YOKAI_HOST_SYSTEM_NAME}")
-message(STATUS "Detected target system: ${YOKAI_SYSTEM_NAME}")
+message(STATUS "Detected target system: ${YOKAI_TARGET_SYSTEM_NAME}")
 
-if (NOT "${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "${YOKAI_SYSTEM_NAME}")
+if (NOT "${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "${YOKAI_TARGET_SYSTEM_NAME}")
 	message(STATUS "Detected cross-compilation")
 endif()
 
 # Makes possible to do that in CMake code:
 # > if (YOKAI_HOST_SYSTEM_LINUX)
-# > if (YOKAI_SYSTEM_WINDOWS)
+# > if (YOKAI_TARGET_SYSTEM_WINDOWS)
 set("YOKAI_HOST_SYSTEM_${YOKAI_HOST_SYSTEM_NAME_UPPER}" ON)
-set("YOKAI_SYSTEM_${YOKAI_SYSTEM_NAME_UPPER}" ON)
+set("YOKAI_TARGET_SYSTEM_${YOKAI_TARGET_SYSTEM_NAME_UPPER}" ON)
 
 # This is for systems behaving similarly to a Linux Desktop,
 # implementing standards like FHS, XDG, GLVND…
 # Makes possible to do that in CMake code:
 # > if (YOKAI_HOST_SYSTEM_XDG_COMPATIBILITY)
-# > if (YOKAI_SYSTEM_XDG_COMPATIBILITY)
+# > if (YOKAI_TARGET_SYSTEM_XDG_COMPATIBILITY)
 foreach(name LINUX;FREEBSD)
-	foreach(slug HOST_SYSTEM;SYSTEM)
+	foreach(slug HOST_SYSTEM;TARGET_SYSTEM)
 		if (YOKAI_${slug}_${name})
 			set(YOKAI_${slug}_XDG_COMPATIBILITY ON)
 		endif()
@@ -127,5 +127,5 @@ endforeach()
 
 if (YOKAI_SOURCE_GENERATOR)
 	# Add printable string to the executable.
-	yokai_add_buildinfo("char*" "YOKAI_SYSTEM_STRING" "\"${YOKAI_SYSTEM_NAME}\"")
+	yokai_add_buildinfo("char*" "YOKAI_SYSTEM_STRING" "\"${YOKAI_TARGET_SYSTEM_NAME}\"")
 endif()
