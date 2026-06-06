@@ -39,7 +39,7 @@ function(yokai_detect_compiler lang)
 
 	get_filename_component(compiler_basename "${CMAKE_${lang}_COMPILER}" NAME)
 
-	yokai_run_detection("${lang}_" "COMPILER" "Compiler${${lang}_EXT}" "GCC;Clang;generic")
+	yokai_run_detection("${lang}" "COMPILER" "Compiler${${lang}_EXT}" "GCC;Clang;generic")
 
 	if (compiler_name STREQUAL "Unknown")
 		if (CMAKE_${lang}_COMPILER_ID)

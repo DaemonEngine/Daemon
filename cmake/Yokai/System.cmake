@@ -68,7 +68,7 @@ function(yokai_detect_host_system)
 endfunction()
 
 function(yokai_detect_system)
-	yokai_run_detection("TARGET_" "SYSTEM" "System.c" "Linux")
+	yokai_run_detection("TARGET" "SYSTEM" "System.c" "Linux")
 
 	if (system_name STREQUAL "Unknown")
 		detect_cmake_host_system("system_name")
