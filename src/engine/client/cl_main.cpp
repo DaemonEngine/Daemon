@@ -564,9 +564,12 @@ class DemoPlayCmd: public Cmd::StaticCmd {
                 return;
             }
 
-            // make sure a local server is killed
-            Cvar_Set( "sv_killserver", "1" );
-            CL_Disconnect( true );
+            if (com_sv_running.Get()) {
+                // Use /disconnect to shut everything down cleanly.
+                // Maybe we should also do that if there is an online connection or another demo?
+                Cmd::BufferCommandTextAfter("disconnect; demo_play " + Cmd::Escape(args.Argv(1)));
+                return;
+            }
 
             // open the demo file
             const std::string& fileName = args.Argv(1);
