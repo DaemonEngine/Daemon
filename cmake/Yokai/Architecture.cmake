@@ -46,7 +46,7 @@ function(yokai_detect_arch)
 	if (YOKAI_NACL_HOST)
 		set(nacl_arch "${arch_name}")
 
-		if (YOKAI_SYSTEM_LINUX_COMPATIBILITY OR YOKAI_SYSTEM_XDG_COMPATIBILITY)
+		if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY OR YOKAI_TARGET_SYSTEM_XDG_COMPATIBILITY)
 			set(armhf_usage "arm64;armel")
 			if ("${arch_name}" IN_LIST armhf_usage)
 			# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
@@ -65,7 +65,7 @@ function(yokai_detect_arch)
 			endif()
 		endif()
 
-		elseif (YOKAI_SYSTEM_MACOS)
+		elseif (YOKAI_TARGET_SYSTEM_MACOS)
 			if ("${arch_name}" STREQUAL "arm64")
 				# You can get emulated NaCl going like this:
 				# cp external_deps/macos-amd64-default_10/{nacl_loader,irt_core-amd64.nexe} build/

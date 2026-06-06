@@ -53,6 +53,7 @@ do
 	"${@}" "${file_path}" -o "${temp_file}" 2>&1 \
 		| grep '<REPORT<' \
 		| sed -e 's/.*<REPORT<//;s/>REPORT>.*//' \
+		| sed -e 's/YOKAI_SYSTEM/YOKAI_TARGET_SYSTEM/' \
 		| sed -E 's/^([^=]+)=/\U\1=/' \
 	|| "${@}" "${file_path}" -o "${temp_file}"
 

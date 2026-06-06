@@ -383,7 +383,7 @@ else()
 		endif()
 	endif()
 
-	if (YOKAI_SYSTEM_NACL AND USE_NACL_SAIGO AND YOKAI_NACL_ARCH_ARMHF)
+	if (YOKAI_TARGET_SYSTEM_NACL AND USE_NACL_SAIGO AND YOKAI_NACL_ARCH_ARMHF)
 		# Saigo produces broken arm builds when optimizing them.
 		# See: https://github.com/Unvanquished/Unvanquished/issues/3297
 		# When setting this clang-specific option, we don't have to care
@@ -432,7 +432,7 @@ else()
 		try_flag(WARNINGS "-Werror")
 	endif()
 
-	if (YOKAI_SYSTEM_NACL AND NOT USE_NACL_SAIGO)
+	if (YOKAI_TARGET_SYSTEM_NACL AND NOT USE_NACL_SAIGO)
 		# PNaCl only supports libc++ as standard library.
 		set_c_cxx_flag("-stdlib=libc++")
 		set_c_cxx_flag("--pnacl-allow-exceptions")
@@ -444,12 +444,12 @@ else()
 	try_cxx_flag(FNO_GNU_UNIQUE "-fno-gnu-unique")
 
 	# Use MSVC-compatible bitfield layout
-	if (YOKAI_SYSTEM_WINDOWS)
+	if (YOKAI_TARGET_SYSTEM_WINDOWS)
 		set_c_cxx_flag("-mms-bitfields")
 	endif()
 
 	# Linker flags
-	if (NOT YOKAI_SYSTEM_MACOS)
+	if (NOT YOKAI_TARGET_SYSTEM_MACOS)
 		try_linker_flag(LINKER_O1 "-Wl,-O1")
 		try_linker_flag(LINKER_SORT_COMMON "-Wl,--sort-common")
 		try_linker_flag(LINKER_AS_NEEDED "-Wl,--as-needed")
@@ -462,7 +462,7 @@ else()
 		try_linker_flag(LINKER_Z_NOW "-Wl,-z,now")
 	endif()
 
-	if (YOKAI_SYSTEM_WINDOWS)
+	if (YOKAI_TARGET_SYSTEM_WINDOWS)
 		try_linker_flag(LINKER_DYNAMICBASE "-Wl,--dynamicbase")
 		try_linker_flag(LINKER_NXCOMPAT "-Wl,--nxcompat")
 		try_linker_flag(LINKER_LARGE_ADDRESS_AWARE "-Wl,--large-address-aware")
@@ -475,7 +475,7 @@ else()
 
 	# The -pthread flag sets some preprocessor defines,
 	# it is also used to link with libpthread on Linux.
-	if (NOT YOKAI_SYSTEM_MACOS)
+	if (NOT YOKAI_TARGET_SYSTEM_MACOS)
 		try_c_cxx_flag(PTHREAD "-pthread")
 	endif()
 
@@ -508,7 +508,7 @@ else()
 
 	if (USE_HARDENING)
 		# PNaCl accepts the flags but does not define __stack_chk_guard and __stack_chk_fail.
-		if (NOT YOKAI_SYSTEM_NACL)
+		if (NOT YOKAI_TARGET_SYSTEM_NACL)
 			try_c_cxx_flag(FSTACK_PROTECTOR_STRONG "-fstack-protector-strong")
 
 			if (NOT FLAG_FSTACK_PROTECTOR_STRONG)
@@ -519,12 +519,12 @@ else()
 		try_c_cxx_flag(FNO_STRICT_OVERFLOW "-fno-strict-overflow")
 		try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
 
-		if (NOT YOKAI_SYSTEM_NACL)
+		if (NOT YOKAI_TARGET_SYSTEM_NACL)
 			# The -pie flag requires -fPIC:
 			# > ld: error: relocation R_X86_64_64 cannot be used against local symbol; recompile with -fPIC
 			# This flag isn't used on macOS:
 			# > clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
-			if (FLAG_FPIC AND NOT YOKAI_SYSTEM_MACOS)
+			if (FLAG_FPIC AND NOT YOKAI_TARGET_SYSTEM_MACOS)
 				try_exe_linker_flag(LINKER_PIE "-pie")
 			endif()
 		endif()
@@ -547,7 +547,7 @@ else()
 	# PNaCl accepts the flag but does nothing with it, underlying clang doesn't support it.
 	# Saigo NaCl compiler doesn't support LTO, the flag is accepted but linking fails
 	# with “unable to pass LLVM bit-code files to linker” error.
-	if (USE_LTO AND NOT YOKAI_SYSTEM_NACL)
+	if (USE_LTO AND NOT YOKAI_TARGET_SYSTEM_NACL)
 		try_c_cxx_flag(LTO_AUTO "-flto=auto")
 
 		if (NOT FLAG_LTO_AUTO)
@@ -613,7 +613,7 @@ if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
             set_c_cxx_flag("/arch:IA32") # minimum
         endif()
     endif()
-elseif (NOT YOKAI_SYSTEM_NACL)
+elseif (NOT YOKAI_TARGET_SYSTEM_NACL)
 	# Among the required hardware features, the NX bit (No eXecute bit)
 	# feature may be required for NativeClient to work. Some early
 	# Intel EM64T processors are known to not implement the NX bit.
@@ -717,7 +717,7 @@ elseif (NOT YOKAI_SYSTEM_NACL)
 endif()
 
 # Windows-specific definitions
-if (YOKAI_SYSTEM_WINDOWS)
+if (YOKAI_TARGET_SYSTEM_WINDOWS)
     add_definitions(
         -DWINVER=0x501  # Minimum Windows version: XP
         -DWIN32         # Define WIN32 for compatibility (compiler defines _WIN32)
@@ -732,7 +732,7 @@ if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
 endif()
 
 # Mac-specific definitions
-if (YOKAI_SYSTEM_MACOS)
+if (YOKAI_TARGET_SYSTEM_MACOS)
     add_definitions(-DMACOS_X)
     set(CMAKE_INSTALL_RPATH "@executable_path")
     set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)

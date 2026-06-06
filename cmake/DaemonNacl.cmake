@@ -28,7 +28,7 @@
 
 option(USE_NACL_SAIGO "Use Saigo toolchain to build NaCl executables" OFF)
 
-if (YOKAI_SYSTEM_NACL)
+if (YOKAI_TARGET_SYSTEM_NACL)
   # Build nexe binary.
   if(USE_NACL_SAIGO)
     if (NACL_TARGET STREQUAL "amd64")
@@ -51,13 +51,13 @@ if (YOKAI_SYSTEM_NACL)
   endif()
 else()
   # Build native dll or native exe.
-  if (YOKAI_SYSTEM_MACOS)
+  if (YOKAI_TARGET_SYSTEM_MACOS)
     add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=0 -DNACL_ANDROID=0 -DNACL_FREEBSD=0 -DNACL_OSX=1 )
-  elseif (YOKAI_SYSTEM_LINUX)
+  elseif (YOKAI_TARGET_SYSTEM_LINUX)
     add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=1 -DNACL_ANDROID=0 -DNACL_FREEBSD=0 -DNACL_OSX=0 )
-  elseif (YOKAI_SYSTEM_FREEBSD)
+  elseif (YOKAI_TARGET_SYSTEM_FREEBSD)
     add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=0 -DNACL_ANDROID=0 -DNACL_FREEBSD=1 -DNACL_OSX=0 )
-  elseif (YOKAI_SYSTEM_WINDOWS)
+  elseif (YOKAI_TARGET_SYSTEM_WINDOWS)
     add_definitions( -DNACL_WINDOWS=1 -DNACL_LINUX=0 -DNACL_ANDROID=0 -DNACL_FREEBSD=0 -DNACL_OSX=0 )
   endif()
 
