@@ -1011,15 +1011,11 @@ void CL_Connect_f()
 	// clear any previous "server full" type messages
 	clc.serverMessage[ 0 ] = 0;
 
-	if ( com_sv_running.Get() && !strcmp( server, "loopback" ) )
+	if ( com_sv_running.Get() )
 	{
 		// if running a local server, kill it
-		SV_Shutdown( "Server quit" );
+		SV_Shutdown( "Host ended the game" );
 	}
-
-	// make sure a local server is killed
-	Cvar_Set( "sv_killserver", "1" );
-	SV_Frame( 0 );
 
 	try {
 		CL_Disconnect( true );
