@@ -71,7 +71,7 @@ include(CMakeParseArguments)
 # The NaCl SDK only runs on amd64 or i686.
 if (NOT FORK EQUAL 2)
 	if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
-	AND (YOKAI_ARCH_AMD64 OR YOKAI_ARCH_I686))
+	AND (YOKAI_TARGET_ARCH_AMD64 OR YOKAI_TARGET_ARCH_I686))
 		# can be loaded by daemon with vm.[sc]game.type 0 or 1
 		option(BUILD_GAME_NACL "Build the NaCl \"pexe\" and \"nexe\" gamelogic modules for enabled architecture targets, required to host mods." OFF)
 
@@ -82,7 +82,7 @@ if (NOT FORK EQUAL 2)
 		if (BUILD_GAME_NACL_TARGETS STREQUAL "all")
 			set(NACL_TARGETS "${NACL_ALL_TARGETS}")
 		elseif (BUILD_GAME_NACL_TARGETS STREQUAL "native")
-			set(NACL_TARGETS "${YOKAI_ARCH_NAME}")
+			set(NACL_TARGETS "${YOKAI_TARGET_ARCH_NAME}")
 		elseif (BUILD_GAME_NACL_TARGETS STREQUAL "none")
 			set(NACL_TARGETS "")
 		else()

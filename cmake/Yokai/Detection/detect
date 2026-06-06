@@ -54,6 +54,7 @@ do
 		| grep '<REPORT<' \
 		| sed -e 's/.*<REPORT<//;s/>REPORT>.*//' \
 		| sed -e 's/YOKAI_SYSTEM/YOKAI_TARGET_SYSTEM/' \
+		| sed -e 's/YOKAI_ARCH/YOKAI_TARGET_ARCH/' \
 		| sed -E 's/^([^=]+)=/\U\1=/' \
 	|| "${@}" "${file_path}" -o "${temp_file}"
 
