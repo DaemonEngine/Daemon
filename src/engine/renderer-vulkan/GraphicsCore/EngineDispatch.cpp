@@ -30,24 +30,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <unordered_map>
 
-#include "../Memory/DynamicArray.h"
-
-#include "../Thread/TaskList.h"
-#include "../Shared/Timer.h"
+#include "Timer.h"
+#include "Memory/DynamicArray.h"
+#include "Thread/TaskList.h"
 
 #include "../Surface/Surface.h"
 
 #include "Decls.h"
 
-#include "Memory/DescriptorSet.h"
 #include "ExecutionGraph/ExecutionGraph.h"
+#include "Memory/DescriptorSet.h"
+#include "GraphicsCoreStore.h"
+#include "Image.h"
 #include "ResourceSystem.h"
 #include "Queue.h"
-
-#include "Image.h"
-
-#include "GraphicsCoreStore.h"
-
 #include "SwapChain.h"
 
 #include "../GraphicsShared/CoreData.h"

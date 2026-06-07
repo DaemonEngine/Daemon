@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef LIGHT_H
 #define LIGHT_H
 
-#include "NumberTypes.h"
+#include "Int.h"
 
 struct LightMsg {
 	uint32 id;

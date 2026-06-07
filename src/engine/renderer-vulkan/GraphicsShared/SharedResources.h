@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SHARED_RESOURCES_H
 #define SHARED_RESOURCES_H
 
-#include "NumberTypes.h"
+#include "Int.h"
 
 #include "Entity.h"
 #include "Light.h"

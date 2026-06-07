@@ -31,17 +31,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef QUEUE_H
 #define QUEUE_H
 
-#include "../Math/NumberTypes.h"
-
-#include "../Memory/Array.h"
-
-#include "../Sync/AccessLock.h"
+#include "Int.h"
+#include "Memory/Array.h"
+#include "Sync/AccessLock.h"
 
 #include "Vulkan.h"
 
-#include "Semaphore.h"
-
 #include "Decls.h"
+
+#include "Semaphore.h"
 
 enum QueueType : uint32 {
 	GRAPHICS = VK_QUEUE_GRAPHICS_BIT,

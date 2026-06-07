@@ -28,16 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "../Math/Bit.h"
-
-#include "FeaturesConfig.h"
-
-#include "Queue.h"
+#include "Bit.h"
 
 #include "Memory/EngineAllocator.h"
-#include "ResourceSystem.h"
-
+#include "FeaturesConfig.h"
 #include "GraphicsCoreStore.h"
+#include "ResourceSystem.h"
+#include "Queue.h"
 
 #include "Image.h"
 

@@ -33,15 +33,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Decls.h"
 
-#include "../Math/NumberTypes.h"
-
-#include "../Memory/DynamicArray.h"
-
-#include "../Thread/GlobalMemory.h"
-
-#include "Image.h"
+#include "Int.h"
+#include "Memory/DynamicArray.h"
+#include "Thread/GlobalMemory.h"
 
 #include "GraphicsResource.h"
+#include "Image.h"
 
 namespace PresentMode {
 	enum PresentMode {

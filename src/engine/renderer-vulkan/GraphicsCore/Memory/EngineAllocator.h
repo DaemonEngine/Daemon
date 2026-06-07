@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef ENGINE_ALLOCATOR_H
 #define ENGINE_ALLOCATOR_H
 
-#include "../../Math/NumberTypes.h"
+#include "Int.h"
 
 #include "../Decls.h"
 

@@ -28,21 +28,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "../Version.h"
-
-#include "CapabilityPack.h"
-
-#include "SwapChain.h"
-
-#include "DebugMsg.h"
+#include "Version.h"
 
 #include "Memory/EngineAllocator.h"
+#include "CapabilityPack.h"
+#include "DebugMsg.h"
+#include "SwapChain.h"
 
 #include "GraphicsCoreCVars.h"
 
 Cvar::Cvar<int>              r_rendererApi( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vulkan", Cvar::ROM, 1 );
 
-Cvar::Cvar<std::string>      r_vkVersion( "r_vkVersion", "Daemon-vulkan version", Cvar::ROM, DAEMON_VULKAN_VERSION.FormatVersion() );
+Cvar::Cvar<std::string>      r_vkVersion( "r_vkVersion", "Daemon-vulkan version", Cvar::ROM, BASE_VERSION.FormatVersion() );
 
 Cvar::Range<Cvar::Cvar<int>> r_vkCapabilityPack( "r_vkCapabilityPack", "CapabilityPack override",
 	Cvar::NONE, CapabilityPackType::MINIMAL, CapabilityPackType::MINIMAL, CapabilityPackType::EXPERIMENTAL );

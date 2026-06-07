@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef CORE_DATA_H
 #define CORE_DATA_H
 
-#include "NumberTypes.h"
+#include "Int.h"
 
 struct CoreData {
 	uint32 currentSwapChainImage;

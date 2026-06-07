@@ -30,16 +30,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <atomic>
 
-#include "../../Math/Bit.h"
+#include "Bit.h"
 
-#include "../../Memory/DynamicArray.h"
+#include "Memory/DynamicArray.h"
 
-#include "../../Thread/TaskList.h"
-#include "../../Thread/ThreadMemory.h"
+#include "Thread/TaskList.h"
+#include "Thread/ThreadMemory.h"
 
-#include "../../Sys/MemoryInfo.h"
+#include "Sys/MemoryInfo.h"
 
-#include "../../Parser.h"
+#include "Parser.h"
 
 #include "../Vulkan.h"
 

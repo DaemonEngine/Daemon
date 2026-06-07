@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 
-#include "../Math/NumberTypes.h"
+#include "Int.h"
 
 extern Cvar::Cvar<int>                r_rendererAPI;
 

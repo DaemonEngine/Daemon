@@ -30,8 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 
-#include "../../Math/NumberTypes.h"
-#include "../../Math/Bit.h"
+#include "Int.h"
+#include "Bit.h"
 
 #include "../Vulkan.h"
 

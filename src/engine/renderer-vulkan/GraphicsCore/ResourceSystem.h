@@ -33,11 +33,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <unordered_map>
 
-#include "../GraphicsShared/MemoryPool.h"
-
 #include "Decls.h"
 
 #include "Memory/EngineAllocator.h"
+
+#include "../GraphicsShared/MemoryPool.h"
 
 struct ResourceSystem {
 	MemoryPool memoryPoolData;

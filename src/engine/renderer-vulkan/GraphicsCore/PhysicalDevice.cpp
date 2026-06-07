@@ -28,21 +28,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
+#include "Int.h"
+#include "Error.h"
+#include "Memory/Array.h"
+#include "Memory/DynamicArray.h"
+
 #include "Vulkan.h"
 
-#include "../Math/NumberTypes.h"
-#include "../Memory/Array.h"
-#include "../Memory/DynamicArray.h"
-#include "../Error.h"
-
-#include "GraphicsCoreCVars.h"
-
+#include "CapabilityPack.h"
 #include "EngineConfig.h"
 #include "FeaturesConfig.h"
-#include "Queue.h"
-#include "CapabilityPack.h"
-
+#include "GraphicsCoreCVars.h"
 #include "GraphicsCoreStore.h"
+#include "Queue.h"
 
 #include "PhysicalDevice.h"
 

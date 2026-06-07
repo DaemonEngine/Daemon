@@ -31,11 +31,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef CORE_THREAD_MEMORY_H
 #define CORE_THREAD_MEMORY_H
 
-#include "../../Math/NumberTypes.h"
+#include "Int.h"
 
-#include "../../Sync/AlignedAtomic.h"
+#include "Sync/AlignedAtomic.h"
 
-#include "../../Thread/ThreadCommon.h"
+#include "Thread/ThreadCommon.h"
 
 #include "../Decls.h"
 

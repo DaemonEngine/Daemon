@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PIPELINE_CACHE_H
 #define PIPELINE_CACHE_H
 
-#include "../../Math/NumberTypes.h"
+#include "Int.h"
 
 #include "../Decls.h"
 

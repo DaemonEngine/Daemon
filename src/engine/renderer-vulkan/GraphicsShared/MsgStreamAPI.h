@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef MSG_STREAM_API_H
 #define MSG_STREAM_API_H
 
-#include "NumberTypes.h"
+#include "Int.h"
 
 constexpr uint32 ENGINE_NOP                       = 0;
 constexpr uint32 ENGINE_INIT                      = 1;

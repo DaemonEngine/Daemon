@@ -32,25 +32,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL3/SDL_vulkan.h>
 
-#include "../Math/NumberTypes.h"
-#include "../Memory/DynamicArray.h"
-
-#include "../Error.h"
-
-#include "../Version.h"
+#include "Int.h"
+#include "Error.h"
+#include "Memory/DynamicArray.h"
 
 #include "../VulkanLoader/VulkanLoadFunctions.h"
 
 #include "Vulkan.h"
 
-#include "GraphicsCoreStore.h"
+#include "Version.h"
 
 #include "CapabilityPack.h"
 #include "DebugMsg.h"
+#include "GraphicsCoreStore.h"
 #include "PhysicalDevice.h"
-#include "SwapChain.h"
-
 #include "Queue.h"
+#include "SwapChain.h"
 
 #include "Instance.h"
 
@@ -59,7 +56,7 @@ void Instance::Init( const char* engineName, const char* appName ) {
 		.pApplicationName   = appName,
 		.applicationVersion = 0,
 		.pEngineName        = engineName,
-		.engineVersion      = DAEMON_VULKAN_VERSION.major | ( DAEMON_VULKAN_VERSION.minor << 10 ) | ( DAEMON_VULKAN_VERSION.patch << 21 ),
+		.engineVersion      = BASE_VERSION.major | ( BASE_VERSION.minor << 10 ) | ( BASE_VERSION.patch << 21 ),
 		.apiVersion         = VK_MAKE_API_VERSION( 0, 1, 4, 0 )
 	};
 

@@ -78,8 +78,6 @@ endif()
 include(DaemonSourceGenerator)
 include(DaemonPlatform)
 
-include( DaemonVulkan )
-
 ################################################################################
 # Configuration options
 ################################################################################
@@ -821,6 +819,9 @@ endif()
 ################################################################################
 # Engine
 ################################################################################
+include( src/engine/Base/Base.cmake )
+include( DaemonVulkan )
+
 macro(AddApplicationInternal Target Executable)
     add_executable(${Target} ${Sources})
     target_link_libraries(${Target} ${A_Target}-objects ${CPP23SupportLibrary})
@@ -926,10 +927,12 @@ if (BUILD_CLIENT)
         Definitions ${Definitions}
         CompileFlags ${WARNINGS};${OPENMP_COMPILE_FLAG}
         LinkFlags ${OPENMP_LINK_FLAG}
-        Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
+        Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST} ${engineBaseList}
         Libs ${LIBS_CLIENT} ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
         Tests ${CLIENTTESTLIST}
     )
+
+    target_include_directories( client-objects PRIVATE ${engineBaseIncludeList} )
 
     if (USE_VULKAN)
         GenerateVulkanShaders( client-objects )
@@ -948,10 +951,12 @@ if (BUILD_SERVER)
         ApplicationMain ${ENGINE_DIR}/server/ServerApplication.cpp
         Definitions BUILD_ENGINE BUILD_SERVER
         CompileFlags ${WARNINGS}
-        Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${DEDSERVERLIST}
+        Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${DEDSERVERLIST} ${engineBaseList}
         Libs ${LIBS_ENGINE}
         Tests ${ENGINETESTLIST}
     )
+
+    target_include_directories( server-objects PRIVATE ${engineBaseIncludeList} )
 endif()
 
 if (BUILD_TTY_CLIENT)
@@ -961,10 +966,12 @@ if (BUILD_TTY_CLIENT)
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions BUILD_ENGINE BUILD_TTY_CLIENT
         CompileFlags ${WARNINGS}
-        Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${TTYCLIENTLIST}
+        Files ${WIN_RC} ${BUILDINFOLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${TTYCLIENTLIST} ${engineBaseList}
         Libs ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
         Tests ${ENGINETESTLIST}
     )
+
+    target_include_directories( ttyclient-objects PRIVATE ${engineBaseIncludeList} )
 endif()
 
 ################################################################################

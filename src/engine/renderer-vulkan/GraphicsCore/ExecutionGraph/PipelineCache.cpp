@@ -28,9 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "../../Sys/MemoryInfo.h"
+#include "Sys/MemoryInfo.h"
 
-#include "../../Memory/Array.h"
+#include "Memory/Array.h"
 
 #include "../ResultCheck.h"
 

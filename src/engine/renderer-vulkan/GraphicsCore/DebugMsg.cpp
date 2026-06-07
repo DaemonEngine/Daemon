@@ -28,19 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "../Math/Bit.h"
-
-#include "../Memory/DynamicArray.h"
-
-#include "Vulkan.h"
-
-#include "GraphicsCoreCVars.h"
-
-#include "GraphicsCoreStore.h"
+#include "Bit.h"
+#include "DynamicArray.h"
 
 #include "FeaturesConfig.h"
-
 #include "Instance.h"
+#include "GraphicsCoreCVars.h"
+#include "GraphicsCoreStore.h"
 
 #include "DebugMsg.h"
 

@@ -34,14 +34,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "engine/framework/CvarSystem.h"
 #include "engine/framework/System.h"
 
-#include "Sys/OSLoad.h"
-
-#include "Thread/GlobalMemory.h"
-#include "Thread/ThreadMemory.h"
-#include "Thread/TaskList.h"
 #include "Memory/MemoryChunkSystem.h"
 #include "Memory/SysAllocator.h"
-#include "MiscCVarStore.h"
+#include "Thread/GlobalMemory.h"
+#include "Thread/TaskList.h"
+#include "Thread/ThreadMemory.h"
+#include "Sys/OSLoad.h"
+#include "BaseCVars.h"
 #include "../RefAPI.h"
 
 #include "Surface/Surface.h"

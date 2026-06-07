@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PUSH_LAYOUT_H
 #define PUSH_LAYOUT_H
 
-#include "NumberTypes.h"
+#include "Int.h"
 
 #ifdef __cplusplus
 	struct PushLayout {

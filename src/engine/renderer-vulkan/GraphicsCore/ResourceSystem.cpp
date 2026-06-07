@@ -28,11 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "FeaturesConfig.h"
-
-#include "GraphicsCoreStore.h"
-
 #include "Memory/EngineAllocator.h"
+#include "FeaturesConfig.h"
+#include "GraphicsCoreStore.h"
 #include "ResourceSystem.h"
 
 #include "../GraphicsShared/CoreData.h"

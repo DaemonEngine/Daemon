@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GRAPHICS_CORE_DECLS_H
 #define GRAPHICS_CORE_DECLS_H
 
-#include "../Math/NumberTypes.h"
+#include "Int.h"
 
 #define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 #define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;

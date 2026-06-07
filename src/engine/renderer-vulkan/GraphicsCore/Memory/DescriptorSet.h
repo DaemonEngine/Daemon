@@ -31,9 +31,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef DESCRIPTOR_SET_H
 #define DESCRIPTOR_SET_H
 
-#include "../Decls.h"
+#include "Int.h"
 
-#include "../../Math/NumberTypes.h"
+#include "../Decls.h"
 
 void AllocDescriptors( uint32 imageCount, uint32 storageImageCount );
 void UpdateDescriptor( const uint32 id, Image image, const bool storage = false, Format format = ( Format ) UINT32_MAX );

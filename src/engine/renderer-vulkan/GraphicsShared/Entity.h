@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef ENTITY_H
 #define ENTITY_H
 
-#include "NumberTypes.h"
+#include "Int.h"
 
 struct EntityMsg {
 	uint32 id;

@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef DEBUG_MSG_H
 #define DEBUG_MSG_H
 
-#include "../Math/NumberTypes.h"
+#include "Int.h"
 
 #include "Vulkan.h"
 

@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef RESULT_CHECK_H
 #define RESULT_CHECK_H
 
-#include "../Error.h"
+#include "Error.h"
 
 #include "Vulkan.h"
 

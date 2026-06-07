@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef EXEC_CMD_H
 #define EXEC_CMD_H
 
-#include "../../Math/NumberTypes.h"
+#include "Int.h"
 
 #include "../Decls.h"
 

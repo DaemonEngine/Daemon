@@ -30,11 +30,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Vulkan.h"
 
-#include "../../Error.h"
+#include "Error.h"
 
-#include "../../Math/Bit.h"
+#include "Bit.h"
 
-#include "../../Memory/Array.h"
+#include "Memory/Array.h"
 
 #include "../GraphicsCoreStore.h"
 #include "../FeaturesConfig.h"

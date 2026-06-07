@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef MEMORY_POOL_H
 #define MEMORY_POOL_H
 
-#include "NumberTypes.h"
+#include "Int.h"
 
 #ifdef __cplusplus
 	#define MemoryAddress uint32*

@@ -30,29 +30,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "engine/qcommon/qcommon.h"
 
-#include "../Shared/Timer.h"
+#include "Error.h"
+#include "Timer.h"
 
-#include "../Error.h"
-
-#include "../Thread/TaskList.h"
-#include "../Thread/ThreadMemory.h"
-#include "../Sync/Barrier.h"
-#include "../Sync/Fence.h"
-
-#include "Instance.h"
-
-#include "EngineConfig.h"
+#include "Thread/TaskList.h"
+#include "Thread/ThreadMemory.h"
+#include "Sync/Barrier.h"
+#include "Sync/Fence.h"
 
 #include "Memory/CoreThreadMemory.h"
 #include "Memory/DescriptorSet.h"
-#include "ResourceSystem.h"
-#include "GraphicsCoreStore.h"
-
-#include "Queue.h"
-
-#include "SwapChain.h"
-
+#include "EngineConfig.h"
 #include "EngineDispatch.h"
+#include "GraphicsCoreStore.h"
+#include "Instance.h"
+#include "ResourceSystem.h"
+#include "Queue.h"
+#include "SwapChain.h"
 
 #include "Init.h"
 

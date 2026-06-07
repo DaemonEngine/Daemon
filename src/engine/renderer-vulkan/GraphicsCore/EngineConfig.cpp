@@ -30,8 +30,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "engine/qcommon/q_shared.h"
 
-#include "Vulkan.h"
-
 #include "EngineConfig.h"
 
 EngineConfig GetEngineConfigForDevice( const VkPhysicalDevice& device ) {

@@ -31,9 +31,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SEMAPHORE_H
 #define SEMAPHORE_H
 
-#include "Decls.h"
+#include "Int.h"
 
-#include "../Math/NumberTypes.h"
+#include "Decls.h"
 
 struct Semaphore {
 	uint64                value;

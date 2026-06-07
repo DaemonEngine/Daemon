@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "../../Math/Bit.h"
+#include "Bit.h"
 
 #include "../Vulkan.h"
 

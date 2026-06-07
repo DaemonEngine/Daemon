@@ -31,9 +31,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef ENGINE_CONFIG_H
 #define ENGINE_CONFIG_H
 
-#include "Vulkan.h"
+#include "Int.h"
 
-#include "../Math/NumberTypes.h"
+#include "Vulkan.h"
 
 struct EngineConfig {
 	enum Type {

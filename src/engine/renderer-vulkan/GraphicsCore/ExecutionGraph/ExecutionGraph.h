@@ -35,11 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <initializer_list>
 #include <unordered_map>
 
-#include "../../Memory/BitStream.h"
+#include "Memory/BitStream.h"
 
-#include "../../Thread/GlobalMemory.h"
+#include "Thread/GlobalMemory.h"
 
-#include "../../Sync/AccessLock.h"
+#include "Sync/AccessLock.h"
 
 #include "../Decls.h"
 

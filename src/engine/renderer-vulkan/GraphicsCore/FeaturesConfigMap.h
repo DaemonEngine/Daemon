@@ -34,9 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <unordered_map>
 
-#include "../Math/NumberTypes.h"
-
-#include "../Version.h"
+#include "Int.h"
+#include "Version.h"
 
 struct FeatureData {
     uint32      offset;

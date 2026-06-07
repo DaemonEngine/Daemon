@@ -33,10 +33,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "engine/qcommon/q_shared.h"
 
-#include "../Math/NumberTypes.h"
-#include "../Version.h"
-#include "../Memory/Array.h"
-#include "../Memory/DynamicArray.h"
+#include "Int.h"
+#include "Version.h"
+#include "Memory/Array.h"
+#include "Memory/DynamicArray.h"
 
 #include "Vulkan.h"
 

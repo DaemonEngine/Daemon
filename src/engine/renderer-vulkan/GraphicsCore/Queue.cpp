@@ -28,14 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "../Memory/Array.h"
+#include "Memory/Array.h"
 
 #include "Vulkan.h"
 
-#include "GraphicsCoreStore.h"
-
 #include "DebugMsg.h"
-
+#include "GraphicsCoreStore.h"
 #include "Queue.h"
 
 static void InitQueue( Queue& queue, const uint32 index, const char* name ) {

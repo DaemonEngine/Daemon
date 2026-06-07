@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "NumberTypes.h"
+#include "Int.h"
 
 struct Entity {
 	uint32 geometryID;

@@ -32,16 +32,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../Surface/Surface.h"
 
-#include "Instance.h"
-
-#include "SwapChain.h"
-
-#include "FeaturesConfig.h"
-#include "EngineConfig.h"
-#include "Queue.h"
-
 #include "Memory/EngineAllocator.h"
+#include "Instance.h"
+#include "EngineConfig.h"
+#include "FeaturesConfig.h"
+#include "Queue.h"
 #include "ResourceSystem.h"
+#include "SwapChain.h"
 
 #include "GraphicsCoreStore.h"
 

@@ -78,7 +78,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // #define constexpr const
 
-#include "NumberTypes.h"
+#include "Int.h"
 #include "Bindings.h"
 
 /* Common defines */
