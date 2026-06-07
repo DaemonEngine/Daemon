@@ -34,7 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SDL3/SDL.h>
 
 #ifdef _MSC_VER
-	#include <Windows.h>
+	struct HMONITOR__;
+	using  HMONITOR = HMONITOR__*;
 #endif
 
 class Surface {
@@ -53,7 +54,7 @@ class Surface {
 
 	void Init();
 
-	~Surface();
+	    ~Surface();
 };
 
 #endif // SURFACE_H
