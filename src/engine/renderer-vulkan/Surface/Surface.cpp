@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
+#include <SDL3/SDL.h>
 #include <SDL3/SDL_video.h>
 
 #include "engine/qcommon/q_shared.h"

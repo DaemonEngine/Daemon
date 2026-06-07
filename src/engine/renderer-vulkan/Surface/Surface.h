@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SURFACE_H
 #define SURFACE_H
 
-#include <SDL3/SDL.h>
+struct SDL_Window;
 
 #ifdef _MSC_VER
 	struct HMONITOR__;
