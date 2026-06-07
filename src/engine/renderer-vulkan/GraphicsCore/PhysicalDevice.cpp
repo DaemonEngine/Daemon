@@ -29,9 +29,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Int.h"
+#include "Array.h"
+#include "DynamicArray.h"
 #include "Error.h"
-#include "Memory/Array.h"
-#include "Memory/DynamicArray.h"
 
 #include "Vulkan.h"
 

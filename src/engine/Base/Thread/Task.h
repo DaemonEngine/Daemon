@@ -34,13 +34,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 #include <type_traits>
 
-#include "Memory/Array.h"
-#include "Memory/Memory.h"
-#include "Sync/Fence.h"
-#include "Sync/AccessLock.h"
 #include "Sys/MemoryInfo.h"
 #include "Int.h"
 #include "Bit.h"
+#include "Memory.h"
+#include "AccessLock.h"
+#include "Fence.h"
 #include "Timer.h"
 
 #include "TaskData.h"

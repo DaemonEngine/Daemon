@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "Memory/Array.h"
+#include "Array.h"
 
 #include "Vulkan.h"
 

@@ -87,6 +87,7 @@ set( engineBaseList
     ${threadList}
     ${engineBase}/BaseCVars.cpp
     ${engineBase}/BaseCVars.h
+    ${engineBase}/BaseDecls.h
     ${engineBase}/Error.cpp
     ${engineBase}/Error.h
     ${engineBase}/Int.h

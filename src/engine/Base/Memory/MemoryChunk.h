@@ -32,8 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MEMORY_CHUNK_H
 
 #include "Sync/AccessLock.h"
-#include "Sync/AlignedAtomic.h"
 #include "Int.h"
+#include "BaseDecls.h"
 
 struct MemoryChunk {
 	uint8  level;

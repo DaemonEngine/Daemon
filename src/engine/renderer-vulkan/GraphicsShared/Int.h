@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define INT_SHARED_H
 
 #ifdef __cplusplus
-	#include "Int.h"
+	#include "Base/Int.h"
 #endif
 
 #ifndef __cplusplus

@@ -31,9 +31,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef TASKLIST_H
 #define TASKLIST_H
 
-#include "Memory/RingBuffer.h"
-#include "Memory/SysAllocator.h"
 #include "Int.h"
+#include "RingBuffer.h"
+#include "SysAllocator.h"
 
 #include "Thread.h"
 #include "ThreadCommon.h"

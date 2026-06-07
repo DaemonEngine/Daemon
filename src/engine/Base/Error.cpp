@@ -28,8 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "Error.h"
 #include "Thread/ThreadUplink.h"
+#include "Error.h"
 
 std::string error;
 

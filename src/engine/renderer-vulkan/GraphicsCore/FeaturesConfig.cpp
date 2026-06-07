@@ -32,9 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Vulkan.h"
 
-#include "GraphicsCoreStore.h"
-
 #include "EngineConfig.h"
+#include "GraphicsCoreStore.h"
 
 #include "FeaturesConfig.h"
 

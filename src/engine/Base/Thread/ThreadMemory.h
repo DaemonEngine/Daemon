@@ -33,11 +33,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <thread>
 
-#include "Memory/Allocator.h"
-#include "Memory/DynamicArray.h"
-#include "Memory/MemoryChunk.h"
-#include "Memory/SysAllocator.h"
 #include "Int.h"
+#include "Allocator.h"
+#include "DynamicArray.h"
+#include "MemoryChunk.h"
+#include "SysAllocator.h"
 #include "Timer.h"
 
 #include "TLMAllocator.h"

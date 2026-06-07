@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <unordered_set>
 
-#include "Memory/DynamicArray.h"
+#include "DynamicArray.h"
 
 #include "FeaturesConfig.h"
 #include "FeaturesConfigMap.h"

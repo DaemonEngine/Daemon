@@ -33,8 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Error.h"
 
 #include "Bit.h"
-
-#include "Memory/Array.h"
+#include "Array.h"
 
 #include "../GraphicsCoreStore.h"
 #include "../FeaturesConfig.h"

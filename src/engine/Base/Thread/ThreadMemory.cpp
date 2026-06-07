@@ -30,9 +30,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 
-#include "Memory/MemoryChunkSystem.h"
 #include "SrcDebug/StackTrace.h"
 #include "SrcDebug/Tag.h"
+#include "MemoryChunkSystem.h"
 #include "Error.h"
 
 #include "ThreadMemory.h"

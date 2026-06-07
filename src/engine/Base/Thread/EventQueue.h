@@ -31,8 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef EVENT_QUEUE_H
 #define EVENT_QUEUE_H
 
-#include "Memory/Array.h"
-#include "Sync/AccessLock.h"
+#include "Array.h"
+#include "AccessLock.h"
 
 #include "Task.h"
 

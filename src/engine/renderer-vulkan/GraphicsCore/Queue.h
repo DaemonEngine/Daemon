@@ -32,8 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define QUEUE_H
 
 #include "Int.h"
-#include "Memory/Array.h"
-#include "Sync/AccessLock.h"
+#include "BaseDecls.h"
+#include "AccessLock.h"
 
 #include "Vulkan.h"
 

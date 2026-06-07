@@ -31,12 +31,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PHYSICAL_DEVICE_H
 #define PHYSICAL_DEVICE_H
 
+#include "BaseDecls.h"
+
 #include "Decls.h"
 
-#include "Memory/DynamicArray.h"
-
 bool SelectPhysicalDevice( const DynamicArray<VkPhysicalDevice>& devices, EngineConfig* config, VkPhysicalDevice* deviceOut );
-
 void CreateDevice( EngineConfig& config, VkDevice* device );
 
 #endif // PHYSICAL_DEVICE_H

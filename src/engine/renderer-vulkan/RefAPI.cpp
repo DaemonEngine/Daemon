@@ -32,18 +32,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcommon/qcommon.h"
 #include "engine/framework/System.h"
 
-#include "../RefAPI.h"
-#include "Init.h"
-
 #include "Thread/TaskList.h"
 #include "Thread/ThreadMemory.h"
 #include "Thread/ThreadUplink.h"
 
-// struct SDL_Window* window;
-
 #include "Surface/Surface.h"
 #include "GraphicsCore/GraphicsCoreCVars.h"
 #include "GraphicsCore/GraphicsCoreStore.h"
+
+#include "Init.h"
+
+#include "../RefAPI.h"
 
 SDL_Window* window;
 

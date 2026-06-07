@@ -30,15 +30,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <atomic>
 
-#include "Bit.h"
-
-#include "Memory/DynamicArray.h"
-
 #include "Thread/TaskList.h"
 #include "Thread/ThreadMemory.h"
-
 #include "Sys/MemoryInfo.h"
-
+#include "Bit.h"
+#include "DynamicArray.h"
 #include "Parser.h"
 
 #include "../Vulkan.h"
@@ -46,16 +42,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../GraphicsCoreStore.h"
 #include "../Queue.h"
 #include "../ResultCheck.h"
-
-#include "SPIRV.h"
-
-#include "PipelineCache.h"
-
 #include "../Memory/CoreThreadMemory.h"
 #include "../Memory/EngineAllocator.h"
 #include "../ResourceSystem.h"
-
 #include "../SwapChain.h"
+
+#include "PipelineCache.h"
+#include "SPIRV.h"
 
 #include "ExecutionGraph.h"
 

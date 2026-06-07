@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Bit.h"
+#include "Array.h"
 
 #include "Memory/EngineAllocator.h"
 #include "FeaturesConfig.h"

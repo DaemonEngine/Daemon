@@ -30,9 +30,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <unordered_map>
 
-#include "Timer.h"
-#include "Memory/DynamicArray.h"
 #include "Thread/TaskList.h"
+#include "DynamicArray.h"
+#include "Timer.h"
 
 #include "../Surface/Surface.h"
 

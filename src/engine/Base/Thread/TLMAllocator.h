@@ -31,8 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef TLM_ALLOCATOR_H
 #define TLM_ALLOCATOR_H
 
-#include "Memory/Allocator.h"
 #include "Int.h"
+#include "Allocator.h"
 
 struct TLMAllocator : public Allocator {
 	byte* Alloc( const uint64 size, const uint64 alignment ) override;

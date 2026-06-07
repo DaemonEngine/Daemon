@@ -42,9 +42,9 @@ struct OSThread {
 		void*  id;
 		uint32 baseMaxFrequency; // Doesn't include Turbo Boost etc.
 	#elif __linux__
-		pid_t id;
+		pid_t  id;
 	#else
-		int   id;
+		int    id;
 	#endif
 
 	uint32 core;

@@ -34,11 +34,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unordered_map>
 #include <atomic>
 
-#include "Memory/Allocator.h"
-#include "Memory/DynamicArray.h"
-#include "Memory/MemoryChunk.h"
-#include "Memory/SysAllocator.h"
 #include "Int.h"
+#include "Allocator.h"
+#include "DynamicArray.h"
+#include "MemoryChunk.h"
+#include "SysAllocator.h"
 
 #include "Task.h"
 
@@ -70,7 +70,7 @@ class GlobalMemory : public Allocator {
 	DynamicArray<ChunkAllocator> chunkAllocators[MAX_MEMORY_AREAS] { { &sysAllocator }, { &sysAllocator }, { &sysAllocator } };
 
 	std::unordered_map<TaskFunction, GlobalTaskTime> taskTimes;
-	AccessLock                                             taskTimesLock;
+	AccessLock                                       taskTimesLock;
 
 	void         Init();
 

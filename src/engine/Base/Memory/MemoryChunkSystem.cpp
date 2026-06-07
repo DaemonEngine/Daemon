@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
+#include "Sync/AlignedAtomic.h"
 #include "Bit.h"
 #include "Error.h"
 #include "Timer.h"

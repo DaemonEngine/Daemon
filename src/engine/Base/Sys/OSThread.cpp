@@ -44,9 +44,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	#include <pthread.h>
 #endif
 
-#include "Memory/DynamicArray.h"
 #include "Thread/ThreadCommon.h"
 #include "Bit.h"
+#include "DynamicArray.h"
 #include "Timer.h"
 
 #include "CPUInfo.h"

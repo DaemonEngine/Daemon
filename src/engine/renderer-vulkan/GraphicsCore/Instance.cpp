@@ -33,14 +33,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SDL3/SDL_vulkan.h>
 
 #include "Int.h"
+#include "DynamicArray.h"
 #include "Error.h"
-#include "Memory/DynamicArray.h"
+#include "Version.h"
 
 #include "../VulkanLoader/VulkanLoadFunctions.h"
 
 #include "Vulkan.h"
-
-#include "Version.h"
 
 #include "CapabilityPack.h"
 #include "DebugMsg.h"

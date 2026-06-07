@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <SDL3/SDL_vulkan.h>
 
-#include "Memory/DynamicArray.h"
+#include "DynamicArray.h"
 
 #include "../Surface/Surface.h"
 

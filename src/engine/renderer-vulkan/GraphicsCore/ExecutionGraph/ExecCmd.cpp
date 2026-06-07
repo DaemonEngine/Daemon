@@ -33,9 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../Vulkan.h"
 
 #include "../Memory/CoreThreadMemory.h"
-
 #include "../Semaphore.h"
-
 #include "../Queue.h"
 
 #include "ExecCmd.h"

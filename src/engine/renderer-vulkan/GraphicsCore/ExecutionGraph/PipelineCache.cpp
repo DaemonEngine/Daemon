@@ -29,16 +29,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Sys/MemoryInfo.h"
-
-#include "Memory/Array.h"
+#include "Array.h"
 
 #include "../ResultCheck.h"
-
 #include "../GraphicsCoreStore.h"
 
 #include "../../GraphicsShared/SPIRVIDs.h"
-#include "SPIRV.h"
 #include "../../GraphicsShared/PushLayout.h"
+
+#include "SPIRV.h"
 
 #include "PipelineCache.h"
 

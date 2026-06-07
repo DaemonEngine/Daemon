@@ -34,14 +34,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "engine/qcommon/q_shared.h"
 
 #include "Int.h"
+#include "BaseDecls.h"
+#include "Array.h"
 #include "Version.h"
-#include "Memory/Array.h"
-#include "Memory/DynamicArray.h"
 
 #include "Vulkan.h"
 
 #include "Decls.h"
-
 #include "EngineConfig.h"
 
 template<const uint32 instanceExtensionCount, const uint32 extensionCount, const uint32 featureCount>

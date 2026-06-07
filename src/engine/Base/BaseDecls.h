@@ -28,54 +28,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef CORE_THREAD_MEMORY_H
-#define CORE_THREAD_MEMORY_H
+#ifndef BASE_DECLS_H
+#define BASE_DECLS_H
 
-#include "Thread/ThreadCommon.h"
 #include "Int.h"
-#include "AlignedAtomic.h"
 
-#include "../Decls.h"
+struct AlignedAtomicUint32;
+struct AlignedAtomicUint64;
 
-#include "../Semaphore.h"
-#include "../GraphicsCoreStore.h"
+template<typename T, uint64 newSize>
+struct Array;
 
-static constexpr uint32 maxExecCmdBuffers = 4;
+template<typename T>
+class DynamicArray;
 
-struct ExecCmdPool {
-	VkCommandPool   cmdPool;
-	VkCommandBuffer cmds[maxExecCmdBuffers];
-	uint64          executionPhase[maxExecCmdBuffers];
-	uint8           allocState;
-};
-
-struct GraphicsCoreMemory {
-	VkCommandPool graphicsCmdPool;
-	VkCommandPool computeCmdPool;
-	VkCommandPool transferCmdPool;
-	VkCommandPool sparseCmdPool;
-
-	ExecCmdPool   execGraphicsCmd;
-	ExecCmdPool   execComputeCmd;
-	ExecCmdPool   execTransferCmd;
-	ExecCmdPool   execSparseCmd;
-};
-
-void InitCmdPools();
-void InitExecCmdPools();
-
-void FreeCmdPools();
-void FreeExecCmdPools();
-
-constexpr uint32              maxThreadCmdBuffers = 64;
-
-extern                 uint64 cmdBufferStates[MAX_THREADS];
-extern    thread_local uint64 cmdBufferAllocState;
-
-extern    VkCommandBuffer     cmdBuffers[MAX_THREADS][maxThreadCmdBuffers];
-extern    uint64              swapchainCmdBuffers[MAX_THREADS];
-extern    VkFence             cmdBufferFences[MAX_THREADS][maxThreadCmdBuffers];
-
-extern    thread_local GraphicsCoreMemory GMEM;
-
-#endif // CORE_THREAD_MEMORY_H
+#endif // BASE_DECLS_H

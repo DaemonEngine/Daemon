@@ -2,9 +2,8 @@
 
 #include "Vulkan.h"
 
-#include "GraphicsCoreStore.h"
-
 #include "EngineConfig.h"
+#include "GraphicsCoreStore.h"
 
 #include "FeaturesConfig.h"
 

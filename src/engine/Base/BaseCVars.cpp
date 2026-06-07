@@ -28,9 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "Memory/MemoryChunk.h"
 #include "Sys/CPUInfo.h"
 #include "Thread/TaskList.h"
+#include "MemoryChunk.h"
 
 #include "BaseCVars.h"
 
