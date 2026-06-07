@@ -43,8 +43,20 @@
 
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
-#include <windows.h>
-#include "vulkan_win32.h"
+	struct HINSTANCE__;
+	struct HMONITOR__;
+	struct HWND__;
+	struct _SECURITY_ATTRIBUTES;
+
+	using  DWORD               = unsigned long;
+	using  HANDLE              = void*;
+	using  HINSTANCE           = HINSTANCE__*;
+	using  HMONITOR            = HMONITOR__*;
+	using  HWND                = HWND__*;
+	using  LPCWSTR             = const wchar_t*;
+	using  SECURITY_ATTRIBUTES = _SECURITY_ATTRIBUTES;
+
+	#include "vulkan_win32.h"
 #endif
 
 
