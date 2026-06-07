@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 uint32 CPU_CORES = std::thread::hardware_concurrency();
 
 #ifdef _MSC_VER
-	#include <windows.h>
+	#include "Windows.h"
 
 	static uint64 GetClockPrecision() {
 		LARGE_INTEGER res;

@@ -32,7 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PDH_H
 
 #ifdef _MSC_VER
-	#include <windows.h>
+	#include "Windows.h"
+
 	#include <Pdh.h>
 
 	using  PdhOpenQueryAPtr               = PDH_STATUS ( * )( LPCSTR szDataSource, DWORD_PTR dwUserData, PDH_HQUERY* phQuery );

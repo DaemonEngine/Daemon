@@ -29,7 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifdef _MSC_VER
-	#include <windows.h>
+	#include "Windows.h"
+
 	#include <powerbase.h>
 	#include <Pdh.h>
 

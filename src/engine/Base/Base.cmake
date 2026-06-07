@@ -54,6 +54,7 @@ set( sysList
     ${engineBase}/Sys/OSThread.h
     ${engineBase}/Sys/PDH.cpp
     ${engineBase}/Sys/PDH.h
+    ${engineBase}/Sys/Windows.h
 )
 
 set( threadList

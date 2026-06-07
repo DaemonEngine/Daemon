@@ -28,27 +28,56 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifdef _MSC_VER
-	#include "Windows.h"
-#else
-	#include <unistd.h>
-#endif
+#ifndef WINDOWS_H
+#define WINDOWS_H
 
-#include "MemoryInfo.h"
+// #define NOMINMAX // Defined in cmake/DaemonFlags.cmake
+#define WIN32_LEAN_AND_MEAN
+#define NOGDICAPMASKS
+#define NOCRYPT
+#define NOVIRTUALKEYCODES
+#define NOWINMESSAGES
+#define NOWINSTYLES
+#define NOSYSMETRICS
+#define NOMENUS
+#define NOICONS
+#define NOKEYSTATES
+#define NORASTEROPS
+#define NOSYSCOMMANDS
+#define NOSHOWWINDOW
+#define OEMRESOURCE
+#define NOATOM
+#define NOCLIPBOARD
+#define NOCOLOR
+#define NOCTLMGR
+#define NODRAWTEXT
+#define NOGDI
+#define NOKERNEL
+#define NOUSER
+#define NONLS
+#define NOMB
+#define NOMEMMGR
+#define NOMETAFILE
+#define NOMSG
+#define NOOPENFILE
+#define NOSCROLL
+#define NOSERVICE
+#define NOSOUND
+#define NOTEXTMETRIC
+#define NOWH
+#define NOWINOFFSETS
+#define NOCOMM
+#define NOKANJI
+#define NOHELP
+#define NOPROFILER
+#define NODEFERWINDOWPOS
+#define NOMCX
 
-MemoryInfo::MemoryInfo() {
-	#ifdef _MSC_VER
-		SYSTEM_INFO info;
-		GetSystemInfo( &info );
+#include <windows.h>
 
-		PAGE_SIZE_DEFAULT = info.dwPageSize;
-		PAGE_SIZE_64      = 64 * 1024;
-		PAGE_SIZE_LARGE   = GetLargePageMinimum();
-	#else
-		PAGE_SIZE_DEFAULT = sysconf( _SC_PAGESIZE );
-		PAGE_SIZE_64      = PAGE_SIZE_DEFAULT; // TODO: Can this even be specified on Linux?
-		PAGE_SIZE_LARGE   = 0;
-	#endif
-}
+#include "Int.h"
 
-MemoryInfo memoryInfo;
+typedef _Return_type_success_( return >= 0 ) uint32    NTSTATUS;
+typedef                                      NTSTATUS* PNTSTATUS;
+
+#endif // WINDOWS_H

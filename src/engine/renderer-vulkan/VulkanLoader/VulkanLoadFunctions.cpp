@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Auto-generated, do not modify
 
 #ifdef _MSC_VER
-	#include <windows.h>
+	#include "Sys/Windows.h"
 #else
 	#include <dlfcn.h>
 #endif
