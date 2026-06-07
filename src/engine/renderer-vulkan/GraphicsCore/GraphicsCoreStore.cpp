@@ -28,9 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#include "Vulkan.h"
-
 #include "../Surface/Surface.h"
+
+#include "Vulkan.h"
 
 #include "Memory/EngineAllocator.h"
 #include "Instance.h"
@@ -42,18 +42,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GraphicsCoreStore.h"
 
-Surface mainSurface;
+Surface        mainSurface;
 
-Instance instance;
-
-SwapChain mainSwapChain;
-
-FeaturesConfig featuresConfig;
+Instance       instance;
 EngineConfig   engineConfig;
+FeaturesConfig featuresConfig;
+SwapChain      mainSwapChain;
 
 VkPhysicalDevice physicalDevice;
+VkDevice         device;
 
-VkDevice device;
+VkDescriptorSetLayout descriptorSetLayout;
+VkDescriptorSet       descriptorSet;
 
 Queue  queues[5] {};
 
@@ -62,9 +62,6 @@ Queue* computeQueue;
 Queue* transferQueue;
 Queue* transferDLQueue;
 Queue* sparseQueue;
-
-VkDescriptorSetLayout descriptorSetLayout;
-VkDescriptorSet       descriptorSet;
 
 EngineAllocator engineAllocator;
 ResourceSystem  resourceSystem;
