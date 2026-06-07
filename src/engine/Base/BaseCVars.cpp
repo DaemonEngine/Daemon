@@ -34,28 +34,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BaseCVars.h"
 
-Cvar::Range<Cvar::Cvar<int>> r_vkLogExtendedFunctionNames( "r_vkLogExtendedFunctionNames",
+Cvar::Range<Cvar::Cvar<int>> e_logExtendedFunctionNames( "e_logExtendedFunctionNames",
 	"Extended log function format: 0 - none, 1 - only name/only struct or class name (for struct/class functions),"
 	" 2 - only name, 3 - name + template specialisation, 4 - all",
 	Cvar::NONE,
 	LogExtendedFunctionMode::NAME, LogExtendedFunctionMode::NONE, LogExtendedFunctionMode::FULL );
 
-Cvar::Cvar<bool> r_vkLogShowThreadID( "r_vkLogShowThreadID", "Add thread ID to logs", Cvar::NONE, false );
+Cvar::Cvar<bool> e_logShowThreadID( "e_logShowThreadID", "Add thread ID to logs", Cvar::NONE, false );
 
-Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount( "r_vkThreadCount", "The amount of threads Daemon-vulkan will use"
+Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> e_threadCount( "e_threadCount", "The amount of threads Daemon-vulkan will use"
 	" (0: set to the amount of logical CPU cores)", Cvar::NONE, 0,
 	[]( int value ) {
-		if( value == 0 ) {
+		if ( value == 0 ) {
 			value = CPU_CORES;
 		}
 
 		taskList.AdjustThreadCount( value );
 	}, 0, MAX_THREADS );
 
-Cvar::Cvar<std::string>      r_vkMemoryChunkConfig( "r_vkMemoryChunkConfig",
+Cvar::Cvar<std::string>      e_memoryChunkConfig( "e_memoryChunkConfig",
 	"Configuration for memory chunk system: \"[chunkSize]:[chunkCount] .. [chunkSize]:[chunkCount]\", sizes are in kb."
 	"16:640 1024:640 65536:16 must be reserved for internal use", Cvar::NONE, defaultMemoryChunkConfig );
 
-Cvar::Range<Cvar::Cvar<int>> r_vkMemoryPageSize( "r_vkMemoryPageSize",
+Cvar::Range<Cvar::Cvar<int>> e_memoryPageSize( "e_memoryPageSize",
 	Str::Format( "Memory page size to use (0: default, 1: %u, 2: %u)", memoryInfo.PAGE_SIZE_64, memoryInfo.PAGE_SIZE_LARGE ),
 	Cvar::NONE, PageSize::SIZE_DEFAULT, PageSize::SIZE_DEFAULT, PageSize::SIZE_LARGE );

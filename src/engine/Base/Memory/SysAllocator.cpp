@@ -53,7 +53,7 @@ SysAllocator sysAllocator;
 void SysAllocator::Init() {
 	#ifdef _MSC_VER
 		allocationFlags = MEM_RESERVE | MEM_COMMIT;
-		switch ( r_vkMemoryPageSize.Get() ) {
+		switch ( e_memoryPageSize.Get() ) {
 			case PageSize::SIZE_64:
 				allocationFlags |= MEM_64K_PAGES;
 				pageSize         = memoryInfo.PAGE_SIZE_64;

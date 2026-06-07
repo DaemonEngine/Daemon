@@ -59,7 +59,7 @@ void Init( WindowConfig* windowConfig ) {
 	sysAllocator.Init();
 	taskList.Init();
 
-	std::string cfg = r_vkMemoryChunkConfig.Get();
+	std::string cfg = e_memoryChunkConfig.Get();
 
 	Task initMemTask { &InitMemoryChunkSystemConfig, cfg };
 	Task initSMTask  { &InitGlobalMemory };
@@ -81,7 +81,7 @@ void Init( WindowConfig* windowConfig ) {
 
 	Log::Notice( "Large page size: %u", memoryInfo.PAGE_SIZE_LARGE );
 
-	Cvar::Latch( r_vkMemoryPageSize );
+	Cvar::Latch( e_memoryPageSize );
 
 	Task initGraphicsEngineTask { &InitGraphicsEngine };
 

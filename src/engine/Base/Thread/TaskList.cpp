@@ -102,7 +102,7 @@ void TaskList::Init() {
 	tasks.Alloc( MAX_TASKS );
 	tasksData.Alloc( MAX_TASK_DATA );
 
-	int threads = r_vkThreadCount.Get();
+	int threads = e_threadCount.Get();
 	threads     = threads ? threads : CPU_CORES;
 	AdjustThreadCount( threads );
 }

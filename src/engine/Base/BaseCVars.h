@@ -33,10 +33,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 
-extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> r_vkThreadCount;
+extern Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> e_threadCount;
 
-extern Cvar::Cvar<std::string>                      r_vkMemoryChunkConfig;
+extern Cvar::Cvar<std::string>                      e_memoryChunkConfig;
 
-extern Cvar::Range<Cvar::Cvar<int>>                 r_vkMemoryPageSize;
+extern Cvar::Range<Cvar::Cvar<int>>                 e_memoryPageSize;
 
 #endif // BASE_CVARS_H
