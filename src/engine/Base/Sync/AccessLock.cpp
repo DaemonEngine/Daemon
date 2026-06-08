@@ -45,8 +45,9 @@ bool AccessLock::Lock() {
 	return true;
 }
 
-void AccessLock::Unlock() {
-	value.fetch_sub( 1, std::memory_order_release );
+bool AccessLock::Unlock() {
+	const bool noRefs = value.fetch_sub( 1, std::memory_order_release ) - 1;
+	return !noRefs;
 }
 
 bool AccessLock::LockWrite() {

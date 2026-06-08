@@ -39,9 +39,8 @@ struct AccessLock {
 	std::atomic<uint8> value = 1;
 
 	bool Lock();
-	void Unlock();
-
 	bool LockWrite();
+	bool Unlock();
 	void UnlockWrite();
 
 	void operator=( const AccessLock& other );

@@ -182,9 +182,20 @@ byte* TaskList::GetTaskData( const uint64 offset ) {
 }
 
 void TaskList::FinishTask( Task* task ) {
+	task->complete.Signal();
+	task->ExecuteDestructors();
+
 	if ( task->GetArgCount() ) {
 		tasksData.UpdateCurrentElement( task->GetDataOffset() );
 	}
+
+	const uint8 forwardTasks = task->forwardTaskCounter.load( std::memory_order_relaxed );
+
+	for ( uint8 i = 0; i < forwardTasks; i++ ) {
+		taskList.FinishDependency( task->forwardTasks[i] );
+	}
+
+	task->SetActive( false );
 }
 
 void TaskList::FinishDependency( const uint16 bufferID ) {
@@ -223,10 +234,7 @@ void TaskList::ResolveDependencies( Task& task, TaskInitList& dependencies ) {
 			continue;
 		}
 
-		const bool locked = dependency.forwardTaskLock.Lock();
-
-		// Already finished execution
-		if ( !locked ) {
+		if ( !dependency.threadCount.Lock() ) {
 			continue;
 		}
 
@@ -235,7 +243,9 @@ void TaskList::ResolveDependencies( Task& task, TaskInitList& dependencies ) {
 		dependency.forwardTasks[id] = task.bufferID;
 		task.dependencyCounter.fetch_add( 1, std::memory_order_relaxed );
 
-		dependency.forwardTaskLock.Unlock();
+		if ( dependency.threadCount.Unlock() ) {
+			taskList.FinishTask( &dependency );
+		}
 	}
 }
 
@@ -379,6 +389,7 @@ void TaskList::AddTaskExt( Task& task, TaskInitList&& dependencies ) {
 
 	Task* taskMemory = GetTaskMemory( task );
 	taskMemory->id   = task.id;
+	taskMemory->threadCount.value.store( taskMemory->threadMask ? CountBits( taskMemory->threadMask ) : 1, std::memory_order_relaxed );
 
 	if ( HasUntrackedDeps( task.id ) ) {
 		ResolveDependencies( *taskMemory, dependencies );

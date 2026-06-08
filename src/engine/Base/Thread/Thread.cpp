@@ -140,22 +140,8 @@ void Thread::Run() {
 
 		dependencyTimer.Start();
 
-		if ( !task->threadMask || !UnSetBit( task->threadMask, TLM.id )
-			|| task->threadCount.fetch_sub( 1, std::memory_order_relaxed ) == 1 ) {
-			task->complete.Signal();
-			task->ExecuteDestructors();
-
+		if ( task->threadCount.Unlock() ) {
 			taskList.FinishTask( task );
-
-			while( !task->forwardTaskLock.LockWrite() );
-
-			const uint8 forwardTasks = task->forwardTaskCounter.load( std::memory_order_relaxed );
-
-			for ( uint8 i = 0; i < forwardTasks; i++ ) {
-				taskList.FinishDependency( task->forwardTasks[i] );
-			}
-
-			task->SetActive( false );
 		}
 
 		dependencyTimer.Stop();

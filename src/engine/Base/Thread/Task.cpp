@@ -70,7 +70,6 @@ Task& Task::Delay( const uint64 delay ) {
 
 Task& Task::ThreadMask( const uint64 newThreadMask ) {
 	threadMask = newThreadMask;
-	threadCount.store( CountBits( threadMask ), std::memory_order_relaxed );
 
 	if ( !threadMask ) {
 		SetValid( false );
@@ -208,9 +207,7 @@ void Task::operator=( const Task& other ) {
 
 	dependencyCounter  = other.dependencyCounter.load( std::memory_order_relaxed );
 	forwardTaskCounter = other.forwardTaskCounter.load( std::memory_order_relaxed );
-	threadCount        = other.threadCount.load( std::memory_order_relaxed );
-
-	forwardTaskLock    = other.forwardTaskLock;
+	threadCount        = other.threadCount;
 
 	memcpy( dataOffsets,  other.dataOffsets,  maxArgCount     * sizeof( uint16 ) );
 	memcpy( forwardTasks, other.forwardTasks, maxForwardTasks * sizeof( uint16 ) );
