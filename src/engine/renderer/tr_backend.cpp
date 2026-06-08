@@ -2329,9 +2329,9 @@ static void RB_RenderDebugUtils()
 
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-		SetUniform_ColorModulateColorGen( gl_genericShader, colorGen_t::CGEN_VERTEX,
+		gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_VERTEX,
 		                                  alphaGen_t::AGEN_VERTEX );
-		SetUniform_Color( gl_genericShader, Color::Black );
+		gl_genericShader->SetUniform_Color( Color::Black );
 		gl_genericShader->SetUniform_ColorMapBindless( GL_BindToTMU( 0, tr.whiteImage ) );
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
