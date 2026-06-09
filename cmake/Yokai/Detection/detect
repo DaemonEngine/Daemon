@@ -27,7 +27,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Test script not used by the CMake build system. Usage example:
-# ./detect gcc
+# ./detect cc
 
 set -ueo pipefail
 
@@ -53,6 +53,7 @@ do
 	"${@}" "${file_path}" -o "${temp_file}" 2>&1 \
 		| grep '<REPORT<' \
 		| sed -e 's/.*<REPORT<//;s/>REPORT>.*//' \
+		| sed -e 's/YOKAI_COMPILER/YOKAI_C_COMPILER/' \
 		| sed -e 's/YOKAI_SYSTEM/YOKAI_TARGET_SYSTEM/' \
 		| sed -e 's/YOKAI_ARCH/YOKAI_TARGET_ARCH/' \
 		| sed -E 's/^([^=]+)=/\U\1=/' \
