@@ -42,49 +42,6 @@ function(yokai_detect_arch)
 	message(STATUS "Detected target architecture: ${arch_name}")
 
 	add_definitions(-DYOKAI_ARCH_${arch_name_upper})
-
-	if (YOKAI_NACL_HOST)
-		set(nacl_arch "${arch_name}")
-
-		if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY OR YOKAI_TARGET_SYSTEM_XDG_COMPATIBILITY)
-			set(armhf_usage "arm64;armel")
-			if ("${arch_name}" IN_LIST armhf_usage)
-			# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
-			# The nexe is system agnostic so there should be no difference with armel.
-			set(nacl_arch "armhf")
-
-			set(box64_usage ppc64el riscv64)
-			if ("${arch_name}" IN_LIST box64_usage)
-				option(YOKAI_NACL_BOX64_EMULATION "Use Box64 to emulate x86_64 NaCl loader on unsupported platforms" ON)
-				if (YOKAI_NACL_BOX64_EMULATION)
-					# Use Box64 to run x86_64 NaCl loader and amd64 nexe.
-					# Box64 must be installed and available in PATH at runtime.
-					set(nacl_arch "amd64")
-					add_definitions(-DYOKAI_NACL_BOX64_EMULATION)
-				endif()
-			endif()
-		endif()
-
-		elseif (YOKAI_TARGET_SYSTEM_MACOS)
-			if ("${arch_name}" STREQUAL "arm64")
-				# You can get emulated NaCl going like this:
-				# cp external_deps/macos-amd64-default_10/{nacl_loader,irt_core-amd64.nexe} build/
-				set(nacl_arch "amd64")
-			endif()
-		endif()
-
-		string(TOUPPER "${nacl_arch_name}" nacl_arch_name_upper)
-
-		# The YOKAI_NACL_ARCH_NAME variable contributes to the nexe file name.
-		set(YOKAI_NACL_ARCH_NAME "${nacl_arch}" PARENT_SCOPE)
-		set(YOKAI_NACL_ARCH_NAME_UPPER "${nacl_arch_upper}" PARENT_SCOPE)
-
-		# NaCl runtime is only available on architectures that have a NaCl loader.
-		set(nacl_runtime_arch amd64 i686 armhf)
-		if ("${nacl_arch}" IN_LIST nacl_runtime_arch)
-			add_definitions(-DYOKAI_NACL_RUNTIME_ENABLED)
-		endif()
-	endif()
 endfunction()
 
 function(yokai_set_arch_intrinsics name)
@@ -124,18 +81,9 @@ yokai_set_intrinsics()
 
 # Makes possible to do that in CMake code:
 # > if (YOKAI_TARGET_ARCH_ARM64)
-# > if (YOKAI_NACL_ARCH_ARMHF)
 set("YOKAI_TARGET_ARCH_${YOKAI_TARGET_ARCH_NAME_UPPER}" ON)
-
-if (YOKAI_NACL_HOST)
-	set("YOKAI_NACL_ARCH_${YOKAI_NACL_ARCH_NAME_UPPER}" ON)
-endif()
 
 if (YOKAI_SOURCE_GENERATOR)
 	# Add printable strings to the executable.
 	yokai_add_buildinfo("char*" "YOKAI_ARCH_STRING" "\"${YOKAI_TARGET_ARCH_NAME}\"")
-
-	if (YOKAI_NACL_HOST)
-		yokai_add_buildinfo("char*" "YOKAI_NACL_ARCH_STRING" "\"${YOKAI_NACL_ARCH_NAME}\"")
-	endif()
 endif()

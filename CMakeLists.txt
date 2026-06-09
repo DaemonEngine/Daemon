@@ -75,8 +75,8 @@ if (Daemon_OUT)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Daemon_OUT})
 endif()
 
-set(YOKAI_NACL_HOST ON)
 include(Yokai/All)
+include(DaemonNaclHost)
 
 ################################################################################
 # Configuration options
@@ -979,8 +979,8 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
 
     add_custom_command(TARGET runtime_deps PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/irt_core-${YOKAI_NACL_ARCH_NAME}.nexe
-            ${FULL_OUTPUT_DIR}/irt_core-${YOKAI_NACL_ARCH_NAME}.nexe
+            ${DEPS_DIR}/irt_core-${DAEMON_NACL_ARCH_NAME}.nexe
+            ${FULL_OUTPUT_DIR}/irt_core-${DAEMON_NACL_ARCH_NAME}.nexe
     )
 
     # Linux uses a bootstrap program to reserve address space
