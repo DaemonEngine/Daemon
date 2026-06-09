@@ -138,7 +138,7 @@ static Cvar::Cvar<int> vm_timeout(
 	"Receive timeout in seconds",
 	Cvar::NONE, 2);
 
-#if defined(YOKAI_NACL_RUNTIME_ENABLED)
+#if defined(DAEMON_NACL_RUNTIME_ENABLED)
 static Cvar::Cvar<bool> vm_nacl_available(
 	"vm.nacl.available",
 	"Whether NaCl runtime is available on this platform",
@@ -329,7 +329,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	// Extract the nexe from the pak so that nacl_loader can load it
 	module = win32Force64Bit
 		? name + "-amd64.nexe"
-		: Str::Format("%s-%s.nexe", name, YOKAI_NACL_ARCH_STRING);
+		: Str::Format("%s-%s.nexe", name, DAEMON_NACL_ARCH_STRING);
 	if (extract) {
 		try {
 			FS::File out = FS::HomePath::OpenWrite(module);
@@ -349,7 +349,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	Q_snprintf(rootSocketRedir, sizeof(rootSocketRedir), "%d:%d", ROOT_SOCKET_FD, (int)(intptr_t)pair.second.GetHandle());
 	irt = FS::Path::Build(naclPath, win32Force64Bit
 		? "irt_core-amd64.nexe"
-		: Str::Format("irt_core-%s.nexe", YOKAI_NACL_ARCH_STRING));
+		: Str::Format("irt_core-%s.nexe", DAEMON_NACL_ARCH_STRING));
 	nacl_loader = FS::Path::Build(naclPath, win32Force64Bit ? "nacl_loader-amd64" EXE_EXT : "nacl_loader" EXE_EXT);
 
 	if (!FS::RawPath::FileExists(modulePath)) {
@@ -614,7 +614,7 @@ void VMBase::Create()
 	std::pair<IPC::Socket, IPC::Socket> pair = IPC::Socket::CreatePair();
 
 	IPC::Socket rootSocket;
-#if !defined(YOKAI_NACL_RUNTIME_ENABLED)
+#if !defined(DAEMON_NACL_RUNTIME_ENABLED)
 	if (type == TYPE_NACL || type == TYPE_NACL_LIBPATH) {
 		Sys::Error("NaCl VM is not supported on this platform. "
 		           "Set vm.cgame.type and vm.sgame.type to 3 (native DLL) "

@@ -386,7 +386,7 @@ else()
 		endif()
 	endif()
 
-	if (YOKAI_TARGET_SYSTEM_NACL AND USE_NACL_SAIGO AND YOKAI_NACL_ARCH_ARMHF)
+	if (YOKAI_TARGET_SYSTEM_NACL AND USE_NACL_SAIGO AND DAEMON_NACL_ARCH_ARMHF)
 		# Saigo produces broken arm builds when optimizing them.
 		# See: https://github.com/Unvanquished/Unvanquished/issues/3297
 		# When setting this clang-specific option, we don't have to care
