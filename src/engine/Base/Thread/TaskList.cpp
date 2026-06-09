@@ -161,14 +161,6 @@ bool  TaskList::IsUpdatedDependency( const uint8 id ) {
 	return BitSet( id, TASK_SHIFT_UPDATED_DEPENDENCY );
 }
 
-uint8 TaskList::GetForwardCounterFast( const uint8 id ) {
-	return GetBits( id, TASK_SHIFT_FORWARD_COUNTER, 4 );
-}
-
-void  TaskList::IncrementForwardCounterFast( uint8* id ) {
-	SetBits( id, GetForwardCounterFast( *id ) + 1, TASK_SHIFT_FORWARD_COUNTER, 4 );
-}
-
 byte* TaskList::AllocTaskData( const uint16 dataSize, uint64* offset ) {
 	*offset   = tasksData.GetNextElement( PAD( dataSize, CACHE_LINE_SIZE ) );
 	byte* out = tasksData.memory + ( *offset & tasksData.mask );
@@ -189,9 +181,7 @@ void TaskList::FinishTask( Task* task ) {
 		tasksData.UpdateCurrentElement( task->GetDataOffset() );
 	}
 
-	const uint8 forwardTasks = task->forwardTaskCounter.load( std::memory_order_relaxed );
-
-	for ( uint8 i = 0; i < forwardTasks; i++ ) {
+	for ( uint8 i = 0; i < task->forwardTaskCounter; i++ ) {
 		taskList.FinishDependency( task->forwardTasks[i] );
 	}
 
@@ -238,9 +228,13 @@ void TaskList::ResolveDependencies( Task& task, TaskInitList& dependencies ) {
 			continue;
 		}
 
-		uint32 id = dependency.forwardTaskCounter.fetch_add( 1, std::memory_order_relaxed );
+		uint32 id = dependency.forwardTaskCounter;
+
 		ASSERT_LE( id, Task::maxForwardTasks );
+
 		dependency.forwardTasks[id] = task.bufferID;
+		dependency.forwardTaskCounter++;
+
 		task.dependencyCounter.fetch_add( 1, std::memory_order_relaxed );
 
 		if ( dependency.threadCount.Unlock() ) {
@@ -430,8 +424,9 @@ void TaskList::MarkDependencies( Task& task, TaskInitList&& dependencies ) {
 
 		Task* taskMemory = GetTaskMemory( ( *dep ).GetTask() );
 
-		taskMemory->forwardTasks[GetForwardCounterFast( taskMemory->id )] = mainTask->bufferID;
-		IncrementForwardCounterFast( &taskMemory->id );
+		taskMemory->forwardTasks[taskMemory->forwardTaskCounter] = mainTask->bufferID;
+		taskMemory->forwardTaskCounter++;
+
 		SetBit( &dep->task.id, TASK_SHIFT_TRACKED_DEPENDENCY );
 
 		dependencyCounter++;
@@ -473,24 +468,9 @@ void TaskList::AddTask( Task& task, std::initializer_list<TaskProxy> dependencie
 }
 
 void TaskList::AddTasksExt( std::initializer_list<TaskInitList> dependencies ) {
-	// TODO: Currently this is an O( 4 * n ) loop. The tasks form a DAG, which we can instead flatten in O( n ), then loop in O( n )
+	// TODO: Currently this is an O( 3 * n ) loop. The tasks form a DAG, which we can instead flatten in O( n ), then loop in O( n )
 	for ( const TaskInitList& taskInit : dependencies ) {
 		MarkDependencies( taskInit.start->task, { taskInit.start + 1, taskInit.end } );
-	}
-
-	/* Tracked dependencies are those that we allocated in the AtomicRingBuffer during this function call.
-	This allows us to skip a bunch of atomics, but we have to update the forwardTaskCounters
-	*before* we add any of the tasks to the task queues.
-	Otherwise we could end up updating it after other threads have already finished all of the dependencies.
-	Flattening the DAG would get rid of the need to do this because we'd just add tasks starting from the end of the graph */
-
-	for ( const TaskInitList& taskInit : dependencies ) {
-		for ( const TaskProxy* task = taskInit.start + 1; task < taskInit.end; task++ ) {
-			if ( IsTrackedDependency( task->task.id ) ) {
-				Task* taskMemory = GetTaskMemory( task->task );
-				taskMemory->forwardTaskCounter.store( GetForwardCounterFast( taskMemory->id ), std::memory_order_relaxed );
-			}
-		}
 	}
 
 	for ( const TaskInitList& taskInit : dependencies ) {

@@ -97,7 +97,6 @@ class TaskList :
 	static constexpr uint16 TASK_SHIFT_HAS_UNTRACKED_DEPS = 1;
 	static constexpr uint16 TASK_SHIFT_TRACKED_DEPENDENCY = 2;
 	static constexpr uint16 TASK_SHIFT_UPDATED_DEPENDENCY = 3;
-	static constexpr uint16 TASK_SHIFT_FORWARD_COUNTER    = 4;
 
 	std::atomic<uint32> currentMaxThreads = 0;
 	FenceMain           exitFence;
@@ -153,8 +152,6 @@ class TaskList :
 	bool  HasUntrackedDeps( const uint8 id );
 	bool  IsTrackedDependency( const uint8 id );
 	bool  IsUpdatedDependency( const uint8 id );
-	uint8 GetForwardCounterFast( const uint8 id );
-	void  IncrementForwardCounterFast( uint8* id );
 
 	void  AddToThreadQueueExt( Task& task );
 	void  AddToThreadQueue( Task& task );

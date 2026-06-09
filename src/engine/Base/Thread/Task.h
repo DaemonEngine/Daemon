@@ -139,7 +139,7 @@ struct Task {
 
 	uint8              id                     = 0; // Task memory/dependency tracking in TaskList
 	std::atomic<uint8> dependencyCounter      = 1; // Starts at 1 so it wouldn't start executing before being resolved in AddTask[s]
-	std::atomic<uint8> forwardTaskCounter     = 0;
+	uint8              forwardTaskCounter     = 0;
 
 	FenceBool          complete;
 	AccessLock         threadCount            = {};

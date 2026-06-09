@@ -205,8 +205,8 @@ void Task::operator=( const Task& other ) {
 	time               = other.time;
 	threadMask         = other.threadMask;
 
-	dependencyCounter  = other.dependencyCounter.load( std::memory_order_relaxed );
-	forwardTaskCounter = other.forwardTaskCounter.load( std::memory_order_relaxed );
+	dependencyCounter.store( other.dependencyCounter.load( std::memory_order_relaxed ), std::memory_order_relaxed );
+	forwardTaskCounter = other.forwardTaskCounter;
 	threadCount        = other.threadCount;
 
 	memcpy( dataOffsets,  other.dataOffsets,  maxArgCount     * sizeof( uint16 ) );
