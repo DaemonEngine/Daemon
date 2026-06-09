@@ -265,7 +265,10 @@ if (NOT NACL AND BUILD_CLIENT)
 endif()
 
 if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
-    set_c_cxx_flag("/MP")
+	if (YOKAI_CXX_COMPILER_MSVC)
+		# /MP doesn't do anything and prints a warning in the Clang clone.
+		set_c_cxx_flag("/MP")
+	endif()
 
     # There is no flag for standards before C++17
     if (USE_CPP23 AND USE_RECOMMENDED_CXX_STANDARD)
