@@ -35,10 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template<typename T>
 byte* CopyAligned( byte* memory, const T& value ) {
-	const uint64 alignment = alignof( T );
-
-	memory                 = ( byte* ) PAD( ( uint64 ) memory, alignment );
-	*( ( T* ) memory )     = value;
+	memory             = ( byte* ) PAD( ( uint64 ) memory, alignof( T ) );
+	*( ( T* ) memory ) = value;
 
 	return memory + sizeof( T );
 }

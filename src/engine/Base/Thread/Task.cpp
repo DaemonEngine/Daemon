@@ -151,7 +151,7 @@ uint32 Task::SetArgsMap( Arg* start, Arg* end ) {
 			dataOffsets[arg - start] = size;
 		}
 
-		size = PAD( size, arg->size > 8 ? 8 : arg->size ) + arg->size;
+		size = PAD( size, arg->alignment ) + arg->size;
 		SetBits( &argsMap, arg - start, arg->id * argMapArgSize + argMapArgOffset, argMapArgSize );
 
 		if ( arg->hasDestructor ) {
@@ -169,7 +169,7 @@ byte* Task::InitMemory( Arg* start, Arg* end ) {
 
 	std::sort( start, end,
 		[]( const Arg& lhs, const Arg& rhs ) {
-			return lhs.size > rhs.size;
+			return lhs.alignment > rhs.alignment;
 		}
 	);
 

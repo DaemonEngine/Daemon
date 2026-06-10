@@ -79,23 +79,27 @@ struct Arg {
 	uint8  id;
 	bool   hasDestructor;
 	uint16 size;
+	uint16 alignment;
 
 	Arg() :
 		id( 0 ),
 		hasDestructor( false ),
-		size( 0 ) {
+		size( 0 ),
+		alignment( 0 ) {
 	}
 
 	Arg( const Arg& other ) :
 		id( other.id ),
 		hasDestructor( other.hasDestructor ),
-		size( other.size ) {
+		size( other.size ),
+		alignment( other.alignment ) {
 	}
 
-	Arg( const uint16 newID, const bool newHasDestructor, const uint16 newSize ) :
+	Arg( const uint16 newID, const bool newHasDestructor, const uint16 newSize, const uint16 newAlignment ) :
 		id( newID ),
 		hasDestructor( newHasDestructor ),
-		size( newSize ) {
+		size( newSize ),
+		alignment( newAlignment ) {
 	}
 };
 
@@ -181,7 +185,8 @@ struct Task {
 			Arg {
 				0,
 				HasDestructor<DataType>(),
-				sizeof( DataType )
+				sizeof( DataType ),
+				alignof( DataType )
 			}
 		};
 
@@ -200,12 +205,14 @@ struct Task {
 			Arg {
 				0,
 				HasDestructor<DataType>(),
-				sizeof( DataType )
+				sizeof( DataType ),
+				alignof( DataType )
 			},
 			Arg {
 				1,
 				HasDestructor<DataType2>(),
-				sizeof( DataType2 )
+				sizeof( DataType2 ),
+				alignof( DataType2 )
 			}
 		};
 
@@ -225,17 +232,20 @@ struct Task {
 			Arg {
 				0,
 				HasDestructor<DataType>(),
-				sizeof( DataType )
+				sizeof( DataType ),
+				alignof( DataType )
 			},
 			Arg {
 				1,
 				HasDestructor<DataType2>(),
-				sizeof( DataType2 )
+				sizeof( DataType2 ),
+				alignof( DataType2 )
 			},
 			Arg {
 				2,
 				HasDestructor<DataType3>(),
-				sizeof( DataType3 )
+				sizeof( DataType3 ),
+				alignof( DataType3 )
 			}
 		};
 
@@ -256,22 +266,26 @@ struct Task {
 			Arg {
 				0,
 				HasDestructor<DataType>(),
-				sizeof( DataType )
+				sizeof( DataType ),
+				alignof( DataType )
 			},
 			Arg {
 				1,
 				HasDestructor<DataType2>(),
-				sizeof( DataType2 )
+				sizeof( DataType2 ),
+				alignof( DataType2 )
 			},
 			Arg {
 				2,
 				HasDestructor<DataType3>(),
-				sizeof( DataType3 )
+				sizeof( DataType3 ),
+				alignof( DataType3 )
 			},
 			Arg {
 				3,
 				HasDestructor<DataType4>(),
-				sizeof( DataType4 )
+				sizeof( DataType4 ),
+				alignof( DataType4 )
 			}
 		};
 
