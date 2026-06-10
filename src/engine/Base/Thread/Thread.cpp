@@ -152,23 +152,25 @@ void Thread::Run() {
 		taskTime.count++;
 		taskTime.time += taskExecTime;
 
-		if ( !taskTime.syncedWithSM ) {
-			while( !SM.taskTimesLock.LockWrite() );
+		if ( !( taskTime.count & 63 ) ) {
+			if ( !taskTime.syncedWithSM ) {
+				while ( !SM.taskTimesLock.LockWrite() );
 
-			GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
-			SMTaskTime.count           = 1;
-			SMTaskTime.time            = taskExecTime;
-			taskTime.syncedWithSM      = true;
+				GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
+				SMTaskTime.count = 1;
+				SMTaskTime.time = taskExecTime;
+				taskTime.syncedWithSM = true;
 
-			SM.taskTimesLock.UnlockWrite();
-		} else {
-			while( !SM.taskTimesLock.Lock() );
+				SM.taskTimesLock.UnlockWrite();
+			} else {
+				while ( !SM.taskTimesLock.Lock() );
 
-			GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
-			SMTaskTime.count.fetch_add( 1, std::memory_order_relaxed );
-			SMTaskTime.time.fetch_add( taskExecTime, std::memory_order_relaxed );
+				GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
+				SMTaskTime.count.fetch_add( 1, std::memory_order_relaxed );
+				SMTaskTime.time.fetch_add( taskExecTime, std::memory_order_relaxed );
 
-			SM.taskTimesLock.Unlock();
+				SM.taskTimesLock.Unlock();
+			}
 		}
 
 		task = nullptr;
