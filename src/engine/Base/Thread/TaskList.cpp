@@ -178,11 +178,11 @@ void TaskList::FinishTask( Task* task ) {
 	task->ExecuteDestructors();
 
 	if ( task->GetArgCount() ) {
-		tasksData.UpdateCurrentElement( task->GetDataOffset() );
+		tasksData.UpdateCurrentElement( task->GetDataOffset() * CACHE_LINE_SIZE );
 	}
 
 	for ( uint8 i = 0; i < task->forwardTaskCounter; i++ ) {
-		taskList.FinishDependency( task->forwardTasks[i] );
+		FinishDependency( task->forwardTasks[i] );
 	}
 
 	task->SetActive( false );
