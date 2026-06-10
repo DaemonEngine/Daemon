@@ -115,7 +115,10 @@ using TaskFunction8 = void( * )( void*, void*, void*, void*, void*, void*, void*
 #define argsMsg "Tasks must have the same amount of args as the underlying function;" \
 	" each function arg must be a pointer to the corresponding task arg type"
 
-#define argSizeMsg "Task arg size must not exceed Task::maxArgSize"
+#define argSizeMsg  "Task arg 1 size must not exceed Task::maxArgSize"
+#define arg2SizeMsg "Task arg 2 size must not exceed Task::maxArgSize"
+#define arg3SizeMsg "Task arg 3 size must not exceed Task::maxArgSize"
+#define arg4SizeMsg "Task arg 4 size must not exceed Task::maxArgSize"
 //char[] = "ALongTaskNameToBeSure?";
 
 struct Task {
@@ -198,8 +201,8 @@ struct Task {
 		Execute( ( TaskFunction ) func ) {
 
 		static_assert( std::is_same_v<FuncType, void( * )( DataType*, DataType2* )>, argsMsg );
-		static_assert( sizeof( DataType )  <= maxArgSize, argSizeMsg );
-		static_assert( sizeof( DataType2 ) <= maxArgSize, argSizeMsg );
+		static_assert( sizeof( DataType )  <= maxArgSize, argSizeMsg  );
+		static_assert( sizeof( DataType2 ) <= maxArgSize, arg2SizeMsg );
 
 		Arg args[] {
 			Arg {
@@ -224,9 +227,9 @@ struct Task {
 		Execute( ( TaskFunction ) func ) {
 
 		static_assert( std::is_same_v<FuncType, void( * )( DataType*, DataType2*, DataType3* )>, argsMsg );
-		static_assert( sizeof( DataType )  <= maxArgSize, argSizeMsg );
-		static_assert( sizeof( DataType2 ) <= maxArgSize, argSizeMsg );
-		static_assert( sizeof( DataType3 ) <= maxArgSize, argSizeMsg );
+		static_assert( sizeof( DataType )  <= maxArgSize, argSizeMsg  );
+		static_assert( sizeof( DataType2 ) <= maxArgSize, arg2SizeMsg );
+		static_assert( sizeof( DataType3 ) <= maxArgSize, arg3SizeMsg );
 
 		Arg args[] {
 			Arg {
@@ -257,10 +260,10 @@ struct Task {
 		Execute( ( TaskFunction ) func ) {
 
 		static_assert( std::is_same_v<FuncType, void( * )( DataType*, DataType2*, DataType3*, DataType4* )>, argsMsg );
-		static_assert( sizeof( DataType )  <= maxArgSize, argSizeMsg );
-		static_assert( sizeof( DataType2 ) <= maxArgSize, argSizeMsg );
-		static_assert( sizeof( DataType3 ) <= maxArgSize, argSizeMsg );
-		static_assert( sizeof( DataType4 ) <= maxArgSize, argSizeMsg );
+		static_assert( sizeof( DataType )  <= maxArgSize, argSizeMsg  );
+		static_assert( sizeof( DataType2 ) <= maxArgSize, arg2SizeMsg );
+		static_assert( sizeof( DataType3 ) <= maxArgSize, arg3SizeMsg );
+		static_assert( sizeof( DataType4 ) <= maxArgSize, arg4SizeMsg );
 
 		Arg args[] {
 			Arg {
