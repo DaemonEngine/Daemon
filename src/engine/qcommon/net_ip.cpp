@@ -1152,6 +1152,7 @@ void NET_SetMulticast6()
 		curgroup.ipv6mr_interface = net_mcast6iface->integer;
 #else
 		curgroup.ipv6mr_interface = if_nametoindex( net_mcast6iface->string );
+		Log::Notice( "Parsed IPv6 interface index: %d", curgroup.ipv6mr_interface );
 #endif
 	}
 	else
