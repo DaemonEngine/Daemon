@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifdef _MSC_VER
+	#include <intrin.h>
+
 	#include "Windows.h"
 
 	#include <powerbase.h>
@@ -44,10 +46,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	#include <pthread.h>
 #endif
 
+#include "Thread/Core.h"
 #include "Thread/ThreadCommon.h"
+#include "SysAllocator.h"
 #include "Bit.h"
 #include "DynamicArray.h"
 #include "Timer.h"
+#include "Parser.h"
 
 #include "CPUInfo.h"
 
@@ -82,6 +87,9 @@ void OSThread::SetAffinity( const uint32 newCore ) {
 
 		if ( !ret ) {
 			Log::Warn( "SetThreadGroupAffinity error: %i", GetLastError() );
+			baseMaxFrequency = 1.0;
+
+			return;
 		}
 
 		// PROCESSOR_POWER_INFORMATION, which is missing from windows headers
@@ -127,7 +135,7 @@ void OSThread::SetAffinity( const uint32 newCore ) {
 		int ret = pthread_setaffinity_np( thread, sizeof( cpu ), &cpu );
 
 		if ( ret != 0 ) {
-			Log::Warn( "sched_setaffinity error: %s", strerror( errno ) );
+			Log::Warn( "pthread_setaffinity_np error: %s", strerror( errno ) );
 		}
 	#endif
 }
@@ -184,5 +192,164 @@ double OSThread::GetMaxFrequencyScale() {
 		return GetMinExecutionTime( 1000 ) / 38500.0;
 	#else // Can't set thread affinity on apple, so no point in scaling by max frequency
 		return 1.0;
+	#endif
+}
+
+struct File {
+	FILE*    file;
+	uint32_t size;
+
+	File( const std::string& path, const char* mode ) {
+		file = fopen( path.c_str(), mode );
+
+		if ( !file ) {
+			printf( "Failed to open file: %s, mode: %s\n", path.c_str(), mode );
+			printf( strerror( errno ) );
+			exit( 1 );
+		}
+
+		fseek( file, 0, SEEK_END );
+		size = ftell( file );
+
+		fseek( file, 0, 0 );
+	}
+
+	File( const std::string& path, const std::string& path2, const char* mode ) {
+		file = fopen( path.c_str(), mode );
+
+		if ( !file ) {
+			file = fopen( path2.c_str(), mode );
+
+			if( !file ) {
+				Log::Warn( "Failed to open file: %s, mode: %s\n", path.c_str(), mode );
+				Log::Warn( strerror( errno ) );
+			}
+		}
+
+		fseek( file, 0, SEEK_END );
+		size = ftell( file );
+
+		fseek( file, 0, 0 );
+	}
+
+	~File() {
+		fclose( file );
+	}
+
+	std::string ReadAll() {
+		std::string data;
+		data.resize( size );
+		size = fread( data.data(), sizeof( char ), size, file );
+
+		data.resize( size );
+		data.shrink_to_fit();
+
+		return data;
+	}
+};
+
+Core OSThread::GetCoreInfo() {
+	#ifdef _MSC_VER
+		DWORD size = 0;
+
+		GetLogicalProcessorInformationEx( RelationProcessorCore, nullptr, &size );
+		SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* buf = ( SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* ) sysAllocator.Alloc( size, 64 );
+		bool                                     ret = GetLogicalProcessorInformationEx( RelationProcessorCore, buf, &size );
+
+		if ( !ret ) {
+			Log::Warn( "GetLogicalProcessorInformationEx error: %i", GetLastError() );
+
+			return {
+				.type              = CORE_UNKNOWN,
+				.smt               = false,
+				.maxFrequencyScale = GetMaxFrequencyScale()
+			};
+		}
+
+		SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* coreInfo = ( SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* ) ( ( ( byte* ) buf ) + core * buf->Size );
+
+		return {
+			.type              = coreInfo->Processor.EfficiencyClass ? CORE_PERFORMANCE : CORE_EFFICIENCY,
+			.smt               = coreInfo->Processor.Flags == LTP_PC_SMT,
+			.maxFrequencyScale = GetMaxFrequencyScale()
+		};
+	#elifdef __linux__
+		File        cpuInfoFile { "/proc/cpuinfo", "r" };
+		std::string cpuInfo   = cpuInfoFile.ReadAll();
+
+		StringView  v { cpuInfo.c_str(), cpuInfo.size() };
+
+		int         physicalCores = 0;
+		int         logicalCores  = 0;
+	
+		do {
+			StringView o = Parse( v );
+
+			if ( o == "cpu" ) {
+				if ( Parse( v ) == "cores" ) {
+					Parse( v ); // :
+					Str::ParseInt( physicalCores, std::string( o.memory, o.size ) );
+				}
+			} else if ( o == "siblings" ) {
+				Parse( v ); // :
+				Str::ParseInt( logicalCores, std::string( o.memory, o.size ) );
+			}
+		} while ( v.size && !( physicalCores && logicalCores ) );
+
+		return {
+			.type              = CORE_UNKNOWN,
+			.smt               = physicalCores == logicalCores,
+			.maxFrequencyScale = GetMaxFrequencyScale()
+		};
+	#else
+		return {
+			.type              = CORE_PERFORMANCE,
+			.smt               = false,
+			.maxFrequencyScale = GetMaxFrequencyScale()
+		};
+	#endif
+}
+
+std::string GetCPUModel() {
+	#ifdef _MSC_VER
+		int         info[4] {};
+		std::string model;
+
+		static constexpr uint32 infoSize = 4 * sizeof( int );
+
+		model.resize( 65 );
+
+		__cpuid( info, 0x80000002 );
+		memcpy( model.data(),                info, infoSize );
+
+		__cpuid( info, 0x80000003 );
+		memcpy( model.data() +     infoSize, info, infoSize );
+
+		__cpuid( info, 0x80000004 );
+		memcpy( model.data() + 2 * infoSize, info, infoSize );
+
+		model.resize( strlen( model.c_str() ) ); // Avoid the ugly NUL characters in logger
+
+		return model;
+	#elifdef __linux__
+		File        cpuInfoFile { "/proc/cpuinfo", "r" };
+		std::string cpuInfo   = cpuInfoFile.ReadAll();
+
+		StringView  v { cpuInfo.c_str(), cpuInfo.size() };
+	
+		do {
+			StringView o = Parse( v );
+
+			if ( o == "model" ) {
+				if ( Parse( v ) == "name" ) {
+					Parse( v ); // :
+					return Parse( v );
+				}
+			}
+		} while ( v.size );
+
+		return "Unknown";
+	#else
+		return "Unknown";
 	#endif
 }

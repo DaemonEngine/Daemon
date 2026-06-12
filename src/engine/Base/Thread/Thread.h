@@ -61,6 +61,8 @@ class Thread :
 	OSThread    osThread;
 	double      maxCoreFrequencyScale = 1.0;
 
+	bool        eventScheduler = false;
+
 	uint64      runTime;
 
 	Task*       task;
@@ -91,6 +93,8 @@ class Thread :
 	uint64      exitTime;
 
 	std::unordered_map<TaskFunction, TaskTime> taskTimes;
+
+	void InitCores();
 };
 
 #endif // THREAD_H

@@ -28,20 +28,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef BASE_DECLS_H
-#define BASE_DECLS_H
+#ifndef CORE_H
+#define CORE_H
+
+#include <string>
 
 #include "Int.h"
 
-struct AlignedAtomicUint32;
-struct AlignedAtomicUint64;
+#include "ThreadCommon.h"
 
-template<typename T, uint64 newSize>
-struct Array;
+enum CoreType : uint8 {
+	CORE_UNKNOWN,
+	CORE_PERFORMANCE,
+	CORE_EFFICIENCY
+};
 
-template<typename T>
-class DynamicArray;
+struct Core {
+	CoreType type;
+	bool     smt;
+	double   maxFrequencyScale;
+};
 
-struct Core;
+struct CPU {
+	Core        cores[MAX_THREADS];
 
-#endif // BASE_DECLS_H
+	uint64      performanceCores = 0;
+	uint64      efficiencyCores  = 0;
+
+	std::string model;
+
+	std::string FormatCoreInfo();
+};
+
+extern CPU cpu;
+
+#endif // CORE_H

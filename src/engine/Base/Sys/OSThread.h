@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "Int.h"
+#include "BaseDecls.h"
 
 struct OSThread {
 	#ifdef _MSC_VER
@@ -52,6 +53,9 @@ struct OSThread {
 	void   Init();
 	void   SetAffinity( const uint32 core );
 	double GetMaxFrequencyScale();
+	Core   GetCoreInfo();
 };
+
+std::string GetCPUModel();
 
 #endif // OS_THREAD_H

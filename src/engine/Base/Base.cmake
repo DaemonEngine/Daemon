@@ -58,6 +58,8 @@ set( sysList
 )
 
 set( threadList
+    ${engineBase}/Thread/Core.cpp
+    ${engineBase}/Thread/Core.h
     ${engineBase}/Thread/EventQueue.cpp
     ${engineBase}/Thread/EventQueue.h
     ${engineBase}/Thread/GlobalMemory.cpp

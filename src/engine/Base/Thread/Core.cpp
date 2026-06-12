@@ -28,20 +28,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef BASE_DECLS_H
-#define BASE_DECLS_H
+#include "common/Common.h"
 
-#include "Int.h"
+#include "Sys/CPUInfo.h"
 
-struct AlignedAtomicUint32;
-struct AlignedAtomicUint64;
+#include "Core.h"
 
-template<typename T, uint64 newSize>
-struct Array;
+std::string CPU::FormatCoreInfo() {
+	std::string out = model + "\n";
 
-template<typename T>
-class DynamicArray;
+	for ( Core* core = cores; core < cores + CPU_CORES; core++ ) {
+		out += Str::Format( "\nCore %2u: max freq scale: %f, smt: %s",
+		                    core - cores, core->maxFrequencyScale, core->smt );
+	}
 
-struct Core;
+	return out;
+}
 
-#endif // BASE_DECLS_H
+CPU cpu;

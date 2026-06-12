@@ -30,10 +30,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <unordered_map>
 
+#include "Sys/CPUInfo.h"
+
+#include "Core.h"
 #include "EventQueue.h"
 #include "GlobalMemory.h"
 #include "TaskList.h"
 #include "ThreadMemory.h"
+#include "Barrier.h"
 
 #include "Thread.h"
 
@@ -52,6 +56,41 @@ void Thread::Start( const uint32 newID ) {
 	Log::DebugTag( "id: %u", id );
 }
 
+void Thread::InitCores() {
+	if ( cpu.cores[id].type == CORE_UNKNOWN ) {
+		double minScale = cpu.cores[id].maxFrequencyScale;
+
+		for ( const Core* core = cpu.cores; core < cpu.cores + CPU_CORES; core++ ) {
+			minScale = std::min( minScale, core->maxFrequencyScale );
+		}
+
+		for ( Core* core = cpu.cores; core < cpu.cores + CPU_CORES; core++ ) {
+			core->type = core->maxFrequencyScale / minScale < 1.015 ? CORE_PERFORMANCE : CORE_EFFICIENCY;
+		}
+	}
+	
+	bool eventSchedulerSet = false;
+
+	for ( const Core* core = cpu.cores; core < cpu.cores + CPU_CORES; core++ ) {
+		if ( core->type == CORE_PERFORMANCE ) {
+			SetBit( &cpu.performanceCores, core - cpu.cores );
+		} else {
+			SetBit( &cpu.efficiencyCores,  core - cpu.cores );
+
+			if ( !eventSchedulerSet ) {
+				taskList.threads[core - cpu.cores].eventScheduler = true;
+				eventSchedulerSet                                 = true;
+			}
+		}
+	}
+
+	if ( !eventSchedulerSet ) {
+		taskList.threads[0].eventScheduler = true;
+	}
+
+	cpu.model = GetCPUModel();
+}
+
 void Thread::Run() {
 	total.Clear();
 	idle.Clear();
@@ -61,7 +100,17 @@ void Thread::Run() {
 
 	osThread.Init();
 	osThread.SetAffinity( id );
-	maxCoreFrequencyScale = osThread.GetMaxFrequencyScale();
+
+	cpu.cores[id]         = osThread.GetCoreInfo();
+	maxCoreFrequencyScale = cpu.cores[id].maxFrequencyScale;
+
+	threadElectOne( CPU_CORES,
+		{
+			InitCores();
+		}
+	);
+
+	barrier( CPU_CORES );
 
 	total.Start();
 
@@ -73,7 +122,9 @@ void Thread::Run() {
 			continue;
 		}
 
-		eventQueue.Rotate();
+		if ( eventScheduler ) {
+			eventQueue.Rotate();
+		}
 
 		task = TLM.FetchTask();
 
@@ -98,9 +149,11 @@ void Thread::Run() {
 		}
 
 		if ( !task ) {
-			idle.Start();
-			std::this_thread::yield();
-			idle.Stop();
+			if ( !eventScheduler ) {
+				idle.Start();
+				std::this_thread::yield();
+				idle.Stop();
+			}
 
 			exiting = taskList.ThreadFinished( false );
 			continue;
@@ -204,9 +257,10 @@ void Thread::Exit() {
 
 	Log::NoticeTag( "\nid: %u", id );
 
-	Log::NoticeTag( "id: %u: total: %s, actual: %s, exit: %s,"
+	Log::NoticeTag( "id: %u: %s %f total: %s, actual: %s, exit: %s,"
 		" fetching (task/idle): %s/%s, executing: %s, dependency: %s, idle: %s",
-		id, total.FormatTime( ms ), actual.FormatTime( ms ), FormatTime( exitTime, ms ),
+		id, cpu.cores[id].type == CORE_PERFORMANCE ? "P" : "E", cpu.cores[id].maxFrequencyScale,
+		total.FormatTime( ms ), actual.FormatTime( ms ), FormatTime( exitTime, ms ),
 		FormatTime( fetchTask, ms ), FormatTime( fetchIdle, ms ),
 		FormatTime( executing.Time(), ms ), dependencyTimer.FormatTime( ms ),
 		idle.FormatTime( ms ) );
