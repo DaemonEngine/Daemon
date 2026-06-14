@@ -160,6 +160,10 @@ static struct sockaddr_in6 boundto;
 #endif
 
 // use an admin local address per default so that network admins can decide on how to handle quake3 traffic.
+// However, an admin-local address usually doesn't go anywhere besides without special network
+// configuration. Could use ff02 instead of ff04 meaning a link-local address more like IPv4, but
+// then it doesn't work without manually setting net_mcast6iface.
+// The final 4 quartets spell "ioquake3". TODO change for Daemon?
 #define NET_MULTICAST_IP6 "ff04::696f:7175:616b:6533"
 
 static const int MAX_IPS = 32;
