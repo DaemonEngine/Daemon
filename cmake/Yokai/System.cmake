@@ -41,16 +41,6 @@ function(yokai_detect_host_system)
 	endforeach()
 
 	if (system_name STREQUAL "Unknown")
-		message(WARNING "Host system detection failed, may misdetect the target as the host.")
-
-		if (WIN32)
-			set(system_name "Windows")
-		elseif (APPLE)
-			set(system_name "macOS")
-		endif()
-	endif()
-
-	if (system_name STREQUAL "Unknown")
 		set(SYSTEM_Darwin "macOS")
 		set(SYSTEM_MSYS "Windows")
 
@@ -59,8 +49,16 @@ function(yokai_detect_host_system)
 				set(system_name "${SYSTEM_${name}}")
 			endif()
 		endforeach()
+	endif()
 
-		detect_cmake_host_system("system_name")
+	if (system_name STREQUAL "Unknown")
+		message(WARNING "Host system detection failed, may misdetect the target as the host.")
+
+		if (WIN32)
+			set(system_name "Windows")
+		elseif (APPLE)
+			set(system_name "macOS")
+		endif()
 	endif()
 
 	set(YOKAI_HOST_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
