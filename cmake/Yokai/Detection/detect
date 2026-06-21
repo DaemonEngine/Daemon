@@ -56,7 +56,7 @@ do
 		| sed -e 's/YOKAI_COMPILER/YOKAI_C_COMPILER/' \
 		| sed -e 's/YOKAI_SYSTEM/YOKAI_TARGET_SYSTEM/' \
 		| sed -e 's/YOKAI_ARCH/YOKAI_TARGET_ARCH/' \
-		| sed -E 's/^([^=]+)=/\U\1=/' \
+		| awk -F= '{print toupper($1) "=" $2}' \
 	|| "${@}" "${file_path}" -o "${temp_file}"
 
 	rm "${temp_file}"
