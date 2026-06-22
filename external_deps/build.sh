@@ -1291,6 +1291,31 @@ build_wipe() {
 	rm -rf "${BUILD_BASEDIR}/" "${PKG_BASEDIR}/" "${PKG_TARBALL}"
 }
 
+build_download() {
+	local upstreams=(
+		'https://dl.unvanquished.net/deps'
+		'https://dl.unvanquished.net/test/deps'
+	)
+
+	local mirrors=()
+	for upstream in "${upstreams[@]}"
+	do
+		mirrors+=("${upstream}/${PKG_TARBALL}")
+	done
+
+	download "${PKG_TARBALL}" "${mirrors[@]}"
+
+	"${download_only}" && return
+
+	rm -rf "${PKG_BASEDIR}"
+
+	extract "${PKG_TARBALL}" 'download_deps'
+	mv "${PKG_BASEDIR}" ..
+
+	cd ..
+	rmdir 'download_deps'
+}
+
 # Common setup code
 common_setup() {
 	HOST="${2}"
@@ -1507,6 +1532,8 @@ printHelp() {
 	    install create a stripped down version of the built packages that CMake can use
 	    package create a tarball of the dependencies so they can be distributed
 	    wipe    remove products of build process, excepting download cache but INCLUDING installed files. Must be last
+	    download
+	            download and extract the prebuilt tarball like CMake does
 
 	Packages required for each platform:
 
