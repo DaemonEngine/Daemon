@@ -1280,20 +1280,20 @@ build_install() {
 # Create a redistributable package for the dependencies
 build_package() {
 	cd "${WORK_DIR}"
-	rm -f "${PKG_BASEDIR}.tar.xz"
+	rm -f "${PKG_TARBALL}"
 	local XZ_OPT='-9e'
 	case "${PLATFORM}" in
 	windows-*-*)
-		tar --dereference -cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
+		tar --dereference -cvJf "${PKG_TARBALL}" "${PKG_BASEDIR}"
 		;;
 	*)
-		tar -cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
+		tar -cvJf "${PKG_TARBALL}" "${PKG_BASEDIR}"
 		;;
 	esac
 }
 
 build_wipe() {
-	rm -rf "${BUILD_BASEDIR}/" "${PKG_BASEDIR}/" "${PKG_BASEDIR}.tar.xz"
+	rm -rf "${BUILD_BASEDIR}/" "${PKG_BASEDIR}/" "${PKG_TARBALL}"
 }
 
 # Common setup code
@@ -1306,6 +1306,7 @@ common_setup() {
 	EXE_EXT="${EXE_EXT:-}"
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
 	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
+	PKG_TARBALL="${PKG_BASEDIR}.tar.xz"
 	BUILD_BASEDIR="build-${PKG_BASEDIR}"
 	BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
 	PREFIX="${BUILD_DIR}/prefix"
