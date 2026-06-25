@@ -1312,6 +1312,11 @@ common_setup() {
 	"common_setup_${1}"
 	common_setup_arch
 
+	PLATFORM_SYSTEM="$(echo "${PLATFORM}" | cut -f1 -d-)"
+	PLATFORM_ARCH="$(echo "${PLATFORM}" | cut -f2 -d-)"
+	PLATFORM_COMPILER="$(echo "${PLATFORM}" | cut -f3 -d-)"
+	PLATFORM_TARGET="${PLATFORM_SYSTEM}-${PLATFORM_ARCH}"
+
 	if "${GLOBAL_SETUP_ONCE:-true}"
 	then
 		DOWNLOAD_DIR="${WORK_DIR}/download_cache"
