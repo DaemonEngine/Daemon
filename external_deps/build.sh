@@ -985,8 +985,8 @@ build_wasmtime() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	smart_copy -R include/* "${PREFIX}/include"
-	smart_copy -R lib/* "${PREFIX}/lib"
+	smart_copy -R 'include/.' "${PREFIX}/include/"
+	smart_copy -R 'lib/.' "${PREFIX}/lib/"
 }
 
 # Build the NaCl SDK
