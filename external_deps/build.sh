@@ -462,16 +462,18 @@ build_sdl3() {
 	case "${PLATFORM}" in
 	windows-*-mingw)
 		cd "${dir_name}"
-		smart_copy -R "${HOST}"/* "${PREFIX}/"
+		smart_copy -R "${HOST}/." "${PREFIX}/"
 		rm "${PREFIX}/lib/libSDL3_test.a"
 		rm "${PREFIX}/lib/cmake/SDL3/SDL3testTargets"*.cmake
 		;;
 	windows-*-msvc)
 		cd "${dir_name}"
-		mkdir -p "${PREFIX}/SDL3/cmake"
-		smart_copy "cmake/"* "${PREFIX}/SDL3/cmake"
-		mkdir -p "${PREFIX}/SDL3/include/SDL3"
-		smart_copy "include/SDL3/"* "${PREFIX}/SDL3/include/SDL3"
+		mkdir -p "${PREFIX}/SDL3"
+		rm -rf "${PREFIX}/SDL3/cmake"
+		smart_copy -R "cmake/." "${PREFIX}/SDL3/cmake/"
+		mkdir -p "${PREFIX}/SDL3/include"
+		rm -rf "${PREFIX}/SDL3/include/SDL3"
+		smart_copy -R "include/SDL3/." "${PREFIX}/SDL3/include/SDL3/"
 
 		case "${PLATFORM}" in
 		*-i686-*)
@@ -486,11 +488,12 @@ build_sdl3() {
 		esac
 
 		mkdir -p "${PREFIX}/SDL3/${sdl3_lib_dir}"
-		smart_copy "${sdl3_lib_dir}/SDL3.lib" "${PREFIX}/SDL3/${sdl3_lib_dir}"
-		smart_copy "${sdl3_lib_dir}/"*.dll "${PREFIX}/SDL3/${sdl3_lib_dir}"
+		smart_copy "${sdl3_lib_dir}/SDL3.lib" "${PREFIX}/SDL3/${sdl3_lib_dir}/"
+		smart_copy "${sdl3_lib_dir}/"*.dll "${PREFIX}/SDL3/${sdl3_lib_dir}/"
 		;;
 	macos-*-*)
-		smart_copy -R "SDL3.xcframework/macos-arm64_x86_64/SDL3.framework" "${PREFIX}/lib"
+		rm -rf "${PREFIX}/lib/SDL3.framework"
+		smart_copy -R "SDL3.xcframework/macos-arm64_x86_64/SDL3.framework/." "${PREFIX}/lib/SDL3.framework/"
 		;;
 	*)
 		cd "${dir_name}"
