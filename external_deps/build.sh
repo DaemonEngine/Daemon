@@ -32,6 +32,7 @@ OGG_BASEURL='https://downloads.xiph.org/releases/ogg'
 VORBIS_BASEURL='https://downloads.xiph.org/releases/vorbis'
 OPUS_BASEURL='https://downloads.xiph.org/releases/opus'
 OPUSFILE_BASEURL='https://downloads.xiph.org/releases/opus'
+SAIGOSDK_BASEURL='https://github.com/DaemonEngine/saigo-release-scripts/releases'
 # No index.
 NACLSDK_BASEURL='https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk'
 # No index.
@@ -60,6 +61,7 @@ OGG_VERSION=1.3.6
 VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.5.2
 OPUSFILE_VERSION=0.12
+SAIGOSDK_VERSION='21.0-20260707'
 NACLSDK_VERSION=44.0.2403.155
 NACLRUNTIME_REVISION=2aea5fcfce504862a825920fcaea1a8426afbd6f
 NCURSES_VERSION=6.5
@@ -964,6 +966,20 @@ build_ncurses() {
 		--with-default-terminfo-dir=/usr/share/terminfo
 }
 
+# "Builds" (downloads) Saigo
+build_saigosdk() {
+	local dir_name="saigocc-${PLATFORM_TARGET}_${SAIGOSDK_VERSION}"
+	local archive_name="${dir_name}.tar.xz"
+
+	download_extract saigosdk "${archive_name}" \
+		"${SAIGOSDK_BASEURL}/download/v${SAIGOSDK_VERSION}/${archive_name}"
+
+	"${download_only}" && return
+
+	rm -rf "${PREFIX}/saigo_newlib"
+	smart_copy -R "${dir_name}" "${PREFIX}/saigo_newlib"
+}
+
 # "Builds" (downloads) the WASI SDK
 build_wasisdk() {
 	case "${PLATFORM}" in
@@ -1598,29 +1614,29 @@ setup_platform() {
 	esac
 }
 
-base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck genlib'
+base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk depcheck genlib'
 all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
 
 base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 
-base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck'
+base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk depcheck'
 all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 
-base_macos_amd64_default_packages='native-pkgconfig native-nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+base_macos_amd64_default_packages='native-pkgconfig native-nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk'
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
-base_linux_i686_default_packages='sdl3 naclsdk'
-all_linux_i686_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+base_linux_i686_default_packages='sdl3 naclsdk saigosdk'
+all_linux_i686_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk saigosdk'
 
 base_linux_amd64_default_packages="${base_linux_i686_default_packages} naclruntime"
 all_linux_amd64_default_packages="${all_linux_i686_default_packages} naclruntime"
 
-base_linux_arm64_default_packages='sdl3 naclsdk'
-all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+base_linux_arm64_default_packages='sdl3 naclsdk saigosdk'
+all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk saigosdk'
 
 base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
 all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
@@ -1651,7 +1667,7 @@ printHelp() {
 	    all     linux windows macos
 
 	Packages:
-	    native-pkgconfig native-nasm native-jwasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
+	    native-pkgconfig native-nasm native-jwasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk wasisdk wasmtime
 
 	Virtual packages:
 	    base    build packages for pre-built binaries to be downloaded when building the game
