@@ -2240,6 +2240,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			else
 			{
 				loadMap = true;
+				imageBits |= IF_LIGHTMAP;
+				imageBits |= IF_NOPICMIP;
 			}
 		}
 		// clampmap <name>
@@ -2980,6 +2982,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			}
 			else if ( !Q_stricmp( token, "lightmap" ) )
 			{
+				imageBits |= IF_LIGHTMAP;
 				imageBits |= IF_NOPICMIP;
 				stage->tcGen_Lightmap = true;
 				stage->tcGen_Environment = false;
