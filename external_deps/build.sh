@@ -997,17 +997,14 @@ build_naclsdk() {
 	case "${PLATFORM}" in
 	windows-*-*)
 		local NACLSDK_PLATFORM=win
-		local EXE=.exe
 		local TAR_EXT=cygtar
 		;;
 	macos-*-*)
 		local NACLSDK_PLATFORM=mac
-		local EXE=
 		local TAR_EXT=tar
 		;;
 	linux-*-*)
 		local NACLSDK_PLATFORM=linux
-		local EXE=
 		local TAR_EXT=tar
 		;;
 	esac
@@ -1038,12 +1035,12 @@ build_naclsdk() {
 	linux-amd64-*)
 		;; # Get sel_ldr from naclruntime package
 	*)
-		smart_copy pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/nacl_loader${EXE}"
+		smart_copy pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE_EXT}" "${PREFIX}/nacl_loader${EXE_EXT}"
 		;;
 	esac
 	case "${PLATFORM}" in
 	windows-i686-*|*-amd64-*)
-		smart_copy pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE}" "${PREFIX}/nacl-gdb${EXE}"
+		smart_copy pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE_EXT}" "${PREFIX}/nacl-gdb${EXE_EXT}"
 
 		rm -rf "${PREFIX}/pnacl"
 
@@ -1309,6 +1306,7 @@ common_setup() {
 	"common_setup_${1}"
 	common_setup_arch
 
+	EXE_EXT="${EXE_EXT:-}"
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
 	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
 	BUILD_BASEDIR="build-${PKG_BASEDIR}"
@@ -1366,6 +1364,7 @@ common_setup_windows() {
 	RANLIB="${HOST}-ranlib"
 	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
 	CMAKE_TOOLCHAIN="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake"
+	EXE_EXT='.exe'
 }
 
 common_setup_msvc() {
