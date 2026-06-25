@@ -944,6 +944,7 @@ build_wasisdk() {
 
 	"${download_only}" && return
 
+	rm -rf "${PREFIX}/wasi-sdk"
 	smart_copy -R "${dir_name}" "${PREFIX}/wasi-sdk"
 }
 
