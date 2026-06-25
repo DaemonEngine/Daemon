@@ -1354,23 +1354,34 @@ common_setup() {
 	common_setup_arch
 
 	EXE_EXT="${EXE_EXT:-}"
-	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
-	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
-	PKG_TARBALL="${PKG_BASEDIR}.tar.xz"
-	BUILD_BASEDIR="build-${PKG_BASEDIR}"
-	BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
-	PREFIX="${BUILD_DIR}/prefix"
-	PATH="${PREFIX}/bin:${PATH}"
+
+	if "${GLOBAL_SETUP_ONCE:-true}"
+	then
+		DOWNLOAD_DIR="${WORK_DIR}/download_cache"
+		PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
+		PKG_TARBALL="${PKG_BASEDIR}.tar.xz"
+		BUILD_BASEDIR="build-${PKG_BASEDIR}"
+		BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
+		PREFIX="${BUILD_DIR}/prefix"
+		PATH="${PREFIX}/bin:${PATH}"
+
+		mkdir -p "${DOWNLOAD_DIR}"
+		mkdir -p "${PREFIX}/bin"
+		mkdir -p "${PREFIX}/include"
+		mkdir -p "${PREFIX}/lib"
+
+		export PATH
+
+		GLOBAL_SETUP_ONCE='false'
+	fi
+
 	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${CROSS_PKG_CONFIG_PATH}"
 	CPPFLAGS+=" -I${PREFIX}/include"
 	LDFLAGS+=" -L${PREFIX}/lib"
 
-	mkdir -p "${DOWNLOAD_DIR}"
-	mkdir -p "${PREFIX}/bin"
-	mkdir -p "${PREFIX}/include"
-	mkdir -p "${PREFIX}/lib"
-
-	export CC CXX LD AR RANLIB STRIP PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+	export PKG_CONFIG PKG_CONFIG_PATH
+	export CC CXX LD AR RANLIB STRIP
+	export CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
 }
 
 common_setup_arch() {
