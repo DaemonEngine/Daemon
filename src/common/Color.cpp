@@ -86,9 +86,30 @@ int StrlenNocolor( const char *string )
 
 void StripColors( const char *in, char *out, size_t len )
 {
+	bool preserveColor = false;
+
 	for ( const auto& token : Parser( in ) )
 	{
-		Str::StringView text = token.PlainText();
+		if ( token.Type() == Token::TokenType::CONTROL )
+		{
+			if ( token.RawToken().size() != 1 )
+			{
+				Log::Warn( "Invalid control token of length %d", token.RawToken().size() );
+				continue;
+			}
+			switch ( token.RawToken()[0] )
+			{
+				case Constants::DECOLOR_ON:
+					preserveColor = false;
+					break;
+				case Constants::DECOLOR_OFF:
+					preserveColor = true;
+					break;
+			}
+			continue;
+		}
+		Str::StringView text = ( preserveColor && token.Type() == Token::TokenType::COLOR ) ?
+			token.RawToken() : token.PlainText();
 		if ( text.size() >= len )
 		{
 			break;
@@ -106,9 +127,30 @@ std::string StripColors( Str::StringRef input )
 	std::string output;
 	output.reserve( input.size() );
 
+	bool preserveColor = false;
+
 	for ( const auto& token : Parser( input.c_str() ) )
 	{
-		Str::StringView text = token.PlainText();
+		if ( token.Type() == Token::TokenType::CONTROL )
+		{
+			if ( token.RawToken().size() != 1 )
+			{
+				Log::Warn( "Invalid control token of length %d", token.RawToken().size() );
+				continue;
+			}
+			switch ( token.RawToken()[0] )
+			{
+				case Constants::DECOLOR_ON:
+					preserveColor = false;
+					break;
+				case Constants::DECOLOR_OFF:
+					preserveColor = true;
+					break;
+			}
+			continue;
+		}
+		Str::StringView text = ( preserveColor && token.Type() == Token::TokenType::COLOR ) ?
+			token.RawToken() : token.PlainText();
 		output.append( text.begin(), text.end() );
 	}
 
@@ -210,6 +252,10 @@ TokenIterator::value_type TokenIterator::NextToken(const char* input)
             }
         }
     }
+	else if ( input[0] == Constants::DECOLOR_ON || input[0] == Constants::DECOLOR_OFF )
+	{
+		return value_type( input, input + 1, value_type::TokenType::CONTROL );
+	}
 
     return value_type( input, input + Q_UTF8_Width( input ), value_type::TokenType::CHARACTER );
 }
