@@ -129,7 +129,7 @@ extract() {
 	*.dmg)
 		local dmg_temp_dir="$(mktemp -d)"
 		hdiutil attach -mountpoint "${dmg_temp_dir}" "${archive_file}"
-		smart_copy -R "${dmg_temp_dir}/"* "${extract_dir}/"
+		smart_copy -R "${dmg_temp_dir}/." "${extract_dir}/"
 		hdiutil detach "${dmg_temp_dir}"
 		rmdir "${dmg_temp_dir}"
 		;;
