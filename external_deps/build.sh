@@ -63,7 +63,7 @@ OPUS_VERSION=1.5.2
 OPUSFILE_VERSION=0.12
 SAIGOSDK_VERSION='21.0-20260707'
 NACLSDK_VERSION=44.0.2403.155
-NACLRUNTIME_REVISION=2aea5fcfce504862a825920fcaea1a8426afbd6f
+NACLRUNTIME_REVISION='70beec35eb5fa3ddd571f18f9ad57b5da674d85d'
 NCURSES_VERSION=6.5
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
@@ -1071,6 +1071,7 @@ build_naclsdk() {
 		local TAR_EXT=tar
 		;;
 	esac
+
 	case "${PLATFORM}" in
 	*-i686-*)
 		local NACLSDK_ARCH=x86_32
@@ -1080,9 +1081,12 @@ build_naclsdk() {
 		local NACLSDK_ARCH=x86_64
 		local DAEMON_ARCH=amd64
 		;;
-	*-armhf-*|linux-arm64-*)
+	linux-armhf-*|linux-arm64-*)
 		local NACLSDK_ARCH=arm
 		local DAEMON_ARCH=armhf
+		;;
+	*)
+		log ERROR 'Unsupported platform for NaCl SDK'
 		;;
 	esac
 
@@ -1094,13 +1098,7 @@ build_naclsdk() {
 	"${download_only}" && return
 
 	smart_copy pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-	case "${PLATFORM}" in
-	linux-amd64-*)
-		;; # Get sel_ldr from naclruntime package
-	*)
-		smart_copy pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE_EXT}" "${PREFIX}/nacl_loader-${DAEMON_ARCH}${EXE_EXT}"
-		;;
-	esac
+
 	case "${PLATFORM}" in
 	windows-i686-*|*-amd64-*)
 		smart_copy pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE_EXT}" "${PREFIX}/nacl-gdb${EXE_EXT}"
@@ -1122,42 +1120,41 @@ build_naclsdk() {
 	esac
 	case "${PLATFORM}" in
 	windows-i686-*)
-		smart_copy pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/nacl_loader-amd64.exe"
 		smart_copy pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-amd64.nexe"
 		;;
-	linux-amd64-*)
+	linux-*-*)
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		;;
-	linux-i686-*|linux-armhf-*|linux-arm64-*)
-		smart_copy pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap-${DAEMON_ARCH}"
-		# Fix permissions on a few files which deny access to non-owner
-		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		chmod 755 "${PREFIX}/nacl_helper_bootstrap-${DAEMON_ARCH}" "${PREFIX}/nacl_loader-${DAEMON_ARCH}"
-		;;
-	esac
-	case "${PLATFORM}" in
-	linux-arm64-*)
-		local libdir_path='libs-linux-armhf'
-		local loader_path="${libdir_path}/loader"
-		mkdir -p "${PREFIX}/${libdir_path}"
-		smart_copy -R pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/${libdir_path}/."
-		# Copy the library loader instead of renaming it because there may still be some
-		# references to ld-linux-armhf.so.3 in binaries.
-		smart_copy "${PREFIX}/${libdir_path}/ld-linux-armhf.so.3" "${PREFIX}/${loader_path}"
-		# We can't use patchelf or 'nacl_helper_bootstrap nacl_loader' will complain:
-		#   bootstrap_helper: nacl_loader: ELF file has unreasonable e_phnum=13
-		# We're lucky that the replacement string isn't larger than the original one.
-		sed -e "s|/lib/ld-linux-armhf.so.3|${loader_path}|" -i "${PREFIX}/nacl_loader-armhf"
 		;;
 	esac
 }
 
 # Only builds nacl_loader and nacl_helper_bootstrap for now, not IRT.
 build_naclruntime() {
+	local nacl_arch_list=()
+
 	case "${PLATFORM}" in
+	windows-amd64-*)
+		nacl_arch_list+=('amd64')
+		;;
+	windows-i686-*)
+		nacl_arch_list+=('i686')
+		nacl_arch_list+=('amd64')
+		;;
 	linux-amd64-*)
-		local NACL_ARCH=x86-64
+		nacl_arch_list+=('amd64')
+		;;
+	linux-i686-*)
+		nacl_arch_list+=('i686')
+		;;
+	linux-arm64-*)
+		nacl_arch_list+=('armhf')
+		;;
+	linux-armhf-*)
+		nacl_arch_list+=('armhf')
+		;;
+	macos-amd64-*)
+		nacl_arch_list+=('amd64')
 		;;
 	*)
 		log ERROR 'Unsupported platform for naclruntime'
@@ -1168,14 +1165,51 @@ build_naclruntime() {
 	local archive_name="native_client-${NACLRUNTIME_REVISION}.zip"
 
 	download_extract naclruntime "${archive_name}" \
-		"{$NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
+		"${NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	env -i /usr/bin/env bash -l -c "python3 /usr/bin/scons --mode=opt-linux 'platform=${NACL_ARCH}' werror=0 sysinfo=0 sel_ldr"
-	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap-amd64"
-	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader-amd64"
+
+	for nacl_arch in "${nacl_arch_list[@]}"
+	do
+		(
+			setup_platform "${PLATFORM_SYSTEM}-${nacl_arch}-${PLATFORM_COMPILER}"
+			cmake_build
+		)
+
+		case "${PLATFORM}" in
+		linux-*)
+			mv "${PREFIX}/bin/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap-${nacl_arch}"
+			;;
+		esac
+
+		mv "${PREFIX}/bin/sel_ldr${EXE_EXT}" "${PREFIX}/nacl_loader-${nacl_arch}${EXE_EXT}"
+
+		case "${PLATFORM}" in
+		linux-arm64-*)
+			case "${nacl_arch}" in
+			armhf)
+				local libdir_path='libs-linux-armhf'
+
+				mkdir -p "${PREFIX}/${libdir_path}"
+
+				smart_copy -L \
+					'/lib/arm-linux-gnueabihf/ld-linux-armhf.so.3' \
+					'/lib/arm-linux-gnueabihf/libstdc++.so.6' \
+					'/lib/arm-linux-gnueabihf/libc.so.6'  \
+					'/lib/arm-linux-gnueabihf/libm.so.6' \
+					'/lib/arm-linux-gnueabihf/libgcc_s.so.1' \
+					'/lib/arm-linux-gnueabihf/librt.so.1' \
+					'/lib/arm-linux-gnueabihf/libpthread.so.0' \
+					"${PREFIX}/${libdir_path}/"
+
+				patchelf --set-interpreter "${libdir_path}/ld-linux-armhf.so.3" "${PREFIX}/nacl_loader-armhf"
+				;;
+			esac
+			;;
+		esac
+	done
 }
 
 # Check for DLL dependencies on MinGW stuff. For MSVC platforms this is bad because it should work
@@ -1614,32 +1648,32 @@ setup_platform() {
 	esac
 }
 
-base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk depcheck genlib'
-all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
-
-base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
-all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
-
-base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk depcheck'
+base_windows_amd64_mingw_packages='native-jwasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk naclruntime depcheck'
 all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 
-base_macos_amd64_default_packages='native-pkgconfig native-nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk'
+base_windows_amd64_msvc_packages="${base_windows_amd64_mingw_packages} genlib"
+all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
+
+base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
+all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
+
+base_macos_amd64_default_packages='native-pkgconfig native-nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk naclruntime'
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
-base_linux_i686_default_packages='sdl3 naclsdk saigosdk'
-all_linux_i686_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk saigosdk'
+base_linux_amd64_default_packages='sdl3 naclsdk saigosdk naclruntime'
+all_linux_amd64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk saigosdk naclruntime'
 
-base_linux_amd64_default_packages="${base_linux_i686_default_packages} naclruntime"
-all_linux_amd64_default_packages="${all_linux_i686_default_packages} naclruntime"
+base_linux_i686_default_packages="${base_linux_amd64_default_packages}"
+all_linux_i686_default_packages="${all_linux_amd64_default_packages}"
 
-base_linux_arm64_default_packages='sdl3 naclsdk saigosdk'
-all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk saigosdk'
+base_linux_arm64_default_packages="${base_linux_amd64_default_packages}"
+all_linux_arm64_default_packages="${all_linux_amd64_default_packages}"
 
-base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
-all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
+base_linux_armhf_default_packages="${base_linux_amd64_default_packages}"
+all_linux_armhf_default_packages="${all_linux_amd64_default_packages}"
 
 all_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
 all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
@@ -1667,7 +1701,7 @@ printHelp() {
 	    all     linux windows macos
 
 	Packages:
-	    native-pkgconfig native-nasm native-jwasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk wasisdk wasmtime
+	    native-pkgconfig native-nasm native-jwasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk naclruntime wasisdk wasmtime
 
 	Virtual packages:
 	    base    build packages for pre-built binaries to be downloaded when building the game
@@ -1693,17 +1727,11 @@ printHelp() {
 	    all     same
 
 	linux-amd64-default:
-	    base    ${base_linux_amd64_default_packages}
-	    all     ${all_linux_amd64_default_packages}
-
 	linux-i686-default:
-	    base    ${base_linux_i686_default_packages}
-	    all     ${all_linux_i686_default_packages}
-
 	linux-arm64-default:
 	linux-armhf-default:
-	    base    ${base_linux_arm64_default_packages}
-	    all     ${all_linux_arm64_default_packages}
+	    base    ${base_linux_amd64_default_packages}
+	    all     ${all_linux_amd64_default_packages}
 
 	EOF
 	
