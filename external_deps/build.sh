@@ -90,6 +90,13 @@ log() {
 	[ "${level}" != 'ERROR' ]
 }
 
+smart_copy() {
+	if ! cp --reflink=auto -P "${@}" 2>/dev/null
+	then
+		cp -P "${@}"
+	fi
+}
+
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
 extract() {
@@ -122,7 +129,7 @@ extract() {
 	*.dmg)
 		local dmg_temp_dir="$(mktemp -d)"
 		hdiutil attach -mountpoint "${dmg_temp_dir}" "${archive_file}"
-		cp -R "${dmg_temp_dir}/"* "${extract_dir}/"
+		smart_copy -R "${dmg_temp_dir}/"* "${extract_dir}/"
 		hdiutil detach "${dmg_temp_dir}"
 		rmdir "${dmg_temp_dir}"
 		;;
@@ -284,7 +291,7 @@ build_nasm() {
 
 		"${download_only}" && return
 
-		cp "${dir_name}/nasm" "${PREFIX}/bin"
+		smart_copy "${dir_name}/nasm" "${PREFIX}/bin"
 		;;
 	*)
 		log ERROR 'Unsupported platform for NASM'
@@ -455,16 +462,16 @@ build_sdl3() {
 	case "${PLATFORM}" in
 	windows-*-mingw)
 		cd "${dir_name}"
-		cp -rv "${HOST}"/* "${PREFIX}/"
+		smart_copy -R "${HOST}"/* "${PREFIX}/"
 		rm "${PREFIX}/lib/libSDL3_test.a"
 		rm "${PREFIX}/lib/cmake/SDL3/SDL3testTargets"*.cmake
 		;;
 	windows-*-msvc)
 		cd "${dir_name}"
 		mkdir -p "${PREFIX}/SDL3/cmake"
-		cp "cmake/"* "${PREFIX}/SDL3/cmake"
+		smart_copy "cmake/"* "${PREFIX}/SDL3/cmake"
 		mkdir -p "${PREFIX}/SDL3/include/SDL3"
-		cp "include/SDL3/"* "${PREFIX}/SDL3/include/SDL3"
+		smart_copy "include/SDL3/"* "${PREFIX}/SDL3/include/SDL3"
 
 		case "${PLATFORM}" in
 		*-i686-*)
@@ -479,11 +486,11 @@ build_sdl3() {
 		esac
 
 		mkdir -p "${PREFIX}/SDL3/${sdl3_lib_dir}"
-		cp "${sdl3_lib_dir}/SDL3.lib" "${PREFIX}/SDL3/${sdl3_lib_dir}"
-		cp "${sdl3_lib_dir}/"*.dll "${PREFIX}/SDL3/${sdl3_lib_dir}"
+		smart_copy "${sdl3_lib_dir}/SDL3.lib" "${PREFIX}/SDL3/${sdl3_lib_dir}"
+		smart_copy "${sdl3_lib_dir}/"*.dll "${PREFIX}/SDL3/${sdl3_lib_dir}"
 		;;
 	macos-*-*)
-		cp -R "SDL3.xcframework/macos-arm64_x86_64/SDL3.framework" "${PREFIX}/lib"
+		smart_copy -R "SDL3.xcframework/macos-arm64_x86_64/SDL3.framework" "${PREFIX}/lib"
 		;;
 	*)
 		cd "${dir_name}"
@@ -550,7 +557,7 @@ build_glew() {
 	windows-*-*)
 		mv "${PREFIX}/lib/glew32.dll" "${PREFIX}/bin/"
 		rm "${PREFIX}/lib/libglew32.a"
-		cp lib/libglew32.dll.a "${PREFIX}/lib/"
+		smart_copy lib/libglew32.dll.a "${PREFIX}/lib/"
 		;;
 	macos-*-*)
 		install_name_tool -id "@rpath/libGLEW.${GLEW_VERSION}.dylib" "${PREFIX}/lib/libGLEW.${GLEW_VERSION}.dylib"
@@ -762,9 +769,9 @@ build_openal() {
 	case "${PLATFORM}" in
 	windows-*-*)
 		cd "${dir_name}"
-		cp -r "include/AL" "${PREFIX}/include"
-		cp "libs/${openal_win_dir}/libOpenAL32.dll.a" "${PREFIX}/lib"
-		cp "bin/${openal_win_dir}/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
+		smart_copy -R "include/AL" "${PREFIX}/include"
+		smart_copy "libs/${openal_win_dir}/libOpenAL32.dll.a" "${PREFIX}/lib"
+		smart_copy "bin/${openal_win_dir}/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
 		;;
 	*)
 		cd "${dir_name}"
@@ -897,7 +904,7 @@ build_ncurses() {
 	cd "${dir_name}"
 
 	# Brutally disable writing to database
-	cp /dev/null misc/run_tic.in
+	smart_copy /dev/null misc/run_tic.in
 	# Configure terminfo search dirs based on the ones used in Debian. By default it will only look in (only) the install directory.
 	configure_build \
 		--with-strip-program="${STRIP}" \
@@ -937,7 +944,7 @@ build_wasisdk() {
 
 	"${download_only}" && return
 
-	cp -r "${dir_name}" "${PREFIX}/wasi-sdk"
+	smart_copy -R "${dir_name}" "${PREFIX}/wasi-sdk"
 }
 
 # "Builds" (downloads) wasmtime
@@ -977,8 +984,8 @@ build_wasmtime() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	cp -r include/* "${PREFIX}/include"
-	cp -r lib/* "${PREFIX}/lib"
+	smart_copy -R include/* "${PREFIX}/include"
+	smart_copy -R lib/* "${PREFIX}/lib"
 }
 
 # Build the NaCl SDK
@@ -1022,24 +1029,24 @@ build_naclsdk() {
 
 	"${download_only}" && return
 
-	cp pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
+	smart_copy pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 	case "${PLATFORM}" in
 	linux-amd64-*)
 		;; # Get sel_ldr from naclruntime package
 	*)
-		cp pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/nacl_loader${EXE}"
+		smart_copy pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/nacl_loader${EXE}"
 		;;
 	esac
 	case "${PLATFORM}" in
 	windows-i686-*|*-amd64-*)
-		cp pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE}" "${PREFIX}/nacl-gdb${EXE}"
+		smart_copy pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE}" "${PREFIX}/nacl-gdb${EXE}"
 
 		rm -rf "${PREFIX}/pnacl"
 
 		patch -d pepper_*"/toolchain/${NACLSDK_PLATFORM}_pnacl/bin/pydir" \
 			-p1 < "${SCRIPT_DIR}/naclsdk-pydir-python3.patch" >/dev/null
 
-		cp -a pepper_*"/toolchain/${NACLSDK_PLATFORM}_pnacl" "${PREFIX}/pnacl"
+		smart_copy -R pepper_*"/toolchain/${NACLSDK_PLATFORM}_pnacl" "${PREFIX}/pnacl"
 		rm -rf "${PREFIX}/pnacl/bin/"{i686,x86_64}-nacl-*
 		rm -rf "${PREFIX}/pnacl/arm-nacl"
 		rm -rf "${PREFIX}/pnacl/arm_bc-nacl"
@@ -1051,21 +1058,21 @@ build_naclsdk() {
 	esac
 	case "${PLATFORM}" in
 	windows-i686-*)
-		cp pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/nacl_loader-amd64.exe"
-		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-amd64.nexe"
+		smart_copy pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/nacl_loader-amd64.exe"
+		smart_copy pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-amd64.nexe"
 		;;
 	linux-amd64-*)
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		;;
 	linux-i686-*)
-		cp pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
+		smart_copy pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
 		;;
 	linux-armhf-*|linux-arm64-*)
-		cp pepper_*"/tools/nacl_helper_bootstrap_arm" "${PREFIX}/nacl_helper_bootstrap"
+		smart_copy pepper_*"/tools/nacl_helper_bootstrap_arm" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
@@ -1074,10 +1081,10 @@ build_naclsdk() {
 	case "${PLATFORM}" in
 	linux-arm64-*)
 		mkdir -p "${PREFIX}/lib-armhf"
-		cp -a pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/lib-armhf/."
+		smart_copy -R pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/lib-armhf/."
 		# Copy the library loader instead of renaming it because there may still be some
 		# references to ld-linux-armhf.so.3 in binaries.
-		cp "${PREFIX}/lib-armhf/ld-linux-armhf.so.3" "${PREFIX}/lib-armhf/ld-linux-armhf"
+		smart_copy "${PREFIX}/lib-armhf/ld-linux-armhf.so.3" "${PREFIX}/lib-armhf/ld-linux-armhf"
 		# We can't use patchelf or 'nacl_helper_bootstrap nacl_loader' will complain:
 		#   bootstrap_helper: nacl_loader: ELF file has unreasonable e_phnum=13
 		sed -e 's|/lib/ld-linux-armhf.so.3|lib-armhf/ld-linux-armhf|' -i "${PREFIX}/nacl_loader"
@@ -1106,8 +1113,8 @@ build_naclruntime() {
 
 	cd "${dir_name}"
 	env -i /usr/bin/env bash -l -c "python3 /usr/bin/scons --mode=opt-linux 'platform=${NACL_ARCH}' werror=0 sysinfo=0 sel_ldr"
-	cp "scons-out/opt-linux-${NACL_ARCH}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
-	cp "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader"
+	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
+	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader"
 }
 
 # Check for DLL dependencies on MinGW stuff. For MSVC platforms this is bad because it should work
