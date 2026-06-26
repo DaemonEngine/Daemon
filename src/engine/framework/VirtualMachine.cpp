@@ -336,7 +336,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 	char* emptyEnv[2] = {};
 #if defined(DAEMON_NACL_RUNTIME_LINUX) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
 	if (OnArm64()) {
-		emptyEnv[0] = const_cast<char*>("LD_LIBRARY_PATH=lib-armhf");
+		emptyEnv[0] = const_cast<char*>("LD_LIBRARY_PATH=libs-linux-armhf");
 		
 		if (0 != posix_spawn_file_actions_addchdir_np(&fileActions, FS::GetLibPath().c_str())) {
 			Sys::Error("failed posix_spawn_file_actions_addchdir");
@@ -500,8 +500,8 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	bool useBox64 = hasBox64;
 
 #if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
-	const std::string libs_linux_armhf = "lib-armhf";
-	const std::string libld_linux_armhf = "ld-linux-armhf";
+	const std::string libs_linux_armhf = "libs-linux-armhf";
+	const std::string libld_linux_armhf = "ld-linux-armhf.so.3";
 
 	std::string libsDirPath = FS::Path::Build(libPath, libs_linux_armhf);
 	std::string libLoaderPath = FS::Path::Build(libsDirPath, libld_linux_armhf);
