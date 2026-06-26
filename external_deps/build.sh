@@ -293,19 +293,21 @@ build_native-pkgconfig() {
 	)
 }
 
-# Build NASM
-build_nasm() {
+# Build NASM, needed for jpeg on macos-amd64.
+# It is part of the compilation toolchain.
+# As a host-mode native dependency it must be provided by the system when compiling.
+build_native-nasm() {
 	case "${PLATFORM}" in
 	macos-*-*)
 		local dir_name="nasm-${NASM_VERSION}"
 		local archive_name="${dir_name}-macosx.zip"
 
-		download_extract nasm "${archive_name}" \
+		download_extract native-nasm "${archive_name}" \
 			"${NASM_BASEURL}/${NASM_VERSION}/macosx/${archive_name}"
 
 		"${download_only}" && return
 
-		smart_copy "${dir_name}/nasm" "${PREFIX}/bin"
+		smart_copy "${dir_name}/nasm" "${NATIVE_PREFIX}/bin"
 		;;
 	*)
 		log ERROR 'Unsupported platform for NASM'
@@ -1574,7 +1576,7 @@ all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 
-base_macos_amd64_default_packages='native-pkgconfig nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+base_macos_amd64_default_packages='native-pkgconfig native-nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
 base_linux_i686_default_packages='sdl3 naclsdk'
@@ -1615,7 +1617,7 @@ printHelp() {
 	    all     linux windows macos
 
 	Packages:
-	    native-pkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
+	    native-pkgconfig native-nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
 
 	Virtual packages:
 	    base    build packages for pre-built binaries to be downloaded when building the game
