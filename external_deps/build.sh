@@ -51,7 +51,7 @@ NETTLE_VERSION=4.0
 CURL_VERSION=8.21.0
 SDL3_VERSION=3.4.10
 GLEW_VERSION=2.3.1
-PNG_VERSION=1.6.50
+PNG_VERSION=1.6.58
 JPEG_VERSION=3.1.1
 # WebP 1.6.0 introduced AVX2 intrinsics that are not available on
 # the GCC 10 compiler provided by Debian Bullseye.
