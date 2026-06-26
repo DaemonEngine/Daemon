@@ -162,6 +162,18 @@ download_extract() {
 configure_build() {
 	local configure_args=()
 
+	case "${HOST}" in
+	native)
+		configure_args+=(--prefix="${NATIVE_PREFIX}")
+		configure_args+=(--libdir="${NATIVE_PREFIX}/lib")
+		;;
+	*)
+		configure_args+=(--host="${HOST}")
+		configure_args+=(--prefix="${PREFIX}")
+		configure_args+=(--libdir="${PREFIX}/lib")
+		;;
+	esac
+
 	if [ "${LIBS_SHARED}" = 'ON' ]
 	then
 		configure_args+=(--enable-shared)
@@ -183,9 +195,6 @@ configure_build() {
 	fi
 
 	./configure \
-		--host="${HOST}" \
-		--prefix="${PREFIX}" \
-		--libdir="${PREFIX}/lib" \
 		"${configure_args[@]}"
 
 	make
@@ -209,6 +218,17 @@ get_compiler_arg1() {
 cmake_build() {
 	local cmake_args=()
 
+	case "${HOST}" in
+	native)
+		cmake_args+=(-DCMAKE_PREFIX_PATH="${NATIVE_PREFIX}")
+		cmake_args+=(-DCMAKE_INSTALL_PREFIX="${NATIVE_PREFIX}")
+		;;
+	*)
+		cmake_args+=(-DCMAKE_PREFIX_PATH="${PREFIX}")
+		cmake_args+=(-DCMAKE_INSTALL_PREFIX="${PREFIX}")
+		;;
+	esac
+
 	cmake_args+=(-DCMAKE_C_COMPILER="$(get_compiler_name ${CC})")
 	cmake_args+=(-DCMAKE_CXX_COMPILER="$(get_compiler_name ${CXX})")
 	cmake_args+=(-DCMAKE_C_COMPILER_ARG1="$(get_compiler_arg1 ${CC})")
@@ -228,8 +248,6 @@ cmake_build() {
 	cmake -S . -B build \
 		-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}" \
 		-DCMAKE_BUILD_TYPE='Release' \
-		-DCMAKE_PREFIX_PATH="${PREFIX}" \
-		-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
 		-DBUILD_SHARED_LIBS="${LIBS_SHARED}" \
 		"${cmake_args[@]}"
 
@@ -237,42 +255,43 @@ cmake_build() {
 	cmake --install build --strip
 }
 
-# Build pkg-config, needed for opusfile.
-# As a host-mode dependency it must be provided by the system when cross-compiling.
-build_pkgconfig() {
+# Build pkg-config, needed for opusfile on macos.
+# It is part of the cross-compilation toolchain.
+# As a host-mode native dependency it must be provided by the system when cross-compiling.
+build_native-pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download_extract pkgconfig "${archive_name}" \
+	download_extract native-pkgconfig "${archive_name}" \
 		"${PKGCONFIG_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
 
-	# Reset the environment variables, we don't cross-compile this,
-	# it is part of the cross-compilation toolchain.
-	# CXXFLAGS is unused.
-	CFLAGS='-Wno-error=int-conversion' \
-	LDFLAGS='' \
-	HOST='' \
-	configure_build \
+	(
+		setup_native
+		CFLAGS='-Wno-error=int-conversion' \
+		configure_build \
 		--with-internal-glib
+	)
 }
 
-# Build NASM
-build_nasm() {
+# Build NASM, needed for jpeg on macos-amd64.
+# It is part of the compilation toolchain.
+# As a host-mode native dependency it must be provided by the system when compiling.
+build_native-nasm() {
 	case "${PLATFORM}" in
 	macos-*-*)
 		local dir_name="nasm-${NASM_VERSION}"
 		local archive_name="${dir_name}-macosx.zip"
 
-		download_extract nasm "${archive_name}" \
+		download_extract native-nasm "${archive_name}" \
 			"${NASM_BASEURL}/${NASM_VERSION}/macosx/${archive_name}"
 
 		"${download_only}" && return
 
-		smart_copy "${dir_name}/nasm" "${PREFIX}/bin"
+		smart_copy "${dir_name}/nasm" "${NATIVE_PREFIX}/bin"
 		;;
 	*)
 		log ERROR 'Unsupported platform for NASM'
@@ -1311,14 +1330,17 @@ common_setup() {
 		BUILD_BASEDIR="build-${PKG_BASEDIR}"
 		BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
 		PREFIX="${BUILD_DIR}/prefix"
-		PATH="${PREFIX}/bin:${PATH}"
+		NATIVE_PREFIX="${BUILD_DIR}/native-prefix"
 
 		mkdir -p "${DOWNLOAD_DIR}"
 		mkdir -p "${PREFIX}/bin"
 		mkdir -p "${PREFIX}/include"
 		mkdir -p "${PREFIX}/lib"
+		mkdir -p "${NATIVE_PREFIX}/bin"
+		mkdir -p "${NATIVE_PREFIX}/include"
+		mkdir -p "${NATIVE_PREFIX}/lib"
 
-		export PATH
+		PATH="${NATIVE_PREFIX}/bin:${PATH}"
 
 		GLOBAL_SETUP_ONCE='false'
 	fi
@@ -1327,6 +1349,7 @@ common_setup() {
 	CPPFLAGS+=" -I${PREFIX}/include"
 	LDFLAGS+=" -L${PREFIX}/lib"
 
+	export PATH
 	export PKG_CONFIG PKG_CONFIG_PATH
 	export CC CXX LD AR RANLIB STRIP
 	export CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
@@ -1349,6 +1372,8 @@ common_setup_arch() {
 	*-armhf-*)
 		CFLAGS+=' -march=armv7-a -mfpu=neon'
 		CXXFLAGS+=' -march=armv7-a -mfpu=neon'
+		;;
+	*-native-*)
 		;;
 	*)
 		log ERROR 'Unsupported platform'
@@ -1408,6 +1433,10 @@ common_setup_linux() {
 	CXXFLAGS+=' -fPIC'
 }
 
+common_setup_native() {
+	true
+}
+
 setup_default() {
 	# Require the compiler names to be explicitly hardcoded, we should not inherit them
 	# from environment as we heavily cross-compile.
@@ -1437,7 +1466,6 @@ setup_default() {
 	unset BITNESS
 	unset MACOS_ARCH
 	unset CMAKE_OSX_ARCHITECTURES
-	unset CROSS_PKG_CONFIG_PATH
 	unset MACOSX_DEPLOYMENT_TARGET
 }
 
@@ -1504,6 +1532,15 @@ setup_linux-arm64-default() {
 	common_setup linux aarch64-unknown-linux-gnu
 }
 
+# Set up environment for native host tools
+setup_native() {
+	setup_default
+	CC='cc'
+	CXX='c++'
+	PLATFORM='native-native-native'
+	common_setup native native
+}
+
 base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck genlib'
 all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
 
@@ -1516,7 +1553,7 @@ all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 
-base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+base_macos_amd64_default_packages='native-pkgconfig native-nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
 base_linux_i686_default_packages='sdl3 naclsdk'
@@ -1557,7 +1594,7 @@ printHelp() {
 	    all     linux windows macos
 
 	Packages:
-	    pkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
+	    native-pkgconfig native-nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
 
 	Virtual packages:
 	    base    build packages for pre-built binaries to be downloaded when building the game
