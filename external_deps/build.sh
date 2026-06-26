@@ -14,6 +14,7 @@ DEPS_VERSION=11
 # Package download pages
 PKGCONFIG_BASEURL='https://pkg-config.freedesktop.org/releases'
 NASM_BASEURL='https://www.nasm.us/pub/nasm/releasebuilds'
+JWASM_BASEURL='https://api.github.com/repos/JWasm/JWasm/zipball'
 ZLIB_BASEURL='https://zlib.net/fossils'
 GMP_BASEURL='https://gmplib.org/download/gmp'
 NETTLE_BASEURL='https://mirror.cyberbits.eu/gnu/nettle'
@@ -42,6 +43,7 @@ WASMTIME_BASEURL='https://github.com/bytecodealliance/wasmtime/releases'
 # Package versions
 PKGCONFIG_VERSION=0.29.2
 NASM_VERSION=2.16.03
+JWASM_REVISION='a5c4ea03cc0545a15d81a354251b5f534bef7a1b'
 ZLIB_VERSION=1.3.1
 GMP_VERSION=6.3.0
 NETTLE_VERSION=3.10.2
@@ -313,6 +315,35 @@ build_native-nasm() {
 		log ERROR 'Unsupported platform for NASM'
 		;;
 	esac
+}
+
+# Build JWasm, needed for naclruntime for windows.
+# It is part of the compilation toolchain.
+# As a host-mode native dependency it must be provided by the system when compiling.
+build_native-jwasm() {
+	case "${PLATFORM}" in
+	windows-*-*)
+		local dir_name="JWasm-JWasm-${JWASM_REVISION:0:7}"
+		local archive_name="jwasm-${JWASM_REVISION}.zip"
+
+		download_extract native-jwasm "${archive_name}" \
+			"${JWASM_BASEURL}/${JWASM_REVISION}"
+
+		"${download_only}" && return
+
+		cd "${dir_name}"
+
+		(
+			setup_platform 'native'
+			cmake_build
+			smart_copy "build/jwasm${EXE_EXT}" "${NATIVE_PREFIX}/bin/jwasm${EXE_EXT}"
+		)
+		;;
+	*)
+		log ERROR 'Unsupported platform for JWasm'
+		;;
+	esac
+
 }
 
 # Build zlib
@@ -1617,7 +1648,7 @@ printHelp() {
 	    all     linux windows macos
 
 	Packages:
-	    native-pkgconfig native-nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
+	    native-pkgconfig native-nasm native-jwasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
 
 	Virtual packages:
 	    base    build packages for pre-built binaries to be downloaded when building the game
