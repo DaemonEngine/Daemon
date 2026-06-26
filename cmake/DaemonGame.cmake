@@ -71,7 +71,7 @@ include(CMakeParseArguments)
 list(APPEND NACL_ALL_TARGETS "amd64" "i686" "armhf")
 
 if (NOT GAME_BUILD_SUBINVOCATION)
-	option(USE_NACL_SAIGO "Use the Saigo toolchain to build NaCl executables" OFF)
+	option(USE_NACL_SAIGO "Use the Saigo toolchain to build NaCl executables" ON)
 
 	if (USE_NACL_SAIGO)
 		set(HAS_NACL_SDK ON)
