@@ -313,7 +313,7 @@ build_native-pkgconfig() {
 # As a host-mode native dependency it must be provided by the system when compiling.
 build_native-nasm() {
 	case "${PLATFORM}" in
-	macos-*-*)
+	macos-amd64-*)
 		local dir_name="nasm-${NASM_VERSION}"
 		local archive_name="${dir_name}-macosx.zip"
 
@@ -949,6 +949,8 @@ build_opusfile() {
 
 	cd "${dir_name}"
 
+	# The old configure script doesn't recognize the arm64 prefix.
+	HOST="${HOST/arm64-apple/aarch64-apple}" \
 	configure_build \
 		--disable-http
 }
@@ -1088,7 +1090,7 @@ build_naclsdk() {
 		local NACLSDK_ARCH=x86_32
 		local DAEMON_ARCH=i686
 		;;
-	*-amd64-*)
+	*-amd64-*|macos-arm64-*)
 		local NACLSDK_ARCH=x86_64
 		local DAEMON_ARCH=amd64
 		;;
@@ -1165,6 +1167,9 @@ build_naclruntime() {
 		nacl_arch_list+=('armhf')
 		;;
 	macos-amd64-*)
+		nacl_arch_list+=('amd64')
+		;;
+	macos-arm64-*)
 		nacl_arch_list+=('amd64')
 		;;
 	*)
@@ -1613,9 +1618,17 @@ setup_macos() {
 # Set up environment for 64-bit amd64 macOS
 setup_macos-amd64-default() {
 	setup_default
-	MACOS_ARCH=x86_64
+	MACOS_ARCH='x86_64'
 	# OpenAL requires 10.14.
 	MACOS_VERSION='10.14'
+	setup_macos
+}
+
+# Set up environment for 64-bit arm64 macOS
+setup_macos-arm64-default() {
+	setup_default
+	MACOS_ARCH='arm64'
+	MACOS_VERSION='11.7'
 	setup_macos
 }
 
@@ -1676,7 +1689,10 @@ all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
 base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 
-base_macos_amd64_default_packages='native-pkgconfig native-nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk naclruntime'
+base_macos_arm64_default_packages='native-pkgconfig gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk naclruntime'
+all_macos_arm64_default_packages="${base_macos_arm64_default_packages}"
+
+base_macos_amd64_default_packages="native-nasm ${base_macos_arm64_default_packages}"
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
 base_linux_amd64_default_packages='sdl3 naclsdk saigosdk naclruntime'
@@ -1693,7 +1709,7 @@ all_linux_armhf_default_packages="${all_linux_amd64_default_packages}"
 
 all_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
 all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
-all_macos_platforms='macos-amd64-default'
+all_macos_platforms='macos-amd64-default macos-arm64-default'
 all_platforms="${all_linux_platforms} ${all_windows_platforms} ${all_macos_platforms}"
 
 printHelp() {
@@ -1740,6 +1756,10 @@ printHelp() {
 
 	macos-amd64-default:
 	    base    ${base_macos_amd64_default_packages}
+	    all     same
+
+	macos-arm64-default:
+	    base    ${base_macos_arm64_default_packages}
 	    all     same
 
 	linux-amd64-default:
