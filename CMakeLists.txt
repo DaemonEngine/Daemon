@@ -190,7 +190,7 @@ else()
 endif()
 
 # Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 11)
+set(DEPS_VERSION 12)
 
 option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
 
@@ -972,7 +972,7 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     # The NaCl loader and IRT are required to load .nexe files
     add_custom_command(TARGET runtime_deps PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
+            ${DEPS_DIR}/nacl_loader-${DAEMON_NACL_ARCH_NAME}${CMAKE_EXECUTABLE_SUFFIX}
             ${FULL_OUTPUT_DIR}/nacl_loader-${DAEMON_NACL_ARCH_NAME}${CMAKE_EXECUTABLE_SUFFIX}
     )
 
@@ -992,20 +992,15 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
             add_dependencies(runtime_deps nacl_multiarch-${DAEMON_NACL_ARCH_NAME})
 
             add_custom_command(TARGET runtime_deps PRE_BUILD
-                COMMAND ${CMAKE_COMMAND} -E make_directory
-                    ${FULL_OUTPUT_DIR}/lib-${DAEMON_NACL_ARCH_NAME}
-            )
-
-            add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    ${DEPS_DIR}/linux-${DAEMON_NACL_ARCH_NAME}
-                    ${FULL_OUTPUT_DIR}/linux-${DAEMON_NACL_ARCH_NAME}
+                    ${DEPS_DIR}/libs-linux-${DAEMON_NACL_ARCH_NAME}
+                    ${FULL_OUTPUT_DIR}/libs-linux-${DAEMON_NACL_ARCH_NAME}
             )
         endif()
 
         add_custom_command(TARGET runtime_deps PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DEPS_DIR}/nacl_helper_bootstrap
+                ${DEPS_DIR}/nacl_helper_bootstrap-${DAEMON_NACL_ARCH_NAME}
                 ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap-${DAEMON_NACL_ARCH_NAME}
         )
     endif()
