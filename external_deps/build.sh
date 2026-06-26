@@ -562,7 +562,8 @@ build_sdl3() {
 
 		cmake_build \
 			-DSDL_TEST_LIBRARY=OFF \
-			-DSDL_AUDIO=OFF
+			-DSDL_AUDIO=OFF \
+			-DSDL_GPU=OFF
 		;;
 	esac
 }
