@@ -271,26 +271,26 @@ cmake_build() {
 	cmake --install build --strip
 }
 
-# As a host-mode dependency it must be provided by the system when cross-compiling.
-build_pkgconfig() {
+# Build pkg-config, needed for opusfile on macos.
+# It is part of the cross-compilation toolchain.
+# As a host-mode native dependency it must be provided by the system when cross-compiling.
+build_native-pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download_extract pkgconfig "${archive_name}" \
+	download_extract native-pkgconfig "${archive_name}" \
 		"${PKGCONFIG_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
 
-	# Reset the environment variables, we don't cross-compile this,
-	# it is part of the cross-compilation toolchain.
-	# CXXFLAGS is unused.
-	CFLAGS='-Wno-error=int-conversion' \
-	LDFLAGS='' \
-	HOST='' \
-	configure_build \
+	(
+		setup_platform 'native'
+		CFLAGS='-Wno-error=int-conversion' \
+		configure_build \
 		--with-internal-glib
+	)
 }
 
 # Build NASM
@@ -1574,7 +1574,7 @@ all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 
-base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+base_macos_amd64_default_packages='native-pkgconfig nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
 base_linux_i686_default_packages='sdl3 naclsdk'
@@ -1615,7 +1615,7 @@ printHelp() {
 	    all     linux windows macos
 
 	Packages:
-	    pkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
+	    native-pkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
 
 	Virtual packages:
 	    base    build packages for pre-built binaries to be downloaded when building the game
