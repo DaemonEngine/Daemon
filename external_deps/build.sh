@@ -44,7 +44,7 @@ ZLIB_VERSION=1.3.1
 GMP_VERSION=6.3.0
 NETTLE_VERSION=3.10.2
 CURL_VERSION=8.15.0
-SDL3_VERSION=3.2.22
+SDL3_VERSION=3.4.20
 GLEW_VERSION=2.2.0
 PNG_VERSION=1.6.50
 JPEG_VERSION=3.1.1
@@ -489,9 +489,16 @@ build_sdl3() {
 	*)
 		cd "${dir_name}"
 
-		cmake_build \
-			-DSDL_TEST_LIBRARY=OFF \
+		sdl3_cmake_args=(
 			-DSDL_AUDIO=OFF
+			-DSDL_CAMERA=OFF
+			-DSDL_GPU=OFF
+			-DSDL_TEST_LIBRARY=OFF
+			-DSDL_X11_XTEST=OFF
+		)
+
+		cmake_build \
+			"${sdl3_cmake_args[@]}"
 		;;
 	esac
 }
