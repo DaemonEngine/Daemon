@@ -35,7 +35,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <unistd.h> 
 
+#include "YokaiBuildInfo/DaemonEngine.h"
+
 int main(int argc, char *argv[]) {
+	if (argc < 2) {
+		printf("nacl_multiarch-%s: missing command line\n", DAEMON_NACL_ARCH_STRING);
+		return 1;
+	}
+
 	char *directory = dirname(strdup(argv[0]));
 
 	int err = chdir(directory);
@@ -44,19 +51,18 @@ int main(int argc, char *argv[]) {
 		return err;
 	}
 
-	err = putenv(strdup("LD_LIBRARY_PATH=lib-armhf"));
+	char env[100];
+	sprintf(env, "LD_LIBRARY_PATH=libs-linux-%s", DAEMON_NACL_ARCH_STRING);
+
+	err = putenv(strdup(env));
 
 	if (err != 0) {
 		return err;
 	}
 
-	char *helper = strdup("./nacl_helper_bootstrap");
-	argv[0] = helper;
-
-	execv(helper, argv);
+	execv(argv[1], &argv[1]);
 
 	// The execv() function returns only if an error has occurred.
-	printf("nacl_helper_bootstrap-armhf: %s\n", strerror(errno));
-
+	printf("nacl_multiarch-%s: %s\n", DAEMON_NACL_ARCH_STRING, strerror(errno));
 	return 1;
 }
