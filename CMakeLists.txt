@@ -199,7 +199,7 @@ else()
 endif()
 
 # Dependencies versions
-set(DEPS_VERSION 11) # This must match the number in external_deps/build.sh
+set(DEPS_VERSION 12) # This must match the number in external_deps/build.sh
 set(SAIGOSDK_VERSION 20260925) # This must match the number in external_deps/sdk-build.sh
 
 option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
@@ -411,33 +411,33 @@ if (DEPS_DIR)
     if (NOT EXISTS ${DEPS_DIR})
         file(MAKE_DIRECTORY ${EXTERNAL_DEPS_DIR})
         get_filename_component(BASENAME ${DEPS_DIR} NAME)
-		set(DEPS_FILENAME "${BASENAME}${DEPS_EXT}")
+        set(DEPS_FILENAME "${BASENAME}${DEPS_EXT}")
 
-		# Download test DEPS archive if DEPS archive isn't available yet.
-		# This makes possible to get the CI working before releasing the DEPS archive.
-		foreach(REMOTE_BASEURL https://dl.unvanquished.net/deps;https://dl.unvanquished.net/test/deps)
-			set(REMOTE "${REMOTE_BASEURL}/${DEPS_FILENAME}")
-			message(STATUS "Downloading dependencies from '${REMOTE}'")
+        # Download test DEPS archive if DEPS archive isn't available yet.
+        # This makes possible to get the CI working before releasing the DEPS archive.
+        foreach(REMOTE_BASEURL https://dl.unvanquished.net/deps;https://dl.unvanquished.net/test/deps)
+            set(REMOTE "${REMOTE_BASEURL}/${DEPS_FILENAME}")
+            message(STATUS "Downloading dependencies from '${REMOTE}'")
 
-			file(DOWNLOAD "${REMOTE}" "${OBJ_DIR}/${DEPS_FILENAME}"
-				SHOW_PROGRESS
-				STATUS DOWNLOAD_RESULT
-				LOG DOWNLOAD_LOG
-			)
+            file(DOWNLOAD "${REMOTE}" "${OBJ_DIR}/${DEPS_FILENAME}"
+                SHOW_PROGRESS
+                STATUS DOWNLOAD_RESULT
+                LOG DOWNLOAD_LOG
+            )
 
-			list(GET DOWNLOAD_RESULT 0 DOWNLOAD_STATUS)
-			list(GET DOWNLOAD_RESULT 1 DOWNLOAD_STRING)
+            list(GET DOWNLOAD_RESULT 0 DOWNLOAD_STATUS)
+            list(GET DOWNLOAD_RESULT 1 DOWNLOAD_STRING)
 
-			if (DOWNLOAD_STATUS EQUAL 0)
-				break()
-			else ()
-				message(WARNING "Error downloading '${REMOTE}':
-					Status code: ${DOWNLOAD_STATUS}
-					Error string: ${DOWNLOAD_STRING}
-					Download log: ${DOWNLOAD_LOG}"
-				)
-			endif()
-		endforeach()
+            if (DOWNLOAD_STATUS EQUAL 0)
+                break()
+            else ()
+                message(WARNING "Error downloading '${REMOTE}':
+                    Status code: ${DOWNLOAD_STATUS}
+                    Error string: ${DOWNLOAD_STRING}
+                    Download log: ${DOWNLOAD_LOG}"
+                )
+            endif()
+        endforeach()
 
         if (NOT DOWNLOAD_STATUS EQUAL 0)
             message(FATAL_ERROR "Failed to download '${DEPS_FILENAME}'")
@@ -979,20 +979,11 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
 
     foreach(arch_name IN LISTS DAEMON_NACL_ARCH_NAME_LIST)
         # The NaCl loader and IRT are required to load .nexe files
-        if (YOKAI_TARGET_SYSTEM_WINDOWS AND YOKAI_TARGET_ARCH_I686 AND "${arch_name}" STREQUAL "amd64")
-            # Backport compatibility until the external_deps script properly suffixes names in the archives.
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
                     ${DEPS_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
                     ${FULL_OUTPUT_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
             )
-        else()
-            add_custom_command(TARGET runtime_deps PRE_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    ${DEPS_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
-                    ${FULL_OUTPUT_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
-            )
-        endif()
 
         add_custom_command(TARGET runtime_deps PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -1002,14 +993,13 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     endforeach()
 
     if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY)
-        # Backport compatibility until the external_deps script properly suffixes names in the archives.
-        if (YOKAI_TARGET_ARCH_ARM64)
+        foreach(arch_name IN LISTS DAEMON_NACL_MULTILIB_ARCH_NAME_LIST)
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    ${DEPS_DIR}/lib-armhf
-                    ${FULL_OUTPUT_DIR}/lib-armhf
+                    ${DEPS_DIR}/libs-linux-${arch_name}
+                    ${FULL_OUTPUT_DIR}/libs-linux-${arch_name}
             )
-        endif()
+        endforeach()
 
         # Linux uses a bootstrap program to reserve address space for 32-bit runtimes.
         foreach(arch_name IN LISTS DAEMON_NACL_ARCH_NAME_LIST)
@@ -1017,7 +1007,7 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
             if ("${arch_name}" IN_LIST arch_32bit)
                 add_custom_command(TARGET runtime_deps PRE_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        ${DEPS_DIR}/nacl_helper_bootstrap
+                        ${DEPS_DIR}/nacl_helper_bootstrap-${arch_name}
                         ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap-${arch_name}
                 )
             endif()
