@@ -75,11 +75,27 @@ static Cvar::Cvar<bool> workaround_naclSystem_freebsd_disableQualification(
 	"Disable platform qualification when running Linux NaCl loader on FreeBSD through Linuxulator",
 	Cvar::NONE, true);
 
+#if defined(DAEMON_NACL_RUNTIME_ENABLED)
+// Many BSDs have a Linuxulator, for now we only tested one.
+#if defined(__linux__) || defined(__FreeBSD__)
+#define DAEMON_NACL_RUNTIME_LINUX
+#define DAEMON_NACL_BOOSTRAP_ENABLED
+#endif // defined(__linux__) || defined(DAEMON_LINUXULATOR)
+#endif // defined(DAEMON_NACL_RUNTIME_ENABLED)
+
+#if defined(DAEMON_NACL_RUNTIME_ENABLED)
 #if defined(DAEMON_NACL_BOX64_EMULATION)
 static Cvar::Cvar<bool> workaround_box64_disableQualification(
 	"workaround.box64.disableQualification",
 	"Disable platform qualification when running amd64 NaCl loader under Box64 emulation",
 	Cvar::NONE, true);
+
+#if defined(YOKAI_ARCH_ARM64)
+static Cvar::Cvar<bool> workaround_box64_preferArmhf(
+	"workaround.box64.preferArmhf",
+	"Prefer armhf multiarch when available over Box64 emulation",
+	Cvar::NONE, true);
+#endif // defined(YOKAI_ARCH_ARM64)
 
 static Cvar::Cvar<bool> workaround_box64_disableBootstrap(
 	"workaround.box64.disableBootstrap",
@@ -88,14 +104,41 @@ static Cvar::Cvar<bool> workaround_box64_disableBootstrap(
 
 static Cvar::Cvar<std::string> vm_box64_path(
 	"vm.box64.path",
-	"Path to the box64 binary for NaCl emulation (empty = search PATH)",
+	"Path to the box64 binary for NaCl emulation (empty = use provided one or search PATH if missing)",
 	Cvar::NONE, "");
 
-// Resolve box64 binary path by searching PATH if not explicitly set.
-static std::string ResolveBox64Path() {
-	std::string path = vm_box64_path.Get();
-	if (!path.empty()) {
-		return path;
+// Resolve box64 binary path by looking for a provided one or searching PATH if not explicitly set.
+static std::string ResolveBox64Path(std::string naclPath) {
+	std::string requestedPath = vm_box64_path.Get();
+
+	if (requestedPath.empty()) {
+		std::string providedPath = FS::Path::Build(naclPath, "box64");
+
+		if (FS::RawPath::FileExists(providedPath)) {
+			const std::string libs_linux_amd64 = "libs-linux-amd64";
+			const std::string libgcc_linux_amd64 = "libgcc_s.so.1";
+
+			std::string libsDirPath = FS::Path::Build(naclPath, libs_linux_amd64);
+			std::string libGccPath = FS::Path::Build(libsDirPath, libgcc_linux_amd64);
+
+			if (FS::RawPath::FileExists(libGccPath)) {
+				Sys::SetEnv("BOX64_LD_LIBRARY_PATH", libsDirPath.c_str());
+			}
+			else {
+				Log::Warn("Using provided Box64 executable but the libraries are missing.");
+			}
+
+			return providedPath;
+		}
+
+		Log::Warn("Box64 emulation is enabled but the executable is not provided with the engine: %s", providedPath);
+	}
+
+	if (!FS::RawPath::FileExists(requestedPath)) {
+		Sys::Error("Box64 emulation is enabled but the requested executable is missing: %s", requestedPath);
+	}
+	else {
+		return requestedPath;
 	}
 
 	const char* envPath = getenv("PATH");
@@ -121,34 +164,39 @@ static std::string ResolveBox64Path() {
 	           "Install Box64 or set vm.box64.path to the full path of the box64 binary.");
 	return ""; // unreachable
 }
-#endif
-
-static Cvar::Cvar<bool> vm_nacl_qualification(
-	"vm.nacl.qualification",
-	"Enable NaCl loader platform qualification",
-	Cvar::INIT, true);
-
-static Cvar::Cvar<bool> vm_nacl_bootstrap(
-	"vm.nacl.bootstrap",
-	"Use NaCl bootstrap helper",
-	Cvar::INIT, true);
-
-static Cvar::Cvar<int> vm_timeout(
-	"vm.timeout",
-	"Receive timeout in seconds",
-	Cvar::NONE, 2);
+#endif // DAEMON_NACL_BOX64_EMULATION
+#endif // DAEMON_NACL_RUNTIME_ENABLED
 
 #if defined(DAEMON_NACL_RUNTIME_ENABLED)
 static Cvar::Cvar<bool> vm_nacl_available(
 	"vm.nacl.available",
 	"Whether NaCl runtime is available on this platform",
 	Cvar::ROM, true);
-#else
+#else // !defined(DAEMON_NACL_RUNTIME_ENABLED)
 static Cvar::Cvar<bool> vm_nacl_available(
 	"vm.nacl.available",
 	"Whether NaCl runtime is available on this platform",
 	Cvar::ROM, false);
-#endif
+#endif // !defined(DAEMON_NACL_RUNTIME_ENABLED)
+
+#if defined(DAEMON_NACL_RUNTIME_ENABLED)
+static Cvar::Cvar<int> vm_timeout(
+	"vm.timeout",
+	"Receive timeout in seconds",
+	Cvar::NONE, 2);
+
+static Cvar::Cvar<bool> vm_nacl_qualification(
+	"vm.nacl.qualification",
+	"Enable NaCl loader platform qualification",
+	Cvar::INIT, true);
+#endif // defined(DAEMON_NACL_RUNTIME_ENABLED)
+
+#if defined(DAEMON_NACL_BOOSTRAP_ENABLED)
+static Cvar::Cvar<bool> vm_nacl_bootstrap(
+	"vm.nacl.bootstrap",
+	"Use NaCl bootstrap helper",
+	Cvar::INIT, true);
+#endif // defined(DAEMON_NACL_BOOSTRAP_ENABLED)
 
 namespace VM {
 
@@ -300,36 +348,228 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 #endif
 }
 
+#if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
+enum class ExeSupport
+{
+	Supported,
+	Unsupported,
+	Unknown,
+};
+
+static void SilenceOutput()
+{
+	int devnull = open("/dev/null", O_WRONLY);
+
+	if (devnull < 0) {
+		_exit(200);
+	}
+
+	dup2(devnull, STDOUT_FILENO);
+	dup2(devnull, STDERR_FILENO);
+
+	close(devnull);
+}
+
+static ExeSupport CheckExeSupport(Str::StringRef probe)
+{
+	pid_t pid = fork();
+	if (pid < 0) {
+		return ExeSupport::Unknown;
+	}
+
+	if (pid == 0) {
+		SilenceOutput();
+
+		char *const argv[] = {
+			const_cast<char *>(probe.data()),
+			nullptr,
+		};
+
+		execve(probe.data(), argv, environ);
+
+		switch (errno)
+		{
+			case ENOEXEC:
+				// The kernel cannot execute the probe.
+				_exit(100);
+
+			case ENOENT:
+			case EACCES:
+				// Missing or inaccessible probe.
+				_exit(101);
+
+			default:
+				_exit(102);
+		}
+	}
+
+	int status;
+	if (waitpid(pid, &status, 0) < 0) {
+		return ExeSupport::Unknown;
+	}
+
+	if (!WIFEXITED(status)) {
+		return ExeSupport::Unknown;
+	}
+
+	switch (WEXITSTATUS(status))
+	{
+		case 100:
+			return ExeSupport::Unsupported;
+
+		case 101:
+		case 102:
+			return ExeSupport::Unknown;
+
+		default:
+			// The probe has been executed properly.
+			return ExeSupport::Supported;
+	}
+}
+#endif // defined(DAEMON_NACL_RUNTIME_LINUX) && defined(NACL_ARCH_ARM64)
+
+#if defined(DAEMON_NACL_RUNTIME_ENABLED)
 static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug, bool extract, int debugLoader) {
 	CheckMinAddressSysctlTooLarge();
 	const std::string& libPath = FS::GetLibPath();
-#ifdef DAEMON_NACL_RUNTIME_PATH
-	const char* naclPath = DAEMON_NACL_RUNTIME_PATH_STRING;
-#else
-	const std::string& naclPath = libPath;
-#endif
 	std::vector<const char*> args;
 	char rootSocketRedir[32];
-	std::string module, nacl_loader, irt, bootstrap, modulePath, verbosity;
 	FS::File stderrRedirect;
-#if defined(DAEMON_NACL_BOX64_EMULATION)
-	std::string box64Path;
-	bool usingBox64 = false;
-#endif
+	bool inheritEnvironment = false;
+
+	std::string module, nacl_loader, irt, arch, modulePath, verbosity;
+
+#if defined(DAEMON_NACL_RUNTIME_PATH)
+	const char* naclPath = DAEMON_NACL_RUNTIME_PATH_STRING;
+#else // !defined(DAEMON_NACL_RUNTIME_PATH)
+	const std::string& naclPath = libPath;
+#endif // !defined(DAEMON_NACL_RUNTIME_PATH)
+
 #if !defined(_WIN32) || defined(_WIN64)
-	constexpr bool win32Force64Bit = false;
-#else
+	constexpr bool i686ForceAmd64 = false;
+#else // !( !defined(_WIN32) || defined(_WIN64) )
 	// On Windows, even if we are running a 32-bit engine, we must use the
 	// 64-bit nacl_loader if the host operating system is 64-bit.
 	SYSTEM_INFO systemInfo;
 	GetNativeSystemInfo(&systemInfo);
-	const bool win32Force64Bit = systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64;
+	constexpr bool i686ForceAmd64 = systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64;
+#endif // !( !defined(_WIN32) || defined(_WIN64) )
+
+#if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
+	std::string multiarchPath;
+	constexpr bool hasMultiarch = true;
+#else
+	constexpr bool hasMultiarch = false;
+#endif
+
+#if defined(DAEMON_NACL_BOOSTRAP_ENABLED)
+	std::string bootstrapPath;
+	constexpr bool hasBootstrap = true;
+#else // !defined(DAEMON_NACL_BOOSTRAP_ENABLED)
+	constexpr bool hasBootstrap = false;
+#endif // !defined(DAEMON_NACL_BOOSTRAP_ENABLED)
+
+#if defined(DAEMON_NACL_BOX64_EMULATION)
+	std::string box64Path;
+	constexpr bool hasBox64 = true;
+#else // !defined(DAEMON_NACL_BOX64_EMULATION)
+	constexpr bool hasBox64 = false;
+#endif // !defined(DAEMON_NACL_BOX64_EMULATION)
+
+#if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
+	/* We later turn this boolean off when we detect armhf support is not
+	provided on arm64. */
+	bool hasArmhf = true;
+#endif // !defined(YOKAI_ARCH_ARMHF)
+
+	bool useBox64 = hasBox64;
+
+#if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
+	const std::string libs_linux_armhf = "linux-armhf";
+	const std::string libld_linux_armhf = "ld-linux";
+
+	std::string libsDirPath = FS::Path::Build(libPath, libs_linux_armhf);
+	std::string libLoaderPath = FS::Path::Build(libsDirPath, libld_linux_armhf);
+
+	switch (CheckExeSupport(libLoaderPath))
+	{
+		case ExeSupport::Supported:
+			Log::Notice("Working armhf multiarch support.");
+			break;
+
+		case ExeSupport::Unsupported:
+			Log::Notice("Unsupported armhf multiarch.");
+			hasArmhf = false;
+			break;
+
+		case ExeSupport::Unknown:
+			Log::Warn("Could not determine armhf multiarch support.");
+			hasArmhf = false;
+			break;
+	}
+
+#if defined(DAEMON_NACL_BOX64_EMULATION)
+	if (hasArmhf) {
+		if (workaround_box64_preferArmhf.Get()) {
+			Log::Notice("Preferring armhf multiarch over Box64 emulation.");
+			useBox64 = false;
+		}
+	}
+#endif // defined(DAEMON_NACL_BOX64_EMULATION)
+
+	bool useMultiarch = hasMultiarch;
+
+	if (hasMultiarch && useBox64) {
+		useMultiarch = false;
+	}
+#endif // defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
+
+	bool useBootstrap = hasBootstrap;
+
+#if defined(DAEMON_NACL_BOOSTRAP_ENABLED)
+
+	if (hasBootstrap) {
+		if (!vm_nacl_bootstrap.Get()) {
+			useBootstrap = false;
+	}
+
+#if defined(DAEMON_NACL_BOX64_EMULATION)
+		/* Use Box64 to run the x86_64 NaCl loader on non-x86 architectures.
+		The bootstrap helper uses a double-exec pattern that Box64 cannot handle,
+		so we skip it and prepend "box64" to the nacl_loader command instead. */
+		if (useBootstrap
+		&& useBox64
+		&& workaround_box64_disableBootstrap.Get()) {
+			useBootstrap = false;
+		}
+#endif // defined(DAEMON_NACL_BOX64_EMULATION)
+	}
+#endif // defined(DAEMON_NACL_BOOSTRAP_ENABLED)
+
+	if (useBox64 || i686ForceAmd64) {
+		arch = "amd64";
+	}
+	else {
+		arch = DAEMON_NACL_ARCH_STRING;
+	}
+
+	module = Str::Format("%s-%s.nexe", name, arch);
+	irt = FS::Path::Build(naclPath, Str::Format("irt_core-%s.nexe", arch));
+	nacl_loader = FS::Path::Build(naclPath, Str::Format("nacl_loader-%s%s", arch, EXE_EXT));
+
+#if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
+	if (useMultiarch) {
+		multiarchPath = FS::Path::Build(naclPath, Str::Format("nacl_multiarch-%s", arch));
+	}
+#endif
+
+#if defined(DAEMON_NACL_BOOSTRAP_ENABLED)
+	if (useBootstrap) {
+		bootstrapPath = FS::Path::Build(naclPath, Str::Format("nacl_helper_bootstrap-%s", arch));
+	}
 #endif
 
 	// Extract the nexe from the pak so that nacl_loader can load it
-	module = win32Force64Bit
-		? name + "-amd64.nexe"
-		: Str::Format("%s-%s.nexe", name, DAEMON_NACL_ARCH_STRING);
 	if (extract) {
 		try {
 			FS::File out = FS::HomePath::OpenWrite(module);
@@ -347,10 +587,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 
 	// Generate command line
 	Q_snprintf(rootSocketRedir, sizeof(rootSocketRedir), "%d:%d", ROOT_SOCKET_FD, (int)(intptr_t)pair.second.GetHandle());
-	irt = FS::Path::Build(naclPath, win32Force64Bit
-		? "irt_core-amd64.nexe"
-		: Str::Format("irt_core-%s.nexe", DAEMON_NACL_ARCH_STRING));
-	nacl_loader = FS::Path::Build(naclPath, win32Force64Bit ? "nacl_loader-amd64" EXE_EXT : "nacl_loader" EXE_EXT);
 
 	if (!FS::RawPath::FileExists(modulePath)) {
 		Sys::Error("VM module file not found: %s", modulePath);
@@ -364,99 +600,106 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		Sys::Error("NaCl integrated runtime not found: %s", irt);
 	}
 
-#if defined(__linux__) || defined(__FreeBSD__)
+#if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
+	if (useMultiarch) {
+		// TODO: test if present (required).
+			args.push_back(multiarchPath.c_str());
+		}
+#endif
+
+	if (useBootstrap) {
+#if defined(DAEMON_NACL_BOOSTRAP_ENABLED)
+		if (FS::RawPath::FileExists(bootstrapPath)) {
+			args.push_back(bootstrapPath.c_str());
+		}
+		else {
+			Log::Warn("NaCl bootstrap helper not found: %s", bootstrapPath);
+			useBootstrap = false;
+		}
+#endif
+	}
+	else {
+		if (hasBootstrap) {
+			Log::Notice("Not using NaCl bootstrap helper.");
+		}
+
+		if (useBox64) {
 #if defined(DAEMON_NACL_BOX64_EMULATION)
-	/* Use Box64 to run the x86_64 NaCl loader on non-x86 architectures.
-	The bootstrap helper uses a double-exec pattern that Box64 cannot handle,
-	so we skip it and prepend "box64" to the nacl_loader command instead. */
-	if (!workaround_box64_disableBootstrap.Get() && vm_nacl_bootstrap.Get()) {
-		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
-
-		if (!FS::RawPath::FileExists(bootstrap)) {
-			Sys::Error("NaCl bootstrap helper not found: %s", bootstrap);
-		}
-
-		args.push_back(bootstrap.c_str());
-		args.push_back(nacl_loader.c_str());
-		args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
-		args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
-	} else {
-		if (workaround_box64_disableBootstrap.Get()) {
-			Log::Notice("Skipping NaCl bootstrap helper for Box64 emulation.");
-		} else {
-			Log::Warn("Not using NaCl bootstrap helper.");
-		}
-		box64Path = ResolveBox64Path();
-		Log::Notice("Using Box64 emulator: %s", box64Path);
-		args.push_back(box64Path.c_str());
-		args.push_back(nacl_loader.c_str());
-		usingBox64 = true;
-	}
-#else
-	if (vm_nacl_bootstrap.Get()) {
-#if defined(YOKAI_ARCH_ARM64)
-		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap-armhf");
-#else
-		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
+			box64Path = ResolveBox64Path(naclPath);
+			Log::Notice("Using Box64 emulator: %s", box64Path);
+			args.push_back(box64Path.c_str());
+			inheritEnvironment = true;
 #endif
-
-		if (!FS::RawPath::FileExists(bootstrap)) {
-			Sys::Error("NaCl bootstrap helper not found: %s", bootstrap);
-		}
-
-		args.push_back(bootstrap.c_str());
-		args.push_back(nacl_loader.c_str());
-		args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
-		args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
-	} else {
-		Log::Warn("Not using NaCl bootstrap helper.");
-		args.push_back(nacl_loader.c_str());
 	}
-#endif
-#else
-	Q_UNUSED(bootstrap);
+	}
+
 	args.push_back(nacl_loader.c_str());
-#endif
+
+	if (useBootstrap) {
+		args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
+		args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
+	}
 
 	bool enableQualification = vm_nacl_qualification.Get();
 
-	if (enableQualification) {
-#if defined(__linux__) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
-		if (workaround_naclArchitecture_arm64_disableQualification.Get()) {
+	if (!enableQualification) {
+		Log::Warn("Not using NaCl platform qualification.");
+	}
+
+#if defined(DAEMON_NACL_RUNTIME_LINUX) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
+	if (enableQualification
+	&& hasArmhf
+	&& !useBox64
+	&& workaround_naclArchitecture_arm64_disableQualification.Get()) {
 #if defined(YOKAI_ARCH_ARM64)
-			bool onArm64 = true;
+		constexpr bool onArm64 = true;
 #elif defined(YOKAI_ARCH_ARMHF)
-			bool onArm64 = false;
+		bool onArm64 = false;
 
-			struct utsname buf;
-			if (!uname(&buf)) {
-				onArm64 = !strcmp(buf.machine, "aarch64");
-			}
-#endif
-
-			/* This is required to run armhf NaCl loader on arm64 kernel
-			otherwise nexe loading fails with this message:
-
-			> Error while loading "sgame-armhf.nexe": CPU model is not supported
-
-			From nacl_loader --help we can read:
-
-			> -Q disable platform qualification (dangerous!)
-
-			When this option is enabled, nacl_loader will print:
-
-			> PLATFORM QUALIFICATION DISABLED BY -Q - Native Client's sandbox will be unreliable!
-
-			But the nexe will load and run. */
-
-			if (onArm64) {
-				Log::Warn("Disabling NaCL platform qualification on arm64 kernel architecture.");
-				enableQualification = false;
-			}
+		struct utsname buf;
+		if (!uname(&buf)) {
+			onArm64 = !strcmp(buf.machine, "aarch64");
 		}
-#endif
+#endif // defined(YOKAI_ARCH_ARMHF)
+
+		/* This is required to run armhf NaCl loader on arm64 kernel
+		otherwise nexe loading fails with this message:
+
+		> Error while loading "sgame-armhf.nexe": CPU model is not supported
+
+		From nacl_loader --help we can read:
+
+		> -Q disable platform qualification (dangerous!)
+
+		When this option is enabled, nacl_loader will print:
+
+		> PLATFORM QUALIFICATION DISABLED BY -Q - Native Client's sandbox will be unreliable!
+
+		But the nexe will load and run. */
+
+		if (onArm64) {
+			Log::Warn("Disabling NaCl platform qualification on arm64 kernel architecture.");
+			enableQualification = false;
+		}
+	}
+#endif // defined(__linux__) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
+
+#if defined(DAEMON_NACL_BOX64_EMULATION)
+	if (enableQualification
+	&& useBox64
+	&& workaround_box64_disableQualification.Get()) {
+		/* When running the amd64 NaCl loader under Box64, the loader's
+		platform qualification will fail because the CPU is not actually x86_64.
+		Disabling qualification allows the emulated loader to proceed. */
+
+		Log::Warn("Disabling NaCl platform qualification for Box64 emulation.");
+		enableQualification = false;
+	}
+#endif // defined(DAEMON_NACL_BOX64_EMULATION)
 
 #if defined(__FreeBSD__)
+	if (enableQualification
+	&& workaround_naclSystem_freebsd_disableQualification.Get()) {
 		/* While it is possible to build a native FreeBSD engine, the only available NaCl loader
 		is the Linux one, which can run on Linuxulator (the FreeBSD Linux compatibility layer).
 
@@ -466,26 +709,10 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 
 		The Linux NaCl loader runs properly on Linuxulator when we disable the qualification. */
 
-		if (workaround_naclSystem_freebsd_disableQualification.Get()) {
-			Log::Warn("Disabling NaCL platform qualification on FreeBSD system.");
-			enableQualification = false;
-		}
-#endif
-
-#if defined(DAEMON_NACL_BOX64_EMULATION)
-		/* When running the amd64 NaCl loader under Box64, the loader's
-		platform qualification will fail because the CPU is not actually x86_64.
-		Disabling qualification allows the emulated loader to proceed. */
-
-		if (workaround_box64_disableQualification.Get()) {
-			Log::Warn("Disabling NaCL platform qualification for Box64 emulation.");
-			enableQualification = false;
-		}
-#endif
+		Log::Warn("Disabling NaCl platform qualification on FreeBSD system.");
+		enableQualification = false;
 	}
-	else {
-		Log::Warn("Not using NaCl platform qualification.");
-	}
+#endif // defined(__FreeBSD__)
 
 	if (!enableQualification) {
 		args.push_back("-Q");
@@ -528,12 +755,9 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		Log::Notice("Using loader args: %s", commandLine.c_str());
 	}
 
-	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect)
-#if defined(DAEMON_NACL_BOX64_EMULATION)
-		, usingBox64
-#endif
-	);
+	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect), inheritEnvironment);
 }
+#endif // DAEMON_NACL_RUNTIME_ENABLED
 
 static std::pair<Sys::OSHandle, IPC::Socket> CreateNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug) {
 	const std::string& libPath = FS::GetLibPath();
@@ -622,7 +846,9 @@ void VMBase::Create()
 	}
 #endif
 	if (type == TYPE_NACL || type == TYPE_NACL_LIBPATH) {
+#if defined(DAEMON_NACL_RUNTIME_ENABLED)
 		std::tie(processHandle, rootSocket) = CreateNaClVM(std::move(pair), name, params.debug.Get(), type == TYPE_NACL, params.debugLoader.Get());
+#endif // defined(DAEMON_NACL_RUNTIME_ENABLED)
 	} else if (type == TYPE_NATIVE_EXE) {
 		std::tie(processHandle, rootSocket) = CreateNativeVM(std::move(pair), name, params.debug.Get());
 	} else {
