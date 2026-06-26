@@ -9,7 +9,7 @@ WORK_DIR="${PWD}"
 # This should match the DEPS_VERSION in CMakeLists.txt.
 # This is mostly to ensure the path the files end up at if you build deps yourself
 # are the same as the ones when extracting from the downloaded packages.
-DEPS_VERSION=11
+DEPS_VERSION=12
 
 # Package download pages
 PKGCONFIG_BASEURL='https://pkg-config.freedesktop.org/releases'
@@ -1082,7 +1082,7 @@ build_naclsdk() {
 	linux-amd64-*)
 		;; # Get sel_ldr from naclruntime package
 	*)
-		smart_copy pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE_EXT}" "${PREFIX}/nacl_loader${EXE_EXT}"
+		smart_copy pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE_EXT}" "${PREFIX}/nacl_loader-${DAEMON_ARCH}${EXE_EXT}"
 		;;
 	esac
 	case "${PLATFORM}" in
@@ -1114,22 +1114,25 @@ build_naclsdk() {
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		;;
 	linux-i686-*|linux-armhf-*|linux-arm64-*)
-		smart_copy pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
+		smart_copy pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap-${DAEMON_ARCH}"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
+		chmod 755 "${PREFIX}/nacl_helper_bootstrap-${DAEMON_ARCH}" "${PREFIX}/nacl_loader-${DAEMON_ARCH}"
 		;;
 	esac
 	case "${PLATFORM}" in
 	linux-arm64-*)
-		mkdir -p "${PREFIX}/lib-armhf"
-		smart_copy -R pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/lib-armhf/."
+		local libdir_path='libs-linux-armhf'
+		local loader_path="${libdir_path}/loader"
+		mkdir -p "${PREFIX}/${libdir_path}"
+		smart_copy -R pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/${libdir_path}/."
 		# Copy the library loader instead of renaming it because there may still be some
 		# references to ld-linux-armhf.so.3 in binaries.
-		smart_copy "${PREFIX}/lib-armhf/ld-linux-armhf.so.3" "${PREFIX}/lib-armhf/ld-linux-armhf"
+		smart_copy "${PREFIX}/${libdir_path}/ld-linux-armhf.so.3" "${PREFIX}/${loader_path}"
 		# We can't use patchelf or 'nacl_helper_bootstrap nacl_loader' will complain:
 		#   bootstrap_helper: nacl_loader: ELF file has unreasonable e_phnum=13
-		sed -e 's|/lib/ld-linux-armhf.so.3|lib-armhf/ld-linux-armhf|' -i "${PREFIX}/nacl_loader"
+		# We're lucky that the replacement string isn't larger than the original one.
+		sed -e "s|/lib/ld-linux-armhf.so.3|${loader_path}|" -i "${PREFIX}/nacl_loader-armhf"
 		;;
 	esac
 }
@@ -1155,8 +1158,8 @@ build_naclruntime() {
 
 	cd "${dir_name}"
 	env -i /usr/bin/env bash -l -c "python3 /usr/bin/scons --mode=opt-linux 'platform=${NACL_ARCH}' werror=0 sysinfo=0 sel_ldr"
-	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
-	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader"
+	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap-amd64"
+	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader-amd64"
 }
 
 # Check for DLL dependencies on MinGW stuff. For MSVC platforms this is bad because it should work
