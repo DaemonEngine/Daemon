@@ -249,6 +249,13 @@ cmake_build() {
 		;;
 	esac
 
+	case "${HOST}" in
+	macos-*)
+		cmake_args+=(-DCMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}")
+		cmake_args+=(-DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOS_VERSION}")
+		;;
+	esac
+
 	cmake_args+=(-DCMAKE_C_COMPILER="$(get_compiler_name ${CC})")
 	cmake_args+=(-DCMAKE_CXX_COMPILER="$(get_compiler_name ${CXX})")
 	cmake_args+=(-DCMAKE_C_COMPILER_ARG1="$(get_compiler_arg1 ${CC})")
@@ -1513,10 +1520,9 @@ common_setup_macos() {
 	CC='clang'
 	CXX='clang++'
 	STRIP='strip'
-	CFLAGS+=" -arch ${MACOS_ARCH}"
-	CXXFLAGS+=" -arch ${MACOS_ARCH}"
-	LDFLAGS+=" -arch ${MACOS_ARCH}"
-	export CMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}"
+	CFLAGS+=" -arch ${MACOS_ARCH} -mmacosx-version-min=${MACOS_VERSION}"
+	CXXFLAGS+=" -arch ${MACOS_ARCH} -mmacosx-version-min=${MACOS_VERSION}"
+	LDFLAGS+=" -arch ${MACOS_ARCH} -mmacosx-version-min=${MACOS_VERSION}"
 }
 
 common_setup_linux() {
@@ -1564,6 +1570,8 @@ setup_default() {
 
 	unset BITNESS
 	unset MACOS_ARCH
+	unset MACOS_VERSION
+	unset MACOS_HOST
 	unset CMAKE_TOOLCHAIN
 }
 
@@ -1597,13 +1605,18 @@ setup_windows-amd64-mingw() {
 	common_setup mingw x86_64-w64-mingw32
 }
 
+setup_macos() {
+	MACOS_HOST="${MACOS_ARCH}-apple-macos${MACOS_VERSION}"
+	common_setup macos "${MACOS_HOST}"
+}
+
 # Set up environment for 64-bit amd64 macOS
 setup_macos-amd64-default() {
 	setup_default
 	MACOS_ARCH=x86_64
 	# OpenAL requires 10.14.
-	export MACOSX_DEPLOYMENT_TARGET=10.14 # works with CMake
-	common_setup macos "x86_64-apple-macos${MACOSX_DEPLOYMENT_TARGET}"
+	MACOS_VERSION='10.14'
+	setup_macos
 }
 
 # Set up environment for 32-bit i686 Linux
