@@ -239,6 +239,8 @@ cmake_build() {
 		cmake_args+=("${@}")
 	fi
 
+	rm -rf build
+
 	cmake -S . -B build \
 		-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}" \
 		-DCMAKE_BUILD_TYPE='Release' \
