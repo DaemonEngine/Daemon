@@ -238,6 +238,11 @@ cmake_build() {
 	cmake_args+=(-DCMAKE_CXX_FLAGS="${CXXFLAGS}")
 	cmake_args+=(-DCMAKE_EXE_LINKER_FLAGS="${LDFLAGS}")
 
+	if [ -n "${CMAKE_TOOLCHAIN:-}" ]
+	then
+		cmake_args+=(-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}")
+	fi
+
 	# Check for ${@} not being empty to workaround a macOS bash limitation.
 	if [ -n "${1:-}" ]
 	then
@@ -247,7 +252,6 @@ cmake_build() {
 	rm -rf build
 
 	cmake -S . -B build \
-		-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}" \
 		-DCMAKE_BUILD_TYPE='Release' \
 		-DBUILD_SHARED_LIBS="${LIBS_SHARED}" \
 		"${cmake_args[@]}"
@@ -1500,7 +1504,7 @@ setup_default() {
 
 	LIBS_SHARED='OFF'
 	LIBS_STATIC='ON'
-	CMAKE_TOOLCHAIN=''
+
 	EXE_EXT=''
 
 	# Always reset flags, we heavily cross-compile and must not inherit any stray flag
@@ -1512,8 +1516,7 @@ setup_default() {
 
 	unset BITNESS
 	unset MACOS_ARCH
-	unset CMAKE_OSX_ARCHITECTURES
-	unset MACOSX_DEPLOYMENT_TARGET
+	unset CMAKE_TOOLCHAIN
 }
 
 # Set up environment for 32-bit i686 Windows for Visual Studio (compile all as .dll)
