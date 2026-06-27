@@ -22,9 +22,19 @@ pr:
       - .gitmodules
 
 jobs:
-  - job: Mac
+  - job: macOS
     pool:
       vmImage: 'macOS-15'
+    strategy:
+      matrix:
+        AppleClang amd64:
+          MACOS_ARCH: x86_64
+          MACOS_VERSION: 10.14
+          TEST: true
+        AppleClang arm64:
+          MACOS_ARCH: arm64
+          MACOS_VERSION: 11.7
+          TEST: false
     steps:
     - bash: |
         set -e
@@ -56,12 +66,14 @@ jobs:
         cmake --version
         export CFLAGS='-Wno-c++14-extensions'
         export CXXFLAGS='-Wno-c++14-extensions'
-        cmake -Wdev -Wdeprecated -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DCMAKE_BUILD_TYPE=Release -DBUILD_DUMMY_APP=1 -DBUILD_DUMMY_GAMELOGIC=1 -DBUILD_TESTS=1 -H. -Bbuild
+        cmake -Wdev -Wdeprecated -DCMAKE_OSX_ARCHITECTURES=${MACOS_ARCH} -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOS_VERSION} -DPREFER_EXTERNAL_LIBS=OFF -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DCMAKE_BUILD_TYPE=Release -DBUILD_DUMMY_APP=1 -DBUILD_DUMMY_GAMELOGIC=1 -DBUILD_TESTS=1 -H. -Bbuild
         cmake --build build -- -j`sysctl -n hw.logicalcpu`
       displayName: 'Build'
     - bash: |
-        set -e
-        build/test-ttyclient -pakpath pkg -set fs_basepak daemon -set vm.cgame.type 3
+        if "${TEST}"; then
+          set -e
+          build/test-ttyclient -pakpath pkg -set fs_basepak daemon -set vm.cgame.type 3
+        fi
       displayName: 'Test'
 
   - job: Linux
