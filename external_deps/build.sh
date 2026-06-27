@@ -1063,14 +1063,8 @@ build_naclsdk() {
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		;;
-	linux-i686-*)
+	linux-i686-*|linux-armhf-*|linux-arm64-*)
 		smart_copy pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
-		# Fix permissions on a few files which deny access to non-owner
-		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
-		;;
-	linux-armhf-*|linux-arm64-*)
-		smart_copy pepper_*"/tools/nacl_helper_bootstrap_arm" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
