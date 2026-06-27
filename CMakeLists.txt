@@ -220,17 +220,7 @@ if (USE_EXTERNAL_DEPS AND NOT YOKAI_TARGET_SYSTEM_NACL)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
     elseif (YOKAI_TARGET_SYSTEM_MACOS)
         set(DEPS_SYSTEM macos)
-        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64)
-
-        if (YOKAI_TARGET_ARCH_ARM64)
-            set(DEPS_ARCH amd64)
-
-            set_deps_dir()
-
-            if (NOT EXISTS ${DEPS_DIR})
-                set(DEFAULT_USE_EXTERNAL_DEPS_LIBS OFF)
-            endif()
-        endif()
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 arm64)
     elseif (YOKAI_TARGET_SYSTEM_LINUX)
         set(DEPS_SYSTEM linux)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686 arm64 armhf)
