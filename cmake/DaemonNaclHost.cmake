@@ -25,18 +25,18 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 function(daemon_detect_nacl_arch)
-	set(arch_name "${YOKAI_TARGET_ARCH_NAME}")
-	set(nacl_arch "${arch_name}")
+	set(target_arch "${YOKAI_TARGET_ARCH_NAME}")
+	set(nacl_arch "${target_arch}")
 
 	if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY OR YOKAI_TARGET_SYSTEM_XDG_COMPATIBILITY)
-		set(armhf_usage "arm64;armel")
-		if ("${arch_name}" IN_LIST armhf_usage)
-		# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
-		# The nexe is system agnostic so there should be no difference with armel.
-		set(nacl_arch "armhf")
+		set(armhf_usage "arm64" "armel")
+		set(box64_usage "ppc64el" "riscv64")
 
-		set(box64_usage ppc64el riscv64)
-		if ("${arch_name}" IN_LIST box64_usage)
+		if ("${target_arch}" IN_LIST armhf_usage)
+			# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
+			# The nexe is system agnostic so there should be no difference with armel.
+			set(nacl_arch "armhf")
+		elseif ("${target_arch}" IN_LIST box64_usage)
 			option(DAEMON_NACL_BOX64_EMULATION "Use Box64 to emulate x86_64 NaCl loader on unsupported platforms" ON)
 			if (DAEMON_NACL_BOX64_EMULATION)
 				# Use Box64 to run x86_64 NaCl loader and amd64 nexe.
@@ -45,27 +45,32 @@ function(daemon_detect_nacl_arch)
 				add_definitions(-DDAEMON_NACL_BOX64_EMULATION)
 			endif()
 		endif()
-	endif()
-
-	elseif (DAEMON_TARGET_SYSTEM_MACOS)
-		if ("${arch_name}" STREQUAL "arm64")
+	elseif (YOKAI_TARGET_SYSTEM_MACOS)
+		if ("${target_arch}" STREQUAL "arm64")
 			# You can get emulated NaCl going like this:
 			# cp external_deps/macos-amd64-default_10/{nacl_loader,irt_core-amd64.nexe} build/
 			set(nacl_arch "amd64")
 		endif()
 	endif()
 
-	string(TOUPPER "${nacl_arch_name}" nacl_arch_name_upper)
+	string(TOUPPER "${nacl_arch}" nacl_arch_upper)
+
+	# NaCl runtime is only available on architectures that have a NaCl loader.
+	set(nacl_runtime_arch "amd64" "i686" "armhf")
+	if ("${nacl_arch}" IN_LIST nacl_runtime_arch)
+		message(STATUS "Detected NaCl architecture: ${nacl_arch}")
+
+		add_definitions(-DDAEMON_NACL_RUNTIME_ENABLED)
+	else()
+		set(nacl_arch "unknown")
+
+		message(STATUS "No NaCl architecture detected")
+	endif()
 
 	# The DAEMON_NACL_ARCH_NAME variable contributes to the nexe file name.
 	set(DAEMON_NACL_ARCH_NAME "${nacl_arch}" PARENT_SCOPE)
-	set(DAEMON_NACL_ARCH_NAME_UPPER "${nacl_arch_upper}" PARENT_SCOPE)
 
-	# NaCl runtime is only available on architectures that have a NaCl loader.
-	set(nacl_runtime_arch amd64 i686 armhf)
-	if ("${nacl_arch}" IN_LIST nacl_runtime_arch)
-		add_definitions(-DDAEMON_NACL_RUNTIME_ENABLED)
-	endif()
+	set(DAEMON_NACL_ARCH_NAME_UPPER "${nacl_arch_upper}" PARENT_SCOPE)
 endfunction()
 
 daemon_detect_nacl_arch()
