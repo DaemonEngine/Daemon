@@ -1284,7 +1284,7 @@ build_install() {
 build_package() {
 	cd "${WORK_DIR}"
 	rm -f "${PKG_BASEDIR}.tar.xz"
-	local XZ_OPT='-9'
+	local XZ_OPT='-9e'
 	case "${PLATFORM}" in
 	windows-*-*)
 		tar --dereference -cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
