@@ -97,6 +97,21 @@ smart_copy() {
 	fi
 }
 
+dedupe_dir ()
+{
+	if command -v jdupes >/dev/null 2>&1
+	then
+		log STATUS 'Using jdupes for deduplication'
+		jdupes -r -L "${@}"
+	elif command -v rdfind >/dev/null 2>&1
+	then
+		log STATUS 'Using rdfind for deduplication'
+		rdfind -makeresultsfile false -makehardlinks true "${@}"
+	else
+		log WARNING 'WARN: missing jdupes or rdfind, will not deduplicate'
+	fi
+}
+
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
 extract() {
@@ -1283,16 +1298,25 @@ build_install() {
 # Create a redistributable package for the dependencies
 build_package() {
 	cd "${WORK_DIR}"
+
 	rm -f "${PKG_BASEDIR}.tar.xz"
-	local XZ_OPT='-9e'
 	case "${PLATFORM}" in
 	windows-*-*)
-		tar --dereference -cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
-		;;
-	*)
-		tar -cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
+		# Dereference symbolic links.
+		rm -rf "${PKG_BASEDIR}.flatten"
+		mv "${PKG_BASEDIR}" "${PKG_BASEDIR}.flatten"
+		smart_copy -RL "${PKG_BASEDIR}.flatten" "${PKG_BASEDIR}"
+		rm -rf "${PKG_BASEDIR}.flatten"
 		;;
 	esac
+
+	dedupe_dir "${PKG_BASEDIR}" >/dev/null
+
+	log STATUS "Packaging ${PKG_BASEDIR}"
+
+	local XZ_OPT='-9e'
+
+	tar -cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
 }
 
 build_wipe() {
