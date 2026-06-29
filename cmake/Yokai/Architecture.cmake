@@ -28,20 +28,23 @@
 # Architecture detection.
 ################################################################################
 
-# When adding a new architecture, look at all the places YOKAI_TARGET_ARCH is used.
+# When adding a new architecture, look at all the places YOKAI_HOST_ARCH
+# and YOKAI_TARGET_ARCH are used.
 
 option(USE_ARCH_INTRINSICS "Enable custom code using intrinsics functions or asm declarations" ON)
 mark_as_advanced(USE_ARCH_INTRINSICS)
 
-function(yokai_detect_arch)
+function(yokai_detect_target_arch)
 	yokai_run_detection("TARGET" "ARCH" "Architecture.c" "")
 
 	set(YOKAI_TARGET_ARCH_NAME "${arch_name}" PARENT_SCOPE)
 	set(YOKAI_TARGET_ARCH_NAME_UPPER "${arch_name_upper}" PARENT_SCOPE)
 
-	message(STATUS "Detected target architecture: ${arch_name}")
-
 	add_definitions(-DYOKAI_ARCH_${arch_name_upper})
+
+	# Makes possible to do that in CMake code:
+	# > if (YOKAI_TARGET_ARCH_AMD64)
+	set("YOKAI_TARGET_ARCH_${arch_name_upper}" ON PARENT_SCOPE)
 endfunction()
 
 function(yokai_set_arch_intrinsics name)
@@ -49,9 +52,6 @@ function(yokai_set_arch_intrinsics name)
 	string(TOUPPER "${name}" name_upper)
 	add_definitions(-DYOKAI_USE_ARCH_INTRINSICS_${name_upper})
 endfunction()
-
-option(USE_ARCH_INTRINSICS "Enable custom code using intrinsics functions or asm declarations" ON)
-mark_as_advanced(USE_ARCH_INTRINSICS)
 
 function(yokai_set_intrinsics)
 	if (USE_ARCH_INTRINSICS)
@@ -61,7 +61,6 @@ function(yokai_set_intrinsics)
 
 		# Makes possible to do that in C++ code:
 		# > if defined(YOKAI_USE_ARCH_INTRINSICS_AMD64)
-		# > if defined(YOKAI_USE_ARCH_INTRINSICS_I686)
 		yokai_set_arch_intrinsics("${YOKAI_TARGET_ARCH_NAME}")
 
 		set(amd64_PARENT "i686")
@@ -76,14 +75,23 @@ function(yokai_set_intrinsics)
 	endif()
 endfunction()
 
-yokai_detect_arch()
-yokai_set_intrinsics()
+yokai_detect_target_arch()
 
-# Makes possible to do that in CMake code:
-# > if (YOKAI_TARGET_ARCH_ARM64)
-set("YOKAI_TARGET_ARCH_${YOKAI_TARGET_ARCH_NAME_UPPER}" ON)
+if (YOKAI_HOST_ARCH_UNKNOWN)
+	message(WARNING "Unknown host architecture")
+else()
+	message(STATUS "Detected host architecture: ${YOKAI_HOST_ARCH_NAME}")
+endif()
+
+if (YOKAI_TARGET_ARCH_UNKNOWN)
+	message(WARNING "Unknown target architecture")
+else()
+	message(STATUS "Detected target architecture: ${YOKAI_TARGET_ARCH_NAME}")
+endif()
 
 if (YOKAI_SOURCE_GENERATOR)
 	# Add printable strings to the executable.
 	yokai_add_buildinfo("char*" "YOKAI_ARCH_STRING" "\"${YOKAI_TARGET_ARCH_NAME}\"")
 endif()
+
+yokai_set_intrinsics()
