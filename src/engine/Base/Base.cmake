@@ -18,6 +18,7 @@ set( memoryList
     ${engineBase}/Memory/MemoryChunkSystem.cpp
     ${engineBase}/Memory/MemoryChunkSystem.h
     ${engineBase}/Memory/RingBuffer.h
+    ${engineBase}/Memory/RingBufferArray.h
     ${engineBase}/Memory/StackAllocator.cpp
     ${engineBase}/Memory/StackAllocator.h
     ${engineBase}/Memory/SysAllocator.cpp
