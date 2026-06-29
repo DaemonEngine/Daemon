@@ -107,6 +107,11 @@ platform variants we cannot support anyway. */
 #elif defined(Q_PROCESSOR_RISCV_64)
 	#pragma message(REPORT_NAME("riscv64"))
 
+/* Devices like:
+ - Loongson 3A6000, 3A5000… */
+#elif defined(Q_PROCESSOR_LOONGARCH_64)
+	#pragma message(REPORT_NAME("loong64"))
+
 /* Remaining native NaCl architecture. */
 
 #elif defined(Q_PROCESSOR_MIPS_32) && Q_BYTE_ORDER == Q_LITTLE_ENDIAN
