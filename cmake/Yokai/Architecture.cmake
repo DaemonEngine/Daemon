@@ -34,6 +34,89 @@
 option(USE_ARCH_INTRINSICS "Enable custom code using intrinsics functions or asm declarations" ON)
 mark_as_advanced(USE_ARCH_INTRINSICS)
 
+function(yokai_detect_host_arch)
+	set(arch_name "unknown")
+
+	string(TOLOWER "${CMAKE_HOST_SYSTEM_PROCESSOR}" processor_lower)
+
+	foreach(name
+		"amd64"
+		"arm"
+		"arm64"
+		"i686"
+		"mipsel"
+		"ppc64"
+		"riscv64"
+	)
+		if ("${processor_lower}" STREQUAL "${name}")
+			set(arch_name "${processor_lower}")
+		endif()
+	endforeach()
+
+	if ("${arch_name}" STREQUAL "unknown")
+		set(ARCHES_amd64 "em64t" "x86_64")
+		set(ARCHES_arm "armv6l" "armv7l")
+		set(ARCHES_arm64 "armv8l" "aarch64")
+		set(ARCHES_loong64 "loongarch64")
+		set(ARCHES_ppc64el "ppc64le")
+
+		foreach(name
+			"amd64"
+			"arm"
+			"arm64"
+			"loong64"
+			"ppc64el"
+		)
+			if ("${processor_lower}" IN_LIST ARCHES_${name})
+				set(arch_name "${name}")
+			endif()
+		endforeach()
+	endif()
+
+	if ("${arch_name}" STREQUAL "unknown")
+		if ("${processor_lower}")
+			message(WARNING "Undocumented host architecture: ${processor_lower}")
+		else()
+			message(WARNING "Undocumented host architecture")
+		endif()
+
+		set(arch_name "${processor_lower}")
+	endif()
+
+	string(TOUPPER "${arch_name}" arch_name_upper)
+
+	set(YOKAI_HOST_ARCH_NAME "${arch_name}" PARENT_SCOPE)
+	set(YOKAI_HOST_ARCH_NAME_UPPER "${arch_name_upper}" PARENT_SCOPE)
+
+	# Makes possible to do that in CMake code:
+	# > if (YOKAI_HOST_ARCH_AMD64)
+	set("YOKAI_HOST_ARCH_${arch_name_upper}" ON PARENT_SCOPE)
+
+	if ("${arch_name}" STREQUAL "unknown")
+		message(WARNING "Unknown host architecture: ${processor_lower}")
+
+		set(arch_name "${processor_lower}")
+	endif()
+
+	set(arm_CHILD
+		"armel"
+		"armhf"
+	)
+
+	foreach(name
+		"arm"
+	)
+		if ("${arch_name}" STREQUAL "${name}")
+			message(STATUS "Parent architecture: ${name}, can be ${${name}_CHILD}")
+
+			foreach(child_name ${${name}_CHILD})
+				string(TOUPPER "${child_name}" child_name_upper)
+				set(YOKAI_HOST_ARCH_${child_name_upper}_PARENT ON PARENT_SCOPE)
+			endforeach()
+		endif()
+	endforeach()
+endfunction()
+
 function(yokai_detect_target_arch)
 	yokai_run_detection("TARGET" "ARCH" "Architecture.c" "")
 
@@ -75,7 +158,24 @@ function(yokai_set_intrinsics)
 	endif()
 endfunction()
 
+yokai_detect_host_arch()
 yokai_detect_target_arch()
+
+if (YOKAI_HOST_ARCH_UNKNOWN AND NOT YOKAI_TARGET_ARCH_UNKNOWN)
+	message(WARNING "Assuming the host architecture is the same as the target: ${YOKAI_TARGET_ARCH_NAME}")
+	set(YOKAI_HOST_ARCH_NAME "${YOKAI_TARGET_ARCH_NAME}")
+	set(YOKAI_HOST_ARCH_NAME_UPPER "${YOKAI_TARGET_ARCH_NAME_UPPER}")
+	set(YOKAI_HOST_ARCH_${YOKAI_HOST_ARCH_NAME_UPPER} ON)
+	unset(YOKAI_HOST_ARCH_UNKNOWN)
+endif()
+
+if (YOKAI_TARGET_ARCH_UNKNOWN AND NOT YOKAI_HOST_ARCH_UNKNOWN)
+	message(WARNING "Assuming the target architecture is the same as the host: ${YOKAI_TARGET_ARCH_NAME}")
+	set(YOKAI_TARGET_ARCH_NAME "${YOKAI_HOST_ARCH_NAME}")
+	set(YOKAI_TARGET_ARCH_NAME_UPPER "${YOKAI_HOST_ARCH_NAME_UPPER}")
+	set(YOKAI_TARGET_ARCH_${YOKAI_TARGET_ARCH_NAME_UPPER} ON)
+	unset(YOKAI_TARGET_ARCH_UNKNOWN)
+endif()
 
 if (YOKAI_HOST_ARCH_UNKNOWN)
 	message(WARNING "Unknown host architecture")
@@ -87,6 +187,17 @@ if (YOKAI_TARGET_ARCH_UNKNOWN)
 	message(WARNING "Unknown target architecture")
 else()
 	message(STATUS "Detected target architecture: ${YOKAI_TARGET_ARCH_NAME}")
+endif()
+
+if (NOT "${YOKAI_HOST_ARCH_NAME}" STREQUAL "${YOKAI_TARGET_ARCH_NAME}")
+	if ("${YOKAI_HOST_ARCH_${YOKAI_TARGET_ARCH_NAME}_PARENT}")
+		message(STATUS "Assuming no architecture cross-compilation")
+	else()
+		message(STATUS "Detected architecture cross-compilation")
+		set(YOKAI_TARGET_CROSS ON)
+	endif()
+else()
+	message(STATUS "No architecture cross-compilation detected")
 endif()
 
 if (YOKAI_SOURCE_GENERATOR)
