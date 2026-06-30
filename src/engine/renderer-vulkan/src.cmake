@@ -12,9 +12,17 @@ set( memoryList
     ${ENGINE_DIR}/renderer-vulkan/Memory/IteratorSeq.h
 )
 
+set( sysList
+    ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Sys/CPUInfo.h
+    ${ENGINE_DIR}/renderer-vulkan/Sys/MemoryInfo.cpp
+    ${ENGINE_DIR}/renderer-vulkan/Sys/MemoryInfo.h
+)
+
 set( RENDERERLIST
     ${mathList}
     ${memoryList}
+    ${sysList}
     ${ENGINE_DIR}/renderer-vulkan/DispatchRawData.cpp
     ${ENGINE_DIR}/renderer-vulkan/DispatchRawData.h
     ${ENGINE_DIR}/renderer-vulkan/Shared/Timer.cpp
