@@ -70,9 +70,9 @@ struct ThreadQueue {
 	uint8               current = 0;
 
 	static constexpr uint16 TASK_NONE = UINT16_MAX;
-	static constexpr uint32 MAX_TASKS = 59;
+	static constexpr uint32 maxTasks  = 59;
 
-	uint16 tasks[MAX_TASKS] { TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
+	uint16 tasks[maxTasks] { TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
 		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
 		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
 		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
@@ -89,16 +89,6 @@ class TaskList :
 	public:
 	friend class  Thread;
 	friend struct ThreadQueue;
-
-	static constexpr uint32 MAX_TASKS                     = 512;
-	static constexpr uint32 MAX_DATA_PER_TASK             = 128;
-	static constexpr uint32 MAX_TASK_DATA                 = MAX_TASKS * MAX_DATA_PER_TASK;
-
-	static constexpr uint16 TASK_SHIFT_ADDED              = 0;
-	static constexpr uint16 TASK_SHIFT_HAS_UNTRACKED_DEPS = 1;
-	static constexpr uint16 TASK_SHIFT_TRACKED_DEPENDENCY = 2;
-	static constexpr uint16 TASK_SHIFT_UPDATED_DEPENDENCY = 3;
-	static constexpr uint16 TASK_SHIFT_ALLOCATED          = 4;
 
 	std::atomic<uint32> currentMaxThreads = 0;
 	FenceMain           exitFence;
@@ -124,7 +114,6 @@ class TaskList :
 	bool  ThreadFinished( const bool hadTask );
 
 	void  FinishTask( Task* task );
-	void  FinishDependency( const uint16 bufferID );
 
 	void  AdjustThreadCount( const uint32 newMaxThreads );
 
@@ -134,6 +123,16 @@ class TaskList :
 	struct ThreadExecutionNode {
 		uint8 nextThreadExecutionNode;
 	};
+
+	static constexpr uint32 maxThreadTasks                = 512;
+	static constexpr uint32 dataPerTask                   = 128;
+	static constexpr uint32 maxThreadTaskData             = maxThreadTasks * dataPerTask;
+
+	static constexpr uint16 taskAddedOffset               = 0;
+	static constexpr uint16 taskHasUntrackedDepsOffset    = 1;
+	static constexpr uint16 taskIsTrackedDependencyOffset = 2;
+	static constexpr uint16 taskDepsProcessedOffset       = 3;
+	static constexpr uint16 taskAllocatedOffset           = 4;
 
 	AccessLock                        threadCountLock;
 

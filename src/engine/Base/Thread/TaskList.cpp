@@ -99,8 +99,8 @@ void TaskList::AdjustThreadCount( uint32 newMaxThreads ) {
 }
 
 void TaskList::Init() {
-	tasks.Alloc( MAX_TASKS );
-	tasksData.Alloc( MAX_TASK_DATA );
+	tasks.Alloc( maxThreadTasks );
+	tasksData.Alloc( maxThreadTaskData );
 
 	int threads = e_threadCount.Get();
 	threads     = threads ? threads : CPU_CORES;
@@ -142,23 +142,23 @@ void TaskList::FinishShutdown() {
 }
 
 bool  TaskList::AddedToTaskList( const uint8 id ) {
-	return BitSet( id, TASK_SHIFT_ADDED );
+	return BitSet( id, taskAddedOffset );
 }
 
 bool  TaskList::AddedToTaskMemory( const uint8 id ) {
-	return BitSet( id, TASK_SHIFT_ALLOCATED );
+	return BitSet( id, taskAllocatedOffset );
 }
 
 bool  TaskList::HasUntrackedDeps( const uint8 id ) {
-	return BitSet( id, TASK_SHIFT_HAS_UNTRACKED_DEPS );
+	return BitSet( id, taskHasUntrackedDepsOffset );
 }
 
 bool  TaskList::IsTrackedDependency( const uint8 id ) {
-	return BitSet( id, TASK_SHIFT_TRACKED_DEPENDENCY );
+	return BitSet( id, taskIsTrackedDependencyOffset );
 }
 
 bool  TaskList::IsUpdatedDependency( const uint8 id ) {
-	return BitSet( id, TASK_SHIFT_UPDATED_DEPENDENCY );
+	return BitSet( id, taskDepsProcessedOffset );
 }
 
 Task& TaskList::BufferIDToTask( const uint16 bufferID ) {
@@ -186,29 +186,27 @@ void TaskList::FinishTask( Task* task ) {
 	}
 
 	for ( uint8 i = 0; i < task->forwardTaskCounter; i++ ) {
-		FinishDependency( task->forwardTasks[i] );
-	}
+		Task&    forwardTask = BufferIDToTask( task->forwardTasks[i] );
 
-	task->SetActive( false );
-}
+		const uint32 counter = forwardTask.dependencyCounter.fetch_sub( 1, std::memory_order_relaxed ) - 1;
 
-void TaskList::FinishDependency( const uint16 bufferID ) {
-	Task&        task    = BufferIDToTask( bufferID );
+		if ( counter ) {
+			continue;
+		}
 
-	const uint32 counter = task.dependencyCounter.fetch_sub( 1, std::memory_order_relaxed ) - 1;
-
-	if ( !counter ) {
 		TLM.addTimer.Start();
 
-		if ( TimeNs() < task.time ) {
-			eventQueue.AddTask( task );
+		if ( TimeNs() < forwardTask.time ) {
+			eventQueue.AddTask( forwardTask );
 		} else {
-			AddToThreadQueue( task );
+			AddToThreadQueue( forwardTask );
 			taskWithDependenciesCount.fetch_sub( 1, std::memory_order_relaxed );
 		}
 
 		TLM.addTimer.Stop();
 	}
+
+	task->SetActive( false );
 }
 
 void TaskList::ResolveDependencies( Task& task, TaskInitList& dependencies ) {
@@ -250,7 +248,7 @@ void ThreadQueue::AddTask( const uint32 threadID, const uint16 bufferID ) {
 		TLM.AddTask( &taskList.BufferIDToTask( bufferID ) );
 	} else {
 		uint64 id = pointer.fetch_add( 1, std::memory_order_relaxed );
-		id       %= MAX_TASKS;
+		id       %= maxTasks;
 		while ( tasks[id] != TASK_NONE );
 
 		tasks[id] = bufferID;
@@ -360,7 +358,7 @@ Task* TaskList::GetTaskMemory( Task& task ) {
 	task.SetActive( true );
 	task.gen             = taskMemory->gen + 1;
 	task.bufferID        = SetBits( taskMemory - ( tasks.memory + TLM.id * tasks.size ), TLM.id, taskIDThreadOffset, taskIDThreadBits );
-	SetBit( &task.id, TASK_SHIFT_ALLOCATED );
+	SetBit( &task.id, taskAllocatedOffset );
 
 	*taskMemory          = task;
 
@@ -393,13 +391,13 @@ void TaskList::AddTaskExt( Task& task, TaskInitList&& dependencies ) {
 
 		if ( !counter ) {
 			AddToThreadQueue( *taskMemory );
-			SetBit( &task.id, TASK_SHIFT_ADDED );
+			SetBit( &task.id, taskAddedOffset );
 		} else {
 			taskWithDependenciesCount.fetch_add( 1, std::memory_order_relaxed );
 		}
 	} else if ( !taskMemory->dependencyCounter ) {
 		AddToThreadQueue( *taskMemory );
-		SetBit( &task.id, TASK_SHIFT_ADDED );
+		SetBit( &task.id, taskAddedOffset );
 	}
 
 	TLM.addTimer.Stop();
@@ -428,26 +426,26 @@ void TaskList::MarkDependencies( Task& task, TaskInitList&& dependencies ) {
 		taskMemory->forwardTasks[taskMemory->forwardTaskCounter] = mainTask->bufferID;
 		taskMemory->forwardTaskCounter++;
 
-		SetBit( &dep->task.id, TASK_SHIFT_TRACKED_DEPENDENCY );
+		SetBit( &dep->task.id, taskIsTrackedDependencyOffset );
 
 		dependencyCounter++;
 	}
 
 	if ( dependencyCounter != ( dependencies.end - dependencies.start ) ) {
-		SetBit( &task.id, TASK_SHIFT_HAS_UNTRACKED_DEPS );
+		SetBit( &task.id, taskHasUntrackedDepsOffset );
 
 		mainTask->dependencyCounter.fetch_add( dependencyCounter,     std::memory_order_relaxed );
 	} else {
 		mainTask->dependencyCounter.fetch_add( dependencyCounter - 1, std::memory_order_relaxed );
 	}
 
-	SetBit( &task.id, TASK_SHIFT_UPDATED_DEPENDENCY );
+	SetBit( &task.id, taskDepsProcessedOffset );
 }
 
 void TaskList::UnMarkDependencies( TaskInitList&& dependencies ) {
 	for ( const TaskProxy* dep = dependencies.start; dep < dependencies.end; dep++ ) {
-		UnSetBit( &( *dep )->id, TASK_SHIFT_TRACKED_DEPENDENCY );
-		UnSetBit( &( *dep )->id, TASK_SHIFT_UPDATED_DEPENDENCY );
+		UnSetBit( &( *dep )->id, taskIsTrackedDependencyOffset );
+		UnSetBit( &( *dep )->id, taskDepsProcessedOffset );
 	}
 }
 
@@ -506,7 +504,7 @@ Task* TaskList::FetchTask() {
 	}
 
 	threadQueue.tasks[current] = ThreadQueue::TASK_NONE;
-	threadQueue.current        = ( current + 1 ) % ThreadQueue::MAX_TASKS;
+	threadQueue.current        = ( current + 1 ) % ThreadQueue::maxTasks;
 
 	return &BufferIDToTask( id );
 }
