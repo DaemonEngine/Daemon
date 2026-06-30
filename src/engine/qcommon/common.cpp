@@ -849,11 +849,10 @@ void Com_Frame()
 				max = maxfps.Get();
 			}
 
-			// A positive maxfps caps the fps to the given number, with an implicit
-			// cap at 333fps to avoid bugs. Above 333fps minMsec is less than 3.
-			// At 1 or 2 minMsec, the game still runs but exhibits various issues
-			// such as first-person weapon model flickering, or client having
-			// connection issues with server.
+			/* A positive maxfps caps the fps to the given number, with an implicit
+			cap at 333fps to avoid bugs. Above 333fps minMsec is less than 3 and with
+			minMsec being 2 or less some variables may become zero and some code may
+			experience division by zero. */
 			if ( max > 0 )
 			{
 				minMsec = std::max( 1000 / max, 3 );
@@ -863,10 +862,17 @@ void Com_Frame()
 			{
 				minMsec = 3;
 			}
-			// A negative maxfps really unlocks fps (and bugs).
-			else
+			/* A negative maxfps unlocks fps more (and unfortunate bugs) but cap
+			it to 1000 (because of a remaining sleep it's a bit less than that). */
+			else if ( max == -1 )
 			{
 				minMsec = 1;
+			}
+			/* A maxfps smaller than -1 unlocks all remaining fps (and expected bugs).
+			Cheats should be allowed. */
+			else
+			{
+				minMsec = Com_AreCheatsAllowed() ? 0 : 1;
 			}
 		}
 	}
