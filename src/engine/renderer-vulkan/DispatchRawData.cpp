@@ -28,10 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef DISPATCH_RAW_DATA_H
-#define DISPATCH_RAW_DATA_H
+#include "DispatchRawData.h"
 
-void DispatchRawData( void* memory );
-void DispatchRawDataSync( void* memory, void** out, int& outSize );
+void DispatchRawData( void* memory ) {
+}
 
-#endif // DISPATCH_RAW_DATA_H
+void DispatchRawDataSync( void* memory, void** out, int& outSize ) {
+}
