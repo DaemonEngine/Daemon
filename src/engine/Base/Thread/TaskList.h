@@ -135,24 +135,24 @@ class TaskList :
 		uint8 nextThreadExecutionNode;
 	};
 
-	AccessLock                   threadCountLock;
+	AccessLock                        threadCountLock;
 
-	std::atomic<uint64>          threadExecutionNodes[MAX_THREADS];
+	std::atomic<uint64>               threadExecutionNodes[MAX_THREADS];
 
-	static constexpr uint32      taskIDThreadOffset = 9;
-	static constexpr uint32      taskIDThreadBits   = 7;
+	static constexpr uint32           taskIDThreadOffset = 9;
+	static constexpr uint32           taskIDThreadBits   = 7;
 
-	AtomicRingBufferArray<Task>  tasks     { "GlobalTaskMemory",     &sysAllocator };
-	AtomicRingBuffer<byte, true> tasksData { "GlobalTaskDataMemory", &sysAllocator };
+	AtomicRingBufferArray<Task>       tasks     { "GlobalTaskMemory",     &sysAllocator };
+	AtomicRingBufferArray<byte, true> tasksData { "GlobalTaskDataMemory", &sysAllocator };
 
-	Thread                       threads[MAX_THREADS];
+	Thread                            threads[MAX_THREADS];
 
-	ThreadQueue                  threadQueues[MAX_THREADS];
-	std::atomic<uint32>          taskCount;
-	std::atomic<uint32>          taskWithDependenciesCount;
+	ThreadQueue                       threadQueues[MAX_THREADS];
+	std::atomic<uint32>               taskCount;
+	std::atomic<uint32>               taskWithDependenciesCount;
 
-	std::atomic<uint32>          executingThreads = 1;
-	std::atomic<bool>            exiting          = false;
+	std::atomic<uint32>               executingThreads = 1;
+	std::atomic<bool>                 exiting          = false;
 
 	bool  AddedToTaskList( const uint8 id );
 	bool  AddedToTaskMemory( const uint8 id );

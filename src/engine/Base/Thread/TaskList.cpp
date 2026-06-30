@@ -166,7 +166,7 @@ Task& TaskList::BufferIDToTask( const uint16 bufferID ) {
 }
 
 byte* TaskList::AllocTaskData( const uint16 dataSize, uint64* offset ) {
-	*offset   = tasksData.GetNextElement( PAD( dataSize, CACHE_LINE_SIZE ) );
+	*offset   = tasksData.GetNextElement( TLM.id, PAD( dataSize, CACHE_LINE_SIZE ) );
 	byte* out = tasksData.memory + ( *offset & tasksData.mask );
 	*offset >>= cacheLineBits;
 
@@ -182,7 +182,7 @@ void TaskList::FinishTask( Task* task ) {
 	task->ExecuteDestructors();
 
 	if ( task->GetArgCount() ) {
-		tasksData.UpdateCurrentElement( task->GetDataOffset() * CACHE_LINE_SIZE );
+		tasksData.UpdateCurrentElement( GetBits( task->bufferID, taskIDThreadOffset, taskIDThreadBits ), task->GetDataOffset() * CACHE_LINE_SIZE );
 	}
 
 	for ( uint8 i = 0; i < task->forwardTaskCounter; i++ ) {
