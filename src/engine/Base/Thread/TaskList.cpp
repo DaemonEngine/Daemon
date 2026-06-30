@@ -145,8 +145,8 @@ bool  TaskList::AddedToTaskList( const uint8 id ) {
 	return BitSet( id, TASK_SHIFT_ADDED );
 }
 
-bool  TaskList::AddedToTaskMemory( const uint16 bufferID ) {
-	return bufferID != Task::UNALLOCATED;
+bool  TaskList::AddedToTaskMemory( const uint8 id ) {
+	return BitSet( id, TASK_SHIFT_ALLOCATED );
 }
 
 bool  TaskList::HasUntrackedDeps( const uint8 id ) {
@@ -159,6 +159,10 @@ bool  TaskList::IsTrackedDependency( const uint8 id ) {
 
 bool  TaskList::IsUpdatedDependency( const uint8 id ) {
 	return BitSet( id, TASK_SHIFT_UPDATED_DEPENDENCY );
+}
+
+Task& TaskList::BufferIDToTask( const uint16 bufferID ) {
+	return tasks[GetBits( bufferID, taskIDThreadOffset, taskIDThreadBits ), GetBits( bufferID, 0, taskIDThreadOffset )];
 }
 
 byte* TaskList::AllocTaskData( const uint16 dataSize, uint64* offset ) {
@@ -189,7 +193,7 @@ void TaskList::FinishTask( Task* task ) {
 }
 
 void TaskList::FinishDependency( const uint16 bufferID ) {
-	Task&        task    = tasks[bufferID];
+	Task&        task    = BufferIDToTask( bufferID );
 
 	const uint32 counter = task.dependencyCounter.fetch_sub( 1, std::memory_order_relaxed ) - 1;
 
@@ -209,15 +213,11 @@ void TaskList::FinishDependency( const uint16 bufferID ) {
 
 void TaskList::ResolveDependencies( Task& task, TaskInitList& dependencies ) {
 	for ( const TaskProxy* dep = dependencies.start; dep < dependencies.end; dep++ ) {
-		if ( !AddedToTaskMemory( dep->task.bufferID ) ) {
-			Sys::Drop( "Tried to add task with an unallocated dependency" );
-		}
-
 		if ( IsTrackedDependency( dep->task.id ) ) {
 			continue;
 		}
 
-		Task& dependency  = tasks[dep->task.bufferID];
+		Task& dependency  = BufferIDToTask( task.bufferID );
 
 		// The dependency has already been executed, but the ringbuffer wrapped around
 		if ( dependency.gen > dep->task.gen ) {
@@ -247,7 +247,7 @@ void ThreadQueue::AddTask( const uint32 threadID, const uint16 bufferID ) {
 	TLM.addQueueWaitTimer.Start();
 
 	if ( threadID == TLM.id && !TLM.main ) {
-		TLM.AddTask( &taskList.tasks[bufferID] );
+		TLM.AddTask( &taskList.BufferIDToTask( bufferID ) );
 	} else {
 		uint64 id = pointer.fetch_add( 1, std::memory_order_relaxed );
 		id       %= MAX_TASKS;
@@ -351,15 +351,16 @@ void TaskList::AddToThreadQueue( Task& task ) {
 }
 
 Task* TaskList::GetTaskMemory( Task& task ) {
-	if ( AddedToTaskMemory( task.bufferID ) ) {
-		return &tasks[task.bufferID];
+	if ( AddedToTaskMemory( task.id ) ) {
+		return &BufferIDToTask( task.bufferID );
 	}
 
-	Task* taskMemory     = tasks.GetNextElementMemory();
+	Task* taskMemory     = tasks.GetNextElementMemory( TLM.id );
 
 	task.SetActive( true );
 	task.gen             = taskMemory->gen + 1;
-	task.bufferID        = taskMemory - tasks.memory;
+	task.bufferID        = SetBits( taskMemory - ( tasks.memory + TLM.id * tasks.size ), TLM.id, taskIDThreadOffset, taskIDThreadBits );
+	SetBit( &task.id, TASK_SHIFT_ALLOCATED );
 
 	*taskMemory          = task;
 
@@ -507,11 +508,11 @@ Task* TaskList::FetchTask() {
 	threadQueue.tasks[current] = ThreadQueue::TASK_NONE;
 	threadQueue.current        = ( current + 1 ) % ThreadQueue::MAX_TASKS;
 
-	return &tasks[id];
+	return &BufferIDToTask( id );
 }
 
 void TaskList::TaskWait( Task& task ) {
-	if ( !AddedToTaskMemory( task.bufferID ) ) {
+	if ( !AddedToTaskMemory( task.id ) ) {
 		Log::WarnTag( "Tried to wait for a non-added task" );
 
 		return;

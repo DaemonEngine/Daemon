@@ -33,8 +33,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Int.h"
 
-constexpr uint32 MAX_THREADS      = 64;
-constexpr uint32 maxTasks         = 2048;
-constexpr uint32 taskBufferIDBits = 11;
+constexpr uint32 MAX_THREADS       = 64;
+constexpr uint32 THREAD_ARRAY_SIZE = MAX_THREADS + 1;
+constexpr uint32 maxTasks          = 2048;
+constexpr uint32 taskBufferIDBits  = 11;
 
 #endif // THREAD_COMMON_H

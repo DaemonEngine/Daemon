@@ -63,14 +63,14 @@ class AtomicRingBufferArray :
 	void Alloc( const uint64 newSize ) {
 		size        = newSize;
 		memorySize  = ( size * sizeof( T ) + 63 ) & ~64;
-		memorySize *= MAX_THREADS;
+		memorySize *= THREAD_ARRAY_SIZE;
 		mask        = size - 1;
 
 		memory      = ( T* ) allocator->Alloc( memorySize, 64 );
 
 		memset( memory, 0, size );
 
-		for ( uint8 i = 0; i < MAX_THREADS; i++ ) {
+		for ( uint8 i = 0; i < THREAD_ARRAY_SIZE; i++ ) {
 			pointer[i] = 0;
 			current[i] = 0;
 		}
@@ -84,7 +84,7 @@ class AtomicRingBufferArray :
 		}
 
 		uint64 tempSize   = ( newSize * sizeof( T ) + 63 ) & ~64;
-		tempSize         *= MAX_THREADS;
+		tempSize         *= THREAD_ARRAY_SIZE;
 
 		T*     tempMemory = ( T* ) allocator->Alloc( tempSize, 64 );
 

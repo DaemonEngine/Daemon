@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Int.h"
 #include "RingBuffer.h"
+#include "RingBufferArray.h"
 #include "SysAllocator.h"
 
 #include "Thread.h"
@@ -89,7 +90,7 @@ class TaskList :
 	friend class  Thread;
 	friend struct ThreadQueue;
 
-	static constexpr uint32 MAX_TASKS                     = 2048;
+	static constexpr uint32 MAX_TASKS                     = 512;
 	static constexpr uint32 MAX_DATA_PER_TASK             = 128;
 	static constexpr uint32 MAX_TASK_DATA                 = MAX_TASKS * MAX_DATA_PER_TASK;
 
@@ -97,6 +98,7 @@ class TaskList :
 	static constexpr uint16 TASK_SHIFT_HAS_UNTRACKED_DEPS = 1;
 	static constexpr uint16 TASK_SHIFT_TRACKED_DEPENDENCY = 2;
 	static constexpr uint16 TASK_SHIFT_UPDATED_DEPENDENCY = 3;
+	static constexpr uint16 TASK_SHIFT_ALLOCATED          = 4;
 
 	std::atomic<uint32> currentMaxThreads = 0;
 	FenceMain           exitFence;
@@ -126,6 +128,8 @@ class TaskList :
 
 	void  AdjustThreadCount( const uint32 newMaxThreads );
 
+	Task& BufferIDToTask( const uint16 bufferID );
+
 	private:
 	struct ThreadExecutionNode {
 		uint8 nextThreadExecutionNode;
@@ -135,7 +139,10 @@ class TaskList :
 
 	std::atomic<uint64>          threadExecutionNodes[MAX_THREADS];
 
-	AtomicRingBuffer<Task>       tasks     { "GlobalTaskMemory",     &sysAllocator };
+	static constexpr uint32      taskIDThreadOffset = 9;
+	static constexpr uint32      taskIDThreadBits   = 7;
+
+	AtomicRingBufferArray<Task>  tasks     { "GlobalTaskMemory",     &sysAllocator };
 	AtomicRingBuffer<byte, true> tasksData { "GlobalTaskDataMemory", &sysAllocator };
 
 	Thread                       threads[MAX_THREADS];
@@ -148,7 +155,7 @@ class TaskList :
 	std::atomic<bool>            exiting          = false;
 
 	bool  AddedToTaskList( const uint8 id );
-	bool  AddedToTaskMemory( const uint16 bufferID );
+	bool  AddedToTaskMemory( const uint8 id );
 	bool  HasUntrackedDeps( const uint8 id );
 	bool  IsTrackedDependency( const uint8 id );
 	bool  IsUpdatedDependency( const uint8 id );

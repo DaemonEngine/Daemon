@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SysAllocator.h"
 #include "Timer.h"
 
+#include "ThreadCommon.h"
 #include "TLMAllocator.h"
 
 #include "Task.h"
@@ -66,7 +67,7 @@ struct TaskTime {
 
 class ThreadMemory : public Allocator {
 	public:
-	static constexpr uint32 MAIN_ID = UINT32_MAX;
+	static constexpr uint32 MAIN_ID = MAX_THREADS;
 	uint32      id;
 
 	static constexpr uint32 maxInternalTasks = 64;

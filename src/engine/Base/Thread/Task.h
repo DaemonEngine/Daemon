@@ -135,8 +135,7 @@ struct Task {
 
 	uint8              flags                  = 0;
 
-	static constexpr uint16 UNALLOCATED       = UINT16_MAX;
-	uint16             bufferID               = UNALLOCATED; // Task RingBuffer id
+	uint16             bufferID               = 0; // Task RingBuffer id
 	uint32             gen                    = 0;
 
 	uint32             argsMap                = 0; // Bits 0-7: destructor map, 8-31: arg id -> dataOffsets remap
