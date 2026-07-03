@@ -32,6 +32,7 @@ OGG_BASEURL='https://downloads.xiph.org/releases/ogg'
 VORBIS_BASEURL='https://downloads.xiph.org/releases/vorbis'
 OPUS_BASEURL='https://downloads.xiph.org/releases/opus'
 OPUSFILE_BASEURL='https://downloads.xiph.org/releases/opus'
+BOX64_BASEURL='https://api.github.com/repos/ptitSeb/box64/zipball'
 SAIGOSDK_BASEURL='https://github.com/DaemonEngine/saigo-release-scripts/releases'
 # No index.
 NACLSDK_BASEURL='https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk'
@@ -63,6 +64,7 @@ OGG_VERSION=1.3.6
 VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.6.1
 OPUSFILE_VERSION=0.12
+BOX64_REVISION='b1d094f9bd37cd69865c56d72a94747b22c16dd6'
 SAIGOSDK_VERSION='21.0-20260707'
 NACLSDK_VERSION=44.0.2403.155
 NACLRUNTIME_REVISION='70beec35eb5fa3ddd571f18f9ad57b5da674d85d'
@@ -982,6 +984,23 @@ build_ncurses() {
 		--with-default-terminfo-dir=/usr/share/terminfo
 }
 
+# Build box64
+build_box64() {
+	local dir_name="ptitSeb-box64-${BOX64_REVISION:0:7}"
+	local archive_name="box64-${BOX64_REVISION}.zip"
+
+	download_extract box64 "${archive_name}" \
+		"${BOX64_BASEURL}/${BOX64_REVISION}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
+	cmake_build
+
+	smart_copy 'build/box64' "${PREFIX}/box64"
+}
+
 # "Builds" (downloads) Saigo
 build_saigosdk() {
 	local dir_name="saigocc-${PLATFORM_TARGET}_${SAIGOSDK_VERSION}"
@@ -1736,7 +1755,7 @@ printHelp() {
 	    all     linux windows macos
 
 	Packages:
-	    native-pkgconfig native-nasm native-jwasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk naclruntime wasisdk wasmtime
+	    native-pkgconfig native-nasm native-jwasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk naclruntime wasisdk wasmtime box64
 
 	Virtual packages:
 	    base    build packages for pre-built binaries to be downloaded when building the game
