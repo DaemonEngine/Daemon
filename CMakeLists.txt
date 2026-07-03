@@ -1004,6 +1004,20 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
                     ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap-${arch_name}
             )
         endforeach()
+
+        if (DAEMON_NACL_BOX64_EMULATION)
+            add_custom_command(TARGET runtime_deps PRE_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${DEPS_DIR}/box64
+                    ${FULL_OUTPUT_DIR}/box64
+            )
+
+            add_custom_command(TARGET runtime_deps PRE_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${DEPS_DIR}/libs-linux-amd64
+                    ${FULL_OUTPUT_DIR}/libs-linux-amd64
+            )
+        endif()
     endif()
 
     # Mac requires some libraries from external_deps
