@@ -76,7 +76,13 @@ if (Daemon_OUT)
 endif()
 
 include(Yokai/All)
-include(DaemonNaclHost)
+
+include(DaemonNaclArchitecture)
+
+daemon_detect_nacl_arch("${YOKAI_TARGET_ARCH_NAME}")
+
+# Add printable strings to the executable.
+yokai_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${DAEMON_NACL_ARCH_NAME}\"")
 
 ################################################################################
 # Configuration options
@@ -960,26 +966,28 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     add_custom_target(runtime_deps)
     set_target_properties(runtime_deps PROPERTIES FOLDER "CMakePlumbing")
 
-    # The NaCl loader and IRT are required to load .nexe files
-    add_custom_command(TARGET runtime_deps PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/nacl_loader-${DAEMON_NACL_ARCH_NAME}${CMAKE_EXECUTABLE_SUFFIX}
-            ${FULL_OUTPUT_DIR}/nacl_loader-${DAEMON_NACL_ARCH_NAME}${CMAKE_EXECUTABLE_SUFFIX}
-    )
+    foreach(arch_name IN LISTS DAEMON_NACL_ARCH_NAME_LIST)
+        # The NaCl loader and IRT are required to load .nexe files
+        add_custom_command(TARGET runtime_deps PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${DEPS_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
+                ${FULL_OUTPUT_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
+        )
 
-    add_custom_command(TARGET runtime_deps PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/irt_core-${DAEMON_NACL_ARCH_NAME}.nexe
-            ${FULL_OUTPUT_DIR}/irt_core-${DAEMON_NACL_ARCH_NAME}.nexe
-    )
+        add_custom_command(TARGET runtime_deps PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${DEPS_DIR}/irt_core-${arch_name}.nexe
+                ${FULL_OUTPUT_DIR}/irt_core-${arch_name}.nexe
+        )
+    endforeach()
 
     # Linux uses a bootstrap program to reserve address space
     if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY)
-        if (YOKAI_TARGET_ARCH_ARM64)
+        if (DAEMON_NACL_MULTIARCH)
             add_executable(nacl_multiarch-${DAEMON_NACL_ARCH_NAME}
-                tools/nacl_multiarch/nacl_multiarch.cpp
-                ${BUILDINFOLIST}
-            )
+				tools/nacl_multiarch/nacl_multiarch.cpp
+				${BUILDINFOLIST}
+				)
             add_dependencies(runtime_deps nacl_multiarch-${DAEMON_NACL_ARCH_NAME})
 
             add_custom_command(TARGET runtime_deps PRE_BUILD
@@ -989,25 +997,13 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
             )
         endif()
 
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DEPS_DIR}/nacl_helper_bootstrap-${DAEMON_NACL_ARCH_NAME}
-                ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap-${DAEMON_NACL_ARCH_NAME}
-        )
-    endif()
-
-    # Win32 requires nacl_loader_amd64.exe in order to run on Win64
-    if (YOKAI_TARGET_SYSTEM_WINDOWS AND YOKAI_TARGET_ARCH_I686)
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}
-            ${FULL_OUTPUT_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}
-        )
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/irt_core-amd64.nexe
-            ${FULL_OUTPUT_DIR}/irt_core-amd64.nexe
-        )
+        foreach(arch_name IN LISTS DAEMON_NACL_ARCH_NAME_LIST)
+            add_custom_command(TARGET runtime_deps PRE_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${DEPS_DIR}/nacl_helper_bootstrap-${arch_name}
+                    ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap-${arch_name}
+            )
+        endforeach()
     endif()
 
     # Mac requires some libraries from external_deps
