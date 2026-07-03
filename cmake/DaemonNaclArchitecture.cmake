@@ -46,7 +46,7 @@ function(daemon_detect_nacl_arch target_arch)
 		endif()
 
 		set(armhf_usage "arm64" "armel")
-		set(box64_usage "ppc64el" "riscv64" "loong64")
+		set(box64_usage "arm64" "ppc64el" "riscv64" "loong64")
 
 		if ("${target_arch}" IN_LIST armhf_usage)
 			set(DAEMON_NACL_MULTIARCH ON)
