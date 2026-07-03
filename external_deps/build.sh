@@ -999,6 +999,11 @@ build_box64() {
 	cmake_build
 
 	smart_copy 'build/box64' "${PREFIX}/box64"
+
+	mkdir -p "${PREFIX}/libs-linux-amd64"
+	smart_copy -L \
+		'/usr/lib/x86_64-linux-gnu/libgcc_s.so.1' \
+		"${PREFIX}/libs-linux-amd64/"
 }
 
 # "Builds" (downloads) Saigo
@@ -1734,11 +1739,11 @@ all_linux_amd64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp o
 base_linux_i686_default_packages="${base_linux_amd64_default_packages}"
 all_linux_i686_default_packages="${all_linux_amd64_default_packages}"
 
-base_linux_arm64_default_packages="${base_linux_amd64_default_packages}"
-all_linux_arm64_default_packages="${all_linux_amd64_default_packages}"
-
 base_linux_armhf_default_packages="${base_linux_amd64_default_packages}"
 all_linux_armhf_default_packages="${all_linux_amd64_default_packages}"
+
+base_linux_arm64_default_packages="${base_linux_amd64_default_packages} box64"
+all_linux_arm64_default_packages="${all_linux_amd64_default_packages} box64"
 
 all_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
 all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
@@ -1797,10 +1802,13 @@ printHelp() {
 
 	linux-amd64-default:
 	linux-i686-default:
-	linux-arm64-default:
 	linux-armhf-default:
 	    base    ${base_linux_amd64_default_packages}
 	    all     ${all_linux_amd64_default_packages}
+
+	linux-arm64-default:
+	    base    ${base_linux_arm64_default_packages}
+	    all     ${all_linux_arm64_default_packages}
 
 	EOF
 	
