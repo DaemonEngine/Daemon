@@ -31,6 +31,7 @@ OGG_BASEURL='https://downloads.xiph.org/releases/ogg'
 VORBIS_BASEURL='https://downloads.xiph.org/releases/vorbis'
 OPUS_BASEURL='https://downloads.xiph.org/releases/opus'
 OPUSFILE_BASEURL='https://downloads.xiph.org/releases/opus'
+BOX64_BASEURL='https://api.github.com/repos/ptitSeb/box64/zipball'
 NACLSDK_BASEURL='https://dl.unvanquished.net/mirror/storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk'
 # No index.
 NACLRUNTIME_BASEURL='https://api.github.com/repos/DaemonEngine/native_client/zipball'
@@ -55,6 +56,7 @@ OGG_VERSION=1.3.6
 VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.6.1
 OPUSFILE_VERSION=0.12
+BOX64_REVISION='827f0ee54e54087baab2ed1e33ebc38998700589'
 NACLSDK_VERSION=44.0.2403.155
 NACLRUNTIME_REVISION='ed51ac99f5675538e5bedde9bcae632eabee30ea'
 NCURSES_VERSION=6.6
@@ -935,6 +937,23 @@ build_ncurses() {
 		--with-default-terminfo-dir=/usr/share/terminfo
 }
 
+# Build box64
+build_box64() {
+	local dir_name="ptitSeb-box64-${BOX64_REVISION:0:7}"
+	local archive_name="box64-${BOX64_REVISION}.zip"
+
+	download_extract box64 "${archive_name}" \
+		"${BOX64_BASEURL}/${BOX64_REVISION}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
+	cmake_build
+
+	smart_copy 'build/box64' "${PREFIX}/box64"
+}
+
 # "Builds" (downloads) the WASI SDK
 build_wasisdk() {
 	case "${PLATFORM}" in
@@ -1682,7 +1701,7 @@ printHelp() {
 	    all     linux windows macos
 
 	Packages:
-	    native-pkgconfig native-nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk naclruntime wasisdk wasmtime
+	    native-pkgconfig native-nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk naclruntime wasisdk wasmtime box64
 
 	Virtual packages:
 	    base    build packages for pre-built binaries to be downloaded when building the game
