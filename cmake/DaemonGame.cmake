@@ -68,10 +68,16 @@ set(SHAREDLIST_sgame
 # Function to setup all the Sgame/Cgame libraries
 include(CMakeParseArguments)
 
-# The NaCl SDK only runs on amd64 or i686.
 if (NOT FORK EQUAL 2)
-	if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
+	if (USE_NACL_SAIGO)
+		set(HAS_NACL_SDK ON)
+	elseif (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
 	AND (YOKAI_TARGET_ARCH_AMD64 OR YOKAI_TARGET_ARCH_I686))
+		# The PNaCl SDK only runs on amd64 or i686.
+		set(HAS_NACL_SDK ON)
+	endif()
+
+	if (HAS_NACL_SDK)
 		# can be loaded by daemon with vm.[sc]game.type 0 or 1
 		option(BUILD_GAME_NACL "Build the NaCl \"pexe\" and \"nexe\" gamelogic modules for enabled architecture targets, required to host mods." OFF)
 
@@ -92,7 +98,7 @@ if (NOT FORK EQUAL 2)
 		foreach(NACL_TARGET ${NACL_TARGETS})
 			set(IS_NACL_VALID_TARGET OFF)
 			foreach(NACL_VALID_TARGET ${NACL_ALL_TARGETS})
-				if(NACL_TARGET STREQUAL NACL_VALID_TARGET)
+				if (NACL_TARGET STREQUAL NACL_VALID_TARGET)
 					set(IS_NACL_VALID_TARGET ON)
 				endif()
 			endforeach()
