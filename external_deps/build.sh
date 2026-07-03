@@ -1153,13 +1153,23 @@ build_naclsdk() {
 		rm -rf "${PREFIX}/pnacl/x86_64-nacl"
 		rm -rf "${PREFIX}/pnacl/x86_64_bc-nacl"
 	esac
+
 	case "${PLATFORM}" in
-	windows-i686-*)
+	windows-i686-*|linux-arm64-*)
 		smart_copy pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-amd64.nexe"
 		;;
+	esac
+
+	case "${PLATFORM}" in
 	linux-*-*)
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
+		;;
+	esac
+
+	case "${PLATFORM}" in
+	linux-arm64-*)
+		chmod 644 "${PREFIX}/irt_core-amd64.nexe"
 		;;
 	esac
 }
@@ -1184,6 +1194,7 @@ build_naclruntime() {
 		;;
 	linux-arm64-*)
 		nacl_arch_list+=('armhf')
+		nacl_arch_list+=('amd64')
 		;;
 	linux-armhf-*)
 		nacl_arch_list+=('armhf')
