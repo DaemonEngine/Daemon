@@ -1435,12 +1435,12 @@ setup_linux-amd64-default() {
 	common_setup linux x86_64-unknown-linux-gnu
 }
 
-# Set up environment for 32-bit armhf Linux
+# Set up environment for 32-bit little-endian hard-float arm Linux
 setup_linux-armhf-default() {
 	common_setup linux arm-unknown-linux-gnueabihf
 }
 
-# Set up environment for 64-bit arm Linux
+# Set up environment for 64-bit little-endian arm Linux
 setup_linux-arm64-default() {
 	common_setup linux aarch64-unknown-linux-gnu
 }
