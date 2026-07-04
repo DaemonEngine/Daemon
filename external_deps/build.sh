@@ -1553,24 +1553,24 @@ require_theirs='false'
 while [ -n "${1:-}" ]
 do
 	case "${1-}" in
-	'--download-only')
+	--download-only)
 		download_only='true'
 		shift
-	;;
-	'--prefer-ours')
+		;;
+	--prefer-ours)
 		prefer_ours='true'
 		shift
-	;;
-	'--require-theirs')
+		;;
+	--require-theirs)
 		require_theirs='true'
 		shift
-	;;
-	'-h'|'--help')
+		;;
+	-h|--help)
 		printHelp
-	;;
-	'-'*)
+		;;
+	-*)
 		syntaxError 'Unknown option'
-	;;
+		;;
 	*)
 		break
 	esac
@@ -1600,18 +1600,18 @@ platform="${1}"; shift
 
 platform_list=''
 case "${platform}" in
-'all')
+all)
 	platform_list="${all_platforms}"
-;;
-'linux')
+	;;
+linux)
 	platform_list="${all_linux_platforms}"
-;;
-'windows')
+	;;
+windows)
 	platform_list="${all_windows_platforms}"
-;;
-'macos')
+	;;
+macos)
 	platform_list="${all_macos_platforms}"
-;;
+	;;
 *)
 	for known_platform in ${all_platforms}
 	do
@@ -1625,7 +1625,7 @@ case "${platform}" in
 	then
 		syntaxError 'Unknown platform'
 	fi
-;;
+	;;
 esac
 
 for PLATFORM in ${platform_list}
