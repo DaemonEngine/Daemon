@@ -685,6 +685,9 @@ build_jpeg() {
 	linux-*-*)
 		local SYSTEM_NAME='Linux'
 		;;
+	freebsd-*-*)
+		local SYSTEM_NAME='FreeBSD'
+		;;
 	*)
 		# Other platforms can build but we need to explicitly
 		# set CMAKE_SYSTEM_NAME for CMAKE_CROSSCOMPILING to be set
@@ -1142,7 +1145,7 @@ build_naclsdk() {
 		local NACLSDK_PLATFORM=mac
 		local TAR_EXT=tar
 		;;
-	linux-*-*)
+	linux-*-*|freebsd-*-*)
 		local NACLSDK_PLATFORM=linux
 		local TAR_EXT=tar
 		;;
@@ -1202,7 +1205,7 @@ build_naclsdk() {
 	esac
 
 	case "${PLATFORM}" in
-	linux-*-*)
+	linux-*-*|freebsd-*-*)
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		;;
@@ -1439,7 +1442,7 @@ build_install() {
 		# Fix import lib paths to use MSVC-style instead of MinGW ones (see 'genlib' target)
 		find "${PKG_PREFIX}/lib/cmake" -name '*.cmake' -execdir sed -i -E 's@[.]dll[.]a\b@.lib@g' {} \;
 		;;
-	linux-*-*)
+	linux-*-*|freebsd-*-*)
 		find "${PKG_PREFIX}/lib" -name '*.so' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.so.*' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*_g.a' -execdir rm -f -- {} \;
@@ -1635,6 +1638,15 @@ common_setup_linux() {
 	CXXFLAGS+=' -fPIC'
 }
 
+common_setup_freebsd() {
+	CC='clang'
+	CXX='clang++'
+	STRIP='strip'
+	CFLAGS+=" -target ${HOST}"
+	CXXFLAGS+=" -target ${HOST}"
+	LDFLAGS+=" -target ${HOST}"
+}
+
 common_setup_native() {
 	case "$(uname -s)" in
 	CYGWIN_NT-*|MSYS_NT-*|MINGW*_NT-*)
@@ -1776,6 +1788,18 @@ setup_linux-loong64-default() {
 	common_setup linux loongarch64-linux-gnu
 }
 
+# Set up environment for 32-bit i686 FreeBSD
+setup_freebsd-i686-default() {
+	setup_default
+	common_setup freebsd i386-unknown-freebsd
+}
+
+# Set up environment for 64-bit amd64 FreeBSD
+setup_freebsd-amd64-default() {
+	setup_default
+	common_setup freebsd x86_64-unknown-freebsd
+}
+
 # Set up environment for native host tools
 setup_native() {
 	setup_default
@@ -1839,11 +1863,19 @@ all_linux_ppc64el_default_packages="${all_linux_arm64_default_packages}"
 base_linux_loong64_default_packages="${base_linux_arm64_default_packages}"
 all_linux_loong64_default_packages="${all_linux_arm64_default_packages}"
 
+# FIXME: The naclruntime will fail to build, we need to download a prebuilt one.
+base_freebsd_amd64_default_packages='sdl3 naclsdk saigosdk'
+all_freebsd_amd64_default_packages='gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk saigosdk'
+
+base_freebsd_i686_default_packages="${base_freebsd_amd64_default_packages}"
+all_freebsd_i686_default_packages="${all_freebsd_amd64_default_packages}"
+
 supported_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
 supported_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
 supported_macos_platforms='macos-amd64-default macos-arm64-default'
 
 extra_linux_platforms='linux-armel-default linux-riscv64-default linux-ppc64el-default linux-loong64-default'
+extra_freebsd_platforms='freebsd-amd64-default freebsd-i686-default'
 
 supported_platforms="${supported_linux_platforms} ${supported_windows_platforms} ${supported_macos_platforms}"
 
@@ -1851,7 +1883,7 @@ all_linux_platforms="${supported_linux_platforms} ${extra_linux_platforms}"
 all_windows_platforms="${supported_windows_platforms}"
 all_macos_platforms="${supported_macos_platforms}"
 
-all_platforms="${all_linux_platforms} ${all_windows_platforms} ${all_macos_platforms}"
+all_platforms="${all_linux_platforms} ${all_windows_platforms} ${all_macos_platforms} ${extra_freebsd_platforms}"
 
 printHelp() {
 	# Please align to 4-space tabs.
@@ -1873,7 +1905,8 @@ printHelp() {
 	    supported-macos     ${supported_macos_platforms}
 	    supported           supported-linux supported-windows supported-macos
 	    extra-linux         ${extra_linux_platforms}
-	    extra               extra-linux
+	    extra-freebsd       ${extra_freebsd_platforms}
+	    extra               extra-linux extra-freebsd
 	    all-linux           linux extra-linux
 	    all                 supported extra
 
@@ -1920,6 +1953,11 @@ printHelp() {
 	linux-loong64-default:
 	    base    ${base_linux_arm64_default_packages}
 	    all     ${all_linux_arm64_default_packages}
+
+	freebsd-amd64-default:
+	freebsd-i686-default:
+	    base    ${base_freebsd_amd64_default_packages}
+	    all     ${all_freebsd_amd64_default_packages}
 
 	EOF
 
@@ -1999,6 +2037,9 @@ supported-linux)
 ;;
 extra-linux)
 	platform_list="${extra_linux_platforms}"
+	;;
+extra-freebsd)
+	platform_list="${extra_freebsd_platforms}"
 	;;
 all-windows)
 	platform_list="${all_windows_platforms}"
