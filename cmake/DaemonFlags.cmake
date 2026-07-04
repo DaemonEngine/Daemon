@@ -260,8 +260,12 @@ if (USE_FLOAT_EXCEPTIONS)
     add_definitions(-DDAEMON_USE_FLOAT_EXCEPTIONS)
 endif()
 
-if (NOT NACL AND BUILD_CLIENT)
+if (NOT YOKAI_TARGET_SYSTEM_NACL AND BUILD_CLIENT)
 	option(USE_OPENMP "Use OpenMP to parallelize some tasks" OFF)
+endif()
+
+if (NOT YOKAI_TARGET_SYSTEM_NACL AND BUILD_CLIENT AND USE_OPENMP)
+	set(ENABLE_OPENMP ON)
 endif()
 
 if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
@@ -275,7 +279,7 @@ if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
         set_cxx_flag("/std:c++23preview")
     endif()
 
-	if (NOT NACL AND BUILD_CLIENT AND USE_OPENMP)
+	if (ENABLE_OPENMP)
 		# Flag checks doen't work with MSVC so we assume it's there.
 		set(OPENMP_COMPILE_FLAG "/openmp")
 	endif()
@@ -375,7 +379,7 @@ else()
 		endif()
 	endif()
 
-	if (NOT NACL AND BUILD_CLIENT AND USE_OPENMP)
+	if (ENABLE_OPENMP)
 		check_CXX_compiler_flag("-fopenmp" FLAG_FOPENMP)
 
 		if (FLAG_FOPENMP)
@@ -386,7 +390,7 @@ else()
 		endif()
 	endif()
 
-	if (YOKAI_TARGET_SYSTEM_NACL AND USE_NACL_SAIGO AND DAEMON_NACL_ARCH_ARMHF)
+	if (YOKAI_TARGET_SYSTEM_NACL AND YOKAI_CXX_COMPILER_SAIGO AND YOKAI_TARGET_ARCH_ARMHF)
 		# Saigo produces broken arm builds when optimizing them.
 		# See: https://github.com/Unvanquished/Unvanquished/issues/3297
 		# When setting this clang-specific option, we don't have to care
@@ -435,7 +439,7 @@ else()
 		try_flag(WARNINGS "-Werror")
 	endif()
 
-	if (YOKAI_TARGET_SYSTEM_NACL AND NOT USE_NACL_SAIGO)
+	if (YOKAI_TARGET_SYSTEM_NACL AND YOKAI_CXX_COMPILER_PNACL)
 		# PNaCl only supports libc++ as standard library.
 		set_c_cxx_flag("-stdlib=libc++")
 		set_c_cxx_flag("--pnacl-allow-exceptions")
@@ -498,7 +502,7 @@ else()
 		# Don't set _FORTIFY_SOURCE in debug builds.
 	endif()
 
-	if (NOT NACL)
+	if (NOT YOKAI_TARGET_SYSTEM_NACL)
 		# Saigo reports weird errors when building some cgame and sgame arm nexe with PIC:
 		# > error: Cannot represent a difference across sections
 		# > error: expected relocatable expression
