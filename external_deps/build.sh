@@ -680,7 +680,12 @@ build_jpeg() {
 
 	local jpeg_cmake_args=()
 
-	local SYSTEM_PROCESSOR='unknown'
+	# When there is no platform code implemented in libjpeg yet,
+	# we can build it without SIMD code.
+	# This string will then only be used for warnings like that:
+	# > SIMD extensions not available for this CPU (riscv64). Performance will suffer.
+	local SYSTEM_PROCESSOR="${PLATFORM_ARCH}"
+
 	local jpeg_require_simd='OFF'
 
 	case "${PLATFORM}" in
@@ -705,9 +710,6 @@ build_jpeg() {
 		SYSTEM_PROCESSOR='arm'
 		jpeg_require_simd='ON'
 		jpeg_cmake_args+=(-DNEON_INTRINSICS=ON)
-		;;
-	*)
-		log WARNING 'Unknown platform for JPEG'
 		;;
 	esac
 
