@@ -287,6 +287,7 @@ endif()
 # meaning we have to detect useless engine compiler to set
 # useless engine flags when only building vms.
 include(DaemonFlags)
+include(DaemonNaclFlags)
 
 # FIXME: Once engine flags would be only set when building the engine
 # this would be likely unused by vms as they are built by DaemonGame.
@@ -458,7 +459,6 @@ endif()
 # LIBS_BASE, LIBS_ENGINE_BASE LIBS_ENGINE, LIBS_BASECLIENT, LIBS_CLIENT
 
 # Native client
-include(DaemonNacl)
 if (YOKAI_TARGET_SYSTEM_NACL)
     add_library(srclibs-nacl-module EXCLUDE_FROM_ALL ${NACLLIST_MODULE})
     set(LIBS_BASE ${LIBS_BASE} srclibs-nacl-module)
@@ -478,16 +478,6 @@ if (YOKAI_TARGET_SYSTEM_WINDOWS)
 elseif (YOKAI_TARGET_SYSTEM_NACL)
     find_library(NACL_EXCEPTION nacl_exception)
     find_library(NACL_MINIDUMP minidump_generator)
-
-    # HACK: To be removed when Saigo is repackaged properly.
-    if (NOT NACL_MINIDUMP
-    # NACL_TARGET is specific to Saigo, PNaCl target is le32 and doesn't set NACL_TARGET.
-    AND "${NACL_TARGET}" STREQUAL "i686"
-    # x86_64-nacl/lib32 is specific to Google build, other builds may provide i686-nacl/lib instead.
-    AND EXISTS "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32")
-        set(NACL_EXCEPTION "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32/libnacl_exception.a")
-        set(NACL_MINIDUMP "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32/libminidump_generator.a")
-    endif()
 
     set(LIBS_BASE ${LIBS_BASE} ${NACL_MINIDUMP} ${NACL_EXCEPTION})
 else()
