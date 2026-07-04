@@ -84,6 +84,25 @@ struct ThreadQueue {
 	void AddTask( const uint32 threadID, const uint16 bufferID );
 };
 
+struct AtomicThreadRunTime;
+
+struct ThreadRunTime {
+	uint64 time[MAX_THREADS] {};
+
+	              ThreadRunTime() = default;
+	              ThreadRunTime( const AtomicThreadRunTime& other );
+
+	void          operator=( const AtomicThreadRunTime& other );
+	ThreadRunTime operator-( const ThreadRunTime& other );
+};
+
+struct AtomicThreadRunTime {
+	std::atomic<uint64> time[MAX_THREADS] {};
+
+	void operator=( const ThreadRunTime& other );
+	void operator+=( const ThreadRunTime& other );
+};
+
 class TaskList :
 	public Tag {
 	public:
@@ -113,6 +132,7 @@ class TaskList :
 	void  TaskStarted();
 	bool  ThreadFinished( const bool hadTask );
 
+	void  UpdateThreadRunTime( const uint64 time );
 	void  FinishTask( Task* task );
 
 	void  AdjustThreadCount( const uint32 newMaxThreads );
@@ -144,7 +164,11 @@ class TaskList :
 	AtomicRingBufferArray<Task>       tasks     { "GlobalTaskMemory",     &sysAllocator };
 	AtomicRingBufferArray<byte, true> tasksData { "GlobalTaskDataMemory", &sysAllocator };
 
+	AtomicThreadRunTime               threadRunTime;
+
 	Thread                            threads[MAX_THREADS];
+
+	FenceMain                         threadInitCount {};
 
 	ThreadQueue                       threadQueues[MAX_THREADS];
 	std::atomic<uint32>               taskCount;
@@ -159,17 +183,18 @@ class TaskList :
 	bool  IsTrackedDependency( const uint8 id );
 	bool  IsUpdatedDependency( const uint8 id );
 
-	void  AddToThreadQueueExt( Task& task );
-	void  AddToThreadQueue( Task& task );
+	void  AddToThreadQueue( Task& task, ThreadRunTime* runTime );
 
 	Task* GetTaskMemory( Task& task );
 
 	void  ResolveDependencies( Task& task, TaskInitList& dependencies );
 
-	void  AddTaskExt( Task& task, TaskInitList&& dependencies = {} );
+	void  AddTaskExt( Task& task, ThreadRunTime* runTime, TaskInitList&& dependencies = {} );
 
 	void  MarkDependencies( Task& task, TaskInitList&& dependencies );
 	void  UnMarkDependencies( TaskInitList&& dependencies );
+
+	void  ThreadInitialised();
 };
 
 extern TaskList taskList;

@@ -112,6 +112,8 @@ void Thread::Run() {
 
 	barrier( CPU_CORES );
 
+	taskList.ThreadInitialised();
+
 	total.Start();
 
 	bool fetched = false;
@@ -191,6 +193,10 @@ void Thread::Run() {
 
 		executing.Stop();
 
+		const uint64 taskExecTime = t.Time() * maxCoreFrequencyScale;
+
+		taskList.UpdateThreadRunTime( task->time * maxCoreFrequencyScale );
+
 		dependencyTimer.Start();
 
 		if ( task->threadCount.Unlock() ) {
@@ -199,20 +205,18 @@ void Thread::Run() {
 
 		dependencyTimer.Stop();
 
-		const uint64 taskExecTime = t.Time() * maxCoreFrequencyScale;
-
-		TaskTime& taskTime = TLM.taskTimes[task->Execute];
+		TaskTime& taskTime        = TLM.taskTimes[task->Execute];
 		taskTime.count++;
-		taskTime.time += taskExecTime;
+		taskTime.time            += taskExecTime;
 
 		if ( !( taskTime.count & 63 ) ) {
 			if ( !taskTime.syncedWithSM ) {
 				while ( !SM.taskTimesLock.LockWrite() );
 
 				GlobalTaskTime& SMTaskTime = SM.taskTimes[task->Execute];
-				SMTaskTime.count = 1;
-				SMTaskTime.time = taskExecTime;
-				taskTime.syncedWithSM = true;
+				SMTaskTime.count.store( 1, std::memory_order_relaxed );
+				SMTaskTime.time.store( taskExecTime, std::memory_order_relaxed );
+				taskTime.syncedWithSM      = true;
 
 				SM.taskTimesLock.UnlockWrite();
 			} else {
@@ -226,7 +230,7 @@ void Thread::Run() {
 			}
 		}
 
-		task = nullptr;
+		task    = nullptr;
 
 		TLM.FreeAllChunks();
 

@@ -70,14 +70,20 @@ void TaskList::AdjustThreadCount( uint32 newMaxThreads ) {
 	TLM.currentMaxThreads       = newMaxThreads;
 
 	const uint32 currentThreads = currentMaxThreads.load( std::memory_order_relaxed );
+
 	if ( newMaxThreads > currentThreads ) {
 		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
-
-		taskList.AddTask( Task { &SyncThreadCount }.ThreadMaskAll() );
+		threadInitCount.target = newMaxThreads;
 
 		for ( uint32 i = currentThreads; i < newMaxThreads; i++ ) {
 			threads[i].Start( i );
 		}
+
+		threadInitCount.Wait();
+
+		Task t { &SyncThreadCount };
+		taskList.AddTask( t.ThreadMaskAll() );
+		t.Wait();
 	} else if ( newMaxThreads < currentThreads ) {
 		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
 
@@ -96,6 +102,10 @@ void TaskList::AdjustThreadCount( uint32 newMaxThreads ) {
 	Log::NoticeTag( "Changed thread count to %u", TLM.currentMaxThreads );
 
 	threadCountLock.UnlockWrite();
+}
+
+void TaskList::ThreadInitialised() {
+	threadInitCount.Signal();
 }
 
 void TaskList::Init() {
@@ -177,6 +187,10 @@ byte* TaskList::GetTaskData( const uint64 offset ) {
 	return tasksData.memory + ( ( offset << cacheLineBits ) & tasksData.mask );
 }
 
+void TaskList::UpdateThreadRunTime( const uint64 time ) {
+	threadRunTime.time[TLM.id].fetch_sub( time, std::memory_order_relaxed );
+}
+
 void TaskList::FinishTask( Task* task ) {
 	task->complete.Signal();
 	task->ExecuteDestructors();
@@ -184,6 +198,8 @@ void TaskList::FinishTask( Task* task ) {
 	if ( task->GetArgCount() ) {
 		tasksData.UpdateCurrentElement( GetBits( task->bufferID, taskIDThreadOffset, taskIDThreadBits ), task->GetDataOffset() * CACHE_LINE_SIZE );
 	}
+
+	ThreadRunTime runTime = threadRunTime;
 
 	for ( uint8 i = 0; i < task->forwardTaskCounter; i++ ) {
 		Task&    forwardTask = BufferIDToTask( task->forwardTasks[i] );
@@ -199,12 +215,14 @@ void TaskList::FinishTask( Task* task ) {
 		if ( TimeNs() < forwardTask.time ) {
 			eventQueue.AddTask( forwardTask );
 		} else {
-			AddToThreadQueue( forwardTask );
+			AddToThreadQueue( forwardTask, &runTime );
 			taskWithDependenciesCount.fetch_sub( 1, std::memory_order_relaxed );
 		}
 
 		TLM.addTimer.Stop();
 	}
+
+	threadRunTime += runTime;
 
 	task->SetActive( false );
 }
@@ -257,7 +275,9 @@ void ThreadQueue::AddTask( const uint32 threadID, const uint16 bufferID ) {
 	TLM.addQueueWaitTimer.Stop();
 }
 
-void TaskList::AddToThreadQueueExt( Task& task ) {
+void TaskList::AddToThreadQueue( Task& task, ThreadRunTime* runTime ) {
+	TLM.addToQueueTimer.Start();
+
 	while ( !SM.taskTimesLock.Lock() );
 
 	TaskTime taskTime;
@@ -272,14 +292,19 @@ void TaskList::AddToThreadQueueExt( Task& task ) {
 
 	SM.taskTimesLock.Unlock();
 
+	const uint64 projectedTime = taskTime.time / std::max( taskTime.count, 1ull ) + 50_us;
+	task.time                  = projectedTime;
+
 	if ( task.threadMask ) {
 		uint32 threadMask = task.threadMask;
 
 		taskCount.fetch_add( CountBits( threadMask ), std::memory_order_relaxed );
 
 		while ( threadMask ) {
-			const uint32 threadID = FindLSB( threadMask );
+			const uint32 threadID    = FindLSB( threadMask );
 			threadQueues[threadID].AddTask( threadID, task.bufferID );
+
+			runTime->time[threadID] += projectedTime * threads[threadID].maxCoreFrequencyScale;
 
 			UnSetBit( &threadMask, threadID );
 		}
@@ -289,60 +314,29 @@ void TaskList::AddToThreadQueueExt( Task& task ) {
 
 	taskCount.fetch_add( 1, std::memory_order_relaxed );
 
-	const uint64 projectedTime = taskTime.time / std::max( taskTime.count, 1ull );
-
 	if ( projectedTime < TLM.addToQueueTimer.Time() / TLM.addToQueueCount && !TLM.main ) {
 		threadQueues[TLM.id].AddTask( TLM.id, task.bufferID );
+		runTime->time[TLM.id] += projectedTime * threads[TLM.id].maxCoreFrequencyScale;
+
 		return;
 	}
 
-	/* Nodes correspond to TLM.currentMaxThreads active ThreadQueues
-	Whenever a task is added it either goes to the currentThreadExecutionNode or ~thread that is most free of work
-	currentThreadExecutionNode contains either an idle thread that has most recently finished execution,
-	unless no tasks have been executed yet,
-	or a task was already added to the latest idle thread
-	threadExecutionNodes is kept sorted in a non-decreasing order when tasks are added */
-	for ( uint8 node = 0; node < TLM.currentMaxThreads; node++ ) {
-		const uint64 scaledProjectedTime = projectedTime / threads[node].maxCoreFrequencyScale;
+	uint64 minTime = runTime->time[0] + projectedTime * threads[0].maxCoreFrequencyScale;
+	uint8  minID   = 0;
 
-		uint64       baseThreadTime      = threadExecutionNodes[node].fetch_add( scaledProjectedTime, std::memory_order_relaxed );
-		uint64       nextNodeTime        = node == TLM.currentMaxThreads - 1 ?
-		                                           UINT64_MAX
-		                                         : threadExecutionNodes[node + 1].load( std::memory_order_relaxed );
+	for ( uint8 i = 1; i < CPU_CORES; i++ ) {
+		const uint64 scaledProjectedTime = projectedTime * threads[i].maxCoreFrequencyScale;
 
-		if ( node == TLM.currentMaxThreads - 1
-			|| baseThreadTime + scaledProjectedTime <= nextNodeTime ) {
-			threadQueues[node].AddTask( node, task.bufferID );
-			return;
+		if ( runTime->time[i] + scaledProjectedTime < minTime ) {
+			minID   = i;
+			minTime = runTime->time[i] + scaledProjectedTime;
 		}
-
-		// We overflowed the current node, so move to the next one
-		if ( baseThreadTime + scaledProjectedTime > nextNodeTime ) {
-			threadExecutionNodes[node].fetch_sub( scaledProjectedTime, std::memory_order_relaxed );
-			continue;
-		}
-
-		/* Current node is overflowed but we don't know if we overflowed it or if another thread did
-		Another thread is guaranteed to have overflowed it so we wait until it moves to the next node*/
-		do {
-			baseThreadTime = threadExecutionNodes[node    ].load( std::memory_order_relaxed );
-			nextNodeTime   = threadExecutionNodes[node + 1].load( std::memory_order_relaxed );
-		} while ( baseThreadTime - scaledProjectedTime > nextNodeTime );
-
-		if ( baseThreadTime <= nextNodeTime ) {
-			threadQueues[node].AddTask( node, task.bufferID );
-			return;
-		}
-
-		// We still overflowed
-		threadExecutionNodes[node].fetch_sub( scaledProjectedTime, std::memory_order_relaxed );
 	}
-}
 
-void TaskList::AddToThreadQueue( Task& task ) {
-	TLM.addToQueueTimer.Start();
+	runTime->time[minID] += projectedTime * threads[minID].maxCoreFrequencyScale;
 
-	AddToThreadQueueExt( task );
+	threadQueues[minID].AddTask( minID, task.bufferID );
+
 	TLM.addToQueueCount++;
 
 	TLM.addToQueueTimer.Stop();
@@ -365,7 +359,47 @@ Task* TaskList::GetTaskMemory( Task& task ) {
 	return taskMemory;
 }
 
-void TaskList::AddTaskExt( Task& task, TaskInitList&& dependencies ) {
+ThreadRunTime::ThreadRunTime( const AtomicThreadRunTime& other ) {
+	*this = other;
+}
+
+void ThreadRunTime::operator=( const AtomicThreadRunTime& other ) {
+	uint64 minTime = UINT64_MAX;
+
+	for ( uint32 i = 0; i < CPU_CORES; i++ ) {
+		time[i] = other.time[i].load( std::memory_order_relaxed );
+
+		minTime = time[i] < minTime ? time[i] : minTime;
+	}
+
+	for ( uint64* i = time; i < time + CPU_CORES; i++ ) {
+		*i     -= minTime;
+	}
+}
+
+ThreadRunTime ThreadRunTime::operator-( const ThreadRunTime& other ) {
+	ThreadRunTime out;
+
+	for ( uint8 i = 0; i < CPU_CORES; i++ ) {
+		out.time[i] = time[i] - other.time[i];
+	}
+
+	return out;
+}
+
+void AtomicThreadRunTime::operator=( const ThreadRunTime& other ) {
+	for ( uint32 i = 0; i < CPU_CORES; i++ ) {
+		time[i].store( other.time[i], std::memory_order_relaxed );
+	}
+}
+
+void AtomicThreadRunTime::operator+=( const ThreadRunTime& other ) {
+	for ( uint32 i = 0; i < CPU_CORES; i++ ) {
+		time[i].fetch_add( other.time[i], std::memory_order_relaxed );
+	}
+}
+
+void TaskList::AddTaskExt( Task& task, ThreadRunTime* runTime, TaskInitList&& dependencies ) {
 	if ( exiting.load( std::memory_order_relaxed ) && !task.IsShutdownTask() ) {
 		return;
 	}
@@ -390,13 +424,13 @@ void TaskList::AddTaskExt( Task& task, TaskInitList&& dependencies ) {
 		const uint32 counter = taskMemory->dependencyCounter.fetch_sub( 1, std::memory_order_relaxed ) - 1;
 
 		if ( !counter ) {
-			AddToThreadQueue( *taskMemory );
+			AddToThreadQueue( *taskMemory, runTime );
 			SetBit( &task.id, taskAddedOffset );
 		} else {
 			taskWithDependenciesCount.fetch_add( 1, std::memory_order_relaxed );
 		}
 	} else if ( !taskMemory->dependencyCounter ) {
-		AddToThreadQueue( *taskMemory );
+		AddToThreadQueue( *taskMemory, runTime );
 		SetBit( &task.id, taskAddedOffset );
 	}
 
@@ -452,16 +486,21 @@ void TaskList::UnMarkDependencies( TaskInitList&& dependencies ) {
 void TaskList::AddTask( Task& task, std::initializer_list<TaskProxy> dependencies ) {
 	MarkDependencies( task, TaskInitList { dependencies.begin(), dependencies.end() } );
 
+	ThreadRunTime runTime     = threadRunTime;
+	ThreadRunTime baseRunTime = runTime;
+
 	uint64 time = TimeNs();
 	if ( time < task.time && task.time - time > eventQueue.minGranularity ) {
 		eventQueue.AddTask( task );
 	} else {
-		AddTaskExt( task, TaskInitList { dependencies.begin(), dependencies.end() } );
+		AddTaskExt( task, &runTime, TaskInitList { dependencies.begin(), dependencies.end() } );
 	}
 
 	for ( const TaskProxy& dep : dependencies ) {
-		AddTaskExt( dep.task );
+		AddTaskExt( dep.task, &runTime );
 	}
+
+	threadRunTime += runTime - baseRunTime;
 
 	UnMarkDependencies( TaskInitList { dependencies.begin(), dependencies.end() } );
 }
@@ -471,6 +510,9 @@ void TaskList::AddTasksExt( std::initializer_list<TaskInitList> dependencies ) {
 	for ( const TaskInitList& taskInit : dependencies ) {
 		MarkDependencies( taskInit.start->task, { taskInit.start + 1, taskInit.end } );
 	}
+	
+	ThreadRunTime runTime     = threadRunTime;
+	ThreadRunTime baseRunTime = runTime;
 
 	for ( const TaskInitList& taskInit : dependencies ) {
 		for ( const TaskProxy* task = taskInit.start + 1; task < taskInit.end; task++ ) {
@@ -482,12 +524,14 @@ void TaskList::AddTasksExt( std::initializer_list<TaskInitList> dependencies ) {
 			if ( time < task->task.time && task->task.time - time > eventQueue.minGranularity ) {
 				eventQueue.AddTask( task->task );
 			} else {
-				AddTaskExt( task->task );
+				AddTaskExt( task->task, &runTime );
 			}
 		}
 
-		AddTaskExt( taskInit.start->task, { taskInit.start + 1, taskInit.end } );
+		AddTaskExt( taskInit.start->task, &runTime, { taskInit.start + 1, taskInit.end } );
 	}
+
+	threadRunTime += runTime - baseRunTime;
 
 	for ( const TaskInitList& taskInit : dependencies ) {
 		UnMarkDependencies( { taskInit.start + 1, taskInit.end } );
