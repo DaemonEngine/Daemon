@@ -660,6 +660,11 @@ build_jpeg() {
 		jpeg_require_simd='ON'
 		jpeg_cmake_args+=(-DNEON_INTRINSICS=ON)
 		;;
+	*-armel-*)
+		SYSTEM_PROCESSOR='arm'
+		jpeg_require_simd='OFF'
+		jpeg_cmake_args+=(-DNEON_INTRINSICS=OFF)
+		;;
 	esac
 
 	case "${PLATFORM}" in
@@ -769,6 +774,9 @@ build_openal() {
 		;;
 	*-armhf-*|*-arm64-*)
 		openal_cmake_args+=(-DALSOFT_CPUEXT_NEON=ON -DALSOFT_REQUIRE_NEON=ON)
+		;;
+	*-armel-*)
+		openal_cmake_args+=(-DALSOFT_CPUEXT_NEON=ON -DALSOFT_REQUIRE_NEON=OFF)
 		;;
 	esac
 
@@ -889,6 +897,9 @@ build_opus() {
 		;;
 	*-armhf-*|*-arm64-*)
 		opus_cmake_args+=(-DOPUS_MAY_HAVE_NEON=OFF -DOPUS_PRESUME_NEON=ON)
+		;;
+	*-armel-*)
+		opus_cmake_args+=(-DOPUS_MAY_HAVE_NEON=ON -DOPUS_PRESUME_NEON=OFF)
 		;;
 	esac
 
@@ -1066,7 +1077,7 @@ build_naclsdk() {
 		local NACLSDK_ARCH=x86_64
 		local DAEMON_ARCH=amd64
 		;;
-	linux-armhf-*|linux-arm64-*)
+	linux-armhf-*|linux-armel-*|linux-arm64-*)
 		local NACLSDK_ARCH=arm
 		local DAEMON_ARCH=armhf
 		;;
@@ -1147,6 +1158,9 @@ build_naclruntime() {
 		nacl_arch_list+=('amd64')
 		;;
 	linux-armhf-*)
+		nacl_arch_list+=('armhf')
+		;;
+	linux-armel-*)
 		nacl_arch_list+=('armhf')
 		;;
 	macos-amd64-*)
@@ -1480,6 +1494,10 @@ common_setup_arch() {
 		CFLAGS+=' -march=armv7-a -mfpu=neon'
 		CXXFLAGS+=' -march=armv7-a -mfpu=neon'
 		;;
+	*-armel-*)
+		CFLAGS+=' -mfpu=vfp -mfloat-abi=softfp'
+		CXXFLAGS+=' -mfpu=vfp -mfloat-abi=softfp'
+		;;
 	*-native-*)
 		;;
 	*)
@@ -1645,6 +1663,12 @@ setup_linux-amd64-default() {
 }
 
 # Set up environment for 32-bit little-endian hard-float arm Linux
+setup_linux-armel-default() {
+	setup_default
+	common_setup linux arm-unknown-linux-gnueabi
+}
+
+# Set up environment for 32-bit little-endian hard-float arm Linux
 setup_linux-armhf-default() {
 	setup_default
 	common_setup linux arm-unknown-linux-gnueabihf
@@ -1703,6 +1727,9 @@ all_linux_i686_default_packages="${all_linux_amd64_default_packages}"
 
 base_linux_armhf_default_packages="${base_linux_amd64_default_packages}"
 all_linux_armhf_default_packages="${all_linux_amd64_default_packages}"
+
+base_linux_armel_default_packages="${base_linux_armhf_default_packages}"
+all_linux_armel_default_packages="${all_linux_armhf_default_packages}"
 
 base_linux_arm64_default_packages="${base_linux_amd64_default_packages} box64"
 all_linux_arm64_default_packages="${all_linux_amd64_default_packages} box64"
@@ -1767,6 +1794,7 @@ printHelp() {
 	linux-amd64-default:
 	linux-i686-default:
 	linux-armhf-default:
+	linux-armel-default:
 	    base    ${base_linux_amd64_default_packages}
 	    all     ${all_linux_amd64_default_packages}
 
