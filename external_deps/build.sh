@@ -714,7 +714,7 @@ build_jpeg() {
 		jpeg_cmake_args+=(-DUNIX=True)
 		;;
 	esac
-		
+
 	cd "${dir_name}"
 
 	# -DHAVE_THREAD_LOCAL=0 overrides the compiler test to avoid the silly thread_local variable,
@@ -1811,7 +1811,7 @@ printHelp() {
 	    all     ${all_linux_arm64_default_packages}
 
 	EOF
-	
+
 	exit
 }
 
