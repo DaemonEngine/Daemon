@@ -1135,7 +1135,7 @@ build_naclsdk() {
 		local NACLSDK_ARCH=x86_32
 		local DAEMON_ARCH=i686
 		;;
-	*-amd64-*|macos-arm64-*|linux-riscv64-*|linux-ppc64el-*)
+	*-amd64-*|macos-arm64-*|linux-riscv64-*|linux-ppc64el-*|linux-loong64-*)
 		local NACLSDK_ARCH=x86_64
 		local DAEMON_ARCH=amd64
 		;;
@@ -1229,6 +1229,9 @@ build_naclruntime() {
 		nacl_arch_list+=('amd64')
 		;;
 	linux-ppc64el-*)
+		nacl_arch_list+=('amd64')
+		;;
+	linux-loong64-*)
 		nacl_arch_list+=('amd64')
 		;;
 	macos-amd64-*)
@@ -1580,6 +1583,8 @@ common_setup_arch() {
 		;;
 	*-ppc64el-*)
 		;;
+	*-loong64-*)
+		;;
 	*-native-*)
 		;;
 	*)
@@ -1774,6 +1779,12 @@ setup_linux-ppc64el-default() {
 	common_setup linux powerpc64le-unknown-linux-gnu
 }
 
+# Set up environment for 64-bit loongarch Linux
+setup_linux-loong64-default() {
+	setup_default
+	common_setup linux loongarch64-linux-gnu
+}
+
 # Set up environment for native host tools
 setup_native() {
 	setup_default
@@ -1833,6 +1844,9 @@ all_linux_riscv64_default_packages="${all_linux_arm64_default_packages}"
 
 base_linux_ppc64el_default_packages="${base_linux_arm64_default_packages}"
 all_linux_ppc64el_default_packages="${all_linux_arm64_default_packages}"
+
+base_linux_loong64_default_packages="${base_linux_arm64_default_packages}"
+all_linux_loong64_default_packages="${all_linux_arm64_default_packages}"
 
 all_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
 all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
@@ -1901,6 +1915,7 @@ printHelp() {
 	linux-arm64-default:
 	linux-riscv64-default:
 	linux-ppc64el-default:
+	linux-loong64-default:
 	    base    ${base_linux_arm64_default_packages}
 	    all     ${all_linux_arm64_default_packages}
 
