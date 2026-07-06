@@ -742,7 +742,7 @@ if (YOKAI_TARGET_SYSTEM_MACOS)
 endif()
 
 # Glibc-specific definitions
-if (LINUX)
+if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY)
 	# QUIRK: It does nothing when it is not needed on non-glibc Linux
 	# systems so it's harmless to always set it.
 	add_definitions(-D_FILE_OFFSET_BITS=64)
