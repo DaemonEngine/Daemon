@@ -994,8 +994,8 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
 
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    ${DEPS_DIR}/linux-armhf
-                    ${FULL_OUTPUT_DIR}/linux-armhf
+                    ${DEPS_DIR}/libs-linux-armhf
+                    ${FULL_OUTPUT_DIR}/libs-linux-armhf
             )
         endif()
 

@@ -491,8 +491,8 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	bool useBox64 = hasBox64;
 
 #if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
-	const std::string libs_linux_armhf = "linux-armhf";
-	const std::string libld_linux_armhf = "ld-linux";
+	const std::string libs_linux_armhf = "libs-linux-armhf";
+	const std::string libld_linux_armhf = "ld-linux-armhf.so.3";
 
 	std::string libsDirPath = FS::Path::Build(libPath, libs_linux_armhf);
 	std::string libLoaderPath = FS::Path::Build(libsDirPath, libld_linux_armhf);
