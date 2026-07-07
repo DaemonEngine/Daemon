@@ -140,10 +140,6 @@ class TaskList :
 	Task& BufferIDToTask( const uint16 bufferID );
 
 	private:
-	struct ThreadExecutionNode {
-		uint8 nextThreadExecutionNode;
-	};
-
 	static constexpr uint32 maxThreadTasks                = 512;
 	static constexpr uint32 dataPerTask                   = 128;
 	static constexpr uint32 maxThreadTaskData             = maxThreadTasks * dataPerTask;
@@ -155,8 +151,6 @@ class TaskList :
 	static constexpr uint16 taskAllocatedOffset           = 4;
 
 	AccessLock                        threadCountLock;
-
-	std::atomic<uint64>               threadExecutionNodes[MAX_THREADS];
 
 	static constexpr uint32           taskIDThreadOffset = 9;
 	static constexpr uint32           taskIDThreadBits   = 7;
@@ -175,7 +169,6 @@ class TaskList :
 	std::atomic<uint32>               taskWithDependenciesCount;
 
 	std::atomic<uint32>               executingThreads = 1;
-	std::atomic<bool>                 exiting          = false;
 
 	bool  AddedToTaskList( const uint8 id );
 	bool  AddedToTaskMemory( const uint8 id );

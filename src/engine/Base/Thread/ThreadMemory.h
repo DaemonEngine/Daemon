@@ -74,6 +74,7 @@ class ThreadMemory : public Allocator {
 
 	bool        main              = false;
 	bool        initialised       = false;
+	bool        shutdown          = false;
 
 	DynamicArray<ChunkAllocator> chunkAllocators[MAX_MEMORY_AREAS] { { &sysAllocator }, { &sysAllocator }, { &sysAllocator } };
 

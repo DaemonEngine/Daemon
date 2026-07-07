@@ -57,7 +57,6 @@ namespace TempAPI {
 		Q_UNUSED( destroyWindow );
 
 		taskList.Shutdown();
-		taskList.exitFence.Wait();
 		taskList.FinishShutdown();
 	}
 

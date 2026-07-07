@@ -117,21 +117,31 @@ void TaskList::Init() {
 	AdjustThreadCount( threads );
 }
 
+static void ThreadShutdown() {
+	TLM.shutdown = true;
+}
+
 void TaskList::Shutdown() {
-	if ( exiting.load( std::memory_order_relaxed ) ) {
+	if ( TLM.shutdown ) {
 		Log::WarnTag( "Shutdown() has already been called!" );
+
 		return;
 	}
 
+	AddTasks( { Task { &ThreadShutdown }.ThreadMaskAllOthers() } );
+	ThreadShutdown();
+
 	executingThreads.fetch_sub( 1, std::memory_order_relaxed );
-	exiting.store( true, std::memory_order_relaxed );
 }
 
 void TaskList::FinishShutdown() {
 	if ( !TLM.main ) {
 		Log::WarnTag( "FinishShutdown() can only be called from the main thread!" );
+
 		return;
 	}
+
+	taskList.exitFence.Wait();
 
 	for ( Thread* thread = threads; thread < threads + currentMaxThreads.load( std::memory_order_relaxed ); thread++ ) {
 		thread->Exit();
@@ -144,6 +154,7 @@ void TaskList::FinishShutdown() {
 
 	std::string debugOut;
 	debugOut.reserve( 3 * currentMaxThreads.load( std::memory_order_relaxed ) );
+
 	for ( uint32 i = 0; i < currentMaxThreads.load( std::memory_order_relaxed ); i++ ) {
 		debugOut += Str::Format( "%u ", TLM.idleThreads[i] );
 	}
@@ -400,7 +411,7 @@ void AtomicThreadRunTime::operator+=( const ThreadRunTime& other ) {
 }
 
 void TaskList::AddTaskExt( Task& task, ThreadRunTime* runTime, TaskInitList&& dependencies ) {
-	if ( exiting.load( std::memory_order_relaxed ) && !task.IsShutdownTask() ) {
+	if ( TLM.shutdown && !task.IsShutdownTask() ) {
 		return;
 	}
 
@@ -581,14 +592,15 @@ void TaskList::TaskStarted() {
 
 bool TaskList::ThreadFinished( const bool hadTask ) {
 	const uint32 threadCount = executingThreads.fetch_sub( hadTask, std::memory_order_relaxed ) - hadTask;
-	const bool   exit        = exiting.load( std::memory_order_relaxed );
 
-	if ( exit ) {
-		TLM.exitTimer.Start();
-		eventQueue.Shutdown();
+	if ( !TLM.shutdown ) {
+		return false;
 	}
 
-	if ( exit && !threadCount ) {
+	TLM.exitTimer.Start();
+	eventQueue.Shutdown();
+
+	if ( !threadCount ) {
 		if ( !taskCount.load( std::memory_order_acquire ) ) {
 			exitFence.Signal();
 
