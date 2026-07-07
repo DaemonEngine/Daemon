@@ -270,8 +270,14 @@ cmake_build() {
 		;;
 	esac
 
-	cmake_args+=(-DCMAKE_C_COMPILER="${CC}")
-	cmake_args+=(-DCMAKE_CXX_COMPILER="${CXX}")
+	if [ -n "${COMPILER_LAUNCHER}" ]
+	then
+		cmake_args+=(-DCMAKE_C_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}")
+		cmake_args+=(-DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}")
+	fi
+
+	cmake_args+=(-DCMAKE_C_COMPILER="${C_COMPILER}")
+	cmake_args+=(-DCMAKE_CXX_COMPILER="${CXX_COMPILER}")
 	cmake_args+=(-DCMAKE_C_FLAGS="${CFLAGS}")
 	cmake_args+=(-DCMAKE_CXX_FLAGS="${CXXFLAGS}")
 	cmake_args+=(-DCMAKE_EXE_LINKER_FLAGS="${LDFLAGS}")
@@ -1543,9 +1549,25 @@ common_setup() {
 	CPPFLAGS+=" -I${PREFIX}/include"
 	LDFLAGS+=" -L${PREFIX}/lib"
 
+	if command -v ccmake >/dev/null 2>&1
+	then
+		export COMPILER_LAUNCHER='ccache'
+		export CCACHE_CPP2='true'
+		export CCACHE_HASHDIR='true'
+	fi
+
+	if [ -n "${COMPILER_LAUNCHER}" ]
+	then
+		export CC="${COMPILER_LAUNCHER} ${C_COMPILER}"
+		export CXX="${COMPILER_LAUNCHER} ${CXX_COMPILER}"
+	else
+		export CC="${C_COMPILER}"
+		export CXX="${CXX_COMPILER}"
+	fi
+
 	export PATH
 	export PKG_CONFIG PKG_CONFIG_PATH
-	export CC CXX LD AR RANLIB STRIP
+	export LD AR RANLIB STRIP
 	export CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
 }
 
@@ -1606,8 +1628,8 @@ common_setup_windows() {
 common_setup_msvc() {
 	LIBS_SHARED='ON'
 	LIBS_STATIC='OFF'
-	CC="${HOST}-gcc"
-	CXX="${HOST}-g++"
+	C_COMPILER="${HOST}-gcc"
+	CXX_COMPILER="${HOST}-g++"
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
 	CFLAGS+=' -static-libgcc'
 	CXXFLAGS+=' -static-libgcc'
@@ -1615,14 +1637,14 @@ common_setup_msvc() {
 }
 
 common_setup_mingw() {
-	CC="${HOST}-gcc"
-	CXX="${HOST}-g++"
+	C_COMPILER="${HOST}-gcc"
+	CXX_COMPILER="${HOST}-g++"
 	common_setup_windows
 }
 
 common_setup_macos() {
-	CC='clang'
-	CXX='clang++'
+	C_COMPILER='clang'
+	CXX_COMPILER='clang++'
 	STRIP='strip'
 	CFLAGS+=" -arch ${MACOS_ARCH} -mmacosx-version-min=${MACOS_VERSION}"
 	CXXFLAGS+=" -arch ${MACOS_ARCH} -mmacosx-version-min=${MACOS_VERSION}"
@@ -1630,8 +1652,8 @@ common_setup_macos() {
 }
 
 common_setup_linux() {
-	CC="${HOST/-unknown-/-}-gcc"
-	CXX="${HOST/-unknown-/-}-g++"
+	C_COMPILER="${HOST/-unknown-/-}-gcc"
+	CXX_COMPILER="${HOST/-unknown-/-}-g++"
 	STRIP="${HOST/-unknown-/-}-strip"
 	CROSS_PKG_CONFIG_PATH="/usr/lib/${HOST/-unknown-/-}/pkgconfig"
 	CFLAGS+=' -fPIC'
@@ -1639,8 +1661,8 @@ common_setup_linux() {
 }
 
 common_setup_freebsd() {
-	CC='clang'
-	CXX='clang++'
+	C_COMPILER='clang'
+	CXX_COMPILER='clang++'
 	STRIP='strip'
 	CFLAGS+=" -target ${HOST}"
 	CXXFLAGS+=" -target ${HOST}"
@@ -1660,6 +1682,11 @@ setup_default() {
 	# from environment as we heavily cross-compile.
 	export CC='false'
 	export CXX='false'
+
+	export C_COMPILER='false'
+	export CXX_COMPILER='false'
+
+	export COMPILER_LAUNCHER=''
 
 	# Set defaults.
 	export LD='ld'
@@ -1803,8 +1830,8 @@ setup_freebsd-amd64-default() {
 # Set up environment for native host tools
 setup_native() {
 	setup_default
-	CC='cc'
-	CXX='c++'
+	C_COMPILER='cc'
+	CXX_COMPILER='c++'
 	common_setup native native
 }
 
