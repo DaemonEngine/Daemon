@@ -83,7 +83,7 @@ Task& Task::ThreadMaskAll() {
 }
 
 Task& Task::ThreadMaskAllOthers() {
-	return ThreadMask( UnSetBit( BitMask64( 0, TLM.currentMaxThreads ), TLM.id ) );
+	return TLM.main ? ThreadMaskAll() : ThreadMask( UnSetBit( BitMask64( 0, TLM.currentMaxThreads ), TLM.id ) );
 }
 
 Task& Task::ThreadMaskCurrent() {
