@@ -270,10 +270,8 @@ cmake_build() {
 		;;
 	esac
 
-	cmake_args+=(-DCMAKE_C_COMPILER="$(get_compiler_name ${CC})")
-	cmake_args+=(-DCMAKE_CXX_COMPILER="$(get_compiler_name ${CXX})")
-	cmake_args+=(-DCMAKE_C_COMPILER_ARG1="$(get_compiler_arg1 ${CC})")
-	cmake_args+=(-DCMAKE_CXX_COMPILER_ARG1="$(get_compiler_arg1 ${CXX})")
+	cmake_args+=(-DCMAKE_C_COMPILER="${CC}")
+	cmake_args+=(-DCMAKE_CXX_COMPILER="${CXX}")
 	cmake_args+=(-DCMAKE_C_FLAGS="${CFLAGS}")
 	cmake_args+=(-DCMAKE_CXX_FLAGS="${CXXFLAGS}")
 	cmake_args+=(-DCMAKE_EXE_LINKER_FLAGS="${LDFLAGS}")
@@ -1608,9 +1606,11 @@ common_setup_windows() {
 common_setup_msvc() {
 	LIBS_SHARED='ON'
 	LIBS_STATIC='OFF'
+	CC="${HOST}-gcc"
+	CXX="${HOST}-g++"
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	CC="${HOST}-gcc -static-libgcc"
-	CXX="${HOST}-g++ -static-libgcc"
+	CFLAGS+=' -static-libgcc'
+	CXXFLAGS+=' -static-libgcc'
 	common_setup_windows
 }
 
