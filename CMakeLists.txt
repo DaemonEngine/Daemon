@@ -77,12 +77,14 @@ endif()
 
 include(Yokai/All)
 
-include(DaemonNaclArchitecture)
+if (NOT YOKAI_TARGET_SYSTEM_NACL)
+	include(DaemonNaclArchitecture)
 
-daemon_detect_nacl_arch("${YOKAI_TARGET_ARCH_NAME}")
+	daemon_detect_nacl_arch("${YOKAI_TARGET_ARCH_NAME}")
 
-# Add printable strings to the executable.
-yokai_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${DAEMON_NACL_ARCH_NAME}\"")
+	# Add printable strings to the executable.
+	yokai_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${DAEMON_NACL_ARCH_NAME}\"")
+endif()
 
 ################################################################################
 # Configuration options
