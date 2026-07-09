@@ -95,6 +95,8 @@ class BreakpadCrashTest(Test):
                             stderr=subprocess.PIPE, check=bool(self.tprefix))
         dumps = os.listdir(PathJoin(self.dir, "crashdump"))
         assert len(dumps) == 1, dumps
+        if BREAKPAD_DIR is None:
+            return
         dump = PathJoin(self.dir, "crashdump", dumps[0])
         sw_out = PathJoin(TEMP_DIR, self.name + "_stackwalk.log")
         with open(sw_out, "a+") as sw_f:
@@ -149,7 +151,7 @@ class ModuleCrashTests(Test):
         engine = ModulePath(eng)
         assert os.path.isfile(engine), engine
 
-        if not SYMBOL_ZIPS:
+        if BREAKPAD_DIR is not None and not SYMBOL_ZIPS:
             target = ModulePath(module)
             assert os.path.isfile(target), target
             print(f"Symbolizing '{target}'...")
@@ -173,6 +175,7 @@ def ArgParser(usage=None):
                     " Otherwise, enter end-to-end mode: symbols are produced from the binaries and VM type defaults to 1 (NaCl from PWD). In this mode you will likely need to provide pak paths via --daemon-args.")
     ap.add_argument("--game-dir", type=str, default=".", help="Path to Daemon (+ gamelogic) binaries")
     ap.add_argument("--breakpad-dir", type=str, default=BREAKPAD_DIR, help=r"Path to Breakpad repo containing built dump_syms and stackwalk binaries. It may be a \\wsl.localhost\ path on Windows hosts in order to symbolize NaCl.")
+    ap.add_argument("--no-breakpad", action="store_true", help="Do not symbolize or stack-walk; only test for dump file existence")
     ap.add_argument("--give-up", action="store_true", help="Stop after first test failure")
     ap.add_argument("--nacl-arch", type=str, choices=["amd64", "i686", "armhf"], default="amd64") # TODO auto-detect?
     ap.add_argument("module", nargs="*",
@@ -191,7 +194,7 @@ ap.add_argument("--daemon-args", nargs=argparse.REMAINDER, default=[],
                 help="Extra arguments for Daemon (e.g. -pakpath)")
 pa = ap.parse_args(sys.argv[1:])
 GAME_DIR = pa.game_dir
-BREAKPAD_DIR = pa.breakpad_dir
+BREAKPAD_DIR = None if pa.no_breakpad else pa.breakpad_dir
 GIVE_UP = pa.give_up
 DAEMON_USER_ARGS = pa.daemon_args
 NACL_ARCH = pa.nacl_arch
@@ -207,9 +210,10 @@ os.makedirs(SYMBOL_DIR, exist_ok=True)
 
 if SYMBOL_ZIPS:
     print("Symbol zip(s) detected. Using release validation mode with pre-built symbols")
-    for z in SYMBOL_ZIPS:
-        with zipfile.ZipFile(PathJoin(GAME_DIR, z), 'r') as z:
-            z.extractall(SYMBOL_DIR)
+    if BREAKPAD_DIR:
+        for z in SYMBOL_ZIPS:
+            with zipfile.ZipFile(PathJoin(GAME_DIR, z), 'r') as z:
+                z.extractall(SYMBOL_DIR)
 else:
     print("No symbol zip detected. Using end-to-end Breakpad tooling test mode with dump_syms")
 
