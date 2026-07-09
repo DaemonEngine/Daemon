@@ -1275,20 +1275,45 @@ build_install() {
 # Create a redistributable package for the dependencies
 build_package() {
 	cd "${WORK_DIR}"
-	rm -f "${PKG_BASEDIR}.tar.xz"
+	rm -f "${PKG_TARBALL}"
 	local XZ_OPT='-9'
 	case "${PLATFORM}" in
 	windows-*-*)
-		tar --dereference -cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
+		tar --dereference -cvJf "${PKG_TARBALL}" "${PKG_BASEDIR}"
 		;;
 	*)
-		tar -cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
+		tar -cvJf "${PKG_TARBALL}" "${PKG_BASEDIR}"
 		;;
 	esac
 }
 
 build_wipe() {
-	rm -rf "${BUILD_BASEDIR}/" "${PKG_BASEDIR}/" "${PKG_BASEDIR}.tar.xz"
+	rm -rf "${BUILD_BASEDIR}/" "${PKG_BASEDIR}/" "${PKG_TARBALL}"
+}
+
+build_download() {
+	local upstreams=(
+		'https://dl.unvanquished.net/deps'
+		'https://dl.unvanquished.net/test/deps'
+	)
+
+	local mirrors=()
+	for upstream in "${upstreams[@]}"
+	do
+		mirrors+=("${upstream}/${PKG_TARBALL}")
+	done
+
+	download "${PKG_TARBALL}" "${mirrors[@]}"
+
+	"${download_only}" && return
+
+	rm -rf "${PKG_BASEDIR}"
+
+	extract "${PKG_TARBALL}" 'download_deps'
+	mv "${PKG_BASEDIR}" ..
+
+	cd ..
+	rmdir 'download_deps'
 }
 
 # Common setup code
@@ -1300,6 +1325,7 @@ common_setup() {
 
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
 	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
+	PKG_TARBALL="${PKG_BASEDIR}.tar.xz"
 	BUILD_BASEDIR="build-${PKG_BASEDIR}"
 	BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
 	PREFIX="${BUILD_DIR}/prefix"
@@ -1506,6 +1532,8 @@ printHelp() {
 	    install create a stripped down version of the built packages that CMake can use
 	    package create a tarball of the dependencies so they can be distributed
 	    wipe    remove products of build process, excepting download cache but INCLUDING installed files. Must be last
+	    download
+	            download and extract the prebuilt tarball like CMake does
 
 	Packages required for each platform:
 
