@@ -1113,6 +1113,24 @@ static void IN_ProcessEvents( bool dropInput )
 				{
 					std::string text = e.text.text;
 
+					/* We can get a console key as a text event after we've opened the console from a key up/down event,
+					*  in a separate execution of IN_ProcessEvents()
+					*  The key character can also be anywhere in the text
+					*  This might be an SDL bug */
+					text.erase(
+						std::remove_if( text.begin(), text.end(),
+							[]( unsigned char c ) {
+								for( const unsigned char key : Keyboard::GetConsoleKeysString() ) {
+									if ( c == key ) {
+										return true;
+									}
+								}
+
+								return false;
+							}
+						), text.end()
+					);
+
 					const char* c = text.c_str();
 					while ( *c ) {
 						int width = Q_UTF8_Width( c );

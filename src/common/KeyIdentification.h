@@ -56,7 +56,6 @@ namespace Scancode {
 class Key
 {
 public:
-public:
     enum class Kind {
         INVALID,      // No key.
         UNICODE_CHAR, // The key that types this char (layout-dependent)

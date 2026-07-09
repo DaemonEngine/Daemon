@@ -92,7 +92,7 @@ namespace Console {
         Cmd::Args args(std::string(commandStart, commandEnd));
         int argNum = args.Argc() - 1;
         std::string prefix;
-        if (!args.Argc() || Str::cisspace(GetText()[GetCursorPos() - 1])) {
+        if (!args.Argc() || !GetCursorPos() || Str::cisspace(GetText()[GetCursorPos() - 1])) {
             argNum++;
         } else {
             prefix = args.Argv(argNum);
