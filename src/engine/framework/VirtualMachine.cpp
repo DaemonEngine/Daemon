@@ -172,10 +172,15 @@ static Cvar::Cvar<bool> vm_nacl_available(
 	Cvar::ROM, vmAvailable);
 
 #if defined(DAEMON_NACL_RUNTIME_ENABLED)
+/* We were initially using 2, but loading a nexe on an emulator
+like box64 can be much longer than that.
+Also, increasing the timeout makes possible to run the game when
+stored on very slow filesystems.
+This doesn't make loading longer, it allows it to be longer. */
 static Cvar::Cvar<int> vm_timeout(
 	"vm.timeout",
 	"Receive timeout in seconds",
-	Cvar::NONE, 2);
+	Cvar::NONE, 10);
 
 static Cvar::Cvar<bool> vm_nacl_qualification(
 	"vm.nacl.qualification",
