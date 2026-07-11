@@ -58,6 +58,7 @@ class Thread :
 	std::thread baseThread;
 
 	uint32      id;
+	uint8       coreID;
 	OSThread    osThread;
 	double      maxCoreFrequencyScale = 1.0;
 

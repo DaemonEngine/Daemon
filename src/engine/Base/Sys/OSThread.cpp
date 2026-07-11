@@ -91,28 +91,6 @@ void OSThread::SetAffinity( const uint32 newCore ) {
 
 			return;
 		}
-
-		// PROCESSOR_POWER_INFORMATION, which is missing from windows headers
-		struct CPUPowerInfo {
-			ULONG Number;
-			ULONG MaxMhz;
-			ULONG CurrentMhz;
-			ULONG MhzLimit;
-			ULONG MaxIdleState;
-			ULONG CurrentIdleState;
-		};
-
-		// Set at boot for each core
-		CPUPowerInfo cpuInfo[MAX_THREADS];
-
-		NTSTATUS ret2 = CallNtPowerInformation( ProcessorInformation, nullptr, 0, cpuInfo, CPU_CORES * sizeof( CPUPowerInfo ) );
-
-		if ( ret2 ) {
-			Log::WarnTagT( "CallNtPowerInformation error: %u", ret2 );
-			baseMaxFrequency = 4600;
-		} else {
-			baseMaxFrequency = cpuInfo[core].MaxMhz;
-		}
 	#elif __linux__
 		cpu_set_t cpu;
 
@@ -160,6 +138,32 @@ static uint64 GetMinExecutionTime( const uint64 testCount ) {
 	}
 
 	return out;
+}
+
+void OSThread::SetBaseMaxFrequency() {
+	#ifdef _MSC_VER
+		// PROCESSOR_POWER_INFORMATION, which is missing from windows headers
+		struct CPUPowerInfo {
+			ULONG Number;
+			ULONG MaxMhz;
+			ULONG CurrentMhz;
+			ULONG MhzLimit;
+			ULONG MaxIdleState;
+			ULONG CurrentIdleState;
+		};
+
+		// Set at boot for each core
+		CPUPowerInfo cpuInfo[MAX_THREADS];
+
+		NTSTATUS ret2 = CallNtPowerInformation( ProcessorInformation, nullptr, 0, cpuInfo, CPU_CORES * sizeof( CPUPowerInfo ) );
+
+		if ( ret2 ) {
+			Log::WarnTagT( "CallNtPowerInformation error: %u", ret2 );
+			baseMaxFrequency = 4600;
+		} else {
+			baseMaxFrequency = cpuInfo[core].MaxMhz;
+		}
+	#endif
 }
 
 // Scale to ~4.6 GHz

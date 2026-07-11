@@ -52,6 +52,7 @@ struct OSThread {
 
 	void   Init();
 	void   SetAffinity( const uint32 core );
+	void   SetBaseMaxFrequency();
 	double GetMaxFrequencyScale();
 	Core   GetCoreInfo();
 };

@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Int.h"
 
 extern uint32 CPU_CORES;
+extern uint32 coreCount;
 extern uint64 CLOCK_PRECISION;
 
 #endif // CPU_INFO_H

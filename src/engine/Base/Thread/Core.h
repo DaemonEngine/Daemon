@@ -38,13 +38,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ThreadCommon.h"
 
 enum CoreType : uint8 {
-	CORE_UNKNOWN,
 	CORE_PERFORMANCE,
-	CORE_EFFICIENCY
+	CORE_EFFICIENCY,
+	CORE_UNKNOWN
 };
 
 struct Core {
 	CoreType type;
+	uint8    id;
 	bool     smt;
 	double   maxFrequencyScale;
 };

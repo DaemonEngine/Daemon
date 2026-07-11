@@ -78,6 +78,7 @@ class ThreadMemory : public Allocator {
 
 	DynamicArray<ChunkAllocator> chunkAllocators[MAX_MEMORY_AREAS] { { &sysAllocator }, { &sysAllocator }, { &sysAllocator } };
 
+	uint64      activeThreadMask  = 0;
 	uint32      currentMaxThreads = 0;
 
 	std::unordered_map<TaskFunction, TaskTime> taskTimes;
@@ -85,8 +86,6 @@ class ThreadMemory : public Allocator {
 	
 	Task*       tasks[maxInternalTasks];
 	uint64      tasksState        = 0;
-
-	uint32      idleThreads[256] { 0 };
 
 	GlobalTimer fetchOuterTimer;
 	GlobalTimer fetchQueueLockTimer;

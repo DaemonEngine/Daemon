@@ -57,35 +57,31 @@ void Thread::Start( const uint32 newID ) {
 }
 
 void Thread::InitCores() {
-	if ( cpu.cores[id].type == CORE_UNKNOWN ) {
-		double minScale = cpu.cores[id].maxFrequencyScale;
+	std::sort( cpu.cores, cpu.cores + CPU_CORES,
+		[]( const Core& lhs, const Core& rhs ) {
+			if ( lhs.type == rhs.type ) {
+				return lhs.maxFrequencyScale < rhs.maxFrequencyScale;
+			}
 
-		for ( const Core* core = cpu.cores; core < cpu.cores + CPU_CORES; core++ ) {
-			minScale = std::min( minScale, core->maxFrequencyScale );
+			return lhs.type < rhs.type;
 		}
+	);
 
-		for ( Core* core = cpu.cores; core < cpu.cores + CPU_CORES; core++ ) {
+	taskList.threads[coreCount].exiting            = true;
+	taskList.threads[coreCount - 1].eventScheduler = true;
+
+	for ( uint8 i = 0; i < CPU_CORES; i++ ) {
+		taskList.threads[i].coreID = cpu.cores[i].id;
+	}
+
+	double minScale = cpu.cores[0].maxFrequencyScale;
+
+	for ( Core* core = cpu.cores; core < cpu.cores + CPU_CORES; core++ ) {
+		if ( cpu.cores[0].type == CORE_UNKNOWN ) {
 			core->type = core->maxFrequencyScale / minScale < 1.015 ? CORE_PERFORMANCE : CORE_EFFICIENCY;
 		}
-	}
-	
-	bool eventSchedulerSet = false;
 
-	for ( const Core* core = cpu.cores; core < cpu.cores + CPU_CORES; core++ ) {
-		if ( core->type == CORE_PERFORMANCE ) {
-			SetBit( &cpu.performanceCores, core - cpu.cores );
-		} else {
-			SetBit( &cpu.efficiencyCores,  core - cpu.cores );
-
-			if ( !eventSchedulerSet ) {
-				taskList.threads[core - cpu.cores].eventScheduler = true;
-				eventSchedulerSet                                 = true;
-			}
-		}
-	}
-
-	if ( !eventSchedulerSet ) {
-		taskList.threads[0].eventScheduler = true;
+		SetBit( core->type == CORE_PERFORMANCE ? &cpu.performanceCores : &cpu.efficiencyCores, core - cpu.cores );
 	}
 
 	cpu.model = GetCPUModel();
@@ -100,8 +96,10 @@ void Thread::Run() {
 
 	osThread.Init();
 	osThread.SetAffinity( id );
+	osThread.SetBaseMaxFrequency();
 
 	cpu.cores[id]         = osThread.GetCoreInfo();
+	cpu.cores[id].id      = id;
 	maxCoreFrequencyScale = cpu.cores[id].maxFrequencyScale;
 
 	threadElectOne( CPU_CORES,
@@ -112,11 +110,14 @@ void Thread::Run() {
 
 	barrier( CPU_CORES );
 
+	osThread.SetAffinity( coreID );
+
 	taskList.ThreadInitialised();
 
 	total.Start();
 
 	bool fetched = false;
+	GlobalTimer testTimer;
 
 	while ( !exiting ) {
 		if ( !running ) {
@@ -255,8 +256,6 @@ void Thread::Run() {
 }
 
 void Thread::Exit() {
-	exiting = true;
-
 	baseThread.join();
 
 	Log::NoticeTag( "\nid: %u", id );

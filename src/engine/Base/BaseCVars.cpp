@@ -42,15 +42,10 @@ Cvar::Range<Cvar::Cvar<int>> e_logExtendedFunctionNames( "e_logExtendedFunctionN
 
 Cvar::Cvar<bool> e_logShowThreadID( "e_logShowThreadID", "Add thread ID to logs", Cvar::NONE, false );
 
-Cvar::Callback<Cvar::Range<Cvar::Cvar<int>>> e_threadCount( "e_threadCount", "The amount of threads Daemon-vulkan will use"
-	" (0: set to the amount of logical CPU cores)", Cvar::NONE, 0,
+Cvar::Callback<Cvar::Range<Cvar::Cvar<uint64>>> e_threadMask( "e_threadMask", "The cores Daemon-vulkan will use", Cvar::NONE, UINT64_MAX,
 	[]( int value ) {
-		if ( value == 0 ) {
-			value = CPU_CORES;
-		}
-
-		taskList.AdjustThreadCount( value );
-	}, 0, MAX_THREADS );
+		taskList.SetActiveThreads( value );
+	}, 1, UINT64_MAX );
 
 Cvar::Cvar<std::string>      e_memoryChunkConfig( "e_memoryChunkConfig",
 	"Configuration for memory chunk system: \"[chunkSize]:[chunkCount] .. [chunkSize]:[chunkCount]\", sizes are in kb."

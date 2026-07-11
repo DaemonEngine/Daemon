@@ -109,7 +109,6 @@ class TaskList :
 	friend class  Thread;
 	friend struct ThreadQueue;
 
-	std::atomic<uint32> currentMaxThreads = 0;
 	FenceMain           exitFence;
 
 	TaskList();
@@ -135,7 +134,7 @@ class TaskList :
 	void  UpdateThreadRunTime( const uint64 time );
 	void  FinishTask( Task* task );
 
-	void  AdjustThreadCount( const uint32 newMaxThreads );
+	void  SetActiveThreads( const uint64 threadMask );
 
 	Task& BufferIDToTask( const uint16 bufferID );
 
@@ -149,6 +148,8 @@ class TaskList :
 	static constexpr uint16 taskIsTrackedDependencyOffset = 2;
 	static constexpr uint16 taskDepsProcessedOffset       = 3;
 	static constexpr uint16 taskAllocatedOffset           = 4;
+
+	uint64                            coreMask;
 
 	AccessLock                        threadCountLock;
 

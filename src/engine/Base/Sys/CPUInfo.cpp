@@ -32,7 +32,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CPUInfo.h"
 
+// CPU_CORES is the actual amount of logical cores, coreCount is the amount of TaskList threads; 1 core is reserved for the main thread
 uint32 CPU_CORES = std::thread::hardware_concurrency();
+uint32 coreCount;
 
 #ifdef _MSC_VER
 	#include "Windows.h"

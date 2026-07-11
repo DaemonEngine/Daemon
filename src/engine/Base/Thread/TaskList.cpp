@@ -42,8 +42,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 TaskList taskList;
 
-static void SyncThreadCount() {
-	TLM.currentMaxThreads = taskList.currentMaxThreads.load( std::memory_order_relaxed );
+static void SyncActiveThreads( uint64* activeThreadMask ) {
+	TLM.activeThreadMask  = *activeThreadMask;
+	TLM.currentMaxThreads = CountBits( *activeThreadMask );
 }
 
 TaskList::TaskList() {
@@ -52,52 +53,23 @@ TaskList::TaskList() {
 TaskList::~TaskList() {
 }
 
-void TaskList::AdjustThreadCount( uint32 newMaxThreads ) {
-	if ( newMaxThreads > MAX_THREADS ) {
-		Log::WarnTag( "Maximum thread count exceeded: %u > %u, setting to %u",
-			newMaxThreads, MAX_THREADS, MAX_THREADS );
-		newMaxThreads = MAX_THREADS;
-	}
+void TaskList::SetActiveThreads( uint64 threadMask ) {
+	threadMask &= BitMask64( 0, coreCount );
 
-	if ( newMaxThreads == 0 ) {
+	if ( !threadMask ) {
 		Log::WarnTag( "Thread count can't be 0" );
+
 		return;
 	}
 
 	while ( !threadCountLock.LockWrite() );
 
-	// This must always be set before using ThreadMask*() on main thread
-	TLM.currentMaxThreads       = newMaxThreads;
+	// This must always be set before using ThreadMask*() on the main thread
+	SyncActiveThreads( &threadMask );
 
-	const uint32 currentThreads = currentMaxThreads.load( std::memory_order_relaxed );
-
-	if ( newMaxThreads > currentThreads ) {
-		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
-		threadInitCount.target = newMaxThreads;
-
-		for ( uint32 i = currentThreads; i < newMaxThreads; i++ ) {
-			threads[i].Start( i );
-		}
-
-		threadInitCount.Wait();
-
-		Task t { &SyncThreadCount };
-		taskList.AddTask( t.ThreadMaskAll() );
-		t.Wait();
-	} else if ( newMaxThreads < currentThreads ) {
-		currentMaxThreads.store( newMaxThreads, std::memory_order_relaxed );
-
-		taskList.AddTask( Task { &SyncThreadCount }.ThreadMaskAll() );
-
-		for ( uint32 i = newMaxThreads; i < currentThreads; i++ ) {
-			threads[i].exiting = true;
-		}
-	}
-
-	if ( !TLM.main ) {
-		taskList.AddTask( Task { &SyncThreadCount }.ThreadMaskAllOthers() );
-		SyncThreadCount();
-	}
+	Task t { &SyncActiveThreads, threadMask };
+	taskList.AddTask( t.ThreadMaskAll() );
+	t.Wait();
 
 	Log::NoticeTag( "Changed thread count to %u", TLM.currentMaxThreads );
 
@@ -112,9 +84,18 @@ void TaskList::Init() {
 	tasks.Alloc( maxThreadTasks );
 	tasksData.Alloc( maxThreadTaskData );
 
-	int threads = e_threadCount.Get();
-	threads     = threads ? threads : CPU_CORES;
-	AdjustThreadCount( threads );
+	CPU_CORES = CPU_CORES > 64 ? 64 : CPU_CORES;
+	coreCount = CPU_CORES - 1;
+	coreMask  = BitMask64( 0, coreCount );
+
+	for ( uint32 i = 0; i < CPU_CORES; i++ ) {
+		threads[i].Start( i );
+	}
+
+	threadInitCount.target = CPU_CORES;
+	threadInitCount.Wait();
+
+	SetActiveThreads( coreMask );
 }
 
 static void ThreadShutdown() {
@@ -143,7 +124,7 @@ void TaskList::FinishShutdown() {
 
 	taskList.exitFence.Wait();
 
-	for ( Thread* thread = threads; thread < threads + currentMaxThreads.load( std::memory_order_relaxed ); thread++ ) {
+	for ( Thread* thread = threads; thread < threads + CPU_CORES; thread++ ) {
 		thread->Exit();
 	}
 
@@ -151,15 +132,6 @@ void TaskList::FinishShutdown() {
 		TLM.addTimer.FormatTime( ms ), TLM.addQueueWaitTimer.FormatTime( ms ),
 		TLM.syncTimer.FormatTime( ms ),
 		TLM.unknownTaskCount );
-
-	std::string debugOut;
-	debugOut.reserve( 3 * currentMaxThreads.load( std::memory_order_relaxed ) );
-
-	for ( uint32 i = 0; i < currentMaxThreads.load( std::memory_order_relaxed ); i++ ) {
-		debugOut += Str::Format( "%u ", TLM.idleThreads[i] );
-	}
-	
-	Log::NoticeTag( debugOut );
 }
 
 bool  TaskList::AddedToTaskList( const uint8 id ) {
@@ -335,7 +307,7 @@ void TaskList::AddToThreadQueue( Task& task, ThreadRunTime* runTime ) {
 	uint64 minTime = runTime->time[0] + projectedTime * threads[0].maxCoreFrequencyScale;
 	uint8  minID   = 0;
 
-	for ( uint8 i = 1; i < CPU_CORES; i++ ) {
+	for ( uint8 i = 1; i < coreCount; i++ ) {
 		const uint64 scaledProjectedTime = projectedTime * threads[i].maxCoreFrequencyScale;
 
 		if ( runTime->time[i] + scaledProjectedTime < minTime ) {
@@ -377,21 +349,21 @@ ThreadRunTime::ThreadRunTime( const AtomicThreadRunTime& other ) {
 void ThreadRunTime::operator=( const AtomicThreadRunTime& other ) {
 	uint64 minTime = UINT64_MAX;
 
-	for ( uint32 i = 0; i < CPU_CORES; i++ ) {
+	for ( uint32 i = 0; i < coreCount; i++ ) {
 		time[i] = other.time[i].load( std::memory_order_relaxed );
 
 		minTime = time[i] < minTime ? time[i] : minTime;
 	}
 
-	for ( uint64* i = time; i < time + CPU_CORES; i++ ) {
-		*i     -= minTime;
+	for ( uint8 i = 0; i < coreCount; i++ ) {
+		time[i] -= minTime;
 	}
 }
 
 ThreadRunTime ThreadRunTime::operator-( const ThreadRunTime& other ) {
 	ThreadRunTime out;
 
-	for ( uint8 i = 0; i < CPU_CORES; i++ ) {
+	for ( uint8 i = 0; i < coreCount; i++ ) {
 		out.time[i] = time[i] - other.time[i];
 	}
 
@@ -399,13 +371,13 @@ ThreadRunTime ThreadRunTime::operator-( const ThreadRunTime& other ) {
 }
 
 void AtomicThreadRunTime::operator=( const ThreadRunTime& other ) {
-	for ( uint32 i = 0; i < CPU_CORES; i++ ) {
+	for ( uint32 i = 0; i < coreCount; i++ ) {
 		time[i].store( other.time[i], std::memory_order_relaxed );
 	}
 }
 
 void AtomicThreadRunTime::operator+=( const ThreadRunTime& other ) {
-	for ( uint32 i = 0; i < CPU_CORES; i++ ) {
+	for ( uint32 i = 0; i < coreCount; i++ ) {
 		time[i].fetch_add( other.time[i], std::memory_order_relaxed );
 	}
 }
