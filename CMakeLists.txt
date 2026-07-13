@@ -171,8 +171,10 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wno-gnu-alignof-expression)
 endif()
 
-find_package(OpenMP REQUIRED)
-link_libraries(OpenMP::OpenMP_CXX OpenMP::OpenMP_C)
+
+find_package(OpenMP)
+link_libraries(LANGUAGE CXX PUBLIC OpenMP::OpenMP_CXX)
+link_libraries(LANGUAGE C PUBLIC OpenMP::OpenMP_C)
 
 if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "GNU|AppleClang")
 	if( NOT CMAKE_BUILD_OPTLEVEL )
