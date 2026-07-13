@@ -238,7 +238,7 @@ if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "GNU|AppleClang")
 	add_compile_options(-Wno-unused-result)
 	add_compile_options(-Wno-unused-variable)
 	add_compile_options(-Wno-unused-but-set-variable)
-	add_compile_options(-Wunreachable-code)		# Warn about unreachable code paths
+	#	add_compile_options(-Wunreachable-code)		# Warn about unreachable code paths
 	add_compile_options(-fpermissive)
 	add_compile_options(-ffunction-sections)	# Put each function in its own section
 	add_compile_options(-fdata-sections)		# Put each variable in its own section
@@ -261,7 +261,7 @@ else (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
 	add_compile_options(/Zc:preprocessor)
 	add_compile_options(/W4)
 	add_compile_options(/Z7)
-	add_compile_options(/w14702)				# Force C4702 (Unreachable code) to be a Level 1 Warning
+	#	add_compile_options(/w14702)				# Force C4702 (Unreachable code) to be a Level 1 Warning
 	add_compile_options(/wd4996)
 	add_compile_options(/wd4244)
 	add_compile_options(/wd4113)
@@ -821,11 +821,16 @@ if (BUILD_CLIENT OR YOKAI_TARGET_SYSTEM_WINDOWS)
 
     find_package(SDL3 REQUIRED CONFIG)
     message(STATUS "Found SDL3 ${SDL3_VERSION}: ${SDL3_DIR}")
-
     if (YOKAI_TARGET_SYSTEM_WINDOWS)
         set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} SDL3::SDL3)
+	if(SDL3_MAIN_LIBRARY OR SDL_MAIN_LIBRARY)
+		set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} SDL3::SDL3main)
+	endif()
     else()
         set(LIBS_CLIENT ${LIBS_CLIENT} SDL3::SDL3)
+	if(SDL3_MAIN_LIBRARY OR SDL_MAIN_LIBRARY)
+		set(LIBS_CLIENT ${LIBS_CLIENT} SDL3::SDL3main)
+	endif()
     endif()
 endif()
 
