@@ -45,18 +45,27 @@ set(MSVC_INCREMENTAL_DEFAULT ON)
 # Enable the creation of project folders for Visual Studio projects
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-project(Daemon C CXX)
+project(Daemon LANGUAGES C CXX)
+
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_EXTENSIONS ON)
+set(CMAKE_C_STANDARD_REQUIRED OFF)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_EXTENSIONS ON)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Default to Release builds. To use system CFLAGS only (for distro builds), set CMAKE_BUILD_TYPE to None
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif()
 
-# On Mac, default to x86_64 unless user requests something else
-if (NOT CMAKE_OSX_ARCHITECTURES)
-    set(CMAKE_OSX_ARCHITECTURES x86_64)
+if(NOT CMAKE_GENERATOR MATCHES "^Visual Studio")
+include(GNUInstallDirs)
+include(FindPkgConfig)
 endif()
 
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 # FIXME: this reports an unused architecture if only vms are built.
 # We may not be able to avoid this for now without doing a huge rewrite
 # of this file.
@@ -81,12 +90,23 @@ include(DaemonNaclHost)
 ################################################################################
 # Configuration options
 ################################################################################
+option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" ON)
+option(USE_STATIC_LIBS "Tries to use static libs where possible. Only works for Linux" OFF)
+
+option(BUILD_TESTS "Build unit test applications" OFF)
+
+option(USE_HARDENING "Use stack protection and other hardening flags" OFF)
+option(USE_WERROR "Tell the compiler to make the build fail when warnings are present" OFF)
+option(USE_PEDANTIC "Tell the compiler to be pedantic" OFF)
+option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" OFF)
+option(USE_ADDRESS_SANITIZER "Try to use the address sanitizer" OFF)
+option(BE_VERBOSE "Tell the compiler to report all warnings" OFF)
 
 if(NOT DAEMON_EXTERNAL_APP)
     option(BUILD_CLIENT "Engine client executable, required to play" ON)
     option(BUILD_SERVER "Engine server executable, required to host servers" ON)
     option(BUILD_TTY_CLIENT "Engine client with no graphical display" ON)
-    option(BUILD_DUMMY_APP "Stripped-down engine executable, mostly used to ease incremental porting and debugging" OFF)
+    option(BUILD_DUMMY_APP "Stripped-down engine executable, mostly used to ease incremental porting and debugging" ON)
     mark_as_advanced(BUILD_DUMMY_APP)
 
     set(NACL_RUNTIME_PATH "" CACHE STRING "Directory containing the NaCl binaries")
@@ -115,25 +135,6 @@ if(NOT DAEMON_EXTERNAL_APP)
     option(USE_BREAKPAD "Generate Daemon crash dumps (which require Breakpad tools to read)" OFF)
 endif()
 
-option(BUILD_TESTS "Build unit test applications" OFF)
-
-option(USE_LTO "Use link-time optimization for release builds" OFF)
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL GNU)
-    option(USE_SLIM_LTO "Generate slim LTO objects, improves build times" OFF)
-endif()
-option(USE_HARDENING "Use stack protection and other hardening flags" OFF)
-option(USE_WERROR "Tell the compiler to make the build fail when warnings are present" OFF)
-option(USE_PEDANTIC "Tell the compiler to be pedantic" OFF)
-option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" ON)
-option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" ON)
-option(USE_ADDRESS_SANITIZER "Try to use the address sanitizer" OFF)
-option(BE_VERBOSE "Tell the compiler to report all warnings" OFF)
-option(USE_STATIC_LIBS "Tries to use static libs where possible. Only works for Linux" OFF)
-
-if (NOT DAEMON_PARENT_SCOPE_DIR)
-    option(BUILD_DUMMY_GAMELOGIC "Build dummy cgame" OFF)
-endif()
-
 # Game VM modules are built with a recursive invocation of CMake, by which all the configuration
 # options are lost, except ones we explicitly choose to pass.
 set(DEFAULT_NACL_VM_INHERITED_OPTIONS
@@ -156,6 +157,130 @@ set(DEFAULT_NACL_VM_INHERITED_OPTIONS
 set(NACL_VM_INHERITED_OPTIONS "${DEFAULT_NACL_VM_INHERITED_OPTIONS}" CACHE STRING
     "Semicolon-separated list of options for which NaCl game VMs should use the same value as the other binaries")
 mark_as_advanced(NACL_VM_INHERITED_OPTIONS)
+
+
+if (NOT DAEMON_PARENT_SCOPE_DIR)
+	option(BUILD_DUMMY_GAMELOGIC "Build dummy cgame" OFF)
+endif()
+
+add_compile_definitions(_FILE_OFFSET_BITS=64)
+add_compile_definitions($<$<CONFIG:Debug>:DEBUG=1> $<$<NOT:$<CONFIG:Debug>>:NDEBUG=1>)
+add_compile_definitions($<$<CONFIG:Debug>:_DEBUG=1> $<$<NOT:$<CONFIG:Debug>>:_NDEBUG=1>)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wno-gnu-alignof-expression)
+endif()
+
+find_package(OpenMP REQUIRED)
+link_libraries(OpenMP::OpenMP_CXX OpenMP::OpenMP_C)
+
+if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "GNU|AppleClang")
+	if( NOT CMAKE_BUILD_OPTLEVEL )
+		set( CMAKE_BUILD_OPTLEVEL 3 CACHE STRING "Choose the optimization level." FORCE )
+	endif()
+	add_compile_options(-O${CMAKE_BUILD_OPTLEVEL})
+	if (NOT CMAKE_CROSSCOMPILING)
+		add_compile_options(-march=native)
+
+		if (${SYSTEM_PROCESSOR_UPPER} MATCHES "X64|X86_64|AMD64")
+			add_compile_options(-mfpmath=sse)
+			if (NOT CMAKE_OSX_ARCHITECTURES)
+				set(CMAKE_OSX_ARCHITECTURES x86_64)
+			endif()
+		endif()
+		if (${SYSTEM_PROCESSOR_UPPER} MATCHES "PPC|POWERPC|PPC64|PPC64LE")
+			if (NOT CMAKE_OSX_ARCHITECTURES)
+				set(CMAKE_OSX_ARCHITECTURES ${CMAKE_SYSTEM_PROCESSOR})
+			endif()
+			include(CheckCXXSourceCompiles)
+
+			set(CMAKE_REQUIRED_FLAGS "-maltivec")
+			check_cxx_source_compiles("#include <altivec.h> int main() { vector int v = (vector int){0}; return 0; }" HAVE_ALTIVEC)
+
+			if(HAVE_ALTIVEC)
+				add_compile_options(-maltivec)
+			endif()
+		endif()
+	endif()
+	add_compile_options(-ftree-vectorize)
+	add_compile_options(${OPENMP_CXX_FLAGS})
+	if(NOT CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "AppleClang")
+		add_compile_options(-fopenmp-simd)
+	endif()
+	add_compile_options(-fno-asynchronous-unwind-tables)
+	if (CMAKE_BUILD_TYPE MATCHES Debug)
+		add_compile_options(-g)
+	else()
+		option(USE_LTO "Use link-time optimization for release builds" ON)
+		option(USE_SLIM_LTO "Generate slim LTO objects, improves build times" ON)
+		# Use IPO/LTO if available
+		if(USE_LTO AND NOT ${CMAKE_VERSION} VERSION_LESS "3.9.0")
+			cmake_policy(SET CMP0069 NEW)
+			include(CheckIPOSupported)
+			check_ipo_supported(RESULT result)
+			if(result)
+				set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+				message(STATUS "Using IPO/LTO.")
+			endif()
+			if(USE_SLIM_LTO)
+			endif()
+		endif()
+	endif()
+	add_compile_options(-Wall)
+	add_compile_options(-Wextra)
+	add_compile_options(-Wno-write-strings)
+	add_compile_options(-Wno-unused-result)
+	add_compile_options(-Wno-unused-variable)
+	add_compile_options(-Wno-unused-but-set-variable)
+	add_compile_options(-Wunreachable-code)		# Warn about unreachable code paths
+	add_compile_options(-fpermissive)
+	add_compile_options(-ffunction-sections)	# Put each function in its own section
+	add_compile_options(-fdata-sections)		# Put each variable in its own section
+	if (CMAKE_BUILD_TYPE MATCHES ReleaseStrip)
+		add_link_options(-Wl,--gc-sections)
+		add_link_options(-Wl,-s)
+	endif()
+	link_libraries(m)
+	if (WIN32 AND MINGW)
+		link_libraries(mingw32)
+	endif()
+else (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+	if( NOT CMAKE_BUILD_OPTLEVEL )
+		set( CMAKE_BUILD_OPTLEVEL 2 CACHE STRING "Choose the optimization level." FORCE )
+	endif()
+	add_compile_options(/O${CMAKE_BUILD_OPTLEVEL})
+	add_compile_options(/openmp:experimental)
+	add_compile_options(/Zc:__cplusplus)
+	add_compile_options(/std:c++23)
+	add_compile_options(/Zc:preprocessor)
+	add_compile_options(/W4)
+	add_compile_options(/Z7)
+	add_compile_options(/w14702)				# Force C4702 (Unreachable code) to be a Level 1 Warning
+	add_compile_options(/wd4996)
+	add_compile_options(/wd4244)
+	add_compile_options(/wd4113)
+	add_compile_options(/wd4047)
+	add_compile_options(/wd4024)
+	add_compile_options(/Gy)					# Function-level linking (puts each function in its own section)
+	add_compile_options(/Gw)					# Optimize global data (puts each variable in its own section)
+	if (NOT CMAKE_CROSSCOMPILING)
+		add_compile_definitions(_CRT_SECURE_NO_WARNINGS _WIN32)
+		if (CMAKE_VS_PLATFORM_NAME MATCHES "x64|Win32")
+			add_compile_options(/Gv)
+		endif()
+	endif()
+	if (CMAKE_BUILD_TYPE MATCHES ReleaseStrip)
+		add_link_options(/DEBUG:NONE)
+		add_link_options(/OPT:REF)				# Eliminate unreferenced functions and data
+		add_link_options(/VERBOSE:REF)			# Print out everything the linker throws away
+	endif()
+	if (CMAKE_BUILD_TYPE MATCHES Debug)
+		add_compile_options(/Zi)
+		add_link_options(/DEBUG:FULL)
+	endif()
+	add_link_options(/INCREMENTAL:NO)
+	link_libraries(ws2_32 winmm)
+endif()
 
 ################################################################################
 # Directories
@@ -618,12 +743,12 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     if (USE_CURSES)
         if (USE_CURSES_NCURSES)
             # Tells FindCurses that ncurses is required.
-            set(CURSES_NEED_NCURSES 1)
-
+	    set(CURSES_NEED_NCURSES TRUE)
+	    set(CURSES_NEED_WIDE TRUE)
             add_definitions(-DUSE_CURSES -DUSE_CURSES_NCURSES)
-            find_package(CursesW REQUIRED)
-            set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${CURSESW_LIBRARIES})
-            include_directories(${CURSESW_INCLUDE_DIR})
+	    find_package(Curses REQUIRED)
+            include_directories(${CURSES_INCLUDE_DIR})
+	    set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${CURSES_LIBRARIES})
         else ()
             if (YOKAI_TARGET_SYSTEM_WINDOWS)
                 set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} gdi32 comdlg32)
@@ -689,7 +814,7 @@ if (BUILD_CLIENT OR YOKAI_TARGET_SYSTEM_WINDOWS)
     endif()
 
     find_package(SDL3 REQUIRED CONFIG)
-    message("Found SDL3 ${SDL3_VERSION}: ${SDL3_DIR}")
+    message(STATUS "Found SDL3 ${SDL3_VERSION}: ${SDL3_DIR}")
 
     if (YOKAI_TARGET_SYSTEM_WINDOWS)
         set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} SDL3::SDL3)
