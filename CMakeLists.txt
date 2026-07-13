@@ -173,10 +173,10 @@ endif()
 
 find_package(OpenMP)
 if(OpenMP_FOUND)
-	include_directories(LANGUAGE CXX OpenMP::OpenMP_CXX)
-	include_directories(LANGUAGE C OpenMP::OpenMP_C)
-	link_libraries(LANGUAGE CXX PUBLIC OpenMP::OpenMP_CXX)
-	link_libraries(LANGUAGE C PUBLIC OpenMP::OpenMP_C)
+	include_directories(OpenMP::OpenMP_CXX)
+	include_directories(OpenMP::OpenMP_C)
+	link_libraries(OpenMP::OpenMP_CXX)
+	link_libraries(OpenMP::OpenMP_C)
 endif()
 
 
