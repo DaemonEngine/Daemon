@@ -197,8 +197,8 @@ function(GAMEMODULE)
 
 		set(INHERITED_OPTION_ARGS)
 
-		foreach(inherited_option ${NACL_VM_INHERITED_OPTIONS})
-			set(INHERITED_OPTION_ARGS ${INHERITED_OPTION_ARGS}
+		foreach(inherited_option IN LISTS NACL_VM_INHERITED_OPTIONS GAME_NACL_VM_INHERITED_OPTIONS)
+			list(APPEND INHERITED_OPTION_ARGS
 				"-D${inherited_option}=${${inherited_option}}")
 		endforeach(inherited_option)
 
