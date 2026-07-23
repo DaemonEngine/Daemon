@@ -24,60 +24,74 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-function(daemon_detect_nacl_arch)
-	set(target_arch "${YOKAI_TARGET_ARCH_NAME}")
-	set(nacl_arch "${target_arch}")
+function(daemon_detect_nacl_arch target_arch)
+	macro(add_nacl_arch arch_name)
+		list(APPEND nacl_arch_list "${arch_name}")
+	endmacro()
 
-	if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY OR YOKAI_TARGET_SYSTEM_XDG_COMPATIBILITY)
+	# NaCl runtime is only available on architectures that have a NaCl loader.
+	set(nacl_runtime_arch "amd64" "i686" "armhf")
+
+	if (YOKAI_TARGET_SYSTEM_WINDOWS)
+		if("${target_arch}" STREQUAL "amd64")
+			add_nacl_arch("${target_arch}")
+		elseif("${target_arch}" STREQUAL "i686")
+			# Win32 requires nacl_loader-amd64.exe in order to run on Win64
+			add_nacl_arch("${target_arch}")
+			add_nacl_arch("amd64")
+		endif()
+	elseif (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY OR YOKAI_TARGET_SYSTEM_XDG_COMPATIBILITY)
+		if ("${target_arch}" IN_LIST nacl_runtime_arch)
+			add_nacl_arch("${target_arch}")
+		endif()
+
 		set(armhf_usage "arm64" "armel")
-		set(box64_usage "ppc64el" "riscv64")
+		set(box64_usage "arm64" "ppc64el" "riscv64" "loong64")
 
 		if ("${target_arch}" IN_LIST armhf_usage)
+			set(DAEMON_NACL_MULTIARCH ON)
+
 			# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
 			# The nexe is system agnostic so there should be no difference with armel.
-			set(nacl_arch "armhf")
-		elseif ("${target_arch}" IN_LIST box64_usage)
+			add_nacl_arch("armhf")
+		endif()
+
+		if ("${target_arch}" IN_LIST box64_usage)
 			option(DAEMON_NACL_BOX64_EMULATION "Use Box64 to emulate x86_64 NaCl loader on unsupported platforms" ON)
+
 			if (DAEMON_NACL_BOX64_EMULATION)
 				# Use Box64 to run x86_64 NaCl loader and amd64 nexe.
 				# Box64 must be installed and available in PATH at runtime.
-				set(nacl_arch "amd64")
+				add_nacl_arch("amd64")
 				add_definitions(-DDAEMON_NACL_BOX64_EMULATION)
 			endif()
 		endif()
 	elseif (YOKAI_TARGET_SYSTEM_MACOS)
-		if ("${target_arch}" STREQUAL "arm64")
+		if ("${target_arch}" STREQUAL "amd64")
+			add_nacl_arch("${target_arch}")
+		elseif ("${target_arch}" STREQUAL "arm64")
 			# You can get emulated NaCl going like this:
 			# cp external_deps/macos-amd64-default_10/{nacl_loader,irt_core-amd64.nexe} build/
-			set(nacl_arch "amd64")
+			add_nacl_arch("amd64")
 		endif()
 	endif()
 
-	string(TOUPPER "${nacl_arch}" nacl_arch_upper)
+	if (nacl_arch_list)
+		message(STATUS "Available NaCl architectures: ${nacl_arch_list}")
 
-	# NaCl runtime is only available on architectures that have a NaCl loader.
-	set(nacl_runtime_arch "amd64" "i686" "armhf")
-	if ("${nacl_arch}" IN_LIST nacl_runtime_arch)
-		message(STATUS "Detected NaCl architecture: ${nacl_arch}")
+		list(GET nacl_arch_list 0 nacl_arch)
+
+		message(STATUS "Primary NaCl architecture: ${nacl_arch}")
 
 		add_definitions(-DDAEMON_NACL_RUNTIME_ENABLED)
 	else()
 		set(nacl_arch "unknown")
 
-		message(STATUS "No NaCl architecture detected")
+		message(STATUS "No known NaCl architecture")
 	endif()
 
 	# The DAEMON_NACL_ARCH_NAME variable contributes to the nexe file name.
 	set(DAEMON_NACL_ARCH_NAME "${nacl_arch}" PARENT_SCOPE)
-
-	set(DAEMON_NACL_ARCH_NAME_UPPER "${nacl_arch_upper}" PARENT_SCOPE)
+	# Those names are used to copy the loader and the IRT binaries.
+	set(DAEMON_NACL_ARCH_NAME_LIST "${nacl_arch_list}" PARENT_SCOPE)
 endfunction()
-
-daemon_detect_nacl_arch()
-
-# Makes possible to do that in CMake code:
-# > if (DAEMON_NACL_ARCH_ARMHF)
-set("DAEMON_NACL_ARCH_${DAEMON_NACL_ARCH_NAME_UPPER}" ON)
-
-# Add printable strings to the executable.
-yokai_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${DAEMON_NACL_ARCH_NAME}\"")
