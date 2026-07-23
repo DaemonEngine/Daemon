@@ -52,11 +52,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Timer.h"
 
-uint64 NsToMs( const uint64 time ) {
+uint64 NsToUs( const uint64 time ) {
 	return time / 1000;
 }
 
-uint64 NsToUs( const uint64 time ) {
+uint64 NsToMs( const uint64 time ) {
 	return time / 1000000;
 }
 
