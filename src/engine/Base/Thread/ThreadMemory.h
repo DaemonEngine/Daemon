@@ -87,6 +87,8 @@ class ThreadMemory : public Allocator {
 	TaskID      tasks[maxInternalTasks];
 	uint64      tasksState        = 0;
 
+	uint16      taskInvocationID;
+
 	GlobalTimer fetchOuterTimer;
 	GlobalTimer fetchQueueLockTimer;
 

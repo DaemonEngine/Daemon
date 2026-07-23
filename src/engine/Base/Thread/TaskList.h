@@ -94,14 +94,14 @@ class TaskList :
 	byte*    GetTaskData( const uint64 offset );
 
 	void     AddTasksExt( std::initializer_list<TaskInitList> dependencies );
-	TaskEnv* FetchTask();
+	TaskID   FetchTask();
 
 	TaskEnv* InitTaskEnv( Task* task );
 
 	void     TaskWait( const Task& task );
 
 	void     TasksCleared( const uint32 count );
-	void     TaskStarted();
+	void     TaskStarted( const uint16 count );
 	bool     ThreadFinished( const bool hadTask );
 
 	void     UpdateThreadRunTime( const uint64 time );
@@ -139,6 +139,7 @@ class TaskList :
 	std::atomic<uint32>               executingThreads = 1;
 
 	bool     AddedToTaskList( const Task& task );
+	bool     IsProcessed( const Task& task );
 	bool     IsUpdatedDependency( const Task& task );
 
 	void     AddToThreadQueue( const Task& task, ThreadRunTime* runTime );

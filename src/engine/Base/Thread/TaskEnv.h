@@ -59,7 +59,8 @@ struct TaskEnv {
 	TaskFunction       Execute;
 
 	uint16             dataOffsets[4]           { 0 };
-	uint64             pad                    = 0;
+	uint16             count                  = 1;
+	uint32             pad                    = 0;
 	// 40 bits for task data so it supports up to ~207 days with 1024 tasks with 64 byte args per frame on average @ 60 FPS
 	uint32             dataOffset             = 0;
 	uint8              dataOffset2            = 0;
@@ -98,6 +99,7 @@ struct TaskEnv {
 	void               operator=( const TaskEnv& other );
 
 	TaskEnv&           Delay( const uint64 delay );
+	TaskEnv&           MultiTask( const uint16 newCount );
 
 	TaskEnv&           ThreadMask( const uint64 newThreadMask );
 	TaskEnv&           ThreadMaskAll();

@@ -38,6 +38,8 @@ struct TaskID {
 	static constexpr uint16 idNone = UINT16_MAX;
 
 	uint16 bufferID = idNone;
+	uint16 count    = 1;
+	uint16 base     = 0;
 
 	TaskEnv& GetEnv() const;
 };

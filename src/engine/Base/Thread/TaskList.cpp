@@ -140,6 +140,10 @@ bool  TaskList::AddedToTaskList( const Task& task ) {
 	return BitSet( task.flags, Task::offsetAdded );
 }
 
+bool  TaskList::IsProcessed( const Task& task ) {
+	return BitSet( task.flags, Task::offsetProcessed );
+}
+
 bool  TaskList::IsUpdatedDependency( const Task& task ) {
 	return BitSet( task.flags, Task::offsetProcessedDeps );
 }
@@ -256,7 +260,32 @@ void TaskList::AddToThreadQueue( const Task& task, ThreadRunTime* runTime ) {
 		return;
 	}
 
-	taskCount.fetch_add( 1, std::memory_order_relaxed );
+	taskCount.fetch_add( env.count, std::memory_order_relaxed );
+
+	// For now just schedule multitasks evenly
+	if ( env.count > 1 ) {
+		const uint16 packetSize = env.count / coreCount;
+		uint16       extra      = env.count - packetSize * coreCount;
+		uint16       base       = 0;
+
+		for ( uint8 i = 0; i < coreCount; i++ ) {
+			const uint16 threadPacketSize = packetSize + ( extra ? 1 : 0 );
+
+			runTime->time[i] += projectedTime * threads[i].maxCoreFrequencyScale * threadPacketSize;
+			threadQueues[i].AddTask( i,
+				{
+					.bufferID = task.bufferID,
+					.count    = threadPacketSize,
+					.base     = base
+				}
+			);
+
+			base += threadPacketSize;
+			extra = extra ? extra - 1 : 0;
+		}
+
+		return;
+	}
 
 	if ( projectedTime < TLM.addToQueueTimer.Time() / TLM.addToQueueCount && !TLM.main ) {
 		threadQueues[TLM.id].AddTask( TLM.id, { task.bufferID } );
@@ -278,7 +307,6 @@ void TaskList::AddToThreadQueue( const Task& task, ThreadRunTime* runTime ) {
 	}
 
 	runTime->time[minID] += projectedTime * threads[minID].maxCoreFrequencyScale;
-
 	threadQueues[minID].AddTask( minID, { task.bufferID } );
 
 	TLM.addToQueueCount++;
@@ -458,23 +486,23 @@ void TaskList::AddTasksExt( std::initializer_list<TaskInitList> dependencies ) {
 	}
 }
 
-TaskEnv* TaskList::FetchTask() {
+TaskID TaskList::FetchTask() {
 	ThreadQueue& threadQueue = threadQueues[TLM.id];
 	uint8        current     = threadQueue.current;
 	TaskID       task        = threadQueue.tasks[current];
 
 	if ( task.bufferID == TaskID::idNone ) {
-		return nullptr;
+		return {};
 	}
 
 	threadQueue.tasks[current] = {};
 	threadQueue.current        = ( current + 1 ) % ThreadQueue::maxTasks;
 
-	return &task.GetEnv();
+	return task;
 }
 
 void TaskList::TaskWait( const Task& task ) {
-	if ( !AddedToTaskList( task ) ) {
+	if ( !IsProcessed( task ) ) {
 		Log::WarnTag( "Tried to wait for a non-added task" );
 
 		return;
@@ -487,10 +515,10 @@ void TaskList::TasksCleared( const uint32 count ) {
 	taskCount.fetch_sub( count, std::memory_order_relaxed );
 }
 
-void TaskList::TaskStarted() {
+void TaskList::TaskStarted( const uint16 count ) {
 	executingThreads.fetch_add( 1, std::memory_order_relaxed );
 
-	taskCount.fetch_sub( 1, std::memory_order_relaxed );
+	taskCount.fetch_sub( count, std::memory_order_relaxed );
 }
 
 bool TaskList::ThreadFinished( const bool hadTask ) {

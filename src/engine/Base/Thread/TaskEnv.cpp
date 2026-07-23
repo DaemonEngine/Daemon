@@ -54,6 +54,18 @@ TaskEnv& TaskEnv::Delay( const uint64 delay ) {
 	return *this;
 }
 
+TaskEnv& TaskEnv::MultiTask( const uint16 newCount ) {
+	if ( !newCount ) {
+		Log::Warn( "Task count cannot be 0!" );
+
+		return *this;
+	}
+
+	count = newCount;
+
+	return *this;
+}
+
 TaskEnv& TaskEnv::ThreadMask( const uint64 newThreadMask ) {
 	threadMask = newThreadMask;
 
@@ -167,6 +179,8 @@ byte* TaskEnv::GetArgMemory( const uint32 arg ) {
 void TaskEnv::operator=( const TaskEnv& other ) {
 	Execute            = other.Execute;
 	complete           = other.complete;
+
+	count              = other.count;
 
 	dataOffset         = other.dataOffset;
 	dataOffset2        = other.dataOffset2;

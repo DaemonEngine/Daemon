@@ -131,18 +131,18 @@ void Thread::Run() {
 			eventQueue.Rotate();
 		}
 
+		Timer fetching;
+
 		TaskID localTask = TLM.FetchTask();
 
 		if ( localTask.bufferID != TaskID::idNone ) {
 			task = &localTask.GetEnv();
+		} else {
+			localTask = taskList.FetchTask();
+			task      = localTask.bufferID == TaskID::idNone ? nullptr : &localTask.GetEnv();
 		}
 
-		Timer fetching;
-
-		if ( !task ) {
-			task = taskList.FetchTask();
-			fetching.Stop();
-		}
+		fetching.Stop();
 
 		if ( task ) {
 			fetchTask += fetching.Time();
@@ -171,32 +171,34 @@ void Thread::Run() {
 
 		fetchIdleTimer.Stop();
 
-		taskList.TaskStarted();
+		taskList.TaskStarted( localTask.count );
 
 		Timer t;
 		executing.Start();
 
-		switch ( task->GetArgCount() ) {
-			case 4:
-				( ( TaskFunction4 ) task->Execute )( task->GetArgMemory( 0 ), task->GetArgMemory( 1 ), task->GetArgMemory( 2 ),
-					task->GetArgMemory( 3 ) );
-				break;
+		for ( TLM.taskInvocationID = localTask.base; TLM.taskInvocationID < localTask.count + localTask.base; TLM.taskInvocationID++ ) {
+			switch ( task->GetArgCount() ) {
+				case 4:
+					( ( TaskFunction4 ) task->Execute )( task->GetArgMemory( 0 ), task->GetArgMemory( 1 ), task->GetArgMemory( 2 ),
+						task->GetArgMemory( 3 ) );
+					break;
 
-			case 3:
-				( ( TaskFunction3 ) task->Execute )( task->GetArgMemory( 0 ), task->GetArgMemory( 1 ), task->GetArgMemory( 2 ) );
-				break;
+				case 3:
+					( ( TaskFunction3 ) task->Execute )( task->GetArgMemory( 0 ), task->GetArgMemory( 1 ), task->GetArgMemory( 2 ) );
+					break;
 
-			case 2:
-				( ( TaskFunction2 ) task->Execute )( task->GetArgMemory( 0 ), task->GetArgMemory( 1 ) );
-				break;
+				case 2:
+					( ( TaskFunction2 ) task->Execute )( task->GetArgMemory( 0 ), task->GetArgMemory( 1 ) );
+					break;
 
-			case 1:
-				task->Execute( task->GetArgMemory( 0 ) );
-				break;
+				case 1:
+					task->Execute( task->GetArgMemory( 0 ) );
+					break;
 
-			case 0:
-				task->Execute( nullptr );
-				break;
+				case 0:
+					task->Execute( nullptr );
+					break;
+			}
 		}
 
 		executing.Stop();

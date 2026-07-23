@@ -125,6 +125,7 @@ struct Task {
 	bool  operator!=( const Task& other );
 
 	Task& Delay( const uint64 delay );
+	Task& MultiTask( const uint16 count );
 
 	Task& ThreadMask( const uint64 newThreadMask );
 	Task& ThreadMaskAll();
@@ -321,7 +322,8 @@ struct TaskInitList {
 	}
 };
 
-void AddTasksExt( std::initializer_list<TaskInitList> dependencies );
+void   AddTasksExt( std::initializer_list<TaskInitList> dependencies );
+uint16 GetTaskInvocationID();
 
 #define AddTasks( ... ) AddTasksExt( { __VA_ARGS__ } )
 

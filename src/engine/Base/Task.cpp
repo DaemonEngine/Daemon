@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Thread/TaskEnv.h"
 #include "Thread/TaskList.h"
+#include "Thread/ThreadMemory.h"
 
 #include "Task.h"
 
@@ -62,6 +63,12 @@ bool Task::operator!=( const Task& other ) {
 
 Task& Task::Delay( const uint64 delay ) {
 	GetEnv().Delay( delay );
+
+	return *this;
+}
+
+Task& Task::MultiTask( const uint16 count ) {
+	GetEnv().MultiTask( count );
 
 	return *this;
 }
@@ -137,4 +144,8 @@ TaskInitList::TaskInitList( std::initializer_list<TaskProxy> list ) :
 
 void AddTasksExt( std::initializer_list<TaskInitList> dependencies ) {
 	taskList.AddTasksExt( dependencies );
+}
+
+uint16 GetTaskInvocationID() {
+	return TLM.taskInvocationID;
 }
