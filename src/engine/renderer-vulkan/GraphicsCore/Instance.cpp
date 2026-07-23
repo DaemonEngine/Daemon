@@ -77,10 +77,10 @@ void Instance::Init( const char* engineName, const char* appName ) {
 	vkEnumerateInstanceExtensionProperties( nullptr, &extCount, availableExtensions.memory );
 
 	DynamicArray<const char*> extensions;
-	extensions.Resize( count + capabilityPackMinimal.requiredInstanceExtensions.size );
+	extensions.Resize( count + capabilityPackMinimal.requiredInstanceExtensions.Size() );
 	memcpy( extensions.memory, sdlext, count * sizeof( const char* ) );
 	memcpy( extensions.memory + count, capabilityPackMinimal.requiredInstanceExtensions.memory,
-		capabilityPackMinimal.requiredInstanceExtensions.size * sizeof( const char* ) );
+		capabilityPackMinimal.requiredInstanceExtensions.Size() * sizeof( const char* ) );
 
 	uint32 layerCount;
 	vkEnumerateInstanceLayerProperties( &layerCount, nullptr );

@@ -33,28 +33,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <initializer_list>
 
+#include "Sys/Type.h"
 #include "Int.h"
 #include "IteratorSeq.h"
 
-template<typename T, uint64 newSize>
+template<typename T, uint32 size>
 struct Array {
-	const uint64 size = newSize;
-    T            memory[newSize];
+    T            memory[size];
 
-	constexpr Array() {
+	constexpr uint32 Size() const {
+		return size;
 	}
 
-	constexpr Array( std::initializer_list<T> args ) {
-		for ( uint64 i = 0; i < args.size(); i++ ) {
-			memory[i] = args.begin()[i];
-		}
+	constexpr T& operator[]( const uint32 index ) {
+		return memory[index];
 	}
 
-	constexpr uint64 Size() const {
-		return newSize;
-	}
-
-	constexpr T& operator[]( const uint64 index ) {
+	constexpr T& operator[]( const uint32 index ) const {
 		return memory[index];
 	}
 
@@ -67,15 +62,21 @@ struct Array {
 	}
 
 	constexpr IteratorSeq<const T> begin() const {
-		return IteratorSeq<const T>{ &memory[0] };
+		return IteratorSeq<const T> { &memory[0] };
 	}
 
 	constexpr IteratorSeq<const T> end() const {
-		return IteratorSeq<const T>{ &memory[size] };
+		return IteratorSeq<const T> { &memory[size] };
 	}
 };
 
 template<typename T, typename... Args>
-Array( T, Args... args ) -> Array<T, sizeof...( args ) + 1>;
+Array( T, Args... args ) -> Array<
+	switchType<isSame<T, const char*>, T, const char*>,
+	sizeof...( args ) + 1
+>;
+
+template<uint32 size, typename... Args>
+Array( const char(&)[size], Args... args ) -> Array<const char*, sizeof...( args ) + 1>;
 
 #endif // ARRAY_H

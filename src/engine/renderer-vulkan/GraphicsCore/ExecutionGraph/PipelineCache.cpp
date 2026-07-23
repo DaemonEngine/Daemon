@@ -204,7 +204,7 @@ bool BuildGraphicsNode( const uint32 SPIRVIDVertex, const uint32 SPIRVIDFragment
 	};
 
 	VkPipelineDynamicStateCreateInfo dynamicStatesInfo {
-		.dynamicStateCount = ( uint32 ) dynamicStates.size,
+		.dynamicStateCount = ( uint32 ) dynamicStates.Size(),
 		.pDynamicStates    = dynamicStates.memory
 	};
 

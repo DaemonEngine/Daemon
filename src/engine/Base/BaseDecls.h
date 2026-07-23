@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct AlignedAtomicUint32;
 struct AlignedAtomicUint64;
 
-template<typename T, uint64 newSize>
+template<typename T, uint32 size>
 struct Array;
 
 template<typename T>
