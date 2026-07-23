@@ -46,4 +46,15 @@ struct AccessLock {
 	void operator=( const AccessLock& other );
 };
 
+struct AccessLockRecursive {
+	uint64     acquired  = 0;
+	uint8      callDepth = 0;
+	AccessLock lock;
+
+	bool Lock();
+	bool LockWrite();
+	bool Unlock();
+	void UnlockWrite();
+};
+
 #endif // ACCESS_LOCK_H

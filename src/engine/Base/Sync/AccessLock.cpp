@@ -28,6 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
+#include "Thread/ThreadMemory.h"
+#include "Bit.h"
+
 #include "AccessLock.h"
 
 bool AccessLock::Lock() {
@@ -55,6 +58,7 @@ bool AccessLock::LockWrite() {
 
 	if ( current != 1 ) {
 		UnlockWrite();
+
 		return false;
 	}
 
@@ -67,4 +71,39 @@ void AccessLock::UnlockWrite() {
 
 void AccessLock::operator=( const AccessLock& other ) {
 	value = other.value.load( std::memory_order_relaxed );
+}
+
+bool AccessLockRecursive::Lock() {
+	return lock.Lock();
+}
+
+bool AccessLockRecursive::LockWrite() {
+	if ( BitSet( acquired, TLM.id ) ) {
+		callDepth++;
+
+		return true;
+	}
+
+	bool success = lock.LockWrite();
+
+	if ( success ) {
+		SetBit( &acquired, TLM.id );
+		callDepth++;
+	}
+
+	return success;
+}
+
+bool AccessLockRecursive::Unlock() {
+	return lock.Unlock();
+}
+
+void AccessLockRecursive::UnlockWrite() {
+	callDepth--;
+
+	if ( !callDepth ) {
+		UnSetBit( &acquired, TLM.id );
+
+		lock.UnlockWrite();
+	}
 }
