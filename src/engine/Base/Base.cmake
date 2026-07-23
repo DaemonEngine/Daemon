@@ -55,6 +55,7 @@ set( sysList
     ${engineBase}/Sys/OSThread.h
     ${engineBase}/Sys/PDH.cpp
     ${engineBase}/Sys/PDH.h
+    ${engineBase}/Sys/Type.h
     ${engineBase}/Sys/Windows.h
 )
 
@@ -65,9 +66,10 @@ set( threadList
     ${engineBase}/Thread/EventQueue.h
     ${engineBase}/Thread/GlobalMemory.cpp
     ${engineBase}/Thread/GlobalMemory.h
-    ${engineBase}/Thread/Task.cpp
-    ${engineBase}/Thread/Task.h
-    ${engineBase}/Thread/TaskData.h
+    ${engineBase}/Thread/TaskEnv.cpp
+    ${engineBase}/Thread/TaskEnv.h
+    ${engineBase}/Thread/TaskID.cpp
+    ${engineBase}/Thread/TaskID.h
     ${engineBase}/Thread/TaskList.cpp
     ${engineBase}/Thread/TaskList.h
     ${engineBase}/Thread/Thread.cpp
@@ -96,6 +98,8 @@ set( engineBaseList
     ${engineBase}/Int.h
     ${engineBase}/Parser.cpp
     ${engineBase}/Parser.h
+    ${engineBase}/Task.cpp
+    ${engineBase}/Task.h
     ${engineBase}/Timer.cpp
     ${engineBase}/Timer.h
     ${engineBase}/Version.cpp

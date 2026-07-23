@@ -85,7 +85,7 @@ void InitGraphicsEngine() {
 	Task initExecCmdTask { &InitExecCmdPools };
 	Task initCmdTask     { &InitCmdPools };
 
-	taskList.AddTasks( { initExecCmdTask.ThreadMaskAllOthers() }, { initCmdTask.ThreadMaskAllOthers() } );
+	AddTasks( { initExecCmdTask.ThreadMaskAllOthers() }, { initCmdTask.ThreadMaskAllOthers() } );
 
 	initExecCmdTask.Wait();
 
@@ -96,5 +96,5 @@ void InitGraphicsEngine() {
 	Task engineDispatchInit { &EngineDispatchInit };
 	Task engineDispatch     { &EngineDispatch };
 
-	taskList.AddTasks( { engineDispatch, engineDispatchInit } );
+	AddTasks( { engineDispatch, engineDispatchInit } );
 }

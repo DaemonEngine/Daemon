@@ -44,6 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "../RefAPI.h"
 
+#include "Task.h"
+
 SDL_Window* window;
 
 Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen( "r_fullscreen", "Fullscreen", Cvar::ARCHIVE, true );
@@ -133,7 +135,7 @@ namespace TempAPI {
 			Task task2{ &TestPrint };
 			Task task3{ &TestPrint };
 
-			taskList.AddTasks( { task3, task1, task2 } );
+			AddTasks( { task3, task1, task2 } );
 		}
 	}
 
@@ -146,10 +148,10 @@ namespace TempAPI {
 		Task task3{ &TestPrint };
 		Task task4{ &TestPrint };
 
-		taskList.AddTask( task1 );
-		taskList.AddTask( task2, { task1 } );
-		taskList.AddTask( task3, { task1 } );
-		taskList.AddTask( task4, { task2 } );
+		AddTasks( { task1 } );
+		AddTasks( { task2, { task1 } } );
+		AddTasks( { task3, { task1 } } );
+		AddTasks( { task4, { task2 } } );
 
 		Task baseTask1{ &TestPrint2 };
 		Task baseTask2{ &TestPrint3 };
@@ -161,7 +163,7 @@ namespace TempAPI {
 		Task task13{ &TestPrint3 };
 		Task task14{ &TestPrint };
 
-		taskList.AddTasks(
+		AddTasks(
 			{ task11, baseTask1, baseTask2 },
 			{ task12, baseTask1, baseTask3, task3, task4 },
 			{ task13, task11, task12 },
@@ -170,7 +172,7 @@ namespace TempAPI {
 
 		static int cnt = 30;
 		Task task20{ &TestRecursive, cnt };
-		taskList.AddTask( task20 );
+		AddTasks( { task20 } );
 
 		return true;
 	}

@@ -43,5 +43,8 @@ template<typename T>
 class DynamicArray;
 
 struct Core;
+struct Task;
+struct TaskEnv;
+struct TaskID;
 
 #endif // BASE_DECLS_H

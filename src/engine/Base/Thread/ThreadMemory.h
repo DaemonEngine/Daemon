@@ -38,12 +38,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DynamicArray.h"
 #include "MemoryChunk.h"
 #include "SysAllocator.h"
+#include "Task.h"
 #include "Timer.h"
 
+#include "TaskID.h"
 #include "ThreadCommon.h"
 #include "TLMAllocator.h"
-
-#include "Task.h"
 
 struct AllocationRecord {
 	static constexpr uint64 HEADER_MAGIC = 0xACC0500D66666666;
@@ -84,7 +84,7 @@ class ThreadMemory : public Allocator {
 	std::unordered_map<TaskFunction, TaskTime> taskTimes;
 	uint64      unknownTaskCount  = 0;
 	
-	Task*       tasks[maxInternalTasks];
+	TaskID      tasks[maxInternalTasks];
 	uint64      tasksState        = 0;
 
 	GlobalTimer fetchOuterTimer;
@@ -108,8 +108,8 @@ class ThreadMemory : public Allocator {
 
 	void         FreeAllChunks();
 
-	void         AddTask( Task* task );
-	Task*        FetchTask();
+	void         AddTask( const TaskID& task );
+	TaskID       FetchTask();
 
 	private:
 	ChunkRecord* IDToChunkRecord( const uint8 level, const uint8 area, const uint8 chunk );

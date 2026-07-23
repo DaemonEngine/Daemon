@@ -35,30 +35,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TaskList.h"
 #include "ThreadMemory.h"
 
-#include "Task.h"
+#include "TaskEnv.h"
 
-Task::Task() :
-	id( SetBit( 0u, 15 ) ) {
-	SetValid( true );
+TaskEnv::TaskEnv() {
 }
 
-Task::Task( const Task& other ) {
+TaskEnv::TaskEnv( const TaskEnv& other ) {
 	*this = other;
 }
 
-const Task& Task::operator*() {
-	return *this;
-}
-
-const Task* Task::operator->() const {
-	return this;
-}
-
-constexpr Task& Task::GetTask() {
-	return *this;
-}
-
-Task& Task::Delay( const uint64 delay ) {
+TaskEnv& TaskEnv::Delay( const uint64 delay ) {
 	if ( IsShutdownTask() ) {
 		Log::Warn( "Shutdown tasks may not be delayed! (task: %s, delay: %u)", Execute, delay );
 	} else {
@@ -68,35 +54,25 @@ Task& Task::Delay( const uint64 delay ) {
 	return *this;
 }
 
-Task& Task::ThreadMask( const uint64 newThreadMask ) {
+TaskEnv& TaskEnv::ThreadMask( const uint64 newThreadMask ) {
 	threadMask = newThreadMask;
-
-	if ( !threadMask ) {
-		SetValid( false );
-	}
 
 	return *this;
 }
 
-Task& Task::ThreadMaskAll() {
+TaskEnv& TaskEnv::ThreadMaskAll() {
 	return ThreadMask( BitMask64( 0, TLM.currentMaxThreads ) );
 }
 
-Task& Task::ThreadMaskAllOthers() {
+TaskEnv& TaskEnv::ThreadMaskAllOthers() {
 	return TLM.main ? ThreadMaskAll() : ThreadMask( UnSetBit( BitMask64( 0, TLM.currentMaxThreads ), TLM.id ) );
 }
 
-Task& Task::ThreadMaskCurrent() {
+TaskEnv& TaskEnv::ThreadMaskCurrent() {
 	return ThreadMask( SetBit( 0ull, TLM.id ) );
 }
 
-void Task::Wait() {
-	if ( IsValid() ) {
-		taskList.TaskWait( *this );
-	}
-}
-
-void Task::ExecuteDestructors() {
+void TaskEnv::ExecuteDestructors() {
 	uint8  destructors = argsMap & 255;
 	uint32 offset      = 0;
 
@@ -111,52 +87,50 @@ void Task::ExecuteDestructors() {
 	}
 }
 
-bool Task::IsValid() {
-	return BitSet(  flags,  validOffset );
-}
-
-bool Task::IsActive() {
+bool TaskEnv::IsActive() {
 	return BitSet(  flags,  activeOffset );
 }
 
-bool Task::IsShutdownTask() {
+bool TaskEnv::IsShutdownTask() {
 	return BitSet(  flags,  shutdownOffset );
 }
 
-uint8 Task::GetArgCount() {
+uint8 TaskEnv::GetArgCount() {
 	return GetBits( flags, argCountOffset, 3 );
 }
 
-void Task::SetValid(  const bool valid ) {
-	valid  ? SetBit( &flags, validOffset )  : UnSetBit( &flags, validOffset );
-}
-
-void Task::SetActive( const bool active ) {
+void TaskEnv::SetActive( const bool active ) {
 	active ? SetBit( &flags, activeOffset ) : UnSetBit( &flags, activeOffset );
 }
 
-uint32 Task::RemapArg( const uint32 arg ) {
+uint32 TaskEnv::RemapArg( const uint32 arg ) {
 	return GetBits( argsMap, arg * argMapArgSize + argMapArgOffset, argMapArgSize );
 }
 
-uint64 Task::GetDataOffset() {
+uint64 TaskEnv::GetDataOffset() {
 	return SetBits( ( uint64 ) dataOffset, ( uint64 ) dataOffset2, 32, 8 );
 }
 
-uint32 Task::SetArgsMap( Arg* start, Arg* end ) {
+uint32 TaskEnv::SetArgsMap( Arg* start, Arg* end ) {
 	uint32 size = 0;
 
 	for ( Arg* arg = start; arg < end; arg++ ) {
-		if ( arg > start ) {
-			dataOffsets[arg - start] = size;
-		}
+		const uint32 argOffset = size;
 
 		size = PAD( size, arg->alignment ) + arg->size;
 		SetBits( &argsMap, arg - start, arg->id * argMapArgSize + argMapArgOffset, argMapArgSize );
 
+		if ( arg > start ) {
+			dataOffsets[RemapArg( arg - start )] = argOffset;
+		}
+
 		if ( arg->hasDestructor ) {
 			SetBit( &argsMap, arg->id );
 		};
+	}
+
+	for ( Arg* arg = start; arg < end; arg++ ) {
+		dataOffsets[RemapArg( arg - start )] += CountBits( argsMap & argMapMask ) * sizeof( DestructorFunction );
 	}
 
 	SetBits( &flags, end - start, argCountOffset, 3 );
@@ -164,8 +138,8 @@ uint32 Task::SetArgsMap( Arg* start, Arg* end ) {
 	return CountBits( argsMap & argMapMask ) * sizeof( DestructorFunction ) + PAD( size, 8 );
 }
 
-byte* Task::InitMemory( Arg* start, Arg* end ) {
-	SetValid( true );
+byte* TaskEnv::InitMemory( Arg* start, Arg* end, TaskFunction execute, uint64* dataOffsetsOut ) {
+	Execute = execute;
 
 	std::sort( start, end,
 		[]( const Arg& lhs, const Arg& rhs ) {
@@ -176,19 +150,21 @@ byte* Task::InitMemory( Arg* start, Arg* end ) {
 	uint32 dataSize = SetArgsMap( start, end );
 
 	uint64 offset;
-	byte* data  = AllocTaskData( dataSize, &offset );
+	byte*  data     = taskList.AllocTaskData( dataSize, &offset );
 
-	dataOffset  = GetBits( offset, 0, 32 );
-	dataOffset2 = GetBits( offset, 32, 8 );
+	dataOffset      = GetBits( offset, 0, 32 );
+	dataOffset2     = GetBits( offset, 32, 8 );
+
+	memcpy( dataOffsetsOut, dataOffsets, sizeof( uint64 ) );
 
 	return data;
 }
 
-byte* Task::GetArgMemory( const uint32 arg ) {
-	return taskList.GetTaskData( GetDataOffset() ) + dataOffsets[RemapArg( arg )];
+byte* TaskEnv::GetArgMemory( const uint32 arg ) {
+	return taskList.GetTaskData( GetDataOffset() ) + dataOffsets[arg];
 }
 
-void Task::operator=( const Task& other ) {
+void TaskEnv::operator=( const TaskEnv& other ) {
 	Execute            = other.Execute;
 	complete           = other.complete;
 
@@ -196,7 +172,6 @@ void Task::operator=( const Task& other ) {
 	dataOffset2        = other.dataOffset2;
 
 	flags              = other.flags;
-	id                 = other.id;
 
 	bufferID           = other.bufferID;
 
@@ -209,16 +184,8 @@ void Task::operator=( const Task& other ) {
 	forwardTaskCounter = other.forwardTaskCounter;
 	threadCount        = other.threadCount;
 
-	memcpy( dataOffsets,  other.dataOffsets,  maxArgCount     * sizeof( uint16 ) );
-	memcpy( forwardTasks, other.forwardTasks, maxForwardTasks * sizeof( uint16 ) );
+	memcpy( dataOffsets,  other.dataOffsets,  Task::maxArgCount * sizeof( uint16 ) );
+	memcpy( forwardTasks, other.forwardTasks, maxForwardTasks   * sizeof( uint16 ) );
 
 	argsMap            = other.argsMap;
-}
-
-TaskProxy::TaskProxy( Task& newTask ) :
-	task( newTask ) {
-}
-
-Task* TaskProxy::operator->() const {
-	return &task;
 }

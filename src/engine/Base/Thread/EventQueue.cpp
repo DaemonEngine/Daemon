@@ -30,29 +30,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Int.h"
 
+#include "TaskEnv.h"
 #include "TaskList.h"
+#include "ThreadMemory.h"
 
 #include "EventQueue.h"
 
-EventRing::EventResult EventRing::AddTask( Task& task ) {
-	uint64 targetTime = task.time;
-	uint32 sector     = ( targetTime - currentTime ) / granularity;
+EventRing::EventResult EventRing::AddTask( Task&& task, const uint64 targetTime ) {
+	uint32 sector = ( targetTime - currentTime ) / granularity;
 
-	// We took too long to add this to the EventQueue, and the task needs to be executed already
+	// This shouldn't happen unless the eventScheduler thread is far behind, which causes currentTime to differ too much from TimeNs()
 	if ( sector >= sectors ) {
 		return EVENT_EXPIRED;
 	}
 
-	sector            = ( ( sector > 0 ? sector - 1 : sector ) + currentSector ) & sectorMask;
-
-	uint32 eventID    = FindLZeroBit( allocatedEvents[sector] );
+	sector         = ( ( sector > 0 ? sector - 1 : sector ) + currentSector ) & sectorMask;
+	uint32 eventID = FindLZeroBit( allocatedEvents[sector] );
 
 	if ( eventID == 64 ) {
 		return EVENT_FAIL;
 	}
 
 	SetBit( &allocatedEvents[sector], eventID );
-	events[sector][eventID] = task;
+	events[sector][eventID] = std::move( task );
 
 	return EVENT_SUCCESS;
 }
@@ -64,7 +64,7 @@ void EventRing::Rotate() {
 		uint64* sector = &allocatedEvents[( currentSector + count ) & sectorMask];
 
 		for ( uint32 eventID = FindLSB( *sector ); eventID != 64; eventID = FindLSB( *sector ) ) {
-			taskList.AddTask( events[( currentSector + count ) & sectorMask][eventID] );
+			AddTasks( { events[( currentSector + count ) & sectorMask][eventID] } );
 			UnSetBit( sector, eventID );
 		}
 
@@ -77,43 +77,39 @@ void EventRing::Rotate() {
 	}
 }
 
-void EventQueue::AddTask( Task& task ) {
-	const uint64 time          = TimeNs();
-	const uint64 delay         = time <= task.time ? task.time - time : 0;
+bool EventQueue::AddTask( Task&& task ) {
+	const uint64           time       = TimeNs();
+	const uint64           targetTime = task.GetEnv().time;
+	const uint64           delay      = time <= targetTime ? targetTime - time : 0;
 
-	EventRing::EventResult res = EventRing::EVENT_FAIL;
+	EventRing::EventResult res        = EventRing::EVENT_FAIL;
 
-	if ( delay ) {
-		for ( EventRing& eventRing : eventRings ) {
-			if ( delay <= eventRing.granularity * EventRing::sectors ) {
-				while ( !eventRing.lock.LockWrite() );
+	if ( !delay ) {
+		return false;
+	}
 
-				res = eventRing.AddTask( task );
+	for ( EventRing& eventRing : eventRings ) {
+		if ( delay <= eventRing.granularity * EventRing::sectors ) {
+			while ( !eventRing.lock.LockWrite() );
 
-				eventRing.lock.UnlockWrite();
+			res = eventRing.AddTask( std::move( task ), targetTime );
 
+			eventRing.lock.UnlockWrite();
+
+			if ( res == EventRing::EVENT_SUCCESS ) {
 				break;
 			}
 		}
-	} else {
-		taskList.AddTask( task, {} );
-
-		return;
 	}
 
 	switch ( res ) {
 		case EventRing::EVENT_SUCCESS:
-			return;
+			return true;
 		case EventRing::EVENT_FAIL:
-			task.time = 0;
-			taskList.AddTask( task, {} );
-
-			return;
 		case EventRing::EVENT_EXPIRED:
-			task.time = 0;
-			taskList.AddTask( task, {} );
+			task.GetEnv().time = 0;
 
-			return;
+			return false;
 	}
 }
 
@@ -135,15 +131,15 @@ void EventQueue::Shutdown() {
 	uint32 count = 0;
 
 	for ( EventRing& eventRing : eventRings ) {
-		if ( eventRing.lock.LockWrite() ) {
-			for ( uint64 sector : eventRing.allocatedEvents ) {
-				count += CountBits( sector );
-			}
+		while ( !eventRing.lock.LockWrite() );
 
-			memset( eventRing.allocatedEvents, 0, EventRing::sectors * sizeof( uint64 ) );
-
-			eventRing.lock.UnlockWrite();
+		for ( uint64 sector : eventRing.allocatedEvents ) {
+			count += CountBits( sector );
 		}
+
+		memset( eventRing.allocatedEvents, 0, EventRing::sectors * sizeof( uint64 ) );
+
+		eventRing.lock.UnlockWrite();
 	}
 
 	exiting.store( true, std::memory_order_relaxed );

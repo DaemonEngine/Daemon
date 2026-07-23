@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SrcDebug/Tag.h"
 #include "MemoryChunkSystem.h"
 #include "Error.h"
+#include "Task.h"
 
 #include "ThreadMemory.h"
 
@@ -243,7 +244,7 @@ void ThreadMemory::PrintChunkInfo( ChunkRecord* memoryChunk, const uint8 level, 
 	}
 }
 
-void ThreadMemory::AddTask( Task* task ) {
+void ThreadMemory::AddTask( const TaskID& task ) {
 	const uint32 taskID = FindLZeroBit( tasksState );
 
 	if ( taskID == 64 ) {
@@ -252,19 +253,19 @@ void ThreadMemory::AddTask( Task* task ) {
 		return;
 	}
 
-	tasks[taskID]       = task;
+	tasks[taskID] = task;
 	SetBit( &tasksState, taskID );
 }
 
-Task* ThreadMemory::FetchTask() {
+TaskID ThreadMemory::FetchTask() {
 	const uint32 taskID = FindLSB( tasksState );
 
 	if ( taskID == 64 ) {
-		return nullptr;
+		return {};
 	}
 
-	Task* task          = tasks[taskID];
-	tasks[taskID]       = nullptr;
+	TaskID task        = tasks[taskID];
+	tasks[taskID]      = {};
 	UnSetBit( &tasksState, taskID );
 
 	return task;

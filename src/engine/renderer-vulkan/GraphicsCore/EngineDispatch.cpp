@@ -30,8 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <unordered_map>
 
-#include "Thread/TaskList.h"
 #include "DynamicArray.h"
+#include "Task.h"
 #include "Timer.h"
 
 #include "../Surface/Surface.h"
@@ -245,5 +245,5 @@ void EngineDispatch() {
 	GetQueueByType( COMPUTE ).executionPhase.Wait( start );
 
 	Task engineDispatch { &EngineDispatch };
-	taskList.AddTask( engineDispatch.Delay( 1000_us ) );
+	AddTasks( { engineDispatch.Delay( 1000_us ) } );
 }

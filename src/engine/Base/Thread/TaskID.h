@@ -28,11 +28,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef TASK_DATA_H
-#define TASK_DATA_H
+#ifndef TASK_ID_H
+#define TASK_ID_H
 
 #include "Int.h"
+#include "BaseDecls.h"
 
-byte* AllocTaskData( const uint16 dataSize, uint64* offset );
+struct TaskID {
+	static constexpr uint16 idNone = UINT16_MAX;
 
-#endif // TASK_DATA_H
+	uint16 bufferID = idNone;
+
+	TaskEnv& GetEnv() const;
+};
+
+#endif // TASK_ID_H

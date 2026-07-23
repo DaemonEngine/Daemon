@@ -28,74 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 =============================================================================
 */
 
-#ifndef THREAD_H
-#define THREAD_H
+#include "TaskList.h"
 
-#include <thread>
+#include "TaskID.h"
 
-#include "SrcDebug/Tag.h"
-#include "Sys/OSThread.h"
-#include "Int.h"
-#include "Timer.h"
-
-#include "Task.h"
-
-struct TaskTime;
-
-class Thread :
-	public Tag {
-	public:
-	     Thread();
-	     ~Thread();
-
-	void Start( const uint32 newID );
-	void Run();
-	void Exit();
-
-	private:
-	friend class TaskList;
-
-	std::thread baseThread;
-
-	uint32      id;
-	uint8       coreID;
-	OSThread    osThread;
-	double      maxCoreFrequencyScale = 1.0;
-
-	bool        eventScheduler        = false;
-
-	uint64      runTime;
-
-	TaskEnv*    task;
-
-	bool        running               = true;
-	bool        exiting               = false;
-
-	GlobalTimer total;
-	GlobalTimer actual;
-	GlobalTimer fetchIdleTimer;
-	uint64      fetchTask             = 0;
-	uint64      fetchIdle             = 0;
-	GlobalTimer idle;
-	GlobalTimer executing;
-	GlobalTimer dependencyTimer;
-
-	uint64      fetchQueueLock;
-	uint64      fetchOuter;
-
-	uint64      addQueueWait;
-
-	uint64      taskAdd;
-	uint64      taskSync;
-
-	uint64      taskFetchNone          = 0;
-	uint64      taskFetchActual        = 0;
-
-	uint64      exitTime;
-
-	std::unordered_map<TaskFunction, TaskTime> taskTimes;
-
-	void InitCores();
-};
-
-#endif // THREAD_H
+TaskEnv& TaskID::GetEnv() const {
+	return taskList.BufferIDToTask( bufferID );
+}

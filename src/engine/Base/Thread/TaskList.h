@@ -36,52 +36,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RingBufferArray.h"
 #include "SysAllocator.h"
 
+#include "TaskEnv.h"
+#include "TaskID.h"
 #include "Thread.h"
 #include "ThreadCommon.h"
 
 #include "Task.h"
 
-using TaskInit = std::initializer_list<TaskProxy>;
-#define AddTasks( ... ) AddTasksExt( { __VA_ARGS__ } )
-
 // Use this for task dependencies because it allows natvis visualisation
-struct TaskInitList {
-	const TaskProxy* start;
-	const TaskProxy* end;
-
-	TaskInitList() :
-		start( nullptr ),
-		end( nullptr ) {
-	}
-
-	TaskInitList( const TaskProxy* newStart, const TaskProxy* newEnd ) :
-		start( newStart ),
-		end( newEnd ) {
-	}
-
-	TaskInitList( std::initializer_list<TaskProxy> list ) :
-		start( list.begin() ),
-		end( list.end() ) {
-	}
-};
 
 struct ThreadQueue {
 	std::atomic<uint64> pointer = 0;
 	uint8               current = 0;
 
-	static constexpr uint16 TASK_NONE = UINT16_MAX;
 	static constexpr uint32 maxTasks  = 59;
 
-	uint16 tasks[maxTasks] { TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
-		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
-		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
-		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
-		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
-		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
-		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE,
-		TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE, TASK_NONE };
+	TaskID tasks[maxTasks] {};
 
-	void AddTask( const uint32 threadID, const uint16 bufferID );
+	void AddTask( const uint32 threadID, const TaskID& task );
 };
 
 struct AtomicThreadRunTime;
@@ -109,45 +81,40 @@ class TaskList :
 	friend class  Thread;
 	friend struct ThreadQueue;
 
-	FenceMain           exitFence;
+	FenceMain exitFence;
 
-	TaskList();
-	~TaskList();
+	         TaskList();
+	         ~TaskList();
 
-	void  Init();
-	void  Shutdown();
-	void  FinishShutdown();
+	void     Init();
+	void     Shutdown();
+	void     FinishShutdown();
 
-	byte* AllocTaskData( const uint16 dataSize, uint64* offset );
-	byte* GetTaskData( const uint64 offset );
+	byte*    AllocTaskData( const uint16 dataSize, uint64* offset );
+	byte*    GetTaskData( const uint64 offset );
 
-	void  AddTask( Task& task, std::initializer_list<TaskProxy> dependencies = {} );
-	void  AddTasksExt( std::initializer_list<TaskInitList> dependencies );
-	Task* FetchTask();
+	void     AddTasksExt( std::initializer_list<TaskInitList> dependencies );
+	TaskEnv* FetchTask();
 
-	void  TaskWait( Task& task );
+	TaskEnv* InitTaskEnv( Task* task );
 
-	void  TasksCleared( const uint32 count );
-	void  TaskStarted();
-	bool  ThreadFinished( const bool hadTask );
+	void     TaskWait( const Task& task );
 
-	void  UpdateThreadRunTime( const uint64 time );
-	void  FinishTask( Task* task );
+	void     TasksCleared( const uint32 count );
+	void     TaskStarted();
+	bool     ThreadFinished( const bool hadTask );
 
-	void  SetActiveThreads( const uint64 threadMask );
+	void     UpdateThreadRunTime( const uint64 time );
+	void     FinishTask( TaskEnv* task );
 
-	Task& BufferIDToTask( const uint16 bufferID );
+	void     SetActiveThreads( const uint64 threadMask );
+
+	TaskEnv& BufferIDToTask( const uint16 bufferID );
 
 	private:
 	static constexpr uint32 maxThreadTasks                = 512;
 	static constexpr uint32 dataPerTask                   = 128;
 	static constexpr uint32 maxThreadTaskData             = maxThreadTasks * dataPerTask;
-
-	static constexpr uint16 taskAddedOffset               = 0;
-	static constexpr uint16 taskHasUntrackedDepsOffset    = 1;
-	static constexpr uint16 taskIsTrackedDependencyOffset = 2;
-	static constexpr uint16 taskDepsProcessedOffset       = 3;
-	static constexpr uint16 taskAllocatedOffset           = 4;
 
 	uint64                            coreMask;
 
@@ -156,7 +123,7 @@ class TaskList :
 	static constexpr uint32           taskIDThreadOffset = 9;
 	static constexpr uint32           taskIDThreadBits   = 7;
 
-	AtomicRingBufferArray<Task>       tasks     { "GlobalTaskMemory",     &sysAllocator };
+	AtomicRingBufferArray<TaskEnv>    tasks     { "GlobalTaskMemory",     &sysAllocator };
 	AtomicRingBufferArray<byte, true> tasksData { "GlobalTaskDataMemory", &sysAllocator };
 
 	AtomicThreadRunTime               threadRunTime;
@@ -171,24 +138,17 @@ class TaskList :
 
 	std::atomic<uint32>               executingThreads = 1;
 
-	bool  AddedToTaskList( const uint8 id );
-	bool  AddedToTaskMemory( const uint8 id );
-	bool  HasUntrackedDeps( const uint8 id );
-	bool  IsTrackedDependency( const uint8 id );
-	bool  IsUpdatedDependency( const uint8 id );
+	bool     AddedToTaskList( const Task& task );
+	bool     IsUpdatedDependency( const Task& task );
 
-	void  AddToThreadQueue( Task& task, ThreadRunTime* runTime );
+	void     AddToThreadQueue( const Task& task, ThreadRunTime* runTime );
 
-	Task* GetTaskMemory( Task& task );
+	void     AddTaskExt( Task& task, ThreadRunTime* runTime );
 
-	void  ResolveDependencies( Task& task, TaskInitList& dependencies );
+	void     MarkDependencies( const Task& task, const TaskInitList& dependencies );
+	void     UnMarkDependencies( const TaskInitList& dependencies );
 
-	void  AddTaskExt( Task& task, ThreadRunTime* runTime, TaskInitList&& dependencies = {} );
-
-	void  MarkDependencies( Task& task, TaskInitList&& dependencies );
-	void  UnMarkDependencies( TaskInitList&& dependencies );
-
-	void  ThreadInitialised();
+	void     ThreadInitialised();
 };
 
 extern TaskList taskList;

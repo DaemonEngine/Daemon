@@ -30,12 +30,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <atomic>
 
-#include "Thread/TaskList.h"
 #include "Thread/ThreadMemory.h"
 #include "Sys/MemoryInfo.h"
 #include "Bit.h"
 #include "DynamicArray.h"
 #include "Parser.h"
+#include "Task.h"
 
 #include "../Vulkan.h"
 
@@ -509,7 +509,7 @@ void ExecutionGraph::Build( const QueueType newType, const uint64 newGenID, Dyna
 
 		const uint32 cmdPoolID = GetBits( expected, cmdBits, cmdPoolBits );
 
-		taskList.AddTask( cmdBufferResetTask.ThreadMask( SetBit( 0u, cmdPoolID ) ) );
+		AddTasks( { cmdBufferResetTask.ThreadMask( SetBit( 0u, cmdPoolID ) ) } );
 
 		lastExecLock.UnlockWrite();
 	}

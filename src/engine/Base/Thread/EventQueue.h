@@ -33,12 +33,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Array.h"
 #include "AccessLock.h"
+#include "Timer.h"
 
 #include "Task.h"
 
 struct EventRing {
-	static constexpr uint32 sectors    = 8;
-	static constexpr uint32 sectorMask = 7;
+	static constexpr uint32 sectors    = 16;
+	static constexpr uint32 sectorMask = 15;
 	static constexpr uint32 sectorSize = 64;
 
 	enum EventResult {
@@ -47,7 +48,7 @@ struct EventRing {
 		EVENT_EXPIRED
 	};
 
-	AccessLock lock;
+	AccessLockRecursive lock;
 
 	uint64     currentTime;
 	uint64     granularity;
@@ -57,7 +58,7 @@ struct EventRing {
 	Task       events[sectors][sectorSize] {};
 	uint64     allocatedEvents[sectors]    {};
 
-	EventResult AddTask( Task& task );
+	EventResult AddTask( Task&& task, const uint64 targetTime );
 	void        Rotate();
 };
 
@@ -79,7 +80,7 @@ struct EventQueue {
 
 	std::atomic<bool> exiting        = false;
 
-	void AddTask( Task& task );
+	bool AddTask( Task&& task );
 	void Rotate();
 
 	void Shutdown();
