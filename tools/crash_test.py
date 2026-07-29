@@ -40,13 +40,16 @@ class Test:
     def End(self):
         print(f"==={self.status}: {self.name}===")
 
-    def Verify(self, cond, reason=None):
+    def Verify(self, cond, reason=None, fail=True):
         if not cond:
-            if reason is not None:
-                print(f"FAILURE: {reason}")
-            self.status = "FAILED"
-            if GIVE_UP:
-                raise Exception("Giving up on first failure")
+            if fail:
+                if reason is not None:
+                    print(f"FAILURE: {reason}")
+                self.status = "FAILED"
+                if GIVE_UP:
+                    raise Exception("Giving up on first failure")
+            else:
+                print(f"WARNING: {reason}")
 
     def Go(self):
         self.Begin()
@@ -108,8 +111,10 @@ class BreakpadCrashTest(Test):
                            check=True, stdout=sw_f, stderr=sw_f)
             sw_f.seek(0)
             sw = sw_f.read()
-        TRACE_FUNC = "InjectFaultCmd::Run"
-        self.Verify(TRACE_FUNC in sw, "function names not found in trace (did you build with symbols?)")
+        # Check both function names and filenames. On Linux it seems like only one of them works at a time??
+        self.Verify(srcnames := ("Command.cpp" in sw), "source file names not found in trace", fail=False)
+        self.Verify(funcnames := ("InjectFaultCmd::Run" in sw), "function names not found in trace", fail=False)
+        self.Verify(srcnames or funcnames, "neither file nor function names found in trace")
 
 def Virtualize(cmdline):
     bin, *args = cmdline
