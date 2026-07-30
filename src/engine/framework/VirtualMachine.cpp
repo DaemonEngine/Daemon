@@ -299,13 +299,22 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 		Sys::Error("VM: failed to construct posix_spawn_file_actions_t");
 	}
 
-	pid_t pid;
+	char* emptyEnv[2] = {};
+#if defined(__linux__) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
+	if (OnArm64()) {
+		emptyEnv[0] = const_cast<char*>("LD_LIBRARY_PATH=lib-armhf");
+		if (0 != posix_spawn_file_actions_addchdir_np(&fileActions, FS::GetLibPath().c_str())) {
+			Sys::Error("failed posix_spawn_file_actions_addchdir");
+		}
+	}
+#endif
+
 	// By default, the child process gets an empty environment for sandboxing.
 	// When Box64 emulation is used, the child needs to inherit the parent's
 	// environment so Box64 can find its configuration (e.g. ~/.box64rc, HOME)
 	// and honor settings like BOX64_DYNAREC_PERFMAP.
-	char* emptyEnv[] = {nullptr};
 	char** envp = inheritEnvironment ? environ : emptyEnv;
+	pid_t pid;
 	int err = posix_spawn(&pid, args[0], &fileActions, nullptr, const_cast<char* const*>(args), envp);
 	posix_spawn_file_actions_destroy(&fileActions);
 	if (err != 0) {
@@ -410,11 +419,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	}
 #else
 	if (vm_nacl_bootstrap.Get()) {
-#if defined(YOKAI_ARCH_ARM64)
-		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap-armhf");
-#else
 		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
-#endif
 
 		if (!FS::RawPath::FileExists(bootstrap)) {
 			Sys::Error("NaCl bootstrap helper not found: %s", bootstrap);
