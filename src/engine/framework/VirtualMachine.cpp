@@ -177,6 +177,22 @@ static void CheckMinAddressSysctlTooLarge()
 #endif // __linux__
 }
 
+#if defined(__linux__) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
+static bool OnArm64()
+{
+#if defined(YOKAI_ARCH_ARM64)
+	bool onArm64 = true;
+#elif defined(YOKAI_ARCH_ARMHF)
+	bool onArm64 = false;
+	struct utsname buf;
+	if (!uname(&buf)) {
+		onArm64 = !strcmp(buf.machine, "aarch64");
+	}
+#endif
+	return onArm64;
+}
+#endif
+
 // Platform-specific code to load a module
 static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::Socket, IPC::Socket> pair, const char* const* args, bool reserve_mem, FS::File stderrRedirect = FS::File(), bool inheritEnvironment = false)
 {
@@ -423,17 +439,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	if (enableQualification) {
 #if defined(__linux__) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
 		if (workaround_naclArchitecture_arm64_disableQualification.Get()) {
-#if defined(YOKAI_ARCH_ARM64)
-			bool onArm64 = true;
-#elif defined(YOKAI_ARCH_ARMHF)
-			bool onArm64 = false;
-
-			struct utsname buf;
-			if (!uname(&buf)) {
-				onArm64 = !strcmp(buf.machine, "aarch64");
-			}
-#endif
-
 			/* This is required to run armhf NaCl loader on arm64 kernel
 			otherwise nexe loading fails with this message:
 
@@ -449,8 +454,8 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 
 			But the nexe will load and run. */
 
-			if (onArm64) {
-				Log::Warn("Disabling NaCL platform qualification on arm64 kernel architecture.");
+			if (OnArm64()) {
+				Log::Warn("Disabling NaCl platform qualification on arm64 kernel architecture.");
 				enableQualification = false;
 			}
 		}
