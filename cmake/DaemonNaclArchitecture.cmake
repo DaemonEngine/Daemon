@@ -49,8 +49,6 @@ function(daemon_detect_nacl_arch target_arch)
 		set(box64_usage "arm64" "ppc64el" "riscv64" "loong64")
 
 		if ("${target_arch}" IN_LIST armhf_usage)
-			set(DAEMON_NACL_MULTIARCH ON)
-
 			# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
 			# The nexe is system agnostic so there should be no difference with armel.
 			add_nacl_arch("armhf")

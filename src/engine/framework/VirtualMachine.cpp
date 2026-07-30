@@ -188,15 +188,6 @@ static Cvar::Cvar<bool> vm_nacl_qualification(
 	Cvar::INIT, true);
 #endif // defined(DAEMON_NACL_RUNTIME_ENABLED)
 
-#if defined(DAEMON_NACL_RUNTIME_ENABLED)
-#if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
-static Cvar::Cvar<bool> vm_nacl_multiarch(
-	"vm.nacl.multiarch",
-	"Use multiarch to run the NaCl loader when needed and available",
-	Cvar::INIT, true);
-#endif // defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
-#endif // defined(DAEMON_NACL_RUNTIME_ENABLED)
-
 #if defined(DAEMON_NACL_BOOSTRAP_ENABLED)
 static Cvar::Cvar<bool> vm_nacl_bootstrap(
 	"vm.nacl.bootstrap",
@@ -354,11 +345,20 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 	}
 
 	pid_t pid;
+	char* emptyEnv[2] = {};
+#if defined(DAEMON_NACL_RUNTIME_LINUX) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
+	if (OnArm64()) {
+		emptyEnv[0] = const_cast<char*>("LD_LIBRARY_PATH=lib-armhf");
+		
+		if (0 != posix_spawn_file_actions_addchdir_np(&fileActions, FS::GetLibPath().c_str())) {
+			Sys::Error("failed posix_spawn_file_actions_addchdir");
+		}
+	}
+#endif
 	// By default, the child process gets an empty environment for sandboxing.
 	// When Box64 emulation is used, the child needs to inherit the parent's
 	// environment so Box64 can find its configuration (e.g. ~/.box64rc, HOME)
 	// and honor settings like BOX64_DYNAREC_PERFMAP.
-	char* emptyEnv[] = {nullptr};
 	char** envp = inheritEnvironment ? environ : emptyEnv;
 	int err = posix_spawn(&pid, args[0], &fileActions, nullptr, const_cast<char* const*>(args), envp);
 	posix_spawn_file_actions_destroy(&fileActions);
@@ -475,13 +475,10 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	constexpr bool i686ForceAmd64 = systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64;
 #endif // !( !defined(_WIN32) || defined(_WIN64) )
 
-	std::string multiarchPath;
-
 #if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
-	bool hasMultiarch = vm_nacl_multiarch.Get();
+	constexpr bool hasMultiarch = true;
 #else
 	constexpr bool hasMultiarch = false;
-	Q_UNUSED(multiarchPath);
 #endif
 
 	std::string bootstrapPath;
@@ -596,16 +593,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 
 	if (!FS::RawPath::FileExists(irt)) {
 		Sys::Error("NaCl integrated runtime not found: %s", irt);
-	}
-
-	if (useMultiarch) {
-		multiarchPath = FS::Path::Build(naclPath, Str::Format("nacl_multiarch-%s", arch));
-
-		if (FS::RawPath::FileExists(multiarchPath)) {
-			args.push_back(multiarchPath.c_str());
-		} else {
-			Log::Warn("NaCl multiarch launcher not found: %s", multiarchPath);
-		}
 	}
 
 	if (useBootstrap) {
