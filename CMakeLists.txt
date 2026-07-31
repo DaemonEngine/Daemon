@@ -894,7 +894,6 @@ if (NOT YOKAI_TARGET_SYSTEM_NACL)
         AddApplication(
             Target dummyapp
             ExecutableName dummyapp
-            Definitions USELESS_DEFINITION_TO_AVOID_PCH_ISSUE
             ApplicationMain ${ENGINE_DIR}/null/NullApplication.cpp
             CompileFlags ${WARNINGS}
             Files ${DUMMYAPPLIST}
