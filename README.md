@@ -1,18 +1,23 @@
-# Dæmon
+# Dæmon Game Engine
 
-Dæmon is the standalone engine that powers the multiplayer first person shooter [Unvanquished](https://unvanquished.net).
+Dæmon is the standalone game engine that powers the multiplayer first person shooter [Unvanquished](https://unvanquished.net).
 
-[![GitHub tag](https://img.shields.io/github/tag/DaemonEngine/Daemon.svg)](https://github.com/DaemonEngine/Daemon/tags)
+[![GitHub tag](https://img.shields.io/github/tag/DaemonEngine/Daemon.svg)](https://github.com/DaemonEngine/Daemon/tags)  
+[![Web](https://img.shields.io/badge/web-unvanquished.net-ffaaaa)](https://forums.unvanquished.net)
+[![Forums](https://img.shields.io/badge/forums-forums.unvanquished.net-ffaaaa)](https://forums.unvanquished.net)
+[![Wiki](https://img.shields.io/badge/wiki-wiki.unvanquished.net_%E2%80%A3_Dæmon_Engine-ffaaaa)](https://wiki.unvanquished.net/wiki/Daemon)  
+[![Rules](https://img.shields.io/badge/chat-rules-ffdd00)](https://wiki.unvanquished.net/wiki/Chat#Rules)
+[![IRC](https://img.shields.io/badge/irc-%23unvanquished%2C%23unvanquished--dev-9cf.svg)](https://unvanquished.net/chat/)
+[![Matrix](https://img.shields.io/badge/matrix-Unvanquished-9cf?logo=matrix)](https://matrix.to/#/!WnuetRiQZJNBTKwMrF:matrix.org?via=matrix.org)
+[![Discord](https://img.shields.io/badge/discord-Unvanquished-9cf?logo=discord)](https://discord.gg/usuDT9Pyna)
 
-[![IRC](https://img.shields.io/badge/irc-%23unvanquished--dev-9cf.svg)](https://web.libera.chat/#unvanquished-dev)
+Windows|macOS|Linux
+-|-|-
+[![AppVeyor branch](https://img.shields.io/appveyor/ci/DolceTriade/daemon/master.svg)](https://ci.appveyor.com/project/DolceTriade/daemon/history)|[![Azure branch](https://img.shields.io/azure-devops/build/UnvanquishedDevelopment/51482765-8c0b-4b28-a82c-09554ed6887e/1/master.svg)](https://dev.azure.com/UnvanquishedDevelopment/Daemon/_build?definitionId=1)| [![Azure branch](https://img.shields.io/azure-devops/build/UnvanquishedDevelopment/51482765-8c0b-4b28-a82c-09554ed6887e/1/master.svg)](https://dev.azure.com/UnvanquishedDevelopment/Daemon/_build?definitionId=1)
 
-| Windows | macOS | Linux |
-|---------|-----|-------|
-| [![AppVeyor branch](https://img.shields.io/appveyor/ci/DolceTriade/daemon/master.svg)](https://ci.appveyor.com/project/DolceTriade/daemon/history) | [![Azure branch](https://img.shields.io/azure-devops/build/UnvanquishedDevelopment/51482765-8c0b-4b28-a82c-09554ed6887e/1/master.svg)](https://dev.azure.com/UnvanquishedDevelopment/Daemon/_build?definitionId=1) | [![Azure branch](https://img.shields.io/azure-devops/build/UnvanquishedDevelopment/51482765-8c0b-4b28-a82c-09554ed6887e/1/master.svg)](https://dev.azure.com/UnvanquishedDevelopment/Daemon/_build?definitionId=1) |
+ℹ️ We provide ready-to-use downloads for the Unvanquished game on the [Unvanquished download page](https://unvanquished.net/download/), builds of the Dæmon engine are included.
 
-ℹ️ We provide ready-to-use downloads for the Unvanquished game on the Unvanquished [download page](https://unvanquished.net/download/), builds of the Dæmon engine are included.
-
-ℹ️ The repository of the source code for the game logic of Unvanquished can be found [there](https://github.com/Unvanquished/Unvanquished).
+ℹ️ The Unvanquished game logic source code can be found there: [github.com/Unvanquished/Unvanquished](https://github.com/Unvanquished/Unvanquished).
 
 ## Workspace requirements
 
