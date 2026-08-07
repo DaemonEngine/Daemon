@@ -42,6 +42,11 @@ TEST(StripColorTest, ReturningString)
 
    std::string onlyColors = "^xF1A^1^0^O^9^a^;^*^xeE2^#123Aa5^#3903ff";
    EXPECT_EQ("", StripColors(onlyColors));
+
+    // Decolor
+    std::string decolor = Str::Format("%c^1wtf^#aabbccbad%c^1a^2c^^^3c", Constants::DECOLOR_ON, Constants::DECOLOR_OFF);
+    EXPECT_EQ("wtfbad^1a^2c^^3c", StripColors(decolor));
+
 }
 
 TEST(StripColorTest, ToBuffer)
@@ -57,8 +62,13 @@ TEST(StripColorTest, ToBuffer)
     char justright[7];
     StripColors("dretc^#123456h", justright, sizeof(justright));
     EXPECT_EQ("dretch", std::string(justright));
+
+    // Decolor
+    char decolorjustright[9];
+    StripColors(Str::Format("%c^1dretc%c^#123456h", Constants::DECOLOR_OFF, Constants::DECOLOR_ON).c_str(), decolorjustright, sizeof(decolorjustright));
+    EXPECT_EQ("^1dretch", std::string(decolorjustright));
+
 }
 
 } // namespace
 } // namespace Color
-
