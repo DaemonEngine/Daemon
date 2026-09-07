@@ -248,8 +248,12 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 		startupInfo.hStdError = stderrRedirectHandle;
 		startupInfo.dwFlags = STARTF_USESTDHANDLES;
 	}
+	char emptyEnvironment[] = {'\0', '\0'};
 	startupInfo.cb = sizeof(startupInfo);
-	if (!CreateProcessW(nullptr, &wcmdline[0], nullptr, nullptr, TRUE, CREATE_SUSPENDED | CREATE_BREAKAWAY_FROM_JOB | CREATE_NO_WINDOW, nullptr, nullptr, &startupInfo, &processInfo)) {
+	if (!CreateProcessW(nullptr, &wcmdline[0], nullptr, nullptr,
+	                    TRUE, CREATE_SUSPENDED | CREATE_BREAKAWAY_FROM_JOB | CREATE_NO_WINDOW,
+	                    inheritEnvironment ? nullptr : emptyEnvironment,
+	                    nullptr, &startupInfo, &processInfo)) {
 		CloseHandle(job);
 		Sys::Drop("VM: Could not create child process: %s", Sys::Win32StrError(GetLastError()));
 	}
@@ -269,7 +273,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 	if (reserve_mem)
 		VirtualAllocEx(processInfo.hProcess, nullptr, 1 << 30, MEM_RESERVE, PAGE_NOACCESS);
 #endif
-	Q_UNUSED(inheritEnvironment);
 
 	ResumeThread(processInfo.hThread);
 	CloseHandle(processInfo.hThread);
