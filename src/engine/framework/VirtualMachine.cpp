@@ -81,11 +81,6 @@ static Cvar::Cvar<bool> workaround_box64_disableQualification(
 	"Disable platform qualification when running amd64 NaCl loader under Box64 emulation",
 	Cvar::NONE, true);
 
-static Cvar::Cvar<bool> workaround_box64_disableBootstrap(
-	"workaround.box64.disableBootstrap",
-	"Disable NaCl bootstrap helper when using Box64 emulation",
-	Cvar::NONE, true);
-
 static Cvar::Cvar<std::string> vm_box64_path(
 	"vm.box64.path",
 	"Path to the box64 binary for NaCl emulation (empty = search PATH)",
@@ -126,11 +121,6 @@ static std::string ResolveBox64Path() {
 static Cvar::Cvar<bool> vm_nacl_qualification(
 	"vm.nacl.qualification",
 	"Enable NaCl loader platform qualification",
-	Cvar::INIT, true);
-
-static Cvar::Cvar<bool> vm_nacl_bootstrap(
-	"vm.nacl.bootstrap",
-	"Use NaCl bootstrap helper",
 	Cvar::INIT, true);
 
 static Cvar::Cvar<int> vm_timeout(
@@ -390,50 +380,29 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	}
 
 #if defined(__linux__) || defined(__FreeBSD__)
+
 #if defined(DAEMON_NACL_BOX64_EMULATION)
-	/* Use Box64 to run the x86_64 NaCl loader on non-x86 architectures.
-	The bootstrap helper uses a double-exec pattern that Box64 cannot handle,
-	so we skip it and prepend "box64" to the nacl_loader command instead. */
-	if (!workaround_box64_disableBootstrap.Get() && vm_nacl_bootstrap.Get()) {
-		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
+	/* Use Box64 to run the x86_64 NaCl loader on non-x86 architectures. */
+	box64Path = ResolveBox64Path();
+	Log::Notice("Using Box64 emulator: %s", box64Path);
+	args.push_back(box64Path.c_str());
+	inheritEnvironment = true;
+#endif // DAEMON_NACL_BOX64_EMULATION
 
+	// The amd64 runtime does not need nacl_helper_bootstrap.
+	bool useBootstrap = 0 != strcmp(DAEMON_NACL_ARCH_STRING, "amd64");
+	if (useBootstrap) {
+		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
 		if (!FS::RawPath::FileExists(bootstrap)) {
 			Sys::Error("NaCl bootstrap helper not found: %s", bootstrap);
 		}
-
 		args.push_back(bootstrap.c_str());
 		args.push_back(nacl_loader.c_str());
 		args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
 		args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
 	} else {
-		if (workaround_box64_disableBootstrap.Get()) {
-			Log::Notice("Skipping NaCl bootstrap helper for Box64 emulation.");
-		} else {
-			Log::Warn("Not using NaCl bootstrap helper.");
-		}
-		box64Path = ResolveBox64Path();
-		Log::Notice("Using Box64 emulator: %s", box64Path);
-		args.push_back(box64Path.c_str());
-		args.push_back(nacl_loader.c_str());
-		inheritEnvironment = true;
-	}
-#else
-	if (vm_nacl_bootstrap.Get()) {
-		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
-
-		if (!FS::RawPath::FileExists(bootstrap)) {
-			Sys::Error("NaCl bootstrap helper not found: %s", bootstrap);
-		}
-
-		args.push_back(bootstrap.c_str());
-		args.push_back(nacl_loader.c_str());
-		args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
-		args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
-	} else {
-		Log::Warn("Not using NaCl bootstrap helper.");
 		args.push_back(nacl_loader.c_str());
 	}
-#endif
 #else
 	Q_UNUSED(bootstrap);
 	args.push_back(nacl_loader.c_str());
