@@ -998,7 +998,6 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
         )
     endforeach()
 
-    # Linux uses a bootstrap program to reserve address space
     if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY)
         # Backport compatibility until the external_deps script properly suffixes names in the archives.
         if (YOKAI_TARGET_ARCH_ARM64)
@@ -1009,12 +1008,16 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
             )
         endif()
 
+        # Linux uses a bootstrap program to reserve address space for 32-bit runtimes.
         foreach(arch_name IN LISTS DAEMON_NACL_ARCH_NAME_LIST)
-            add_custom_command(TARGET runtime_deps PRE_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    ${DEPS_DIR}/nacl_helper_bootstrap
-                    ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap-${arch_name}
-            )
+            set(arch_32bit "i686" "armhf")
+            if ("${arch_name}" IN_LIST arch_32bit)
+                add_custom_command(TARGET runtime_deps PRE_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        ${DEPS_DIR}/nacl_helper_bootstrap
+                        ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap-${arch_name}
+                )
+            endif()
         endforeach()
     endif()
 
