@@ -337,9 +337,9 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	char rootSocketRedir[32];
 	std::string module, nacl_loader, irt, bootstrap, modulePath, verbosity;
 	FS::File stderrRedirect;
+	bool inheritEnvironment = false;
 #if defined(DAEMON_NACL_BOX64_EMULATION)
 	std::string box64Path;
-	bool usingBox64 = false;
 #endif
 #if !defined(_WIN32) || defined(_WIN64)
 	constexpr bool win32Force64Bit = false;
@@ -415,7 +415,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		Log::Notice("Using Box64 emulator: %s", box64Path);
 		args.push_back(box64Path.c_str());
 		args.push_back(nacl_loader.c_str());
-		usingBox64 = true;
+		inheritEnvironment = true;
 	}
 #else
 	if (vm_nacl_bootstrap.Get()) {
@@ -538,11 +538,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		Log::Notice("Using loader args: %s", commandLine.c_str());
 	}
 
-	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect)
-#if defined(DAEMON_NACL_BOX64_EMULATION)
-		, usingBox64
-#endif
-	);
+	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect), inheritEnvironment);
 }
 
 static std::pair<Sys::OSHandle, IPC::Socket> CreateNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug) {
