@@ -1285,8 +1285,12 @@ build_naclruntime() {
 		)
 
 		case "${PLATFORM}" in
-		linux-*)
-			mv "${PREFIX}/bin/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap-${nacl_arch}"
+		linux-i686-*|linux-arm64-*|linux-armhf-*)
+			case "${nacl_arch}" in
+			i686|armhf)
+				mv "${PREFIX}/bin/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap-${nacl_arch}"
+				;;
+			esac
 			;;
 		esac
 

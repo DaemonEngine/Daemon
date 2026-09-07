@@ -79,7 +79,9 @@ static Cvar::Cvar<bool> workaround_naclSystem_freebsd_disableQualification(
 // Many BSDs have a Linuxulator, for now we only tested one.
 #if defined(__linux__) || defined(__FreeBSD__)
 #define DAEMON_NACL_RUNTIME_LINUX
+#if YOKAI_ARCH_I686 || YOKAI_ARCH_ARM64 || YOKAI_ARCH_ARMHF
 #define DAEMON_NACL_BOOSTRAP_ENABLED
+#endif // !(YOKAI_ARCH_I686 || YOKAI_ARCH_ARM64 || YOKAI_ARCH_ARMHF)
 #endif // defined(__linux__) || defined(DAEMON_LINUXULATOR)
 #endif // defined(DAEMON_NACL_RUNTIME_ENABLED)
 
@@ -88,11 +90,6 @@ static Cvar::Cvar<bool> workaround_naclSystem_freebsd_disableQualification(
 static Cvar::Cvar<bool> workaround_box64_disableQualification(
 	"workaround.box64.disableQualification",
 	"Disable platform qualification when running amd64 NaCl loader under Box64 emulation",
-	Cvar::NONE, true);
-
-static Cvar::Cvar<bool> workaround_box64_disableBootstrap(
-	"workaround.box64.disableBootstrap",
-	"Disable NaCl bootstrap helper when using Box64 emulation",
 	Cvar::NONE, true);
 
 static Cvar::Cvar<std::string> vm_box64_path(
@@ -187,13 +184,6 @@ static Cvar::Cvar<bool> vm_nacl_qualification(
 	"Enable NaCl loader platform qualification",
 	Cvar::INIT, true);
 #endif // defined(DAEMON_NACL_RUNTIME_ENABLED)
-
-#if defined(DAEMON_NACL_BOOSTRAP_ENABLED)
-static Cvar::Cvar<bool> vm_nacl_bootstrap(
-	"vm.nacl.bootstrap",
-	"Use NaCl bootstrap helper",
-	Cvar::INIT, true);
-#endif // defined(DAEMON_NACL_BOOSTRAP_ENABLED)
 
 namespace VM {
 
@@ -484,7 +474,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	std::string bootstrapPath;
 
 #if defined(DAEMON_NACL_BOOSTRAP_ENABLED)
-	bool hasBootstrap = vm_nacl_bootstrap.Get();
+	bool hasBootstrap = true;
 #else // !defined(DAEMON_NACL_BOOSTRAP_ENABLED)
 	constexpr bool hasBootstrap = false;
 	Q_UNUSED(bootstrapPath);
@@ -542,19 +532,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		useBox64 = false;
 	}
 
-	bool useBootstrap = hasBootstrap;
-
-#if defined(DAEMON_NACL_BOX64_EMULATION)
-	if (useBootstrap) {
-		/* Use Box64 to run the x86_64 NaCl loader on non-x86 architectures.
-		The bootstrap helper uses a double-exec pattern that Box64 cannot handle,
-		so we skip it and prepend "box64" to the nacl_loader command instead. */
-		if (useBox64
-		&& workaround_box64_disableBootstrap.Get()) {
-			useBootstrap = false;
-		}
-	}
-#endif // defined(DAEMON_NACL_BOX64_EMULATION)
+	bool useBootstrap = hasBootstrap && !useBox64;
 
 	std::string arch = (useBox64 || i686ForceAmd64) ? "amd64" : DAEMON_NACL_ARCH_STRING;
 
