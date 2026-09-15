@@ -445,7 +445,6 @@ static ExeSupport CheckExeSupport(Str::StringRef probe)
 
 #if defined(DAEMON_NACL_RUNTIME_ENABLED)
 static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug, bool extract, int debugLoader) {
-	CheckMinAddressSysctlTooLarge();
 	const std::string& libPath = FS::GetLibPath();
 	std::vector<const char*> args;
 	char rootSocketRedir[32];
@@ -577,6 +576,8 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	}
 
 	if (useBootstrap) {
+		CheckMinAddressSysctlTooLarge();
+
 		bootstrapPath = FS::Path::Build(naclPath, Str::Format("nacl_helper_bootstrap-%s", arch));
 
 		if (FS::RawPath::FileExists(bootstrapPath)) {
