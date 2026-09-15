@@ -319,7 +319,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 }
 
 static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug, bool extract, int debugLoader) {
-	CheckMinAddressSysctlTooLarge();
 	const std::string& libPath = FS::GetLibPath();
 #ifdef DAEMON_NACL_RUNTIME_PATH
 	const char* naclPath = DAEMON_NACL_RUNTIME_PATH_STRING;
@@ -395,6 +394,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	// The amd64 runtime does not need nacl_helper_bootstrap.
 	bool useBootstrap = 0 != strcmp(DAEMON_NACL_ARCH_STRING, "amd64");
 	if (useBootstrap) {
+		CheckMinAddressSysctlTooLarge();
 		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
 		if (!FS::RawPath::FileExists(bootstrap)) {
 			Sys::Error("NaCl bootstrap helper not found: %s", bootstrap);
@@ -408,6 +408,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	}
 #else
 	Q_UNUSED(bootstrap);
+	Q_UNUSED(&CheckMinAddressSysctlTooLarge);
 	args.push_back(nacl_loader.c_str());
 #endif
 
