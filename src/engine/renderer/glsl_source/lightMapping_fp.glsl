@@ -46,10 +46,12 @@ IN(smooth) vec3		var_Binormal;
 IN(smooth) vec3		var_Normal;
 
 uniform sampler2D u_LightMap;
-uniform sampler3D u_LightGrid1;
-
 uniform sampler2D u_DeluxeMap;
-uniform sampler3D u_LightGrid2;
+
+#if defined(HAVE_texture3D)
+	uniform sampler3D u_LightGrid1;
+	uniform sampler3D u_LightGrid2;
+#endif
 
 #if defined(USE_LIGHT_MAPPING) || defined(USE_DELUXE_MAPPING)
 	IN(smooth) vec2 var_TexLight;
@@ -156,9 +158,15 @@ void main()
 		#endif
 		vec3 lightDir;
 		vec3 ambientColor, lightColor;
-		ReadLightGrid(texel1, texel2, lightFactor, lightDir, ambientColor, lightColor);
+		#if HAVE_texture3D
+			ReadLightGrid(texel1, texel2, lightFactor, lightDir, ambientColor, lightColor);
 
-		color.rgb = ambientColor * r_AmbientScale * diffuse.rgb;
+			color.rgb = ambientColor * r_AmbientScale * diffuse.rgb;
+		#else
+			ambientColor = vec3(1.0);
+			lightColor = vec3(1.0);
+			color.rgb = diffuse.rgb;
+		#endif
 	#endif
 
 	#if defined(USE_LIGHT_MAPPING) && defined(USE_DELUXE_MAPPING)
