@@ -88,6 +88,7 @@ static bool winsockInitialized = false;
 #       endif
 
 #       include <arpa/inet.h>
+#       include <fcntl.h>
 #       include <netdb.h>
 #       include <netinet/in.h>
 #       include <sys/socket.h>
@@ -951,6 +952,7 @@ SOCKET NET_IPSocket( const char *net_interface, int port, struct sockaddr_in *bi
 	newsocket = WSASocketW( PF_INET, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
 #else
 	newsocket = socket( PF_INET, SOCK_DGRAM, IPPROTO_UDP );
+	fcntl( newsocket, F_SETFD, FD_CLOEXEC );
 #endif
 
 	if ( newsocket == INVALID_SOCKET )
@@ -1042,6 +1044,7 @@ SOCKET NET_IP6Socket( const char *net_interface, int port, bool multicastSend, s
 	newsocket = WSASocketW( PF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
 #else
 	newsocket = socket( PF_INET6, SOCK_DGRAM, IPPROTO_UDP );
+	fcntl( newsocket, F_SETFD, FD_CLOEXEC );
 #endif
 
 	if ( newsocket  == INVALID_SOCKET )
@@ -1243,6 +1246,7 @@ void NET_OpenSocks( int port )
 	socks_socket = WSASocketW( AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
 #else
 	socks_socket = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
+	fcntl( socks_socket, F_SETFD, FD_CLOEXEC );
 #endif
 
 	if ( socks_socket == INVALID_SOCKET )
