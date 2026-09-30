@@ -1890,4 +1890,9 @@ void NET_Restart_f()
 #else
 	NET_EnableNetworking( com_sv_running.Get() );
 #endif
+
+	if ( com_sv_running.Get() )
+	{
+		NET_JoinMulticast6();
+	}
 }
