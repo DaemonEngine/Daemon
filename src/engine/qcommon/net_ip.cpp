@@ -1179,14 +1179,14 @@ void NET_JoinMulticast6()
 		return;
 	}
 
-	if ( IN6_IS_ADDR_MULTICAST( &boundto.sin6_addr ) || IN6_IS_ADDR_UNSPECIFIED( &boundto.sin6_addr ) )
+	if ( IN6_IS_ADDR_UNSPECIFIED( &boundto.sin6_addr ) )
 	{
 		// The way the socket was bound does not prohibit receiving multi-cast packets. So we don't need to open a new one.
 		multicast6_socket = ip6_socket;
 	}
 	else
 	{
-		if ( ( multicast6_socket = NET_IP6Socket( net_mcast6addr->string, ntohs( boundto.sin6_port ), false, nullptr, &err ) ) == INVALID_SOCKET )
+		if ( ( multicast6_socket = NET_IP6Socket( nullptr, ntohs( boundto.sin6_port ), false, nullptr, &err ) ) == INVALID_SOCKET )
 		{
 			// If the OS does not support binding to multicast addresses, like Windows XP, at least try with a non-multicast socket.
 			multicast6_socket = ip6_socket;
