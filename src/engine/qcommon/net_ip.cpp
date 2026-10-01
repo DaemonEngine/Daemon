@@ -124,16 +124,9 @@ namespace net {
 
 #endif
 
-static bool            usingSocks = false;
 static bool            networkingEnabled = false;
 
 cvar_t                     *net_enabled;
-
-static cvar_t              *net_socksEnabled;
-static cvar_t              *net_socksServer;
-static cvar_t              *net_socksPort;
-static cvar_t              *net_socksUsername;
-static cvar_t              *net_socksPassword;
 
 static cvar_t              *net_ip;
 static cvar_t              *net_ip6;
@@ -142,11 +135,8 @@ static cvar_t              *net_port6;
 static cvar_t              *net_mcast6addr;
 static cvar_t              *net_mcast6iface;
 
-static struct sockaddr     socksRelayAddr;
-
 static SOCKET              ip_socket = INVALID_SOCKET;
 static SOCKET              ip6_socket = INVALID_SOCKET;
-static SOCKET              socks_socket = INVALID_SOCKET;
 static SOCKET              multicast6_socket = INVALID_SOCKET;
 
 // Keep track of currently joined multicast group.
@@ -609,26 +599,8 @@ bool Sys_GetPacket( netadr_t *net_from, msg_t *net_message )
 		{
 			memset( ( ( struct sockaddr_in * ) &from )->sin_zero, 0, 8 );
 
-			if ( usingSocks && memcmp( &from, &socksRelayAddr, fromlen ) == 0 )
-			{
-				if ( ret < 10 || net_message->data[ 0 ] != 0 || net_message->data[ 1 ] != 0 || net_message->data[ 2 ] != 0 || net_message->data[ 3 ] != 1 )
-				{
-					return false;
-				}
-
-				net_from->type = netadrtype_t::NA_IP;
-				net_from->ip[ 0 ] = net_message->data[ 4 ];
-				net_from->ip[ 1 ] = net_message->data[ 5 ];
-				net_from->ip[ 2 ] = net_message->data[ 6 ];
-				net_from->ip[ 3 ] = net_message->data[ 7 ];
-				net_from->port = * ( short * ) &net_message->data[ 8 ];
-				net_message->readcount = 10;
-			}
-			else
-			{
-				SockadrToNetadr( ( struct sockaddr * ) &from, net_from );
-				net_message->readcount = 0;
-			}
+			SockadrToNetadr( ( struct sockaddr * ) &from, net_from );
+			net_message->readcount = 0;
 
 			if ( ret == net_message->maxsize )
 			{
@@ -706,8 +678,6 @@ bool Sys_GetPacket( netadr_t *net_from, msg_t *net_message )
 
 //=============================================================================
 
-static char socksBuf[ 4096 ];
-
 /*
 ==================
 Sys_SendPacket
@@ -739,27 +709,13 @@ void Sys_SendPacket( int length, const void *data, const netadr_t& to )
 	memset( &addr, 0, sizeof( addr ) );
 	NetadrToSockadr( &to, ( struct sockaddr * ) &addr );
 
-	if ( usingSocks && addr.ss_family == AF_INET /*to.type == NA_IP*/ )
+	if ( addr.ss_family == AF_INET )
 	{
-		socksBuf[ 0 ] = 0; // reserved
-		socksBuf[ 1 ] = 0;
-		socksBuf[ 2 ] = 0; // fragment (not fragmented)
-		socksBuf[ 3 ] = 1; // address type: IPV4
-		* ( int * ) &socksBuf[ 4 ] = ( ( struct sockaddr_in * ) &addr )->sin_addr.s_addr;
-		* ( short * ) &socksBuf[ 8 ] = ( ( struct sockaddr_in * ) &addr )->sin_port;
-		memcpy( &socksBuf[ 10 ], data, length );
-		ret = sendto( ip_socket, ( const char* )socksBuf, length + 10, 0, &socksRelayAddr, sizeof( socksRelayAddr ) );
+		ret = sendto( ip_socket, ( const char* )data, length, 0, ( struct sockaddr * ) &addr, sizeof( struct sockaddr_in ) );
 	}
-	else
+	else if ( addr.ss_family == AF_INET6 )
 	{
-		if ( addr.ss_family == AF_INET )
-		{
-			ret = sendto( ip_socket, ( const char* )data, length, 0, ( struct sockaddr * ) &addr, sizeof( struct sockaddr_in ) );
-		}
-		else if ( addr.ss_family == AF_INET6 )
-		{
-			ret = sendto( ip6_socket, ( const char* )data, length, 0, ( struct sockaddr * ) &addr, sizeof( struct sockaddr_in6 ) );
-		}
+		ret = sendto( ip6_socket, ( const char* )data, length, 0, ( struct sockaddr * ) &addr, sizeof( struct sockaddr_in6 ) );
 	}
 
 	if ( ret == SOCKET_ERROR )
@@ -1224,233 +1180,6 @@ void NET_LeaveMulticast6()
 }
 
 /*
-====================
-NET_OpenSocks
-====================
-*/
-void NET_OpenSocks( int port )
-{
-	struct sockaddr_in address;
-
-	struct hostent     *h;
-
-	int                len;
-	bool           rfc1929;
-	unsigned char      buf[ 64 ];
-
-	usingSocks = false;
-
-	Log::Notice( "Opening connection to SOCKS server." );
-
-#ifdef _WIN32
-	socks_socket = WSASocketW( AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
-#else
-	socks_socket = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
-	fcntl( socks_socket, F_SETFD, FD_CLOEXEC );
-#endif
-
-	if ( socks_socket == INVALID_SOCKET )
-	{
-		Log::Warn( "NET_OpenSocks: socket: %s", NET_ErrorString() );
-		return;
-	}
-
-	h = gethostbyname( net_socksServer->string );
-
-	if ( h == nullptr )
-	{
-		Log::Warn( "NET_OpenSocks: gethostbyname: %s", NET_ErrorString() );
-		return;
-	}
-
-	if ( h->h_addrtype != AF_INET )
-	{
-		Log::Warn( "NET_OpenSocks: gethostbyname: address type was not AF_INET" );
-		return;
-	}
-
-	memset( &address, 0, sizeof( address ) );
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = * ( int * ) h->h_addr_list[ 0 ];
-	address.sin_port = htons( ( short ) net_socksPort->integer );
-
-	if ( connect( socks_socket, ( struct sockaddr * ) &address, sizeof( address ) ) == SOCKET_ERROR )
-	{
-		Log::Notice( "NET_OpenSocks: connect: %s", NET_ErrorString() );
-		return;
-	}
-
-	// send socks authentication handshake
-	if ( *net_socksUsername->string || *net_socksPassword->string )
-	{
-		rfc1929 = true;
-	}
-	else
-	{
-		rfc1929 = false;
-	}
-
-	buf[ 0 ] = 5; // SOCKS version
-
-	// method count
-	if ( rfc1929 )
-	{
-		buf[ 1 ] = 2;
-		len = 4;
-	}
-	else
-	{
-		buf[ 1 ] = 1;
-		len = 3;
-	}
-
-	buf[ 2 ] = 0; // method #1 - method id #00: no authentication
-
-	if ( rfc1929 )
-	{
-		buf[ 2 ] = 2; // method #2 - method id #02: username/password
-	}
-
-	if ( send( socks_socket, ( char * ) buf, len, 0 ) == SOCKET_ERROR )
-	{
-		Log::Notice( "NET_OpenSocks: send: %s", NET_ErrorString() );
-		return;
-	}
-
-	// get the response
-	len = recv( socks_socket, ( char * ) buf, 64, 0 );
-
-	if ( len == SOCKET_ERROR )
-	{
-		Log::Notice( "NET_OpenSocks: recv: %s", NET_ErrorString() );
-		return;
-	}
-
-	if ( len != 2 || buf[ 0 ] != 5 )
-	{
-		Log::Notice( "NET_OpenSocks: bad response" );
-		return;
-	}
-
-	switch ( buf[ 1 ] )
-	{
-		case 0: // no authentication
-			break;
-
-		case 2: // username/password authentication
-			break;
-
-		default:
-			Log::Notice( "NET_OpenSocks: request denied" );
-			return;
-	}
-
-	// do username/password authentication if needed
-	if ( buf[ 1 ] == 2 )
-	{
-		int ulen;
-		int plen;
-
-		// build the request
-		ulen = strlen( net_socksUsername->string );
-		plen = strlen( net_socksPassword->string );
-
-		buf[ 0 ] = 1; // username/password authentication version
-		buf[ 1 ] = ulen;
-
-		if ( ulen )
-		{
-			memcpy( &buf[ 2 ], net_socksUsername->string, ulen );
-		}
-
-		buf[ 2 + ulen ] = plen;
-
-		if ( plen )
-		{
-			memcpy( &buf[ 3 + ulen ], net_socksPassword->string, plen );
-		}
-
-		// send it
-		if ( send( socks_socket, ( char * ) buf, 3 + ulen + plen, 0 ) == SOCKET_ERROR )
-		{
-			Log::Notice( "NET_OpenSocks: send: %s", NET_ErrorString() );
-			return;
-		}
-
-		// get the response
-		len = recv( socks_socket, ( char * ) buf, 64, 0 );
-
-		if ( len == SOCKET_ERROR )
-		{
-			Log::Notice( "NET_OpenSocks: recv: %s", NET_ErrorString() );
-			return;
-		}
-
-		if ( len != 2 || buf[ 0 ] != 1 )
-		{
-			Log::Notice( "NET_OpenSocks: bad response" );
-			return;
-		}
-
-		if ( buf[ 1 ] != 0 )
-		{
-			Log::Notice( "NET_OpenSocks: authentication failed" );
-			return;
-		}
-	}
-
-	// send the UDP associate request
-	buf[ 0 ] = 5; // SOCKS version
-	buf[ 1 ] = 3; // command: UDP associate
-	buf[ 2 ] = 0; // reserved
-	buf[ 3 ] = 1; // address type: IPV4
-	* ( int * ) &buf[ 4 ] = INADDR_ANY;
-	* ( short * ) &buf[ 8 ] = htons( ( short ) port );  // port
-
-	if ( send( socks_socket, ( char * ) buf, 10, 0 ) == SOCKET_ERROR )
-	{
-		Log::Notice( "NET_OpenSocks: send: %s", NET_ErrorString() );
-		return;
-	}
-
-	// get the response
-	len = recv( socks_socket, ( char * ) buf, 64, 0 );
-
-	if ( len == SOCKET_ERROR )
-	{
-		Log::Notice( "NET_OpenSocks: recv: %s", NET_ErrorString() );
-		return;
-	}
-
-	if ( len < 2 || buf[ 0 ] != 5 )
-	{
-		Log::Notice( "NET_OpenSocks: bad response" );
-		return;
-	}
-
-	// check completion code
-	if ( buf[ 1 ] != 0 )
-	{
-		Log::Notice( "NET_OpenSocks: request denied: %i", buf[ 1 ] );
-		return;
-	}
-
-	if ( buf[ 3 ] != 1 )
-	{
-		Log::Notice( "NET_OpenSocks: relay address is not IPV4: %i", buf[ 3 ] );
-		return;
-	}
-
-	memset( &socksRelayAddr, 0, sizeof( socksRelayAddr ) );
-	( ( struct sockaddr_in * ) &socksRelayAddr )->sin_family = AF_INET;
-	( ( struct sockaddr_in * ) &socksRelayAddr )->sin_addr.s_addr = * ( int * ) &buf[ 4 ];
-	( ( struct sockaddr_in * ) &socksRelayAddr )->sin_port = * ( short * ) &buf[ 8 ];
-	memset( ( ( struct sockaddr_in * ) &socksRelayAddr )->sin_zero, 0, 8 );
-
-	usingSocks = true;
-}
-
-/*
 =====================
 NET_AddLocalAddress
 =====================
@@ -1676,11 +1405,6 @@ static void NET_OpenIP( bool serverMode )
 		}
 	}
 
-	if ( port != PORT_ANY && net_socksEnabled->integer )
-	{
-		NET_OpenSocks( port );
-	}
-
 	Cvar_Set( "net_currentPort", va( "%i", port ) );
 	Cvar_Set( "net_currentPort6", va( "%i", port6 ) );
 }
@@ -1716,12 +1440,6 @@ static void NET_GetCvars()
 #else
 	net_mcast6iface = Cvar_Get( "net_mcast6iface", "", CVAR_LATCH  );
 #endif
-
-	net_socksEnabled = Cvar_Get( "net_socksEnabled", "0", CVAR_LATCH  );
-	net_socksServer = Cvar_Get( "net_socksServer", "", CVAR_LATCH  );
-	net_socksPort = Cvar_Get( "net_socksPort", "1080", CVAR_LATCH  );
-	net_socksUsername = Cvar_Get( "net_socksUsername", "", CVAR_LATCH  );
-	net_socksPassword = Cvar_Get( "net_socksPassword", "", CVAR_LATCH  );
 }
 
 void NET_EnableNetworking( bool serverMode )
@@ -1773,12 +1491,6 @@ void NET_DisableNetworking()
 	{
 		closesocket( ip6_socket );
 		ip6_socket = INVALID_SOCKET;
-	}
-
-	if ( socks_socket != INVALID_SOCKET )
-	{
-		closesocket( socks_socket );
-		socks_socket = INVALID_SOCKET;
 	}
 }
 
