@@ -2091,7 +2091,7 @@ all-linux)
 	;;
 supported-linux)
 	platform_list="${supported_linux_platforms}"
-;;
+	;;
 extra-linux)
 	platform_list="${extra_linux_platforms}"
 	;;
