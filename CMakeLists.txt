@@ -985,9 +985,6 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     # Linux uses a bootstrap program to reserve address space
     if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY)
         if (YOKAI_TARGET_ARCH_ARM64)
-            add_executable(nacl_helper_bootstrap-armhf tools/nacl_helper_bootstrap-armhf/nacl_helper_bootstrap-armhf.cpp)
-            add_dependencies(runtime_deps nacl_helper_bootstrap-armhf)
-
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E make_directory
                     ${FULL_OUTPUT_DIR}/lib-armhf
