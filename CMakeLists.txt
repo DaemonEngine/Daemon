@@ -76,7 +76,15 @@ if (Daemon_OUT)
 endif()
 
 include(Yokai/All)
-include(DaemonNaclHost)
+
+if (NOT YOKAI_TARGET_SYSTEM_NACL)
+	include(DaemonNaclArchitecture)
+
+	daemon_detect_nacl_arch("${YOKAI_TARGET_ARCH_NAME}")
+
+	# Add printable strings to the executable.
+	yokai_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${DAEMON_NACL_ARCH_NAME}\"")
+endif()
 
 ################################################################################
 # Configuration options
@@ -141,7 +149,6 @@ set(DEFAULT_NACL_VM_INHERITED_OPTIONS
     BUILD_CGAME
     BUILD_SGAME
     CMAKE_BUILD_TYPE
-    DAEMON_CBSE_PYTHON_PATH
     USE_ARCH_INTRINSICS
     USE_COMPILER_CUSTOMIZATION
     USE_COMPILER_INTRINSICS
@@ -190,7 +197,7 @@ else()
 endif()
 
 # Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 11)
+set(DEPS_VERSION 12)
 
 option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
 
@@ -220,17 +227,7 @@ if (USE_EXTERNAL_DEPS AND NOT YOKAI_TARGET_SYSTEM_NACL)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
     elseif (YOKAI_TARGET_SYSTEM_MACOS)
         set(DEPS_SYSTEM macos)
-        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64)
-
-        if (YOKAI_TARGET_ARCH_ARM64)
-            set(DEPS_ARCH amd64)
-
-            set_deps_dir()
-
-            if (NOT EXISTS ${DEPS_DIR})
-                set(DEFAULT_USE_EXTERNAL_DEPS_LIBS OFF)
-            endif()
-        endif()
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 arm64)
     elseif (YOKAI_TARGET_SYSTEM_LINUX)
         set(DEPS_SYSTEM linux)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686 arm64 armhf)
@@ -291,6 +288,7 @@ endif()
 # meaning we have to detect useless engine compiler to set
 # useless engine flags when only building vms.
 include(DaemonFlags)
+include(DaemonNaclFlags)
 
 # FIXME: Once engine flags would be only set when building the engine
 # this would be likely unused by vms as they are built by DaemonGame.
@@ -397,33 +395,33 @@ if (DEPS_DIR)
     if (NOT EXISTS ${DEPS_DIR})
         file(MAKE_DIRECTORY ${EXTERNAL_DEPS_DIR})
         get_filename_component(BASENAME ${DEPS_DIR} NAME)
-		set(DEPS_FILENAME "${BASENAME}${DEPS_EXT}")
+        set(DEPS_FILENAME "${BASENAME}${DEPS_EXT}")
 
-		# Download test DEPS archive if DEPS archive isn't available yet.
-		# This makes possible to get the CI working before releasing the DEPS archive.
-		foreach(REMOTE_BASEURL https://dl.unvanquished.net/deps;https://dl.unvanquished.net/test/deps)
-			set(REMOTE "${REMOTE_BASEURL}/${DEPS_FILENAME}")
-			message(STATUS "Downloading dependencies from '${REMOTE}'")
+        # Download test DEPS archive if DEPS archive isn't available yet.
+        # This makes possible to get the CI working before releasing the DEPS archive.
+        foreach(REMOTE_BASEURL https://dl.unvanquished.net/deps;https://dl.unvanquished.net/test/deps)
+            set(REMOTE "${REMOTE_BASEURL}/${DEPS_FILENAME}")
+            message(STATUS "Downloading dependencies from '${REMOTE}'")
 
-			file(DOWNLOAD "${REMOTE}" "${OBJ_DIR}/${DEPS_FILENAME}"
-				SHOW_PROGRESS
-				STATUS DOWNLOAD_RESULT
-				LOG DOWNLOAD_LOG
-			)
+            file(DOWNLOAD "${REMOTE}" "${OBJ_DIR}/${DEPS_FILENAME}"
+                SHOW_PROGRESS
+                STATUS DOWNLOAD_RESULT
+                LOG DOWNLOAD_LOG
+            )
 
-			list(GET DOWNLOAD_RESULT 0 DOWNLOAD_STATUS)
-			list(GET DOWNLOAD_RESULT 1 DOWNLOAD_STRING)
+            list(GET DOWNLOAD_RESULT 0 DOWNLOAD_STATUS)
+            list(GET DOWNLOAD_RESULT 1 DOWNLOAD_STRING)
 
-			if (DOWNLOAD_STATUS EQUAL 0)
-				break()
-			else ()
-				message(WARNING "Error downloading '${REMOTE}':
-					Status code: ${DOWNLOAD_STATUS}
-					Error string: ${DOWNLOAD_STRING}
-					Download log: ${DOWNLOAD_LOG}"
-				)
-			endif()
-		endforeach()
+            if (DOWNLOAD_STATUS EQUAL 0)
+                break()
+            else ()
+                message(WARNING "Error downloading '${REMOTE}':
+                    Status code: ${DOWNLOAD_STATUS}
+                    Error string: ${DOWNLOAD_STRING}
+                    Download log: ${DOWNLOAD_LOG}"
+                )
+            endif()
+        endforeach()
 
         if (NOT DOWNLOAD_STATUS EQUAL 0)
             message(FATAL_ERROR "Failed to download '${DEPS_FILENAME}'")
@@ -462,7 +460,6 @@ endif()
 # LIBS_BASE, LIBS_ENGINE_BASE LIBS_ENGINE, LIBS_BASECLIENT, LIBS_CLIENT
 
 # Native client
-include(DaemonNacl)
 if (YOKAI_TARGET_SYSTEM_NACL)
     add_library(srclibs-nacl-module EXCLUDE_FROM_ALL ${NACLLIST_MODULE})
     set(LIBS_BASE ${LIBS_BASE} srclibs-nacl-module)
@@ -482,16 +479,6 @@ if (YOKAI_TARGET_SYSTEM_WINDOWS)
 elseif (YOKAI_TARGET_SYSTEM_NACL)
     find_library(NACL_EXCEPTION nacl_exception)
     find_library(NACL_MINIDUMP minidump_generator)
-
-    # HACK: To be removed when Saigo is repackaged properly.
-    if (NOT NACL_MINIDUMP
-    # NACL_TARGET is specific to Saigo, PNaCl target is le32 and doesn't set NACL_TARGET.
-    AND "${NACL_TARGET}" STREQUAL "i686"
-    # x86_64-nacl/lib32 is specific to Google build, other builds may provide i686-nacl/lib instead.
-    AND EXISTS "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32")
-        set(NACL_EXCEPTION "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32/libnacl_exception.a")
-        set(NACL_MINIDUMP "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32/libminidump_generator.a")
-    endif()
 
     set(LIBS_BASE ${LIBS_BASE} ${NACL_MINIDUMP} ${NACL_EXCEPTION})
 else()
@@ -969,56 +956,46 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     add_custom_target(runtime_deps)
     set_target_properties(runtime_deps PROPERTIES FOLDER "CMakePlumbing")
 
-    # The NaCl loader and IRT are required to load .nexe files
-    add_custom_command(TARGET runtime_deps PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
-            ${FULL_OUTPUT_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
-    )
+    foreach(arch_name IN LISTS DAEMON_NACL_ARCH_NAME_LIST)
+        # The NaCl loader and IRT are required to load .nexe files
+        add_custom_command(TARGET runtime_deps PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${DEPS_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
+                ${FULL_OUTPUT_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
+        )
 
-    add_custom_command(TARGET runtime_deps PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/irt_core-${DAEMON_NACL_ARCH_NAME}.nexe
-            ${FULL_OUTPUT_DIR}/irt_core-${DAEMON_NACL_ARCH_NAME}.nexe
-    )
+        add_custom_command(TARGET runtime_deps PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${DEPS_DIR}/irt_core-${arch_name}.nexe
+                ${FULL_OUTPUT_DIR}/irt_core-${arch_name}.nexe
+        )
+    endforeach()
 
-    # Linux uses a bootstrap program to reserve address space
+    # Linux uses a bootstrap program to reserve address space for 32-bit runtimes.
     if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY)
-        if (YOKAI_TARGET_ARCH_ARM64)
-            add_executable(nacl_helper_bootstrap-armhf tools/nacl_helper_bootstrap-armhf/nacl_helper_bootstrap-armhf.cpp)
-            add_dependencies(runtime_deps nacl_helper_bootstrap-armhf)
+        foreach(arch_name IN LISTS DAEMON_NACL_ARCH_NAME_LIST)
+            if ("${arch_name}" IN_LIST "i686;armhf")
+                add_custom_command(TARGET runtime_deps PRE_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        ${DEPS_DIR}/nacl_helper_bootstrap-${arch_name}
+                        ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap-${arch_name}
+                )
+            endif()
+        endforeach()
 
+        if (DAEMON_NACL_BOX64_EMULATION)
             add_custom_command(TARGET runtime_deps PRE_BUILD
-                COMMAND ${CMAKE_COMMAND} -E make_directory
-                    ${FULL_OUTPUT_DIR}/lib-armhf
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${DEPS_DIR}/box64
+                    ${FULL_OUTPUT_DIR}/box64
             )
 
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    ${DEPS_DIR}/lib-armhf
-                    ${FULL_OUTPUT_DIR}/lib-armhf
+                    ${DEPS_DIR}/libs-linux-amd64
+                    ${FULL_OUTPUT_DIR}/libs-linux-amd64
             )
         endif()
-
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DEPS_DIR}/nacl_helper_bootstrap
-                ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap
-        )
-    endif()
-
-    # Win32 requires nacl_loader_amd64.exe in order to run on Win64
-    if (YOKAI_TARGET_SYSTEM_WINDOWS AND YOKAI_TARGET_ARCH_I686)
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DEPS_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}
-                ${FULL_OUTPUT_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}
-        )
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DEPS_DIR}/irt_core-amd64.nexe
-                ${FULL_OUTPUT_DIR}/irt_core-amd64.nexe
-        )
     endif()
 
     # Mac requires some libraries from external_deps

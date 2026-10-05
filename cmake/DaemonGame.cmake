@@ -44,9 +44,9 @@ include(Yokai/All)
 
 # Do not report unused native compiler if native vms are not built.
 # If only NACL vms are built, this will be reported in chainloaded build.
-if (BUILD_GAME_NATIVE_DLL OR BUILD_GAME_NATIVE_EXE OR NACL)
-    include(DaemonNacl)
+if (BUILD_GAME_NATIVE_DLL OR BUILD_GAME_NATIVE_EXE OR GAME_BUILD_SUBINVOCATION)
     include(DaemonFlags)
+    include(DaemonNaclFlags)
 endif()
 
 # Source lists for src/shared
@@ -68,39 +68,59 @@ set(SHAREDLIST_sgame
 # Function to setup all the Sgame/Cgame libraries
 include(CMakeParseArguments)
 
-# The NaCl SDK only runs on amd64 or i686.
-if (NOT FORK EQUAL 2)
-	if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
+list(APPEND NACL_ALL_TARGETS "amd64" "i686" "armhf")
+
+if (NOT GAME_BUILD_SUBINVOCATION)
+	option(USE_NACL_SAIGO "Use the Saigo toolchain to build NaCl executables" ON)
+
+	if (USE_NACL_SAIGO)
+		set(HAS_NACL_SDK ON)
+	elseif (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
 	AND (YOKAI_TARGET_ARCH_AMD64 OR YOKAI_TARGET_ARCH_I686))
+		# The PNaCl SDK only runs on amd64 or i686.
+		set(HAS_NACL_SDK ON)
+	endif()
+
+	if (HAS_NACL_SDK)
+		include(DaemonNaclArchitecture)
+
 		# can be loaded by daemon with vm.[sc]game.type 0 or 1
 		option(BUILD_GAME_NACL "Build the NaCl \"pexe\" and \"nexe\" gamelogic modules for enabled architecture targets, required to host mods." OFF)
 
-		set(NACL_ALL_TARGETS "amd64;i686;armhf")
-		set(BUILD_GAME_NACL_TARGETS "all" CACHE STRING "Enabled NaCl \"nexe\" architecture targets, values: ${NACL_ALL_TARGETS}, all, native, none.")
+		set(BUILD_GAME_NACL_TARGETS "all" CACHE STRING "Enabled NaCl \"nexe\" architecture targets, values: ${NACL_ALL_TARGETS};all;native;none")
 		mark_as_advanced(BUILD_GAME_NACL_TARGETS)
 
-		if (BUILD_GAME_NACL_TARGETS STREQUAL "all")
-			set(NACL_TARGETS "${NACL_ALL_TARGETS}")
-		elseif (BUILD_GAME_NACL_TARGETS STREQUAL "native")
-			set(NACL_TARGETS "${YOKAI_TARGET_ARCH_NAME}")
-		elseif (BUILD_GAME_NACL_TARGETS STREQUAL "none")
-			set(NACL_TARGETS "")
-		else()
-			set(NACL_TARGETS "${BUILD_GAME_NACL_TARGETS}")
-		endif()
-
-		foreach(NACL_TARGET ${NACL_TARGETS})
-			set(IS_NACL_VALID_TARGET OFF)
-			foreach(NACL_VALID_TARGET ${NACL_ALL_TARGETS})
-				if(NACL_TARGET STREQUAL NACL_VALID_TARGET)
-					set(IS_NACL_VALID_TARGET ON)
+		if (BUILD_GAME_NACL)
+			foreach(nacl_target ${BUILD_GAME_NACL_TARGETS})
+				if (BUILD_GAME_NACL_TARGETS STREQUAL "all")
+					list(APPEND nacl_target_list ${NACL_ALL_TARGETS})
+				elseif (BUILD_GAME_NACL_TARGETS STREQUAL "native")
+					list(APPEND nacl_target_list "${YOKAI_TARGET_ARCH_NAME}")
+				elseif (BUILD_GAME_NACL_TARGETS STREQUAL "none")
+					set(nacl_target_list "")
+				else()
+					list(APPEND nacl_target_list "${nacl_target}")
 				endif()
 			endforeach()
 
-			if (NOT IS_NACL_VALID_TARGET)
-				message(FATAL_ERROR "Invalid NaCl target ${NACL_TARGET}, must be one of ${NACL_ALL_TARGETS}")
-			endif()
-		endforeach()
+			foreach(nacl_target IN LISTS nacl_target_list)
+				daemon_detect_nacl_arch("${nacl_target}")
+
+				foreach(detected_target IN LISTS ${DAEMON_NACL_ARCH_NAME_LIST})
+					if (NOT "${detected_target}" IN_LIST NACL_TARGETS)
+						list(APPEND NACL_TARGETS ${detected_target})
+					endif()
+				endforeach()
+			endforeach()
+
+			foreach(nacl_target IN LISTS NACL_TARGETS)
+				if (NOT nacl_target IN_LIST NACL_ALL_TARGETS)
+						message(FATAL_ERROR "Invalid NaCl target ${nacl_target}, must be one of ${NACL_ALL_TARGETS}")
+				endif()
+			endforeach()
+
+			message(STATUS "Building NaCl targets: ${NACL_TARGETS}")
+		endif()
 	else()
 		set(BUILD_GAME_NACL OFF)
 		set(NACL_TARGETS "")
@@ -134,7 +154,7 @@ function(buildGameModule module_slug)
 	if (module_slug STREQUAL "nacl")
 		set_target_properties(${module_target} PROPERTIES
 			OUTPUT_NAME "${GAMEMODULE_NAME}"
-			SUFFIX "${PLATFORM_EXE_SUFFIX}")
+			SUFFIX "${NACL_EXECUTABLE_SUFFIX}")
 
 		target_link_libraries(${module_target} ${GAMEMODULE_LIBS} ${LIBS_BASE})
 	else()
@@ -150,13 +170,13 @@ function(gameSubProject)
 		BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${NACL_VMS_PROJECT}
 		CMAKE_GENERATOR ${VM_GENERATOR}
 		CMAKE_ARGS
-			-DFORK=2
-			-DDAEMON_DIR=${Daemon_SOURCE_DIR}
-			-DDEPS_DIR=${DEPS_DIR}
+			"-DDAEMON_DIR=${Daemon_SOURCE_DIR}"
+			"-DDEPS_DIR=${DEPS_DIR}"
 			-DBUILD_CLIENT=OFF
 			-DBUILD_TTY_CLIENT=OFF
 			-DBUILD_SERVER=OFF
-			-DBUILD_DUMMY_GAMELOGIC=${BUILD_DUMMY_GAMELOGIC}
+			"-DBUILD_DUMMY_GAMELOGIC=${BUILD_DUMMY_GAMELOGIC}"
+			-DGAME_BUILD_SUBINVOCATION=ON
 			${ARGV}
 			${INHERITED_OPTION_ARGS}
 		INSTALL_COMMAND ""
@@ -186,8 +206,9 @@ function(GAMEMODULE)
 		buildGameModule("native-exe")
 	endif()
 
-	if (NOT FORK) # create the nacl-vms target only the first time that GAMEMODULE is called
-		set(FORK 1 PARENT_SCOPE)
+	if (NOT NACL_VMS_TARGET_CREATED AND NOT GAME_BUILD_SUBINVOCATION)
+		# Create the nacl-vms target only the first time that GAMEMODULE is called.
+		set(NACL_VMS_TARGET_CREATED ON PARENT_SCOPE)
 
 		if (CMAKE_GENERATOR MATCHES "Visual Studio")
 			set(VM_GENERATOR "NMake Makefiles")
@@ -197,39 +218,33 @@ function(GAMEMODULE)
 
 		set(INHERITED_OPTION_ARGS)
 
-		foreach(inherited_option ${NACL_VM_INHERITED_OPTIONS})
-			set(INHERITED_OPTION_ARGS ${INHERITED_OPTION_ARGS}
+		foreach(inherited_option IN LISTS NACL_VM_INHERITED_OPTIONS GAME_NACL_VM_INHERITED_OPTIONS)
+			list(APPEND INHERITED_OPTION_ARGS
 				"-D${inherited_option}=${${inherited_option}}")
 		endforeach(inherited_option)
 
-		if (BUILD_GAME_NACL)
+		if (BUILD_GAME_NACL AND NOT YOKAI_TARGET_SYSTEM_NACL)
 			if (USE_NACL_SAIGO)
 				add_custom_target(nacl-vms ALL)
 				unset(NACL_VMS_PROJECTS)
 
-				foreach(NACL_TARGET ${NACL_TARGETS})
-					if (NACL_TARGET STREQUAL "i686")
-						set(SAIGO_ARCH "i686")
-					elseif (NACL_TARGET STREQUAL "amd64")
-						set(SAIGO_ARCH "x86_64")
-					elseif (NACL_TARGET STREQUAL "armhf")
-						set(SAIGO_ARCH "arm")
-					else()
+				foreach(nacl_target IN LISTS NACL_TARGETS)
+					if (NOT nacl_target IN_LIST NACL_ALL_TARGETS)
 						message(FATAL_ERROR "Unknown NaCl architecture ${NACL_TARGET}")
 					endif()
 
-					set(NACL_VMS_PROJECT nacl-vms-${NACL_TARGET})
+					set(NACL_VMS_PROJECT nacl-vms-${nacl_target})
 					list(APPEND NACL_VMS_PROJECTS ${NACL_VMS_PROJECT})
 					add_dependencies(nacl-vms ${NACL_VMS_PROJECT})
 
+					# TODO: Remove USE_NACL_SAIGO once the game uses YOKAI_TARGET_SYSTEM_NACL.
 					gameSubProject(
-						-DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/toolchain-saigo.cmake
+						"-DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/cross-toolchain-saigo-${nacl_target}.cmake"
+						"-DPREFIX_SAIGO=${DEPS_DIR}/saigo_newlib"
 						-DBUILD_GAME_NACL=ON
 						-DBUILD_GAME_NATIVE_DLL=OFF
 						-DBUILD_GAME_NATIVE_EXE=OFF
 						-DUSE_NACL_SAIGO=ON
-						-DSAIGO_ARCH=${SAIGO_ARCH}
-						-DNACL_TARGET=${NACL_TARGET}
 					)
 				endforeach()
 			else()
@@ -240,19 +255,20 @@ function(GAMEMODULE)
 				string(REPLACE ";" "," NACL_TARGETS_STRING "${NACL_TARGETS}")
 
 				gameSubProject(
-					-DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/toolchain-pnacl.cmake
+					"-DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/cross-toolchain-pnacl.cmake"
+					"-DPREFIX_PNACL=${DEPS_DIR}/pnacl"
 					-DBUILD_GAME_NACL=ON
 					-DBUILD_GAME_NATIVE_DLL=OFF
 					-DBUILD_GAME_NATIVE_EXE=OFF
-					-DNACL_TARGETS_STRING=${NACL_TARGETS_STRING}
+					"-DNACL_TARGETS_STRING=${NACL_TARGETS_STRING}"
 				)
 			endif()
 		endif()
 
 		set(NACL_VMS_PROJECTS ${NACL_VMS_PROJECTS} PARENT_SCOPE)
-	elseif (FORK EQUAL 2) # we are in the CMake sub-invocation for NaCl
+	elseif (GAME_BUILD_SUBINVOCATION)
 		if (BUILD_GAME_NACL)
-			if (USE_NACL_SAIGO)
+			if (YOKAI_CXX_COMPILER_SAIGO)
 				set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 			else()
 				# Put the .nexe and .pexe files in the same directory as the engine.
@@ -261,16 +277,28 @@ function(GAMEMODULE)
 
 			buildGameModule("nacl")
 
-			if (USE_NACL_SAIGO)
+			if (YOKAI_CXX_COMPILER_SAIGO)
+				include(DaemonSaigoFinalize)
+
 				# Finalize NaCl executables for supported architectures.
-				saigo_finalize(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/.. ${GAMEMODULE_NAME} ${NACL_TARGET})
+				saigo_finalize(
+					"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+					"${GAMEMODULE_NAME}"
+					"${YOKAI_TARGET_ARCH_NAME}"
+				)
 			else()
+				include(DaemonPNaClFinalize)
+
 				# Revert a workaround for a bug where CMake ExternalProject lists-as-args are cut on first “;”
 				string(REPLACE "," ";" NACL_TARGETS "${NACL_TARGETS_STRING}")
 
 				# Generate NaCl executables for supported architectures.
-				foreach(NACL_TARGET ${NACL_TARGETS})
-					pnacl_finalize(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} ${NACL_TARGET})
+				foreach(nacl_target ${NACL_TARGETS})
+					pnacl_finalize(
+						"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+						"${GAMEMODULE_NAME}"
+						"${nacl_target}"
+					)
 				endforeach()
 			endif()
 		endif()
