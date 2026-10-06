@@ -11,10 +11,6 @@ Dæmon is the standalone game engine that powers the multiplayer first person sh
 [![Matrix](https://img.shields.io/badge/matrix-Unvanquished-9cf?logo=matrix)](https://matrix.to/#/!WnuetRiQZJNBTKwMrF:matrix.org?via=matrix.org)
 [![Discord](https://img.shields.io/badge/discord-Unvanquished-9cf?logo=discord)](https://discord.gg/usuDT9Pyna)
 
-Windows|macOS|Linux
--|-|-
-[![AppVeyor branch](https://img.shields.io/appveyor/ci/DolceTriade/daemon/master.svg)](https://ci.appveyor.com/project/DolceTriade/daemon/history)|[![Azure branch](https://img.shields.io/azure-devops/build/UnvanquishedDevelopment/51482765-8c0b-4b28-a82c-09554ed6887e/1/master.svg)](https://dev.azure.com/UnvanquishedDevelopment/Daemon/_build?definitionId=1)| [![Azure branch](https://img.shields.io/azure-devops/build/UnvanquishedDevelopment/51482765-8c0b-4b28-a82c-09554ed6887e/1/master.svg)](https://dev.azure.com/UnvanquishedDevelopment/Daemon/_build?definitionId=1)
-
 ℹ️ We provide ready-to-use downloads for the Unvanquished game on the [Unvanquished download page](https://unvanquished.net/download/), builds of the Dæmon engine are included.
 
 ℹ️ The Unvanquished game logic source code can be found there: [github.com/Unvanquished/Unvanquished](https://github.com/Unvanquished/Unvanquished).
