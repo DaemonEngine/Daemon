@@ -1,0 +1,152 @@
+# Documentation: https://wiki.unvanquished.net/wiki/Continuous_integration
+
+name: Build and test
+
+on:
+  push:
+    branches:
+      - master
+      - 'for-*.*.*/sync' # Next-release branch
+  pull_request:
+    branches:
+      - '**'
+    paths:
+      - .github/workflows/build_test.yml
+      # The rest of this list should stay in sync with .appveyor.yml
+      - 'src/**'
+      - 'libs/**'
+      - 'cmake/**'
+      - CMakeLists.txt
+      - '**.cmake'
+      - .gitmodules
+
+jobs:
+  mac:
+    name: Mac
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check out submodules
+        shell: bash
+        env:
+          # For example: "master" (on pull requests only)
+          PR_TARGET_BRANCH: ${{ github.base_ref }}
+          # Target branch name, on pull requests only. Even if the branch comes from an external
+          # repo it is just the bare branch name, for example "new-feature".
+          PR_SOURCE_BRANCH: ${{ github.head_ref }}
+          # For example: "master" for a build of the 'master' branch
+          # Other formats exist for builds on pull requests
+          BUILD_SOURCE_BRANCH: ${{ github.ref_name }}
+          # "push" or "pull_request" (see 'on:')
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -e
+          echo "Variables: PR_TARGET_BRANCH=${PR_TARGET_BRANCH} PR_SOURCE_BRANCH=${PR_SOURCE_BRANCH} BUILD_SOURCE_BRANCH=${BUILD_SOURCE_BRANCH}"
+          curl -fsSL https://gitlab.com/illwieckz/git-checkout-modules/raw/master/git-checkout-modules -o ~/git-checkout-modules
+          SYNC_ARGS=()
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+              SYNC_ARGS=("--sub-ref=${PR_TARGET_BRANCH}:has=/sync" "--sub-ref=${PR_SOURCE_BRANCH}:has=/sync")
+          else  # It is a branch build
+              SYNC_ARGS=("--sub-ref=${BUILD_SOURCE_BRANCH}:has=/sync")
+          fi
+          echo "${#SYNC_ARGS[@]} branch-name-based checkout arg(s): ${SYNC_ARGS[@]}"
+          bash ~/git-checkout-modules --update "${SYNC_ARGS[@]}" --print
+
+      - name: Build
+        shell: bash
+        run: |
+          set -e
+          set -x
+          cmake --version
+          export CFLAGS='-Wno-c++14-extensions'
+          export CXXFLAGS='-Wno-c++14-extensions'
+          cmake -Wdev -Wdeprecated -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DCMAKE_BUILD_TYPE=Release -DBUILD_DUMMY_APP=1 -DBUILD_DUMMY_GAMELOGIC=1 -DBUILD_TESTS=1 -H. -Bbuild
+          cmake --build build -- -j`sysctl -n hw.logicalcpu`
+
+      - name: Test
+        shell: bash
+        run: |
+          set -e
+          build/test-ttyclient -pakpath pkg -set fs_basepak daemon -set vm.cgame.type 3
+
+  linux:
+    name: Linux ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: GCC
+            build_type: Release
+            c_compiler: gcc
+            cxx_compiler: g++
+            extra_packages: ''
+            extra_installs: ''
+            toolchain_file: ''
+          - name: Clang
+            build_type: Release
+            c_compiler: clang
+            cxx_compiler: clang++
+            extra_packages: ''
+            extra_installs: ''
+            toolchain_file: ''
+          - name: Mingw
+            build_type: Debug
+            c_compiler: x86_64-w64-mingw32-gcc
+            cxx_compiler: x86_64-w64-mingw32-g++
+            extra_packages: gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
+            extra_installs: sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix ; sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+            toolchain_file: cmake/cross-toolchain-mingw64.cmake
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check out submodules
+        shell: bash
+        env:
+          # For example: "master" (on pull requests only)
+          PR_TARGET_BRANCH: ${{ github.base_ref }}
+          # Target branch name, on pull requests only. Even if the branch comes from an external
+          # repo it is just the bare branch name, for example "new-feature".
+          PR_SOURCE_BRANCH: ${{ github.head_ref }}
+          # For example: "master" for a build of the 'master' branch
+          # Other formats exist for builds on pull requests
+          BUILD_SOURCE_BRANCH: ${{ github.ref_name }}
+          # "push" or "pull_request" (see 'on:')
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -e
+          echo "Variables: PR_TARGET_BRANCH=${PR_TARGET_BRANCH} PR_SOURCE_BRANCH=${PR_SOURCE_BRANCH} BUILD_SOURCE_BRANCH=${BUILD_SOURCE_BRANCH}"
+          curl -fsSL https://gitlab.com/illwieckz/git-checkout-modules/raw/master/git-checkout-modules -o ~/git-checkout-modules
+          SYNC_ARGS=()
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+              SYNC_ARGS=("--sub-ref=${PR_TARGET_BRANCH}:has=/sync" "--sub-ref=${PR_SOURCE_BRANCH}:has=/sync")
+          else  # It is a branch build
+              SYNC_ARGS=("--sub-ref=${BUILD_SOURCE_BRANCH}:has=/sync")
+          fi
+          echo "${#SYNC_ARGS[@]} branch-name-based checkout arg(s): ${SYNC_ARGS[@]}"
+          bash ~/git-checkout-modules --update "${SYNC_ARGS[@]}" --print
+
+      - name: Install deps
+        shell: bash
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get -y -q --no-install-recommends install zlib1g-dev libncursesw5-dev nettle-dev libgmp-dev libcurl4-gnutls-dev libogg-dev libvorbis-dev libopusfile-dev libwebp-dev libjpeg8-dev libpng-dev libfreetype6-dev libglew-dev libopenal-dev liblua5.2-dev ninja-build ${{ matrix.extra_packages }}
+          ${{ matrix.extra_installs }}
+
+      - name: Build
+        shell: bash
+        run: |
+          set -e
+          cmake --version
+          cmake -G "Ninja" -Wdev -Wdeprecated -DCMAKE_TOOLCHAIN_FILE=${{ matrix.toolchain_file }} -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }} -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DBUILD_DUMMY_APP=1 -DBUILD_DUMMY_GAMELOGIC=1 -DBUILD_TESTS=1 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -H. -Bbuild
+          cmake --build build -- -j`nproc`
+
+      - name: Test
+        if: matrix.toolchain_file == ''
+        shell: bash
+        run: |
+          set -e
+          SDL_VIDEODRIVER=offscreen ALSOFT_DRIVERS=null build/test-client -pakpath pkg -set fs_basepak daemon -set vm.cgame.type 3
