@@ -64,26 +64,6 @@ NCURSES_VERSION=6.5
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
 
-# Require the compiler names to be explicitly hardcoded, we should not inherit them
-# from environment as we heavily cross-compile.
-CC='false'
-CXX='false'
-# Set defaults.
-LD='ld'
-AR='ar'
-RANLIB='ranlib'
-PKG_CONFIG='pkg-config'
-CROSS_PKG_CONFIG_PATH=''
-LIBS_SHARED='OFF'
-LIBS_STATIC='ON'
-CMAKE_TOOLCHAIN=''
-# Always reset flags, we heavily cross-compile and must not inherit any stray flag
-# from environment.
-CPPFLAGS=''
-CFLAGS='-O3 -fPIC'
-CXXFLAGS='-O3 -fPIC'
-LDFLAGS='-O3 -fPIC'
-
 log() {
 	level="${1}"; shift
 	printf '%s: %s\n' "${level}" "${@}" >&2
@@ -94,6 +74,21 @@ smart_copy() {
 	if ! cp --reflink=auto -P "${@}" 2>/dev/null
 	then
 		cp -P "${@}"
+	fi
+}
+
+dedupe_dir ()
+{
+	if command -v jdupes >/dev/null 2>&1
+	then
+		log STATUS 'Using jdupes for deduplication'
+		jdupes -r -L "${@}"
+	elif command -v rdfind >/dev/null 2>&1
+	then
+		log STATUS 'Using rdfind for deduplication'
+		rdfind -makeresultsfile false -makehardlinks true "${@}"
+	else
+		log WARNING 'WARN: missing jdupes or rdfind, will not deduplicate'
 	fi
 }
 
@@ -183,6 +178,18 @@ download_extract() {
 configure_build() {
 	local configure_args=()
 
+	case "${HOST}" in
+	native)
+		configure_args+=(--prefix="${NATIVE_PREFIX}")
+		configure_args+=(--libdir="${NATIVE_PREFIX}/lib")
+		;;
+	*)
+		configure_args+=(--host="${HOST}")
+		configure_args+=(--prefix="${PREFIX}")
+		configure_args+=(--libdir="${PREFIX}/lib")
+		;;
+	esac
+
 	if [ "${LIBS_SHARED}" = 'ON' ]
 	then
 		configure_args+=(--enable-shared)
@@ -204,9 +211,6 @@ configure_build() {
 	fi
 
 	./configure \
-		--host="${HOST}" \
-		--prefix="${PREFIX}" \
-		--libdir="${PREFIX}/lib" \
 		"${configure_args[@]}"
 
 	make
@@ -230,6 +234,17 @@ get_compiler_arg1() {
 cmake_build() {
 	local cmake_args=()
 
+	case "${HOST}" in
+	native)
+		cmake_args+=(-DCMAKE_PREFIX_PATH="${NATIVE_PREFIX}")
+		cmake_args+=(-DCMAKE_INSTALL_PREFIX="${NATIVE_PREFIX}")
+		;;
+	*)
+		cmake_args+=(-DCMAKE_PREFIX_PATH="${PREFIX}")
+		cmake_args+=(-DCMAKE_INSTALL_PREFIX="${PREFIX}")
+		;;
+	esac
+
 	cmake_args+=(-DCMAKE_C_COMPILER="$(get_compiler_name ${CC})")
 	cmake_args+=(-DCMAKE_CXX_COMPILER="$(get_compiler_name ${CXX})")
 	cmake_args+=(-DCMAKE_C_COMPILER_ARG1="$(get_compiler_arg1 ${CC})")
@@ -244,11 +259,11 @@ cmake_build() {
 		cmake_args+=("${@}")
 	fi
 
+	rm -rf build
+
 	cmake -S . -B build \
 		-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}" \
 		-DCMAKE_BUILD_TYPE='Release' \
-		-DCMAKE_PREFIX_PATH="${PREFIX}" \
-		-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
 		-DBUILD_SHARED_LIBS="${LIBS_SHARED}" \
 		"${cmake_args[@]}"
 
@@ -256,42 +271,43 @@ cmake_build() {
 	cmake --install build --strip
 }
 
-# Build pkg-config, needed for opusfile.
-# As a host-mode dependency it must be provided by the system when cross-compiling.
-build_pkgconfig() {
+# Build pkg-config, needed for opusfile on macos.
+# It is part of the cross-compilation toolchain.
+# As a host-mode native dependency it must be provided by the system when cross-compiling.
+build_native-pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download_extract pkgconfig "${archive_name}" \
+	download_extract native-pkgconfig "${archive_name}" \
 		"${PKGCONFIG_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
 
-	# Reset the environment variables, we don't cross-compile this,
-	# it is part of the cross-compilation toolchain.
-	# CXXFLAGS is unused.
-	CFLAGS='-Wno-error=int-conversion' \
-	LDFLAGS='' \
-	HOST='' \
-	configure_build \
+	(
+		setup_platform 'native'
+		CFLAGS='-Wno-error=int-conversion' \
+		configure_build \
 		--with-internal-glib
+	)
 }
 
-# Build NASM
-build_nasm() {
+# Build NASM, needed for jpeg on macos-amd64.
+# It is part of the compilation toolchain.
+# As a host-mode native dependency it must be provided by the system when compiling.
+build_native-nasm() {
 	case "${PLATFORM}" in
 	macos-*-*)
 		local dir_name="nasm-${NASM_VERSION}"
 		local archive_name="${dir_name}-macosx.zip"
 
-		download_extract nasm "${archive_name}" \
+		download_extract native-nasm "${archive_name}" \
 			"${NASM_BASEURL}/${NASM_VERSION}/macosx/${archive_name}"
 
 		"${download_only}" && return
 
-		smart_copy "${dir_name}/nasm" "${PREFIX}/bin"
+		smart_copy "${dir_name}/nasm" "${NATIVE_PREFIX}/bin"
 		;;
 	*)
 		log ERROR 'Unsupported platform for NASM'
@@ -1063,14 +1079,8 @@ build_naclsdk() {
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		;;
-	linux-i686-*)
+	linux-i686-*|linux-armhf-*|linux-arm64-*)
 		smart_copy pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
-		# Fix permissions on a few files which deny access to non-owner
-		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
-		;;
-	linux-armhf-*|linux-arm64-*)
-		smart_copy pepper_*"/tools/nacl_helper_bootstrap_arm" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
@@ -1280,16 +1290,26 @@ build_install() {
 # Create a redistributable package for the dependencies
 build_package() {
 	cd "${WORK_DIR}"
+
 	rm -f "${PKG_TARBALL}"
-	local XZ_OPT='-9e'
+
 	case "${PLATFORM}" in
 	windows-*-*)
-		tar --dereference -cvJf "${PKG_TARBALL}" "${PKG_BASEDIR}"
-		;;
-	*)
-		tar -cvJf "${PKG_TARBALL}" "${PKG_BASEDIR}"
+		# Dereference symbolic links.
+		rm -rf "${PKG_BASEDIR}.flatten"
+		mv "${PKG_BASEDIR}" "${PKG_BASEDIR}.flatten"
+		smart_copy -RL "${PKG_BASEDIR}.flatten" "${PKG_BASEDIR}"
+		rm -rf "${PKG_BASEDIR}.flatten"
 		;;
 	esac
+
+	dedupe_dir "${PKG_BASEDIR}" >/dev/null
+
+	log STATUS "Packaging ${PKG_BASEDIR}"
+
+	local XZ_OPT='-9e'
+
+	tar -cvJf "${PKG_TARBALL}" "${PKG_BASEDIR}"
 }
 
 build_wipe() {
@@ -1328,24 +1348,42 @@ common_setup() {
 	"common_setup_${1}"
 	common_setup_arch
 
-	EXE_EXT="${EXE_EXT:-}"
-	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
-	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
-	PKG_TARBALL="${PKG_BASEDIR}.tar.xz"
-	BUILD_BASEDIR="build-${PKG_BASEDIR}"
-	BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
-	PREFIX="${BUILD_DIR}/prefix"
-	PATH="${PREFIX}/bin:${PATH}"
+	PLATFORM_SYSTEM="$(echo "${PLATFORM}" | cut -f1 -d-)"
+	PLATFORM_ARCH="$(echo "${PLATFORM}" | cut -f2 -d-)"
+	PLATFORM_COMPILER="$(echo "${PLATFORM}" | cut -f3 -d-)"
+	PLATFORM_TARGET="${PLATFORM_SYSTEM}-${PLATFORM_ARCH}"
+
+	if "${GLOBAL_SETUP_ONCE:-true}"
+	then
+		DOWNLOAD_DIR="${WORK_DIR}/download_cache"
+		PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
+		PKG_TARBALL="${PKG_BASEDIR}.tar.xz"
+		BUILD_BASEDIR="build-${PKG_BASEDIR}"
+		BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
+		PREFIX="${BUILD_DIR}/prefix"
+		NATIVE_PREFIX="${BUILD_DIR}/native-prefix"
+
+		mkdir -p "${DOWNLOAD_DIR}"
+		mkdir -p "${PREFIX}/bin"
+		mkdir -p "${PREFIX}/include"
+		mkdir -p "${PREFIX}/lib"
+		mkdir -p "${NATIVE_PREFIX}/bin"
+		mkdir -p "${NATIVE_PREFIX}/include"
+		mkdir -p "${NATIVE_PREFIX}/lib"
+
+		PATH="${NATIVE_PREFIX}/bin:${PATH}"
+
+		GLOBAL_SETUP_ONCE='false'
+	fi
+
 	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${CROSS_PKG_CONFIG_PATH}"
 	CPPFLAGS+=" -I${PREFIX}/include"
 	LDFLAGS+=" -L${PREFIX}/lib"
 
-	mkdir -p "${DOWNLOAD_DIR}"
-	mkdir -p "${PREFIX}/bin"
-	mkdir -p "${PREFIX}/include"
-	mkdir -p "${PREFIX}/lib"
-
-	export CC CXX LD AR RANLIB STRIP PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+	export PATH
+	export PKG_CONFIG PKG_CONFIG_PATH
+	export CC CXX LD AR RANLIB STRIP
+	export CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
 }
 
 common_setup_arch() {
@@ -1365,6 +1403,8 @@ common_setup_arch() {
 	*-armhf-*)
 		CFLAGS+=' -march=armv7-a -mfpu=neon'
 		CXXFLAGS+=' -march=armv7-a -mfpu=neon'
+		;;
+	*-native-*)
 		;;
 	*)
 		log ERROR 'Unsupported platform'
@@ -1424,8 +1464,49 @@ common_setup_linux() {
 	CXXFLAGS+=' -fPIC'
 }
 
+common_setup_native() {
+	case "$(uname -s)" in
+	CYGWIN_NT-*|MSYS_NT-*|MINGW*_NT-*)
+		EXE_EXT='.exe'
+		;;
+	esac
+}
+
+setup_default() {
+	# Require the compiler names to be explicitly hardcoded, we should not inherit them
+	# from environment as we heavily cross-compile.
+	export CC='false'
+	export CXX='false'
+
+	# Set defaults.
+	export LD='ld'
+	export AR='ar'
+	export RANLIB='ranlib'
+	export STRIP='strip'
+	export PKG_CONFIG='pkg-config'
+	export CROSS_PKG_CONFIG_PATH=''
+
+	LIBS_SHARED='OFF'
+	LIBS_STATIC='ON'
+	CMAKE_TOOLCHAIN=''
+	EXE_EXT=''
+
+	# Always reset flags, we heavily cross-compile and must not inherit any stray flag
+	# from environment.
+	export CPPFLAGS=''
+	export CFLAGS='-O3 -fPIC'
+	export CXXFLAGS='-O3 -fPIC'
+	export LDFLAGS='-O3 -fPIC'
+
+	unset BITNESS
+	unset MACOS_ARCH
+	unset CMAKE_OSX_ARCHITECTURES
+	unset MACOSX_DEPLOYMENT_TARGET
+}
+
 # Set up environment for 32-bit i686 Windows for Visual Studio (compile all as .dll)
 setup_windows-i686-msvc() {
+	setup_default
 	BITNESS=32
 	CFLAGS+=' -mpreferred-stack-boundary=2'
 	CXXFLAGS+=' -mpreferred-stack-boundary=2'
@@ -1434,24 +1515,28 @@ setup_windows-i686-msvc() {
 
 # Set up environment for 64-bit amd64 Windows for Visual Studio (compile all as .dll)
 setup_windows-amd64-msvc() {
+	setup_default
 	BITNESS=64
 	common_setup msvc x86_64-w64-mingw32
 }
 
 # Set up environment for 32-bit i686 Windows for MinGW (compile all as .a)
 setup_windows-i686-mingw() {
+	setup_default
 	BITNESS=32
 	common_setup mingw i686-w64-mingw32
 }
 
 # Set up environment for 64-bit amd64 Windows for MinGW (compile all as .a)
 setup_windows-amd64-mingw() {
+	setup_default
 	BITNESS=64
 	common_setup mingw x86_64-w64-mingw32
 }
 
 # Set up environment for 64-bit amd64 macOS
 setup_macos-amd64-default() {
+	setup_default
 	MACOS_ARCH=x86_64
 	# OpenAL requires 10.14.
 	export MACOSX_DEPLOYMENT_TARGET=10.14 # works with CMake
@@ -1460,22 +1545,47 @@ setup_macos-amd64-default() {
 
 # Set up environment for 32-bit i686 Linux
 setup_linux-i686-default() {
+	setup_default
 	common_setup linux i686-unknown-linux-gnu
 }
 
 # Set up environment for 64-bit amd64 Linux
 setup_linux-amd64-default() {
+	setup_default
 	common_setup linux x86_64-unknown-linux-gnu
 }
 
 # Set up environment for 32-bit little-endian hard-float arm Linux
 setup_linux-armhf-default() {
+	setup_default
 	common_setup linux arm-unknown-linux-gnueabihf
 }
 
 # Set up environment for 64-bit little-endian arm Linux
 setup_linux-arm64-default() {
+	setup_default
 	common_setup linux aarch64-unknown-linux-gnu
+}
+
+# Set up environment for native host tools
+setup_native() {
+	setup_default
+	CC='cc'
+	CXX='c++'
+	common_setup native native
+}
+
+setup_platform() {
+	case "${1}" in
+	native)
+		export PLATFORM='native-native-native'
+		setup_native
+		;;
+	*)
+		export PLATFORM="${1}"
+		"setup_${PLATFORM}"
+		;;
+	esac
 }
 
 base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck genlib'
@@ -1490,7 +1600,7 @@ all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 
-base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+base_macos_amd64_default_packages='native-pkgconfig native-nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
 base_linux_i686_default_packages='sdl3 naclsdk'
@@ -1531,7 +1641,7 @@ printHelp() {
 	    all     linux windows macos
 
 	Packages:
-	    pkgconfig nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
+	    native-pkgconfig native-nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
 
 	Virtual packages:
 	    base    build packages for pre-built binaries to be downloaded when building the game
@@ -1665,6 +1775,6 @@ esac
 
 for PLATFORM in ${platform_list}
 do (
-	"setup_${PLATFORM}"
+	setup_platform "${PLATFORM}"
 	build "${@}"
 ) done
