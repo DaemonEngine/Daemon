@@ -22,7 +22,7 @@ on:
 
 jobs:
   mac:
-    name: Mac
+    name: macOS amd64 AppleClang
     runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v7
@@ -71,27 +71,27 @@ jobs:
           build/test-ttyclient -pakpath pkg -set fs_basepak daemon -set vm.cgame.type 3
 
   linux:
-    name: Linux ${{ matrix.name }}
+    name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: GCC
+          - name: Linux amd64 GCC
             build_type: Release
             c_compiler: gcc
             cxx_compiler: g++
             extra_packages: ''
             extra_installs: ''
             toolchain_file: ''
-          - name: Clang
+          - name: Linux amd64 Clang
             build_type: Release
             c_compiler: clang
             cxx_compiler: clang++
             extra_packages: ''
             extra_installs: ''
             toolchain_file: ''
-          - name: Mingw
+          - name: Windows amd64 MinGW
             build_type: Debug
             c_compiler: x86_64-w64-mingw32-gcc
             cxx_compiler: x86_64-w64-mingw32-g++
