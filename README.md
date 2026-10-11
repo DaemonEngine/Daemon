@@ -3,7 +3,7 @@
 Dæmon is the standalone game engine that powers the multiplayer first person shooter [Unvanquished](https://unvanquished.net).
 
 [![GitHub tag](https://img.shields.io/github/tag/DaemonEngine/Daemon.svg)](https://github.com/DaemonEngine/Daemon/tags)  
-[![Web](https://img.shields.io/badge/web-unvanquished.net-ffaaaa)](https://forums.unvanquished.net)
+[![Web](https://img.shields.io/badge/web-unvanquished.net-ffaaaa)](https://unvanquished.net)
 [![Forums](https://img.shields.io/badge/forums-forums.unvanquished.net-ffaaaa)](https://forums.unvanquished.net)
 [![Wiki](https://img.shields.io/badge/wiki-wiki.unvanquished.net_%E2%80%A3_Dæmon_Engine-ffaaaa)](https://wiki.unvanquished.net/wiki/Daemon)  
 [![Rules](https://img.shields.io/badge/chat-rules-ffdd00)](https://wiki.unvanquished.net/wiki/Chat#Rules)
@@ -11,9 +11,28 @@ Dæmon is the standalone game engine that powers the multiplayer first person sh
 [![Matrix](https://img.shields.io/badge/matrix-Unvanquished-9cf?logo=matrix)](https://matrix.to/#/!WnuetRiQZJNBTKwMrF:matrix.org?via=matrix.org)
 [![Discord](https://img.shields.io/badge/discord-Unvanquished-9cf?logo=discord)](https://discord.gg/usuDT9Pyna)
 
+## Validation
+
+Target & compiler|Build status|Target & compiler|Build status
+-|-|-|-
+<sub>Linux amd64 GCC</sub>|[![Build Status](https://img.shields.io/github/check-runs/DaemonEngine/Daemon/master?nameFilter=Linux%20amd64%20GCC)](https://github.com/DaemonEngine/Daemon/actions/workflows/build_test.yml?query=branch%3Amaster)|<sub>Windows amd64 MSVC</sub>|[![Build status](https://ci.appveyor.com/api/projects/status/github/DaemonEngine/Daemon?banch=master&svg=true)](https://ci.appveyor.com/project/DolceTriade/Daemon/history)
+<sub>Linux amd64 Clang</sub>|[![Build Status](https://img.shields.io/github/check-runs/DaemonEngine/Daemon/master?nameFilter=Linux%20amd64%20Clang)](https://github.com/DaemonEngine/Daemon/actions/workflows/build_test.yml?query=branch%3Amaster)|<sub>Windows amd64 MinGW</sub>|[![Build Status](https://img.shields.io/github/check-runs/DaemonEngine/Daemon/master?nameFilter=Windows%20amd64%20MinGW)](https://github.com/DaemonEngine/Daemon/actions/workflows/build_test.yml?query=branch%3Amaster)
+<sub>macOS amd64 AppleClang</sub>|[![Build Status](https://img.shields.io/github/check-runs/DaemonEngine/Daemon/master?nameFilter=macOS%20amd64%20AppleClang)](https://github.com/DaemonEngine/Daemon/actions/workflows/build_test.yml?query=branch%3Amaster)|<sub>CodeQL C++ static analysis</sub>|[![Build Status](https://img.shields.io/github/check-runs/DaemonEngine/Daemon/master?nameFilter=Analyze%20%28c-cpp%29)](https://github.com/DaemonEngine/Daemon/actions/workflows/codeql.yml?query=branch%3Amaster)
+
+## Onboarding
+
 ℹ️ We provide ready-to-use downloads for the Unvanquished game on the [Unvanquished download page](https://unvanquished.net/download/), builds of the Dæmon engine are included.
 
 ℹ️ The Unvanquished game logic source code can be found there: [github.com/Unvanquished/Unvanquished](https://github.com/Unvanquished/Unvanquished).
+
+💡️ Building this engine is enough to play the game and join servers once you [download the game's assets](https://github.com/Unvanquished/Unvanquished#downloading-the-games-assets).
+
+💡️ You need to build this repository if you want to contribute to the engine code (not the game logic).
+
+See below for [build](#building-the-engine-binaries) and [launch](#running-a-game) instructions.
+
+If you are interested in creating or using Unvanquished packages for package managers, see
+[wiki:Linux packages](https://wiki.unvanquished.net/wiki/Linux_packages).
 
 ## Workspace requirements
 
@@ -73,7 +92,7 @@ git submodule update --init --recursive
 
 ℹ️ If cmake complains about missing files in `libs/crunch/` folder or similar issue then you have skipped this step.
 
-## Build Instructions
+## Building the engine binaries
 
 💡️ Instead of `-j4` you can use `-jN` where `N` is your number of CPU cores to distribute compilation on them. Linux systems usually provide a handy `nproc` tool that tells the number of CPU core so you can just do `-j$(nproc)` to use all available cores.
 
