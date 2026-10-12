@@ -5,7 +5,7 @@ skip_branch_with_pr: true
 only_commits:
   files:
     - .appveyor.yml
-    # The rest of this list should stay in sync with azure-pipelines.yml
+    # The rest of this list should stay in sync with .github/worklows/build_test.yml
     - src/
     - libs/
     - cmake/
