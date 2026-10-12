@@ -198,8 +198,9 @@ else()
     set(FULL_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
 endif()
 
-# Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 11)
+# Dependencies versions
+set(DEPS_VERSION 11) # This must match the number in external_deps/build.sh
+set(SAIGOSDK_VERSION 20260925)
 
 option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
 
@@ -276,9 +277,6 @@ option(USE_EXTERNAL_DEPS_LIBS "Build and link against libraries from the EXTERNA
 
 set(PNACLSDK_PREFIX "${DEPS_DIR}/pnacl" CACHE PATH "PNaCl SDK path")
 mark_as_advanced(PNACLSDK_PREFIX)
-
-set(SAIGOSDK_PREFIX "${DEPS_DIR}/saigo_newlib" CACHE PATH "Saigo NaCl SDK path")
-mark_as_advanced(SAIGOSDK_PREFIX)
 
 if (USE_EXTERNAL_DEPS AND NOT YOKAI_TARGET_SYSTEM_NACL)
     if (DEPS_DIR)
@@ -456,6 +454,11 @@ if (DEPS_DIR)
         if (NOT EXTRACT_RESULT EQUAL 0)
             message(FATAL_ERROR "Could not extract ${BASENAME}${DEPS_EXT}")
         endif()
+    endif()
+
+    if (BUILD_GAME_NACL AND USE_NACL_SAIGO AND NOT SAIGOSDK_PREFIX)
+        include(DaemonDependenciesDownload)
+        download_saigosdk()
     endif()
 
     if (USE_EXTERNAL_DEPS_LIBS)
