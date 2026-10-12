@@ -227,6 +227,10 @@ function(GAMEMODULE)
 
 		if (BUILD_GAME_NACL AND NOT YOKAI_TARGET_SYSTEM_NACL)
 			if (USE_NACL_SAIGO)
+				if (NOT IS_DIRECTORY "${SAIGOSDK_PREFIX}")
+					message(FATAL_ERROR "SAIGOSDK_PREFIX configured as '${SAIGOSDK_PREFIX}' which is not an existing directory")
+				endif()
+
 				add_custom_target(nacl-vms ALL)
 				unset(NACL_VMS_PROJECTS)
 
@@ -251,6 +255,10 @@ function(GAMEMODULE)
 					)
 				endforeach()
 			else()
+				if (NOT IS_DIRECTORY "${PNACL_SDK_PREFIX}")
+					message(FATAL_ERROR "PNACL_SDK_PREFIX configured as '${SAIGOSDK_PREFIX}' which is not an existing directory")
+				endif()
+
 				set(NACL_VMS_PROJECT nacl-vms)
 				set(NACL_VMS_PROJECTS ${NACL_VMS_PROJECT})
 
