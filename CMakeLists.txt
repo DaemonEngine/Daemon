@@ -263,6 +263,9 @@ if (USE_EXTERNAL_DEPS AND NOT YOKAI_TARGET_SYSTEM_NACL)
     endif()
 endif()
 
+set(SAIGOSDK_ROOT "${DEPS_DIR}/saigo_newlib" CACHE PATH "Saigo NaCl SDK path")
+mark_as_advanced(SAIGOSDK_ROOT)
+
 option(USE_EXTERNAL_DEPS_LIBS "Build and link against libraries from the EXTERNAL_DEPS_DIR" ${DEFAULT_USE_EXTERNAL_DEPS_LIBS})
 
 if (USE_EXTERNAL_DEPS AND NOT YOKAI_TARGET_SYSTEM_NACL)
@@ -487,10 +490,10 @@ elseif (YOKAI_TARGET_SYSTEM_NACL)
     if (NOT NACL_MINIDUMP
     # NACL_TARGET is specific to Saigo, PNaCl target is le32 and doesn't set NACL_TARGET.
     AND "${NACL_TARGET}" STREQUAL "i686"
-    # x86_64-nacl/lib32 is specific to Google build, other builds may provide i686-nacl/lib instead.
-    AND EXISTS "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32")
-        set(NACL_EXCEPTION "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32/libnacl_exception.a")
-        set(NACL_MINIDUMP "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32/libminidump_generator.a")
+    # Other builds may provide i686-nacl/lib instead.
+    AND EXISTS "${SAIGOSDK_ROOT}/x86_64-nacl/lib32")
+        set(NACL_EXCEPTION "${SAIGOSDK_ROOT}/x86_64-nacl/lib32/libnacl_exception.a")
+        set(NACL_MINIDUMP "${SAIGOSDK_ROOT}/x86_64-nacl/lib32/libminidump_generator.a")
     endif()
 
     set(LIBS_BASE ${LIBS_BASE} ${NACL_MINIDUMP} ${NACL_EXCEPTION})
