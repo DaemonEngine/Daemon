@@ -202,7 +202,7 @@ endmacro()
 set(DEFAULT_USE_EXTERNAL_DEPS_LIBS ON)
 
 if (USE_EXTERNAL_DEPS AND NOT YOKAI_TARGET_SYSTEM_NACL)
-    set(EXTERNAL_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external_deps" CACHE STRING "Directory in which to store the downloaded dependencies.")
+    set(EXTERNAL_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external_deps" CACHE PATH "Directory in which to store the downloaded dependencies.")
 
     set(DEPS_EXT ".tar.xz")
 
