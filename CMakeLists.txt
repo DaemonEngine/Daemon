@@ -378,7 +378,7 @@ if (DEPS_DIR)
             endif()
         endif()
 
-        if (cacheVariableValue MATCHES "/(linux|windows|macos)-(i686|amd64)-(default|mingw|msvc)_([0-9]+)/")
+        if (cacheVariableValue MATCHES "/(linux|windows|macos)-(i686|amd64|armhf|arm64)-(default|mingw|msvc)_([0-9]+)/")
             if (NOT ${CMAKE_MATCH_4} EQUAL ${DEPS_VERSION})
                 set(OLD_VERSION ${CMAKE_MATCH_4})
             endif()
