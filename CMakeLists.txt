@@ -199,7 +199,7 @@ endif()
 
 # Dependencies versions
 set(DEPS_VERSION 11) # This must match the number in external_deps/build.sh
-set(SAIGOSDK_VERSION 20260925)
+set(SAIGOSDK_VERSION 20260925) # This must match the number in external_deps/sdk-build.sh
 
 option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
 
