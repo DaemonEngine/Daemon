@@ -30,6 +30,8 @@ set(SAIGOSDK_BASENAME saigosdk-${DEPS_SYSTEM}-${DEPS_ARCH}_${SAIGOSDK_VERSION})
 set(SAIGOSDK_ROOT ${EXTERNAL_DEPS_DIR}/${SAIGOSDK_BASENAME})
 set(SAIGOSDK_ROOT "${SAIGOSDK_ROOT}" PARENT_SCOPE)
 
+# As an alternative to downloading, external_deps/sdk-build.sh can be used, to build the host-mode
+# dependencies and install them in the expected path.
 function(download_saigosdk)
     if (NOT EXISTS ${SAIGOSDK_ROOT})
         set(DEPS_FILENAME "${SAIGOSDK_BASENAME}.tar.xz")
