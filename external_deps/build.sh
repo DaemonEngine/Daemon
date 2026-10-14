@@ -99,7 +99,7 @@ extract() {
 		tar xzf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.zip)
-		unzip -d "${extract_dir}" "${archive_file}"
+		unzip -q -d "${extract_dir}" "${archive_file}"
 		;;
 	*.cygtar.bz2)
 		# Some Windows NaCl SDK packages have incorrect symlinks, so use
