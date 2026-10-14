@@ -59,6 +59,7 @@ OPUSFILE_VERSION=0.12
 NACLSDK_VERSION=44.0.2403.155
 NACLRUNTIME_REVISION=2aea5fcfce504862a825920fcaea1a8426afbd6f
 NCURSES_VERSION=6.5
+SCONS_VERSION=4.10.1
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
 
@@ -1083,6 +1084,15 @@ build_naclsdk() {
 	esac
 }
 
+# Tool for building Native Client
+build_native-scons() {
+	local dir_name="${BUILD_DIR}/scons-venv"
+	python3 -m venv "${dir_name}"
+	"${dir_name}/bin/pip" install scons=="${SCONS_VERSION}"
+	rm -f "${NATIVE_PREFIX}/bin/scons"
+	ln -s "${dir_name}/bin/scons" "${NATIVE_PREFIX}/bin/scons"
+}
+
 # Only builds nacl_loader and nacl_helper_bootstrap for now, not IRT.
 build_naclruntime() {
 	case "${PLATFORM}" in
@@ -1557,8 +1567,8 @@ all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 base_linux_i686_default_packages='sdl3 naclsdk'
 all_linux_i686_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
 
-base_linux_amd64_default_packages="${base_linux_i686_default_packages} naclruntime"
-all_linux_amd64_default_packages="${all_linux_i686_default_packages} naclruntime"
+base_linux_amd64_default_packages="native-scons ${base_linux_i686_default_packages} naclruntime"
+all_linux_amd64_default_packages="native-scons ${all_linux_i686_default_packages} naclruntime"
 
 base_linux_arm64_default_packages='sdl3 naclsdk'
 all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
@@ -1592,7 +1602,7 @@ printHelp() {
 	    all     linux windows macos
 
 	Packages:
-	    native-pkgconfig native-nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclruntime naclsdk wasisdk wasmtime
+	    native-pkgconfig native-nasm native-scons zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclruntime naclsdk wasisdk wasmtime
 
 	Virtual packages:
 	    base    build packages for pre-built binaries to be downloaded when building the game
