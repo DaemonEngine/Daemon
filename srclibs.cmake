@@ -197,6 +197,8 @@ elseif (YOKAI_TARGET_SYSTEM_LINUX)
         ${LIB_DIR}/breakpad/src/client/linux/minidump_writer/linux_dumper.cc
         ${LIB_DIR}/breakpad/src/client/linux/minidump_writer/linux_ptrace_dumper.cc
         ${LIB_DIR}/breakpad/src/client/linux/minidump_writer/minidump_writer.cc
+        ${LIB_DIR}/breakpad/src/client/linux/minidump_writer/pe_file.cc
+        ${LIB_DIR}/breakpad/src/client/linux/minidump_writer/pe_file.h
         ${LIB_DIR}/breakpad/src/client/minidump_file_writer-inl.h
         ${LIB_DIR}/breakpad/src/client/minidump_file_writer.cc
         ${LIB_DIR}/breakpad/src/client/minidump_file_writer.h
