@@ -61,6 +61,7 @@ OPUSFILE_VERSION=0.12
 NACLSDK_VERSION=44.0.2403.155
 NACLRUNTIME_REVISION=2aea5fcfce504862a825920fcaea1a8426afbd6f
 NCURSES_VERSION=6.5
+SCONS_VERSION=4.8.1
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
 
@@ -1081,6 +1082,14 @@ build_naclsdk() {
 		sed -e 's|/lib/ld-linux-armhf.so.3|lib-armhf/ld-linux-armhf|' -i "${PREFIX}/nacl_loader"
 		;;
 	esac
+}
+
+# Tool for building Native Client
+build_native-scons() {
+	local dir_name="${BUILD_DIR}/scons-venv"
+	python3 -m venv "${dir_name}"
+	"${dir_name}/bin/pip" install scons=="${SCONS_VERSION}"
+	ln -s --force "${dir_name}/bin/scons" "${NATIVE_PREFIX}/bin/scons"
 }
 
 # Only builds nacl_loader and nacl_helper_bootstrap for now, not IRT.
