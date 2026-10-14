@@ -20,6 +20,7 @@ build
 *.dylib
 *.so
 *.a
+__pycache__
 
 #ignore editor temporary files
 .*.swp
