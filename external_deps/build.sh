@@ -6,7 +6,7 @@ set -u -e -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 WORK_DIR="${PWD}"
 
-# Define DEPS_VERSION
+# Define DEPS_VERSION, SAIGOSDK_VERSION
 versions_out="$(cmake -P "${SCRIPT_DIR}/versions.cmake" 2>&1)"
 eval "${versions_out}"
 
@@ -32,7 +32,8 @@ OPUS_BASEURL='https://downloads.xiph.org/releases/opus'
 OPUSFILE_BASEURL='https://downloads.xiph.org/releases/opus'
 NACLSDK_BASEURL='https://dl.unvanquished.net/mirror/storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk'
 # No index.
-NACLRUNTIME_BASEURL='https://api.github.com/repos/DaemonEngine/native_client/zipball'
+NACLRUNTIME_BASEURL='https://github.com/DaemonEngine/native_client/archive/refs/tags'
+NACLRUNTIME_MSVC_BASEURL='https://github.com/DaemonEngine/native_client/releases'
 NCURSES_BASEURL='https://ftpmirror.gnu.org/gnu/ncurses'
 WASISDK_BASEURL='https://github.com/WebAssembly/wasi-sdk/releases'
 WASMTIME_BASEURL='https://github.com/bytecodealliance/wasmtime/releases'
@@ -57,7 +58,7 @@ VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.5.2
 OPUSFILE_VERSION=0.12
 NACLSDK_VERSION=44.0.2403.155
-NACLRUNTIME_REVISION=2aea5fcfce504862a825920fcaea1a8426afbd6f
+NACLRUNTIME_VERSION=20261026
 NCURSES_VERSION=6.5
 SCONS_VERSION=4.10.1
 WASISDK_VERSION=16.0
@@ -1027,14 +1028,6 @@ build_naclsdk() {
 
 	"${download_only}" && return
 
-	smart_copy pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-	case "${PLATFORM}" in
-	linux-amd64-*)
-		;; # Get sel_ldr from naclruntime package
-	*)
-		smart_copy pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE_EXT}" "${PREFIX}/nacl_loader${EXE_EXT}"
-		;;
-	esac
 	case "${PLATFORM}" in
 	windows-i686-*|*-amd64-*)
 		smart_copy pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE_EXT}" "${PREFIX}/nacl-gdb${EXE_EXT}"
@@ -1054,25 +1047,9 @@ build_naclsdk() {
 		rm -rf "${PREFIX}/pnacl/x86_64-nacl"
 		rm -rf "${PREFIX}/pnacl/x86_64_bc-nacl"
 	esac
-	case "${PLATFORM}" in
-	windows-i686-*)
-		smart_copy pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/nacl_loader-amd64.exe"
-		smart_copy pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-amd64.nexe"
-		;;
-	linux-amd64-*)
-		# Fix permissions on a few files which deny access to non-owner
-		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		;;
-	linux-i686-*|linux-armhf-*|linux-arm64-*)
-		smart_copy pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
-		# Fix permissions on a few files which deny access to non-owner
-		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
-		;;
-	esac
 }
 
-# This package is not needed if the target machine already has armhf multiarch support (including libstdc++) installed.
+# This package is not needed if the target machine already has armhf multiarch support installed.
 # Must be built after the NaCl runtime
 build_naclruntime-vendor-libc() {
 	"${download_only}" && return
@@ -1080,7 +1057,10 @@ build_naclruntime-vendor-libc() {
 	case "${PLATFORM}" in
 	linux-arm64-*)
 		mkdir -p "${PREFIX}/lib-armhf"
-		smart_copy -R "${BUILD_DIR}/naclsdk/"pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/lib-armhf/."
+		# HACK: assume Debian paths
+		# TODO: are all of them really needed? Just copied what we got from the PNaCl SDK, except
+		#       libstdc++ since the loader is now built with -static-libstdc++.
+		smart_copy -R /usr/lib/arm-linux-gnueabihf/{ld-linux-armhf.so.3,libc.so.6,libgcc_s.so.1,libm.so.6,libpthread.so.0,librt.so.1} "${PREFIX}/lib-armhf/."
 		# Copy the library loader instead of renaming it because there may still be some
 		# references to ld-linux-armhf.so.3 in binaries.
 		smart_copy "${PREFIX}/lib-armhf/ld-linux-armhf.so.3" "${PREFIX}/lib-armhf/ld-linux-armhf"
@@ -1103,28 +1083,95 @@ build_native-scons() {
 	ln -s "${dir_name}/bin/scons" "${NATIVE_PREFIX}/bin/scons"
 }
 
-# Only builds nacl_loader and nacl_helper_bootstrap for now, not IRT.
+# Saigo SDK must be installed in the current directory for building or stripping the IRT.
 build_naclruntime() {
+	if ! "${download_only}"; then
+		# TODO: better way to detect native platform?
+		local detect_out=$("${SCRIPT_DIR}/../cmake/Yokai/Detection/detect" cc | grep '^YOKAI_TARGET_' | tr A-Z a-z)
+		eval "${detect_out}"
+		NATIVE_SYS="${yokai_target_system_name}-${yokai_target_arch_name}"
+	fi
+
 	case "${PLATFORM}" in
 	linux-amd64-*)
-		local NACL_ARCH=x86-64
+		naclruntime_impl linux-amd64-default linux x86-64
+		;;
+	linux-i686-*)
+		naclruntime_impl linux-i686-default linux x86-32
+		;;
+	linux-armhf-*)
+		naclruntime_impl linux-armhf-default linux arm
+		;;
+	linux-arm64-*)
+		naclruntime_impl linux-armhf-default linux arm
+
+		# Later after making binary names distinguishable we can add the box64 alternative:
+		# naclruntime_impl linux-amd64-default linux x86-64
+		;;
+	macos-*-*)
+		naclruntime_impl macos-amd64-default mac x86-64
+		;;
+	windows-amd64-*)
+		naclruntime_msvc_impl amd64 ''
+		;;
+	windows-i686-*)
+		naclruntime_msvc_impl amd64 '-amd64'
+		naclruntime_msvc_impl i686 ''
 		;;
 	*)
 		log ERROR 'Unsupported platform for naclruntime'
 		;;
 	esac
+}
 
-	local dir_name="DaemonEngine-native_client-${NACLRUNTIME_REVISION:0:7}"
-	local archive_name="native_client-${NACLRUNTIME_REVISION}.zip"
+naclruntime_impl() {
+	local target_platform="${1}"
+	local scons_os="${2}"
+	local scons_arch="${3}"
+
+	local dir_name="native_client-${NACLRUNTIME_VERSION}"
+	local archive_name="naclruntime_${NACLRUNTIME_VERSION}.tar.gz"
 
 	download_extract naclruntime "${archive_name}" \
-		"${NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
-
+		"${NACLRUNTIME_BASEURL}/v${NACLRUNTIME_VERSION}.tar.gz"
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	scons --mode=opt-linux "platform=${NACL_ARCH}" werror=0 sysinfo=0 sel_ldr
-	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader"
+
+	local saigo_dir="${WORK_DIR}/saigosdk-${NATIVE_SYS}_${SAIGOSDK_VERSION}"
+	(
+		# I don't think SCons uses any variables other than PATH, so this is not necessary, but
+		# just to be sure...
+		"setup_${target_platform}"
+
+		scons --mode="opt-${scons_os},nacl_irt" platform="${scons_arch}" \
+			--no-clang saigo=1 saigo_newlib_dir="${saigo_dir}" \
+			werror=0 sysinfo=0 sel_ldr irt_core
+
+		cp "scons-out/opt-${scons_os}-${scons_arch}/staging/sel_ldr" "${PREFIX}/nacl_loader"
+		if [ -f "scons-out/opt-linux-${scons_arch}/staging/nacl_helper_bootstrap" ]
+		then
+			cp "scons-out/opt-linux-${scons_arch}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
+		fi
+		local target_arch="$(cut -d- -f2 <<< "${target_platform}")"
+		"${saigo_dir}/bin/nacl-strip" "scons-out/nacl_irt-${scons_arch}/staging/irt_core.nexe" -o "${PREFIX}/irt_core-${target_arch}.nexe"
+	)
+}
+
+naclruntime_msvc_impl() {
+	local arch="${1}"
+	local loader_suffix="${2}"
+
+	local archive_basename="naclruntime-windows-${arch}_${NACLRUNTIME_VERSION}"
+	local archive_name="${archive_basename}.zip"
+
+	download_extract naclruntime "${archive_name}" \
+		"${NACLRUNTIME_MSVC_BASEURL}/download/v${NACLRUNTIME_VERSION}/${archive_name}"
+	"${download_only}" && return
+
+	cp "${archive_basename}/sel_ldr.exe" "${PREFIX}/bin/nacl_loader${loader_suffix}.exe"
+	local saigo_dir="${WORK_DIR}/saigosdk-${NATIVE_SYS}_${SAIGOSDK_VERSION}"
+	"${saigo_dir}/bin/nacl-strip" "${archive_basename}/irt_core.nexe" -o "${PREFIX}/bin/irt_core-${arch}.nexe"
 }
 
 # Check for DLL dependencies on MinGW stuff. For MSVC platforms this is bad because it should work
@@ -1559,32 +1606,32 @@ setup_native() {
 	common_setup native native
 }
 
-base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck genlib'
+base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclruntime naclsdk depcheck genlib'
 all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
 
 base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 
-base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck'
+base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclruntime naclsdk depcheck'
 all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 
-base_macos_amd64_default_packages='native-pkgconfig native-nasm gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk'
+base_macos_amd64_default_packages='native-pkgconfig native-nasm native-scons gmp nettle sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclruntime naclsdk'
 all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
 
-base_linux_i686_default_packages='sdl3 naclsdk'
-all_linux_i686_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+base_linux_i686_default_packages='native-scons sdl3 naclruntime naclsdk'
+all_linux_i686_default_packages='native-scons zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclruntime naclsdk'
 
-base_linux_amd64_default_packages="native-scons ${base_linux_i686_default_packages} naclruntime"
-all_linux_amd64_default_packages="native-scons ${all_linux_i686_default_packages} naclruntime"
+base_linux_amd64_default_packages="${base_linux_i686_default_packages}"
+all_linux_amd64_default_packages="${all_linux_i686_default_packages}"
 
-base_linux_arm64_default_packages='sdl3 naclsdk naclruntime-vendor-libc'
-all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk naclruntime-vendor-libc'
+base_linux_arm64_default_packages='native-scons sdl3 naclruntime naclsdk naclruntime-vendor-libc'
+all_linux_arm64_default_packages='native-scons zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclruntime naclsdk naclruntime-vendor-libc'
 
-base_linux_armhf_default_packages='sdl3 naclsdk'
-all_linux_armhf_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+base_linux_armhf_default_packages='sdl3 naclruntime naclsdk'
+all_linux_armhf_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclruntime naclsdk'
 
 all_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
 all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
