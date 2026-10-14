@@ -59,7 +59,7 @@ VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.5.2
 OPUSFILE_VERSION=0.12
 NACLSDK_VERSION=44.0.2403.155
-NACLRUNTIME_REVISION=2aea5fcfce504862a825920fcaea1a8426afbd6f
+NACLRUNTIME_REVISION=ab09db9ab6da96f2549b382e14d19212b482634a
 NCURSES_VERSION=6.5
 SCONS_VERSION=4.8.1
 WASISDK_VERSION=16.0
@@ -1092,29 +1092,60 @@ build_native-scons() {
 	ln -s --force "${dir_name}/bin/scons" "${NATIVE_PREFIX}/bin/scons"
 }
 
-# Only builds nacl_loader and nacl_helper_bootstrap for now, not IRT.
 build_naclruntime() {
+	local dir_name="DaemonEngine-native_client-${NACLRUNTIME_REVISION:0:7}"
+	local archive_name="native_client-${NACLRUNTIME_REVISION}.zip"
+
+	download_extract naclruntime "${archive_name}" \
+		"${NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
+
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
 	case "${PLATFORM}" in
 	linux-amd64-*)
-		local NACL_ARCH=x86-64
+		naclruntime_impl linux-amd64-default linux x86-64
+		;;
+	linux-i686-*)
+		naclruntime_impl linux-i686-default linux x86-32
+		;;
+	linux-armhf-*)
+		naclruntime_impl linux-armhf-default linux arm
+		;;
+	linux-arm64-*)
+		naclruntime_impl linux-armhf-default linux arm
+		# Later after making output names distinguishable we can add:
+		# naclruntime_impl linux-amd64-default linux x86-64
+		;;
+	macos-*-*)
+		naclruntime_impl macos-amd64-default darwin x86-64
 		;;
 	*)
 		log ERROR 'Unsupported platform for naclruntime'
 		;;
 	esac
+}
 
-	local dir_name="DaemonEngine-native_client-${NACLRUNTIME_REVISION:0:7}"
-	local archive_name="native_client-${NACLRUNTIME_REVISION}.zip"
+naclruntime_impl() {
+	local target_platform="${1}"
+	local nacl_os="${2}"
+	local nacl_arch="${3}"
 
-	download_extract naclruntime "${archive_name}" \
-		"{$NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
+	# TODO: better way to detect native platform
+	source <("${SCRIPT_DIR}/../cmake/Yokai/Detection/detect" cc | tr A-Z a-z)
+	native_sys="${yokai_target_system_name}-${yokai_target_arch_name}"
 
-	"${download_only}" && return
-
-	cd "${dir_name}"
-	scons --mode=opt-linux "platform=${NACL_ARCH}" werror=0 sysinfo=0 sel_ldr
-	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
-	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader"
+	(
+		setup_platform "${target_platform}"
+		# FIXME SDK version
+		scons saigo_newlib_dir="${WORK_DIR}/saigosdk-${native_sys}_20260925" --mode="opt-${nacl_os},nacl" platform="${nacl_arch}" saigo=1 --no-clang werror=0 sysinfo=0 sel_ldr irt_core
+	)
+	cp "scons-out/opt-${nacl_os}-${nacl_arch}/staging/sel_ldr" "${PREFIX}/nacl_loader"
+	if [ -f "scons-out/opt-linux-${nacl_arch}/staging/nacl_helper_bootstrap" ]
+	then
+		cp "scons-out/opt-linux-${nacl_arch}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
+	fi
 }
 
 # Check for DLL dependencies on MinGW stuff. For MSVC platforms this is bad because it should work
