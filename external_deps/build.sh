@@ -49,9 +49,7 @@ SDL3_VERSION=3.4.18
 GLEW_VERSION=2.3.1
 PNG_VERSION=1.6.58
 JPEG_VERSION=3.1.4.1
-# WebP 1.6.0 introduced AVX2 intrinsics that are not available on
-# the GCC 10 compiler provided by Debian Bullseye.
-WEBP_VERSION=1.5.0
+WEBP_VERSION=1.6.0
 OPENAL_VERSION=1.24.3
 OGG_VERSION=1.3.6
 VORBIS_VERSION=1.3.7
