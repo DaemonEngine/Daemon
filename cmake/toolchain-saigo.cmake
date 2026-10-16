@@ -1,4 +1,4 @@
-set(PLATFORM_PREFIX "${DEPS_DIR}/saigo_newlib/bin")
+set(PLATFORM_PREFIX "${SAIGOSDK_ROOT}/bin")
 set(PLATFORM_TRIPLET "${SAIGO_ARCH}-nacl")
 set(PLATFORM_EXE_SUFFIX ".nexe")
 

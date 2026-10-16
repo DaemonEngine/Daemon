@@ -157,6 +157,12 @@ set(NACL_VM_INHERITED_OPTIONS "${DEFAULT_NACL_VM_INHERITED_OPTIONS}" CACHE STRIN
     "Semicolon-separated list of options for which NaCl game VMs should use the same value as the other binaries")
 mark_as_advanced(NACL_VM_INHERITED_OPTIONS)
 
+# Warning: changing SAIGOSDK_ROOT/SAIGOSDK_VERSION after subprojects have been configured WILL
+# change the compiler, but it is a bad idea since flag tests and such (not to mention the actual
+# compiled artifacts) will be out of date.
+set(SAIGOSDK_ROOT "" CACHE PATH "Override Saigo NaCl SDK path")
+mark_as_advanced(SAIGOSDK_ROOT)
+
 ################################################################################
 # Directories
 ################################################################################
@@ -189,8 +195,9 @@ else()
     set(FULL_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
 endif()
 
-# Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 11)
+# Dependencies versions
+set(DEPS_VERSION 11) # This must match the number in external_deps/build.sh
+set(SAIGOSDK_VERSION 20260925) # This must match the number in external_deps/sdk-build.sh
 
 option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
 
@@ -442,6 +449,11 @@ if (DEPS_DIR)
         endif()
     endif()
 
+    if (BUILD_GAME_NACL AND USE_NACL_SAIGO AND NOT SAIGOSDK_ROOT)
+        include(DaemonDependenciesDownload)
+        download_saigosdk()
+    endif()
+
     if (USE_EXTERNAL_DEPS_LIBS)
         # Add to paths
         set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH})
@@ -487,10 +499,10 @@ elseif (YOKAI_TARGET_SYSTEM_NACL)
     if (NOT NACL_MINIDUMP
     # NACL_TARGET is specific to Saigo, PNaCl target is le32 and doesn't set NACL_TARGET.
     AND "${NACL_TARGET}" STREQUAL "i686"
-    # x86_64-nacl/lib32 is specific to Google build, other builds may provide i686-nacl/lib instead.
-    AND EXISTS "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32")
-        set(NACL_EXCEPTION "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32/libnacl_exception.a")
-        set(NACL_MINIDUMP "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32/libminidump_generator.a")
+    # Other builds may provide i686-nacl/lib instead.
+    AND EXISTS "${SAIGOSDK_ROOT}/x86_64-nacl/lib32")
+        set(NACL_EXCEPTION "${SAIGOSDK_ROOT}/x86_64-nacl/lib32/libnacl_exception.a")
+        set(NACL_MINIDUMP "${SAIGOSDK_ROOT}/x86_64-nacl/lib32/libminidump_generator.a")
     endif()
 
     set(LIBS_BASE ${LIBS_BASE} ${NACL_MINIDUMP} ${NACL_EXCEPTION})

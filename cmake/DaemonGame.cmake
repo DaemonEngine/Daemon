@@ -204,6 +204,9 @@ function(GAMEMODULE)
 
 		if (BUILD_GAME_NACL)
 			if (USE_NACL_SAIGO)
+				if (NOT IS_DIRECTORY "${SAIGOSDK_ROOT}")
+					message(FATAL_ERROR "SAIGOSDK_ROOT configured as '${SAIGOSDK_ROOT}' which is not an existing directory")
+				endif()
 				add_custom_target(nacl-vms ALL)
 				unset(NACL_VMS_PROJECTS)
 
@@ -224,6 +227,7 @@ function(GAMEMODULE)
 
 					gameSubProject(
 						-DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/toolchain-saigo.cmake
+						-DSAIGOSDK_ROOT=${SAIGOSDK_ROOT}
 						-DBUILD_GAME_NACL=ON
 						-DBUILD_GAME_NATIVE_DLL=OFF
 						-DBUILD_GAME_NATIVE_EXE=OFF
