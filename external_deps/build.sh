@@ -296,9 +296,9 @@ build_native-pkgconfig() {
 
 	(
 		setup_platform 'native'
-	CFLAGS='-Wno-error=int-conversion' \
-	configure_build \
-		--with-internal-glib
+		CFLAGS='-Wno-error=int-conversion' \
+		configure_build \
+			--with-internal-glib
 	)
 }
 
