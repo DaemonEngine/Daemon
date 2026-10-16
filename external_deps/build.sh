@@ -41,7 +41,7 @@ WASMTIME_BASEURL='https://github.com/bytecodealliance/wasmtime/releases'
 
 # Package versions
 PKGCONFIG_VERSION=0.29.2
-NASM_VERSION=2.16.03
+NASM_VERSION=3.02
 ZLIB_VERSION=1.3.2
 GMP_VERSION=6.3.0
 NETTLE_VERSION=4.0
