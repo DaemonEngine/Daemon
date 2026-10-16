@@ -53,7 +53,7 @@ PNG_VERSION=1.6.58
 JPEG_VERSION=3.1.4.1
 # WebP 1.6.0 introduced AVX2 intrinsics that are not available on
 # the GCC 10 compiler provided by Debian Bullseye.
-WEBP_VERSION=1.5.0
+WEBP_VERSION=1.6.0
 # OpenAL 0.25.0 requires C++20 that is not available on
 # the GCC 10 compiler provided by Debian Bullseye.
 OPENAL_VERSION=1.24.3
