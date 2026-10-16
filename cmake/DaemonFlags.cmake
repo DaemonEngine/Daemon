@@ -350,9 +350,16 @@ else()
 		# will complain about implicitly defined lseek, read, write and close.
 		# GNU99 or later standard is required when building lua or lua will
 		# complain that the compiler doesn't support 'long long'.
-		try_c_flag(GNU99 "-std=gnu99")
-		if (NOT FLAG_GNU99)
-			message(FATAL_ERROR "GNU99 is not supported by the compiler")
+		if (YOKAI_TARGET_SYSTEM_NACL AND NOT USE_NACL_SAIGO)
+			try_c_flag(GNU99 "-std=gnu99")
+			if (NOT FLAG_GNU99)
+				message(FATAL_ERROR "GNU99 is not supported by the compiler")
+			endif()
+		else()
+			try_c_flag(GNU17 "-std=gnu17")
+			if (NOT FLAG_GNU17)
+				message(FATAL_ERROR "GNU17 is not supported by the compiler")
+			endif()
 		endif()
 	endif()
 
