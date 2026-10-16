@@ -62,6 +62,9 @@ namespace IPC {
 		static FileHandle FromDesc(const FileDesc& desc);
 
 		int GetHandle() const {
+			// Do not complain about mode being unused.
+			Q_UNUSED(mode);
+
 			return handle;
 		}
 
