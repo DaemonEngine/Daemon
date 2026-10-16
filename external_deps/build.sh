@@ -228,7 +228,7 @@ get_compiler_arg1() {
 cmake_build() {
 	local cmake_args=()
 
-	case "${HOST}" in
+	case "${PLATFORM}" in
 	native)
 		cmake_args+=(-DCMAKE_PREFIX_PATH="${NATIVE_PREFIX}")
 		cmake_args+=(-DCMAKE_INSTALL_PREFIX="${NATIVE_PREFIX}")
@@ -239,7 +239,7 @@ cmake_build() {
 		;;
 	esac
 
-	case "${HOST}" in
+	case "${PLATFORM}" in
 	macos-*)
 		cmake_args+=(-DCMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}")
 		cmake_args+=(-DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOS_VERSION}")
