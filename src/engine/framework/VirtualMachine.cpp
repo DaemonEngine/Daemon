@@ -81,11 +81,6 @@ static Cvar::Cvar<bool> workaround_box64_disableQualification(
 	"Disable platform qualification when running amd64 NaCl loader under Box64 emulation",
 	Cvar::NONE, true);
 
-static Cvar::Cvar<bool> workaround_box64_disableBootstrap(
-	"workaround.box64.disableBootstrap",
-	"Disable NaCl bootstrap helper when using Box64 emulation",
-	Cvar::NONE, true);
-
 static Cvar::Cvar<std::string> vm_box64_path(
 	"vm.box64.path",
 	"Path to the box64 binary for NaCl emulation (empty = search PATH)",
@@ -126,11 +121,6 @@ static std::string ResolveBox64Path() {
 static Cvar::Cvar<bool> vm_nacl_qualification(
 	"vm.nacl.qualification",
 	"Enable NaCl loader platform qualification",
-	Cvar::INIT, true);
-
-static Cvar::Cvar<bool> vm_nacl_bootstrap(
-	"vm.nacl.bootstrap",
-	"Use NaCl bootstrap helper",
 	Cvar::INIT, true);
 
 static Cvar::Cvar<int> vm_timeout(
@@ -176,6 +166,22 @@ static void CheckMinAddressSysctlTooLarge()
 	}
 #endif // __linux__
 }
+
+#if defined(__linux__) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
+static bool OnArm64()
+{
+#if defined(YOKAI_ARCH_ARM64)
+	bool onArm64 = true;
+#elif defined(YOKAI_ARCH_ARMHF)
+	bool onArm64 = false;
+	struct utsname buf;
+	if (!uname(&buf)) {
+		onArm64 = !strcmp(buf.machine, "aarch64");
+	}
+#endif
+	return onArm64;
+}
+#endif
 
 // Platform-specific code to load a module
 static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::Socket, IPC::Socket> pair, const char* const* args, bool reserve_mem, FS::File stderrRedirect = FS::File(), bool inheritEnvironment = false)
@@ -242,8 +248,12 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 		startupInfo.hStdError = stderrRedirectHandle;
 		startupInfo.dwFlags = STARTF_USESTDHANDLES;
 	}
+	char emptyEnvironment[] = {'\0', '\0'};
 	startupInfo.cb = sizeof(startupInfo);
-	if (!CreateProcessW(nullptr, &wcmdline[0], nullptr, nullptr, TRUE, CREATE_SUSPENDED | CREATE_BREAKAWAY_FROM_JOB | CREATE_NO_WINDOW, nullptr, nullptr, &startupInfo, &processInfo)) {
+	if (!CreateProcessW(nullptr, &wcmdline[0], nullptr, nullptr,
+	                    TRUE, CREATE_SUSPENDED | CREATE_BREAKAWAY_FROM_JOB | CREATE_NO_WINDOW,
+	                    inheritEnvironment ? nullptr : emptyEnvironment,
+	                    nullptr, &startupInfo, &processInfo)) {
 		CloseHandle(job);
 		Sys::Drop("VM: Could not create child process: %s", Sys::Win32StrError(GetLastError()));
 	}
@@ -263,7 +273,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 	if (reserve_mem)
 		VirtualAllocEx(processInfo.hProcess, nullptr, 1 << 30, MEM_RESERVE, PAGE_NOACCESS);
 #endif
-	Q_UNUSED(inheritEnvironment);
 
 	ResumeThread(processInfo.hThread);
 	CloseHandle(processInfo.hThread);
@@ -283,13 +292,22 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 		Sys::Error("VM: failed to construct posix_spawn_file_actions_t");
 	}
 
-	pid_t pid;
+	char* emptyEnv[2] = {};
+#if defined(__linux__) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
+	if (OnArm64()) {
+		emptyEnv[0] = const_cast<char*>("LD_LIBRARY_PATH=lib-armhf");
+		if (0 != posix_spawn_file_actions_addchdir_np(&fileActions, FS::GetLibPath().c_str())) {
+			Sys::Error("failed posix_spawn_file_actions_addchdir");
+		}
+	}
+#endif
+
 	// By default, the child process gets an empty environment for sandboxing.
 	// When Box64 emulation is used, the child needs to inherit the parent's
 	// environment so Box64 can find its configuration (e.g. ~/.box64rc, HOME)
 	// and honor settings like BOX64_DYNAREC_PERFMAP.
-	char* emptyEnv[] = {nullptr};
 	char** envp = inheritEnvironment ? environ : emptyEnv;
+	pid_t pid;
 	int err = posix_spawn(&pid, args[0], &fileActions, nullptr, const_cast<char* const*>(args), envp);
 	posix_spawn_file_actions_destroy(&fileActions);
 	if (err != 0) {
@@ -301,7 +319,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 }
 
 static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug, bool extract, int debugLoader) {
-	CheckMinAddressSysctlTooLarge();
 	const std::string& libPath = FS::GetLibPath();
 #ifdef DAEMON_NACL_RUNTIME_PATH
 	const char* naclPath = DAEMON_NACL_RUNTIME_PATH_STRING;
@@ -312,9 +329,9 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	char rootSocketRedir[32];
 	std::string module, nacl_loader, irt, bootstrap, modulePath, verbosity;
 	FS::File stderrRedirect;
+	bool inheritEnvironment = false;
 #if defined(DAEMON_NACL_BOX64_EMULATION)
 	std::string box64Path;
-	bool usingBox64 = false;
 #endif
 #if !defined(_WIN32) || defined(_WIN64)
 	constexpr bool win32Force64Bit = false;
@@ -365,56 +382,33 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	}
 
 #if defined(__linux__) || defined(__FreeBSD__)
+
 #if defined(DAEMON_NACL_BOX64_EMULATION)
-	/* Use Box64 to run the x86_64 NaCl loader on non-x86 architectures.
-	The bootstrap helper uses a double-exec pattern that Box64 cannot handle,
-	so we skip it and prepend "box64" to the nacl_loader command instead. */
-	if (!workaround_box64_disableBootstrap.Get() && vm_nacl_bootstrap.Get()) {
-		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
+	/* Use Box64 to run the x86_64 NaCl loader on non-x86 architectures. */
+	box64Path = ResolveBox64Path();
+	Log::Notice("Using Box64 emulator: %s", box64Path);
+	args.push_back(box64Path.c_str());
+	inheritEnvironment = true;
+#endif // DAEMON_NACL_BOX64_EMULATION
 
+	// The amd64 runtime does not need nacl_helper_bootstrap.
+	bool useBootstrap = 0 != strcmp(DAEMON_NACL_ARCH_STRING, "amd64");
+	if (useBootstrap) {
+		CheckMinAddressSysctlTooLarge();
+		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
 		if (!FS::RawPath::FileExists(bootstrap)) {
 			Sys::Error("NaCl bootstrap helper not found: %s", bootstrap);
 		}
-
 		args.push_back(bootstrap.c_str());
 		args.push_back(nacl_loader.c_str());
 		args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
 		args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
 	} else {
-		if (workaround_box64_disableBootstrap.Get()) {
-			Log::Notice("Skipping NaCl bootstrap helper for Box64 emulation.");
-		} else {
-			Log::Warn("Not using NaCl bootstrap helper.");
-		}
-		box64Path = ResolveBox64Path();
-		Log::Notice("Using Box64 emulator: %s", box64Path);
-		args.push_back(box64Path.c_str());
-		args.push_back(nacl_loader.c_str());
-		usingBox64 = true;
-	}
-#else
-	if (vm_nacl_bootstrap.Get()) {
-#if defined(YOKAI_ARCH_ARM64)
-		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap-armhf");
-#else
-		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
-#endif
-
-		if (!FS::RawPath::FileExists(bootstrap)) {
-			Sys::Error("NaCl bootstrap helper not found: %s", bootstrap);
-		}
-
-		args.push_back(bootstrap.c_str());
-		args.push_back(nacl_loader.c_str());
-		args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
-		args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
-	} else {
-		Log::Warn("Not using NaCl bootstrap helper.");
 		args.push_back(nacl_loader.c_str());
 	}
-#endif
 #else
 	Q_UNUSED(bootstrap);
+	Q_UNUSED(&CheckMinAddressSysctlTooLarge);
 	args.push_back(nacl_loader.c_str());
 #endif
 
@@ -423,17 +417,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	if (enableQualification) {
 #if defined(__linux__) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
 		if (workaround_naclArchitecture_arm64_disableQualification.Get()) {
-#if defined(YOKAI_ARCH_ARM64)
-			bool onArm64 = true;
-#elif defined(YOKAI_ARCH_ARMHF)
-			bool onArm64 = false;
-
-			struct utsname buf;
-			if (!uname(&buf)) {
-				onArm64 = !strcmp(buf.machine, "aarch64");
-			}
-#endif
-
 			/* This is required to run armhf NaCl loader on arm64 kernel
 			otherwise nexe loading fails with this message:
 
@@ -449,8 +432,8 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 
 			But the nexe will load and run. */
 
-			if (onArm64) {
-				Log::Warn("Disabling NaCL platform qualification on arm64 kernel architecture.");
+			if (OnArm64()) {
+				Log::Warn("Disabling NaCl platform qualification on arm64 kernel architecture.");
 				enableQualification = false;
 			}
 		}
@@ -528,11 +511,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		Log::Notice("Using loader args: %s", commandLine.c_str());
 	}
 
-	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect)
-#if defined(DAEMON_NACL_BOX64_EMULATION)
-		, usingBox64
-#endif
-	);
+	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect), inheritEnvironment);
 }
 
 static std::pair<Sys::OSHandle, IPC::Socket> CreateNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug) {
