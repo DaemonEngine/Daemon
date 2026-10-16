@@ -1800,7 +1800,7 @@ setup_platform() {
 	esac
 }
 
-base_windows_amd64_mingw_packages='native-jwasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk naclruntime depcheck'
+base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk naclruntime depcheck'
 all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
