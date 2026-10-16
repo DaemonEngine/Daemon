@@ -50,7 +50,7 @@ GLEW_VERSION=2.3.1
 PNG_VERSION=1.6.58
 JPEG_VERSION=3.1.4.1
 WEBP_VERSION=1.6.0
-OPENAL_VERSION=1.24.3
+OPENAL_VERSION=1.25.2
 OGG_VERSION=1.3.6
 VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.6.1
@@ -784,6 +784,13 @@ build_openal() {
 		;;
 	*)
 		cd "${dir_name}"
+
+		case "${PLATFORM}" in
+			macos-*-*)
+				sed -e 's/-Werror=function-effects/-Wfunction-effects/' CMakeLists.txt > CMakeLists.txt-fix
+				mv CMakeLists.txt-fix CMakeLists.txt
+				;;
+		esac
 
 		cmake_build \
 			-DALSOFT_UTILS=OFF \
