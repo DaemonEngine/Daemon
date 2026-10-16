@@ -54,7 +54,7 @@ JPEG_VERSION=3.1.4.1
 WEBP_VERSION=1.6.0
 # OpenAL 0.25.0 requires C++20 that is not available on
 # the GCC 10 compiler provided by Debian Bullseye.
-OPENAL_VERSION=1.24.3
+OPENAL_VERSION=1.25.2
 OGG_VERSION=1.3.6
 VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.6.1
