@@ -832,6 +832,13 @@ build_openal() {
 	*)
 		cd "${dir_name}"
 
+		case "${PLATFORM}" in
+			macos-*-*)
+				sed -e 's/-Werror=function-effects/-Wfunction-effects/' CMakeLists.txt > CMakeLists.txt-fix
+				mv CMakeLists.txt-fix CMakeLists.txt
+				;;
+		esac
+
 		cmake_build \
 			-DALSOFT_UTILS=OFF \
 			"${openal_cmake_args[@]}"
