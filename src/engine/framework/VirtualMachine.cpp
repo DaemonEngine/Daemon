@@ -635,7 +635,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 
 		But the nexe will load and run. */
 
-		if (onArm64()) {
+		if (OnArm64()) {
 			Log::Warn("Disabling NaCl platform qualification on arm64 kernel architecture.");
 			enableQualification = false;
 		}
