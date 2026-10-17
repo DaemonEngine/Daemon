@@ -997,7 +997,7 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
                         ${DEPS_DIR}/nacl_helper_bootstrap-${arch_name}
                         ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap-${arch_name}
                 )
-                endif()
+            endif()
         endforeach()
 
         if (DAEMON_NACL_BOX64_EMULATION)
