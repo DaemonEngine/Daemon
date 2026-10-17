@@ -1229,7 +1229,7 @@ build_naclruntime() {
 		)
 
 		case "${PLATFORM}" in
-		linux-i686-*|linux-arm64-*|linux-armhf-*)
+		linux-*-*)
 			case "${nacl_arch}" in
 			i686|armhf)
 				mv "${PREFIX}/bin/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap-${nacl_arch}"
