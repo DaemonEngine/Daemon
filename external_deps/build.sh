@@ -31,8 +31,7 @@ OGG_BASEURL='https://downloads.xiph.org/releases/ogg'
 VORBIS_BASEURL='https://downloads.xiph.org/releases/vorbis'
 OPUS_BASEURL='https://downloads.xiph.org/releases/opus'
 OPUSFILE_BASEURL='https://downloads.xiph.org/releases/opus'
-# No index.
-NACLSDK_BASEURL='https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk'
+NACLSDK_BASEURL='https://dl.unvanquished.net/mirror/storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk'
 # No index.
 NACLRUNTIME_BASEURL='https://api.github.com/repos/DaemonEngine/native_client/zipball'
 NCURSES_BASEURL='https://ftpmirror.gnu.org/gnu/ncurses'
