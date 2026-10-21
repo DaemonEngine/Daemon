@@ -128,6 +128,9 @@ struct GLConfig
 	bool gpuShader4Available;
 	bool gpuShader5Available;
 	bool textureGatherAvailable;
+	bool texture3DAvailable;
+	bool mat3x2Available;
+	bool incrementalShaderCompilation;
 	int maxDrawBuffers;
 
 	float maxTextureAnisotropy;
