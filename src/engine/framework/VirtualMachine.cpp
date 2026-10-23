@@ -97,6 +97,11 @@ static Cvar::Cvar<std::string> vm_box64_path(
 	"Path to the box64 binary for NaCl emulation (empty = use provided one or search PATH if missing)",
 	Cvar::NONE, "");
 
+static Cvar::Cvar<bool> vm_box64_force(
+	"vm.box64.force",
+	"Force usage of box64 when supported",
+	Cvar::NONE, false);
+
 // Resolve box64 binary path by looking for a provided one or searching PATH if not explicitly set.
 static std::string ResolveBox64Path(std::string naclPath) {
 	std::string requestedPath = vm_box64_path.Get();
@@ -576,10 +581,12 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	}
 #endif // defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
 
-	if (useMultiarch && useBox64) {
+#if defined(DAEMON_NACL_BOX64_EMULATION)
+	if (useMultiarch && useBox64 && !vm_box64_force.Get()) {
 		Log::Notice("Preferring multiarch over Box64 emulation.");
 		useBox64 = false;
 	}
+#endif // !DAEMON_NACL_BOX64_EMULATION
 
 	bool useBootstrap = hasBootstrap && !useBox64;
 
