@@ -604,7 +604,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 			inheritEnvironment = true;
 		}
 #endif
-		}
+	}
 
 	args.push_back(nacl_loader.c_str());
 
