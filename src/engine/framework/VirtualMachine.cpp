@@ -185,6 +185,47 @@ static Cvar::Cvar<bool> vm_nacl_qualification(
 	Cvar::INIT, true);
 #endif // defined(DAEMON_NACL_RUNTIME_ENABLED)
 
+enum class VmFlag : std::uint32_t {
+	InheritEnvironment = 1u << 0,
+	UseArmhfMultiarch = 1u << 1,
+};
+
+class VmFlags {
+public:
+	using underlying_type = std::uint32_t;
+
+	constexpr VmFlags() = default;
+
+	constexpr VmFlags(VmFlag flag)
+		: bits_(static_cast<underlying_type>(flag)) {}
+
+	constexpr bool has(VmFlag flag) const noexcept {
+		const auto bit = static_cast<underlying_type>(flag);
+		return (bits_ & bit) != 0;
+	}
+
+	constexpr void set(VmFlag flag) noexcept {
+		bits_ |= static_cast<underlying_type>(flag);
+	}
+
+	constexpr void clear(VmFlag flag) noexcept {
+		bits_ &= ~static_cast<underlying_type>(flag);
+	}
+
+	constexpr underlying_type bits() const noexcept {
+		return bits_;
+	}
+
+private:
+	underlying_type bits_ = 0;
+};
+
+constexpr VmFlags operator|(VmFlag a, VmFlag b) noexcept {
+	VmFlags result{a};
+	result.set(b);
+	return result;
+}
+
 namespace VM {
 
 // https://github.com/Unvanquished/Unvanquished/issues/944#issuecomment-744454772
@@ -229,7 +270,7 @@ static bool OnArm64()
 #endif
 
 // Platform-specific code to load a module
-static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::Socket, IPC::Socket> pair, const char* const* args, bool reserve_mem, FS::File stderrRedirect = FS::File(), bool inheritEnvironment = false)
+static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::Socket, IPC::Socket> pair, const char* const* args, bool reserve_mem, FS::File stderrRedirect = FS::File(), VmFlags flags = {})
 {
 #ifdef _WIN32
 	// Inherit the socket in the child process
@@ -297,7 +338,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 	startupInfo.cb = sizeof(startupInfo);
 	if (!CreateProcessW(nullptr, &wcmdline[0], nullptr, nullptr,
 	                    TRUE, CREATE_SUSPENDED | CREATE_BREAKAWAY_FROM_JOB | CREATE_NO_WINDOW,
-	                    inheritEnvironment ? nullptr : emptyEnvironment,
+	                    flags.has(VmFlag::InheritEnvironment) ? nullptr : emptyEnvironment,
 	                    nullptr, &startupInfo, &processInfo)) {
 		CloseHandle(job);
 		Sys::Drop("VM: Could not create child process: %s", Sys::Win32StrError(GetLastError()));
@@ -339,20 +380,22 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 
 	pid_t pid;
 	char* emptyEnv[2] = {};
-#if defined(DAEMON_NACL_RUNTIME_LINUX) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
-	if (OnArm64()) {
+
+#if defined(DAEMON_NACL_RUNTIME_LINUX)
+	if (flags.has(VmFlag::UseArmhfMultiarch)) {
 		emptyEnv[0] = const_cast<char*>("LD_LIBRARY_PATH=libs-linux-armhf");
-		
+
 		if (0 != posix_spawn_file_actions_addchdir_np(&fileActions, FS::GetLibPath().c_str())) {
 			Sys::Error("failed posix_spawn_file_actions_addchdir");
 		}
 	}
-#endif
+#endif // !DAEMON_NACL_RUNTIME_LINUX
+
 	// By default, the child process gets an empty environment for sandboxing.
 	// When Box64 emulation is used, the child needs to inherit the parent's
 	// environment so Box64 can find its configuration (e.g. ~/.box64rc, HOME)
 	// and honor settings like BOX64_DYNAREC_PERFMAP.
-	char** envp = inheritEnvironment ? environ : emptyEnv;
+	char** envp = flags.has(VmFlag::InheritEnvironment) ? environ : emptyEnv;
 	int err = posix_spawn(&pid, args[0], &fileActions, nullptr, const_cast<char* const*>(args), envp);
 	posix_spawn_file_actions_destroy(&fileActions);
 	if (err != 0) {
@@ -719,7 +762,16 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		Log::Notice("Using loader args: %s", commandLine.c_str());
 	}
 
-	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect), inheritEnvironment);
+	VmFlags flags;
+
+	if (inheritEnvironment) {
+		flags.set(VmFlag::InheritEnvironment);
+	}
+	if (useMultiarch) {
+		flags.set(VmFlag::UseArmhfMultiarch);
+	}
+
+	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect), flags);
 }
 #endif // DAEMON_NACL_RUNTIME_ENABLED
 
