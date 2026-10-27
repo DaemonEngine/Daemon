@@ -59,9 +59,11 @@ VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.5.2
 OPUSFILE_VERSION=0.12
 NACLSDK_VERSION=44.0.2403.155
-NACLRUNTIME_REVISION=ab09db9ab6da96f2549b382e14d19212b482634a
+# FIXME? multiple versions
+NACLRUNTIME_REVISION=a89e8f91859feab41bf4bb60598c523c1ed4da2e
+NACLRUNTIME_VERSION=20261026
 NCURSES_VERSION=6.5
-SCONS_VERSION=4.8.1
+SCONS_VERSION=4.10.1
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
 
@@ -1027,14 +1029,6 @@ build_naclsdk() {
 
 	"${download_only}" && return
 
-	smart_copy pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-	case "${PLATFORM}" in
-	linux-amd64-*)
-		;; # Get sel_ldr from naclruntime package
-	*)
-		smart_copy pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE_EXT}" "${PREFIX}/nacl_loader${EXE_EXT}"
-		;;
-	esac
 	case "${PLATFORM}" in
 	windows-i686-*|*-amd64-*)
 		smart_copy pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE_EXT}" "${PREFIX}/nacl-gdb${EXE_EXT}"
@@ -1053,22 +1047,6 @@ build_naclsdk() {
 		rm -rf "${PREFIX}/pnacl/include"
 		rm -rf "${PREFIX}/pnacl/x86_64-nacl"
 		rm -rf "${PREFIX}/pnacl/x86_64_bc-nacl"
-	esac
-	case "${PLATFORM}" in
-	windows-i686-*)
-		smart_copy pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/nacl_loader-amd64.exe"
-		smart_copy pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-amd64.nexe"
-		;;
-	linux-amd64-*)
-		# Fix permissions on a few files which deny access to non-owner
-		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		;;
-	linux-i686-*|linux-armhf-*|linux-arm64-*)
-		smart_copy pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
-		# Fix permissions on a few files which deny access to non-owner
-		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
-		;;
 	esac
 	case "${PLATFORM}" in
 	linux-arm64-*)
@@ -1093,16 +1071,6 @@ build_native-scons() {
 }
 
 build_naclruntime() {
-	local dir_name="DaemonEngine-native_client-${NACLRUNTIME_REVISION:0:7}"
-	local archive_name="native_client-${NACLRUNTIME_REVISION}.zip"
-
-	download_extract naclruntime "${archive_name}" \
-		"${NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
-
-	"${download_only}" && return
-
-	cd "${dir_name}"
-
 	case "${PLATFORM}" in
 	linux-amd64-*)
 		naclruntime_impl linux-amd64-default linux x86-64
@@ -1121,10 +1089,30 @@ build_naclruntime() {
 	macos-*-*)
 		naclruntime_impl macos-amd64-default darwin x86-64
 		;;
+	windows-amd64-*)
+		naclruntime_msvc_impl amd64 ''
+		;;
+	windows-i686-*)
+		naclruntime_msvc_impl amd64 '-amd64'
+		naclruntime_msvc_impl i686 ''
+		;;
 	*)
 		log ERROR 'Unsupported platform for naclruntime'
 		;;
 	esac
+}
+
+naclruntime_msvc_impl() {
+	local arch="${1}"
+	local loader_suffix="${2}"
+
+	local archive_basename="naclruntime-windows-${arch}_${NACLRUNTIME_VERSION}"
+
+	download_extract naclruntime "${archive_basename}.zip" "fakeurl" ##########
+	"${download_only}" && return
+
+	cp "${archive_basename}/sel_ldr.exe" "${PREFIX}/bin/nacl_loader${loader_suffix}.exe"
+	cp "${archive_basename}/irt_core.nexe" "${PREFIX}/bin/irt_core-${arch}.nexe"
 }
 
 naclruntime_impl() {
@@ -1132,20 +1120,32 @@ naclruntime_impl() {
 	local nacl_os="${2}"
 	local nacl_arch="${3}"
 
+	local dir_name="DaemonEngine-native_client-${NACLRUNTIME_REVISION:0:7}"
+	local archive_name="native_client-${NACLRUNTIME_REVISION}.zip"
+
+	download_extract naclruntime "${archive_name}" \
+		"${NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
+	"${download_only}" && return
+
+	cd "${dir_name}"
+
 	# TODO: better way to detect native platform
 	source <("${SCRIPT_DIR}/../cmake/Yokai/Detection/detect" cc | tr A-Z a-z)
 	native_sys="${yokai_target_system_name}-${yokai_target_arch_name}"
 
 	(
+		# FIXME setup_platform probably not actually needed?
 		setup_platform "${target_platform}"
-		# FIXME SDK version
-		scons saigo_newlib_dir="${WORK_DIR}/saigosdk-${native_sys}_20260925" --mode="opt-${nacl_os},nacl" platform="${nacl_arch}" saigo=1 --no-clang werror=0 sysinfo=0 sel_ldr irt_core
+		# FIXME unhardcode SDK version
+		scons saigo_newlib_dir="${WORK_DIR}/saigosdk-${native_sys}_20261013" --mode="opt-${nacl_os},nacl" platform="${nacl_arch}" saigo=1 --no-clang werror=0 sysinfo=0 sel_ldr irt_core
 	)
 	cp "scons-out/opt-${nacl_os}-${nacl_arch}/staging/sel_ldr" "${PREFIX}/nacl_loader"
 	if [ -f "scons-out/opt-linux-${nacl_arch}/staging/nacl_helper_bootstrap" ]
 	then
 		cp "scons-out/opt-linux-${nacl_arch}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
 	fi
+	local target_arch="$(cut -d- -f2 <<< "${target_platform}")"
+	cp "scons-out/nacl_irt-${nacl_arch}/staging/irt_core.nexe" "${PREFIX}/irt_core-${target_arch}.nexe"
 }
 
 # Check for DLL dependencies on MinGW stuff. For MSVC platforms this is bad because it should work
