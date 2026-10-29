@@ -609,13 +609,15 @@ namespace Audio {
             ListSamplesCmd(): StaticCmd("listAudioSamples", Cmd::AUDIO, "Lists all the loaded sound samples") {
             }
 
-            virtual void Run(const Cmd::Args&) const override {
+            virtual void Run(const Cmd::Args& args) const override {
+                std::string filter = args.ConcatArgs(1);
                 std::vector<std::string> samples = ListSamples();
-
                 std::sort(samples.begin(), samples.end());
 
                 for (const auto& sample: samples) {
-                    Print(sample);
+                    if (Com_Filter(filter.c_str(), sample.c_str(), false)) {
+                        Print(sample);
+                    }
                 }
                 Print("%i samples", samples.size());
             }
