@@ -400,15 +400,6 @@ else()
 		endif()
 	endif()
 
-	if (YOKAI_TARGET_SYSTEM_NACL AND YOKAI_CXX_COMPILER_SAIGO AND YOKAI_TARGET_ARCH_ARMHF)
-		# Saigo produces broken arm builds when optimizing them.
-		# See: https://github.com/Unvanquished/Unvanquished/issues/3297
-		# When setting this clang-specific option, we don't have to care
-		# about the ordering of -O options that may be introduced,
-		# all -O options added to the command line are ignored.
-		set_c_cxx_flag("-Xclang -disable-llvm-passes")
-	endif()
-
 	# Extra debug flags.
 	set_c_cxx_flag("-g3" RELWITHDEBINFO)
 	set_c_cxx_flag("-g3" DEBUG)
