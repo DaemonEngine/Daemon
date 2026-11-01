@@ -530,14 +530,17 @@ void ProjectPointOnPlane( vec3_t dst, const vec3_t point, const vec3_t normal )
  *
  * Given a normalized forward vector, create two
  * other perpendicular vectors
+ * This function seems to aim to be continuous (unlike the similar vectoangles
+ * or PerpendicularVector), but that is impossible to fully realize per the
+ * Hairy Ball Theorem. At least it can work for stuff that doesn't use the
+ * roll angle.
  * ================
  */
 void MakeNormalVectors( const vec3_t forward, vec3_t right, vec3_t up )
 {
 	float d;
 
-	// this rotate and negate guarantees a vector
-	// not colinear with the original
+	// this fails at {-1/sqrt(3), -1/sqrt(3), 1/sqrt(3)}
 	right[ 1 ] = -forward[ 0 ];
 	right[ 2 ] = forward[ 1 ];
 	right[ 0 ] = forward[ 2 ];
@@ -1006,22 +1009,17 @@ void AxisMultiply( const float in1[ 3 ][ 3 ], const float in2[ 3 ][ 3 ], float o
 
 void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up )
 {
-	float        angle;
-	static float sr, sp, sy, cr, cp, cy;
-
-	// static to help MS compiler fp bugs
-
-	angle = DEG2RAD( angles[ YAW ] );
-	sy = sinf( angle );
-	cy = cosf( angle );
+	float angle = DEG2RAD( angles[ YAW ] );
+	float sy = sinf( angle );
+	float cy = cosf( angle );
 
 	angle = DEG2RAD( angles[ PITCH ] );
-	sp = sinf( angle );
-	cp = cosf( angle );
+	float sp = sinf( angle );
+	float cp = cosf( angle );
 
 	angle = DEG2RAD( angles[ ROLL ] );
-	sr = sinf( angle );
-	cr = cosf( angle );
+	float sr = sinf( angle );
+	float cr = cosf( angle );
 
 	if ( forward )
 	{
@@ -1832,82 +1830,17 @@ void MatrixMultiplyShear( matrix_t m, vec_t x, vec_t y )
 	m[ 7 ] += tmp[ 3 ] * x;
 }
 
-void MatrixToAngles( const matrix_t m, vec3_t angles )
-{
-#if 1
-	float theta;
-	float cp;
-	float sp;
-
-	sp = m[ 2 ];
-
-	// cap off our sin value so that we don't get any NANs
-	if ( sp > 1.0f )
-	{
-		sp = 1.0f;
-	}
-
-	else if ( sp < -1.0f )
-	{
-		sp = -1.0f;
-	}
-
-	theta = -asinf( sp );
-	cp = cosf( theta );
-
-	if ( cp > 8192 * FLT_EPSILON )
-	{
-		angles[ PITCH ] = RAD2DEG( theta );
-		angles[ YAW ] = RAD2DEG( atan2f( m[ 1 ], m[ 0 ] ) );
-		angles[ ROLL ] = RAD2DEG( atan2f( m[ 6 ], m[ 10 ] ) );
-	}
-
-	else
-	{
-		angles[ PITCH ] = RAD2DEG( theta );
-		angles[ YAW ] = RAD2DEG( -atan2f( m[ 4 ], m[ 5 ] ) );
-		angles[ ROLL ] = 0;
-	}
-
-#else
-	float a;
-	float ca;
-
-	a = asinf( -m[ 2 ] );
-	ca = cosf( a );
-
-	if ( fabsf( ca ) > 0.005f )  // Gimbal lock?
-	{
-		angles[ PITCH ] = RAD2DEG( atan2f( m[ 6 ] / ca, m[ 10 ] / ca ) );
-		angles[ YAW ] = RAD2DEG( a );
-		angles[ ROLL ] = RAD2DEG( atan2f( m[ 1 ] / ca, m[ 0 ] / ca ) );
-	}
-
-	else
-	{
-		// Gimbal lock has occurred
-		angles[ PITCH ] = RAD2DEG( atan2f( -m[ 9 ], m[ 5 ] ) );
-		angles[ YAW ] = RAD2DEG( a );
-		angles[ ROLL ] = 0;
-	}
-
-#endif
-}
-
 //  Tait-Bryan angles z-y-x
 void MatrixFromAngles( matrix_t m, vec_t pitch, vec_t yaw, vec_t roll )
 {
-	static float sr, sp, sy, cr, cp, cy;
+	float sp = sinf( DEG2RAD( pitch ) );
+	float cp = cosf( DEG2RAD( pitch ) );
 
-	// static to help MS compiler fp bugs
-	sp = sinf( DEG2RAD( pitch ) );
-	cp = cosf( DEG2RAD( pitch ) );
+	float sy = sinf( DEG2RAD( yaw ) );
+	float cy = cosf( DEG2RAD( yaw ) );
 
-	sy = sinf( DEG2RAD( yaw ) );
-	cy = cosf( DEG2RAD( yaw ) );
-
-	sr = sinf( DEG2RAD( roll ) );
-	cr = cosf( DEG2RAD( roll ) );
+	float sr = sinf( DEG2RAD( roll ) );
+	float cr = cosf( DEG2RAD( roll ) );
 
 	m[ 0 ] = cp * cy;
 	m[ 4 ] = ( sr * sp * cy + cr * -sy );
@@ -2836,17 +2769,14 @@ void QuatFromAngles( quat_t q, vec_t pitch, vec_t yaw, vec_t roll )
 	MatrixFromAngles( tmp, pitch, yaw, roll );
 	QuatFromMatrix( q, tmp );
 #else
-	static float sr, sp, sy, cr, cp, cy;
+	float sp = sinf(DEG2RAD(pitch) * 0.5);
+	float cp = cosf(DEG2RAD(pitch) * 0.5);
 
-	// static to help MS compiler fp bugs
-	sp = sinf(DEG2RAD(pitch) * 0.5);
-	cp = cosf(DEG2RAD(pitch) * 0.5);
+	float sy = sinf(DEG2RAD(yaw) * 0.5);
+	float cy = cosf(DEG2RAD(yaw) * 0.5);
 
-	sy = sinf(DEG2RAD(yaw) * 0.5);
-	cy = cosf(DEG2RAD(yaw) * 0.5);
-
-	sr = sinf(DEG2RAD(roll) * 0.5);
-	cr = cosf(DEG2RAD(roll) * 0.5);
+	float sr = sinf(DEG2RAD(roll) * 0.5);
+	float cr = cosf(DEG2RAD(roll) * 0.5);
 
 	q[0] = sr * cp * cy - cr * sp * sy; // x
 	q[1] = cr * sp * cy + sr * cp * sy; // y

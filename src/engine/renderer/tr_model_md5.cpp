@@ -100,7 +100,6 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 	const char *token;
 	vec3_t        boneOrigin;
 	quat_t        boneQuat;
-	matrix_t      boneMat;
 
 	int           numBoneReferences;
 
@@ -238,7 +237,6 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 		}
 
 		QuatCalcW( boneQuat );
-		MatrixFromQuat( boneMat, boneQuat );
 
 		VectorCopy( boneOrigin, bone->origin );
 		QuatCopy( boneQuat, bone->rotation );
