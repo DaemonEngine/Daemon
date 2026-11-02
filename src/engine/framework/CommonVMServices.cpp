@@ -365,7 +365,7 @@ namespace VM {
                 break;
 
             default:
-                Sys::Drop("Bad log syscall number '%d' for VM '%s'", minor, vmName.c_str());
+                Sys::Drop("Bad log syscall number '%d' for VM '%s'", minor, vmName);
         }
     }
 

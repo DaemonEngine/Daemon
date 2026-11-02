@@ -605,7 +605,7 @@ void FS_LoadBasePak()
 	for (auto& x: extrapaks) {
 		if (!FS_LoadPak(x)) {
 
-			Sys::Error("Could not load extra pak '%s'", x.c_str());
+			Sys::Error("Could not load extra pak '%s'", x);
 		}
 	}
 
@@ -632,7 +632,7 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 		Util::optional<uint32_t> checksum;
 
 		if (!FS::ParsePakName(x.data(), x.data() + x.size(), name, version, checksum)) {
-			Sys::Drop("Invalid pak reference from server: %s", x.c_str());
+			Sys::Drop("Invalid pak reference from server: %s", x);
 		} else if (!version.empty() && !checksum) {
 			if (isDemo || allowRemotePakDir.Get()) {
 				const FS::PakInfo* pak = FS::FindPak(name, version);
@@ -668,7 +668,7 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 		Cmd::Args extrapaks(fs_extrapaks.Get());
 		for (auto& x: extrapaks) {
 			if (!FS_LoadPak(x))
-				Sys::Error("Could not load extra pak '%s'", x.c_str());
+				Sys::Error("Could not load extra pak '%s'", x);
 		}
 	}
 
@@ -776,7 +776,7 @@ public:
 		try {
 			for (auto& filename : FS::PakPath::ListFiles(args.Argv(1))) {
 				if (filename.size() && (!filter || Com_Filter(args.Argv(2).c_str(), filename.c_str(), false))) {
-					Print(filename.c_str());
+					Print(filename);
 				}
 			}
 		} catch (std::system_error&) {
@@ -789,7 +789,7 @@ public:
 		try {
 			for (auto& filename : FS::RawPath::ListFiles(FS::Path::Build(FS::GetHomePath(),args.Argv(1)))) {
 				if (filename.size() && (!filter || Com_Filter(args.Argv(2).c_str(), filename.c_str(), false))) {
-					Print(filename.c_str());
+					Print(filename);
 				}
 			}
 		} catch (std::system_error&) {

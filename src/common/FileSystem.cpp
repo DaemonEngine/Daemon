@@ -1281,15 +1281,15 @@ static void InternalLoadPak(
 
 	if (pak.type == pakType_t::PAK_ZIP) {
 		if (!isLegacy) {
-			fsLogs.WithoutSuppression().Notice("Loading pak '%s'...", pak.path.c_str());
+			fsLogs.WithoutSuppression().Notice("Loading pak '%s'...", pak.path);
 		} else {
-			fsLogs.WithoutSuppression().Notice("Loading legacy pak '%s'...", pak.path.c_str());
+			fsLogs.WithoutSuppression().Notice("Loading legacy pak '%s'...", pak.path);
 		}
 	} else if (pak.type == pakType_t::PAK_DIR) {
 		if (!isLegacy) {
-			fsLogs.WithoutSuppression().Notice("Loading pakdir '%s'...", pak.path.c_str());
+			fsLogs.WithoutSuppression().Notice("Loading pakdir '%s'...", pak.path);
 		} else {
-			fsLogs.WithoutSuppression().Notice("Loading legacy pakdir '%s'...", pak.path.c_str());
+			fsLogs.WithoutSuppression().Notice("Loading legacy pakdir '%s'...", pak.path);
 		}
 	} else {
 		ASSERT_UNREACHABLE();
@@ -2479,10 +2479,10 @@ void Initialize(Str::StringRef homePath, Str::StringRef libPath, const std::vect
 	}
 	isInitialized = true;
 
-	fsLogs.Notice("Lib path: %s", FS::libPath.c_str());
-	fsLogs.Notice("Home path: %s", FS::homePath.c_str());
+	fsLogs.Notice("Lib path: %s", FS::libPath);
+	fsLogs.Notice("Home path: %s", FS::homePath);
 	for (std::string& x: pakPaths)
-		fsLogs.Notice("Pak search path: %s", x.c_str());
+		fsLogs.Notice("Pak search path: %s", x);
 	if (pakPaths.empty())
 		fsLogs.Warn("No pak search paths found");
 

@@ -286,7 +286,7 @@ void Con_Grep_f()
 		{
 			unsigned sub_size = std::min<unsigned>( it->size() - i, MAXPRINTMSG - 1 );
 			std::string substring = it->substr(i, sub_size);
-			Log::Notice( substring.c_str() );
+			Log::Notice( substring );
 		}
 
 		++it;
