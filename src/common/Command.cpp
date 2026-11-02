@@ -461,9 +461,9 @@ namespace Cmd {
 
     void CmdBase::PrintUsage(const Args& args, Str::StringRef syntax, Str::StringRef description) const {
         if(description.empty()) {
-            Print("%s: %s %s", "usage", args.Argv(0).c_str(), syntax.c_str());
+            Print("%s: %s %s", "usage", args.Argv(0), syntax);
         } else {
-            Print("%s: %s %s — %s", "usage", args.Argv(0).c_str(), syntax.c_str(), description.c_str());
+            Print("%s: %s %s — %s", "usage", args.Argv(0), syntax, description);
         }
     }
 

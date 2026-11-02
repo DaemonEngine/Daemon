@@ -2595,7 +2595,7 @@ public:
 	{
 		GLIMP_LOGCOMMENT( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Float( "
 			"program = %s, colorGen = %s, alphaGen = %s ) ---",
-			_shader->_name.c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
+			_shader->_name, Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
 
 		colorModulation_t colorModulation = ColorModulateColorGen(
 			colorGen, alphaGen, useMapLightFactor );
@@ -2624,7 +2624,7 @@ class u_ColorModulateColorGen_Uint :
 	{
 		GLIMP_LOGCOMMENT( "--- u_ColorModulate::SetUniform_ColorModulateColorGen_Uint( "
 			"program = %s, colorGen = %s, alphaGen = %s ) ---",
-			_shader->_name.c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
+			_shader->_name, Util::enum_str( colorGen ), Util::enum_str( alphaGen ) );
 
 		colorModulation_t colorModulation = ColorModulateColorGen(
 			colorGen, alphaGen, useMapLightFactor );

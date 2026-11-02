@@ -4836,7 +4836,7 @@ void RE_LoadWorldMap( const char *name )
 		const std::error_code notFound( Util::ordinal( FS::filesystem_error::no_such_file ), FS::filesystem_category() );
 		if ( err != notFound )
 		{
-			Sys::Drop( "Could not read file '%s': %s", externalEntitiesFileName.c_str(), err.message() );
+			Sys::Drop( "Could not read file '%s': %s", externalEntitiesFileName, err.message() );
 		}
 		externalEntities = "";
 	}

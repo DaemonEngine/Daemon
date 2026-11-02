@@ -541,7 +541,7 @@ namespace Cvar {
                 } else {
                     value = cvar->value.c_str();
                 }
-                result << Str::Format("seta %s %s\n", entry.first.c_str(), Cmd::Escape(value).c_str());
+                result << Str::Format("seta %s %s\n", entry.first, Cmd::Escape(value));
             }
         }
         return result.str();
@@ -649,7 +649,7 @@ namespace Cvar {
                             ::Cvar::ClearFlags(name, USER_ARCHIVE);
                         }
                     } else {
-                        Print("Cvar '%s' doesn't exist", name.c_str());
+                        Print("Cvar '%s' doesn't exist", name);
                     }
                 }
             }

@@ -771,7 +771,7 @@ void CM_LoadMap(Str::StringRef name)
 	std::error_code err;
 	std::string mapData = FS::PakPath::ReadFile(mapFile, err);
 	if (err) {
-		Sys::Drop("Could not load %s: %s (code: %d)", mapFile.c_str(), err.message(), err.value() );
+		Sys::Drop("Could not load %s: %s (code: %d)", mapFile, err.message(), err.value() );
 	}
 
 	std::string externalEntities = FS::PakPath::ReadFile( "maps/" + name + ".ent", err );
@@ -780,7 +780,7 @@ void CM_LoadMap(Str::StringRef name)
 		const std::error_code notFound( Util::ordinal( FS::filesystem_error::no_such_file ), FS::filesystem_category() );
 		if ( err != notFound )
 		{
-			Sys::Drop( "Could not read file 'maps/%s.ent': %s", name.c_str(), err.message() );
+			Sys::Drop( "Could not read file 'maps/%s.ent': %s", name, err.message() );
 		}
 		externalEntities = "";
 	}
@@ -807,7 +807,7 @@ void CM_LoadMap(Str::StringRef name)
 	if ( header.version != BSP_VERSION && header.version != BSP_VERSION_Q3 )
 	{
 		Sys::Drop( "CM_LoadMap: %s has wrong version number (%i should be %i for ET or %i for Q3)",
-		           name.c_str(), header.version, BSP_VERSION, BSP_VERSION_Q3 );
+		           name, header.version, BSP_VERSION, BSP_VERSION_Q3 );
 	}
 
 	const byte *const cmod_base = reinterpret_cast<const byte*>(mapData.data());
