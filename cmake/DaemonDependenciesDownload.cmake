@@ -31,7 +31,8 @@
 
 # Download the SDK, if it is not already there. Upon success, cache the path in SAIGOSDK_PREFIX.
 function(download_saigosdk)
-    set(SAIGOSDK_BASENAME "saigosdk-${DEPS_SYSTEM}-${DEPS_ARCH}_${SAIGOSDK_VERSION}")
+    string(TOLOWER "${YOKAI_HOST_SYSTEM_NAME}" HOST_SYSTEM_SLUG)
+    set(SAIGOSDK_BASENAME "saigosdk-${HOST_SYSTEM_SLUG}-${YOKAI_HOST_ARCH_NAME}_${SAIGOSDK_VERSION}")
     if (NOT EXISTS "${EXTERNAL_DEPS_DIR}/${SAIGOSDK_BASENAME}")
         set(DEPS_FILENAME "${SAIGOSDK_BASENAME}.tar.xz")
         set(REMOTE "https://github.com/DaemonEngine/saigo-nacl-sdk/releases/download/v${SAIGOSDK_VERSION}/${DEPS_FILENAME}")
