@@ -77,6 +77,7 @@ if (NOT GAME_BUILD_SUBINVOCATION)
 		set(HAS_NACL_SDK ON)
 	elseif (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
 	AND (YOKAI_TARGET_ARCH_AMD64 OR YOKAI_TARGET_ARCH_I686))
+		# The PNaCL SDK is part of the target deps and then is not usable when cross-compiling.
 		# The PNaCl SDK only runs on amd64 or i686.
 		set(HAS_NACL_SDK ON)
 	endif()
