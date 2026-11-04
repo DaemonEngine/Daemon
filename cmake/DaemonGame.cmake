@@ -227,8 +227,8 @@ function(GAMEMODULE)
 
 		if (BUILD_GAME_NACL AND NOT YOKAI_TARGET_SYSTEM_NACL)
 			if (USE_NACL_SAIGO)
-				if (NOT IS_DIRECTORY "${SAIGOSDK_PREFIX}")
-					message(FATAL_ERROR "SAIGOSDK_PREFIX configured as '${SAIGOSDK_PREFIX}' which is not an existing directory")
+				if (NOT IS_DIRECTORY "${SAIGOSDK_DIR}")
+					message(FATAL_ERROR "SAIGOSDK_DIR configured as '${SAIGOSDK_DIR}' which is not an existing directory")
 				endif()
 
 				add_custom_target(nacl-vms ALL)
@@ -246,7 +246,7 @@ function(GAMEMODULE)
 					# TODO: Remove USE_NACL_SAIGO once the game uses YOKAI_TARGET_SYSTEM_NACL.
 					gameSubProject(
 						"-DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/cross-toolchain-saigo-${nacl_target}.cmake"
-						"-DSAIGOSDK_PREFIX=${SAIGOSDK_PREFIX}"
+						"-DSAIGOSDK_DIR=${SAIGOSDK_DIR}"
 						-DUSE_NACL_SAIGO=ON
 						-DBUILD_GAME_NACL=ON
 						-DBUILD_GAME_NATIVE_DLL=OFF
@@ -255,8 +255,8 @@ function(GAMEMODULE)
 					)
 				endforeach()
 			else()
-				if (NOT IS_DIRECTORY "${PNACLSDK_PREFIX}")
-					message(FATAL_ERROR "PNACLSDK_PREFIX configured as '${PNACLSDK_PREFIX}' which is not an existing directory")
+				if (NOT IS_DIRECTORY "${PNACLSDK_DIR}")
+					message(FATAL_ERROR "PNACLSDK_DIR configured as '${PNACLSDK_DIR}' which is not an existing directory")
 				endif()
 
 				set(NACL_VMS_PROJECT nacl-vms)
@@ -267,7 +267,7 @@ function(GAMEMODULE)
 
 				gameSubProject(
 					"-DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/cross-toolchain-pnacl.cmake"
-					"-DPNACLSDK_PREFIX=${PNACLSDK_PREFIX}"
+					"-DPNACLSDK_DIR=${PNACLSDK_DIR}"
 					-DUSE_NACL_SAIGO=OFF
 					-DBUILD_GAME_NACL=ON
 					-DBUILD_GAME_NATIVE_DLL=OFF

@@ -27,13 +27,13 @@
 set(SAIGO_ARCH "i686")
 include("${CMAKE_CURRENT_LIST_DIR}/cross-toolchain-saigo-common.cmake")
 
-if (EXISTS "${SAIGOSDK_PREFIX}/x86_64-nacl/lib32")
+if (EXISTS "${SAIGOSDK_DIR}/x86_64-nacl/lib32")
 	# This will search libraries in paths in this order:
 	# - i686-nacl/lib
 	# - x86_64-nacl/lib32
 	# - x86_64-nacl/lib
 	# The last path is wrong but is not used when the lib is found before,
 	# so it is meant to work on well-formed SDK installations.
-	list(APPEND CMAKE_FIND_ROOT_PATH "${SAIGOSDK_PREFIX}/x86_64-nacl")
+	list(APPEND CMAKE_FIND_ROOT_PATH "${SAIGOSDK_DIR}/x86_64-nacl")
 	set(CMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX "32")
 endif()
