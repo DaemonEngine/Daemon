@@ -82,7 +82,7 @@ if (NOT GAME_BUILD_SUBINVOCATION)
 		set(HAS_NACL_SDK ON)
 	endif()
 
-	list(APPEND NACL_ALL_TARGETS "amd64" "i686" "armhf")
+	set(NACL_ALL_TARGETS "amd64" "i686" "armhf")
 
 	if (HAS_NACL_SDK)
 		include(DaemonNaclArchitecture)
