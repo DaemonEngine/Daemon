@@ -166,11 +166,11 @@ set(NACL_VM_INHERITED_OPTIONS "${DEFAULT_NACL_VM_INHERITED_OPTIONS}" CACHE STRIN
     "Semicolon-separated list of options for which NaCl game VMs should use the same value as the other binaries")
 mark_as_advanced(NACL_VM_INHERITED_OPTIONS)
 
-# Warning: changing SAIGOSDK_PREFIX/SAIGOSDK_VERSION after subprojects have been configured WILL
+# Warning: changing SAIGOSDK_DIR/SAIGOSDK_VERSION after subprojects have been configured WILL
 # change the compiler, but it is a bad idea since flag tests and such (not to mention the actual
 # compiled artifacts) will be out of date.
-set(SAIGOSDK_PREFIX "" CACHE PATH "Override Saigo NaCl SDK path")
-mark_as_advanced(SAIGOSDK_PREFIX)
+set(SAIGOSDK_DIR "" CACHE PATH "Override Saigo NaCl SDK path")
+mark_as_advanced(SAIGOSDK_DIR)
 
 ################################################################################
 # Directories
@@ -281,8 +281,8 @@ endif()
 
 option(USE_EXTERNAL_DEPS_LIBS "Build and link against libraries from the EXTERNAL_DEPS_DIR" ${DEFAULT_USE_EXTERNAL_DEPS_LIBS})
 
-set(PNACLSDK_PREFIX "${DEPS_DIR}/pnacl" CACHE PATH "PNaCl SDK path")
-mark_as_advanced(PNACLSDK_PREFIX)
+set(PNACLSDK_DIR "${DEPS_DIR}/pnacl" CACHE PATH "PNaCl SDK path")
+mark_as_advanced(PNACLSDK_DIR)
 
 if (USE_EXTERNAL_DEPS AND NOT YOKAI_TARGET_SYSTEM_NACL)
     if (DEPS_DIR)
@@ -462,7 +462,7 @@ if (DEPS_DIR)
         endif()
     endif()
 
-    if (BUILD_GAME_NACL AND USE_NACL_SAIGO AND NOT SAIGOSDK_PREFIX)
+    if (BUILD_GAME_NACL AND USE_NACL_SAIGO AND NOT SAIGOSDK_DIR)
         include(DaemonDependenciesDownload)
         download_saigosdk()
     endif()

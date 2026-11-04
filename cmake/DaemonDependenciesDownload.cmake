@@ -29,7 +29,7 @@
 # As an alternative to downloading, external_deps/sdk-build.sh can be used, to build the host-mode
 # dependencies and install them in the expected path.
 
-# Download the SDK, if it is not already there. Upon success, cache the path in SAIGOSDK_PREFIX.
+# Download the SDK, if it is not already there. Upon success, cache the path in SAIGOSDK_DIR.
 function(download_saigosdk)
     string(TOLOWER "${YOKAI_HOST_SYSTEM_NAME}" HOST_SYSTEM_SLUG)
     set(SAIGOSDK_BASENAME "saigosdk-${HOST_SYSTEM_SLUG}-${YOKAI_HOST_ARCH_NAME}_${SAIGOSDK_VERSION}")
@@ -67,6 +67,6 @@ function(download_saigosdk)
             message(FATAL_ERROR "Could not extract ${DEPS_FILENAME}")
         endif()
     endif()
-    # Set SAIGOSDK_PREFIX in the cache now that it is known to have been created
-    set_property(CACHE SAIGOSDK_PREFIX PROPERTY VALUE "${EXTERNAL_DEPS_DIR}/${SAIGOSDK_BASENAME}")
+    # Set SAIGOSDK_DIR in the cache now that it is known to have been created
+    set_property(CACHE SAIGOSDK_DIR PROPERTY VALUE "${EXTERNAL_DEPS_DIR}/${SAIGOSDK_BASENAME}")
 endfunction()
