@@ -26,18 +26,13 @@
 
 # TODO: Move other deps downloading code in here.
 
-set(SAIGOSDK_BASENAME "saigosdk-${DEPS_SYSTEM}-${DEPS_ARCH}_${SAIGOSDK_VERSION}")
-
-# Warning: changing SAIGOSDK_PREFIX/SAIGOSDK_VERSION after subprojects have been configured WILL
-# change the compiler, but it is a bad idea since flag tests and such (not to mention the actual
-# compiled artifacts) will be out of date.
-set(SAIGOSDK_PREFIX "${EXTERNAL_DEPS_DIR}/${SAIGOSDK_BASENAME}" CACHE PATH "PNaCl SDK path")
-mark_as_advanced(SAIGOSDK_PREFIX)
-
 # As an alternative to downloading, external_deps/sdk-build.sh can be used, to build the host-mode
 # dependencies and install them in the expected path.
+
+# Download the SDK, if it is not already there. Upon success, cache the path in SAIGOSDK_PREFIX.
 function(download_saigosdk)
-    if (NOT EXISTS "${SAIGOSDK_PREFIX}")
+    set(SAIGOSDK_BASENAME "saigosdk-${DEPS_SYSTEM}-${DEPS_ARCH}_${SAIGOSDK_VERSION}")
+    if (NOT EXISTS "${EXTERNAL_DEPS_DIR}/${SAIGOSDK_BASENAME}")
         set(DEPS_FILENAME "${SAIGOSDK_BASENAME}.tar.xz")
         set(REMOTE "https://github.com/DaemonEngine/saigo-nacl-sdk/releases/download/v${SAIGOSDK_VERSION}/${DEPS_FILENAME}")
         message(STATUS "Downloading NaCl SDK from '${REMOTE}'")
@@ -71,4 +66,6 @@ function(download_saigosdk)
             message(FATAL_ERROR "Could not extract ${DEPS_FILENAME}")
         endif()
     endif()
+    # Set SAIGOSDK_PREFIX in the cache now that it is known to have been created
+    set_property(CACHE SAIGOSDK_PREFIX PROPERTY VALUE "${EXTERNAL_DEPS_DIR}/${SAIGOSDK_BASENAME}")
 endfunction()

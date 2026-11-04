@@ -166,6 +166,12 @@ set(NACL_VM_INHERITED_OPTIONS "${DEFAULT_NACL_VM_INHERITED_OPTIONS}" CACHE STRIN
     "Semicolon-separated list of options for which NaCl game VMs should use the same value as the other binaries")
 mark_as_advanced(NACL_VM_INHERITED_OPTIONS)
 
+# Warning: changing SAIGOSDK_PREFIX/SAIGOSDK_VERSION after subprojects have been configured WILL
+# change the compiler, but it is a bad idea since flag tests and such (not to mention the actual
+# compiled artifacts) will be out of date.
+set(SAIGOSDK_PREFIX "" CACHE PATH "Override Saigo NaCl SDK path")
+mark_as_advanced(SAIGOSDK_PREFIX)
+
 ################################################################################
 # Directories
 ################################################################################
