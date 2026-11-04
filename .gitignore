@@ -41,6 +41,7 @@ build
 external_deps/*
 !external_deps/build.sh
 !external_deps/sdk-build.sh
+!external_deps/versions.cmake
 !external_deps/cygtar.py
 !external_deps/*.patch
 

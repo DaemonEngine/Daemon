@@ -6,10 +6,9 @@ set -u -e -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 WORK_DIR="${PWD}"
 
-# This should match the DEPS_VERSION in CMakeLists.txt.
-# This is mostly to ensure the path the files end up at if you build deps yourself
-# are the same as the ones when extracting from the downloaded packages.
-DEPS_VERSION=11
+# Define DEPS_VERSION
+versions_out="$(cmake -P "${SCRIPT_DIR}/versions.cmake" 2>&1)"
+eval "${versions_out}"
 
 # Package download pages
 PKGCONFIG_BASEURL='https://pkg-config.freedesktop.org/releases'

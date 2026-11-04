@@ -204,9 +204,7 @@ else()
     set(FULL_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
 endif()
 
-# Dependencies versions
-set(DEPS_VERSION 11) # This must match the number in external_deps/build.sh
-set(SAIGOSDK_VERSION 20261030) # This must match the number in external_deps/sdk-build.sh
+include(${CMAKE_CURRENT_SOURCE_DIR}/external_deps/versions.cmake)
 
 option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
 

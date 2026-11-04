@@ -7,12 +7,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 WORK_DIR="${PWD}"
 DOWNLOAD_DIR="${WORK_DIR}/download_cache"
 
-# This should match the SAIGOSDK_VERSION in CMakeLists.txt.
-# This is mostly to ensure the path the files end up at if you build deps yourself
-# are the same as the ones when extracting from the downloaded packages.
-SAIGOSDK_VERSION=20261030
-# Can be a tag like v${SAIGOSDK_VERSION}, or a full commit hash
-SAIGOSDK_REF="v${SAIGOSDK_VERSION}"
+# Define SAIGOSDK_VERSION/SAIGOSDK_REF
+versions_out="$(cmake -P "${SCRIPT_DIR}/versions.cmake" 2>&1)"
+eval "${versions_out}"
 
 REPO_BASENAME=saigo-nacl-sdk
 REPO_URL="https://github.com/DaemonEngine/${REPO_BASENAME}"
