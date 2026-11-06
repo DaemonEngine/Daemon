@@ -58,30 +58,13 @@ VORBIS_VERSION=1.3.7
 OPUS_VERSION=1.5.2
 OPUSFILE_VERSION=0.12
 NACLSDK_VERSION=44.0.2403.155
-NACLRUNTIME_REVISION=2aea5fcfce504862a825920fcaea1a8426afbd6f
+# FIXME? multiple versions
+NACLRUNTIME_REVISION=a89e8f91859feab41bf4bb60598c523c1ed4da2e
+NACLRUNTIME_VERSION=20261026
 NCURSES_VERSION=6.5
+SCONS_VERSION=4.10.1
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
-
-# Require the compiler names to be explicitly hardcoded, we should not inherit them
-# from environment as we heavily cross-compile.
-CC='false'
-CXX='false'
-# Set defaults.
-LD='ld'
-AR='ar'
-RANLIB='ranlib'
-PKG_CONFIG='pkg-config'
-CROSS_PKG_CONFIG_PATH=''
-LIBS_SHARED='OFF'
-LIBS_STATIC='ON'
-CMAKE_TOOLCHAIN=''
-# Always reset flags, we heavily cross-compile and must not inherit any stray flag
-# from environment.
-CPPFLAGS=''
-CFLAGS='-O3 -fPIC'
-CXXFLAGS='-O3 -fPIC'
-LDFLAGS='-O3 -fPIC'
 
 log() {
 	level="${1}"; shift
@@ -118,7 +101,7 @@ extract() {
 		tar xzf "${archive_file}" -C "${extract_dir}"
 		;;
 	*.zip)
-		unzip -d "${extract_dir}" "${archive_file}"
+		unzip -q -d "${extract_dir}" "${archive_file}"
 		;;
 	*.cygtar.bz2)
 		# Some Windows NaCl SDK packages have incorrect symlinks, so use
@@ -182,6 +165,18 @@ download_extract() {
 configure_build() {
 	local configure_args=()
 
+	case "${HOST}" in
+	native)
+		configure_args+=(--prefix="${NATIVE_PREFIX}")
+		configure_args+=(--libdir="${NATIVE_PREFIX}/lib")
+		;;
+	*)
+		configure_args+=(--host="${HOST}")
+		configure_args+=(--prefix="${PREFIX}")
+		configure_args+=(--libdir="${PREFIX}/lib")
+		;;
+	esac
+
 	if [ "${LIBS_SHARED}" = 'ON' ]
 	then
 		configure_args+=(--enable-shared)
@@ -203,9 +198,6 @@ configure_build() {
 	fi
 
 	./configure \
-		--host="${HOST}" \
-		--prefix="${PREFIX}" \
-		--libdir="${PREFIX}/lib" \
 		"${configure_args[@]}"
 
 	make
@@ -229,6 +221,17 @@ get_compiler_arg1() {
 cmake_build() {
 	local cmake_args=()
 
+	case "${HOST}" in
+	native)
+		cmake_args+=(-DCMAKE_PREFIX_PATH="${NATIVE_PREFIX}")
+		cmake_args+=(-DCMAKE_INSTALL_PREFIX="${NATIVE_PREFIX}")
+		;;
+	*)
+		cmake_args+=(-DCMAKE_PREFIX_PATH="${PREFIX}")
+		cmake_args+=(-DCMAKE_INSTALL_PREFIX="${PREFIX}")
+		;;
+	esac
+
 	cmake_args+=(-DCMAKE_C_COMPILER="$(get_compiler_name ${CC})")
 	cmake_args+=(-DCMAKE_CXX_COMPILER="$(get_compiler_name ${CXX})")
 	cmake_args+=(-DCMAKE_C_COMPILER_ARG1="$(get_compiler_arg1 ${CC})")
@@ -248,8 +251,6 @@ cmake_build() {
 	cmake -S . -B build \
 		-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}" \
 		-DCMAKE_BUILD_TYPE='Release' \
-		-DCMAKE_PREFIX_PATH="${PREFIX}" \
-		-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
 		-DBUILD_SHARED_LIBS="${LIBS_SHARED}" \
 		"${cmake_args[@]}"
 
@@ -257,7 +258,6 @@ cmake_build() {
 	cmake --install build --strip
 }
 
-# Build pkg-config, needed for opusfile.
 # As a host-mode dependency it must be provided by the system when cross-compiling.
 build_pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
@@ -1028,14 +1028,6 @@ build_naclsdk() {
 
 	"${download_only}" && return
 
-	smart_copy pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-	case "${PLATFORM}" in
-	linux-amd64-*)
-		;; # Get sel_ldr from naclruntime package
-	*)
-		smart_copy pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE_EXT}" "${PREFIX}/nacl_loader${EXE_EXT}"
-		;;
-	esac
 	case "${PLATFORM}" in
 	windows-i686-*|*-amd64-*)
 		smart_copy pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE_EXT}" "${PREFIX}/nacl-gdb${EXE_EXT}"
@@ -1056,22 +1048,6 @@ build_naclsdk() {
 		rm -rf "${PREFIX}/pnacl/x86_64_bc-nacl"
 	esac
 	case "${PLATFORM}" in
-	windows-i686-*)
-		smart_copy pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/nacl_loader-amd64.exe"
-		smart_copy pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-amd64.nexe"
-		;;
-	linux-amd64-*)
-		# Fix permissions on a few files which deny access to non-owner
-		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		;;
-	linux-i686-*|linux-armhf-*|linux-arm64-*)
-		smart_copy pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
-		# Fix permissions on a few files which deny access to non-owner
-		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
-		;;
-	esac
-	case "${PLATFORM}" in
 	linux-arm64-*)
 		mkdir -p "${PREFIX}/lib-armhf"
 		smart_copy -R pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/lib-armhf/."
@@ -1085,29 +1061,90 @@ build_naclsdk() {
 	esac
 }
 
-# Only builds nacl_loader and nacl_helper_bootstrap for now, not IRT.
+# Tool for building Native Client
+build_native-scons() {
+	local dir_name="${BUILD_DIR}/scons-venv"
+	python3 -m venv "${dir_name}"
+	"${dir_name}/bin/pip" install scons=="${SCONS_VERSION}"
+	ln -s --force "${dir_name}/bin/scons" "${NATIVE_PREFIX}/bin/scons"
+}
+
 build_naclruntime() {
 	case "${PLATFORM}" in
 	linux-amd64-*)
-		local NACL_ARCH=x86-64
+		naclruntime_impl linux-amd64-default linux x86-64
+		;;
+	linux-i686-*)
+		naclruntime_impl linux-i686-default linux x86-32
+		;;
+	linux-armhf-*)
+		naclruntime_impl linux-armhf-default linux arm
+		;;
+	linux-arm64-*)
+		naclruntime_impl linux-armhf-default linux arm
+		# Later after making output names distinguishable we can add:
+		# naclruntime_impl linux-amd64-default linux x86-64
+		;;
+	macos-*-*)
+		naclruntime_impl macos-amd64-default darwin x86-64
+		;;
+	windows-amd64-*)
+		naclruntime_msvc_impl amd64 ''
+		;;
+	windows-i686-*)
+		naclruntime_msvc_impl amd64 '-amd64'
+		naclruntime_msvc_impl i686 ''
 		;;
 	*)
 		log ERROR 'Unsupported platform for naclruntime'
 		;;
 	esac
+}
+
+naclruntime_msvc_impl() {
+	local arch="${1}"
+	local loader_suffix="${2}"
+
+	local archive_basename="naclruntime-windows-${arch}_${NACLRUNTIME_VERSION}"
+
+	download_extract naclruntime "${archive_basename}.zip" "fakeurl" ##########
+	"${download_only}" && return
+
+	cp "${archive_basename}/sel_ldr.exe" "${PREFIX}/bin/nacl_loader${loader_suffix}.exe"
+	cp "${archive_basename}/irt_core.nexe" "${PREFIX}/bin/irt_core-${arch}.nexe"
+}
+
+naclruntime_impl() {
+	local target_platform="${1}"
+	local nacl_os="${2}"
+	local nacl_arch="${3}"
 
 	local dir_name="DaemonEngine-native_client-${NACLRUNTIME_REVISION:0:7}"
 	local archive_name="native_client-${NACLRUNTIME_REVISION}.zip"
 
 	download_extract naclruntime "${archive_name}" \
-		"{$NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
-
+		"${NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	env -i /usr/bin/env bash -l -c "python3 /usr/bin/scons --mode=opt-linux 'platform=${NACL_ARCH}' werror=0 sysinfo=0 sel_ldr"
-	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
-	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader"
+
+	# TODO: better way to detect native platform
+	source <("${SCRIPT_DIR}/../cmake/Yokai/Detection/detect" cc | tr A-Z a-z)
+	native_sys="${yokai_target_system_name}-${yokai_target_arch_name}"
+
+	(
+		# FIXME setup_platform probably not actually needed?
+		setup_platform "${target_platform}"
+		# FIXME unhardcode SDK version
+		scons saigo_newlib_dir="${WORK_DIR}/saigosdk-${native_sys}_20261013" --mode="opt-${nacl_os},nacl" platform="${nacl_arch}" saigo=1 --no-clang werror=0 sysinfo=0 sel_ldr irt_core
+	)
+	cp "scons-out/opt-${nacl_os}-${nacl_arch}/staging/sel_ldr" "${PREFIX}/nacl_loader"
+	if [ -f "scons-out/opt-linux-${nacl_arch}/staging/nacl_helper_bootstrap" ]
+	then
+		cp "scons-out/opt-linux-${nacl_arch}/staging/nacl_helper_bootstrap" "${PREFIX}/nacl_helper_bootstrap"
+	fi
+	local target_arch="$(cut -d- -f2 <<< "${target_platform}")"
+	cp "scons-out/nacl_irt-${nacl_arch}/staging/irt_core.nexe" "${PREFIX}/irt_core-${target_arch}.nexe"
 }
 
 # Check for DLL dependencies on MinGW stuff. For MSVC platforms this is bad because it should work
@@ -1323,24 +1360,37 @@ common_setup() {
 	"common_setup_${1}"
 	common_setup_arch
 
-	EXE_EXT="${EXE_EXT:-}"
-	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
-	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
-	PKG_TARBALL="${PKG_BASEDIR}.tar.xz"
-	BUILD_BASEDIR="build-${PKG_BASEDIR}"
-	BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
-	PREFIX="${BUILD_DIR}/prefix"
-	PATH="${PREFIX}/bin:${PATH}"
+	if "${GLOBAL_SETUP_ONCE:-true}"
+	then
+		DOWNLOAD_DIR="${WORK_DIR}/download_cache"
+		PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
+		PKG_TARBALL="${PKG_BASEDIR}.tar.xz"
+		BUILD_BASEDIR="build-${PKG_BASEDIR}"
+		BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
+		PREFIX="${BUILD_DIR}/prefix"
+		NATIVE_PREFIX="${BUILD_DIR}/native-prefix"
+
+		mkdir -p "${DOWNLOAD_DIR}"
+		mkdir -p "${PREFIX}/bin"
+		mkdir -p "${PREFIX}/include"
+		mkdir -p "${PREFIX}/lib"
+		mkdir -p "${NATIVE_PREFIX}/bin"
+		mkdir -p "${NATIVE_PREFIX}/include"
+		mkdir -p "${NATIVE_PREFIX}/lib"
+
+		PATH="${NATIVE_PREFIX}/bin:${PATH}"
+
+		GLOBAL_SETUP_ONCE='false'
+	fi
+
 	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${CROSS_PKG_CONFIG_PATH}"
 	CPPFLAGS+=" -I${PREFIX}/include"
 	LDFLAGS+=" -L${PREFIX}/lib"
 
-	mkdir -p "${DOWNLOAD_DIR}"
-	mkdir -p "${PREFIX}/bin"
-	mkdir -p "${PREFIX}/include"
-	mkdir -p "${PREFIX}/lib"
-
-	export CC CXX LD AR RANLIB STRIP PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+	export PATH
+	export PKG_CONFIG PKG_CONFIG_PATH
+	export CC CXX LD AR RANLIB STRIP
+	export CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
 }
 
 common_setup_arch() {
@@ -1360,6 +1410,8 @@ common_setup_arch() {
 	*-armhf-*)
 		CFLAGS+=' -march=armv7-a -mfpu=neon'
 		CXXFLAGS+=' -march=armv7-a -mfpu=neon'
+		;;
+	*-native-*)
 		;;
 	*)
 		log ERROR 'Unsupported platform'
@@ -1419,8 +1471,49 @@ common_setup_linux() {
 	CXXFLAGS+=' -fPIC'
 }
 
+common_setup_native() {
+	case "$(uname -s)" in
+	CYGWIN_NT-*|MSYS_NT-*|MINGW*_NT-*)
+		EXE_EXT='.exe'
+		;;
+	esac
+}
+
+setup_default() {
+	# Require the compiler names to be explicitly hardcoded, we should not inherit them
+	# from environment as we heavily cross-compile.
+	export CC='false'
+	export CXX='false'
+
+	# Set defaults.
+	export LD='ld'
+	export AR='ar'
+	export RANLIB='ranlib'
+	export STRIP='strip'
+	export PKG_CONFIG='pkg-config'
+	export CROSS_PKG_CONFIG_PATH=''
+
+	LIBS_SHARED='OFF'
+	LIBS_STATIC='ON'
+	CMAKE_TOOLCHAIN=''
+	EXE_EXT=''
+
+	# Always reset flags, we heavily cross-compile and must not inherit any stray flag
+	# from environment.
+	export CPPFLAGS=''
+	export CFLAGS='-O3 -fPIC'
+	export CXXFLAGS='-O3 -fPIC'
+	export LDFLAGS='-O3 -fPIC'
+
+	unset BITNESS
+	unset MACOS_ARCH
+	unset CMAKE_OSX_ARCHITECTURES
+	unset MACOSX_DEPLOYMENT_TARGET
+}
+
 # Set up environment for 32-bit i686 Windows for Visual Studio (compile all as .dll)
 setup_windows-i686-msvc() {
+	setup_default
 	BITNESS=32
 	CFLAGS+=' -mpreferred-stack-boundary=2'
 	CXXFLAGS+=' -mpreferred-stack-boundary=2'
@@ -1429,24 +1522,28 @@ setup_windows-i686-msvc() {
 
 # Set up environment for 64-bit amd64 Windows for Visual Studio (compile all as .dll)
 setup_windows-amd64-msvc() {
+	setup_default
 	BITNESS=64
 	common_setup msvc x86_64-w64-mingw32
 }
 
 # Set up environment for 32-bit i686 Windows for MinGW (compile all as .a)
 setup_windows-i686-mingw() {
+	setup_default
 	BITNESS=32
 	common_setup mingw i686-w64-mingw32
 }
 
 # Set up environment for 64-bit amd64 Windows for MinGW (compile all as .a)
 setup_windows-amd64-mingw() {
+	setup_default
 	BITNESS=64
 	common_setup mingw x86_64-w64-mingw32
 }
 
 # Set up environment for 64-bit amd64 macOS
 setup_macos-amd64-default() {
+	setup_default
 	MACOS_ARCH=x86_64
 	# OpenAL requires 10.14.
 	export MACOSX_DEPLOYMENT_TARGET=10.14 # works with CMake
@@ -1455,22 +1552,47 @@ setup_macos-amd64-default() {
 
 # Set up environment for 32-bit i686 Linux
 setup_linux-i686-default() {
+	setup_default
 	common_setup linux i686-unknown-linux-gnu
 }
 
 # Set up environment for 64-bit amd64 Linux
 setup_linux-amd64-default() {
+	setup_default
 	common_setup linux x86_64-unknown-linux-gnu
 }
 
 # Set up environment for 32-bit little-endian hard-float arm Linux
 setup_linux-armhf-default() {
+	setup_default
 	common_setup linux arm-unknown-linux-gnueabihf
 }
 
 # Set up environment for 64-bit little-endian arm Linux
 setup_linux-arm64-default() {
+	setup_default
 	common_setup linux aarch64-unknown-linux-gnu
+}
+
+# Set up environment for native host tools
+setup_native() {
+	setup_default
+	CC='cc'
+	CXX='c++'
+	common_setup native native
+}
+
+setup_platform() {
+	case "${1}" in
+	native)
+		export PLATFORM='native-native-native'
+		setup_native
+		;;
+	*)
+		export PLATFORM="${1}"
+		"setup_${PLATFORM}"
+		;;
+	esac
 }
 
 base_windows_amd64_msvc_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk depcheck genlib'
@@ -1660,6 +1782,6 @@ esac
 
 for PLATFORM in ${platform_list}
 do (
-	"setup_${PLATFORM}"
+	setup_platform "${PLATFORM}"
 	build "${@}"
 ) done
