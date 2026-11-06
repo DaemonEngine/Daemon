@@ -708,7 +708,7 @@ public:
 			}
 		}
 
-		Key key = StringToKey( args.Argv( b - 1 ).c_str() );
+		Key key = StringToKey( args.Argv( b - 1 ) );
 
 		if ( !key.IsBindable() )
 		{

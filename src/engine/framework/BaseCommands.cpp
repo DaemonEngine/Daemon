@@ -116,7 +116,7 @@ namespace Cmd {
                 SetExecArgs(args, filenameArg + 1);
                 if (not ExecFile(filename, executeSilent)) {
                     if (not failSilent) {
-                        Print("couldn't exec '%s'", filename.c_str());
+                        Print("couldn't exec '%s'", filename);
                     }
                     return;
                 }
@@ -161,7 +161,7 @@ namespace Cmd {
                 }
 
                 if (not executeSilent) {
-                    Print("execing '%s'", filename.c_str());
+                    Print("execing '%s'", filename);
                 }
 
                 ExecuteAfter(buffer, true);
@@ -835,7 +835,7 @@ namespace Cmd {
 
                 auto iter = aliases.find(name);
                 if (iter == aliases.end()) {
-                    Print("alias %s doesn't exist", name.c_str());
+                    Print("alias %s doesn't exist", name);
                     return;
                 }
 
@@ -848,7 +848,7 @@ namespace Cmd {
                 }
 
                 if (alias.lastRun == aliasRun) {
-                    Print("recursive alias call at alias %s", name.c_str());
+                    Print("recursive alias call at alias %s", name);
                 } else {
                     alias.lastRun = aliasRun;
                     ExecuteAfter(alias.command + " " + parameters, true);
@@ -879,9 +879,9 @@ namespace Cmd {
                 if (args.Argc() == 2) {
                     auto iter = aliases.find(name);
                     if (iter != aliases.end()) {
-                        Print("%s ⇒ %s", name.c_str(), iter->second.command.c_str());
+                        Print("%s ⇒ %s", name, iter->second.command);
                     } else {
-                        Print("Alias %s does not exist", name.c_str());
+                        Print("Alias %s does not exist", name);
                     }
                     return;
                 }
@@ -1000,7 +1000,7 @@ namespace Cmd {
                 //Print the matches, keeping the description aligned
                 for (unsigned i = 0; i < matches.size(); i++) {
                     int toFill = maxNameLength - matchesNames[i]->size();
-                    Print("  %s%s ⇒ %s", matchesNames[i]->c_str(), std::string(toFill, ' ').c_str(), matches[i]->command.c_str());
+                    Print("  %s%s ⇒ %s", *matchesNames[i], std::string(toFill, ' '), matches[i]->command);
                 }
 
                 Print("%zu aliases", matches.size());

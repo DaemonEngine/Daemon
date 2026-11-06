@@ -180,9 +180,9 @@ static bool BreakpadInitInternal() {
 	std::string exePath = CrashServerPath();
 
     crashDumpLogs.Debug("Starting crash server with the following command line: %s %s %s <child pid>",
-                        exePath.c_str(),
-                        fdServerStr.c_str(),
-                        crashDir.c_str());
+                        exePath,
+                        fdServerStr,
+                        crashDir);
 
     pid_t pid = fork();
     if (pid == -1) {

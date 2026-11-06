@@ -155,7 +155,7 @@ bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
 	if (cmd == "disconnect") {
 		// NERVE - SMF - allow server to indicate why they were disconnected
 		if (argc >= 2) {
-			Sys::Drop("^3Server disconnected:\n^7%s", args.Argv(1).c_str());
+			Sys::Drop("^3Server disconnected:\n^7%s", args.Argv(1));
 		} else {
 			Sys::Drop("^3Server disconnected:\n^7(reason unknown)");
 		}
@@ -1209,7 +1209,7 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 
         case CG_S_REGISTERSOUND:
             IPC::HandleMsg<Audio::RegisterSoundMsg>(channel, std::move(reader), [this] (const std::string& sample, int& handle) {
-                handle = Audio::RegisterSFX(sample.c_str());
+                handle = Audio::RegisterSFX(sample);
             });
             break;
 
@@ -1561,7 +1561,7 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 
 			case CG_S_STARTBACKGROUNDTRACK:
 				HandleMsg<Audio::StartBackgroundTrackMsg>(std::move(reader), [this] (const std::string& intro, const std::string& loop) {
-					Audio::StartMusic(intro.c_str(), loop.c_str());
+					Audio::StartMusic(intro, loop);
 				});
 				break;
 

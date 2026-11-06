@@ -938,8 +938,8 @@ static void SVC_RemoteCommand( const netadr_t& from, const Cmd::Args& args )
 
 		netLog.Notice( "Bad rcon from %s:\n%s\n%s",
 			Net::AddressToString( from ),
-			invalid_reason.c_str(),
-			args.ConcatArgs(2).c_str() );
+			invalid_reason,
+			args.ConcatArgs(2) );
 
 		if ( !SV_Private(ServerPrivate::NoStatus) )
 		{
@@ -948,7 +948,7 @@ static void SVC_RemoteCommand( const netadr_t& from, const Cmd::Args& args )
 	}
 	else
 	{
-		netLog.Notice( "Rcon from %s:\n%s", Net::AddressToString( from ), message.command.c_str() );
+		netLog.Notice( "Rcon from %s:\n%s", Net::AddressToString( from ), message.command );
 
 		// start redirecting all print outputs to the packet
 		auto env = RconEnvironment(from);
