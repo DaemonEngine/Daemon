@@ -71,7 +71,7 @@ include(CMakeParseArguments)
 list(APPEND NACL_ALL_TARGETS "amd64" "i686" "armhf")
 
 if (NOT GAME_BUILD_SUBINVOCATION)
-	option(USE_NACL_SAIGO "Use the Saigo toolchain to build NaCl executables" OFF)
+	option(USE_NACL_SAIGO "Use the Saigo toolchain to build NaCl executables" ON)
 
 	if (USE_NACL_SAIGO)
 		set(HAS_NACL_SDK ON)
@@ -219,8 +219,8 @@ function(GAMEMODULE)
 
 		set(INHERITED_OPTION_ARGS)
 
-		foreach(inherited_option ${NACL_VM_INHERITED_OPTIONS})
-			set(INHERITED_OPTION_ARGS ${INHERITED_OPTION_ARGS}
+		foreach(inherited_option IN LISTS NACL_VM_INHERITED_OPTIONS GAME_NACL_VM_INHERITED_OPTIONS)
+			list(APPEND INHERITED_OPTION_ARGS
 				"-D${inherited_option}=${${inherited_option}}")
 		endforeach(inherited_option)
 

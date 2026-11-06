@@ -150,7 +150,6 @@ set(DEFAULT_NACL_VM_INHERITED_OPTIONS
     BUILD_SGAME
     CMAKE_BUILD_TYPE
     CMAKE_VERBOSE_MAKEFILE
-    DAEMON_CBSE_PYTHON_PATH
     USE_ARCH_INTRINSICS
     USE_COMPILER_CUSTOMIZATION
     USE_COMPILER_INTRINSICS
@@ -205,7 +204,7 @@ else()
 endif()
 
 # Dependencies versions
-set(DEPS_VERSION 11) # This must match the number in external_deps/build.sh
+set(DEPS_VERSION 12) # This must match the number in external_deps/build.sh
 set(SAIGOSDK_VERSION 20261030) # This must match the number in external_deps/sdk-build.sh
 
 option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
@@ -236,17 +235,7 @@ if (USE_EXTERNAL_DEPS AND NOT YOKAI_TARGET_SYSTEM_NACL)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
     elseif (YOKAI_TARGET_SYSTEM_MACOS)
         set(DEPS_SYSTEM macos)
-        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64)
-
-        if (YOKAI_TARGET_ARCH_ARM64)
-            set(DEPS_ARCH amd64)
-
-            set_deps_dir()
-
-            if (NOT EXISTS ${DEPS_DIR})
-                set(DEFAULT_USE_EXTERNAL_DEPS_LIBS OFF)
-            endif()
-        endif()
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 arm64)
     elseif (YOKAI_TARGET_SYSTEM_LINUX)
         set(DEPS_SYSTEM linux)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686 arm64 armhf)
@@ -985,20 +974,11 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
 
     foreach(arch_name IN LISTS DAEMON_NACL_ARCH_NAME_LIST)
         # The NaCl loader and IRT are required to load .nexe files
-        if (YOKAI_TARGET_SYSTEM_WINDOWS AND YOKAI_TARGET_ARCH_I686 AND "${arch_name}" STREQUAL "amd64")
-            # Backport compatibility until the external_deps script properly suffixes names in the archives.
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
                     ${DEPS_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
                     ${FULL_OUTPUT_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
             )
-        else()
-            add_custom_command(TARGET runtime_deps PRE_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    ${DEPS_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
-                    ${FULL_OUTPUT_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
-            )
-        endif()
 
         add_custom_command(TARGET runtime_deps PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -1008,14 +988,13 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     endforeach()
 
     if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY)
-        # Backport compatibility until the external_deps script properly suffixes names in the archives.
-        if (YOKAI_TARGET_ARCH_ARM64)
+        foreach(arch_name IN LISTS DAEMON_NACL_MULTILIB_ARCH_NAME_LIST)
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    ${DEPS_DIR}/lib-armhf
-                    ${FULL_OUTPUT_DIR}/lib-armhf
+                    ${DEPS_DIR}/libs-linux-${arch_name}
+                    ${FULL_OUTPUT_DIR}/libs-linux-${arch_name}
             )
-        endif()
+        endforeach()
 
         # Linux uses a bootstrap program to reserve address space for 32-bit runtimes.
         foreach(arch_name IN LISTS DAEMON_NACL_ARCH_NAME_LIST)
@@ -1023,11 +1002,19 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
             if ("${arch_name}" IN_LIST arch_32bit)
                 add_custom_command(TARGET runtime_deps PRE_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        ${DEPS_DIR}/nacl_helper_bootstrap
+                        ${DEPS_DIR}/nacl_helper_bootstrap-${arch_name}
                         ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap-${arch_name}
                 )
             endif()
         endforeach()
+
+        if (DAEMON_NACL_BOX64_EMULATION)
+            add_custom_command(TARGET runtime_deps PRE_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${DEPS_DIR}/box64
+                    ${FULL_OUTPUT_DIR}/box64
+            )
+        endif()
     endif()
 
     # Mac requires some libraries from external_deps

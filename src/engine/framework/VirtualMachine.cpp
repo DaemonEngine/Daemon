@@ -97,6 +97,11 @@ static Cvar::Cvar<std::string> vm_box64_path(
 	"Path to the box64 binary for NaCl emulation (empty = use provided one or search PATH if missing)",
 	Cvar::NONE, "");
 
+static Cvar::Cvar<bool> vm_box64_force(
+	"vm.box64.force",
+	"Force usage of box64 when supported",
+	Cvar::NONE, false);
+
 // Resolve box64 binary path by looking for a provided one or searching PATH if not explicitly set.
 static std::string ResolveBox64Path(std::string naclPath) {
 	std::string requestedPath = vm_box64_path.Get();
@@ -169,16 +174,62 @@ static Cvar::Cvar<bool> vm_nacl_available(
 	Cvar::ROM, vmAvailable);
 
 #if defined(DAEMON_NACL_RUNTIME_ENABLED)
+/* We were initially using 2, but loading a nexe on an emulator
+like box64 can be much longer than that.
+Also, increasing the timeout makes possible to run the game when
+stored on very slow filesystems.
+This doesn't make loading longer, it allows it to be longer. */
 static Cvar::Cvar<int> vm_timeout(
 	"vm.timeout",
 	"Receive timeout in seconds",
-	Cvar::NONE, 2);
+	Cvar::NONE, 10);
 
 static Cvar::Cvar<bool> vm_nacl_qualification(
 	"vm.nacl.qualification",
 	"Enable NaCl loader platform qualification",
 	Cvar::INIT, true);
 #endif // defined(DAEMON_NACL_RUNTIME_ENABLED)
+
+enum class VmFlag : std::uint32_t {
+	InheritEnvironment = 1u << 0,
+	UseArmhfMultiarch = 1u << 1,
+};
+
+class VmFlags {
+public:
+	using underlying_type = std::uint32_t;
+
+	constexpr VmFlags() = default;
+
+	constexpr VmFlags(VmFlag flag)
+		: bits_(static_cast<underlying_type>(flag)) {}
+
+	constexpr bool has(VmFlag flag) const noexcept {
+		const auto bit = static_cast<underlying_type>(flag);
+		return (bits_ & bit) != 0;
+	}
+
+	constexpr void set(VmFlag flag) noexcept {
+		bits_ |= static_cast<underlying_type>(flag);
+	}
+
+	constexpr void clear(VmFlag flag) noexcept {
+		bits_ &= ~static_cast<underlying_type>(flag);
+	}
+
+	constexpr underlying_type bits() const noexcept {
+		return bits_;
+	}
+
+private:
+	underlying_type bits_ = 0;
+};
+
+constexpr VmFlags operator|(VmFlag a, VmFlag b) noexcept {
+	VmFlags result{a};
+	result.set(b);
+	return result;
+}
 
 namespace VM {
 
@@ -224,7 +275,7 @@ static bool OnArm64()
 #endif
 
 // Platform-specific code to load a module
-static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::Socket, IPC::Socket> pair, const char* const* args, bool reserve_mem, FS::File stderrRedirect = FS::File(), bool inheritEnvironment = false)
+static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::Socket, IPC::Socket> pair, const char* const* args, bool reserve_mem, FS::File stderrRedirect = FS::File(), VmFlags flags = {})
 {
 #ifdef _WIN32
 	// Inherit the socket in the child process
@@ -292,7 +343,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 	startupInfo.cb = sizeof(startupInfo);
 	if (!CreateProcessW(nullptr, &wcmdline[0], nullptr, nullptr,
 	                    TRUE, CREATE_SUSPENDED | CREATE_BREAKAWAY_FROM_JOB | CREATE_NO_WINDOW,
-	                    inheritEnvironment ? nullptr : emptyEnvironment,
+	                    flags.has(VmFlag::InheritEnvironment) ? nullptr : emptyEnvironment,
 	                    nullptr, &startupInfo, &processInfo)) {
 		CloseHandle(job);
 		Sys::Drop("VM: Could not create child process: %s", Sys::Win32StrError(GetLastError()));
@@ -334,20 +385,22 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 
 	pid_t pid;
 	char* emptyEnv[2] = {};
-#if defined(DAEMON_NACL_RUNTIME_LINUX) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
-	if (OnArm64()) {
-		emptyEnv[0] = const_cast<char*>("LD_LIBRARY_PATH=lib-armhf");
-		
+
+#if defined(DAEMON_NACL_RUNTIME_LINUX)
+	if (flags.has(VmFlag::UseArmhfMultiarch)) {
+		emptyEnv[0] = const_cast<char*>("LD_LIBRARY_PATH=libs-linux-armhf");
+
 		if (0 != posix_spawn_file_actions_addchdir_np(&fileActions, FS::GetLibPath().c_str())) {
 			Sys::Error("failed posix_spawn_file_actions_addchdir");
 		}
 	}
-#endif
+#endif // !DAEMON_NACL_RUNTIME_LINUX
+
 	// By default, the child process gets an empty environment for sandboxing.
 	// When Box64 emulation is used, the child needs to inherit the parent's
 	// environment so Box64 can find its configuration (e.g. ~/.box64rc, HOME)
 	// and honor settings like BOX64_DYNAREC_PERFMAP.
-	char** envp = inheritEnvironment ? environ : emptyEnv;
+	char** envp = flags.has(VmFlag::InheritEnvironment) ? environ : emptyEnv;
 	int err = posix_spawn(&pid, args[0], &fileActions, nullptr, const_cast<char* const*>(args), envp);
 	posix_spawn_file_actions_destroy(&fileActions);
 	if (err != 0) {
@@ -500,8 +553,8 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	bool useBox64 = hasBox64;
 
 #if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
-	const std::string libs_linux_armhf = "lib-armhf";
-	const std::string libld_linux_armhf = "ld-linux-armhf";
+	const std::string libs_linux_armhf = "libs-linux-armhf";
+	const std::string libld_linux_armhf = "ld-linux-armhf.so.3";
 
 	std::string libsDirPath = FS::Path::Build(libPath, libs_linux_armhf);
 	std::string libLoaderPath = FS::Path::Build(libsDirPath, libld_linux_armhf);
@@ -528,10 +581,12 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	}
 #endif // defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
 
-	if (useMultiarch && useBox64) {
+#if defined(DAEMON_NACL_BOX64_EMULATION)
+	if (useMultiarch && useBox64 && !vm_box64_force.Get()) {
 		Log::Notice("Preferring multiarch over Box64 emulation.");
 		useBox64 = false;
 	}
+#endif // !DAEMON_NACL_BOX64_EMULATION
 
 	bool useBootstrap = hasBootstrap && !useBox64;
 
@@ -714,7 +769,16 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		Log::Notice("Using loader args: %s", commandLine.c_str());
 	}
 
-	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect), inheritEnvironment);
+	VmFlags flags;
+
+	if (inheritEnvironment) {
+		flags.set(VmFlag::InheritEnvironment);
+	}
+	if (useMultiarch) {
+		flags.set(VmFlag::UseArmhfMultiarch);
+	}
+
+	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect), flags);
 }
 #endif // DAEMON_NACL_RUNTIME_ENABLED
 
