@@ -228,13 +228,23 @@ cmake_build() {
 		;;
 	esac
 
-	cmake_args+=(-DCMAKE_C_COMPILER="$(get_compiler_name ${CC})")
-	cmake_args+=(-DCMAKE_CXX_COMPILER="$(get_compiler_name ${CXX})")
-	cmake_args+=(-DCMAKE_C_COMPILER_ARG1="$(get_compiler_arg1 ${CC})")
-	cmake_args+=(-DCMAKE_CXX_COMPILER_ARG1="$(get_compiler_arg1 ${CXX})")
+	case "${PLATFORM}" in
+	macos-*)
+		cmake_args+=(-DCMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}")
+		cmake_args+=(-DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOS_VERSION}")
+		;;
+	esac
+
+	cmake_args+=(-DCMAKE_C_COMPILER="${CC}")
+	cmake_args+=(-DCMAKE_CXX_COMPILER="${CXX}")
 	cmake_args+=(-DCMAKE_C_FLAGS="${CFLAGS}")
 	cmake_args+=(-DCMAKE_CXX_FLAGS="${CXXFLAGS}")
 	cmake_args+=(-DCMAKE_EXE_LINKER_FLAGS="${LDFLAGS}")
+
+	if [ -n "${CMAKE_TOOLCHAIN:-}" ]
+	then
+		cmake_args+=(-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}")
+	fi
 
 	# Check for ${@} not being empty to workaround a macOS bash limitation.
 	if [ -n "${1:-}" ]
@@ -245,7 +255,6 @@ cmake_build() {
 	rm -rf build
 
 	cmake -S . -B build \
-		-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}" \
 		-DCMAKE_BUILD_TYPE='Release' \
 		-DBUILD_SHARED_LIBS="${LIBS_SHARED}" \
 		"${cmake_args[@]}"
@@ -1400,9 +1409,11 @@ common_setup_windows() {
 common_setup_msvc() {
 	LIBS_SHARED='ON'
 	LIBS_STATIC='OFF'
+	CC="${HOST}-gcc"
+	CXX="${HOST}-g++"
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	CC="${HOST}-gcc -static-libgcc"
-	CXX="${HOST}-g++ -static-libgcc"
+	CFLAGS+=' -static-libgcc'
+	CXXFLAGS+=' -static-libgcc'
 	common_setup_windows
 }
 
@@ -1416,10 +1427,9 @@ common_setup_macos() {
 	CC='clang'
 	CXX='clang++'
 	STRIP='strip'
-	CFLAGS+=" -arch ${MACOS_ARCH}"
-	CXXFLAGS+=" -arch ${MACOS_ARCH}"
-	LDFLAGS+=" -arch ${MACOS_ARCH}"
-	export CMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}"
+	CFLAGS+=" -arch ${MACOS_ARCH} -mmacosx-version-min=${MACOS_VERSION}"
+	CXXFLAGS+=" -arch ${MACOS_ARCH} -mmacosx-version-min=${MACOS_VERSION}"
+	LDFLAGS+=" -arch ${MACOS_ARCH} -mmacosx-version-min=${MACOS_VERSION}"
 }
 
 common_setup_linux() {
@@ -1451,7 +1461,7 @@ setup_default() {
 
 	LIBS_SHARED='OFF'
 	LIBS_STATIC='ON'
-	CMAKE_TOOLCHAIN=''
+
 	EXE_EXT=''
 
 	# Always reset flags, we heavily cross-compile and must not inherit any stray flag
@@ -1463,8 +1473,9 @@ setup_default() {
 
 	unset BITNESS
 	unset MACOS_ARCH
-	unset CMAKE_OSX_ARCHITECTURES
-	unset MACOSX_DEPLOYMENT_TARGET
+	unset MACOS_VERSION
+	unset MACOS_HOST
+	unset CMAKE_TOOLCHAIN
 }
 
 # Set up environment for 32-bit i686 Windows for Visual Studio (compile all as .dll)
@@ -1497,13 +1508,18 @@ setup_windows-amd64-mingw() {
 	common_setup mingw x86_64-w64-mingw32
 }
 
+setup_macos() {
+	MACOS_HOST="${MACOS_ARCH}-apple-macos${MACOS_VERSION}"
+	common_setup macos "${MACOS_HOST}"
+}
+
 # Set up environment for 64-bit amd64 macOS
 setup_macos-amd64-default() {
 	setup_default
 	MACOS_ARCH=x86_64
 	# OpenAL requires 10.14.
-	export MACOSX_DEPLOYMENT_TARGET=10.14 # works with CMake
-	common_setup macos "x86_64-apple-macos${MACOSX_DEPLOYMENT_TARGET}"
+	MACOS_VERSION='10.14'
+	setup_macos
 }
 
 # Set up environment for 32-bit i686 Linux
