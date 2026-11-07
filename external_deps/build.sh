@@ -1098,12 +1098,12 @@ build_naclruntime() {
 	local archive_name="native_client-${NACLRUNTIME_REVISION}.zip"
 
 	download_extract naclruntime "${archive_name}" \
-		"{$NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
+		"${NACLRUNTIME_BASEURL}/${NACLRUNTIME_REVISION}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	env -i /usr/bin/env bash -l -c "python3 /usr/bin/scons --mode=opt-linux 'platform=${NACL_ARCH}' werror=0 sysinfo=0 sel_ldr"
+	scons --mode=opt-linux "platform=${NACL_ARCH}" werror=0 sysinfo=0 sel_ldr
 	smart_copy "scons-out/opt-linux-${NACL_ARCH}/staging/sel_ldr" "${PREFIX}/nacl_loader"
 }
 
@@ -1592,7 +1592,7 @@ printHelp() {
 	    all     linux windows macos
 
 	Packages:
-	    native-pkgconfig native-nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclsdk wasisdk wasmtime
+	    native-pkgconfig native-nasm zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclruntime naclsdk wasisdk wasmtime
 
 	Virtual packages:
 	    base    build packages for pre-built binaries to be downloaded when building the game
