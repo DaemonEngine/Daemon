@@ -1681,9 +1681,6 @@ then
 	syntaxError 'Missing package(s)'
 fi
 
-# Do not reuse self-built curl from external_deps custom PATH
-# to download source archives or we would get errors like:
-#   curl: (1) Protocol "https" not supported or disabled in libcurl
 CURL="$(command -v curl)" || log ERROR "Command 'curl' not found"
 
 # Enable parallel build
