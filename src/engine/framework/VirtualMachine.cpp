@@ -358,86 +358,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 #endif
 }
 
-#if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
-enum class ExeSupport
-{
-	Supported,
-	Unsupported,
-	Unknown,
-};
-
-static void SilenceOutput()
-{
-	int devnull = open("/dev/null", O_WRONLY);
-
-	if (devnull < 0) {
-		_exit(200);
-	}
-
-	dup2(devnull, STDOUT_FILENO);
-	dup2(devnull, STDERR_FILENO);
-
-	close(devnull);
-}
-
-static ExeSupport CheckExeSupport(Str::StringRef probe)
-{
-	pid_t pid = fork();
-	if (pid < 0) {
-		return ExeSupport::Unknown;
-	}
-
-	if (pid == 0) {
-		SilenceOutput();
-
-		char *const argv[] = {
-			const_cast<char *>(probe.data()),
-			nullptr,
-		};
-
-		execve(probe.data(), argv, environ);
-
-		switch (errno)
-		{
-			case ENOEXEC:
-				// The kernel cannot execute the probe.
-				_exit(100);
-
-			case ENOENT:
-			case EACCES:
-				// Missing or inaccessible probe.
-				_exit(101);
-
-			default:
-				_exit(102);
-		}
-	}
-
-	int status;
-	if (waitpid(pid, &status, 0) < 0) {
-		return ExeSupport::Unknown;
-	}
-
-	if (!WIFEXITED(status)) {
-		return ExeSupport::Unknown;
-	}
-
-	switch (WEXITSTATUS(status))
-	{
-		case 100:
-			return ExeSupport::Unsupported;
-
-		case 101:
-		case 102:
-			return ExeSupport::Unknown;
-
-		default:
-			// The probe has been executed properly.
-			return ExeSupport::Supported;
-	}
-}
-#endif // defined(DAEMON_NACL_RUNTIME_LINUX) && defined(NACL_ARCH_ARM64)
-
 #if defined(DAEMON_NACL_RUNTIME_ENABLED)
 static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug, bool extract, int debugLoader) {
 	const std::string& libPath = FS::GetLibPath();
@@ -462,12 +382,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	bool i686ForceAmd64 = systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64;
 #endif // !( !defined(_WIN32) || defined(_WIN64) )
 
-#if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
-	constexpr bool hasMultiarch = true;
-#else
-	constexpr bool hasMultiarch = false;
-#endif
-
 	std::string bootstrapPath;
 
 #if defined(DAEMON_NACL_BOOSTRAP_ENABLED)
@@ -477,27 +391,9 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	Q_UNUSED(bootstrapPath);
 #endif // !defined(DAEMON_NACL_BOOSTRAP_ENABLED)
 
-	std::string box64Path;
-
 #if defined(DAEMON_NACL_BOX64_EMULATION)
-	constexpr bool hasBox64 = true;
-#else // !defined(DAEMON_NACL_BOX64_EMULATION)
-	constexpr bool hasBox64 = false;
-	Q_UNUSED(box64Path);
+	std::string box64Path;
 #endif // !defined(DAEMON_NACL_BOX64_EMULATION)
-
-#if defined(DAEMON_NACL_RUNTIME_LINUX)
-#if defined(YOKAI_ARCH_ARM64)
-	/* We later turn this boolean off when we detect armhf support is not
-	provided on arm64. */
-	bool hasArmhf = true;
-#elif defined(YOKAI_ARCH_ARMHF)
-	constexpr bool hasArmhf = false;
-#endif // !defined(YOKAI_ARCH_ARMHF)
-#endif // !defined(DAEMON_NACL_RUNTIME_LINUX)
-
-	bool useMultiarch = hasMultiarch;
-	bool useBox64 = hasBox64;
 
 #if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
 	const std::string libs_linux_armhf = "lib-armhf";
@@ -505,37 +401,11 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 
 	std::string libsDirPath = FS::Path::Build(libPath, libs_linux_armhf);
 	std::string libLoaderPath = FS::Path::Build(libsDirPath, libld_linux_armhf);
-
-	switch (CheckExeSupport(libLoaderPath))
-	{
-		case ExeSupport::Supported:
-			Log::Notice("Working multiarch support.");
-			break;
-
-		case ExeSupport::Unsupported:
-			Log::Notice("Unsupported multiarch.");
-			hasArmhf = false;
-			break;
-
-		case ExeSupport::Unknown:
-			Log::Warn("Cannot determine multiarch support.");
-			hasArmhf = false;
-			break;
-	}
-
-	if (!hasArmhf) {
-		useMultiarch = false;
-	}
 #endif // defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
 
-	if (useMultiarch && useBox64) {
-		Log::Notice("Preferring multiarch over Box64 emulation.");
-		useBox64 = false;
-	}
+	bool useBootstrap = hasBootstrap;
 
-	bool useBootstrap = hasBootstrap && !useBox64;
-
-	std::string arch = (useBox64 || i686ForceAmd64) ? "amd64" : DAEMON_NACL_ARCH_STRING;
+	std::string arch = i686ForceAmd64 ? "amd64" : DAEMON_NACL_ARCH_STRING;
 
 	std::string moduleName = Str::Format("%s-%s.nexe", name, arch);
 	std::string irt = FS::Path::Build(naclPath, Str::Format("irt_core-%s.nexe", arch));
@@ -592,12 +462,10 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		}
 
 #if defined(DAEMON_NACL_BOX64_EMULATION)
-		if (useBox64) {
-			box64Path = ResolveBox64Path(naclPath);
-			Log::Notice("Using Box64 emulator: %s", box64Path);
-			args.push_back(box64Path.c_str());
-			inheritEnvironment = true;
-		}
+		box64Path = ResolveBox64Path(naclPath);
+		Log::Notice("Using Box64 emulator: %s", box64Path);
+		args.push_back(box64Path.c_str());
+		inheritEnvironment = true;
 #endif
 	}
 
@@ -616,8 +484,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 
 #if defined(DAEMON_NACL_RUNTIME_LINUX) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
 	if (enableQualification
-	&& hasArmhf
-	&& !useBox64
 	&& workaround_naclArchitecture_arm64_disableQualification.Get()) {
 		/* This is required to run armhf NaCl loader on arm64 kernel
 		otherwise nexe loading fails with this message:
@@ -643,7 +509,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 
 #if defined(DAEMON_NACL_BOX64_EMULATION)
 	if (enableQualification
-	&& useBox64
 	&& workaround_box64_disableQualification.Get()) {
 		/* When running the amd64 NaCl loader under Box64, the loader's
 		platform qualification will fail because the CPU is not actually x86_64.
