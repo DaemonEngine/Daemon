@@ -1070,16 +1070,26 @@ build_naclsdk() {
 		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
 		;;
 	esac
+}
+
+# This package is not needed if the target machine already has armhf multiarch support (including libstdc++) installed.
+# Must be built after the NaCl runtime
+build_naclruntime-vendor-libc() {
+	"${download_only}" && return
+
 	case "${PLATFORM}" in
 	linux-arm64-*)
 		mkdir -p "${PREFIX}/lib-armhf"
-		smart_copy -R pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/lib-armhf/."
+		smart_copy -R "${BUILD_DIR}/naclsdk/"pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/lib-armhf/."
 		# Copy the library loader instead of renaming it because there may still be some
 		# references to ld-linux-armhf.so.3 in binaries.
 		smart_copy "${PREFIX}/lib-armhf/ld-linux-armhf.so.3" "${PREFIX}/lib-armhf/ld-linux-armhf"
 		# We can't use patchelf or 'nacl_helper_bootstrap nacl_loader' will complain:
 		#   bootstrap_helper: nacl_loader: ELF file has unreasonable e_phnum=13
 		sed -e 's|/lib/ld-linux-armhf.so.3|lib-armhf/ld-linux-armhf|' -i "${PREFIX}/nacl_loader"
+		;;
+	*)
+		log ERROR 'Unsupported platform for naclruntime-vendor-libc'
 		;;
 	esac
 }
@@ -1570,11 +1580,11 @@ all_linux_i686_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp op
 base_linux_amd64_default_packages="native-scons ${base_linux_i686_default_packages} naclruntime"
 all_linux_amd64_default_packages="native-scons ${all_linux_i686_default_packages} naclruntime"
 
-base_linux_arm64_default_packages='sdl3 naclsdk'
-all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
+base_linux_arm64_default_packages='sdl3 naclsdk naclruntime-vendor-libc'
+all_linux_arm64_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk naclruntime-vendor-libc'
 
-base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
-all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
+base_linux_armhf_default_packages='sdl3 naclsdk'
+all_linux_armhf_default_packages='zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile ncurses naclsdk'
 
 all_linux_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default'
 all_windows_platforms='windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
@@ -1602,7 +1612,7 @@ printHelp() {
 	    all     linux windows macos
 
 	Packages:
-	    native-pkgconfig native-nasm native-scons zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclruntime naclsdk wasisdk wasmtime
+	    native-pkgconfig native-nasm native-scons zlib gmp nettle curl sdl3 glew png jpeg webp openal ogg vorbis opus opusfile naclruntime naclsdk naclruntime-vendor-libc wasisdk wasmtime
 
 	Virtual packages:
 	    base    build packages for pre-built binaries to be downloaded when building the game
@@ -1638,9 +1648,12 @@ printHelp() {
 	    all     ${all_linux_i686_default_packages}
 
 	linux-arm64-default:
-	linux-armhf-default:
 	    base    ${base_linux_arm64_default_packages}
 	    all     ${all_linux_arm64_default_packages}
+
+	linux-armhf-default:
+	    base    ${base_linux_armhf_default_packages}
+	    all     ${all_linux_armhf_default_packages}
 
 	EOF
 
