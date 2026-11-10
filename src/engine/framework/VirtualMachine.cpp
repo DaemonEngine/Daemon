@@ -79,9 +79,6 @@ static Cvar::Cvar<bool> workaround_naclSystem_freebsd_disableQualification(
 // Many BSDs have a Linuxulator, for now we only tested one.
 #if defined(__linux__) || defined(__FreeBSD__)
 #define DAEMON_NACL_RUNTIME_LINUX
-#if YOKAI_ARCH_I686 || YOKAI_ARCH_ARM64 || YOKAI_ARCH_ARMHF
-#define DAEMON_NACL_BOOSTRAP_ENABLED
-#endif // !(YOKAI_ARCH_I686 || YOKAI_ARCH_ARM64 || YOKAI_ARCH_ARMHF)
 #endif // defined(__linux__) || defined(DAEMON_LINUXULATOR)
 #endif // defined(DAEMON_NACL_RUNTIME_ENABLED)
 
@@ -182,6 +179,7 @@ static Cvar::Cvar<bool> vm_nacl_qualification(
 
 namespace VM {
 
+#ifdef DAEMON_NACL_RUNTIME_LINUX
 // https://github.com/Unvanquished/Unvanquished/issues/944#issuecomment-744454772
 static void CheckMinAddressSysctlTooLarge()
 {
@@ -206,6 +204,7 @@ static void CheckMinAddressSysctlTooLarge()
 	}
 #endif // __linux__
 }
+#endif // DAEMON_NACL_RUNTIME_LINUX
 
 #if defined(DAEMON_NACL_RUNTIME_LINUX) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
 static bool OnArm64()
@@ -468,15 +467,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	constexpr bool hasMultiarch = false;
 #endif
 
-	std::string bootstrapPath;
-
-#if defined(DAEMON_NACL_BOOSTRAP_ENABLED)
-	bool hasBootstrap = true;
-#else // !defined(DAEMON_NACL_BOOSTRAP_ENABLED)
-	constexpr bool hasBootstrap = false;
-	Q_UNUSED(bootstrapPath);
-#endif // !defined(DAEMON_NACL_BOOSTRAP_ENABLED)
-
 	std::string box64Path;
 
 #if defined(DAEMON_NACL_BOX64_EMULATION)
@@ -533,8 +523,6 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		useBox64 = false;
 	}
 
-	bool useBootstrap = hasBootstrap && !useBox64;
-
 	std::string arch = (useBox64 || i686ForceAmd64) ? "amd64" : DAEMON_NACL_ARCH_STRING;
 
 	std::string moduleName = Str::Format("%s-%s.nexe", name, arch);
@@ -574,6 +562,20 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		Sys::Error("NaCl integrated runtime not found: %s", irt);
 	}
 
+#if defined(DAEMON_NACL_BOX64_EMULATION)
+	if (useBox64) {
+		box64Path = ResolveBox64Path(naclPath);
+		Log::Notice("Using Box64 emulator: %s", box64Path);
+		args.push_back(box64Path.c_str());
+		inheritEnvironment = true;
+	}
+#endif // DAEMON_NACL_BOX64_EMULATION
+
+#ifdef DAEMON_NACL_RUNTIME_LINUX
+	bool useBootstrap = ( arch == "i686" or arch == "armhf" );
+
+	std::string bootstrapPath;
+
 	if (useBootstrap) {
 		CheckMinAddressSysctlTooLarge();
 
@@ -582,24 +584,13 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 		if (FS::RawPath::FileExists(bootstrapPath)) {
 			args.push_back(bootstrapPath.c_str());
 		} else {
-			Log::Warn("NaCl bootstrap helper not found: %s", bootstrapPath);
-			useBootstrap = false;
+			Sys::Error("NaCl bootstrap helper not found: %s", bootstrapPath);
 		}
 	}
-	else {
-		if (hasBootstrap) {
-			Log::Notice("Not using NaCl bootstrap helper.");
-		}
-
-#if defined(DAEMON_NACL_BOX64_EMULATION)
-		if (useBox64) {
-			box64Path = ResolveBox64Path(naclPath);
-			Log::Notice("Using Box64 emulator: %s", box64Path);
-			args.push_back(box64Path.c_str());
-			inheritEnvironment = true;
-		}
-#endif
-	}
+#else // !DAEMON_NACL_RUNTIME_LINUX
+	constexpr bool useBoootstrap = false;
+	Q_UNUSED(useBoootstrap)
+#endif // !DAEMON_NACL_RUNTIME_LINUX
 
 	args.push_back(nacl_loader.c_str());
 
