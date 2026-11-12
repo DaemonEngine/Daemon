@@ -97,8 +97,15 @@ static Cvar::Cvar<std::string> vm_box64_path(
 // Resolve box64 binary path by looking for a provided one or searching PATH if not explicitly set.
 static std::string ResolveBox64Path(std::string naclPath) {
 	std::string requestedPath = vm_box64_path.Get();
+	if (!requestedPath.empty()) {
+		if (!FS::RawPath::FileExists(requestedPath)) {
+			Sys::Error("Box64 emulation is enabled but the requested executable '%s' is missing", requestedPath);
+		}
 
-	if (requestedPath.empty()) {
+		return requestedPath;
+	}
+
+	{
 		std::string providedPath = FS::Path::Build(naclPath, "box64");
 
 		if (FS::RawPath::FileExists(providedPath)) {
@@ -118,14 +125,7 @@ static std::string ResolveBox64Path(std::string naclPath) {
 			return providedPath;
 		}
 
-		Log::Warn("Box64 emulation is enabled but the executable is not provided with the engine: %s", providedPath);
-	}
-
-	if (!FS::RawPath::FileExists(requestedPath)) {
-		Sys::Error("Box64 emulation is enabled but the requested executable is missing: %s", requestedPath);
-	}
-	else {
-		return requestedPath;
+		// Log::Warn("Box64 emulation is enabled but the executable is not provided with the engine: %s", providedPath);
 	}
 
 	const char* envPath = getenv("PATH");
