@@ -60,18 +60,16 @@ Maryland 20850 USA.
 #endif
 
 #if defined(USE_MUMBLE)
-cvar_t *cl_useMumble;
-cvar_t *cl_mumbleScale;
+Cvar::Range<Cvar::Cvar<int>> cl_useMumble("cl_useMumble", "enable Mumble integration (2 = debug)", Cvar::NONE, 0, 0, 2);
+Cvar::Cvar<float> cl_mumbleScale("cl_mumbleScale", "multiplier of world coordinates passed to Mumble", Cvar::NONE, 0.0254);
 #endif
 
-cvar_t *cl_nodelta;
+Cvar::Cvar<bool> cl_nodelta("cl_nodelta", "disable network snapshot delta compression", Cvar::NONE, false);
 
-cvar_t *cl_noprint;
-
-cvar_t *cl_timeout;
-cvar_t *cl_maxpackets;
-cvar_t *cl_packetdup;
-cvar_t *cl_timeNudge;
+Cvar::Cvar<float> cl_timeout("cl_timeout", "disconnect after this many seconds without server packets", Cvar::NONE, 200);
+Cvar::Range<Cvar::Cvar<int>> cl_maxpackets("cl_maxpackets", "client->server max packets per second", Cvar::NONE, 125, 15, 125);
+Cvar::Range<Cvar::Cvar<int>> cl_packetdup("cl_packetdup", "send N extra copies of each usercmd_t", Cvar::NONE, 1, 0, 5);
+Cvar::Range<Cvar::Cvar<int>> cl_timeNudge("cl_timeNudge", "ms to extrapolate/interpolate ahead/behind latest snapshots (negative means extrapolate ahead)", Cvar::NONE, 0, -30, 30);
 cvar_t *cl_showTimeDelta;
 
 cvar_t *cl_shownet = nullptr; // NERVE - SMF - This is referenced in msg.c and we need to make sure it is nullptr
@@ -91,7 +89,7 @@ Cvar::Cvar<std::string> cvar_demo_status_filename(
     ""
 );
 
-cvar_t *cl_aviFrameRate;
+Cvar::Cvar<int> cl_aviFrameRate("cl_aviFrameRate", "demo video framerate", Cvar::NONE, 25);
 
 Cvar::Cvar<bool> cl_freelook("cl_freelook", "vertical mouse movement always controls pitch", Cvar::NONE, true);
 
@@ -116,25 +114,24 @@ Cvar::Range<Cvar::Cvar<int>> j_forward_axis("j_forward_axis", "joystick forward 
 Cvar::Range<Cvar::Cvar<int>> j_side_axis("j_side_axis", "joystick side (strafe) axis number", Cvar::NONE, 0, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
 Cvar::Range<Cvar::Cvar<int>> j_up_axis("j_up_axis", "joystick up axis number", Cvar::NONE, 2, 0, Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS) - 1);
 
-cvar_t *cl_activeAction;
+Cvar::Cvar<std::string> cl_activeAction("activeAction", "one-time command executed upon entering game", Cvar::TEMPORARY, "");
 
-cvar_t *cl_autorecord;
+Cvar::Cvar<bool> cl_autorecord("cl_autorecord", "record a demo of every game", Cvar::NONE, false);
 
-cvar_t *cl_allowDownload;
+Cvar::Cvar<bool> cl_allowDownload("cl_allowDownload", "auto-download paks required by the server", Cvar::NONE, true);
 
-cvar_t                 *cl_consoleFont;
-cvar_t                 *cl_consoleFontSize;
-cvar_t                 *cl_consoleFontScaling;
-cvar_t                 *cl_consoleFontKerning;
-cvar_t                 *cl_consoleCommand; //see also com_consoleCommand for terminal consoles
+Cvar::Cvar<std::string> cl_consoleFont("cl_consoleFont", "path (in homepath) for console typeface", Cvar::NONE, "");
+Cvar::Cvar<int> cl_consoleFontSize("cl_consoleFontSize", "console font point size", Cvar::NONE, 16);
+Cvar::Cvar<bool> cl_consoleFontScaling("cl_consoleFontScaling", "rescale console font size by ratio of display size to 1080p", Cvar::NONE, true);
+Cvar::Cvar<float> cl_consoleFontKerning("cl_consoleFontKerning", "px of horizontal padding on console glyphs", Cvar::NONE, 0);
+//see also com_consoleCommand for terminal consoles
+Cvar::Cvar<std::string> cl_consoleCommand("cl_consoleCommand", "command prepended to console lines, when in game", Cvar::NONE, "say");
 
 struct rsa_public_key  public_key;
 struct rsa_private_key private_key;
 
-cvar_t             *cl_altTab;
-
 // XreaL BEGIN
-cvar_t             *cl_aviMotionJpeg;
+Cvar::Cvar<bool> cl_aviMotionJpeg("cl_aviMotionJpeg", "use JPEG instead of bitmap for demo video recording", Cvar::NONE, true);
 // XreaL END
 
 cvar_t             *cl_rate;
@@ -153,10 +150,10 @@ void        CL_CheckForResend();
 static void CL_UpdateMumble()
 {
 	vec3_t pos, forward, up;
-	float  scale = cl_mumbleScale->value;
+	float  scale = cl_mumbleScale.Get();
 	float  tmp;
 
-	if ( !cl_useMumble->integer )
+	if ( !cl_useMumble.Get() )
 	{
 		return;
 	}
@@ -176,7 +173,7 @@ static void CL_UpdateMumble()
 	up[ 1 ] = up[ 2 ];
 	up[ 2 ] = tmp;
 
-	if ( cl_useMumble->integer > 1 )
+	if ( cl_useMumble.Get() > 1 )
 	{
 		fprintf( stderr, "%f %f %f, %f %f %f, %f %f %f\n",
 		         pos[ 0 ], pos[ 1 ], pos[ 2 ],
@@ -567,9 +564,12 @@ class DemoPlayCmd: public Cmd::StaticCmd {
                 return;
             }
 
-            // make sure a local server is killed
-            Cvar_Set( "sv_killserver", "1" );
-            CL_Disconnect( true );
+            if (com_sv_running.Get()) {
+                // Use /disconnect to shut everything down cleanly.
+                // Maybe we should also do that if there is an online connection or another demo?
+                Cmd::BufferCommandTextAfter("disconnect; demo_play " + Cmd::Escape(args.Argv(1)));
+                return;
+            }
 
             // open the demo file
             const std::string& fileName = args.Argv(1);
@@ -789,7 +789,7 @@ void CL_Disconnect( bool showMainMenu )
 	CL_SendDisconnect();
 
 #if defined(USE_MUMBLE)
-	if ( cl_useMumble->integer && mumble_islinked() )
+	if ( cl_useMumble.Get() && mumble_islinked() )
 	{
 		Log::Notice("Mumble: Unlinking from Mumble application" );
 		mumble_unlink();
@@ -1011,15 +1011,11 @@ void CL_Connect_f()
 	// clear any previous "server full" type messages
 	clc.serverMessage[ 0 ] = 0;
 
-	if ( com_sv_running.Get() && !strcmp( server, "loopback" ) )
+	if ( com_sv_running.Get() )
 	{
 		// if running a local server, kill it
-		SV_Shutdown( "Server quit" );
+		SV_Shutdown( "Host ended the game" );
 	}
-
-	// make sure a local server is killed
-	Cvar_Set( "sv_killserver", "1" );
-	SV_Frame( 0 );
 
 	try {
 		CL_Disconnect( true );
@@ -1962,7 +1958,7 @@ void CL_CheckTimeout()
 	//
 	// check timeout
 	//
-	if ( cls.state >= connstate_t::CA_CONNECTED && cls.realtime - clc.lastPacketTime > cl_timeout->value * 1000 )
+	if ( cls.state >= connstate_t::CA_CONNECTED && cls.realtime - clc.lastPacketTime > cl_timeout.Get() * 1000 )
 	{
 		if ( ++cl.timeoutcount > 5 )
 		{
@@ -2016,7 +2012,8 @@ void CL_Frame( int msec )
 	}
 
 	// if recording an avi, lock to a fixed fps
-	if ( CL_VideoRecording() && cl_aviFrameRate->integer && msec )
+	int framerate;
+	if ( ( framerate = CL_VideoRecording() ) && msec )
 	{
 		// save the current screen
 		if ( cls.state == connstate_t::CA_ACTIVE )
@@ -2024,7 +2021,7 @@ void CL_Frame( int msec )
 			CL_TakeVideoFrame();
 
 			// fixed time for next frame
-			msec = ( int ) ceil( ( 1000.0f / cl_aviFrameRate->value ) * com_timescale->value );
+			msec = ( int ) ceil( ( 1000.0f / framerate ) * com_timescale->value );
 
 			if ( msec == 0 )
 			{
@@ -2099,30 +2096,30 @@ bool CL_InitRenderer()
 		return false;
 	}
 
-	cl_consoleFont = Cvar_Get( "cl_consoleFont", "",  CVAR_LATCH );
-	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
-	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
+	Cvar::Latch(cl_consoleFont);
+	Cvar::Latch(cl_consoleFontSize);
+	Cvar::Latch(cl_consoleFontScaling);
 
 	// Register console font specified by cl_consoleFont. Empty string means use the embbed Unifont
 
-	int fontSize = cl_consoleFontSize->integer;
+	int fontSize = cl_consoleFontSize.Get();
 
-	if ( cl_consoleFontScaling->integer )
+	if ( cl_consoleFontScaling.Get() )
 	{
 		// This gets 12px on 1920×1080 screen, which is libRocket default for 1em
 		int fontScale = std::min(cls.windowConfig.vidWidth, cls.windowConfig.vidHeight) / 90;
 
 		// fontScale / 12px gets 1px on 1920×1080 screen
-		fontSize = cl_consoleFontSize->integer * fontScale / 12;
+		fontSize = cl_consoleFontSize.Get() * fontScale / 12;
 	}
 
-	if ( cl_consoleFont->string[ 0 ] )
+	if ( !cl_consoleFont.Get().empty() )
 	{
-		cls.consoleFont = re.RegisterFont( cl_consoleFont->string, fontSize );
+		cls.consoleFont = re.RegisterFont( cl_consoleFont.Get().c_str(), fontSize );
 		if ( cls.consoleFont == nullptr )
 		{
 			Log::Warn( "Couldn't load font file '%s', falling back to default console font",
-			            cl_consoleFont->string );
+			            cl_consoleFont.Get() );
 		}
 	}
 
@@ -2218,10 +2215,7 @@ static bool CL_InitRef()
 	ri.Hunk_FreeTempMemory = Hunk_FreeTempMemory;
 
 	ri.FS_ReadFile = FS_ReadFile;
-	ri.FS_FreeFile = FS_FreeFile;
 	ri.FS_WriteFile = FS_WriteFile;
-	ri.FS_FreeFileList = FS_FreeFileList;
-	ri.FS_ListFiles = FS_ListFiles;
 	ri.FS_Seek = FS_Seek;
 	ri.FS_FTell = FS_FTell;
 	ri.FS_Read = FS_Read;
@@ -2299,40 +2293,15 @@ void CL_Init()
 	//
 	// register our variables
 	//
-	cl_noprint = Cvar_Get( "cl_noprint", "0", 0 );
-
-	cl_timeout = Cvar_Get( "cl_timeout", "200", 0 );
-
-	cl_timeNudge = Cvar_Get( "cl_timeNudge", "0", CVAR_TEMP );
 	cl_shownet = Cvar_Get( "cl_shownet", "0", CVAR_TEMP );
 	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
-	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP );
-	cl_autorecord = Cvar_Get( "cl_autorecord", "0", CVAR_TEMP );
-
-	cl_aviFrameRate = Cvar_Get( "cl_aviFrameRate", "25", 0 );
-
-	// XreaL BEGIN
-	cl_aviMotionJpeg = Cvar_Get( "cl_aviMotionJpeg", "1", 0 );
-	// XreaL END
-
-	cl_maxpackets = Cvar_Get( "cl_maxpackets", "125", 0 );
-	cl_packetdup = Cvar_Get( "cl_packetdup", "1", 0 );
-
-	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", 0 );
-
-	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
-
-	cl_consoleCommand = Cvar_Get( "cl_consoleCommand", "say", 0 );
-
-	cl_altTab = Cvar_Get( "cl_altTab", "1", 0 );
 
 	// userinfo
 	cl_rate = Cvar_Get( "rate", XSTRING(NETWORK_DEFAULT_RATE), CVAR_USERINFO | CVAR_ARCHIVE);
 
 #if defined(USE_MUMBLE)
-	cl_useMumble = Cvar_Get( "cl_useMumble", "0",  CVAR_LATCH );
-	cl_mumbleScale = Cvar_Get( "cl_mumbleScale", "0.0254", 0 );
+	Cvar::Latch(cl_useMumble);
 #endif
 
 	//

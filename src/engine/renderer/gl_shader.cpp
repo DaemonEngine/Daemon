@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <common/FileSystem.h>
 #include "gl_shader.h"
 #include "Material.h"
-#include "DaemonEmbeddedFiles/EngineShaders.h"
+#include "YokaiEmbeddedFiles/DaemonEngineShaders.h"
 
 // We currently write GLBinaryHeader to a file and memcpy all over it.
 // Make sure it's a pod, so we don't put a std::string in it or something
@@ -72,7 +72,6 @@ GLShader_heatHaze                        *gl_heatHazeShader = nullptr;
 GLShader_heatHazeMaterial                *gl_heatHazeShaderMaterial = nullptr;
 GLShader_liquid                          *gl_liquidShader = nullptr;
 GLShader_liquidMaterial                  *gl_liquidShaderMaterial = nullptr;
-GLShader_portal                          *gl_portalShader = nullptr;
 GLShader_reflection                      *gl_reflectionShader = nullptr;
 GLShader_reflectionMaterial              *gl_reflectionShaderMaterial = nullptr;
 GLShader_screen                          *gl_screenShader = nullptr;
@@ -91,8 +90,8 @@ namespace // Implementation details
 
 	const char* GetInternalShader(Str::StringRef filename)
 	{
-		auto it = EngineShaders::FileMap.find(filename);
-		if (it != EngineShaders::FileMap.end())
+		auto it = DaemonEngineShaders::FileMap.find(filename);
+		if (it != DaemonEngineShaders::FileMap.end())
 			return it->second.data;
 		return nullptr;
 	}
@@ -679,7 +678,7 @@ static std::string GenEngineConstants() {
 	AddDefine( str, "r_zNear", r_znear->value );
 
 	AddDefine( str, "M_PI", static_cast< float >( M_PI ) );
-	AddDefine( str, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
+	AddDefine( str, "MAX_REALTIME_LIGHTS", glConfig.maxRealtimeLights );
 	AddDefine( str, "NUM_LIGHT_LAYERS", glConfig.realtimeLightLayers );
 	AddDefine( str, "TILE_SIZE", TILE_SIZE );
 
@@ -2446,12 +2445,12 @@ GLShader_generic::GLShader_generic() :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulateColorGen_Float( this ),
-	u_ColorModulateColorGen_Uint( this ),
-	u_Color_Float( this ),
-	u_Color_Uint( this ),
+	u_UnprojectMatrix( this ),
+	u_ColorModulateColorGen_Dispatch( this ),
+	u_Color_Dispatch( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
+	u_InversePortalRange( this ),
 	u_DepthScale( this ),
 	u_ProfilerZero( this ),
 	u_ProfilerRenderSubGroups( this ),
@@ -2460,6 +2459,7 @@ GLShader_generic::GLShader_generic() :
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
+	GLCompileMacro_USE_ALPHAGEN_PORTAL( this ),
 	GLCompileMacro_USE_DEPTH_FADE( this )
 {
 }
@@ -2480,8 +2480,10 @@ GLShader_genericMaterial::GLShader_genericMaterial() :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_UnprojectMatrix( this ),
 	u_ColorModulateColorGen_Uint( this ),
 	u_Color_Uint( this ),
+	u_InversePortalRange( this ),
 	u_DepthScale( this ),
 	u_ShowTris( this ),
 	u_MaterialColour( this ),
@@ -2490,6 +2492,7 @@ GLShader_genericMaterial::GLShader_genericMaterial() :
 	GLDeformStage( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
+	GLCompileMacro_USE_ALPHAGEN_PORTAL( this ),
 	GLCompileMacro_USE_DEPTH_FADE( this ) {
 }
 
@@ -2510,10 +2513,8 @@ GLShader_lightMapping::GLShader_lightMapping() :
 	u_LightTiles( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
-	u_ColorModulateColorGen_Float( this ),
-	u_ColorModulateColorGen_Uint( this ),
-	u_Color_Float( this ),
-	u_Color_Uint( this ),
+	u_ColorModulateColorGen_Dispatch( this ),
+	u_Color_Dispatch( this ),
 	u_AlphaThreshold( this ),
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
@@ -2695,8 +2696,7 @@ GLShader_fog::GLShader_fog() :
 	u_DepthMap( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_UnprojectMatrix( this ),
-	u_Color_Float( this ),
-	u_Color_Uint( this ),
+	u_Color_Dispatch( this ),
 	u_ViewOrigin( this ),
 	u_FogGradient( this ),
 	GLCompileMacro_OUTSIDE_FOG( this )
@@ -2767,21 +2767,6 @@ GLShader_screenMaterial::GLShader_screenMaterial() :
 		true, "screen", "screen" ),
 	u_CurrentMap( this ),
 	u_ModelViewProjectionMatrix( this ) {
-}
-
-GLShader_portal::GLShader_portal() :
-	GLShader( "portal", ATTR_POSITION,
-		false, "portal", "portal" ),
-	u_CurrentMap( this ),
-	u_ModelViewMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_InversePortalRange( this )
-{
-}
-
-void GLShader_portal::SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->id, "u_CurrentMap" ), 0 );
 }
 
 GLShader_contrast::GLShader_contrast() :

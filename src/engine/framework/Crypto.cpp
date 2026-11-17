@@ -247,7 +247,11 @@ Data Sha256( const Data& input )
     nettle_sha256_init( &ctx );
     nettle_sha256_update( &ctx, input.size(), input.data() );
     Data output( SHA256_DIGEST_SIZE  );
+#if NETTLE_VERSION_MAJOR < 4
     nettle_sha256_digest( &ctx, SHA256_DIGEST_SIZE, output.data() );
+#else
+    nettle_sha256_digest( &ctx, output.data() );
+#endif  // NETTLE_VERSION_MAJOR < 4
     return output;
 }
 
@@ -257,7 +261,11 @@ Data Md5( const Data& input )
     nettle_md5_init( &ctx );
     nettle_md5_update( &ctx, input.size(), input.data() );
     Data output( MD5_DIGEST_SIZE );
+#if NETTLE_VERSION_MAJOR < 4
     nettle_md5_digest( &ctx, MD5_DIGEST_SIZE, output.data() );
+#else
+    nettle_md5_digest( &ctx, output.data() );
+#endif  // NETTLE_VERSION_MAJOR < 4
     return output;
 }
 

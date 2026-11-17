@@ -54,9 +54,11 @@ enum class glHardwareVendor_t
 	ARM,
 	ATI,
 	BROADCOM,
+	IMAGINATION,
 	INTEL,
-	NVIDIA,
 	MTHREADS,
+	NVIDIA,
+	ZHAOXIN,
 	NUM_HARDWARE_VENDORS,
 };
 
@@ -65,10 +67,13 @@ enum class glDriverVendor_t
 	UNKNOWN,
 	APPLE,
 	ATI,
+	GL4ES,
+	IMAGINATION,
 	INTEL,
 	MESA,
-	NVIDIA,
 	MTHREADS,
+	NVIDIA,
+	ZHAOXIN,
 	NUM_DRIVER_VENDORS,
 };
 

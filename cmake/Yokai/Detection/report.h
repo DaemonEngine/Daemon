@@ -1,8 +1,8 @@
 /*
 ===========================================================================
 Daemon BSD Source Code
-Copyright (c) 2022, Daemon Developers
-All rights reserved.
+Copyright (c) 2024-2025, Daemon Developers
+All rights reserveid.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -15,7 +15,7 @@ modification, are permitted provided that the following conditions are met:
       names of its contributors may be used to endorse or promote products
       derived from this software without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS AS IS AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 DISCLAIMED. IN NO EVENT SHALL DAEMON DEVELOPERS BE LIABLE FOR ANY
@@ -28,35 +28,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#include <errno.h>
-#include <libgen.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h> 
+#define STRING(s) #s
+#define XSTRING(s) STRING(s)
 
-int main(int argc, char *argv[]) {
-	char *directory = dirname(strdup(argv[0]));
-
-	int err = chdir(directory);
-
-	if (err != 0) {
-		return err;
-	}
-
-	err = putenv(strdup("LD_LIBRARY_PATH=lib-armhf"));
-
-	if (err != 0) {
-		return err;
-	}
-
-	char *helper = strdup("./nacl_helper_bootstrap");
-	argv[0] = helper;
-
-	execv(helper, argv);
-
-	// The execv() function returns only if an error has occurred.
-	printf("nacl_helper_bootstrap-armhf: %s\n", strerror(errno));
-
-	return 1;
-}
+#define REPORT(key, value) \
+	"<REPORT<YOKAI_" REPORT_SLUG "_" key "=" value ">REPORT>"
+#define REPORT_VERSION_3(name, major, minor, patch) \
+	REPORT(name "_VERSION", XSTRING(major) "." XSTRING(minor) "." XSTRING(patch))
+#define REPORT_VERSION_2(name, major, minor) \
+	REPORT(name "_VERSION", XSTRING(major) "." XSTRING(minor))
+#define REPORT_VERSION_1(name, major) \
+	REPORT(name "_VERSION", XSTRING(major))
+#define REPORT_VERSION_STRING(name, value) \
+	REPORT(name "_VERSION_STRING", value)
+#define REPORT_COMPATIBILITY(name) \
+	REPORT(name "_COMPATIBILITY", "ON")
+#define REPORT_NAME(name) \
+	REPORT("NAME", name)

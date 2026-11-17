@@ -9,14 +9,14 @@
 #  * Redistributions in binary form must reproduce the above copyright
 #    notice, this list of conditions and the following disclaimer in the
 #    documentation and/or other materials provided with the distribution.
-#  * Neither the name of the <organization> nor the
+#  * Neither the name of the Daemon developers nor the
 #    names of its contributors may be used to endorse or promote products
 #    derived from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+# DISCLAIMED. IN NO EVENT SHALL DAEMON DEVELOPERS BE LIABLE FOR ANY
 # DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 # (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 # LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -28,7 +28,8 @@ include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 include(DaemonBuildTypeGeneratorExpression)
 
-add_definitions(-DDAEMON_BUILD_${CMAKE_BUILD_TYPE})
+string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
+add_definitions(-DDAEMON_BUILD_${CMAKE_BUILD_TYPE_UPPER})
 
 option(USE_COMPILER_INTRINSICS "Enable usage of compiler intrinsics" ON)
 mark_as_advanced(USE_COMPILER_INTRINSICS)
@@ -55,7 +56,7 @@ mark_as_advanced(USE_RECOMMENDED_CXX_STANDARD)
 
 option(USE_CPP23 "Use C++23 standard where possible" OFF)
 
-if (MSVC)
+if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
 	set(DEFAULT_STRIP_SOURCE_PATHS ON)
 else()
 	set(DEFAULT_STRIP_SOURCE_PATHS OFF)
@@ -65,12 +66,12 @@ option(STRIP_SOURCE_PATHS "Strip source paths in debug symbols" ${DEFAULT_STRIP_
 
 # Required for <stacktrace> on Clang/GCC
 if(USE_CPP23)
-    if (DAEMON_CXX_COMPILER_Clang_COMPATIBILITY OR DAEMON_CXX_COMPILER_GCC_COMPATIBILITY)
-		if ((DAEMON_CXX_COMPILER_Clang_VERSION VERSION_GREATER_EQUAL 19.1.0) OR (DAEMON_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 13.3))
+    if (YOKAI_CXX_COMPILER_CLANG_COMPATIBILITY OR YOKAI_CXX_COMPILER_GCC_COMPATIBILITY)
+		if ((YOKAI_CXX_COMPILER_CLANG_VERSION VERSION_GREATER_EQUAL 19.1.0) OR (YOKAI_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 13.3))
 			set(CPP23SupportLibraryTryExp TRUE)
 		endif()
 
-		if ((DAEMON_CXX_COMPILER_Clang_VERSION VERSION_GREATER_EQUAL 17.0.1) OR (DAEMON_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 12.1))
+		if ((YOKAI_CXX_COMPILER_CLANG_VERSION VERSION_GREATER_EQUAL 17.0.1) OR (YOKAI_CXX_COMPILER_GCC_VERSION VERSION_GREATER_EQUAL 12.1))
 			set(CPP23SupportLibraryTryBacktrace TRUE)
 		endif()
 
@@ -153,7 +154,7 @@ function(try_flag LIST FLAG)
     # Other compilers might interpret it as a filename so reject without testing.
     string(SUBSTRING "${FLAG}" 0 1 FLAG_FIRST_CHAR)
     if ("${FLAG_FIRST_CHAR}" STREQUAL "/")
-        if (MSVC)
+        if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
             set(${TEST} 1)
         else()
             set(${TEST} 0)
@@ -233,7 +234,7 @@ if (STRIP_SOURCE_PATHS)
 		set(FILENAME_STRIP_DIRS ${FILENAME_STRIP_DIRS} "${DAEMON_DIR}/src" "${DAEMON_DIR}")
 	endif()
 	foreach(strip_dir ${FILENAME_STRIP_DIRS})
-		if (MSVC)
+		if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
 			string(REPLACE "/" "\\" backslashed_dir ${strip_dir})
 			# set_c_cxx_flag can't be used because macros barf if the input contains backslashes
 			# https://gitlab.kitware.com/cmake/cmake/-/issues/19281
@@ -259,19 +260,26 @@ if (USE_FLOAT_EXCEPTIONS)
     add_definitions(-DDAEMON_USE_FLOAT_EXCEPTIONS)
 endif()
 
-if (NOT NACL AND BUILD_CLIENT)
+if (NOT YOKAI_TARGET_SYSTEM_NACL AND BUILD_CLIENT)
 	option(USE_OPENMP "Use OpenMP to parallelize some tasks" OFF)
 endif()
 
-if (MSVC)
-    set_c_cxx_flag("/MP")
+if (NOT YOKAI_TARGET_SYSTEM_NACL AND BUILD_CLIENT AND USE_OPENMP)
+	set(ENABLE_OPENMP ON)
+endif()
+
+if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
+	if (YOKAI_CXX_COMPILER_MSVC)
+		# /MP doesn't do anything and prints a warning in the Clang clone.
+		set_c_cxx_flag("/MP")
+	endif()
 
     # There is no flag for standards before C++17
     if (USE_CPP23 AND USE_RECOMMENDED_CXX_STANDARD)
         set_cxx_flag("/std:c++23preview")
     endif()
 
-	if (NOT NACL AND BUILD_CLIENT AND USE_OPENMP)
+	if (ENABLE_OPENMP)
 		# Flag checks doen't work with MSVC so we assume it's there.
 		set(OPENMP_COMPILE_FLAG "/openmp")
 	endif()
@@ -359,19 +367,29 @@ else()
 				message(FATAL_ERROR "GNU++23 is not supported by the compiler")
 			endif()
 		else()
-			# PNaCl only defines isascii if __STRICT_ANSI__ is not defined,
-			# always prefer GNU dialect.
-			try_cxx_flag(GNUXX14 "-std=gnu++14")
-			if (NOT FLAG_GNUXX14)
-				try_cxx_flag(GNUXX1Y "-std=gnu++1y")
-				if (NOT FLAG_GNUXX1Y)
-					message(FATAL_ERROR "GNU++14 is not supported by the compiler")
+			if (YOKAI_TARGET_SYSTEM_NACL AND NOT USE_NACL_SAIGO)
+				# PNaCl only defines isascii if __STRICT_ANSI__ is not defined,
+				# always prefer GNU dialect.
+				try_cxx_flag(GNUXX14 "-std=gnu++14")
+				if (NOT FLAG_GNUXX14)
+					try_cxx_flag(GNUXX1Y "-std=gnu++1y")
+					if (NOT FLAG_GNUXX1Y)
+						message(FATAL_ERROR "GNU++14 is not supported by the compiler")
+					endif()
+				endif()
+			else()
+				try_cxx_flag(GNUXX20 "-std=gnu++20")
+				if (NOT FLAG_GNUXX20)
+					try_cxx_flag(GNUXX2Y "-std=gnu++2a")
+					if (NOT FLAG_GNUXX2Y)
+						message(FATAL_ERROR "GNU++20 is not supported by the compiler")
+					endif()
 				endif()
 			endif()
 		endif()
 	endif()
 
-	if (NOT NACL AND BUILD_CLIENT AND USE_OPENMP)
+	if (ENABLE_OPENMP)
 		check_CXX_compiler_flag("-fopenmp" FLAG_FOPENMP)
 
 		if (FLAG_FOPENMP)
@@ -380,15 +398,6 @@ else()
 		else()
 			message(WARNING "Missing OpenMP")
 		endif()
-	endif()
-
-	if (NACL AND USE_NACL_SAIGO AND SAIGO_ARCH STREQUAL "arm")
-		# Saigo produces broken arm builds when optimizing them.
-		# See: https://github.com/Unvanquished/Unvanquished/issues/3297
-		# When setting this clang-specific option, we don't have to care
-		# about the ordering of -O options that may be introduced,
-		# all -O options added to the command line are ignored.
-		set_c_cxx_flag("-Xclang -disable-llvm-passes")
 	endif()
 
 	# Extra debug flags.
@@ -431,7 +440,7 @@ else()
 		try_flag(WARNINGS "-Werror")
 	endif()
 
-	if (NACL AND NOT USE_NACL_SAIGO)
+	if (YOKAI_TARGET_SYSTEM_NACL AND YOKAI_CXX_COMPILER_PNACL)
 		# PNaCl only supports libc++ as standard library.
 		set_c_cxx_flag("-stdlib=libc++")
 		set_c_cxx_flag("--pnacl-allow-exceptions")
@@ -443,12 +452,12 @@ else()
 	try_cxx_flag(FNO_GNU_UNIQUE "-fno-gnu-unique")
 
 	# Use MSVC-compatible bitfield layout
-	if (WIN32)
+	if (YOKAI_TARGET_SYSTEM_WINDOWS)
 		set_c_cxx_flag("-mms-bitfields")
 	endif()
 
 	# Linker flags
-	if (NOT APPLE)
+	if (NOT YOKAI_TARGET_SYSTEM_MACOS)
 		try_linker_flag(LINKER_O1 "-Wl,-O1")
 		try_linker_flag(LINKER_SORT_COMMON "-Wl,--sort-common")
 		try_linker_flag(LINKER_AS_NEEDED "-Wl,--as-needed")
@@ -461,7 +470,7 @@ else()
 		try_linker_flag(LINKER_Z_NOW "-Wl,-z,now")
 	endif()
 
-	if (WIN32)
+	if (YOKAI_TARGET_SYSTEM_WINDOWS)
 		try_linker_flag(LINKER_DYNAMICBASE "-Wl,--dynamicbase")
 		try_linker_flag(LINKER_NXCOMPAT "-Wl,--nxcompat")
 		try_linker_flag(LINKER_LARGE_ADDRESS_AWARE "-Wl,--large-address-aware")
@@ -474,7 +483,7 @@ else()
 
 	# The -pthread flag sets some preprocessor defines,
 	# it is also used to link with libpthread on Linux.
-	if (NOT APPLE)
+	if (NOT YOKAI_TARGET_SYSTEM_MACOS)
 		try_c_cxx_flag(PTHREAD "-pthread")
 	endif()
 
@@ -494,7 +503,7 @@ else()
 		# Don't set _FORTIFY_SOURCE in debug builds.
 	endif()
 
-	if (NOT NACL)
+	if (NOT YOKAI_TARGET_SYSTEM_NACL)
 		# Saigo reports weird errors when building some cgame and sgame arm nexe with PIC:
 		# > error: Cannot represent a difference across sections
 		# > error: expected relocatable expression
@@ -507,7 +516,7 @@ else()
 
 	if (USE_HARDENING)
 		# PNaCl accepts the flags but does not define __stack_chk_guard and __stack_chk_fail.
-		if (NOT NACL)
+		if (NOT YOKAI_TARGET_SYSTEM_NACL)
 			try_c_cxx_flag(FSTACK_PROTECTOR_STRONG "-fstack-protector-strong")
 
 			if (NOT FLAG_FSTACK_PROTECTOR_STRONG)
@@ -518,24 +527,24 @@ else()
 		try_c_cxx_flag(FNO_STRICT_OVERFLOW "-fno-strict-overflow")
 		try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
 
-		if (NOT NACL)
+		if (NOT YOKAI_TARGET_SYSTEM_NACL)
 			# The -pie flag requires -fPIC:
 			# > ld: error: relocation R_X86_64_64 cannot be used against local symbol; recompile with -fPIC
 			# This flag isn't used on macOS:
 			# > clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
-			if (FLAG_FPIC AND NOT APPLE)
+			if (FLAG_FPIC AND NOT YOKAI_TARGET_SYSTEM_MACOS)
 				try_exe_linker_flag(LINKER_PIE "-pie")
 			endif()
 		endif()
 
 		if ("${FLAG_LINKER_PIE}" AND MINGW)
 			# https://github.com/msys2/MINGW-packages/issues/4100
-			if (ARCH STREQUAL "i686")
+			if (YOKAI_TARGET_ARCH_I686)
 				set_linker_flag("-Wl,-e,_mainCRTStartup")
-			elseif(ARCH STREQUAL "amd64")
+			elseif(YOKAI_TARGET_ARCH_AMD64)
 				set_linker_flag("-Wl,-e,mainCRTStartup")
 			else()
-				message(FATAL_ERROR "Unsupported architecture ${ARCH}")
+				message(FATAL_ERROR "Unsupported architecture ${YOKAI_TARGET_ARCH_NAME}")
 			endif()
 		endif()
 	endif()
@@ -546,7 +555,7 @@ else()
 	# PNaCl accepts the flag but does nothing with it, underlying clang doesn't support it.
 	# Saigo NaCl compiler doesn't support LTO, the flag is accepted but linking fails
 	# with “unable to pass LLVM bit-code files to linker” error.
-	if (USE_LTO AND NOT NACL)
+	if (USE_LTO AND NOT YOKAI_TARGET_SYSTEM_NACL)
 		try_c_cxx_flag(LTO_AUTO "-flto=auto")
 
 		if (NOT FLAG_LTO_AUTO)
@@ -604,15 +613,15 @@ endif()
 option(USE_CPU_RECOMMENDED_FEATURES "Use some common hardware features like SSE2, NEON, VFP, MCX16, etc." ON)
 
 # Target options.
-if (MSVC)
-    if (ARCH STREQUAL "i686")
+if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
+    if (YOKAI_TARGET_ARCH_I686)
         if (USE_CPU_RECOMMENDED_FEATURES)
             set_c_cxx_flag("/arch:SSE2") # This is the default
         else()
             set_c_cxx_flag("/arch:IA32") # minimum
         endif()
     endif()
-elseif (NOT NACL)
+elseif (NOT YOKAI_TARGET_SYSTEM_NACL)
 	# Among the required hardware features, the NX bit (No eXecute bit)
 	# feature may be required for NativeClient to work. Some early
 	# Intel EM64T processors are known to not implement the NX bit.
@@ -625,25 +634,25 @@ elseif (NOT NACL)
 	# Running a server with a native executable game is also a valid usage
 	# not requiring the NX bit.
 
-	if (ARCH STREQUAL "amd64")
+	if (YOKAI_TARGET_ARCH_AMD64)
 		# K8 or EM64T minimum: AMD Athlon 64 ClawHammer, Intel Xeon Nocona, Intel Pentium 4 model F (Prescott revision EO), VIA Nano.
-		if (DAEMON_CXX_COMPILER_ICC)
+		if (YOKAI_CXX_COMPILER_ICC)
 			set(GCC_GENERIC_ARCH "pentium4")
-		elseif (DAEMON_CXX_COMPILER_Zig)
+		elseif (YOKAI_CXX_COMPILER_ZIG)
 			set(GCC_GENERIC_ARCH "x86_64")
 		else()
 			set(GCC_GENERIC_ARCH "x86-64")
 		endif()
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (ARCH STREQUAL "i686")
+	elseif (YOKAI_TARGET_ARCH_I686)
 		# P6 or K6 minimum: Intel Pentium Pro, AMD K6, Via Cyrix III, Via C3.
 		set(GCC_GENERIC_ARCH "i686")
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (ARCH STREQUAL "arm64")
+	elseif (YOKAI_TARGET_ARCH_ARM64)
 		# Armv8-A minimum: Cortex-A50.
 		set(GCC_GENERIC_ARCH "armv8-a")
 		set(GCC_GENERIC_TUNE "generic")
-	elseif (ARCH STREQUAL "armhf")
+	elseif (YOKAI_TARGET_ARCH_ARMHF)
 		# Armv7-A minimum with VFPv3 and optional NEONv1: Cortex-A5.
 		# Hard float ABI (mainstream 32-bit ARM Linux distributions).
 		# An FPU should be explicitly set on recent compilers or this
@@ -652,18 +661,30 @@ elseif (NOT NACL)
 		#   lacks an FPU
 		set(GCC_GENERIC_ARCH "armv7-a+fp")
 		set(GCC_GENERIC_TUNE "generic-armv7-a")
-	elseif (ARCH STREQUAL "armel")
+	elseif (YOKAI_TARGET_ARCH_ARMEL)
 		# Armv6 minimum with optional VFP: ARM11.
 		# Soft float ABI (previous mainstream 32-bit ARM Linux
 		# distributions, mainstream 32-bit ARM Android distributions).
 		set(GCC_GENERIC_ARCH "armv6")
 		# There is no generic tuning option for armv6.
 		unset(GCC_GENERIC_TUNE)
+	elseif (ARCH STREQUAL "ppc64el")
+		# POWER8 minimum (first little-endian POWER).
+		# GCC uses -mcpu instead of -march/-mtune for POWER.
+		unset(GCC_GENERIC_ARCH)
+		unset(GCC_GENERIC_TUNE)
+		set(GCC_GENERIC_CPU "power8")
+	elseif (ARCH STREQUAL "ppc64")
+		# POWER5 minimum (first 64-bit POWER in wide use).
+		# GCC uses -mcpu instead of -march/-mtune for POWER.
+		unset(GCC_GENERIC_ARCH)
+		unset(GCC_GENERIC_TUNE)
+		set(GCC_GENERIC_CPU "power5")
 	else()
-		message(WARNING "Unknown architecture ${ARCH}")
+		message(WARNING "Unknown architecture ${YOKAI_TARGET_ARCH_NAME}")
 	endif()
 
-	if ("${DAEMON_CXX_COMPILER_NAME}" STREQUAL "Zig")
+	if ("${YOKAI_CXX_COMPILER_NAME}" STREQUAL "Zig")
 		unset(GCC_GENERIC_TUNE)
 	endif()
 
@@ -676,21 +697,26 @@ elseif (NOT NACL)
 		if (GCC_GENERIC_TUNE)
 			try_c_cxx_flag_werror(MTUNE "-mtune=${GCC_GENERIC_TUNE}")
 		endif()
+
+		# POWER architectures use -mcpu instead of -march/-mtune.
+		if (GCC_GENERIC_CPU)
+			try_c_cxx_flag_werror(MCPU "-mcpu=${GCC_GENERIC_CPU}")
+		endif()
 	endif()
 
 	if (USE_CPU_RECOMMENDED_FEATURES)
-		if (ARCH STREQUAL "amd64")
+		if (YOKAI_TARGET_ARCH_AMD64)
 			# CMPXCHG16B minimum (x86-64-v2): AMD64 revision F.
 			try_c_cxx_flag_werror(MCX16 "-mcx16")
-		elseif (ARCH STREQUAL "i686")
+		elseif (YOKAI_TARGET_ARCH_I686)
 			# SSE2 minimum: Intel Pentium 4 (Prescott),
 			# Intel Pentium M (Banias), AMD K8, Via C7.
 			try_c_cxx_flag_werror(MSSE2 "-msse2")
 			try_c_cxx_flag_werror(MFPMATH_SSE "-mfpmath=sse")
-		elseif (ARCH STREQUAL "armhf")
+		elseif (YOKAI_TARGET_ARCH_ARMHF)
 			# NEONv1 minimum.
 			try_c_cxx_flag_werror(MFPU_NEON "-mfpu=neon")
-		elseif (ARCH STREQUAL "armel")
+		elseif (YOKAI_TARGET_ARCH_ARMEL)
 			# VFP minimum, hard float with soft float ABI.
 			try_c_cxx_flag_werror(MFPU_VFP "-mfpu=vfp")
 			try_c_cxx_flag_werror(MFLOAT_ABI_SOFTFP "-mfloat-abi=softfp")
@@ -699,7 +725,7 @@ elseif (NOT NACL)
 endif()
 
 # Windows-specific definitions
-if (WIN32)
+if (YOKAI_TARGET_SYSTEM_WINDOWS)
     add_definitions(
         -DWINVER=0x501  # Minimum Windows version: XP
         -DWIN32         # Define WIN32 for compatibility (compiler defines _WIN32)
@@ -709,19 +735,19 @@ if (WIN32)
     set(CMAKE_FIND_LIBRARY_PREFIXES ${CMAKE_FIND_LIBRARY_PREFIXES} "" "lib")
 endif()
 
-if (MSVC)
+if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
 # Mac-specific definitions
-if (APPLE)
+if (YOKAI_TARGET_SYSTEM_MACOS)
     add_definitions(-DMACOS_X)
     set(CMAKE_INSTALL_RPATH "@executable_path")
     set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 endif()
 
 # Glibc-specific definitions
-if (LINUX)
+if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY)
 	# QUIRK: It does nothing when it is not needed on non-glibc Linux
 	# systems so it's harmless to always set it.
 	add_definitions(-D_FILE_OFFSET_BITS=64)

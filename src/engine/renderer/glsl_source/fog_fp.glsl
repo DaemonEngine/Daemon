@@ -124,7 +124,7 @@ void	main()
 
 	float s = distInFog * GetFogGradientModifier(u_FogGradient.y, t0, t1) * u_FogGradient.x;
 
-	vec4 color = vec4(1, 1, 1, GetFogAlpha(s));
+	vec4 color = vec4(1.0, 1.0, 1.0, GetFogAlpha(s));
 
 	outputColor = UnpackColor( u_Color ) * color;
 }

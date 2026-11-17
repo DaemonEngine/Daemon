@@ -39,7 +39,7 @@ Maryland 20850 USA.
 #include "qcommon/qcommon.h"
 #include "qcommon/q_unicode.h"
 
-#include "DaemonEmbeddedFiles/ConsoleFont.h"
+#include "YokaiEmbeddedFiles/DaemonEngineFont.h"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -421,8 +421,8 @@ static int RE_LoadFontFile( const char *name, void **buffer )
 {
 	if ( !*name )
 	{
-		*buffer = (void *)( ConsoleFont::unifont_otf.data );
-		return ConsoleFont::unifont_otf.size;
+		*buffer = (void *)( DaemonEngineFont::unifont_otf.data );
+		return DaemonEngineFont::unifont_otf.size;
 	}
 
 	std::string tmp;
@@ -452,7 +452,7 @@ static int RE_LoadFontFile( const char *name, void **buffer )
 
 static void RE_FreeFontFile( void *data )
 {
-	if ( data != ConsoleFont::unifont_otf.data )
+	if ( data != DaemonEngineFont::unifont_otf.data )
 	{
 		Z_Free( data );
 	}

@@ -939,6 +939,7 @@ protected:
 	  USE_REFLECTIVE_SPECULAR,
 	  LIGHT_DIRECTIONAL,
 	  USE_DEPTH_FADE,
+	  USE_ALPHAGEN_PORTAL,
 	  USE_PHYSICAL_MAPPING,
 	};
 
@@ -1420,6 +1421,35 @@ public:
 	}
 
 	void SetDepthFade( bool enable )
+	{
+		SetMacro( enable );
+	}
+};
+
+class GLCompileMacro_USE_ALPHAGEN_PORTAL :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_USE_ALPHAGEN_PORTAL( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const override
+	{
+		return "USE_ALPHAGEN_PORTAL";
+	}
+
+	EGLCompileMacro GetType() const override
+	{
+		return EGLCompileMacro::USE_ALPHAGEN_PORTAL;
+	}
+
+	int GetShaderTypes() const override {
+		return ShaderType::FRAGMENT;
+	}
+
+	void SetAlphaGenPortal( bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1968,56 +1998,25 @@ public:
 	}
 };
 
-template<typename Shader> void SetUniform_Color( Shader* shader, const Color::Color& color )
-{
-	if( glConfig.gpuShader4Available )
-	{
-		shader->SetUniform_Color_Uint( color );
-	}
-	else
-	{
-		shader->SetUniform_Color_Float( color );
-	}
-}
-
-class u_ColorGlobal_Float :
-	GLUniform4f
+class u_Color_Dispatch :
+	u_Color_Uint, u_Color_Float
 {
 public:
-	u_ColorGlobal_Float( GLShader *shader ) :
-		GLUniform4f( shader, "u_ColorGlobal", LEGACY )
-	{
-	}
+	u_Color_Dispatch( GLShader *shader ) :
+		u_Color_Uint( shader ), u_Color_Float( shader ) {}
 
-	void SetUniform_ColorGlobal_Float( const Color::Color& color )
+	void SetUniform_Color( const Color::Color &color )
 	{
-		this->SetValue( color.ToArray() );
+		if ( glConfig.gpuShader4Available )
+		{
+			SetUniform_Color_Uint( color );
+		}
+		else
+		{
+			SetUniform_Color_Float( color );
+		}
 	}
 };
-
-class u_ColorGlobal_Uint :
-	GLUniform1ui {
-	public:
-	u_ColorGlobal_Uint( GLShader* shader ) :
-		GLUniform1ui( shader, "u_ColorGlobal", PUSH ) {
-	}
-
-	void SetUniform_ColorGlobal_Uint( const Color::Color& color ) {
-		this->SetValue( packUnorm4x8( color.ToArray() ) );
-	}
-};
-
-template<typename Shader> void SetUniform_ColorGlobal( Shader* shader, const Color::Color& color )
-{
-	if( glConfig.gpuShader4Available )
-	{
-		shader->SetUniform_ColorGlobal_Uint( color );
-	}
-	else
-	{
-		shader->SetUniform_ColorGlobal_Float( color );
-	}
-}
 
 class u_Frame :
 	GLUniform1ui {
@@ -2401,7 +2400,7 @@ class u_InversePortalRange :
 {
 public:
 	u_InversePortalRange( GLShader *shader ) :
-		GLUniform1f( shader, "u_InversePortalRange", PUSH )
+		GLUniform1f( shader, "u_InversePortalRange", MATERIAL_OR_PUSH )
 	{
 	}
 
@@ -2636,10 +2635,7 @@ class u_ColorModulateColorGen_Uint :
 			ALPHA_ONE = 2,
 			ALPHA_MINUS_ONE = 3,
 			// <-- Insert new bits there.
-			LIGHTFACTOR_BIT0 = 28,
-			LIGHTFACTOR_BIT1 = 29,
-			LIGHTFACTOR_BIT2 = 30,
-			LIGHTFACTOR_BIT3 = 31,
+			LIGHTFACTOR_BIT0 = 11,
 			// There should be not bit higher than the light factor.
 		};
 
@@ -2653,28 +2649,37 @@ class u_ColorModulateColorGen_Uint :
 			<< Util::ordinal( ColorModulate_Bit::ALPHA_ONE );
 		colorModulate_Uint |= ( colorModulation.alphaGen == -1.0f )
 			<< Util::ordinal( ColorModulate_Bit::ALPHA_MINUS_ONE );
-		colorModulate_Uint |= uint32_t( colorModulation.lightFactor )
-			<< Util::ordinal( ColorModulate_Bit::LIGHTFACTOR_BIT0 );
+
+		// Light factor unit is 128 / ( 1 << 21 )
+		// needs to go up to pow( 8, 2.2 ) = 97.006
+		uint32_t lightFactorBits = lrintf( colorModulation.lightFactor * 16384.0f );
+		colorModulate_Uint |= lightFactorBits << Util::ordinal( ColorModulate_Bit::LIGHTFACTOR_BIT0 );
 
 		this->SetValue( colorModulate_Uint );
 	}
 };
 
-template<typename Shader> void SetUniform_ColorModulateColorGen(
-		Shader* shader,
-		const colorGen_t colorGen,
-		const alphaGen_t alphaGen,
-		const bool useMapLightFactor = false )
+class u_ColorModulateColorGen_Dispatch :
+	u_ColorModulateColorGen_Uint, u_ColorModulateColorGen_Float
 {
-	if( glConfig.gpuShader4Available )
+public:
+	u_ColorModulateColorGen_Dispatch( GLShader *shader ) :
+		u_ColorModulateColorGen_Uint( shader ), u_ColorModulateColorGen_Float( shader ) {}
+
+	void SetUniform_ColorModulateColorGen(
+		colorGen_t colorGen, alphaGen_t alphaGen, bool useMapLightFactor = false )
 	{
-		shader->SetUniform_ColorModulateColorGen_Uint( colorGen, alphaGen, useMapLightFactor );
+		if ( glConfig.gpuShader4Available )
+		{
+			SetUniform_ColorModulateColorGen_Uint( colorGen, alphaGen, useMapLightFactor );
+		}
+		else
+		{
+			SetUniform_ColorModulateColorGen_Float( colorGen, alphaGen, useMapLightFactor );
+		}
 	}
-	else
-	{
-		shader->SetUniform_ColorModulateColorGen_Float( colorGen, alphaGen, useMapLightFactor );
-	}
-}
+};
+
 
 class u_DeformEnable :
 	GLUniform1f {
@@ -2939,12 +2944,12 @@ class GLShader_generic :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_ColorModulateColorGen_Float,
-	public u_ColorModulateColorGen_Uint,
-	public u_Color_Float,
-	public u_Color_Uint,
+	public u_UnprojectMatrix,
+	public u_ColorModulateColorGen_Dispatch,
+	public u_Color_Dispatch,
 	public u_Bones,
 	public u_VertexInterpolation,
+	public u_InversePortalRange,
 	public u_DepthScale,
 	public u_ProfilerZero,
 	public u_ProfilerRenderSubGroups,
@@ -2953,6 +2958,7 @@ class GLShader_generic :
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
+	public GLCompileMacro_USE_ALPHAGEN_PORTAL,
 	public GLCompileMacro_USE_DEPTH_FADE
 {
 public:
@@ -2969,8 +2975,10 @@ class GLShader_genericMaterial :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
+	public u_UnprojectMatrix,
 	public u_ColorModulateColorGen_Uint,
 	public u_Color_Uint,
+	public u_InversePortalRange,
 	public u_DepthScale,
 	public u_ShowTris,
 	public u_MaterialColour,
@@ -2979,6 +2987,7 @@ class GLShader_genericMaterial :
 	public GLDeformStage,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
+	public GLCompileMacro_USE_ALPHAGEN_PORTAL,
 	public GLCompileMacro_USE_DEPTH_FADE {
 	public:
 	GLShader_genericMaterial();
@@ -3000,10 +3009,8 @@ class GLShader_lightMapping :
 	public u_LightTiles,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
-	public u_ColorModulateColorGen_Float,
-	public u_ColorModulateColorGen_Uint,
-	public u_Color_Float,
-	public u_Color_Uint,
+	public u_ColorModulateColorGen_Dispatch,
+	public u_Color_Dispatch,
 	public u_AlphaThreshold,
 	public u_ViewOrigin,
 	public u_ModelMatrix,
@@ -3165,8 +3172,7 @@ class GLShader_fog :
 	public u_DepthMap,
 	public u_ModelViewProjectionMatrix,
 	public u_UnprojectMatrix,
-	public u_Color_Float,
-	public u_Color_Uint,
+	public u_Color_Dispatch,
 	public u_ViewOrigin,
 	public u_FogGradient,
 	public GLCompileMacro_OUTSIDE_FOG
@@ -3230,18 +3236,6 @@ class GLShader_screenMaterial :
 	public u_ModelViewProjectionMatrix {
 	public:
 	GLShader_screenMaterial();
-};
-
-class GLShader_portal :
-	public GLShader,
-	public u_CurrentMap,
-	public u_ModelViewMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_InversePortalRange
-{
-public:
-	GLShader_portal();
-	void SetShaderProgramUniforms( ShaderProgramDescriptor *shaderProgram ) override;
 };
 
 class GLShader_contrast :
@@ -3527,7 +3521,6 @@ extern GLShader_heatHaze                        *gl_heatHazeShader;
 extern GLShader_heatHazeMaterial                *gl_heatHazeShaderMaterial;
 extern GLShader_liquid                          *gl_liquidShader;
 extern GLShader_liquidMaterial                  *gl_liquidShaderMaterial;
-extern GLShader_portal                          *gl_portalShader;
 extern GLShader_reflection                      *gl_reflectionShader;
 extern GLShader_reflectionMaterial              *gl_reflectionShaderMaterial;
 extern GLShader_screen                          *gl_screenShader;

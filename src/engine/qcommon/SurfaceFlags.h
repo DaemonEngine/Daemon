@@ -28,6 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
+#ifndef ENGINE_QCOMMON_SURFACEFLAGS_H_
+#define ENGINE_QCOMMON_SURFACEFLAGS_H_
+
 // this file is used by both engine and game code
 // see engine/qcommon/q_shared.h
 
@@ -114,3 +117,5 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Jedi Knights games (see OpenJK) also define a third bitfield for flags with MATERIAL prefix to tell surface is water, snow, sand, glass, short grasss, long grass, etc.
 // Jedi Knights games also redefine a lot of CONTENTS flags (introducing things like CONTENTS_LADDER) and SURF FLAGS (moving SURF_SKY to BIT(13) for example)
 // Smokin'Guns uses a special .tex sidecar files to tweak surfaces flags
+
+#endif // ENGINE_QCOMMON_SURFACEFLAGS_H_

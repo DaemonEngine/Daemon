@@ -52,7 +52,7 @@ layout(std140, binding = BIND_LIGHTS) uniform u_Lights {
 #else
 layout(std140) uniform u_Lights {
 #endif
-	Light lights[MAX_REF_LIGHTS];
+	Light lights[MAX_REALTIME_LIGHTS];
 };
 
 Light GetLight( in uint idx ) {
@@ -130,6 +130,7 @@ void main() {
 	or use compute shaders with atomics so we can have a variable amount of lights for each tile. */
 	for( uint i = uint( u_lightLayer ); i < uint( u_numLights ); i += uint( NUM_LIGHT_LAYERS ) ) {
 		Light l = GetLight( i );
+
 		vec3 center = ( u_ModelMatrix * vec4( l.center, 1.0 ) ).xyz;
 		float radius = max( 2.0 * l.radius, 2.0 * 32.0 ); // Avoid artifacts with weak light sources
 

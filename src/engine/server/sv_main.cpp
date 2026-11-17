@@ -71,7 +71,6 @@ Cvar::Cvar<std::string> sv_hostname("sv_hostname", "server name for server list"
 Cvar::Cvar<std::string> sv_statsURL("sv_statsURL", "URL for server's gameplay statistics", Cvar::SERVERINFO, "");
 Cvar::Cvar<int> sv_reconnectlimit("sv_reconnectlimit", "minimum time (seconds) before client can reconnect", Cvar::NONE, 3);
 Cvar::Cvar<int> sv_padPackets("sv_padPackets", "(debugging) add n NOP bytes to each snapshot packet", Cvar::NONE, 0);
-cvar_t         *sv_killserver; // menu system can set to 1 to shut server down
 Cvar::Cvar<std::string> sv_mapname("mapname", "current map on this server", Cvar::SERVERINFO | Cvar::ROM, "nomap");
 Cvar::Cvar<int> sv_serverid("sv_serverid", "match ID", Cvar::SYSTEMINFO | Cvar::ROM, 0);
 Cvar::Cvar<int> sv_maxRate("sv_maxRate", "max bytes/sec to send to a client (0 = unlimited)", Cvar::SERVERINFO, 0);
@@ -1316,14 +1315,6 @@ void SV_Frame( int msec )
 
 	start = Sys::Milliseconds();
 	svs.stats.idle += ( double )( start - end ) / 1000;
-
-	// the menu kills the server with this cvar
-	if ( sv_killserver->integer )
-	{
-		SV_Shutdown( "Server was killed." );
-		Cvar_Set( "sv_killserver", "0" );
-		return;
-	}
 
 	if ( !com_sv_running.Get() )
 	{

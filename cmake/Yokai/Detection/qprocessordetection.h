@@ -1,6 +1,7 @@
 // Copyright (C) 2016 The Qt Company Ltd.
 // Copyright (C) 2016 Intel Corporation.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 
 
 #if 0
@@ -51,8 +52,8 @@
 
     Alpha is bi-endian, use endianness auto-detection implemented below.
 */
-// #elif defined(__alpha__) || defined(_M_ALPHA)
-// #  define Q_PROCESSOR_ALPHA
+#if defined(__alpha__) || defined(_M_ALPHA)
+#  define Q_PROCESSOR_ALPHA
 // Q_BYTE_ORDER not defined, use endianness auto-detection
 
 /*
@@ -61,8 +62,8 @@
     ARM is bi-endian, detect using __ARMEL__ or __ARMEB__, falling back to
     auto-detection implemented below.
 */
-#if defined(__arm__) || defined(__TARGET_ARCH_ARM) || defined(_M_ARM) || defined(_M_ARM64) || defined(__aarch64__) || defined(__ARM64__)
-#  if defined(__aarch64__) || defined(__ARM64__) || defined(_M_ARM64)
+#elif defined(__arm__) || defined(__TARGET_ARCH_ARM) || defined(_M_ARM) || defined(_M_ARM64) || defined(__aarch64__) || defined(__ARM64__) || defined(_ARM64EC_)
+#  if defined(__aarch64__) || defined(__ARM64__) || defined(_M_ARM64) || defined(_ARM64EC_)
 #    define Q_PROCESSOR_ARM_64
 #    define Q_PROCESSOR_WORDSIZE 8
 #  else
@@ -78,7 +79,8 @@
       || defined(__aarch64__) \
       || defined(__ARMv8__) \
       || defined(__ARMv8_A__) \
-      || defined(_M_ARM64)
+      || defined(_M_ARM64) \
+      || defined (_ARM64EC_)
 #    define Q_PROCESSOR_ARM 8
 #  elif defined(__ARM_ARCH_7__) \
       || defined(__ARM_ARCH_7A__) \
@@ -116,7 +118,10 @@
 #  else
 #    error "ARM architecture too old"
 #  endif
-#  if defined(__ARMEL__) || defined(_M_ARM64)
+#  if defined(_ARM64EC_)
+#    define Q_PROCESSOR_ARM_64_EC
+#  endif
+#  if defined(__ARMEL__) || defined(_M_ARM64) || defined(_ARM64EC_)
 #    define Q_BYTE_ORDER Q_LITTLE_ENDIAN
 #  elif defined(__ARMEB__)
 #    define Q_BYTE_ORDER Q_BIG_ENDIAN
@@ -198,6 +203,20 @@
 #  define Q_PROCESSOR_IA64
 #  define Q_PROCESSOR_WORDSIZE   8
 // Q_BYTE_ORDER not defined, use endianness auto-detection
+
+/*
+    LoongArch family, known variants: 32- and 64-bit
+
+    LoongArch is little-endian.
+*/
+#elif defined(__loongarch__)
+#  define Q_PROCESSOR_LOONGARCH
+#  if __loongarch_grlen == 64
+#    define Q_PROCESSOR_LOONGARCH_64
+#  else
+#    define Q_PROCESSOR_LOONGARCH_32
+#  endif
+#  define Q_BYTE_ORDER Q_LITTLE_ENDIAN
 
 /*
     Motorola 68000 family, no revisions or variants
@@ -327,6 +346,8 @@
 #  define Q_PROCESSOR_WORDSIZE 8
 #ifdef QT_COMPILER_SUPPORTS_SSE2
 #  define Q_PROCESSOR_X86 6   // enables SIMD support
+# define Q_PROCESSOR_X86_64 // wasm64
+#  define Q_PROCESSOR_WASM_64
 #endif
 
 #endif

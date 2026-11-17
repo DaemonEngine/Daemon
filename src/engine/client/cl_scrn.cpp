@@ -282,7 +282,7 @@ void SCR_UpdateScreen()
 
 float SCR_ConsoleFontUnicharWidth( int ch )
 {
-	return Glyph( ch )->xSkip + cl_consoleFontKerning->value;
+	return Glyph( ch )->xSkip + cl_consoleFontKerning.Get();
 }
 
 float SCR_ConsoleFontCharWidth( const char *s )
@@ -292,7 +292,7 @@ float SCR_ConsoleFontCharWidth( const char *s )
 
 float SCR_ConsoleFontCharHeight()
 {
-	return cls.consoleFont->glyphBlock[0][(unsigned)'I'].imageHeight + CONSOLE_FONT_VPADDING * cl_consoleFontSize->value;
+	return cls.consoleFont->glyphBlock[0][(unsigned)'I'].imageHeight + CONSOLE_FONT_VPADDING * cl_consoleFontSize.Get();
 }
 
 float SCR_ConsoleFontCharVPadding()

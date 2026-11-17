@@ -100,10 +100,6 @@ void MarkShaderBuildScreen( const shaderStage_t* ) {
 	gl_screenShader->MarkProgramForBuilding();
 }
 
-void MarkShaderBuildPortal( const shaderStage_t* ) {
-	gl_portalShader->MarkProgramForBuilding();
-}
-
 void MarkShaderBuildHeatHaze( const shaderStage_t* pStage ) {
 	ProcessShaderHeatHaze( pStage );
 	gl_heatHazeShader->MarkProgramForBuilding();

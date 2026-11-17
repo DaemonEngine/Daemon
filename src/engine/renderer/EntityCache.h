@@ -53,7 +53,7 @@ void TransformEntity( trRefEntity_t* ent );
 
 void ClearEntityCache();
 
-std::vector<LerpTagSync> SyncEntityCacheToCGame( const std::vector<LerpTagUpdate>& lerpTags );
-void SyncEntityCacheFromCGame( const std::vector<EntityUpdate>& ents );
+std::vector<LerpTagSync> RE_SyncLerpTags( const std::vector<LerpTagUpdate>& lerpTags );
+void RE_SyncRefEntities( const std::vector<EntityUpdate>& ents );
 
 #endif // ENTITY_CACHE_H

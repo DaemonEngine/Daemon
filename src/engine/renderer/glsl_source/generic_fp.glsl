@@ -42,6 +42,11 @@ IN(smooth) float        var_FadeDepth;
 uniform sampler2D       u_DepthMap;
 #endif
 
+#if defined(USE_ALPHAGEN_PORTAL)
+uniform float u_InversePortalRange;
+uniform mat4 u_UnprojectMatrix;
+#endif
+
 #insert shaderProfiler_fp
 
 DECLARE_OUTPUT(vec4)
@@ -66,6 +71,16 @@ void	main()
 		discard;
 		return;
 	}
+
+	// Normally alpha modulation is supposed to be done before the alpha test, but this looks
+	// better for the ancient-remains foliage combining alphagen portal with an alpha-tested
+	// plant image: fades out to 0 smoothly instead of cutting off at 0.5.
+#if defined(USE_ALPHAGEN_PORTAL)
+	vec4 position = u_UnprojectMatrix * vec4(gl_FragCoord.xyz, 1.0);
+	float portalAlpha = length(position.xyz / position.w) * u_InversePortalRange;
+portalAlpha = length(position.xyz / position.w) * (1.0/256.0);
+	color.a *= clamp(portalAlpha, 0.0, 1.0);
+#endif
 
 #if defined(USE_DEPTH_FADE)
 	float depth = texture2D(u_DepthMap, gl_FragCoord.xy / r_FBufSize).x;

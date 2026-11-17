@@ -1,0 +1,143 @@
+# Daemon BSD Source Code
+# Copyright (c) 2025-2026, Daemon Developers
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#  * Neither the name of the Daemon developers nor the
+#    names of its contributors may be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL DAEMON DEVELOPERS BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+################################################################################
+# System detection.
+################################################################################
+
+# When adding a new system, look at all the places YOKAI_HOST_SYSTEM
+# and YOKAI_TARGET_SYSTEM are used.
+
+function(yokai_detect_host_system)
+	set(system_name "Unknown")
+
+	foreach(name
+		"Linux"
+		"FreeBSD"
+		"Android"
+		"Windows"
+	)
+		if (CMAKE_HOST_SYSTEM_NAME MATCHES "${name}")
+			set(system_name "${CMAKE_HOST_SYSTEM_NAME}")
+		endif()
+	endforeach()
+
+	if ("${system_name}" STREQUAL "Unknown")
+		set(SYSTEM_Darwin "macOS")
+		set(SYSTEM_MSYS "Windows")
+
+		foreach(name
+			"Darwin"
+			"MSYS"
+		)
+			if ("${CMAKE_HOST_SYSTEM_NAME}" MATCHES "${name}")
+				set(system_name "${SYSTEM_${name}}")
+			endif()
+		endforeach()
+	endif()
+
+	string(TOUPPER "${system_name}" system_name_upper)
+
+	set(YOKAI_HOST_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
+	set(YOKAI_HOST_SYSTEM_NAME_UPPER "${system_name_upper}" PARENT_SCOPE)
+
+	# Makes possible to do that in CMake code:
+	# > if (YOKAI_HOST_SYSTEM_LINUX)
+	set(YOKAI_HOST_SYSTEM_${system_name_upper} ON PARENT_SCOPE)
+endfunction()
+
+function(yokai_detect_target_system)
+	yokai_run_detection("TARGET" "SYSTEM" "System.c" "Linux")
+
+	set(YOKAI_TARGET_SYSTEM_NAME "${system_name}" PARENT_SCOPE)
+	set(YOKAI_TARGET_SYSTEM_NAME_UPPER "${system_name_upper}" PARENT_SCOPE)
+
+	# Makes possible to do that in CMake code:
+	# > if (YOKAI_TARGET_SYSTEM_LINUX)
+	set(YOKAI_TARGET_SYSTEM_${system_name_upper} ON PARENT_SCOPE)
+endfunction()
+
+yokai_detect_host_system()
+yokai_detect_target_system()
+
+if (YOKAI_HOST_SYSTEM_UNKNOWN AND NOT YOKAI_TARGET_SYSTEM_UNKNOWN)
+	message(WARNING "Assuming the host system is the same as the target: ${YOKAI_TARGET_SYSTEM_NAME}")
+	set(YOKAI_HOST_SYSTEM_NAME "${YOKAI_TARGET_SYSTEM_NAME}")
+	set(YOKAI_HOST_SYSTEM_NAME_UPPER "${YOKAI_TARGET_SYSTEM_NAME_UPPER}")
+	set(YOKAI_HOST_SYSTEM_${YOKAI_HOST_SYSTEM_NAME_UPPER} ON)
+	unset(YOKAI_HOST_SYSTEM_UNKNOWN)
+endif()
+
+if (YOKAI_TARGET_SYSTEM_UNKNOWN AND NOT YOKAI_HOST_SYSTEM_UNKNOWN)
+	message(WARNING "Assuming the target system is the same as the host: ${YOKAI_TARGET_SYSTEM_NAME}")
+	set(YOKAI_TARGET_SYSTEM_NAME "${YOKAI_HOST_SYSTEM_NAME}")
+	set(YOKAI_TARGET_SYSTEM_NAME_UPPER "${YOKAI_HOST_SYSTEM_NAME_UPPER}")
+	set(YOKAI_TARGET_SYSTEM_${YOKAI_TARGET_SYSTEM_NAME_UPPER} ON)
+	unset(YOKAI_TARGET_SYSTEM_UNKNOWN)
+endif()
+
+if (YOKAI_HOST_SYSTEM_UNKNOWN)
+	message(WARNING "Unknown host system")
+else()
+	message(STATUS "Detected host system: ${YOKAI_HOST_SYSTEM_NAME}")
+endif()
+
+if (YOKAI_TARGET_SYSTEM_UNKNOWN)
+	message(WARNING "Unknown target system")
+else()
+	message(STATUS "Detected target system: ${YOKAI_TARGET_SYSTEM_NAME}")
+endif()
+
+if (NOT "${YOKAI_HOST_SYSTEM_NAME}" STREQUAL "${YOKAI_TARGET_SYSTEM_NAME}")
+	message(STATUS "Detected system cross-compilation")
+	set(YOKAI_SYSTEM_CROSS ON)
+else()
+	message(STATUS "No system cross-compilation detected")
+endif()
+
+# This is for systems behaving similarly to a Linux Desktop,
+# implementing standards like FHS, XDG, GLVND…
+# Makes possible to do that in CMake code:
+# > if (YOKAI_HOST_SYSTEM_XDG_COMPATIBILITY)
+# > if (YOKAI_TARGET_SYSTEM_XDG_COMPATIBILITY)
+foreach(name
+	"LINUX"
+	"FREEBSD"
+)
+	foreach(slug
+		"HOST_SYSTEM"
+		"TARGET_SYSTEM"
+	)
+		if (YOKAI_${slug}_${name})
+			set(YOKAI_${slug}_XDG_COMPATIBILITY ON)
+		endif()
+	endforeach()
+endforeach()
+
+if (YOKAI_SOURCE_GENERATOR)
+	# Add printable string to the executable.
+	yokai_add_buildinfo("char*" "YOKAI_SYSTEM_STRING" "\"${YOKAI_TARGET_SYSTEM_NAME}\"")
+endif()

@@ -698,7 +698,7 @@ static void R_InitLightUBO()
 	if( glConfig.uniformBufferObjectAvailable ) {
 		glGenBuffers( 1, &tr.dlightUBO );
 		glBindBuffer( GL_UNIFORM_BUFFER, tr.dlightUBO );
-		glBufferData( GL_UNIFORM_BUFFER, MAX_REF_LIGHTS * sizeof( shaderLight_t ), nullptr, GL_DYNAMIC_DRAW );
+		glBufferData( GL_UNIFORM_BUFFER, glConfig.maxRealtimeLights * sizeof( shaderLight_t ), nullptr, GL_DYNAMIC_DRAW );
 		glBindBuffer( GL_UNIFORM_BUFFER, 0 );
 	}
 }

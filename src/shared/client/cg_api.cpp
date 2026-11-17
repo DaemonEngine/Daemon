@@ -295,14 +295,9 @@ void trap_R_ClearScene()
 	cmdBuffer.SendMsg<Render::ClearSceneMsg>();
 }
 
-/* HACK: We need the entityNum to get the correct positions for entities that need to be attached to another entity's bone
-This must be equal to the r_numEntities in engine at the time of adding the entity */
-static int entityNum;
-int trap_R_AddRefEntityToScene( const refEntity_t *re )
+void trap_R_AddRefEntityToScene( const refEntity_t *re )
 {
 	cmdBuffer.SendMsg<Render::AddRefEntityToSceneMsg>(*re);
-	entityNum++;
-	return entityNum - 1;
 }
 
 void trap_R_SyncRefEntities( const std::vector<EntityUpdate>& ents ) {
@@ -380,7 +375,6 @@ void trap_R_AddLightToScene( const vec3_t origin, float radius, float intensity,
 
 void trap_R_RenderScene( const refdef_t *fd )
 {
-	entityNum = 0;
 	cmdBuffer.SendMsg<Render::RenderSceneMsg>(*fd);
 }
 

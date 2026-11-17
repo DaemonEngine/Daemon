@@ -32,6 +32,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
+#ifndef ENGINE_RENDERER_SHADECOMMON_H_
+#define ENGINE_RENDERER_SHADECOMMON_H_
+
 inline size_t GetLightMapNum( const shaderCommands_t* tess )
 {
 	return tess->lightmapNum;
@@ -276,3 +279,5 @@ inline uint GetShaderProfilerRenderSubGroupsMode( const uint32_t stateBits ) {
 
 	return 0;
 }
+
+#endif // ENGINE_RENDERER_SHADECOMMON_H_

@@ -31,6 +31,9 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
+#ifndef ENGINE_SYS_CON_COMMON_H_
+#define ENGINE_SYS_CON_COMMON_H_
+
 #include "common/Color.h"
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
@@ -48,3 +51,5 @@ namespace Color {
 int To4bit( const Color& color ) NOEXCEPT;
 
 } // namespace Color
+
+#endif // ENGINE_SYS_CON_COMMON_H_

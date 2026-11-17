@@ -1,5 +1,5 @@
 # Daemon BSD Source Code
-# Copyright (c) 2025, Daemon Developers
+# Copyright (c) 2025-2026, Daemon Developers
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -9,14 +9,14 @@
 #  * Redistributions in binary form must reproduce the above copyright
 #    notice, this list of conditions and the following disclaimer in the
 #    documentation and/or other materials provided with the distribution.
-#  * Neither the name of the <organization> nor the
+#  * Neither the name of the Daemon developers nor the
 #    names of its contributors may be used to endorse or promote products
 #    derived from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+# DISCLAIMED. IN NO EVENT SHALL DAEMON DEVELOPERS BE LIABLE FOR ANY
 # DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 # (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 # LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -24,71 +24,75 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-set(DAEMON_SOURCE_GENERATOR "${CMAKE_CURRENT_LIST_FILE}")
+################################################################################
+# Source generation and file embedding.
+################################################################################
+
+set(YOKAI_SOURCE_GENERATOR "${CMAKE_CURRENT_LIST_FILE}")
 get_filename_component(current_list_dir "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
-set(DAEMON_FILE_EMBEDDER "${current_list_dir}/DaemonFileEmbedder.cmake")
+set(YOKAI_FILE_EMBEDDER "${current_list_dir}/FileEmbedder.cmake")
 
-set(DAEMON_GENERATED_SUBDIR "GeneratedSource")
-set(DAEMON_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/${DAEMON_GENERATED_SUBDIR}")
+set(YOKAI_GENERATED_SUBDIR "YokaiGeneratedSource")
+set(YOKAI_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/${YOKAI_GENERATED_SUBDIR}")
 
-set(DAEMON_BUILDINFO_SUBDIR "DaemonBuildInfo")
-set(DAEMON_EMBEDDED_SUBDIR "DaemonEmbeddedFiles")
+set(YOKAI_BUILDINFO_SUBDIR "YokaiBuildInfo")
+set(YOKAI_EMBEDDED_SUBDIR "YokaiEmbeddedFiles")
 
-set(DAEMON_BUILDINFO_DIR "${DAEMON_GENERATED_DIR}/${DAEMON_BUILDINFO_SUBDIR}")
-set(DAEMON_EMBEDDED_DIR "${DAEMON_GENERATED_DIR}/${DAEMON_EMBEDDED_SUBDIR}")
+set(YOKAI_BUILDINFO_DIR "${YOKAI_GENERATED_DIR}/${YOKAI_BUILDINFO_SUBDIR}")
+set(YOKAI_EMBEDDED_DIR "${YOKAI_GENERATED_DIR}/${YOKAI_EMBEDDED_SUBDIR}")
 
-file(MAKE_DIRECTORY "${DAEMON_GENERATED_DIR}")
-include_directories("${DAEMON_GENERATED_DIR}")
+file(MAKE_DIRECTORY "${YOKAI_GENERATED_DIR}")
+include_directories("${YOKAI_GENERATED_DIR}")
 
-file(MAKE_DIRECTORY "${DAEMON_BUILDINFO_DIR}")
-file(MAKE_DIRECTORY "${DAEMON_EMBEDDED_DIR}")
+file(MAKE_DIRECTORY "${YOKAI_BUILDINFO_DIR}")
+file(MAKE_DIRECTORY "${YOKAI_EMBEDDED_DIR}")
 
-set(DAEMON_GENERATED_HEADER "// Automatically generated, do not modify!\n")
-set(DAEMON_GENERATED_CPP_EXT ".cpp")
-set(DAEMON_GENERATED_H_EXT ".h")
+set(YOKAI_GENERATED_HEADER "// Automatically generated, do not modify!\n")
+set(YOKAI_GENERATED_CPP_EXT ".cpp")
+set(YOKAI_GENERATED_H_EXT ".h")
 
 set(BUILDINFOLIST)
 
 foreach(kind CPP H)
-	set(DAEMON_BUILDINFO_${kind}_TEXT "${DAEMON_GENERATED_HEADER}")
+	set(YOKAI_BUILDINFO_${kind}_TEXT "${YOKAI_GENERATED_HEADER}")
 endforeach()
 
-macro(daemon_add_buildinfo type name value)
-	string(APPEND DAEMON_BUILDINFO_CPP_TEXT "const ${type} ${name}=${value};\n")
-	string(APPEND DAEMON_BUILDINFO_H_TEXT "extern const ${type} ${name};\n")
+macro(yokai_add_buildinfo type name value)
+	string(APPEND YOKAI_BUILDINFO_CPP_TEXT "const ${type} ${name}=${value};\n")
+	string(APPEND YOKAI_BUILDINFO_H_TEXT "extern const ${type} ${name};\n")
 endmacro()
 
-macro(daemon_write_buildinfo name)
+macro(yokai_write_buildinfo name)
 	foreach(kind CPP H)
-		set(buildinfo_file_path "${DAEMON_BUILDINFO_DIR}/${name}${DAEMON_GENERATED_${kind}_EXT}")
+		set(buildinfo_file_path "${YOKAI_BUILDINFO_DIR}/${name}${YOKAI_GENERATED_${kind}_EXT}")
 
-		file(GENERATE OUTPUT "${buildinfo_file_path}" CONTENT "${DAEMON_BUILDINFO_${kind}_TEXT}")
+		file(GENERATE OUTPUT "${buildinfo_file_path}" CONTENT "${YOKAI_BUILDINFO_${kind}_TEXT}")
 		list(APPEND BUILDINFOLIST "${buildinfo_file_path}")
 	endforeach()
 endmacro()
 
-macro(daemon_embed_files basename dir list format targetname)
-	set(embed_subdir "${DAEMON_EMBEDDED_SUBDIR}/${basename}")
-	set(embed_dir "${DAEMON_GENERATED_DIR}/${embed_subdir}")
+macro(yokai_embed_files basename dir list format targetname)
+	set(embed_subdir "${YOKAI_EMBEDDED_SUBDIR}/${basename}")
+	set(embed_dir "${YOKAI_GENERATED_DIR}/${embed_subdir}")
 
 	file(MAKE_DIRECTORY "${embed_dir}")
 
 	foreach(kind CPP H)
-		set(embed_${kind}_basename "${basename}${DAEMON_GENERATED_${kind}_EXT}")
-		set(embed_${kind}_src_file "${DAEMON_EMBEDDED_DIR}/${embed_${kind}_basename}")
-		set(embed_${kind}_file "${DAEMON_EMBEDDED_SUBDIR}/${embed_${kind}_basename}")
-		set(embed_${kind}_text "${DAEMON_GENERATED_HEADER}")
-		set_property(SOURCE "${embed_${kind}_src_file}" APPEND PROPERTY OBJECT_DEPENDS "${DAEMON_SOURCE_GENERATOR}")
+		set(embed_${kind}_basename "${basename}${YOKAI_GENERATED_${kind}_EXT}")
+		set(embed_${kind}_src_file "${YOKAI_EMBEDDED_DIR}/${embed_${kind}_basename}")
+		set(embed_${kind}_file "${YOKAI_EMBEDDED_SUBDIR}/${embed_${kind}_basename}")
+		set(embed_${kind}_text "${YOKAI_GENERATED_HEADER}")
+		set_property(SOURCE "${embed_${kind}_src_file}" APPEND PROPERTY OBJECT_DEPENDS "${YOKAI_SOURCE_GENERATOR}")
 		set_property(TARGET "${targetname}" APPEND PROPERTY SOURCES "${embed_${kind}_src_file}")
 	endforeach()
 
-	if (NOT DAEMON_EMBEDDED_FILES_HEADER)
-		set(DAEMON_EMBEDDED_FILES_HEADER "${DAEMON_EMBEDDED_SUBDIR}/DaemonEmbeddedFiles.h")
+	if (NOT YOKAI_EMBEDDED_FILES_HEADER)
+		set(YOKAI_EMBEDDED_FILES_HEADER "${YOKAI_EMBEDDED_SUBDIR}/YokaiEmbeddedFiles.h")
 
 		string(APPEND embed_header_text
 			"// Automatically generated, do not modify!\n"
-			"#ifndef DAEMON_EMBEDDED_FILES_H_\n"
-			"#define DAEMON_EMBEDDED_FILES_H_\n"
+			"#ifndef YOKAI_EMBEDDED_FILES_H_\n"
+			"#define YOKAI_EMBEDDED_FILES_H_\n"
 			"#include <cstddef>\n"
 			"#include <unordered_map>\n"
 			"#include <string>\n"
@@ -100,10 +104,10 @@ macro(daemon_embed_files basename dir list format targetname)
 			"};\n"
 			"\n"
 			"using embeddedFileMap_t = std::unordered_map<std::string, const embeddedFileMapEntry_t>;\n"
-			"#endif // DAEMON_EMBEDDED_FILES_H_\n"
+			"#endif // YOKAI_EMBEDDED_FILES_H_\n"
 		)
 
-		set(embed_header_file "${DAEMON_GENERATED_DIR}/${DAEMON_EMBEDDED_FILES_HEADER}")
+		set(embed_header_file "${YOKAI_GENERATED_DIR}/${YOKAI_EMBEDDED_FILES_HEADER}")
 		file(GENERATE OUTPUT "${embed_header_file}" CONTENT "${embed_header_text}")
 	endif()
 
@@ -114,7 +118,7 @@ macro(daemon_embed_files basename dir list format targetname)
 	)
 
 	string(APPEND embed_H_text
-		"#include \"${DAEMON_EMBEDDED_FILES_HEADER}\"\n"
+		"#include \"${YOKAI_EMBEDDED_FILES_HEADER}\"\n"
 		"\n"
 		"namespace ${basename} {\n"
 	)
@@ -125,7 +129,7 @@ macro(daemon_embed_files basename dir list format targetname)
 		string(REGEX REPLACE "[^A-Za-z0-9]" "_" filename_symbol "${filename}")
 
 		set(inpath "${dir}/${filename}")
-		set(outpath "${embed_dir}/${filename_symbol}${DAEMON_GENERATED_H_EXT}")
+		set(outpath "${embed_dir}/${filename_symbol}${YOKAI_GENERATED_H_EXT}")
 
 		add_custom_command(
 			OUTPUT "${outpath}"
@@ -134,11 +138,11 @@ macro(daemon_embed_files basename dir list format targetname)
 				"-DOUTPUT_FILE=${outpath}"
 				"-DFILE_FORMAT=${format}"
 				"-DVARIABLE_NAME=${filename_symbol}"
-				-P "${DAEMON_FILE_EMBEDDER}"
+				-P "${YOKAI_FILE_EMBEDDER}"
 			MAIN_DEPENDENCY ${inpath}
 			DEPENDS
-				"${DAEMON_FILE_EMBEDDER}"
-				"${DAEMON_SOURCE_GENERATOR}"
+				"${YOKAI_FILE_EMBEDDER}"
+				"${YOKAI_SOURCE_GENERATOR}"
 		)
 
 		set_property(TARGET "${targetname}" APPEND PROPERTY SOURCES "${outpath}")
@@ -170,7 +174,7 @@ macro(daemon_embed_files basename dir list format targetname)
 	)
 
 	foreach(kind CPP H)
-		set(embed_file "${DAEMON_GENERATED_DIR}/${embed_${kind}_file}")
+		set(embed_file "${YOKAI_GENERATED_DIR}/${embed_${kind}_file}")
 		file(GENERATE OUTPUT "${embed_file}" CONTENT "${embed_${kind}_text}")
 	endforeach()
 endmacro()

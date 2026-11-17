@@ -49,6 +49,9 @@ console_t consoleState;
 
 Console::Field g_consoleField(INT_MAX);
 
+static Cvar::Range<Cvar::Cvar<int>> cl_noprint(
+	"cl_noprint", "don't show log messages in game (2 = nor in console)", Cvar::NONE, 0, 0, 2);
+
 Cvar::Range<Cvar::Cvar<float>> con_animationSpeed("con_animationSpeed", "speed of console fade in/out and scrolling", Cvar::NONE, 3, 0.1, 100);
 
 Cvar::Cvar<bool> con_autoclear("con_autoclear", "drop input upon closing console", Cvar::NONE, true);
@@ -451,12 +454,6 @@ bool CL_InternalConsolePrint( const char *text )
 {
 	int      wordLen = 0;
 
-	// for some demos we don't want to ever show anything on the console
-	if ( cl_noprint && cl_noprint->integer )
-	{
-		return true;
-	}
-
 	if ( !consoleState.initialized )
 	{
 		consoleState.textWidthInChars = -1;
@@ -473,7 +470,7 @@ bool CL_InternalConsolePrint( const char *text )
 	{
 		text += 12;
 	}
-	else if ( !consoleState.isOpened && strncmp( text, "EXCL: ", 6 ) )
+	else if ( !consoleState.isOpened && strncmp( text, "EXCL: ", 6 ) && !cl_noprint.Get() )
 	{
 		// feed the text to cgame
 		Cmd_SaveCmdContext();
@@ -1181,7 +1178,7 @@ class GraphicalTarget : public Log::Target {
 		virtual bool Process(const std::vector<Log::Event>& events) override {
 			// for some demos we don't want to ever show anything on the console
 			// flush the buffer
-			if ( cl_noprint && cl_noprint->integer )
+			if ( cl_noprint.Get() >= 2 )
 			{
 				return true;
 			}

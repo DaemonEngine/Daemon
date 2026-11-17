@@ -1,5 +1,5 @@
 # Daemon BSD Source Code
-# Copyright (c) 2024, Daemon Developers
+# Copyright (c) 2024-2026, Daemon Developers
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -9,14 +9,14 @@
 #  * Redistributions in binary form must reproduce the above copyright
 #    notice, this list of conditions and the following disclaimer in the
 #    documentation and/or other materials provided with the distribution.
-#  * Neither the name of the <organization> nor the
+#  * Neither the name of the Daemon developers nor the
 #    names of its contributors may be used to endorse or promote products
 #    derived from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+# DISCLAIMED. IN NO EVENT SHALL DAEMON DEVELOPERS BE LIABLE FOR ANY
 # DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 # (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 # LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -25,66 +25,21 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ################################################################################
-# Determine compiler
+# Compiler detection.
 ################################################################################
 
-# FIXME: Force -W#pragma-messages and -Wno-error
-# In case there is -Wno-#pragma-messages or -Werror in CFLAGS/CXXFLAGS
+# When adding a new compiler, look at all the places YOKAI_C_COMPILER
+# and YOKAI_CXX_COMPILER are used.
 
-function(detect_daemon_compiler lang)
+function(yokai_detect_compiler lang)
 	set(C_NAME "C")
 	set(CXX_NAME "C++")
 	set(C_EXT ".c")
 	set(CXX_EXT ".cpp")
 
-	try_compile(BUILD_RESULT
-		"${CMAKE_BINARY_DIR}"
-		"${DAEMON_DIR}/cmake/DaemonCompiler/DaemonCompiler${${lang}_EXT}"
-		CMAKE_FLAGS CMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-		OUTPUT_VARIABLE BUILD_LOG
-	)
-
 	get_filename_component(compiler_basename "${CMAKE_${lang}_COMPILER}" NAME)
 
-	if (NOT BUILD_RESULT)
-		message(WARNING "Failed to build DaemonCompiler${${lang}_EXT}, relying on CMake builtin detection.")
-		set(compiler_name "Unknown")
-	else()
-		set(BUILD_LOG "\n${BUILD_LOG}\n")
-		string(REGEX REPLACE "\n[^\n]*<REPORT<" "\n" BUILD_LOG "${BUILD_LOG}")
-		string(REGEX REPLACE ">REPORT>[^\n]*\n" "\n" BUILD_LOG "${BUILD_LOG}")
-
-		string(REGEX REPLACE ".*\nDAEMON_COMPILER_NAME=([^\n]*)\n.*" "\\1"
-			compiler_name "${BUILD_LOG}")
-
-		foreach(name GCC;Clang;generic;${compiler_name})
-			set(compatibility_regex ".*\nDAEMON_COMPILER_${name}_COMPATIBILITY=([^\n]*)\n.*")
-			if ("${BUILD_LOG}" MATCHES ${compatibility_regex})
-				string(REGEX REPLACE ${compatibility_regex} "\\1"
-				compiler_${name}_compatibility "${BUILD_LOG}")
-			endif()
-
-			set(version_regex ".*\nDAEMON_COMPILER_${name}_VERSION=([^\n]*)\n.*")
-			if ("${BUILD_LOG}" MATCHES ${version_regex})
-				string(REGEX REPLACE ${version_regex} "\\1"
-				compiler_${name}_version "${BUILD_LOG}")
-			endif()
-
-			set(version_string_regex ".*\nDAEMON_COMPILER_${name}_VERSION_STRING=([^\n]*)\n.*")
-			if ("${BUILD_LOG}" MATCHES ${version_string_regex})
-				string(REGEX REPLACE ${version_string_regex} "\\1"
-					compiler_${name}_version_string "${BUILD_LOG}")
-			endif()
-
-			set(DAEMON_${lang}_COMPILER_${name}_VERSION
-				"${compiler_${name}_version}"
-				PARENT_SCOPE)
-
-			set(DAEMON_${lang}_COMPILER_${name}_COMPATIBILITY
-				"${compiler_${name}_compatibility}"
-				PARENT_SCOPE)
-		endforeach()
-	endif()
+	yokai_run_detection("${lang}" "COMPILER" "Compiler${${lang}_EXT}" "GCC;Clang;generic")
 
 	if (compiler_name STREQUAL "Unknown")
 		if (CMAKE_${lang}_COMPILER_ID)
@@ -126,7 +81,7 @@ function(detect_daemon_compiler lang)
 		endif()
 	endif()
 
-	# Compilers that use underlying Clang version as their own version.
+	# Compilers that use the underlying Clang version as their own version.
 	foreach(name in AppleClang)
 		if (compiler_name STREQUAL "${name}")
 			set(compiler_${name}_version "${compiler_Clang_version}")
@@ -171,9 +126,10 @@ function(detect_daemon_compiler lang)
 		message(WARNING "Unknown ${${lang}_NAME} compiler version")
 	endif()
 
-	set(DAEMON_${lang}_COMPILER_BASENAME "${compiler_basename}" PARENT_SCOPE)
-	set(DAEMON_${lang}_COMPILER_NAME "${compiler_name}" PARENT_SCOPE)
-	set(DAEMON_${lang}_COMPILER_VERSION "${compiler_version}" PARENT_SCOPE)
+	set(YOKAI_${lang}_COMPILER_BASENAME "${compiler_basename}" PARENT_SCOPE)
+	set(YOKAI_${lang}_COMPILER_NAME "${compiler_name}" PARENT_SCOPE)
+	set(YOKAI_${lang}_COMPILER_NAME_UPPER "${compiler_name_upper}" PARENT_SCOPE)
+	set(YOKAI_${lang}_COMPILER_VERSION "${compiler_version}" PARENT_SCOPE)
 endfunction()
 
 message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
@@ -183,21 +139,29 @@ foreach(lang C;CXX)
 	set(CXX_NAME "C++")
 
 	if (MSVC)
-		# Let CMake do the job, it does it very well,
-		# and there is probably no variant to take care about.
-		set(DAEMON_${lang}_COMPILER_NAME "${CMAKE_${lang}_COMPILER_ID}")
-		set(DAEMON_${lang}_COMPILER_VERSION "${CMAKE_${lang}_COMPILER_VERSION}")
-		get_filename_component(DAEMON_${lang}_COMPILER_BASENAME "${CMAKE_${lang}_COMPILER}" NAME)
-	else()
-		detect_daemon_compiler(${lang})
+		set(YOKAI_${lang}_COMPILER_MSVC_COMPATIBILITY ON)
+	endif()
 
-		if (DAEMON_${lang}_COMPILER_Clang_COMPATIBILITY)
-			if (NOT DAEMON_${lang}_COMPILER_NAME STREQUAL "Clang")
-				set(DAEMON_${lang}_COMPILER_EXTENDED_VERSION
-					"${DAEMON_${lang}_COMPILER_VERSION}/Clang_${DAEMON_${lang}_COMPILER_Clang_VERSION}")
+	# When MSVC is ON, ${CMAKE_${lang}_COMPILER_ID} can be either MSVC
+	# or Clang (clang-cl), Only MSVC is true MSVC.
+	if (MSVC AND "${CMAKE_${lang}_COMPILER_ID}" STREQUAL "MSVC")
+		set(YOKAI_${lang}_COMPILER_NAME "MSVC")
+		set(YOKAI_${lang}_COMPILER_NAME_UPPER "MSVC")
+
+		# Let CMake do the job, it does it well,
+		set(YOKAI_${lang}_COMPILER_VERSION "${CMAKE_${lang}_COMPILER_VERSION}")
+
+		get_filename_component(YOKAI_${lang}_COMPILER_BASENAME "${CMAKE_${lang}_COMPILER}" NAME)
+	else()
+		yokai_detect_compiler(${lang})
+
+		if (YOKAI_${lang}_COMPILER_CLANG_COMPATIBILITY)
+			if (NOT YOKAI_${lang}_COMPILER_NAME STREQUAL "Clang")
+				set(YOKAI_${lang}_COMPILER_EXTENDED_VERSION
+					"${YOKAI_${lang}_COMPILER_VERSION}/Clang_${YOKAI_${lang}_COMPILER_CLANG_VERSION}")
 			endif()
-		elseif (DAEMON_${lang}_COMPILER_GCC_COMPATIBILITY)
-			if (NOT DAEMON_${lang}_COMPILER_NAME STREQUAL "GCC")
+		elseif (YOKAI_${lang}_COMPILER_GCC_COMPATIBILITY)
+			if (NOT YOKAI_${lang}_COMPILER_NAME STREQUAL "GCC")
 				# Almost all compilers on Earth pretend to be GCC compatible.
 				# So we first have to check it's really a GCC variant.
 				# Parse “<compiler> -v”
@@ -212,30 +176,38 @@ foreach(lang C;CXX)
 					# the version of the GCC variant, not the version of the upstream
 					# GCC we are looking for.
 					if ("${CUSTOM_${lang}_GCC_OUTPUT}" MATCHES "\ngcc version ")
-						set(DAEMON_${lang}_COMPILER_EXTENDED_VERSION
-							"${DAEMON_${lang}_COMPILER_VERSION}/GCC_${DAEMON_${lang}_COMPILER_GCC_VERSION}")
+						set(YOKAI_${lang}_COMPILER_EXTENDED_VERSION
+							"${YOKAI_${lang}_COMPILER_VERSION}/GCC_${YOKAI_${lang}_COMPILER_GCC_VERSION}")
 					endif()
 				endif()
 			endif()
 		endif()
 	endif()
 
-	if (NOT DAEMON_${lang}_COMPILER_EXTENDED_VERSION)
-		set(DAEMON_${lang}_COMPILER_EXTENDED_VERSION "${DAEMON_${lang}_COMPILER_VERSION}")
+	if (NOT YOKAI_${lang}_COMPILER_EXTENDED_VERSION)
+		set(YOKAI_${lang}_COMPILER_EXTENDED_VERSION "${YOKAI_${lang}_COMPILER_VERSION}")
 	endif()
 
-	set(DAEMON_${lang}_COMPILER_STRING
-		"${DAEMON_${lang}_COMPILER_NAME}_${DAEMON_${lang}_COMPILER_EXTENDED_VERSION}:${DAEMON_${lang}_COMPILER_BASENAME}")
+	set(YOKAI_${lang}_COMPILER_STRING
+		"${YOKAI_${lang}_COMPILER_NAME}_${YOKAI_${lang}_COMPILER_EXTENDED_VERSION}:${YOKAI_${lang}_COMPILER_BASENAME}")
 
 	if (CMAKE_CXX_COMPILER_ARG1)
-		set(DAEMON_${lang}_COMPILER_STRING "${DAEMON_${lang}_COMPILER_STRING}:${CMAKE_CXX_COMPILER_ARG1}")
+		set(YOKAI_${lang}_COMPILER_STRING "${YOKAI_${lang}_COMPILER_STRING}:${CMAKE_CXX_COMPILER_ARG1}")
 	endif()
 
-	message(STATUS "Detected ${${lang}_NAME} compiler: ${DAEMON_${lang}_COMPILER_STRING}")
+	message(STATUS "Detected ${${lang}_NAME} compiler: ${YOKAI_${lang}_COMPILER_STRING}")
 
-	set(compiler_var_name "DAEMON_${lang}_COMPILER_${DAEMON_${lang}_COMPILER_NAME}")
-	set(${compiler_var_name} ON)
-	add_definitions(-D${compiler_var_name}=1)
+	# Makes possible to do that in C++ code:
+	# > if defined(YOKAI_CXX_COMPILER_CLANG)
+	set(compiler_var_name "YOKAI_${lang}_COMPILER_${YOKAI_${lang}_COMPILER_NAME_UPPER}")
+	add_definitions(-D${compiler_var_name})
 
-	daemon_add_buildinfo("char*" "DAEMON_${lang}_COMPILER_STRING" "\"${DAEMON_${lang}_COMPILER_STRING}\"")
+	# Makes possible to do that in CMake code:
+	# > if (YOKAI_CXX_COMPILER_CLANG)
+	set("${compiler_var_name}" ON)
+
+	if (YOKAI_SOURCE_GENERATOR)
+		# Add printable string to the executable.
+		yokai_add_buildinfo("char*" "YOKAI_${lang}_COMPILER_STRING" "\"${YOKAI_${lang}_COMPILER_STRING}\"")
+	endif()
 endforeach()

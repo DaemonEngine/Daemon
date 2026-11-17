@@ -142,7 +142,7 @@ void UpdateSurfaceDataNOP( uint32_t*, shaderStage_t*, bool, bool ) {
 }
 
 void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage, bool, bool ) {
-	// shader_t* shader = pStage->shader;
+	shader_t* shader = pStage->shader;
 
 	materials += pStage->bufferOffset;
 
@@ -154,10 +154,12 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage, boo
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
 	const bool styleLightMap = pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP;
-	gl_genericShaderMaterial->SetUniform_ColorModulateColorGen_Uint( rgbGen, alphaGen, styleLightMap );
+	gl_genericShaderMaterial->SetUniform_ColorModulateColorGen_Uint( rgbGen, alphaGen, styleLightMap || pStage->forceVertexLighting );
 
 	Tess_ComputeColor( pStage );
 	gl_genericShaderMaterial->SetUniform_Color_Uint( tess.svars.color );
+
+	gl_genericShaderMaterial->SetUniform_InversePortalRange( 1.0f / shader->portalRange );
 
 	gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
 
@@ -879,6 +881,7 @@ void BindShaderGeneric3D( Material* material ) {
 	// Select shader permutation.
 	gl_genericShaderMaterial->SetTCGenEnvironment( material->tcGenEnvironment );
 	gl_genericShaderMaterial->SetTCGenLightmap( material->tcGen_Lightmap );
+	gl_genericShaderMaterial->SetAlphaGenPortal( material->alphaGenPortal );
 	gl_genericShaderMaterial->SetDepthFade( material->hasDepthFade );
 	gl_genericShaderMaterial->SetDeform( material->deformIndex );
 
@@ -892,6 +895,14 @@ void BindShaderGeneric3D( Material* material ) {
 
 	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+	{
+		matrix_t unprojectMatrix;
+		MatrixCopy( backEnd.viewParms.projectionMatrix, unprojectMatrix );
+		MatrixInverse( unprojectMatrix );
+		MatrixMultiplyTranslation( unprojectMatrix, -1.0f, -1.0f, -1.0f );
+		MatrixMultiplyScale( unprojectMatrix, 2.0f / windowConfig.vidWidth, 2.0f / windowConfig.vidHeight, 2.0f );
+		gl_genericShaderMaterial->SetUniform_UnprojectMatrix( unprojectMatrix );
+	}
 
 	gl_genericShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.depthSamplerImage ) );
 
@@ -1097,6 +1108,10 @@ void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, Materi
 	gl_genericShaderMaterial->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShaderMaterial->SetTCGenLightmap( pStage->tcGen_Lightmap );
 
+	bool alphaGenPortal = pStage->alphaGen == alphaGen_t::AGEN_PORTAL;
+	material->alphaGenPortal = alphaGenPortal;
+	gl_genericShaderMaterial->SetAlphaGenPortal( alphaGenPortal );
+
 	bool hasDepthFade = pStage->hasDepthFade;
 	material->hasDepthFade = hasDepthFade;
 	gl_genericShaderMaterial->SetDepthFade( hasDepthFade );
@@ -1299,7 +1314,8 @@ void MaterialSystem::AddStage( MaterialSurface* surface, shaderStage_t* pStage, 
 		}
 
 		if ( pStage->shader->reliefDepthScale != pStage2->shader->reliefDepthScale
-		     || pStage->shader->reliefOffsetBias != pStage2->shader->reliefOffsetBias )
+		     || pStage->shader->reliefOffsetBias != pStage2->shader->reliefOffsetBias
+		     || pStage->shader->portalRange != pStage2->shader->portalRange )
 		{
 			continue;
 		}

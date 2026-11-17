@@ -827,19 +827,11 @@ bool CL_ReadyToSendPacket()
 	}
 
 	// check for exceeding cl_maxpackets
-	if ( cl_maxpackets->integer < 15 )
-	{
-		Cvar_Set( "cl_maxpackets", "15" );
-	}
-	else if ( cl_maxpackets->integer > 125 )
-	{
-		Cvar_Set( "cl_maxpackets", "125" );
-	}
 
 	oldPacketNum = ( clc.netchan.outgoingSequence - 1 ) & PACKET_MASK;
 	delta = cls.realtime - cl.outPackets[ oldPacketNum ].p_realtime;
 
-	if ( delta < 1000 / cl_maxpackets->integer )
+	if ( delta < 1000 / cl_maxpackets.Get() )
 	{
 		// the accumulated commands will go out in the next packet
 		return false;
@@ -916,16 +908,8 @@ void CL_WritePacket()
 	// we want to send all the usercmds that were generated in the last
 	// few packet, so even if a couple packets are dropped in a row,
 	// all the cmds will make it to the server
-	if ( cl_packetdup->integer < 0 )
-	{
-		Cvar_Set( "cl_packetdup", "0" );
-	}
-	else if ( cl_packetdup->integer > 5 )
-	{
-		Cvar_Set( "cl_packetdup", "5" );
-	}
 
-	oldPacketNum = ( clc.netchan.outgoingSequence - 1 - cl_packetdup->integer ) & PACKET_MASK;
+	oldPacketNum = ( clc.netchan.outgoingSequence - 1 - cl_packetdup.Get() ) & PACKET_MASK;
 	count = cl.cmdNumber - cl.outPackets[ oldPacketNum ].p_cmdNumber;
 
 	if ( count > MAX_PACKET_USERCMDS )
@@ -942,7 +926,7 @@ void CL_WritePacket()
 		}
 
 		// begin a client move command
-		if ( cl_nodelta->integer || !cl.snap.valid || clc.demowaiting || clc.serverMessageSequence != cl.snap.messageNum )
+		if ( cl_nodelta.Get() || !cl.snap.valid || clc.demowaiting || clc.serverMessageSequence != cl.snap.messageNum )
 		{
 			MSG_WriteByte( &buf, clc_moveNoDelta );
 		}
@@ -1273,8 +1257,6 @@ void CL_InitInput()
 	}
 
 	Cmd_AddCommand( "keyup", IN_KeysUp_f );
-
-	cl_nodelta = Cvar_Get( "cl_nodelta", "0", 0 );
 }
 
 /*

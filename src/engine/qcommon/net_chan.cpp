@@ -134,7 +134,7 @@ void Netchan_TransmitNextFragment( netchan_t *chan )
 	// send the qport if we are a client
 	if ( chan->sock == netsrc_t::NS_CLIENT )
 	{
-		MSG_WriteShort( &send, qport.Get() );
+		MSG_WriteUShort( &send, qport.Get() );
 	}
 
 	// copy the reliable message to the packet first
@@ -216,7 +216,7 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data )
 	// send the qport if we are a client
 	if ( chan->sock == netsrc_t::NS_CLIENT )
 	{
-		MSG_WriteShort( &send, qport.Get() );
+		MSG_WriteUShort( &send, qport.Get() );
 	}
 
 	MSG_WriteData( &send, data, length );
@@ -271,7 +271,7 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg )
 	// read the qport if we are a server
 	if ( chan->sock == netsrc_t::NS_SERVER )
 	{
-		/*qport = */ MSG_ReadShort( msg );
+		/*qport = */ MSG_ReadUShort( msg );
 	}
 
 	// read the fragment information

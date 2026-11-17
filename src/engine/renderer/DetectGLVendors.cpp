@@ -44,9 +44,11 @@ std::string GetGLHardwareVendorName( glHardwareVendor_t hardwareVendor )
 		"Arm",
 		"AMD/ATI",
 		"Broadcom",
+		"Imagination",
 		"Intel",
-		"Nvidia",
 		"Moore Threads",
+		"Nvidia",
+		"Zhaoxin",
 		"OutOfRange",
 	};
 
@@ -69,10 +71,13 @@ std::string GetGLDriverVendorName( glDriverVendor_t driverVendor )
 		"Unknown",
 		"Apple",
 		"AMD/ATI",
+		"GL4ES",
+		"Imagination",
 		"Intel",
 		"Mesa",
-		"Nvidia",
 		"Moore Threads",
+		"Nvidia",
+		"Zhaoxin",
 		"OutOfRange",
 	};
 
@@ -87,6 +92,16 @@ std::string GetGLDriverVendorName( glDriverVendor_t driverVendor )
 	index = ( index < 0 || index > lastEnumIndex ) ? lastNameIndex : index;
 
 	return driverVendorNames[ index ];
+}
+
+static std::string StripPrefix( const std::string &prefix, const std::string &string )
+{
+	if ( Str::IsPrefix( prefix, string ) )
+	{
+		return string.substr( prefix.length() );
+	}
+
+	return string;
 }
 
 void DetectGLVendors(
@@ -123,15 +138,19 @@ void DetectGLVendors(
 		{ "nouveau", { glDriverVendor_t::MESA, glHardwareVendor_t::NVIDIA } },
 		// Proprietary Nvidia drivers on all systems like Linux, Windows, and macOS.
 		{ "NVIDIA Corporation", { glDriverVendor_t::NVIDIA, glHardwareVendor_t::NVIDIA } },
-		// Moore Threads drivers on Linux and Windows.
+		// Proprietary Moore Threads drivers on Linux and Windows.
 		{ "Moore Threads", { glDriverVendor_t::MTHREADS, glHardwareVendor_t::MTHREADS } },
+		// Proprietary Zhaoxin driver on Linux.
+		{ "Shanghai Zhaoxin Semiconductor Co., Ltd.", { glDriverVendor_t::ZHAOXIN, glHardwareVendor_t::ZHAOXIN } },
+		// Proprietary Imagination driver for PowerVR.
+		{ "Imagination Technologies", { glDriverVendor_t::IMAGINATION, glHardwareVendor_t::IMAGINATION } },
 	};
 
 	auto it = vendorDriverHardware.find( vendorString );
 	if ( it != vendorDriverHardware.end() )
 	{
-		driverVendor = it->second.first;	
-		hardwareVendor = it->second.second;	
+		driverVendor = it->second.first;
+		hardwareVendor = it->second.second;
 		return;
 	}
 
@@ -307,6 +326,41 @@ void DetectGLVendors(
 	{
 		driverVendor = glDriverVendor_t::INTEL;
 		hardwareVendor = glHardwareVendor_t::INTEL;
+		return;
+	}
+
+	// Newer GL4ES strings disclosing the underlying technology.
+	if ( Str::IsPrefix( "GL4ES wrapping ", vendorString ) )
+	{
+		std::string subVendorString = StripPrefix( "GL4ES wrapping ", vendorString );
+		std::string subRendererString = StripPrefix( "GL4ES using ", rendererString );
+		DetectGLVendors( subVendorString, versionString, subRendererString, hardwareVendor, driverVendor );
+		driverVendor = glDriverVendor_t::GL4ES;
+	}
+
+	/* Older GL4ES string not disclosing the underlying technology,
+	also had “ptitSeb” as vendorString. */
+	if ( rendererString == "GL4ES wrapper" )
+	{
+		driverVendor = glDriverVendor_t::GL4ES;
+		// Older GL4ES doesn't disclose the underlying hardware.
+		if ( hardwareVendor == glHardwareVendor_t::UNKNOWN )
+		{
+			hardwareVendor = glHardwareVendor_t::TRANSLATION;
+		}
+		return;
+	}
+
+	/* GL4ES always use such kind of version string:
+	> 2.1 gl4es wrapper 1.1.7
+	And this is unlikely to change. */
+	if ( versionString.find( "gl4es wrapper" ) != std::string::npos )
+	{
+		driverVendor = glDriverVendor_t::GL4ES;
+		if ( hardwareVendor == glHardwareVendor_t::UNKNOWN )
+		{
+			hardwareVendor = glHardwareVendor_t::TRANSLATION;
+		}
 		return;
 	}
 }

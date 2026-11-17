@@ -139,8 +139,6 @@ set(GLSL_EMBED_LIST
     lightMapping_fp.glsl
     liquid_vp.glsl
     liquid_fp.glsl
-    portal_vp.glsl
-    portal_fp.glsl
     reflection_CB_vp.glsl
     reflection_CB_fp.glsl
     screen_vp.glsl
@@ -213,7 +211,7 @@ set(OMPLIST
     ${ENGINE_DIR}/framework/OmpSystem.h
 )
 
-if (WIN32)
+if (YOKAI_TARGET_SYSTEM_WINDOWS)
     set(ENGINELIST ${ENGINELIST}
         ${ENGINE_DIR}/sys/con_passive.cpp
     )
@@ -303,7 +301,7 @@ set(CLIENTLIST
     ${RENDERERLIST}
 )
 
-if (APPLE)
+if (YOKAI_TARGET_SYSTEM_MACOS)
     set(CLIENTLIST ${CLIENTLIST} ${ENGINE_DIR}/sys/DisableAccentMenu.m)
 endif()
 

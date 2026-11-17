@@ -147,6 +147,7 @@ struct GLConfig
 
 	bool colorGrading;
 	bool realtimeLighting;
+	int maxRealtimeLights;
 	int realtimeLightLayers;
 	bool deluxeMapping;
 	bool normalMapping;

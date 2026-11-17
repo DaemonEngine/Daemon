@@ -938,7 +938,6 @@ enum
 	  ST_REFLECTIONMAP, // cubeMap based reflection
 	  ST_SKYBOXMAP,
 	  ST_SCREENMAP, // 2d offscreen or portal rendering
-	  ST_PORTALMAP,
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
 	  ST_FOGMAP_INNER, // a fog seen from inside
@@ -2431,8 +2430,8 @@ enum
 		bool   worldLightMapping;
 		bool   worldDeluxeMapping;
 		bool   worldHDR_RGBE;
-		bool worldLinearizeTexture;
-		bool worldLinearizeLightMap;
+		bool worldLinearizeTexture; // this determines whether linear or naive blending is used
+		bool worldLinearizeLightMap; // this is only used to decide the overbright behavior
 
 		floatProcessor_t convertFloatFromSRGB;
 		colorProcessor_t convertColorFromSRGB;
@@ -2649,6 +2648,7 @@ enum
 	extern Cvar::Range<Cvar::Cvar<int>> r_overbrightBits;
 	extern Cvar::Cvar<bool> r_overbrightQ3;
 	extern Cvar::Cvar<bool> r_overbrightIgnoreMapSettings;
+	extern Cvar::Range<Cvar::Cvar<int>> r_forceBlendRegime;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
 	extern Cvar::Cvar<bool> r_colorGrading;
 	extern Cvar::Cvar<bool> r_preferBindlessTextures;
@@ -3249,7 +3249,6 @@ void GLimp_LogComment_( std::string comment );
 	void Render_reflection_CB( shaderStage_t *pStage );
 	void Render_skybox( shaderStage_t *pStage );
 	void Render_screen( shaderStage_t *pStage );
-	void Render_portal( shaderStage_t *pStage );
 	void Render_heatHaze( shaderStage_t *pStage );
 	void Render_liquid( shaderStage_t *pStage );
 	void Render_fog( shaderStage_t *pStage );

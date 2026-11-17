@@ -66,11 +66,10 @@ struct entityState_t;
 
 void  MSG_WriteBits( msg_t *msg, int value, int bits );
 
-void  MSG_WriteChar( msg_t *sb, int c );
 void  MSG_WriteByte( msg_t *sb, int c );
 void  MSG_WriteShort( msg_t *sb, int c );
+void  MSG_WriteUShort( msg_t *sb, int c );
 void  MSG_WriteLong( msg_t *sb, int c );
-void  MSG_WriteFloat( msg_t *sb, float f );
 void  MSG_WriteString( msg_t *sb, const char *s );
 void  MSG_WriteBigString( msg_t *sb, const char *s );
 
@@ -82,8 +81,8 @@ int   MSG_ReadBits( msg_t *msg, int bits );
 
 int   MSG_ReadByte( msg_t *sb );
 int   MSG_ReadShort( msg_t *sb );
+int   MSG_ReadUShort( msg_t *sb );
 int   MSG_ReadLong( msg_t *sb );
-float MSG_ReadFloat( msg_t *sb );
 char  *MSG_ReadString( msg_t *sb );
 char  *MSG_ReadBigString( msg_t *sb );
 char  *MSG_ReadStringLine( msg_t *sb );
@@ -92,7 +91,7 @@ void  MSG_ReadData( msg_t *sb, void *buffer, int size );
 void  MSG_WriteDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to );
 void  MSG_ReadDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to );
 
-void  MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, bool force );
+void  MSG_WriteDeltaEntity( msg_t *msg, const entityState_t *from, const entityState_t *to, bool force );
 void  MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *to, int number );
 
 void MSG_InitNetcodeTables(NetcodeTable playerStateTable, int playerStateSize);
@@ -343,13 +342,9 @@ issues.
 ==============================================================
 */
 
-char **FS_ListFiles( const char *directory, const char *extension, int *numfiles );
-
 // directory should not have either a leading or trailing /
 // if extension is "/", only subdirectories will be returned
 // the returned files will not include any directories or /
-
-void         FS_FreeFileList( char **list );
 
 int          FS_GetFileList( const char *path, const char *extension, char *listbuf, int bufsize );
 int          FS_GetFileListRecursive( const char* path, const char* extension, char* listBuf, int bufSize );
@@ -394,10 +389,6 @@ int  FS_ReadFile( const char *qpath, void **buffer );
 void FS_ForceFlush( fileHandle_t f );
 
 // forces flush on files we're writing to.
-
-void FS_FreeFile( void *buffer );
-
-// frees the memory returned by FS_ReadFile
 
 void FS_WriteFile( const char *qpath, const void *buffer, int size );
 

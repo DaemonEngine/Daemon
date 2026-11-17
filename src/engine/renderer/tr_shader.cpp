@@ -123,17 +123,7 @@ static unsigned int generateHashValue( const char *fname, const int size )
 
 		if ( letter == '.' )
 		{
-			break; // don't include extension
-		}
-
-		if ( letter == '\\' )
-		{
-			letter = '/'; // damn path names
-		}
-
-		if ( letter == PATH_SEP )
-		{
-			letter = '/'; // damn path names
+			break; // don't include extension. FIXME: could have multiple dots
 		}
 
 		hash += ( unsigned )( letter ) * ( i + 119 );
@@ -1496,7 +1486,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 		if ( ! ( shader.registerFlags & RSF_2D ) )
 		{
 			stage->convertColorFromSRGB = stage->colorspaceBits & LINEAR_RGBGEN ?
-				convertColorFromSRGB_NOP : stage->convertColorFromSRGB;
+				convertColorFromSRGB_NOP : tr.convertColorFromSRGB;
 
 			switch ( type )
 			{
@@ -2748,10 +2738,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				stage->type = stageType_t::ST_SCREENMAP;
 			}
-			else if ( !Q_stricmp( token, "portalMap" ) )
-			{
-				stage->type = stageType_t::ST_PORTALMAP;
-			}
 			else if ( !Q_stricmp( token, "heathazeMap" ) )
 			{
 				stage->type = stageType_t::ST_HEATHAZEMAP;
@@ -2938,7 +2924,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			}
 			else if ( !Q_stricmp( token, "portal" ) )
 			{
-				stage->type = stageType_t::ST_PORTALMAP;
 				stage->alphaGen = alphaGen_t::AGEN_PORTAL;
 
 				token = COM_ParseExt2( text, false );
@@ -5441,9 +5426,15 @@ static void FinishStages()
 			case stageType_t::ST_COLORMAP:
 				if ( stage->rgbGen == colorGen_t::CGEN_VERTEX && shader.registerFlags & RSF_BSP )
 				{
-					// vertex colors used as lighting detected. Enable overbright and realtime lights
-					stage->type = stageType_t::ST_DIFFUSEMAP;
+					// Vertex colors used as lighting detected. Enable overbright
+
 					stage->forceVertexLighting = true; // use vertex lighting even if there is a lightmap
+
+					if ( stage->alphaGen != alphaGen_t::AGEN_PORTAL ) // AGEN_PORTAL not supported in lightMapping
+					{
+						// use lightMapping shader to get realtime lights
+						stage->type = stageType_t::ST_DIFFUSEMAP;
+					}
 				}
 
 			default:
@@ -5645,14 +5636,6 @@ static void SetStagesRenderers()
 				stageRendererOptions = {
 					&Render_screen, &MarkShaderBuildScreen,
 					&UpdateSurfaceDataScreen, &BindShaderScreen, &ProcessMaterialScreen,
-				};
-				break;
-			case stageType_t::ST_PORTALMAP:
-				/* Comment from the Material code:
-				This is supposedly used for alphagen portal and portal surfaces should never get here. */
-				stageRendererOptions = {
-					&Render_portal, &MarkShaderBuildPortal,
-					&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
 				};
 				break;
 			case stageType_t::ST_HEATHAZEMAP:
@@ -6247,7 +6230,8 @@ shader_t       *R_FindShader( const char *name, int flags )
 		return tr.defaultShader;
 	}
 
-	COM_StripExtension3( name, strippedName, sizeof( strippedName ) );
+	COM_StripExtension3( FS::Path::NormalizeSlashes( name ).c_str(),
+	                     strippedName, sizeof( strippedName ) );
 
 	hash = generateHashValue( strippedName, FILE_HASH_SIZE );
 
@@ -6591,7 +6575,6 @@ public:
 			{ stageType_t::ST_REFLECTIONMAP, "REFLECTIONMAP" },
 			{ stageType_t::ST_SKYBOXMAP, "SKYBOXMAP" },
 			{ stageType_t::ST_SCREENMAP, "SCREENMAP" },
-			{ stageType_t::ST_PORTALMAP, "PORTALMAP" },
 			{ stageType_t::ST_HEATHAZEMAP, "HEATHAZEMAP" },
 			{ stageType_t::ST_LIQUIDMAP, "LIQUIDMAP" },
 			{ stageType_t::ST_LIGHTMAP, "LIGHTMAP" },

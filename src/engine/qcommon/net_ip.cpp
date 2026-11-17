@@ -88,6 +88,7 @@ static bool winsockInitialized = false;
 #       endif
 
 #       include <arpa/inet.h>
+#       include <fcntl.h>
 #       include <netdb.h>
 #       include <netinet/in.h>
 #       include <sys/socket.h>
@@ -149,6 +150,7 @@ static SOCKET              socks_socket = INVALID_SOCKET;
 static SOCKET              multicast6_socket = INVALID_SOCKET;
 
 // Keep track of currently joined multicast group.
+// Also stores the multicast address info for clients though they don't join a group
 static struct ipv6_mreq    curgroup;
 
 // And the currently bound address.
@@ -159,6 +161,10 @@ static struct sockaddr_in6 boundto;
 #endif
 
 // use an admin local address per default so that network admins can decide on how to handle quake3 traffic.
+// However, an admin-local address usually doesn't go anywhere besides without special network
+// configuration. Could use ff02 instead of ff04 meaning a link-local address more like IPv4, but
+// then it doesn't work without manually setting net_mcast6iface.
+// The final 4 quartets spell "ioquake3". TODO change for Daemon?
 #define NET_MULTICAST_IP6 "ff04::696f:7175:616b:6533"
 
 static const int MAX_IPS = 32;
@@ -946,6 +952,7 @@ SOCKET NET_IPSocket( const char *net_interface, int port, struct sockaddr_in *bi
 	newsocket = WSASocketW( PF_INET, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
 #else
 	newsocket = socket( PF_INET, SOCK_DGRAM, IPPROTO_UDP );
+	fcntl( newsocket, F_SETFD, FD_CLOEXEC );
 #endif
 
 	if ( newsocket == INVALID_SOCKET )
@@ -1020,7 +1027,7 @@ SOCKET NET_IPSocket( const char *net_interface, int port, struct sockaddr_in *bi
 NET_IP6Socket
 ====================
 */
-SOCKET NET_IP6Socket( const char *net_interface, int port, struct sockaddr_in6 *bindto, int *err )
+SOCKET NET_IP6Socket( const char *net_interface, int port, bool multicastSend, struct sockaddr_in6 *bindto, int *err )
 {
 	SOCKET              newsocket;
 	struct sockaddr_in6 address;
@@ -1037,6 +1044,7 @@ SOCKET NET_IP6Socket( const char *net_interface, int port, struct sockaddr_in6 *
 	newsocket = WSASocketW( PF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
 #else
 	newsocket = socket( PF_INET6, SOCK_DGRAM, IPPROTO_UDP );
+	fcntl( newsocket, F_SETFD, FD_CLOEXEC );
 #endif
 
 	if ( newsocket  == INVALID_SOCKET )
@@ -1067,6 +1075,13 @@ SOCKET NET_IP6Socket( const char *net_interface, int port, struct sockaddr_in6 *
 		}
 	}
 #endif
+
+	if ( multicastSend && curgroup.ipv6mr_interface && SOCKET_ERROR == setsockopt(
+	     newsocket, IPPROTO_IPV6, IPV6_MULTICAST_IF, reinterpret_cast<const char *>( &curgroup.ipv6mr_interface ),
+	     sizeof( curgroup.ipv6mr_interface ) ) )
+	{
+		Log::Warn( "NET_IP6Socket: couldn't set outbound multicast scope for socket: %s", NET_ErrorString() );
+	}
 
 	if ( !net_interface || !net_interface[ 0 ] )
 	{
@@ -1140,6 +1155,7 @@ void NET_SetMulticast6()
 		curgroup.ipv6mr_interface = net_mcast6iface->integer;
 #else
 		curgroup.ipv6mr_interface = if_nametoindex( net_mcast6iface->string );
+		Log::Notice( "Parsed IPv6 interface index: %d", curgroup.ipv6mr_interface );
 #endif
 	}
 	else
@@ -1163,33 +1179,17 @@ void NET_JoinMulticast6()
 		return;
 	}
 
-	if ( IN6_IS_ADDR_MULTICAST( &boundto.sin6_addr ) || IN6_IS_ADDR_UNSPECIFIED( &boundto.sin6_addr ) )
+	if ( IN6_IS_ADDR_UNSPECIFIED( &boundto.sin6_addr ) )
 	{
 		// The way the socket was bound does not prohibit receiving multi-cast packets. So we don't need to open a new one.
 		multicast6_socket = ip6_socket;
 	}
 	else
 	{
-		if ( ( multicast6_socket = NET_IP6Socket( net_mcast6addr->string, ntohs( boundto.sin6_port ), nullptr, &err ) ) == INVALID_SOCKET )
+		if ( ( multicast6_socket = NET_IP6Socket( nullptr, ntohs( boundto.sin6_port ), false, nullptr, &err ) ) == INVALID_SOCKET )
 		{
 			// If the OS does not support binding to multicast addresses, like Windows XP, at least try with a non-multicast socket.
 			multicast6_socket = ip6_socket;
-		}
-	}
-
-	if ( curgroup.ipv6mr_interface )
-	{
-		if ( setsockopt( multicast6_socket, IPPROTO_IPV6, IPV6_MULTICAST_IF,
-		                 ( char * ) &curgroup.ipv6mr_interface, sizeof( curgroup.ipv6mr_interface ) ) < 0 )
-		{
-			Log::Notice( "NET_JoinMulticast6: Couldn't set scope on multicast socket: %s", NET_ErrorString() );
-
-			if ( multicast6_socket != ip6_socket )
-			{
-				closesocket( multicast6_socket );
-				multicast6_socket = INVALID_SOCKET;
-				return;
-			}
 		}
 	}
 
@@ -1246,6 +1246,7 @@ void NET_OpenSocks( int port )
 	socks_socket = WSASocketW( AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
 #else
 	socks_socket = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
+	fcntl( socks_socket, F_SETFD, FD_CLOEXEC );
 #endif
 
 	if ( socks_socket == INVALID_SOCKET )
@@ -1624,7 +1625,8 @@ static void NET_OpenIP( bool serverMode )
 	{
 		for ( i = ( port6 == PORT_ANY ? 1 : MAX_TRY_PORTS ); i; i-- )
 		{
-			ip6_socket = NET_IP6Socket( net_ip6->string, port6, &boundto, &err );
+			bool sendingMulticast = !serverMode && !( net_enabled->integer & NET_DISABLEMCAST );
+			ip6_socket = NET_IP6Socket( net_ip6->string, port6, sendingMulticast, &boundto, &err );
 
 			if ( ip6_socket != INVALID_SOCKET )
 			{
@@ -1737,8 +1739,8 @@ void NET_EnableNetworking( bool serverMode )
 
 	networkingEnabled = true;
 
+	NET_SetMulticast6(); // just parses cvars
 	NET_OpenIP( serverMode );
-	NET_SetMulticast6();
 	SV_NET_Config();
 }
 
@@ -1888,4 +1890,9 @@ void NET_Restart_f()
 #else
 	NET_EnableNetworking( com_sv_running.Get() );
 #endif
+
+	if ( com_sv_running.Get() )
+	{
+		NET_JoinMulticast6();
+	}
 }

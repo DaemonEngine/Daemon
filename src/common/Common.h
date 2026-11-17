@@ -31,6 +31,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_COMMON_H_
 #define COMMON_COMMON_H_
 
+// TODO: Remove when the game is ported to Yokai.
+#if !defined(DAEMON_ARCH_STRING)
+#define DAEMON_ARCH_STRING YOKAI_ARCH_STRING
+#endif
+#if !defined(DAEMON_CXX_COMPILER_STRING)
+#define DAEMON_CXX_COMPILER_STRING YOKAI_CXX_COMPILER_STRING
+#endif
+
 // Compiler.h, Platform.h and Endian.h are included by q_shared.h
 #include "engine/qcommon/q_shared.h"
 

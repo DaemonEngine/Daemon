@@ -38,9 +38,9 @@ Maryland 20850 USA.
 #include "common/Defs.h"
 
 #if defined(BUILD_VM)
-#include "DaemonBuildInfo/Game.h"
+#include "YokaiBuildInfo/DaemonGame.h"
 #else
-#include "DaemonBuildInfo/Engine.h"
+#include "YokaiBuildInfo/DaemonEngine.h"
 #endif
 
 // math.h/cmath uses _USE_MATH_DEFINES to decide if to define M_PI etc or not.
@@ -245,7 +245,7 @@ void  Com_Free_Aligned( void *ptr );
 	// floats (quat: 4, scale: 1, translation: 3), which is very
 	// convenient for SSE and GLSL, which operate on 4-dimensional
 	// float vectors.
-#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+#if defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE)
     // Here we have a union of scalar struct and sse struct, transform_u and the
     // scalar struct must match transform_t so we have to use anonymous structs.
     // We disable compiler warnings when using -Wpedantic for this specific case.
@@ -405,7 +405,7 @@ The relative error bound is: 6.50196699×10⁻⁴ */
 // Compute approximate inverse square root.
 WARN_UNUSED_RESULT inline float Q_rsqrt_fast( const float n )
 {
-#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+#if defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE)
 	float o;
 	// The SSE rsqrt relative error bound is 3.7×10⁻⁴.
 	_mm_store_ss( &o, _mm_rsqrt_ss( _mm_load_ss( &n ) ) );
@@ -838,7 +838,6 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	void     MatrixMultiplyTranslation( matrix_t m, vec_t x, vec_t y, vec_t z );
 	void     MatrixMultiplyScale( matrix_t m, vec_t x, vec_t y, vec_t z );
 	void     MatrixMultiplyShear( matrix_t m, vec_t x, vec_t y );
-	void     MatrixToAngles( const matrix_t m, vec3_t angles );
 	void     MatrixFromAngles( matrix_t m, vec_t pitch, vec_t yaw, vec_t roll );
 	void     MatrixFromVectorsFLU( matrix_t m, const vec3_t forward, const vec3_t left, const vec3_t up );
 	void     MatrixFromVectorsFRU( matrix_t m, const vec3_t forward, const vec3_t right, const vec3_t up );
@@ -996,7 +995,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 //=============================================
 // combining Transformations
 
-#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+#if defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE)
 /* swizzles for _mm_shuffle_ps instruction */
 #define SWZ_XXXX 0x00
 #define SWZ_YXXX 0x01
@@ -1893,12 +1892,13 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
 
 // bit field limits
-#define MAX_STATS              16
-#define MAX_PERSISTANT         16
-#define MAX_MISC               16
 
+#define MAX_PERSISTANT         16
 #define MAX_EVENTS             4 // max events per frame before we drop events
 
+// TODO: remove these 3 which are not engine-relevant
+#define MAX_STATS              16
+#define MAX_MISC               16
 #define PS_PMOVEFRAMECOUNTBITS 6
 
 struct netField_t

@@ -611,8 +611,6 @@ void SV_Init()
 
 	// server vars
 
-	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );
-
 	svs.serverLoad = -1;
 }
 

@@ -41,7 +41,7 @@ void VertexAnimation_P_N(	vec3 fromPosition, vec3 toPosition,
 	vec3 toNormal = QuatTransVec( toQTangent, vec3( 0.0, 0.0, 1.0 ) );
 
 	position.xyz = 512.0 * mix(fromPosition, toPosition, frac);
-	position.w = 1;
+	position.w = 1.0;
 
 	normal = normalize(mix(fromNormal, toNormal, frac));
 }
@@ -58,7 +58,7 @@ void VertexFetch(out vec4 position,
 	QTangentToLocalBasis( attr_QTangent2, toLB );
 
 	position.xyz = 512.0 * mix(attr_Position, attr_Position2, u_VertexInterpolation);
-	position.w = 1;
+	position.w = 1.0;
 	
 	LB.normal = normalize(mix(fromLB.normal, toLB.normal, u_VertexInterpolation));
 	LB.tangent = normalize(mix(fromLB.tangent, toLB.tangent, u_VertexInterpolation));

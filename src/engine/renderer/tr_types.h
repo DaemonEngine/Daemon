@@ -58,11 +58,11 @@ using bool8_t = uint8_t;
 
 // renderfx flags
 enum RenderFx : uint8_t {
-	RF_THIRD_PERSON = 0x000001, // don't draw through eyes, only mirrors (player bodies, chat sprites)
-	RF_FIRST_PERSON = 0x000002, // only draw through eyes (view weapon, damage blood blob)
-	RF_DEPTHHACK    = 0x000004, // for view weapon Z crunching
-	RF_NOSHADOW     = 0x000008, // don't add stencil shadows
-	RF_SWAPCULL     = 0x000010  // swap CT_FRONT_SIDED and CT_BACK_SIDED
+	RF_THIRD_PERSON = 0x01, // don't draw through eyes, only mirrors (player bodies, chat sprites)
+	RF_FIRST_PERSON = 0x02, // only draw through eyes (view weapon, damage blood blob)
+	RF_DEPTHHACK    = 0x04, // for view weapon Z crunching
+	RF_NOSHADOW     = 0x08, // don't add stencil shadows
+	RF_SWAPCULL     = 0x10  // swap CT_FRONT_SIDED and CT_BACK_SIDED
 };
 
 // refdef flags
@@ -230,14 +230,14 @@ struct refEntity_t
 
 	EntityTag positionOnTag;
 
-	int8_t    clearOrigin;
-	int8_t    clearOrigin2;
+	bool8_t   clearOrigin;
+	bool8_t   clearOrigin2;
 
-	int8_t    boundsAdd;
+	bool8_t   boundsAdd;
 
-	int8_t    nonNormalizedAxes; // axis are not normalized, i.e. they have scale
+	bool8_t   nonNormalizedAxes; // axis are not normalized, i.e. they have scale
 
-	int8_t    active;
+	bool8_t   active;
 
 	uint16_t  attachmentEntity;
 

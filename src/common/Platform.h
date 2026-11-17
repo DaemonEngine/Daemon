@@ -33,18 +33,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Platform-specific configuration
 #if defined(_WIN32)
-#define PLATFORM_STRING "Windows"
 #elif defined(__APPLE__)
-#define PLATFORM_STRING "macOS"
 #elif defined(__linux__)
-#define PLATFORM_STRING "Linux"
 #elif defined(__FreeBSD__)
-#define PLATFORM_STRING "FreeBSD"
 #elif defined(__native_client__)
-#define PLATFORM_STRING "NaCl"
 #else
 #error "Platform not supported"
 #endif
+
+// TODO: Remove once the game code is ported to YOKAI_SYSTEM_STRING.
+#define PLATFORM_STRING YOKAI_SYSTEM_STRING
 
 #if defined(__native_client__)
 #elif defined(_WIN32)
@@ -57,30 +55,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PATH_SEP '/'
 #endif
 
-#if defined(DAEMON_ARCH_i686)
+#if defined(YOKAI_ARCH_I686)
 #undef __i386__
 #define __i386__ 1
-#elif defined(DAEMON_ARCH_amd64)
+#elif defined(YOKAI_ARCH_AMD64)
 #undef __x86_64__
 #define __x86_64__ 1
 #endif
 
-/* The definition name syntax is: DAEMON_USE_ARCH_INTRINSICS_<architecture>[_extension]
+/* The definition name syntax is: YOKAI_USE_ARCH_INTRINSICS_<architecture>[_extension]
 
 Examples:
 
-- DAEMON_USE_ARCH_INTRINSICS_i686: i686 specific code, including asm code.
-- DAEMON_USE_ARCH_INTRINSICS_i686_sse: i686 SSE specific code.
-- DAEMON_USE_ARCH_INTRINSICS_i686_sse2: i686 SSE2 specific code.
+- YOKAI_USE_ARCH_INTRINSICS_I686: i686 specific code, including asm code.
+- DAEMON_USE_ARCH_INTRINSICS_I686_SSE: i686 SSE specific code.
+- DAEMON_USE_ARCH_INTRINSICS_I686_SSE2: i686 SSE2 specific code.
 
 If a architecture inherits a feature from an parent architecture, the parent
 architecture name is used. For example on amd64, the definition enabling
-SSE code is DAEMON_USE_ARCH_INTRINSICS_i686_sse, enabling SSE code on both
+SSE code is DAEMON_USE_ARCH_INTRINSICS_I686_SSE, enabling SSE code on both
 i686 with SSE and amd64.
 
 The definitions for the architecture itself are automatically set by CMake. */
 
-#if defined(DAEMON_USE_ARCH_INTRINSICS)
+#if defined(YOKAI_USE_ARCH_INTRINSICS)
 	// Set architecture extensions definitions.
 
 	#if defined(_MSC_VER)
@@ -103,34 +101,34 @@ The definitions for the architecture itself are automatically set by CMake. */
 
 		#if defined(_M_IX86_FP)
 			#if _M_IX86_FP >= 2
-				#define DAEMON_USE_ARCH_INTRINSICS_i686_sse
-				#define DAEMON_USE_ARCH_INTRINSICS_i686_sse2
+				#define DAEMON_USE_ARCH_INTRINSICS_I686_SSE
+				#define DAEMON_USE_ARCH_INTRINSICS_I686_SSE2
 			#elif _M_IX86_FP == 1
-				#define DAEMON_USE_ARCH_INTRINSICS_i686_sse
+				#define DAEMON_USE_ARCH_INTRINSICS_I686_SSE
 			#endif
 		#elif defined(_M_AMD64) || defined(_M_X64)
 			#if !defined(_M_ARM64EC)
-				#define DAEMON_USE_ARCH_INTRINSICS_i686_sse
-				#define DAEMON_USE_ARCH_INTRINSICS_i686_sse2
+				#define DAEMON_USE_ARCH_INTRINSICS_I686_SSE
+				#define DAEMON_USE_ARCH_INTRINSICS_I686_SSE2
 			#endif
 		#endif
 	#else
 		#if defined(__SSE__) || defined(MSVC_SSE)
-			#define DAEMON_USE_ARCH_INTRINSICS_i686_sse
+			#define DAEMON_USE_ARCH_INTRINSICS_I686_SSE
 		#endif
 
 		#if defined(__SSE2__) || defined(MSVC_SSE2)
-			#define DAEMON_USE_ARCH_INTRINSICS_i686_sse2
+			#define DAEMON_USE_ARCH_INTRINSICS_I686_SSE2
 		#endif
 	#endif
 
 	// Include intrinsics-specific headers.
 
-	#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+	#if defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE)
 		#include <xmmintrin.h>
 	#endif
 
-	#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse2)
+	#if defined(DAEMON_USE_ARCH_INTRINSICS_I686_SSE2)
 		#include <emmintrin.h>
 	#endif
 #endif

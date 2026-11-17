@@ -98,6 +98,12 @@ Cvar::Cvar<int> r_rendererAPI( "r_rendererAPI", "Renderer API: 0: OpenGL, 1: Vul
 	Cvar::Cvar<bool> r_overbrightQ3("r_overbrightQ3", "brighten entire color buffer like Quake 3 (incompatible with newer assets)", Cvar::NONE, false);
 
 	Cvar::Cvar<bool> r_overbrightIgnoreMapSettings("r_overbrightIgnoreMapSettings", "force usage of r_overbrightDefaultClamp / r_overbrightDefaultExponent, ignoring worldspawn", Cvar::NONE, false);
+
+	// If you use this to compare results in different blend regimes you should disable tonemapping
+	// since applying the tonemap curve to sRGB vs. linear values gives very different results
+	Cvar::Range<Cvar::Cvar<int>> r_forceBlendRegime(
+		"r_forceBlendRegime", "override map settings to use: 1 = naive blending, 2 = linear blending", Cvar::NONE, 0, 0, 2);
+
 	Cvar::Range<Cvar::Cvar<int>> r_lightMode("r_lightMode", "lighting mode: 0: fullbright (cheat), 1: vertex light, 2: grid light (cheat), 3: light map", Cvar::NONE, Util::ordinal(lightMode_t::MAP), Util::ordinal(lightMode_t::FULLBRIGHT), Util::ordinal(lightMode_t::MAP));
 	Cvar::Cvar<bool> r_colorGrading( "r_colorGrading", "Use color grading", Cvar::NONE, true );
 	static Cvar::Range<Cvar::Cvar<int>> r_readonlyDepthBuffer(
@@ -1397,6 +1403,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			return false;
 		}
 
+		Cvar::Latch( r_forceBlendRegime );
+		tr.worldLinearizeTexture = r_forceBlendRegime.Get() == 2;
+
 		tr.lightMode = lightMode_t( r_lightMode.Get() );
 
 		if ( !Com_AreCheatsAllowed() )
@@ -1428,30 +1437,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		else if ( r_showVertexColors.Get() )
 		{
 			tr.lightMode = lightMode_t::VERTEX;
-		}
-
-		if ( r_reflectionMapping.Get() ) {
-			glConfig.reflectionMappingAvailable = true;
-
-			if ( !r_normalMapping->integer ) {
-				glConfig.reflectionMappingAvailable = false;
-				Log::Warn( "Unable to use static reflections without normal mapping, make sure you enable r_normalMapping" );
-			}
-
-			if ( !r_deluxeMapping->integer ) {
-				glConfig.reflectionMappingAvailable = false;
-				Log::Warn( "Unable to use static reflections without deluxe mapping, make sure you enable r_deluxeMapping" );
-			}
-
-			if ( !r_specularMapping->integer ) {
-				glConfig.reflectionMappingAvailable = false;
-				Log::Warn( "Unable to use static reflections without specular mapping, make sure you enable r_specularMapping" );
-			}
-
-			if ( r_physicalMapping->integer ) {
-				glConfig.reflectionMappingAvailable = false;
-				Log::Warn( "Unable to use static reflections with physical mapping, make sure you disable r_physicalMapping" );
-			}
 		}
 
 		backEndData[ 0 ] = ( backEndData_t * ) ri.Hunk_Alloc( sizeof( *backEndData[ 0 ] ), ha_pref::h_low );
@@ -1693,8 +1678,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		re.ClearScene = RE_ClearScene;
 		re.AddRefEntityToScene = RE_AddRefEntityToScene;
-		re.SyncRefEntities = SyncEntityCacheFromCGame;
-		re.SyncLerpTags = SyncEntityCacheToCGame;
+		re.SyncRefEntities = RE_SyncRefEntities;
+		re.SyncLerpTags = RE_SyncLerpTags;
 
 		re.AddPolyToScene = RE_AddPolyToSceneET;
 		re.AddPolysToScene = RE_AddPolysToScene;

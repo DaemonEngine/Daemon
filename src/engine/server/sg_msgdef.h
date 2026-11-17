@@ -20,6 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#ifndef ENGINE_SERVER_SG_MSGDEF_H_
+#define ENGINE_SERVER_SG_MSGDEF_H_
+
 #include "common/IPC/CommonSyscalls.h"
 
 // game-module-to-engine calls
@@ -196,3 +199,5 @@ using GameClientThinkMsg = IPC::SyncMessage<
 using GameRunFrameMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, GAME_RUN_FRAME>, int>
 >;
+
+#endif // ENGINE_SERVER_SG_MSGDEF_H_

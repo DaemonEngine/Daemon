@@ -341,7 +341,7 @@ static void Console_Key( Keyboard::Key key )
 		if (cls.state != connstate_t::CA_ACTIVE) {
 			g_consoleField.RunCommand();
 		} else {
-			g_consoleField.RunCommand(cl_consoleCommand->string);
+			g_consoleField.RunCommand(cl_consoleCommand.Get());
 		}
 
 		if (cls.state == connstate_t::CA_DISCONNECTED) {
@@ -520,25 +520,11 @@ static bool DetectBuiltInShortcut( Keyboard::Key key )
 			Cmd::BufferCommandText("quit");
 			return true;
 		}
-		else if ( key == Key(K_TAB) )
-		{
-			Key_ClearStates();
-			Cmd::BufferCommandText("minimize");
-			return true;
-		}
 	}
 #else
 	if ( key == Key(K_ENTER) && keys[ Key(K_ALT) ].down )
 	{
 		r_fullscreen.Set( !r_fullscreen.Get() );
-		return true;
-	}
-
-	// When not in full-screen mode, the OS should intercept this first
-	if ( cl_altTab->integer && keys[ Key(K_ALT) ].down && key == Key(K_TAB) )
-	{
-		Key_ClearStates();
-		Cmd::BufferCommandText("minimize");
 		return true;
 	}
 #endif

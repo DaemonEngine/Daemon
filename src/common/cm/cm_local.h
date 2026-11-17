@@ -32,6 +32,9 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
+#ifndef COMMON_CM_CM_LOCAL_H_
+#define COMMON_CM_CM_LOCAL_H_
+
 #include "cm_public.h"
 #include "cm_polylib.h"
 
@@ -313,3 +316,5 @@ bool                       CM_BoundsIntersect( const vec3_t mins, const vec3_t m
 bool                       CM_BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t point );
 
 // XreaL END
+
+#endif // COMMON_CM_CM_LOCAL_H_

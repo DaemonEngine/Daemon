@@ -9,14 +9,14 @@
 #  * Redistributions in binary form must reproduce the above copyright
 #    notice, this list of conditions and the following disclaimer in the
 #    documentation and/or other materials provided with the distribution.
-#  * Neither the name of the <organization> nor the
+#  * Neither the name of the Daemon developers nor the
 #    names of its contributors may be used to endorse or promote products
 #    derived from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+# DISCLAIMED. IN NO EVENT SHALL DAEMON DEVELOPERS BE LIABLE FOR ANY
 # DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 # (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 # LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -75,8 +75,16 @@ if (Daemon_OUT)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Daemon_OUT})
 endif()
 
-include(DaemonSourceGenerator)
-include(DaemonPlatform)
+include(Yokai/All)
+
+if (NOT YOKAI_TARGET_SYSTEM_NACL)
+	include(DaemonNaclArchitecture)
+
+	daemon_detect_nacl_arch("${YOKAI_TARGET_ARCH_NAME}")
+
+	# Add printable strings to the executable.
+	yokai_add_buildinfo("char*" "DAEMON_NACL_ARCH_STRING" "\"${DAEMON_NACL_ARCH_NAME}\"")
+endif()
 
 ################################################################################
 # Configuration options
@@ -91,11 +99,11 @@ if(NOT DAEMON_EXTERNAL_APP)
 
     set(NACL_RUNTIME_PATH "" CACHE STRING "Directory containing the NaCl binaries")
 
-    if (WIN32)
+    if (YOKAI_TARGET_SYSTEM_WINDOWS)
         # The alternative code is based on non-curses unix terminal functions.
         set(USE_CURSES ON)
     else()
-        if (NOT APPLE)
+        if (NOT YOKAI_TARGET_SYSTEM_MACOS)
             # Not supported on macOS because the included version is too old.
             option(USE_CURSES_NCURSES "Use ncurses instead of PDCursesMod" ON)
         endif()
@@ -141,6 +149,7 @@ set(DEFAULT_NACL_VM_INHERITED_OPTIONS
     BUILD_CGAME
     BUILD_SGAME
     CMAKE_BUILD_TYPE
+    CMAKE_VERBOSE_MAKEFILE
     DAEMON_CBSE_PYTHON_PATH
     USE_ARCH_INTRINSICS
     USE_COMPILER_CUSTOMIZATION
@@ -156,6 +165,12 @@ set(DEFAULT_NACL_VM_INHERITED_OPTIONS
 set(NACL_VM_INHERITED_OPTIONS "${DEFAULT_NACL_VM_INHERITED_OPTIONS}" CACHE STRING
     "Semicolon-separated list of options for which NaCl game VMs should use the same value as the other binaries")
 mark_as_advanced(NACL_VM_INHERITED_OPTIONS)
+
+# Warning: changing SAIGOSDK_DIR/SAIGOSDK_VERSION after subprojects have been configured WILL
+# change the compiler, but it is a bad idea since flag tests and such (not to mention the actual
+# compiled artifacts) will be out of date.
+set(SAIGOSDK_DIR "" CACHE PATH "Override Saigo NaCl SDK path")
+mark_as_advanced(SAIGOSDK_DIR)
 
 ################################################################################
 # Directories
@@ -189,8 +204,7 @@ else()
     set(FULL_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
 endif()
 
-# Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 11)
+include(${CMAKE_CURRENT_SOURCE_DIR}/external_deps/versions.cmake)
 
 option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
 
@@ -200,29 +214,29 @@ endmacro()
 
 set(DEFAULT_USE_EXTERNAL_DEPS_LIBS ON)
 
-if (USE_EXTERNAL_DEPS AND NOT NACL)
-    set(EXTERNAL_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external_deps" CACHE STRING "Directory in which to store the downloaded dependencies.")
+if (USE_EXTERNAL_DEPS AND NOT YOKAI_TARGET_SYSTEM_NACL)
+    set(EXTERNAL_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external_deps" CACHE PATH "Directory in which to store the downloaded dependencies.")
 
     set(DEPS_EXT ".tar.xz")
 
-    set(DEPS_ARCH "${ARCH}")
+    set(DEPS_ARCH "${YOKAI_TARGET_ARCH_NAME}")
 
-    if (MSVC)
+    if (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
         set(DEPS_COMPILER msvc)
-    elseif (WIN32)
+    elseif (YOKAI_CXX_COMPILER_MINGW)
         set(DEPS_COMPILER mingw)
     else()
         set(DEPS_COMPILER default)
     endif()
 
-    if (WIN32)
+    if (YOKAI_TARGET_SYSTEM_WINDOWS)
         set(DEPS_SYSTEM windows)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
-    elseif (APPLE)
+    elseif (YOKAI_TARGET_SYSTEM_MACOS)
         set(DEPS_SYSTEM macos)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64)
 
-        if (ARCH STREQUAL arm64)
+        if (YOKAI_TARGET_ARCH_ARM64)
             set(DEPS_ARCH amd64)
 
             set_deps_dir()
@@ -231,10 +245,10 @@ if (USE_EXTERNAL_DEPS AND NOT NACL)
                 set(DEFAULT_USE_EXTERNAL_DEPS_LIBS OFF)
             endif()
         endif()
-    elseif (LINUX)
+    elseif (YOKAI_TARGET_SYSTEM_LINUX)
         set(DEPS_SYSTEM linux)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686 arm64 armhf)
-    elseif (FREEBSD)
+    elseif (YOKAI_TARGET_SYSTEM_FREEBSD)
         set(DEPS_SYSTEM freebsd)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
 
@@ -265,7 +279,10 @@ endif()
 
 option(USE_EXTERNAL_DEPS_LIBS "Build and link against libraries from the EXTERNAL_DEPS_DIR" ${DEFAULT_USE_EXTERNAL_DEPS_LIBS})
 
-if (USE_EXTERNAL_DEPS AND NOT NACL)
+set(PNACLSDK_DIR "${DEPS_DIR}/pnacl" CACHE PATH "PNaCl SDK path")
+mark_as_advanced(PNACLSDK_DIR)
+
+if (USE_EXTERNAL_DEPS AND NOT YOKAI_TARGET_SYSTEM_NACL)
     if (DEPS_DIR)
         message(STATUS "Using external deps dir: ${DEPS_DIR}")
 
@@ -291,6 +308,7 @@ endif()
 # meaning we have to detect useless engine compiler to set
 # useless engine flags when only building vms.
 include(DaemonFlags)
+include(DaemonNaclFlags)
 
 # FIXME: Once engine flags would be only set when building the engine
 # this would be likely unused by vms as they are built by DaemonGame.
@@ -377,7 +395,7 @@ if (DEPS_DIR)
             endif()
         endif()
 
-        if (cacheVariableValue MATCHES "/(linux|windows|macos)-(i686|amd64)-(default|mingw|msvc)_([0-9]+)/")
+        if (cacheVariableValue MATCHES "/(linux|windows|macos)-(i686|amd64|armhf|arm64)-(default|mingw|msvc)_([0-9]+)/")
             if (NOT ${CMAKE_MATCH_4} EQUAL ${DEPS_VERSION})
                 set(OLD_VERSION ${CMAKE_MATCH_4})
             endif()
@@ -442,6 +460,11 @@ if (DEPS_DIR)
         endif()
     endif()
 
+    if (BUILD_GAME_NACL AND USE_NACL_SAIGO AND NOT SAIGOSDK_DIR)
+        include(DaemonDependenciesDownload)
+        download_saigosdk()
+    endif()
+
     if (USE_EXTERNAL_DEPS_LIBS)
         # Add to paths
         set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH})
@@ -462,14 +485,13 @@ endif()
 # LIBS_BASE, LIBS_ENGINE_BASE LIBS_ENGINE, LIBS_BASECLIENT, LIBS_CLIENT
 
 # Native client
-include(DaemonNacl)
-if (NACL)
+if (YOKAI_TARGET_SYSTEM_NACL)
     add_library(srclibs-nacl-module EXCLUDE_FROM_ALL ${NACLLIST_MODULE})
     set(LIBS_BASE ${LIBS_BASE} srclibs-nacl-module)
 else()
     add_library(srclibs-nacl-native EXCLUDE_FROM_ALL ${NACLLIST_NATIVE})
     set_target_properties(srclibs-nacl-native PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-    if (APPLE)
+    if (YOKAI_TARGET_SYSTEM_MACOS)
         # Do not error for OSAtomic* deprecation notices
         target_compile_options(srclibs-nacl-native PRIVATE "-Wno-error=deprecated-declarations")
     endif()
@@ -477,21 +499,11 @@ else()
 endif()
 
 # Base OS libs
-if (WIN32)
+if (YOKAI_TARGET_SYSTEM_WINDOWS)
     set(LIBS_BASE ${LIBS_BASE} winmm ws2_32)
-elseif (NACL)
+elseif (YOKAI_TARGET_SYSTEM_NACL)
     find_library(NACL_EXCEPTION nacl_exception)
     find_library(NACL_MINIDUMP minidump_generator)
-
-    # HACK: To be removed when Saigo is repackaged properly.
-    if (NOT NACL_MINIDUMP
-    # NACL_TARGET is specific to Saigo, PNaCl target is le32 and doesn't set NACL_TARGET.
-    AND "${NACL_TARGET}" STREQUAL "i686"
-    # x86_64-nacl/lib32 is specific to Google build, other builds may provide i686-nacl/lib instead.
-    AND EXISTS "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32")
-        set(NACL_EXCEPTION "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32/libnacl_exception.a")
-        set(NACL_MINIDUMP "${DEPS_DIR}/saigo_newlib/x86_64-nacl/lib32/libminidump_generator.a")
-    endif()
 
     set(LIBS_BASE ${LIBS_BASE} ${NACL_MINIDUMP} ${NACL_EXCEPTION})
 else()
@@ -511,7 +523,7 @@ else()
     set(LIBS_BASE ${LIBS_BASE} ${CMAKE_DL_LIBS})
     find_package(Threads REQUIRED)
     set(LIBS_BASE ${LIBS_BASE} ${CMAKE_THREAD_LIBS_INIT})
-    if (APPLE)
+    if (YOKAI_TARGET_SYSTEM_MACOS)
         set(LIBS_CLIENT ${LIBS_CLIENT} "-framework Carbon" "-framework IOKit" "-framework Cocoa")
     endif()
 endif()
@@ -534,7 +546,7 @@ else()
 
     # Look for OpenGL here before we potentially switch to looking for static libs.
     if (BUILD_CLIENT)
-        if (LINUX OR FREEBSD)
+        if (YOKAI_TARGET_SYSTEM_XDG_COMPATIBILITY)
             # Set LEGACY OpenGL ABI if the variable is not explictly set.
             # The backward-incompatible GLVND OpenGL ABI should only be used
             # by developers who have a good reason to require it.
@@ -550,7 +562,7 @@ else()
         # This code is unreachable since it already errored out at find_package time.
         # This code only executes if OpenGL is supported, either because the GLVND ABI
         # is available, either because the LEGACY ABI is available.
-        if (LINUX OR FREEBSD)
+        if (YOKAI_TARGET_SYSTEM_XDG_COMPATIBILITY)
             if (NOT OPENGL_gl_LIBRARY)
                 # When OpenGL_GL_PREFERENCE is supported and GLVND is available
                 # OPENGL_gl_LIBRARY is expected to be empty. So we can use the
@@ -588,7 +600,7 @@ else()
             message(STATUS "Found OpenGL ABI: ${OpenGL_selected_ABI}")
             message(STATUS "Found OpenGL library: ${OpenGL_selected_LIBRARY}")
 
-            daemon_add_buildinfo("char*" "DAEMON_OPENGL_ABI_STRING" "\"${OpenGL_selected_ABI}\"")
+            yokai_add_buildinfo("char*" "DAEMON_OPENGL_ABI_STRING" "\"${OpenGL_selected_ABI}\"")
             add_definitions("-DDAEMON_OPENGL_ABI_${OpenGL_selected_ABI}")
             add_definitions("-DDAEMON_OPENGL_ABI")
         endif()
@@ -597,7 +609,7 @@ endif()
 
 # Prefer static libs
 if ( USE_STATIC_LIBS )
-    if (LINUX OR FREEBSD)
+    if (YOKAI_TARGET_SYSTEM_XDG_COMPATIBILITY)
         set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
     endif()
 endif()
@@ -625,7 +637,7 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
             set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${CURSESW_LIBRARIES})
             include_directories(${CURSESW_INCLUDE_DIR})
         else ()
-            if (WIN32)
+            if (YOKAI_TARGET_SYSTEM_WINDOWS)
                 set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} gdi32 comdlg32)
             endif()
 
@@ -640,7 +652,7 @@ endif()
 
 if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     if (NACL_RUNTIME_PATH)
-        daemon_add_buildinfo("char*" "DAEMON_NACL_RUNTIME_PATH_STRING" "\"${NACL_RUNTIME_PATH}\"")
+        yokai_add_buildinfo("char*" "DAEMON_NACL_RUNTIME_PATH_STRING" "\"${NACL_RUNTIME_PATH}\"")
         add_definitions("-DDAEMON_NACL_RUNTIME_PATH")
     endif()
 
@@ -675,22 +687,23 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT)
 endif()
 
 # SDL, required for all targets on win32 because of iconv and SDL_SetHint(SDL_TIMER_RESOLUTION, 0)
-if (BUILD_CLIENT OR WIN32)
+if (BUILD_CLIENT OR YOKAI_TARGET_SYSTEM_WINDOWS)
     # Use our detected architecture instead of letting SDL do it again
     # Note that sdlcpu.cmake is only included on a random subset of platforms
     set(sdlvar_i686 SDL_CPU_X86)
     set(sdlvar_amd64 SDL_CPU_X64)
     set(sdlvar_armhf SDL_CPU_ARM32)
     set(sdlvar_arm64 SDL_CPU_ARM64)
-    if (sdlvar_${ARCH})
-        set(${sdlvar_${ARCH}} 1)
+    if (sdlvar_${YOKAI_TARGET_ARCH_NAME})
+        set(${sdlvar_${YOKAI_TARGET_ARCH_NAME}} 1)
     else()
-        message("Developer TODO: translate architecture ${ARCH} for SDL")
+        message("Developer TODO: translate architecture ${YOKAI_TARGET_ARCH_NAME} for SDL")
     endif()
 
     find_package(SDL3 REQUIRED CONFIG)
+    message("Found SDL3 ${SDL3_VERSION}: ${SDL3_DIR}")
 
-    if (WIN32)
+    if (YOKAI_TARGET_SYSTEM_WINDOWS)
         set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} SDL3::SDL3)
     else()
         set(LIBS_CLIENT ${LIBS_CLIENT} SDL3::SDL3)
@@ -702,7 +715,7 @@ if (USE_BREAKPAD)
     add_definitions(-DUSE_BREAKPAD)
     include_directories(${LIB_DIR}/breakpad/src)
 
-    if (WIN32)
+    if (YOKAI_TARGET_SYSTEM_WINDOWS)
         add_library(srclibs-breakpad-common EXCLUDE_FROM_ALL ${BREAKPAD_COMMON_LIST})
         add_library(srclibs-breakpad-crash_generation_server EXCLUDE_FROM_ALL ${BREAKPAD_CRASHGENERATIONSERVER_LIST})
         add_library(srclibs-breakpad-exception_handler EXCLUDE_FROM_ALL ${BREAKPAD_EXCEPTIONHANDLER_LIST})
@@ -732,11 +745,11 @@ if (USE_BREAKPAD)
         set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-breakpad-exception_handler
             srclibs-breakpad-crash_generation_client srclibs-breakpad-common)
 
-    elseif (LINUX)
+    elseif (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY)
         add_library(srclibs-breakpad EXCLUDE_FROM_ALL ${BREAKPAD_LIST})
         set_target_properties(srclibs-breakpad PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
         target_compile_definitions(srclibs-breakpad PUBLIC HAVE_GETCONTEXT=1)
-        set(LIBS_ENGINE ${LIBS_ENGINE} srclibs-breakpad)
+        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-breakpad)
 
         add_executable(crash_server src/engine/crash_server/crash_server_linux.cpp)
         target_link_libraries(crash_server srclibs-breakpad)
@@ -747,7 +760,7 @@ option(PREFER_EXTERNAL_LIBS "Tries to use system libs where possible." ON)
 
 macro(prefer_package LIB_NAME LIB_CMAKE)
     if (NOT ${LIB_NAME}_FOUND)
-        if (PREFER_EXTERNAL_LIBS AND NOT NACL)
+        if (PREFER_EXTERNAL_LIBS AND NOT YOKAI_TARGET_SYSTEM_NACL)
             find_package(${LIB_NAME})
 
             if (NOT ${LIB_NAME}_FOUND)
@@ -836,9 +849,9 @@ macro(AddApplicationInternal Target Executable)
     # Append Windows specific manifests.
     # Adding the .manifest as a source works better for MSVC, but it has no
     # effect for MinGW (https://gitlab.kitware.com/cmake/cmake/-/issues/23244).
-    if (MINGW)
+    if (YOKAI_CXX_COMPILER_MINGW)
         target_sources(${Target} PRIVATE ${ENGINE_DIR}/sys/windows-resource/manifest.rc)
-    elseif (WIN32)
+    elseif (YOKAI_CXX_COMPILER_MSVC_COMPATIBILITY)
         target_sources(${Target} PRIVATE ${ENGINE_DIR}/sys/windows-resource/supported-os.manifest)
     endif()
 
@@ -877,9 +890,9 @@ function(AddApplication)
     ADD_PRECOMPILED_HEADER(${A_Target}-objects)
 endfunction()
 
-daemon_write_buildinfo("Engine")
+yokai_write_buildinfo("DaemonEngine")
 
-if (NOT NACL)
+if (NOT YOKAI_TARGET_SYSTEM_NACL)
     add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${BUILDINFOLIST} ${COMMONLIST} ${ENGINELIST})
     target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE} ${CPP23SupportLibrary})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_DEFINITIONS BUILD_ENGINE)
@@ -893,7 +906,6 @@ if (NOT NACL)
         AddApplication(
             Target dummyapp
             ExecutableName dummyapp
-            Definitions USELESS_DEFINITION_TO_AVOID_PCH_ISSUE
             ApplicationMain ${ENGINE_DIR}/null/NullApplication.cpp
             CompileFlags ${WARNINGS}
             Files ${DUMMYAPPLIST}
@@ -930,9 +942,9 @@ if (BUILD_CLIENT)
     )
 
     # Generate GLSL include files.
-    daemon_embed_files("EngineShaders" "${GLSL_EMBED_DIR}" "${GLSL_EMBED_LIST}" "TEXT" "client-objects")
+    yokai_embed_files("DaemonEngineShaders" "${GLSL_EMBED_DIR}" "${GLSL_EMBED_LIST}" "TEXT" "client-objects")
 
-    daemon_embed_files(ConsoleFont "${CMAKE_CURRENT_SOURCE_DIR}/libs/unifont" unifont.otf BINARY client-objects)
+    yokai_embed_files("DaemonEngineFont" "${CMAKE_CURRENT_SOURCE_DIR}/libs/unifont" "unifont.otf" "BINARY" "client-objects")
 endif()
 
 if (BUILD_SERVER)
@@ -969,30 +981,33 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     add_custom_target(runtime_deps)
     set_target_properties(runtime_deps PROPERTIES FOLDER "CMakePlumbing")
 
-    # The NaCl loader and IRT are required to load .nexe files
-    add_custom_command(TARGET runtime_deps PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
-            ${FULL_OUTPUT_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
-    )
-
-    add_custom_command(TARGET runtime_deps PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/irt_core-${NACL_ARCH}.nexe
-            ${FULL_OUTPUT_DIR}/irt_core-${NACL_ARCH}.nexe
-    )
-
-    # Linux uses a bootstrap program to reserve address space
-    if (LINUX OR FREEBSD)
-        if (ARCH STREQUAL "arm64")
-            add_executable(nacl_helper_bootstrap-armhf tools/nacl_helper_bootstrap-armhf/nacl_helper_bootstrap-armhf.cpp)
-            add_dependencies(runtime_deps nacl_helper_bootstrap-armhf)
-
+    foreach(arch_name IN LISTS DAEMON_NACL_ARCH_NAME_LIST)
+        # The NaCl loader and IRT are required to load .nexe files
+        if (YOKAI_TARGET_SYSTEM_WINDOWS AND YOKAI_TARGET_ARCH_I686 AND "${arch_name}" STREQUAL "amd64")
+            # Backport compatibility until the external_deps script properly suffixes names in the archives.
             add_custom_command(TARGET runtime_deps PRE_BUILD
-                COMMAND ${CMAKE_COMMAND} -E make_directory
-                    ${FULL_OUTPUT_DIR}/lib-armhf
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${DEPS_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
+                    ${FULL_OUTPUT_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
             )
+        else()
+            add_custom_command(TARGET runtime_deps PRE_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${DEPS_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
+                    ${FULL_OUTPUT_DIR}/nacl_loader-${arch_name}${CMAKE_EXECUTABLE_SUFFIX}
+            )
+        endif()
 
+        add_custom_command(TARGET runtime_deps PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${DEPS_DIR}/irt_core-${arch_name}.nexe
+                ${FULL_OUTPUT_DIR}/irt_core-${arch_name}.nexe
+        )
+    endforeach()
+
+    if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY)
+        # Backport compatibility until the external_deps script properly suffixes names in the archives.
+        if (YOKAI_TARGET_ARCH_ARM64)
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_directory
                     ${DEPS_DIR}/lib-armhf
@@ -1000,29 +1015,21 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
             )
         endif()
 
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DEPS_DIR}/nacl_helper_bootstrap
-                ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap
-        )
-    endif()
-
-    # Win32 requires nacl_loader_amd64.exe in order to run on Win64
-    if (WIN32 AND ARCH STREQUAL i686)
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DEPS_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}
-                ${FULL_OUTPUT_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}
-        )
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DEPS_DIR}/irt_core-amd64.nexe
-                ${FULL_OUTPUT_DIR}/irt_core-amd64.nexe
-        )
+        # Linux uses a bootstrap program to reserve address space for 32-bit runtimes.
+        foreach(arch_name IN LISTS DAEMON_NACL_ARCH_NAME_LIST)
+            set(arch_32bit "i686" "armhf")
+            if ("${arch_name}" IN_LIST arch_32bit)
+                add_custom_command(TARGET runtime_deps PRE_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        ${DEPS_DIR}/nacl_helper_bootstrap
+                        ${FULL_OUTPUT_DIR}/nacl_helper_bootstrap-${arch_name}
+                )
+            endif()
+        endforeach()
     endif()
 
     # Mac requires some libraries from external_deps
-    if (APPLE)
+    if (YOKAI_TARGET_SYSTEM_MACOS)
         file(GLOB RUNTIME_FRAMEWORKS ${DEPS_DIR}/lib/*.framework)
         foreach(RUNTIME_FRAMEWORK ${RUNTIME_FRAMEWORKS})
             get_filename_component(RUNTIME_FRAMEWORK_NAME ${RUNTIME_FRAMEWORK} NAME)
@@ -1044,7 +1051,7 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
     endif()
 
     # Windows requires some libraries from external_deps
-    if (WIN32)
+    if (YOKAI_TARGET_SYSTEM_WINDOWS)
         file(GLOB RUNTIME_LIBS ${DEPS_DIR}/bin/*.dll ${DEPS_DIR}/SDL3/lib/*/SDL3.dll)
         foreach(RUNTIME_LIB ${RUNTIME_LIBS})
             add_custom_command(TARGET runtime_deps PRE_BUILD
