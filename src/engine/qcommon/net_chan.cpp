@@ -392,9 +392,9 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg )
 			return false;
 		}
 
-		if ( chan->fragmentLength > msg->maxsize )
+		if ( chan->fragmentLength + 4 > msg->maxsize )
 		{
-			Log::Notice( "%s: fragmentLength %i > msg->maxsize"
+			Log::Notice( "%s: total fragments length %i exceeds max msg size"
 			            , NET_AdrToString( chan->remoteAddress ),
 			            chan->fragmentLength );
 			return false;
