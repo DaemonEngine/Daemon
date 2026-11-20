@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #insert shaderProfiler_vp
 
 #if !defined(USE_MATERIAL_SYSTEM)
-	uniform mat3x2 u_TextureMatrix;
+	uniform textureMatrix u_TextureMatrix;
 #endif
 
 uniform vec3 u_ViewOrigin;

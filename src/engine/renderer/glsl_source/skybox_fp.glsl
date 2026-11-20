@@ -34,7 +34,7 @@ uniform bool        u_UseCloudMap;
 uniform float       u_CloudHeight;
 
 #if !defined(USE_MATERIAL_SYSTEM)
-	uniform mat3x2 u_TextureMatrix;
+	uniform textureMatrix u_TextureMatrix;
 #endif
 
 uniform float		u_AlphaThreshold;
