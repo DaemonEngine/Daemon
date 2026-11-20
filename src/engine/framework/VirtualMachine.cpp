@@ -333,13 +333,12 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 
 	pid_t pid;
 	char* emptyEnv[2] = {};
-#if defined(DAEMON_NACL_RUNTIME_LINUX) && (defined(YOKAI_ARCH_ARM64) || defined(YOKAI_ARCH_ARMHF))
-	if (OnArm64()) {
-		emptyEnv[0] = const_cast<char*>("LD_LIBRARY_PATH=lib-armhf");
-		
-		if (0 != posix_spawn_file_actions_addchdir_np(&fileActions, FS::GetLibPath().c_str())) {
-			Sys::Error("failed posix_spawn_file_actions_addchdir");
-		}
+#if defined(DAEMON_NACL_RUNTIME_LINUX) && defined(YOKAI_ARCH_ARM64)
+	// This is harmless if lib-armhf doesn't exist (for using system multi-arch install).
+	emptyEnv[0] = const_cast<char*>("LD_LIBRARY_PATH=lib-armhf");
+
+	if (0 != posix_spawn_file_actions_addchdir_np(&fileActions, FS::GetLibPath().c_str())) {
+		Sys::Error("failed posix_spawn_file_actions_addchdir");
 	}
 #endif
 	// By default, the child process gets an empty environment for sandboxing.

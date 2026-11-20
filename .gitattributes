@@ -1,5 +1,6 @@
 *						text=auto
 
+cmake/Yokai/Detection/detect eol=lf
 *.sh					eol=lf
 *.pl					eol=lf
 external_deps/cygtar.py	eol=lf
