@@ -78,6 +78,7 @@ Util::optional<std::string> GetBinding(Key key, BindTeam team, bool useDefault);
 // Get/set the keys which toggle (both open and close) the console.
 // The source of truth is cl_consoleKeys, but these provide an interface with Key objects.
 const std::vector<Key>& GetConsoleKeys();
+const std::string& GetConsoleKeysString();
 void SetConsoleKeys(const std::vector<Key>& keys);
 
 // Gets all keys that, if pressed, would execute the given command, based on the current team.
