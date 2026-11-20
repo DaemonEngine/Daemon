@@ -87,6 +87,11 @@ static Cvar::Cvar<float> r_portalDefaultRange(
 Cvar::Cvar<bool> r_depthShaders(
 	"r_depthShaders", "use depth pre-pass shaders", Cvar::CHEAT, true);
 
+Cvar::Cvar<bool> r_compressColormaps(
+	"r_compressColormaps", "compress uncompressed color maps", Cvar::NONE, false);
+Cvar::Cvar<bool> r_compressSkyboxes(
+	"r_compressSkyboxes", "compress uncompressed skyboxes", Cvar::NONE, false);
+
 struct delayedStageTexture_t {
 	bool active;
 	stageType_t type;
@@ -1501,6 +1506,25 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 					break;
 				case stageType_t::ST_SPECULARMAP:
 					imageParams.bits |= stage->colorspaceBits & LINEAR_SPECULARMAP ? 0 : IF_SRGB;
+					break;
+				default:
+					break;
+			}
+		}
+	}
+
+	if ( r_compressColormaps.Get() )
+	{
+		if ( ! ( shader.registerFlags & RSF_2D ) )
+		{
+			switch ( type )
+			{
+				case stageType_t::ST_COLORMAP:
+				case stageType_t::ST_DIFFUSEMAP:
+				case stageType_t::ST_GLOWMAP:
+				case stageType_t::ST_REFLECTIONMAP:
+				case stageType_t::ST_SKYBOXMAP:
+					imageParams.bits |= IF_COMPRESS;
 					break;
 				default:
 					break;
@@ -3702,6 +3726,11 @@ static void ParseSkyParms( const char **text )
 		if ( tr.worldLinearizeTexture )
 		{
 			imageParams.bits |= IF_SRGB;
+		}
+
+		if ( r_compressSkyboxes.Get() )
+		{
+			imageParams.bits |= IF_COMPRESS;
 		}
 
 		shader.sky.outerbox = R_FindCubeImage( prefix, imageParams );
@@ -6394,6 +6423,12 @@ shader_t       *R_FindShader( const char *name, int flags )
 			imageParams.bits |= IF_SRGB;
 		}
 
+		// HACK: Detect color grade images with RSF_NOMIP.
+		if ( r_compressColormaps.Get() && ! ( flags & RSF_NOMIP ) )
+		{
+			imageParams.bits |= IF_COMPRESS;
+		}
+
 		image = R_FindImageFile( fileName, imageParams );
 	}
 
@@ -7017,6 +7052,8 @@ void R_InitShaders()
 	Cvar::Latch(r_dpMaterial);
 	Cvar::Latch(r_depthShaders);
 	Cvar::Latch(r_portalDefaultRange);
+	Cvar::Latch(r_compressColormaps);
+	Cvar::Latch(r_compressSkyboxes);
 
 	memset( shaderTableHashTable, 0, sizeof( shaderTableHashTable ) );
 	memset( shaderHashTable, 0, sizeof( shaderHashTable ) );
