@@ -62,8 +62,7 @@ extern char **environ;
 
 static Cvar::Cvar<std::string> abiVersionCvar(
 	"version.daemon.abi", "Virtual machine IPC ABI version", Cvar::SERVERINFO | Cvar::ROM,
-	std::string(IPC::SYSCALL_ABI_VERSION) +
-	(IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES ? "+compatbreak" : ""));
+	IPC::SYSCALL_ABI_VERSION);
 
 static Cvar::Cvar<bool> workaround_naclArchitecture_arm64_disableQualification(
 	"workaround.linux.arm64.naclDisableQualification",
@@ -687,17 +686,6 @@ void VMBase::Create()
 	if (vmABI != IPC::SYSCALL_ABI_VERSION) {
 		Sys::Drop("Couldn't load the %s gamelogic module: it uses ABI version %s but this Daemon engine uses %s",
 		          this->name, vmABI, IPC::SYSCALL_ABI_VERSION);
-	}
-
-	bool vmCompatBreaking = reader.Read<bool>();
-	if (vmCompatBreaking && !IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES) {
-		Sys::Drop("Couldn't load the %s gamelogic module: it has compatibility-breaking ABI changes but Daemon engine uses the vanilla %s ABI",
-		          this->name, IPC::SYSCALL_ABI_VERSION);
-	} else if (!vmCompatBreaking && IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES) {
-		Sys::Drop("Couldn't load the %s gamelogic module: Daemon has compatibility-breaking ABI changes but the VM uses the vanilla %s ABI",
-		          this->name, IPC::SYSCALL_ABI_VERSION);
-	} else if (IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES) {
-		Log::Notice("^6Using %s VM with unreleased ABI changes", this->name);
 	}
 
 	Log::Notice("Loaded %s VM module in %d msec", this->name, Sys::Milliseconds() - loadStartTime);
