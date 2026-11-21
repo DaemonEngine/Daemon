@@ -87,4 +87,9 @@ namespace VM {
     };
 }
 
+namespace FS {
+   // Handle filesystem system calls
+   void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& channel, Str::StringRef vmName);
+}
+
 #endif // COMMAND_VM_SERVICES_H_
