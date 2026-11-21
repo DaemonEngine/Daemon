@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_COMMAND_H_
 #define COMMON_COMMAND_H_
 
-#include <engine/qcommon/q_shared.h>
+#include "engine/qcommon/q_shared.h"
 
 namespace Cmd {
 

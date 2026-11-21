@@ -28,8 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#include <engine/server/sg_msgdef.h>
-#include <shared/VMMain.h>
+#include "engine/server/sg_msgdef.h"
+#include "shared/VMMain.h"
 
 IPC::SharedMemory shmRegion;
 

@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SHARED_SERVER_API_H_
 #define SHARED_SERVER_API_H_
 
-#include <common/IPC/Primitives.h>
+#include "common/IPC/Primitives.h"
 
 extern IPC::SharedMemory shmRegion;
 

@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CrashDump.h"
 #include "CvarSystem.h"
 #include "common/StackTrace.h"
-#include <common/FileSystem.h>
+#include "common/FileSystem.h"
 #ifdef _WIN32
 #include <windows.h>
 #include <SDL3/SDL.h>

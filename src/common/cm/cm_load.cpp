@@ -34,7 +34,7 @@ Maryland 20850 USA.
 
 #include "cm_local.h"
 
-#include <common/FileSystem.h>
+#include "common/FileSystem.h"
 
 // to allow boxes to be treated as brush models, we allocate
 // some extra indexes along with those needed by the map

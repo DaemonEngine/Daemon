@@ -38,7 +38,7 @@ Maryland 20850 USA.
 #include "CryptoChallenge.h"
 #include "framework/Network.h"
 #include "qcommon/sys.h"
-#include <common/FileSystem.h>
+#include "common/FileSystem.h"
 
 // HTTP download params
 static Cvar::Cvar<bool> sv_wwwDownload("sv_wwwDownload", "have clients download missing paks via HTTP", Cvar::NONE, true);
