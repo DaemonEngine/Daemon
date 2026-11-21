@@ -33,10 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Command.h"
 
-#ifdef BUILD_ENGINE
-#include "IPC/Channel.h"
-#endif
-
 namespace FS {
 
 bool UseLegacyPaks();
@@ -560,11 +556,6 @@ const std::string& GetHomePath();
 
 // Get the path containing program binaries
 const std::string& GetLibPath();
-
-#ifdef BUILD_ENGINE
-// Handle filesystem system calls
-void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& channel, Str::StringRef vmName);
-#endif
 
 } // namespace FS
 

@@ -53,7 +53,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Assert.h"
 #include "Math.h"
 #include "Color.h"
-#include "Serialize.h"
 #include "DisjointSets.h" // TODO: move to gamelogic
 
 using Math::Vec2;

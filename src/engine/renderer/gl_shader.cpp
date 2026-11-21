@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // gl_shader.cpp -- GLSL shader handling
 
 #include "common/FileSystem.h"
+#include "common/Type.h"
 #include "gl_shader.h"
 #include "Material.h"
 #include "YokaiEmbeddedFiles/DaemonEngineShaders.h"
