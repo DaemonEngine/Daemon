@@ -31,8 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef FRAMEWORK_COMMAND_SYSTEM_H_
 #define FRAMEWORK_COMMAND_SYSTEM_H_
 
-#include <common/Command.h>
-#include <common/String.h>
+#include "common/Command.h"
+#include "common/String.h"
 
 /*
  * Command execution and command text buffering.

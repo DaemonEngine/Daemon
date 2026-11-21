@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "gl_shader.h"
 #include "Material.h"
 #if defined( REFBONE_NAMES )
-	#include <client/client.h>
+	#include "client/client.h"
 #endif
 
 backEndData_t  *backEndData[ SMP_FRAMES ];
