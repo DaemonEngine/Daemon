@@ -31,8 +31,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_COMMON_SYSCALLS_H_
 #define COMMON_COMMON_SYSCALLS_H_
 
+#include "Common.h"
 #include "Primitives.h"
-#include <common/FileSystem.h>
+#include "common/FileSystem.h"
+#include "common/Serialize.h"
 
 namespace Util {
     template<> struct SerializeTraits<netField_t> {

@@ -28,7 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
+#include "common/Common.h"
+
+#include "common/FileSystem.h"
+
 #if defined(BUILD_ENGINE)
+#include "framework/CommonVMServices.h" // declaration of HandleFileSystemSyscall
 #include "minizip/unzip.h"
 #endif
 
@@ -42,6 +47,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "shared/VMMain.h"
 #else
 #include "engine/qcommon/qcommon.h"
+#include "IPC/Channel.h"
 #endif
 
 #include "IPC/CommonSyscalls.h"

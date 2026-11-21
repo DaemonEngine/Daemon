@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcommon/q_shared.h"
 #include "BaseCommands.h"
 
-#include <common/FileSystem.h>
+#include "common/FileSystem.h"
 
 #include "Application.h"
 #include "CommandSystem.h"

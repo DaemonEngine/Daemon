@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "engine/renderer/tr_types.h"
 #include "common/KeyIdentification.h"
 #include "shared/CommonProxies.h"
-#include <shared/CommandBufferClient.h>
+#include "shared/CommandBufferClient.h"
 
 extern IPC::CommandBufferClient cmdBuffer;
 

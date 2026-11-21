@@ -32,8 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define FRAMEWORK_APPLICATION_H_
 
 #include <string>
-#include <common/String.h>
-#include <common/Command.h>
+#include "common/String.h"
+#include "common/Command.h"
 
 namespace Application {
 
