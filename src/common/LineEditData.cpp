@@ -30,6 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Common.h"
 
+#include "common/LineEditData.h"
+
 //TODO: use a std::string instead of a fixed size char* ?
 //TODO: support MAJ-selection ?
 
