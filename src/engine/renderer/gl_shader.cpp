@@ -1459,6 +1459,9 @@ bool GLShaderManager::LoadShaderBinary( const std::vector<ShaderEntry>& shaders,
 	glGetProgramiv( descriptor->id, GL_LINK_STATUS, &success );
 
 	if ( !success ) {
+		Log::Warn( "Failed to load cached GLSL binary from %s", shaderFilename );
+		glDeleteProgram( descriptor->id );
+		descriptor->id = 0;
 		return false;
 	}
 
