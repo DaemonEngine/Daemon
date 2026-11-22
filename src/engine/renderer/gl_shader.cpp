@@ -1016,27 +1016,19 @@ void GLShaderManager::BuildShaderProgram( ShaderProgramDescriptor* descriptor ) 
 	Log::Debug( "Program creation + linking: %i", time );
 }
 
-ShaderProgramDescriptor* GLShaderManager::FindShaderProgram( std::vector<ShaderEntry>& shaders, const std::string& mainShader ) {
+ShaderProgramDescriptor* GLShaderManager::FindShaderProgram( std::vector<ShaderEntry> shaders, const std::string& mainShader ) {
+	std::sort( shaders.begin(), shaders.end(),
+		[]( const ShaderEntry& lhs, const ShaderEntry& rhs ) {
+			return lhs.name < rhs.name;
+		}
+	);
 	std::vector<ShaderProgramDescriptor>::iterator it = std::find_if( shaderProgramDescriptors.begin(), shaderProgramDescriptors.end(),
-		[&]( const ShaderProgramDescriptor& program ) {
-			for ( const ShaderEntry& shader : shaders ) {
-				if ( std::find( program.shaderNames, program.shaderNames + program.shaderCount, shader )
-					== program.shaderNames + program.shaderCount ) {
-					return false;
-				}
-			}
-
-			return true;
+		[&shaders]( const ShaderProgramDescriptor& program ) {
+			return std::ranges::equal(shaders.begin(), shaders.end(), program.shaderNames, program.shaderNames + program.shaderCount);
 		}
 	);
 
 	if ( it == shaderProgramDescriptors.end() ) {
-		std::sort( shaders.begin(), shaders.end(),
-			[]( const ShaderEntry& lhs, const ShaderEntry& rhs ) {
-				return lhs.name < rhs.name;
-			}
-		);
-
 		ShaderProgramDescriptor desc;
 		std::string combinedShaderText;
 		std::vector<ShaderDescriptor*> buildQueue;
@@ -1071,7 +1063,7 @@ ShaderProgramDescriptor* GLShaderManager::FindShaderProgram( std::vector<ShaderE
 
 		shaderProgramDescriptors.emplace_back( desc );
 
-		return &shaderProgramDescriptors[shaderProgramDescriptors.size() - 1];
+		return &shaderProgramDescriptors.back();
 	}
 
 	return &*it;
@@ -1138,7 +1130,7 @@ bool GLShaderManager::BuildPermutation( GLShader* shader, int index, const bool 
 		shaders.emplace_back( ShaderEntry{ shader->_name, 0, GL_COMPUTE_SHADER } );
 	}
 
-	program = FindShaderProgram( shaders, shader->_name );
+	program = FindShaderProgram( std::move( shaders ), shader->_name );
 
 	UpdateShaderProgramUniformLocations( shader, program );
 	GL_BindProgram( program );
@@ -1246,7 +1238,7 @@ ShaderDescriptor* GLShaderManager::FindShader( const std::string& name, const st
 	const GLenum type, const std::vector<GLHeader*>& headers,
 	const uint32_t macro, const std::string& compileMacros, const bool main ) {
 
-	ShaderDescriptor desc{ name, compileMacros, macro, type, main };
+	ShaderDescriptor desc{ name, macro, type, compileMacros, main };
 	const std::vector<ShaderDescriptor>::iterator it = std::find_if( shaderDescriptors.begin(), shaderDescriptors.end(),
 		[&]( const ShaderDescriptor& other ) {
 			return desc.type == other.type && desc.macro == other.macro && desc.name == other.name;

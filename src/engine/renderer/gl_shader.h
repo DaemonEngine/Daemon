@@ -84,7 +84,7 @@ struct GLHeader {
 struct ShaderEntry {
 	std::string name;
 	uint32_t macro;
-	GLuint type;
+	GLenum type;
 
 	bool operator==( const ShaderEntry& other ) const {
 		return name == other.name && macro == other.macro && type == other.type;
@@ -97,11 +97,11 @@ struct ShaderEntry {
 
 struct ShaderDescriptor {
 	std::string name;
+	uint32_t macro;
+	GLenum type;
 
 	std::string macros;
-	uint32_t macro;
-
-	GLenum type;
+	
 	bool main = false;
 
 	GLuint id = 0;
@@ -543,7 +543,7 @@ private:
 	void BuildShaderProgram( ShaderProgramDescriptor* descriptor );
 
 	std::string GetDeformShaderName( const int index );
-	ShaderProgramDescriptor* FindShaderProgram( std::vector<ShaderEntry>& shaders, const std::string& mainShader );
+	ShaderProgramDescriptor* FindShaderProgram( std::vector<ShaderEntry> shaders, const std::string& mainShader );
 
 	bool LoadShaderBinary( const std::vector<ShaderEntry>& shaders, const std::string& mainShader,
 		ShaderProgramDescriptor* out );
