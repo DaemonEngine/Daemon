@@ -1448,6 +1448,10 @@ bool GLShaderManager::LoadShaderBinary( const std::vector<ShaderEntry>& shaders,
 		return false;
 	}
 
+	if ( 0 != strncmp( YOKAI_ARCH_STRING, shaderHeader.cpuArch, sizeof( shaderHeader.cpuArch ) - 1 ) ) {
+		return false;
+	}
+
 	if ( shaderHeader.binaryLength != shaderData.size() - sizeof( shaderHeader ) ) {
 		Log::Warn( "Shader cache %s has wrong size", shaderFilename );
 		return false;
@@ -1521,6 +1525,7 @@ void GLShaderManager::SaveShaderBinary( ShaderProgramDescriptor* descriptor ) {
 	shaderHeader.binaryLength = binaryLength;
 	shaderHeader.checkSum = descriptor->checkSum;
 	shaderHeader.driverVersionHash = _driverVersionHash;
+	Q_strncpyz( shaderHeader.cpuArch, YOKAI_ARCH_STRING, sizeof( shaderHeader.cpuArch ) );
 
 	// Write the header to the buffer
 	memcpy( binary, &shaderHeader, sizeof( shaderHeader ) );
