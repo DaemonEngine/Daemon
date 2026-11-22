@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 // *INDENT-OFF*
 static const unsigned int MAX_SHADER_MACROS = 10;
-static const unsigned int GL_SHADER_VERSION = 6;
+static const unsigned int GL_SHADER_VERSION = 7;
 
 class ShaderException : public std::runtime_error
 {
@@ -50,6 +50,7 @@ struct GLBinaryHeader {
 	uint32_t version;
 	uint32_t checkSum; // checksum of shader source this was built from
 	uint32_t driverVersionHash; // detect if the graphics driver was different
+	char cpuArch[ 16 ];
 
 	GLuint type;
 	uint32_t macro; // Bitmask of macros the shader uses ( may or may not be enabled )
