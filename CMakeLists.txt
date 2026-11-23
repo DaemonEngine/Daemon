@@ -1007,7 +1007,7 @@ if (DEPS_DIR AND HAS_NACL AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER 
 
     if (YOKAI_TARGET_SYSTEM_LINUX_COMPATIBILITY)
         # Backport compatibility until the external_deps script properly suffixes names in the archives.
-        if (YOKAI_TARGET_ARCH_ARM64)
+        if (YOKAI_TARGET_ARCH_ARM64 AND EXISTS ${DEPS_DIR}/lib-armhf)
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_directory
                     ${DEPS_DIR}/lib-armhf
