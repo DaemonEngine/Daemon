@@ -444,13 +444,98 @@ static int CM_EdgePlaneNum( cGrid_t *grid, int gridPlanes[ MAX_GRID_SIZE ][ MAX_
 	Sys::Drop( "CM_EdgePlaneNum: bad k" );
 }
 
+// Gets the endpoints of an edge of a grid square, numbered as in CM_EdgePlaneNum
+static void CM_EdgePoints( cGrid_t *grid, int i, int j, int k, const float *&p1, const float *&p2 )
+{
+	switch ( k )
+	{
+		case 0: // top border
+			p1 = grid->points[ i ][ j ];
+			p2 = grid->points[ i + 1 ][ j ];
+			return;
+
+		case 1: // right border
+			p1 = grid->points[ i + 1 ][ j ];
+			p2 = grid->points[ i + 1 ][ j + 1 ];
+			return;
+
+		case 2: // bottom border
+			p1 = grid->points[ i ][ j + 1 ];
+			p2 = grid->points[ i + 1 ][ j + 1 ];
+			return;
+
+		case 3: // left border
+			p1 = grid->points[ i ][ j ];
+			p2 = grid->points[ i ][ j + 1 ];
+			return;
+
+		case 4: // diagonal out of triangle 0
+		case 5: // diagonal out of triangle 1
+			p1 = grid->points[ i ][ j ];
+			p2 = grid->points[ i + 1 ][ j + 1 ];
+			return;
+	}
+
+	ASSERT_UNREACHABLE();
+}
+
+// Usually a facet's border along an edge is the surface plane of the neighboring triangle, so
+// that the facets of the patch fit together. This checks that such a plane really bounds the
+// facet along the given edge, i.e. that the line where it intersects the facet's surface plane
+// passes through the edge.
+//
+// That can fail if the border plane is nearly parallel to the surface plane. Since triangles which
+// are ~coplanar within the PLANE_TRI_EPSILON tolerance may share a plane, small adjustments of the
+// planes can move the intersection line far away. Also with near-coplanar borders, the windings
+// computed by CM_ValidateFacet and CM_AddFacetBevels may be inaccurate, so the
+// bevels may cut away parts of the facet, resulting in a hole in the patch.
+static bool CM_BorderFitsEdge( const cFacet_t *facet, int borderPlane, const float *p1, const float *p2 )
+{
+	// 1.15 degrees. TODO justify this constant? Should be derived from PLANE_TRI_EPSILON somehow
+	constexpr float MIN_BORDER_SINE = 0.02f;
+	// Maximum distance between the edge and the intersection line
+	constexpr float MAX_BORDER_EDGE_DISTANCE = 0.5f;
+
+	const plane_t &surface = tempPlanes[ facet->surfacePlane ].plane;
+	const plane_t &border = tempPlanes[ borderPlane ].plane;
+
+	// sine of the angle between the planes
+	float cosine = DotProduct( surface.normal, border.normal );
+	float sine = sqrtf( std::max( 0.0f, 1.0f - cosine * cosine ) );
+
+	if ( sine < MIN_BORDER_SINE )
+	{
+		return false;
+	}
+
+	for ( const float *p : { p1, p2 } )
+	{
+		// project the point onto the surface plane (should be very close already)
+		vec3_t projected;
+		VectorMA( p, surface.dist - DotProduct( p, surface.normal ), surface.normal, projected );
+
+		// distance from the intersection line, measured within the surface plane
+		float d = fabsf( DotProduct( projected, border.normal ) - border.dist ) / sine;
+
+		if ( d > MAX_BORDER_EDGE_DISTANCE )
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 /*
 ===================
 CM_SetBorderInward
+
+edges[ k ] is the edge of the grid square (numbered as in CM_EdgePlaneNum)
+corresponding to facet->borderPlanes[ k ].
 ===================
 */
-static void CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid,
-                                int i, int j, int which )
+static void CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid, int gridPlanes[ MAX_GRID_SIZE ][ MAX_GRID_SIZE ][ 2 ],
+                                int i, int j, int which, const int *edges )
 {
 	int   k, l;
 	float *points[ 4 ];
@@ -487,7 +572,24 @@ static void CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid,
 	for ( k = 0; k < facet->numBorders; k++ )
 	{
 		int front, back;
+		bool isEdgePlane = false;
 
+		if ( facet->borderPlanes[ k ] == -1 )
+		{
+			return; // will be invalidated by CM_ValidateFacet
+		}
+
+		const float *p1, *p2;
+		CM_EdgePoints( grid, i, j, edges[ k ], p1, p2 );
+
+		if ( !CM_BorderFitsEdge( facet, facet->borderPlanes[ k ], p1, p2 ) )
+		{
+			// use a plane perpendicular to the facet through the edge instead
+			facet->borderPlanes[ k ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, edges[ k ] );
+			isEdgePlane = true;
+		}
+
+retry:
 		front = 0;
 		back = 0;
 
@@ -516,7 +618,19 @@ static void CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid,
 		}
 		else if ( !front && !back )
 		{
-			// flat side border
+			// flat side border: the plane is (nearly) coplanar with the facet so it cannot
+			// bound it. Try a plane perpendicular to the facet through the edge instead
+			if ( !isEdgePlane )
+			{
+				facet->borderPlanes[ k ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, edges[ k ] );
+				isEdgePlane = true;
+
+				if ( facet->borderPlanes[ k ] != -1 )
+				{
+					goto retry;
+				}
+			}
+
 			facet->borderPlanes[ k ] = -1;
 		}
 		else
@@ -664,13 +778,15 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 					continue; // degenerate
 				}
 
+				constexpr int quadEdges[] = { 0, 1, 2, 3 };
+
 				facet->surfacePlane = gridPlanes[ i ][ j ][ 0 ];
 				facet->numBorders = 4;
 				facet->borderPlanes[ 0 ] = borders[ EN_TOP ];
 				facet->borderPlanes[ 1 ] = borders[ EN_RIGHT ];
 				facet->borderPlanes[ 2 ] = borders[ EN_BOTTOM ];
 				facet->borderPlanes[ 3 ] = borders[ EN_LEFT ];
-				CM_SetBorderInward( facet, grid, i, j, -1 );
+				CM_SetBorderInward( facet, grid, gridPlanes, i, j, -1, quadEdges );
 
 				if ( CM_ValidateFacet( facet ) )
 				{
@@ -685,6 +801,8 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 
 			if ( gridPlanes[ i ][ j ][ 0 ] != -1 )
 			{
+				constexpr int triangle0Edges[] = { 0, 1, 4 };
+
 				facet->surfacePlane = gridPlanes[ i ][ j ][ 0 ];
 				facet->numBorders = 3;
 				facet->borderPlanes[ 0 ] = borders[ EN_TOP ];
@@ -696,7 +814,7 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 					facet->borderPlanes[ 2 ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 4 );
 				}
 
-				CM_SetBorderInward( facet, grid, i, j, 0 );
+				CM_SetBorderInward( facet, grid, gridPlanes, i, j, 0, triangle0Edges );
 
 				if ( CM_ValidateFacet( facet ) )
 				{
@@ -712,6 +830,8 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 					Sys::Drop( "MAX_FACETS" );
 				}
 
+				constexpr int triangle1Edges[] = { 2, 3, 5 };
+
 				facet = &facets[ numFacets ];
 				*facet = {};
 
@@ -726,7 +846,7 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 					facet->borderPlanes[ 2 ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 5 );
 				}
 
-				CM_SetBorderInward( facet, grid, i, j, 1 );
+				CM_SetBorderInward( facet, grid, gridPlanes, i, j, 1, triangle1Edges );
 
 				if ( CM_ValidateFacet( facet ) )
 				{

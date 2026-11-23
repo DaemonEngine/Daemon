@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
+// Tests for the public API (cm_public.h)
+
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
