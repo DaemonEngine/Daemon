@@ -145,4 +145,14 @@ TEST(PatchCollideTest, NoHolesMetro)
     });
 }
 
+// From map sectorb17. This one needs the concaveness detection
+TEST(PatchCollideTest, NoHolesConcaveQuad)
+{
+    ExpectNoHolesInPatch(3, 3, {
+        {240, 516, 1104}, {240, 556, 1104}, {240, 596, 1104},
+        {240, 516, 1040}, {240, 516, 1104}, {240, 596, 1104},
+        {240, 516, 976}, {240, 516, 1104}, {240, 596, 1104},
+    });
+}
+
 } // namespace

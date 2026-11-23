@@ -532,12 +532,14 @@ CM_SetBorderInward
 
 edges[ k ] is the edge of the grid square (numbered as in CM_EdgePlaneNum)
 corresponding to facet->borderPlanes[ k ].
+Returns false if some border plane has facet points on both sides.
 ===================
 */
-static void CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid, int gridPlanes[ MAX_GRID_SIZE ][ MAX_GRID_SIZE ][ 2 ],
+static bool CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid, int gridPlanes[ MAX_GRID_SIZE ][ MAX_GRID_SIZE ][ 2 ],
                                 int i, int j, int which, const int *edges )
 {
 	int   k, l;
+	bool  mixed = false;
 	float *points[ 4 ];
 	int   numPoints;
 
@@ -576,7 +578,7 @@ static void CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid, int gridPlanes[ 
 
 		if ( facet->borderPlanes[ k ] == -1 )
 		{
-			return; // will be invalidated by CM_ValidateFacet
+			return !mixed; // will be invalidated by CM_ValidateFacet
 		}
 
 		const float *p1, *p2;
@@ -636,10 +638,12 @@ retry:
 		else
 		{
 			// bisecting side border
-			cmLog.Warn( "CM_SetBorderInward: mixed plane sides" );
 			facet->borderInward[ k ] = false;
+			mixed = true;
 		}
 	}
+
+	return !mixed;
 }
 
 enum edgeName_e
@@ -769,9 +773,9 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 			}
 
 			facet = &facets[ numFacets ];
-			*facet = {};
+			bool quad = gridPlanes[ i ][ j ][ 0 ] == gridPlanes[ i ][ j ][ 1 ];
 
-			if ( gridPlanes[ i ][ j ][ 0 ] == gridPlanes[ i ][ j ][ 1 ] )
+			if ( quad )
 			{
 				if ( gridPlanes[ i ][ j ][ 0 ] == -1 )
 				{
@@ -780,29 +784,31 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 
 				constexpr int quadEdges[] = { 0, 1, 2, 3 };
 
+				*facet = {};
 				facet->surfacePlane = gridPlanes[ i ][ j ][ 0 ];
 				facet->numBorders = 4;
 				facet->borderPlanes[ 0 ] = borders[ EN_TOP ];
 				facet->borderPlanes[ 1 ] = borders[ EN_RIGHT ];
 				facet->borderPlanes[ 2 ] = borders[ EN_BOTTOM ];
 				facet->borderPlanes[ 3 ] = borders[ EN_LEFT ];
-				CM_SetBorderInward( facet, grid, gridPlanes, i, j, -1, quadEdges );
 
-				if ( CM_ValidateFacet( facet ) )
+				if ( !CM_SetBorderInward( facet, grid, gridPlanes, i, j, -1, quadEdges ) )
+				{
+					// The quad is not convex so it cannot be a single facet, use two triangles.
+					quad = false;
+				}
+				else if ( CM_ValidateFacet( facet ) )
 				{
 					CM_AddFacetBevels( facet );
 					numFacets++;
 				}
-
-				continue;
 			}
 
-			// two separate triangles...
-
-			if ( gridPlanes[ i ][ j ][ 0 ] != -1 )
+			if ( !quad && gridPlanes[ i ][ j ][ 0 ] != -1 )
 			{
 				constexpr int triangle0Edges[] = { 0, 1, 4 };
 
+				*facet = {};
 				facet->surfacePlane = gridPlanes[ i ][ j ][ 0 ];
 				facet->numBorders = 3;
 				facet->borderPlanes[ 0 ] = borders[ EN_TOP ];
@@ -814,7 +820,10 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 					facet->borderPlanes[ 2 ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 4 );
 				}
 
-				CM_SetBorderInward( facet, grid, gridPlanes, i, j, 0, triangle0Edges );
+				if ( !CM_SetBorderInward( facet, grid, gridPlanes, i, j, 0, triangle0Edges ) )
+				{
+					cmLog.Warn( "CM_SetBorderInward: mixed plane sides" );
+				}
 
 				if ( CM_ValidateFacet( facet ) )
 				{
@@ -823,7 +832,7 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 				}
 			}
 
-			if ( gridPlanes[ i ][ j ][ 1 ] != -1 )
+			if ( !quad && gridPlanes[ i ][ j ][ 1 ] != -1 )
 			{
 				if ( numFacets == SHADER_MAX_TRIANGLES )
 				{
@@ -846,7 +855,10 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 					facet->borderPlanes[ 2 ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 5 );
 				}
 
-				CM_SetBorderInward( facet, grid, gridPlanes, i, j, 1, triangle1Edges );
+				if ( !CM_SetBorderInward( facet, grid, gridPlanes, i, j, 1, triangle1Edges ) )
+				{
+					cmLog.Warn( "CM_SetBorderInward: mixed plane sides" );
+				}
 
 				if ( CM_ValidateFacet( facet ) )
 				{
