@@ -42,59 +42,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <nettle/bignum.h>
 #pragma warning(pop)
 
-// Compatibility with old nettle versions
-#if !defined(AES256_KEY_SIZE)
-
-#define AES256_KEY_SIZE 32
-
-typedef aes_ctx compat_aes256_ctx;
-
-static void nettle_compat_aes256_set_encrypt_key(compat_aes256_ctx *ctx, const uint8_t *key)
-{
-	nettle_aes_set_encrypt_key(ctx, AES256_KEY_SIZE, key);
-}
-
-static void nettle_compat_aes256_set_decrypt_key(compat_aes256_ctx *ctx, const uint8_t *key)
-{
-	nettle_aes_set_decrypt_key(ctx, AES256_KEY_SIZE, key);
-}
-
-static void nettle_compat_aes256_encrypt(const compat_aes256_ctx *ctx,
-						   size_t length, uint8_t *dst,
-						   const uint8_t *src)
-{
-	nettle_aes_encrypt(ctx, length, dst, src);
-}
-
-static void nettle_compat_aes256_decrypt(const compat_aes256_ctx *ctx,
-						   size_t length, uint8_t *dst,
-						   const uint8_t *src)
-{
-	nettle_aes_decrypt(ctx, length, dst, src);
-}
-
-
-static int nettle_compat_base64_decode_update(base64_decode_ctx *ctx,
-		     size_t *dst_length,
-		     uint8_t *dst,
-		     size_t src_length,
-		     const uint8_t *src)
-{
-	unsigned dst_length_uns = *dst_length;
-	return nettle_base64_decode_update(ctx, &dst_length_uns, dst, src_length, src);
-}
-
-#undef aes256_set_encrypt_key
-#define nettle_aes256_set_encrypt_key nettle_compat_aes256_set_encrypt_key
-#define nettle_aes256_set_decrypt_key nettle_compat_aes256_set_decrypt_key
-#define nettle_aes256_invert_key      nettle_compat_aes256_invert_key
-#define nettle_aes256_encrypt         nettle_compat_aes256_encrypt
-#define nettle_aes256_decrypt         nettle_compat_aes256_decrypt
-#define aes256_ctx compat_aes256_ctx
-#define nettle_base64_decode_update nettle_compat_base64_decode_update
-
-#endif // NETTLE_VERSION_MAJOR < 3
-
 // Nettle 3.4 changed the base64 API to accept char* arguments instead of uint8_t* args. Account
 // for this here.
 #if (NETTLE_VERSION_MAJOR * 100 + NETTLE_VERSION_MINOR) >= 304
