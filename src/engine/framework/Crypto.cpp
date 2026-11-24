@@ -31,14 +31,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/Common.h"
 #include "Crypto.h"
 
-#pragma warning(push)
-#pragma warning(disable : 4146) // "unary minus operator applied to unsigned type, result still unsigned" in gmp.h
-#include <nettle/aes.h>
+// Include before other Nettle stuff to disable some warnings in headers
+#include "qcommon/crypto.h"
+
 #include <nettle/base64.h>
 #include <nettle/md5.h>
 #include <nettle/sha2.h>
 #include <nettle/version.h>
-#pragma warning(pop)
 
 namespace Crypto {
 
