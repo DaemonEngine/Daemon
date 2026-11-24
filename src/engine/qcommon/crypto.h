@@ -27,8 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "q_shared.h"
 #include "qcommon.h"
 
-/* The Nettle headers include the GMP header, this disables the warning
-on GMP alone, not the whole Nettle. We don't use GMP directly ourselves. */
+// The Nettle headers include the GMP header, so this include this first to cancel the warning
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4146) // "unary minus operator applied to unsigned type, result still unsigned"
@@ -36,9 +35,19 @@ on GMP alone, not the whole Nettle. We don't use GMP directly ourselves. */
 #pragma warning(pop)
 #endif
 
+// As of GCC 16 there is a spurious warning for alignas(0) on Linux i686, although this
+// is a legal no-op according to the C and C++ standards.
+#if defined(__GNUC__) && !defined(__clang__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wattributes"
+#endif
+#include <nettle/aes.h>
 #include <nettle/bignum.h>
-#include <nettle/rsa.h>
 #include <nettle/buffer.h>
+#include <nettle/rsa.h>
+#if defined(__GNUC__) && !defined(__clang__)
+#   pragma GCC diagnostic pop
+#endif
 
 // Random function used for key generation and encryption
 void     qnettle_random( void *ctx, size_t length, uint8_t *dst );
