@@ -33,6 +33,7 @@ Maryland 20850 USA.
 */
 
 #include "cm_local.h"
+#include "cm_patch.h"
 
 #include "common/FileSystem.h"
 

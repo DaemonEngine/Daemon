@@ -35,15 +35,11 @@ Maryland 20850 USA.
 #ifndef COMMON_CM_CM_PATCH_H_
 #define COMMON_CM_CM_PATCH_H_
 
-//#define   CULL_BBOX
-
 /*
 
-This file does not reference any globals, and has these entry points:
+This file has these entry points:
 
 struct patchCollide_t *CM_GeneratePatchCollide( int width, int height, const vec3_t *points );
-void CM_TraceThroughPatchCollide( traceWork_t *tw, const struct patchCollide_t *pc );
-bool CM_PositionTestInPatchCollide( traceWork_t *tw, const struct patchCollide_t *pc );
 
 
 Issues for collision against curved surfaces:
@@ -72,6 +68,8 @@ degenerate a few triangles.  Completely degenerate rows and columns are handled
 properly.
 */
 
+#include "cm_local.h"
+
 #define MAX_GRID_SIZE    129
 
 struct cGrid_t
@@ -83,7 +81,7 @@ struct cGrid_t
 	vec3_t   points[ MAX_GRID_SIZE ][ MAX_GRID_SIZE ]; // [width][height]
 };
 
-//struct patchCollide_t *CM_GeneratePatchCollide(int width, int height, const vec3_t * points, bool addBevels);
+cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, const vec3_t *points );
 
 void CM_SetGridWrapWidth( cGrid_t *grid );
 void CM_SubdivideGridColumns( cGrid_t *grid );
