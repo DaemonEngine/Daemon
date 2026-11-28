@@ -380,25 +380,9 @@ CM_GridPlane
 */
 static int CM_GridPlane( int gridPlanes[ MAX_GRID_SIZE ][ MAX_GRID_SIZE ][ 2 ], int i, int j, int tri )
 {
-	int p;
-
-	p = gridPlanes[ i ][ j ][ tri ];
-
-	if ( p != -1 )
-	{
-		return p;
-	}
-
-	p = gridPlanes[ i ][ j ][ !tri ];
-
-	if ( p != -1 )
-	{
-		return p;
-	}
-
-	// should never happen
-	Log::Warn( "CM_GridPlane unresolvable" );
-	return -1;
+	int p = gridPlanes[ i ][ j ][ tri ];
+	ASSERT_GE( p, 0 );
+	return p;
 }
 
 /*
@@ -563,8 +547,6 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 	float          *p1, *p2, *p3;
 	int             gridPlanes[ MAX_GRID_SIZE ][ MAX_GRID_SIZE ][ 2 ];
 	cFacet_t       *facet;
-	int             borders[ 4 ];
-	int             noAdjust[ 4 ];
 
 	CM_ResetPlaneCounts();
 
@@ -590,76 +572,81 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 	{
 		for ( j = 0; j < grid->height - 1; j++ )
 		{
-			borders[ EN_TOP ] = -1;
+			int borders[ 4 ] = { -1, -1, -1, -1 };
+			bool useEdge;
 
-			if ( j > 0 )
+			if ( gridPlanes[ i ][ j ][ 0 ] != -1 )
 			{
-				borders[ EN_TOP ] = gridPlanes[ i ][ j - 1 ][ 1 ];
-			}
-			else if ( grid->wrapHeight )
-			{
-				borders[ EN_TOP ] = gridPlanes[ i ][ grid->height - 2 ][ 1 ];
-			}
+				// top
+				if ( j > 0 )
+				{
+					borders[ EN_TOP ] = gridPlanes[ i ][ j - 1 ][ 1 ];
+				}
+				else if ( grid->wrapHeight )
+				{
+					borders[ EN_TOP ] = gridPlanes[ i ][ grid->height - 2 ][ 1 ];
+				}
 
-			noAdjust[ EN_TOP ] = ( borders[ EN_TOP ] == gridPlanes[ i ][ j ][ 0 ] );
+				useEdge = ( borders[ EN_TOP ] == gridPlanes[ i ][ j ][ 0 ] );
 
-			if ( borders[ EN_TOP ] == -1 || noAdjust[ EN_TOP ] )
-			{
-				borders[ EN_TOP ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 0 );
-			}
+				if ( borders[ EN_TOP ] == -1 || useEdge )
+				{
+					borders[ EN_TOP ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 0 );
+				}
 
-			borders[ EN_BOTTOM ] = -1;
+				// right
+				if ( i < grid->width - 2 )
+				{
+					borders[ EN_RIGHT ] = gridPlanes[ i + 1 ][ j ][ 1 ];
+				}
+				else if ( grid->wrapWidth )
+				{
+					borders[ EN_RIGHT ] = gridPlanes[ 0 ][ j ][ 1 ];
+				}
 
-			if ( j < grid->height - 2 )
-			{
-				borders[ EN_BOTTOM ] = gridPlanes[ i ][ j + 1 ][ 0 ];
-			}
-			else if ( grid->wrapHeight )
-			{
-				borders[ EN_BOTTOM ] = gridPlanes[ i ][ 0 ][ 0 ];
-			}
+				useEdge = ( borders[ EN_RIGHT ] == gridPlanes[ i ][ j ][ 0 ] );
 
-			noAdjust[ EN_BOTTOM ] = ( borders[ EN_BOTTOM ] == gridPlanes[ i ][ j ][ 1 ] );
-
-			if ( borders[ EN_BOTTOM ] == -1 || noAdjust[ EN_BOTTOM ] )
-			{
-				borders[ EN_BOTTOM ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 2 );
-			}
-
-			borders[ EN_LEFT ] = -1;
-
-			if ( i > 0 )
-			{
-				borders[ EN_LEFT ] = gridPlanes[ i - 1 ][ j ][ 0 ];
-			}
-			else if ( grid->wrapWidth )
-			{
-				borders[ EN_LEFT ] = gridPlanes[ grid->width - 2 ][ j ][ 0 ];
+				if ( borders[ EN_RIGHT ] == -1 || useEdge )
+				{
+					borders[ EN_RIGHT ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 1 );
+				}
 			}
 
-			noAdjust[ EN_LEFT ] = ( borders[ EN_LEFT ] == gridPlanes[ i ][ j ][ 1 ] );
-
-			if ( borders[ EN_LEFT ] == -1 || noAdjust[ EN_LEFT ] )
+			if ( gridPlanes[ i ][ j ][ 1 ] != -1 )
 			{
-				borders[ EN_LEFT ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 3 );
-			}
+				// bottom
+				if ( j < grid->height - 2 )
+				{
+					borders[ EN_BOTTOM ] = gridPlanes[ i ][ j + 1 ][ 0 ];
+				}
+				else if ( grid->wrapHeight )
+				{
+					borders[ EN_BOTTOM ] = gridPlanes[ i ][ 0 ][ 0 ];
+				}
 
-			borders[ EN_RIGHT ] = -1;
+				useEdge = ( borders[ EN_BOTTOM ] == gridPlanes[ i ][ j ][ 1 ] );
 
-			if ( i < grid->width - 2 )
-			{
-				borders[ EN_RIGHT ] = gridPlanes[ i + 1 ][ j ][ 1 ];
-			}
-			else if ( grid->wrapWidth )
-			{
-				borders[ EN_RIGHT ] = gridPlanes[ 0 ][ j ][ 1 ];
-			}
+				if ( borders[ EN_BOTTOM ] == -1 || useEdge )
+				{
+					borders[ EN_BOTTOM ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 2 );
+				}
 
-			noAdjust[ EN_RIGHT ] = ( borders[ EN_RIGHT ] == gridPlanes[ i ][ j ][ 0 ] );
+				// left
+				if ( i > 0 )
+				{
+					borders[ EN_LEFT ] = gridPlanes[ i - 1 ][ j ][ 0 ];
+				}
+				else if ( grid->wrapWidth )
+				{
+					borders[ EN_LEFT ] = gridPlanes[ grid->width - 2 ][ j ][ 0 ];
+				}
 
-			if ( borders[ EN_RIGHT ] == -1 || noAdjust[ EN_RIGHT ] )
-			{
-				borders[ EN_RIGHT ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 1 );
+				useEdge = ( borders[ EN_LEFT ] == gridPlanes[ i ][ j ][ 1 ] );
+
+				if ( borders[ EN_LEFT ] == -1 || useEdge )
+				{
+					borders[ EN_LEFT ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 3 );
+				}
 			}
 
 			if ( numFacets == SHADER_MAX_TRIANGLES )
@@ -690,10 +677,14 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 					CM_AddFacetBevels( facet );
 					numFacets++;
 				}
+
+				continue;
 			}
-			else
+
+			// two separate triangles...
+
+			if ( gridPlanes[ i ][ j ][ 0 ] != -1 )
 			{
-				// two separate triangles
 				facet->surfacePlane = gridPlanes[ i ][ j ][ 0 ];
 				facet->numBorders = 3;
 				facet->borderPlanes[ 0 ] = borders[ EN_TOP ];
@@ -712,7 +703,10 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 					CM_AddFacetBevels( facet );
 					numFacets++;
 				}
+			}
 
+			if ( gridPlanes[ i ][ j ][ 1 ] != -1 )
+			{
 				if ( numFacets == SHADER_MAX_TRIANGLES )
 				{
 					Sys::Drop( "MAX_FACETS" );
