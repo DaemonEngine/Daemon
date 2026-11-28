@@ -702,12 +702,7 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 
 				if ( facet->borderPlanes[ 2 ] == -1 )
 				{
-					facet->borderPlanes[ 2 ] = borders[ EN_BOTTOM ];
-
-					if ( facet->borderPlanes[ 2 ] == -1 )
-					{
-						facet->borderPlanes[ 2 ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 4 );
-					}
+					facet->borderPlanes[ 2 ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 4 );
 				}
 
 				CM_SetBorderInward( facet, grid, i, j, 0 );
@@ -734,12 +729,7 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 
 				if ( facet->borderPlanes[ 2 ] == -1 )
 				{
-					facet->borderPlanes[ 2 ] = borders[ EN_TOP ];
-
-					if ( facet->borderPlanes[ 2 ] == -1 )
-					{
-						facet->borderPlanes[ 2 ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 5 );
-					}
+					facet->borderPlanes[ 2 ] = CM_EdgePlaneNum( grid, gridPlanes, i, j, 5 );
 				}
 
 				CM_SetBorderInward( facet, grid, i, j, 1 );
