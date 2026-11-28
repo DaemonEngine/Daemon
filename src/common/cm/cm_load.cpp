@@ -33,6 +33,7 @@ Maryland 20850 USA.
 */
 
 #include "cm_local.h"
+#include "cm_patch.h"
 
 #include "common/FileSystem.h"
 
@@ -633,7 +634,6 @@ static void CMod_LoadSurfaces(const byte *const cmod_base, const lump_t *surfs, 
 	int           numVertexes;
 	static vec3_t vertexes[ SHADER_MAX_VERTEXES ];
 	int           width, height;
-	int           shaderNum;
 	int           numIndexes;
 	static int    indexes[ SHADER_MAX_INDEXES ];
 	int           *index;
@@ -668,7 +668,13 @@ static void CMod_LoadSurfaces(const byte *const cmod_base, const lump_t *surfs, 
 	{
 		if ( LittleLong( in->surfaceType ) == mapSurfaceType_t::MST_PATCH )
 		{
-			// FIXME: check for non-colliding patches
+			int shaderNum = LittleLong( in->shaderNum );
+
+			if ( cm.shaders[ shaderNum ].contentFlags == 0 )
+			{
+				continue;
+			}
+
 			cm.surfaces[ i ] = surface = ( cSurface_t * ) CM_Alloc( sizeof( *surface ) );
 			surface->type = mapSurfaceType_t::MST_PATCH;
 
@@ -691,7 +697,6 @@ static void CMod_LoadSurfaces(const byte *const cmod_base, const lump_t *surfs, 
 				vertexes[ j ][ 2 ] = LittleFloat( dv_p->xyz[ 2 ] );
 			}
 
-			shaderNum = LittleLong( in->shaderNum );
 			surface->contents = cm.shaders[ shaderNum ].contentFlags;
 			surface->surfaceFlags = cm.shaders[ shaderNum ].surfaceFlags;
 
@@ -700,7 +705,12 @@ static void CMod_LoadSurfaces(const byte *const cmod_base, const lump_t *surfs, 
 		}
 		else if ( LittleLong( in->surfaceType ) == mapSurfaceType_t::MST_TRIANGLE_SOUP && ( cm.perPolyCollision || cm_forceTriangles.Get() ) )
 		{
-			// FIXME: check for non-colliding triangle soups
+			int shaderNum = LittleLong( in->shaderNum );
+
+			if ( cm.shaders[ shaderNum ].contentFlags == 0 )
+			{
+				continue;
+			}
 
 			cm.surfaces[ i ] = surface = ( cSurface_t * ) CM_Alloc( sizeof( *surface ) );
 			surface->type = mapSurfaceType_t::MST_TRIANGLE_SOUP;
@@ -741,7 +751,6 @@ static void CMod_LoadSurfaces(const byte *const cmod_base, const lump_t *surfs, 
 				}
 			}
 
-			shaderNum = LittleLong( in->shaderNum );
 			surface->contents = cm.shaders[ shaderNum ].contentFlags;
 			surface->surfaceFlags = cm.shaders[ shaderNum ].surfaceFlags;
 

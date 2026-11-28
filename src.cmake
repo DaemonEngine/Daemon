@@ -74,6 +74,7 @@ set(COMMONTESTLIST
     ${COMMON_DIR}/CvarTest.cpp
     ${COMMON_DIR}/FileSystemTest.cpp
     ${COMMON_DIR}/StringTest.cpp
+    ${COMMON_DIR}/cm/cm_patch_test.cpp
     ${COMMON_DIR}/cm/unittest.cpp
     ${COMMON_DIR}/MathTest.cpp
     ${COMMON_DIR}/UtilTest.cpp

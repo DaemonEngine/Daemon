@@ -263,8 +263,6 @@ struct leafList_t
 
 #define SUBDIVIDE_DISTANCE 16 //4 // never more than this units away from curve
 
-cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, const vec3_t *points );
-
 // cm_trisoup.c
 
 struct cTriangleSoup_t
